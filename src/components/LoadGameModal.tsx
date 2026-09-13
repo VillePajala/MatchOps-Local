@@ -23,6 +23,7 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { extractTimestampFromId } from '@/utils/idGenerator';
 import { ENTITY_DOT } from '@/config/palette';
+import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
 
 /**
  * Get validated series level from tournament, returning null if invalid.
@@ -636,7 +637,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('loadGame.title', 'Load Game')}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('loadGame.title', 'Load Game')}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />

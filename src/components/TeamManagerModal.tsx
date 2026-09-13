@@ -33,6 +33,7 @@ import DeleteBlockedDialog from './DeleteBlockedDialog';
 import { useResourceLimit } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 import { ENTITY_DOT } from '@/config/palette';
+import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
@@ -288,7 +289,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
+      className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`}
       role="dialog"
       aria-modal="true"
       aria-label={t('teamManager.title', 'Teams')}
@@ -583,7 +584,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
         {/* Delete Confirmation Modal */}
         {deleteConfirmTeamId && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]">
+          <div className={`${MODAL_BACKDROP_BLOCKING} ${Z_LAYER.modalNested}`}>
             <div className="bg-slate-800 p-6 rounded-lg border border-slate-600 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold text-slate-100 mb-4">
                 {t('common.confirmDelete', 'Confirm Delete')}

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import PlayerAssessmentCard from './PlayerAssessmentCard';
+import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
 
 interface PlayerAssessmentModalProps {
   isOpen: boolean;
@@ -119,7 +120,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
   const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('playerAssessment.title', 'Player Assessments')}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('playerAssessment.title', 'Player Assessments')}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />

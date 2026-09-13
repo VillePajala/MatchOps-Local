@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useWarmupPlan } from '@/hooks/useWarmupPlan';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
 import { FaChevronUp, FaChevronDown, FaPlus, FaTimes, FaPen, FaUndo } from 'react-icons/fa';
+import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
 
 interface TrainingResourcesModalProps {
   isOpen: boolean;
@@ -171,7 +172,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />

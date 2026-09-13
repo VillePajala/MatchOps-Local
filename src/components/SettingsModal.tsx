@@ -22,6 +22,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import AiSettingsCard from '@/components/AiSettingsCard';
 import CloudSyncSection from './CloudSyncSection';
 import TransitionOverlay from './TransitionOverlay';
+import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
 
 /**
  * MarketingConsentToggle - Toggle for granting/withdrawing marketing consent.
@@ -614,7 +615,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'App Settings')}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'App Settings')}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full`}>
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
@@ -1343,7 +1344,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
       {/* Restoring Loading Overlay */}
       {isRestoring && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70]">
+        <div className={`${MODAL_BACKDROP_BLOCKING} ${Z_LAYER.modalNested}`}>
           <div className="bg-slate-800 rounded-xl p-6 max-w-sm mx-4 shadow-xl border border-slate-700 text-center">
             <div
               className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500 mx-auto mb-4"

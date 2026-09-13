@@ -23,6 +23,7 @@ import { AGE_GROUPS } from '@/config/gameOptions';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
+import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
 
 interface UnifiedTeamModalProps {
   isOpen: boolean;
@@ -518,7 +519,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[70] font-display">
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
