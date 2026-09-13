@@ -14,7 +14,7 @@ import { createLogger } from '@/utils/logger';
 import TournamentSeriesManager from './TournamentSeriesManager';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { HiExclamationTriangle } from 'react-icons/hi2';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 const logger = createLogger('TournamentDetailsModal');
 

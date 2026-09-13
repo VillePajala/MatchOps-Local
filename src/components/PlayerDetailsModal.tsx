@@ -6,7 +6,7 @@ import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
 import logger from '@/utils/logger';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 interface PlayerDetailsModalProps {
   isOpen: boolean;

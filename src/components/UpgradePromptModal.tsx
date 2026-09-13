@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthProvider';
 import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
 import { isAndroid } from '@/utils/platform';
-import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
 
 export type UpgradePromptVariant = 'resourceLimit' | 'cloudUpgrade';
 

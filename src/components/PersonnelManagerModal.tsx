@@ -18,7 +18,7 @@ import { getGamesWithPersonnel } from '@/utils/personnelManager';
 import { getSafeTelHref, getSafeMailtoHref } from '@/utils/contactValidation';
 import ConfirmationModal from './ConfirmationModal';
 import PersonnelDetailsModal from './PersonnelDetailsModal';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import {
   CollapsibleModalHeader,
   useCollapsingHeader,

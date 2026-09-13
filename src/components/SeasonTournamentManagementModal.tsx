@@ -21,7 +21,7 @@ import type { EntityReferences } from '@/interfaces/DataStore';
 import logger from '@/utils/logger';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { ENTITY_DOT } from '@/config/palette';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;

@@ -8,7 +8,7 @@ import { Personnel, PersonnelRole } from '@/types/personnel';
 import logger from '@/utils/logger';
 import { AlreadyExistsError, ValidationError } from '@/interfaces/DataStoreErrors';
 import CertificationManager from './CertificationManager';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 interface PersonnelDetailsModalProps {
   isOpen: boolean;
