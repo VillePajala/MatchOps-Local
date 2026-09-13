@@ -755,6 +755,51 @@ describe('SoccerField Component - Interaction Testing', () => {
       moveSpy.mockRestore();
     });
 
+    /**
+     * @critical - the chain view is read on the touchline to decide who goes
+     * on next. Every planned change must reach the canvas; the owner's
+     * requirement is the WHOLE chain, not an abbreviated one.
+     */
+    it('paints the position, starter and every minute in the chain', () => {
+      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+      render(
+        <SoccerField
+          {...defaultProps}
+          plannedChains={[
+            {
+              positionLabel: 'LM',
+              relX: 0.25,
+              relY: 0.52,
+              starterName: 'Petja',
+              entries: [
+                { id: 'a', minute: 10, name: 'Tomas' },
+                { id: 'b', minute: 20, name: 'Petja' },
+                { id: 'c', minute: 30, name: 'Tomas' },
+              ],
+            },
+          ]}
+        />,
+      );
+      const drawn = spy.mock.calls.map((c) => String(c[0]));
+      expect(drawn).toEqual(expect.arrayContaining(['LM', 'Petja', "10'", "20'", "30'", 'Tomas']));
+      spy.mockRestore();
+    });
+
+    it('marks an unfilled position rather than leaving the pill blank', () => {
+      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+      render(
+        <SoccerField
+          {...defaultProps}
+          plannedChains={[
+            { positionLabel: 'ST', relX: 0.5, relY: 0.24, starterName: null, entries: [] },
+          ]}
+        />,
+      );
+      const drawn = spy.mock.calls.map((c) => String(c[0]));
+      expect(drawn).toEqual(expect.arrayContaining(['ST', '-']));
+      spy.mockRestore();
+    });
+
     it('paints nothing when there are no planned ghosts', () => {
       const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
       render(<SoccerField {...defaultProps} />);

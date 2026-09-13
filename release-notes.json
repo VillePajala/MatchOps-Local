@@ -4,6 +4,17 @@
     {
       "date": "2026-09-13",
       "en": [
+        "The plan button on the match field now steps through three views instead of two: the lineup on its own, the lineup with planned-substitution markers, and a new full plan view showing every position with its whole substitution schedule and the minute each change happens.",
+        "The full plan view shows the plan alone on an empty pitch, so the schedules have room to be read."
+      ],
+      "fi": [
+        "Ottelunäkymän suunnitelmapainike käy nyt läpi kolme näkymää kahden sijaan: pelkkä kokoonpano, kokoonpano ja suunniteltujen vaihtojen merkit, sekä uusi koko suunnitelman näkymä, jossa jokaisella pelipaikalla näkyy koko vaihtoaikataulu ja kunkin vaihdon minuutti.",
+        "Koko suunnitelman näkymä näyttää suunnitelman yksin tyhjällä kentällä, jotta aikataulut mahtuvat luettaviksi."
+      ]
+    },
+    {
+      "date": "2026-09-13",
+      "en": [
         "The planned-substitution markers on the match field are clearer. Each one now marks the sideline spot itself rather than drawing a second circle inside it, and a dotted thread runs back to the player waiting elsewhere, so you can see at a glance that the two marks are the same player.",
         "Names on those markers no longer run off the right edge of the screen."
       ],
