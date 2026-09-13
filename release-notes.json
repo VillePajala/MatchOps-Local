@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-13",
+      "en": [
+        "The match field now shows the rest of your plan. A sub who is planned to come on at a second position later appears there as a faint dashed marker with their name, so you can see at a glance who else belongs where. It is a reminder only - nothing is tracked, and the marker disappears as soon as someone is standing there."
+      ],
+      "fi": [
+        "Ottelunäkymä näyttää nyt suunnitelman loputkin. Vaihtopelaaja, jonka on suunniteltu tulevan myöhemmin toiselle pelipaikalle, näkyy siinä paikassa haaleana katkoviivaympyränä nimineen, joten näet yhdellä silmäyksellä ketkä muut kuuluvat mihinkin. Kyse on vain muistutuksesta - mitään ei seurata, ja merkki katoaa heti kun paikalla seisoo pelaaja."
+      ]
+    },
+    {
       "date": "2026-09-11",
       "en": [
         "In the voice notes inbox, the option for a note about the match as a whole is now simply \"The match\", listed alongside the players instead of reading as a sentence fragment."

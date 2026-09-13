@@ -29,6 +29,7 @@ import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { HiOutlineSquares2X2 } from 'react-icons/hi2';
+import { usePlannedGhosts } from '@/hooks/usePlannedGhosts';
 
 /**
  * Player drag/drop handlers for moving roster members on the field.
@@ -245,6 +246,14 @@ export function FieldContainer({
 
   // Consolidated locals (prefer VMs when provided)
   const fcPlayersOnField = fieldVM.playersOnField;
+  // Faint markers for planned entries no disc represents - a sub the plan
+  // brings on at a position they are not currently waiting at. Read once per
+  // game; nothing here follows the match.
+  const plannedGhosts = usePlannedGhosts(
+    currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
+    fieldVM.subSlots,
+    fcPlayersOnField,
+  );
   const fcOpponents = fieldVM.opponents;
   const fcDrawings = fieldVM.drawings;
   const fcIsTactics = fieldVM.isTacticsBoardView;
@@ -403,6 +412,7 @@ export function FieldContainer({
           isDrawingEnabled={fcIsDrawingEnabled}
           formationSnapPoints={fieldVM.formationSnapPoints}
           subSlots={fieldVM.subSlots}
+          plannedGhosts={plannedGhosts}
         />
       </ErrorBoundary>
 
