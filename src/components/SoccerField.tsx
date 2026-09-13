@@ -93,6 +93,85 @@ const TAP_TO_DRAG_THRESHOLD_SQ = TAP_TO_DRAG_THRESHOLD * TAP_TO_DRAG_THRESHOLD;
 const FORMATION_SNAP_THRESHOLD_PX = 36; // pixels
 const FORMATION_SNAP_THRESHOLD_SQ = FORMATION_SNAP_THRESHOLD_PX * FORMATION_SNAP_THRESHOLD_PX;
 
+/**
+ * Draw the planned-substitution markers.
+ *
+ * ONE function for both render paths on purpose. These markers first shipped
+ * wired into the export path only, so the toggle appeared and the live field
+ * stayed blank; a shared helper makes that particular mistake impossible to
+ * repeat rather than merely unlikely.
+ *
+ * The mark is deliberately not another ring. The sideline slot already draws a
+ * dashed circle here, so a ghost ring inside it put two dashed circles and a
+ * grey position label in one spot. Instead the EXISTING slot circle is filled
+ * and given a solid edge - "this empty slot is spoken for" - and a dotted
+ * thread runs back to the player's real disc, because the same name appearing
+ * twice on the field only means something once you can see the two are one
+ * player.
+ */
+function drawPlannedGhosts(
+  ctx: CanvasRenderingContext2D,
+  ghosts: readonly PlannedGhost[],
+  W: number,
+  H: number,
+  radius: number,
+): void {
+  ctx.save();
+  ghosts.forEach((ghost) => {
+    const gx = ghost.relX * W;
+    const gy = ghost.relY * H;
+
+    // The thread home, drawn first so the circle sits on top of its end.
+    if (typeof ghost.fromRelX === 'number' && typeof ghost.fromRelY === 'number') {
+      const fx = ghost.fromRelX * W;
+      const fy = ghost.fromRelY * H;
+      const dx = gx - fx;
+      const dy = gy - fy;
+      const len = Math.hypot(dx, dy);
+      // Start and end on the circles' edges, not their centres, so the thread
+      // never crosses either disc's face.
+      if (len > radius * 2) {
+        const ux = dx / len;
+        const uy = dy / len;
+        ctx.beginPath();
+        ctx.setLineDash([3, 4]);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(226, 232, 240, 0.3)';
+        ctx.moveTo(fx + ux * radius, fy + uy * radius);
+        ctx.lineTo(gx - ux * radius, gy - uy * radius);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // The booked slot: a faint face plus a solid edge, covering the dashed
+    // empty-slot ring already drawn underneath at this same radius.
+    ctx.beginPath();
+    ctx.arc(gx, gy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(226, 232, 240, 0.1)';
+    ctx.fill();
+    ctx.setLineDash([]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(226, 232, 240, 0.5)';
+    ctx.stroke();
+
+    // The name. The sideline column sits at relX 0.96, so on a narrow phone a
+    // centred name runs off the canvas - clamp it back inside rather than let
+    // it be sliced.
+    ctx.font = `600 11px Rajdhani, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const half = ctx.measureText(ghost.name).width / 2;
+    const tx = Math.min(Math.max(gx, half + 2), W - half - 2);
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.lineWidth = 2.5;
+    ctx.strokeText(ghost.name, tx, gy);
+    ctx.fillStyle = 'rgba(226, 232, 240, 0.9)';
+    ctx.fillText(ghost.name, tx, gy);
+  });
+  ctx.restore();
+}
+
 /** What a drop near the formation points should do. Exported for tests. */
 export type SnapAction =
   | { type: 'swap'; occupantId: string }
@@ -539,27 +618,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // the pixels, and skipped entirely on the tactics board, which is about
     // shapes rather than the squad.
     if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
-      plannedGhosts.forEach(ghost => {
-        const gx = ghost.relX * W;
-        const gy = ghost.relY * H;
-        ctx.save();
-        // A dashed outline with no fill: unmistakably not a player, and it
-        // echoes the dotted sub-slot circles already on the sideline rather
-        // than introducing a new mark to learn.
-        ctx.setLineDash([4, 4]);
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = 'rgba(226, 232, 240, 0.45)';
-        ctx.beginPath();
-        ctx.arc(gx, gy, PLAYER_RADIUS * 0.82, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(226, 232, 240, 0.6)';
-        ctx.font = `500 ${Math.round(PLAYER_RADIUS * 0.44)}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(ghost.name, gx, gy);
-        ctx.restore();
-      });
+      drawPlannedGhosts(ctx, plannedGhosts, W, H, FIELD_PLAYER_RADIUS);
     }
 
     // Draw players with polished enamel effect (only in non-tactical view)
@@ -1136,33 +1195,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // disc is waiting at. Drawn AFTER the sub-slot circles (so the slot ring
     // stays underneath) and BEFORE the players, so a real disc always wins.
     if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
-      plannedGhosts.forEach(ghost => {
-        const gx = ghost.relX * W;
-        const gy = ghost.relY * H;
-        context.save();
-        // A dashed ring inside the slot's own circle, with no fill:
-        // unmistakably not a player, and it echoes the dotted sub-slot
-        // circles already on the sideline rather than adding a new mark.
-        context.setLineDash([4, 4]);
-        context.lineWidth = 2;
-        context.strokeStyle = 'rgba(226, 232, 240, 0.45)';
-        context.beginPath();
-        context.arc(gx, gy, FIELD_PLAYER_RADIUS * 0.82, 0, Math.PI * 2);
-        context.stroke();
-        context.setLineDash([]);
-        // The name is the whole point of the marker, so it gets the same
-        // dark outline the position labels use - a sideline slot can sit on
-        // a light patch of pitch.
-        context.font = '600 11px Rajdhani, sans-serif';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-        context.lineWidth = 2;
-        context.strokeText(ghost.name, gx, gy);
-        context.fillStyle = 'rgba(226, 232, 240, 0.75)';
-        context.fillText(ghost.name, gx, gy);
-        context.restore();
-      });
+      drawPlannedGhosts(context, plannedGhosts, W, H, FIELD_PLAYER_RADIUS);
     }
 
     // --- Draw Players ---
