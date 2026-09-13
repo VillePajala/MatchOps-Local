@@ -32,6 +32,8 @@ import UnifiedTeamModal from './UnifiedTeamModal';
 import DeleteBlockedDialog from './DeleteBlockedDialog';
 import { useResourceLimit } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
+import { ENTITY_DOT } from '@/config/palette';
+import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
@@ -287,7 +289,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
+      className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`}
       role="dialog"
       aria-modal="true"
       aria-label={t('teamManager.title', 'Teams')}
@@ -508,7 +510,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
                               aria-label={t('teamManager.ageGroupContext', 'Age group: {{ageGroup}}', { ageGroup: team.ageGroup })}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.clubSeason}`}></span>
                               {team.ageGroup}
                             </span>
                           )}
@@ -518,7 +520,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
                               aria-label={t('teamManager.gameTypeContext', 'Game type: Futsal')}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gameType}`}></span>
                               {t('common.gameTypeFutsal', 'Futsal')}
                             </span>
                           )}
@@ -528,7 +530,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
                               aria-label={t('teamManager.seasonContext', 'League: {{name}}', { name: getSeasonDisplayName(seasonMap[team.boundSeasonId]) })}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.season}`}></span>
                               {getSeasonDisplayName(seasonMap[team.boundSeasonId])}
                             </span>
                           )}
@@ -538,7 +540,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
                               aria-label={t('teamManager.tournamentContext', 'Tournament: {{name}}', { name: getTournamentDisplayName(tournamentMap[team.boundTournamentId]) })}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`}></span>
                               {getTournamentDisplayName(tournamentMap[team.boundTournamentId])}
                             </span>
                           )}
@@ -551,7 +553,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                 className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
                                 aria-label={t('teamManager.seriesContext', 'Level: {{level}}', { level: series.level })}
                               >
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.series}`}></span>
                                 {t(`common.level${series.level}`, series.level)}
                               </span>
                             );
@@ -582,7 +584,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
         {/* Delete Confirmation Modal */}
         {deleteConfirmTeamId && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]">
+          <div className={`${MODAL_BACKDROP_BLOCKING} ${Z_LAYER.modalNested}`}>
             <div className="bg-slate-800 p-6 rounded-lg border border-slate-600 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold text-slate-100 mb-4">
                 {t('common.confirmDelete', 'Confirm Delete')}

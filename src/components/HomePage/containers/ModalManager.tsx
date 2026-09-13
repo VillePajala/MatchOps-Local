@@ -30,6 +30,7 @@ import type {
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import type { UseMutationResult } from '@tanstack/react-query';
+import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
 
 
 
@@ -329,7 +330,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
         />
 
         {state.isTeamReassignModalOpen && data.orphanedGameInfo && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`${MODAL_BACKDROP} ${Z_LAYER.screenOverlay}`}>
             <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
               <h2 className="text-xl font-bold text-yellow-400 mb-4">
                 {t('orphanedGame.reassignTitle', 'Reassign Game to Team')}

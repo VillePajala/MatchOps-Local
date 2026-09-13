@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthProvider';
 import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
 import { isAndroid } from '@/utils/platform';
+import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
 
 export type UpgradePromptVariant = 'resourceLimit' | 'cloudUpgrade';
 
@@ -247,7 +248,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
     <ModalPortal>
       <div
         ref={modalRef}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[80] font-display"
+        className={`${MODAL_BACKDROP_BLOCKING} ${Z_LAYER.takeover}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
