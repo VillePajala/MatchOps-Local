@@ -228,20 +228,37 @@ function drawPlannedChains(
   ctx.textBaseline = 'middle';
 
   chains.forEach((chain) => {
+    // A position nobody leaves has nothing to schedule. It still has to be
+    // there - a hole in the eleven reads as a bug - but it recedes, so the
+    // positions that DO change something come forward on their own.
+    const settled = chain.entries.length === 0;
+
     const cols = chain.entries.length >= 3 ? 2 : 1;
     const rows = Math.ceil(chain.entries.length / cols);
 
-    // Width is driven by the widest thing in the pill, so nothing is clipped.
-    ctx.font = `700 12px Rajdhani, sans-serif`;
-    const headText = `${chain.positionLabel}  ${chain.starterName ?? '-'}`;
-    let cellW = 0;
-    ctx.font = `500 11px Rajdhani, sans-serif`;
+    // One gutter for every minute in this pill, wide enough for the longest,
+    // so the names line up in a column instead of stepping in and out as the
+    // minutes go from 5' to 30'.
+    ctx.font = `700 11px Rajdhani, sans-serif`;
+    let gutter = 0;
     chain.entries.forEach((e) => {
-      cellW = Math.max(cellW, ctx.measureText(`${e.minute}'  ${e.name}`).width);
+      gutter = Math.max(gutter, ctx.measureText(`${e.minute}'`).width);
+    });
+    gutter += 6;
+
+    // Width is driven by the widest thing in the pill, so nothing is clipped.
+    ctx.font = `500 11px Rajdhani, sans-serif`;
+    let cellW = 0;
+    chain.entries.forEach((e) => {
+      cellW = Math.max(cellW, gutter + ctx.measureText(e.name).width);
     });
     cellW += 10;
-    ctx.font = `700 12px Rajdhani, sans-serif`;
-    const pillW = Math.max(ctx.measureText(headText).width + CHAIN_PAD * 2, cols * cellW + CHAIN_PAD * 2);
+    ctx.font = `700 13px Rajdhani, sans-serif`;
+    const nameW = ctx.measureText(chain.starterName ?? '-').width;
+    ctx.font = `700 11px Rajdhani, sans-serif`;
+    const tagW = ctx.measureText(chain.positionLabel).width;
+    const headW = tagW + 6 + nameW;
+    const pillW = Math.max(headW + CHAIN_PAD * 2, cols * cellW + CHAIN_PAD * 2);
     const pillH = CHAIN_PAD * 2 + (1 + rows) * CHAIN_ROW_H;
 
     // Keep the whole pill on the canvas - the formation reaches relX 0.25/0.75
@@ -251,24 +268,41 @@ function drawPlannedChains(
     const x = cx - pillW / 2;
     const y = cy - pillH / 2;
 
+    // A soft shadow, because grass is a busy, mid-tone texture and a flat dark
+    // panel on it reads as smudge rather than card.
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 2;
     roundedRectPath(ctx, x, y, pillW, pillH, 6);
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.84)';
+    ctx.fillStyle = settled ? 'rgba(15, 23, 42, 0.62)' : 'rgba(15, 23, 42, 0.88)';
     ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
-    ctx.stroke();
+    ctx.restore();
 
-    // Header: the position, then who starts it.
+    // Only a pill with something to say gets an edge.
+    if (!settled) {
+      roundedRectPath(ctx, x, y, pillW, pillH, 6);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+      ctx.stroke();
+    }
+
+    // Header: the position, then who starts it. The name outranks the tag -
+    // the coach knows the shape, they are looking for the person.
     const headY = y + CHAIN_PAD + CHAIN_ROW_H / 2;
     ctx.textAlign = 'left';
-    ctx.font = `700 12px Rajdhani, sans-serif`;
-    ctx.fillStyle = 'rgba(148, 163, 184, 0.95)';
+    ctx.font = `700 11px Rajdhani, sans-serif`;
+    ctx.fillStyle = settled ? 'rgba(148, 163, 184, 0.65)' : 'rgba(148, 163, 184, 0.95)';
     ctx.fillText(chain.positionLabel, x + CHAIN_PAD, headY);
-    const tagW = ctx.measureText(chain.positionLabel).width;
-    ctx.fillStyle = chain.starterName ? '#FFFFFF' : 'rgba(148, 163, 184, 0.6)';
+    ctx.font = `700 13px Rajdhani, sans-serif`;
+    ctx.fillStyle = chain.starterName
+      ? settled
+        ? 'rgba(255, 255, 255, 0.72)'
+        : '#FFFFFF'
+      : 'rgba(148, 163, 184, 0.6)';
     ctx.fillText(chain.starterName ?? '-', x + CHAIN_PAD + tagW + 6, headY);
 
-    if (chain.entries.length === 0) {
+    if (settled) {
       return;
     }
 
@@ -287,14 +321,15 @@ function drawPlannedChains(
       const ex = x + CHAIN_PAD + col * cellW;
       const ey = divY + CHAIN_ROW_H / 2 + row * CHAIN_ROW_H;
       // The minute carries the colour: on the touchline you scan for WHEN.
+      // Right-aligned in its gutter so 5' and 30' share an edge.
       ctx.font = `700 11px Rajdhani, sans-serif`;
       ctx.fillStyle = '#F59E0B';
-      const minute = `${entry.minute}'`;
-      ctx.fillText(minute, ex, ey);
-      const mW = ctx.measureText(minute).width;
+      ctx.textAlign = 'right';
+      ctx.fillText(`${entry.minute}'`, ex + gutter - 6, ey);
+      ctx.textAlign = 'left';
       ctx.font = `500 11px Rajdhani, sans-serif`;
       ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
-      ctx.fillText(entry.name, ex + mW + 5, ey);
+      ctx.fillText(entry.name, ex + gutter, ey);
     });
   });
 

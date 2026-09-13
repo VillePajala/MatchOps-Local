@@ -785,6 +785,34 @@ describe('SoccerField Component - Interaction Testing', () => {
       spy.mockRestore();
     });
 
+    /**
+     * Minutes run from 5' to 30', so a name placed right after its minute
+     * steps in and out down the pill. One gutter keeps the names in a column.
+     */
+    it('aligns names in a column whatever width the minutes are', () => {
+      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+      render(
+        <SoccerField
+          {...defaultProps}
+          plannedChains={[
+            {
+              positionLabel: 'LM',
+              relX: 0.5,
+              relY: 0.5,
+              starterName: 'Petja',
+              entries: [
+                { id: 'a', minute: 5, name: 'Tomas' },
+                { id: 'b', minute: 30, name: 'Tiitus' },
+              ],
+            },
+          ]}
+        />,
+      );
+      const xOf = (name: string) => Number(spy.mock.calls.find((c) => c[0] === name)![1]);
+      expect(xOf('Tomas')).toBe(xOf('Tiitus'));
+      spy.mockRestore();
+    });
+
     it('marks an unfilled position rather than leaving the pill blank', () => {
       const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
       render(
