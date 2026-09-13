@@ -5,6 +5,7 @@
  */
 
 import {
+  getGamesForPlanGame,
   getAllPlanLinks,
   getPlanLink,
   setPlanLink,
@@ -129,4 +130,33 @@ describe('planLinks store', () => {
     store[PLAYTIME_PLAN_LINKS_KEY] = '{corrupt json';
     expect(await getAllPlanLinks()).toEqual({});
   });
+
+  /**
+   * The reverse lookup that lets a PLAN open its match. The store is keyed by
+   * real game id, so this has to scan - and the thing worth testing is that it
+   * scans on BOTH halves of the key. Matching planGameId alone would jump to a
+   * game belonging to a different plan that happens to share a game id.
+   */
+  describe('getGamesForPlanGame', () => {
+    it('finds every game created from one planned game', async () => {
+      await setPlanLink('game-a', { planId: 'p1', planGameId: 'g1' });
+      await setPlanLink('game-b', { planId: 'p1', planGameId: 'g1' });
+      await setPlanLink('game-c', { planId: 'p1', planGameId: 'g2' });
+      expect((await getGamesForPlanGame('p1', 'g1')).sort()).toEqual(['game-a', 'game-b']);
+    });
+
+    it('does not cross plans that share a planned-game id', async () => {
+      await setPlanLink('mine', { planId: 'p1', planGameId: 'g1' });
+      await setPlanLink('theirs', { planId: 'p2', planGameId: 'g1' });
+      expect(await getGamesForPlanGame('p1', 'g1')).toEqual(['mine']);
+      expect(await getGamesForPlanGame('p2', 'g1')).toEqual(['theirs']);
+    });
+
+    it('returns nothing for a planned game no match came from', async () => {
+      await setPlanLink('game-a', { planId: 'p1', planGameId: 'g1' });
+      expect(await getGamesForPlanGame('p1', 'g-none')).toEqual([]);
+      expect(await getGamesForPlanGame('p-none', 'g1')).toEqual([]);
+    });
+  });
+
 });

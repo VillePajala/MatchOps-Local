@@ -121,6 +121,8 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     setPlayerIdsForNewGame,
     isPlaytimePlannerOpen,
     setIsPlaytimePlannerOpen,
+    plannerTarget,
+    setPlannerTarget,
     plannerLiveGameHooks,
     isClubStatsOpen,
     setIsClubStatsOpen,
@@ -405,6 +407,16 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           onClose={() => setIsPlaytimePlannerOpen(false)}
           onFlushLiveGame={plannerLiveGameHooks?.onFlushLiveGame}
           onLinkedGamesUpdated={plannerLiveGameHooks?.onLinkedGamesUpdated}
+          initialTarget={plannerTarget}
+          onTargetConsumed={() => setPlannerTarget(null)}
+          /* The round trip's return leg: close the planner and load the game,
+             so a coach moves plan -> match in one tap instead of backing out
+             to Home and hunting through saved games. */
+          onOpenGame={(gameId) => {
+            setIsPlaytimePlannerOpen(false);
+            setPlannerTarget(null);
+            void loadGame.handleLoadGame(gameId);
+          }}
         />
       )}
       {isClubStatsOpen && (

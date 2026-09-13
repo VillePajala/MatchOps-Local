@@ -2,7 +2,7 @@ import React, { useRef, useCallback, useState, useMemo } from 'react';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
-import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark, HiOutlineMapPin } from 'react-icons/hi2';
+import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark, HiOutlineMapPin, HiOutlineUserPlus } from 'react-icons/hi2';
 import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import TimerOverlay from '@/components/TimerOverlay';
@@ -29,6 +29,8 @@ import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { HiOutlineSquares2X2 } from 'react-icons/hi2';
+import { usePlannedGhosts } from '@/hooks/usePlannedGhosts';
+
 
 /**
  * Player drag/drop handlers for moving roster members on the field.
@@ -245,6 +247,29 @@ export function FieldContainer({
 
   // Consolidated locals (prefer VMs when provided)
   const fcPlayersOnField = fieldVM.playersOnField;
+  // Faint markers for planned entries no disc represents - a sub the plan
+  // brings on at a position they are not currently waiting at. Read once per
+  // game; nothing here follows the match.
+  const plannedGhosts = usePlannedGhosts(
+    currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
+    fieldVM.subSlots,
+    fcPlayersOnField,
+  );
+  /**
+   * Ghosts off, for showing the field TO THE PLAYERS.
+   *
+   * Owner's point, and it is the right one: this screen has two audiences. A
+   * coach reading their own plan wants every marker; a team of children being
+   * shown the starting formation wants the eleven discs and nothing else.
+   *
+   * DELIBERATELY NOT PERSISTED. Hiding them is a momentary thing - the team
+   * talk before kickoff - so they come back by themselves next time the field
+   * opens. Remembering "hidden" would let one team talk switch the feature off
+   * for good, and a coach who never sees it again has no way to know it
+   * existed.
+   */
+  const [showGhosts, setShowGhosts] = useState(true);
+  const toggleGhosts = useCallback(() => setShowGhosts((prev) => !prev), []);
   const fcOpponents = fieldVM.opponents;
   const fcDrawings = fieldVM.drawings;
   const fcIsTactics = fieldVM.isTacticsBoardView;
@@ -403,6 +428,7 @@ export function FieldContainer({
           isDrawingEnabled={fcIsDrawingEnabled}
           formationSnapPoints={fieldVM.formationSnapPoints}
           subSlots={fieldVM.subSlots}
+          plannedGhosts={showGhosts ? plannedGhosts : undefined}
         />
       </ErrorBoundary>
 
@@ -451,6 +477,21 @@ export function FieldContainer({
         >
           <HiOutlineMapPin className={`w-5 h-5 ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-slate-400'}`} />
         </button>
+        {/* Planned-sub markers. Hidden entirely when the game has none, rather
+            than shown dead: a control that cannot change anything is noise on
+            the busiest screen in the app. */}
+        {plannedGhosts.length > 0 && (
+          <button
+            onClick={toggleGhosts}
+            data-testid="toggle-planned-ghosts"
+            className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+            title={t('field.togglePlannedSubs', 'Show planned substitutions')}
+            aria-label={t('field.togglePlannedSubs', 'Show planned substitutions')}
+            aria-pressed={showGhosts}
+          >
+            <HiOutlineUserPlus className={`w-5 h-5 ${showGhosts ? 'text-white' : 'text-slate-400'}`} />
+          </button>
+        )}
       </div>
 
       {/* First game setup guidance - dismissible overlay */}
