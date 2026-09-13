@@ -64,6 +64,7 @@ import logger from '@/utils/logger';
 import { setStorageItem, removeStorageItem, getAllStorageData } from '@/utils/storage';
 import * as Sentry from '@sentry/nextjs';
 import { withRetry, throwIfTransient, TransientSupabaseError, isTransientError, type RetryConfig } from '@/datastore/supabase/retry';
+import { addOpponentToList } from '@/utils/opponentNames';
 
 // Type-safe database types using the Database schema from supabase.ts
 // These types provide full type safety for all database operations.
@@ -212,6 +213,22 @@ const normalizeDateArray = (value: unknown): string[] | null => {
     .map((item) => normalizeDateString(item))
     .filter((item): item is string => typeof item === 'string');
   return normalized.length > 0 ? normalized : null;
+};
+
+/**
+ * Opponent names for a competition: trimmed, blanks dropped, and only the
+ * first spelling of any one name kept (see utils/opponentNames.ts - "IPS" and
+ * "Ips" are one name, "IPS/Punainen" and "IPS/Sininen" are two).
+ *
+ * Always an array, never null, so a league whose list was cleared reads back
+ * the same way as one that never had a list.
+ */
+const normalizeOpponentList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value.reduce<string[]>((kept, item) => {
+    if (typeof item !== 'string') return kept;
+    return addOpponentToList(kept, item);
+  }, []);
 };
 
 const normalizeTeamPlacements = (value?: Record<string, TeamPlacementInfo>): Json | null => {
@@ -1852,6 +1869,11 @@ export class SupabaseDataStore implements DataStore {
       color: updatedSeason.color ?? null,
       badge: updatedSeason.badge ?? null,
       team_placements: normalizeTeamPlacements(updatedSeason.teamPlacements),
+      // This payload is hand-built rather than reusing transformSeasonToDb, so
+      // a new column has to be added HERE too. Migration 043's defect was
+      // exactly this shape: the insert path picked the field up and every
+      // update silently dropped it, which looks like a save that works.
+      opponents: normalizeOpponentList(updatedSeason.opponents),
       updated_at: new Date().toISOString(),
     };
 
@@ -1916,6 +1938,7 @@ export class SupabaseDataStore implements DataStore {
       color: row.color ?? undefined,
       badge: row.badge ?? undefined,
       teamPlacements: parseTeamPlacements(row.team_placements),
+      opponents: normalizeOpponentList(row.opponents),
       createdAt: row.created_at ?? undefined,
       updatedAt: row.updated_at ?? undefined,
     };
@@ -1943,6 +1966,10 @@ export class SupabaseDataStore implements DataStore {
       color: season.color ?? null,
       badge: season.badge ?? null,
       team_placements: normalizeTeamPlacements(season.teamPlacements),
+      // Labels, not entities - see utils/opponentNames.ts. Always an array,
+      // never null, so a league whose list was cleared reads back the same
+      // way as one that never had one.
+      opponents: normalizeOpponentList(season.opponents),
       // Preserve original creation time on sync push / upsert (matches teams/personnel).
       created_at: season.createdAt ?? now,
       updated_at: now,

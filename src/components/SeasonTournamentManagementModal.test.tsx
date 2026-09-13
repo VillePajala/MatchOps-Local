@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { render, screen, act, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SeasonTournamentManagementModal from './SeasonTournamentManagementModal';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -15,9 +15,12 @@ const createTestQueryClient = () => new QueryClient({
   defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
 });
 
+const mockGetSavedGames = jest.fn().mockResolvedValue({});
 jest.mock('@/utils/savedGames', () => ({
   getFilteredGames: jest.fn().mockResolvedValue([]),
+  getSavedGames: (...a: unknown[]) => mockGetSavedGames(...a),
 }));
+jest.mock('@/utils/seasons', () => ({ getSeasons: jest.fn().mockResolvedValue([]) }));
 
 // Mock usePremium to avoid "Upgrade prompt handler not registered" warnings
 jest.mock('@/hooks/usePremium', () => ({
@@ -777,4 +780,47 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
     // Restore original mock
     usePremiumModule.useResourceLimit = originalUseResourceLimit;
   });
+
+  /**
+   * The sweep tool lives next to the lists it cleans. Cheap test, but it is
+   * the only thing standing between a wired modal and a dead button.
+   */
+  describe('team-name sweep', () => {
+    /**
+     * @critical - nobody opens a cleanup tool speculatively, so the badge is
+     * what makes the tool reachable at all. It must appear only when there is
+     * genuinely something to fix, or it trains the coach to ignore it.
+     */
+    it('shows no badge when every team is written one way', async () => {
+      renderWithProviders();
+      await waitFor(() => expect(screen.getByTestId('open-opponent-sweep')).toBeInTheDocument());
+      expect(screen.queryByTestId('opponent-sweep-badge')).not.toBeInTheDocument();
+    });
+
+    it('badges the count when one team is written two ways', async () => {
+      mockGetSavedGames.mockResolvedValueOnce({
+        g1: { opponentName: 'IPS' },
+        g2: { opponentName: 'Ips' },
+        // A different team, and one written consistently: neither is a conflict.
+        g3: { opponentName: 'IPS/Sininen' },
+        g4: { opponentName: 'KuPS' },
+      });
+      renderWithProviders();
+      const badge = await screen.findByTestId('opponent-sweep-badge');
+      expect(badge).toHaveTextContent('1');
+    });
+
+    it('opens the sweep tool from the competitions manager', async () => {
+      renderWithProviders();
+      expect(screen.queryByTestId('opponent-sweep-clean')).not.toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('open-opponent-sweep'));
+      });
+      // Nothing to fix with the default fixtures, which is still the sweep
+      // modal rendering rather than the button doing nothing.
+      expect(await screen.findByTestId('opponent-sweep-clean')).toBeInTheDocument();
+    });
+  });
+
 });

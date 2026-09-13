@@ -558,7 +558,18 @@ describe('Translation File Validation', () => {
       // +2 plan <-> game round trip: "this game's plan" in the match menu and
       //     "open the game" in the planner, so the two halves of one match can
       //     reach each other without going back through Home. Lands at 3232.
-      expect(enKeys.length).toBe(3232);
+      // +9 opponentList.*: the teams a competition is played against, listed
+      //     once and then picked from a dropdown when creating a game, so the
+      //     one free-text field left on that form stops producing "IPS" and
+      //     "Ips" as different opponents. Lands at 3241.
+      // +2 newGameSetupModal.addOpponentToSeason/opponentAddFailed: adding a
+      //     team to the league from the game form itself, because a detour to
+      //     the competition manager is how the list stays empty. Lands at 3243.
+      // +9 opponentSweep.*: the tool that settles one team written several
+      //     ways. Lands at 3252.
+      // +1 opponentSweep.appliedListsOnly: a rename can touch only a league's
+      //     list, where "Renamed in 0 games" is true and useless. Lands at 3253.
+      expect(enKeys.length).toBe(3253);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -735,7 +746,11 @@ describe('Translation File Validation', () => {
       // +6 pluralised counts (see EN above). Lands at 3226.
       // +4 pluralised Kilpailut counts (see EN above). Lands at 3230.
       // +2 plan <-> game round trip (see EN above). Lands at 3232.
-      expect(fiKeys.length).toBe(3232);
+      // +9 opponentList.* (see EN above). Lands at 3241.
+      // +2 inline add on the game form (see EN above). Lands at 3243.
+      // +9 opponentSweep.* (see EN above). Lands at 3252.
+      // +1 appliedListsOnly (see EN above). Lands at 3253.
+      expect(fiKeys.length).toBe(3253);
     });
   });
 });

@@ -1238,6 +1238,111 @@ describe('SupabaseDataStore', () => {
       });
     });
 
+    /**
+     * @critical - migration 043's defect class, and the reason updateSeason
+     * carries a comment about it. updateSeason hand-builds its payload rather
+     * than reusing transformSeasonToDb, so a column added to the insert path
+     * is NOT automatically written on update: saving a new league would keep
+     * the opponents and editing one would silently drop them, which looks
+     * exactly like a save that works.
+     *
+     * The assertion is on the payload sent to Supabase, because that is where
+     * the omission would be - a returned object built in memory would look
+     * correct either way.
+     */
+    describe('updateSeason (opponents round-trip)', () => {
+      it('writes the opponent list on UPDATE, not only on insert', async () => {
+        const existingRow = {
+          id: 'season_123',
+          name: 'Ita P11',
+          start_date: '2026-01-01',
+          end_date: '2026-12-31',
+          club_season: '26/27',
+          game_type: 'soccer',
+          gender: null,
+          age_group: 'U11',
+          league_id: null,
+          custom_league_name: null,
+          archived: false,
+          opponents: ['IPS'],
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+
+        const updateSpy = jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        });
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: existingRow, error: null });
+        mockQueryBuilder.eq = jest.fn().mockReturnThis();
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({ data: [existingRow], error: null });
+        mockQueryBuilder.update = updateSpy;
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+
+        await dataStore.updateSeason({
+          id: 'season_123',
+          name: 'Ita P11',
+          opponents: ['IPS', 'KuPS'],
+        } as Season);
+
+        expect(updateSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ opponents: ['IPS', 'KuPS'] }),
+        );
+      });
+
+      it('collapses two spellings of one team as it writes', async () => {
+        const existingRow = {
+          id: 'season_123',
+          name: 'Ita P11',
+          archived: false,
+          opponents: [],
+          club_season: '26/27',
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+        const updateSpy = jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        });
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: existingRow, error: null });
+        mockQueryBuilder.eq = jest.fn().mockReturnThis();
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({ data: [existingRow], error: null });
+        mockQueryBuilder.update = updateSpy;
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+
+        await dataStore.updateSeason({
+          id: 'season_123',
+          name: 'Ita P11',
+          // "Ips" is a spelling of "IPS"; "IPS/Sininen" is a different team.
+          opponents: ['IPS', 'Ips', 'IPS/Sininen'],
+        } as Season);
+
+        expect(updateSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ opponents: ['IPS', 'IPS/Sininen'] }),
+        );
+      });
+    });
+
     describe('createSeason', () => {
       beforeEach(() => {
         // Mock getSeasons for uniqueness check
