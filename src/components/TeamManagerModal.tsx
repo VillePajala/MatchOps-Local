@@ -32,6 +32,7 @@ import UnifiedTeamModal from './UnifiedTeamModal';
 import DeleteBlockedDialog from './DeleteBlockedDialog';
 import { useResourceLimit } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
+import { ENTITY_DOT } from '@/config/palette';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
@@ -508,7 +509,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
                               aria-label={t('teamManager.ageGroupContext', 'Age group: {{ageGroup}}', { ageGroup: team.ageGroup })}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.clubSeason}`}></span>
                               {team.ageGroup}
                             </span>
                           )}
@@ -518,7 +519,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
                               aria-label={t('teamManager.gameTypeContext', 'Game type: Futsal')}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gameType}`}></span>
                               {t('common.gameTypeFutsal', 'Futsal')}
                             </span>
                           )}
@@ -528,7 +529,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
                               aria-label={t('teamManager.seasonContext', 'League: {{name}}', { name: getSeasonDisplayName(seasonMap[team.boundSeasonId]) })}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.season}`}></span>
                               {getSeasonDisplayName(seasonMap[team.boundSeasonId])}
                             </span>
                           )}
@@ -538,7 +539,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
                               aria-label={t('teamManager.tournamentContext', 'Tournament: {{name}}', { name: getTournamentDisplayName(tournamentMap[team.boundTournamentId]) })}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`}></span>
                               {getTournamentDisplayName(tournamentMap[team.boundTournamentId])}
                             </span>
                           )}
@@ -551,7 +552,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                 className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
                                 aria-label={t('teamManager.seriesContext', 'Level: {{level}}', { level: series.level })}
                               >
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.series}`}></span>
                                 {t(`common.level${series.level}`, series.level)}
                               </span>
                             );

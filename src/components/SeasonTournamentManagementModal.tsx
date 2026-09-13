@@ -20,6 +20,7 @@ import { CLUB_SEASON_OFF_SEASON } from '@/utils/entityDisplayNames';
 import type { EntityReferences } from '@/interfaces/DataStore';
 import logger from '@/utils/logger';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
+import { ENTITY_DOT } from '@/config/palette';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
@@ -293,7 +294,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         {/* Club Season - Green dot */}
                                         {item.clubSeason && item.clubSeason !== CLUB_SEASON_OFF_SEASON && (
                                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-green-400" aria-hidden="true"></span>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.clubSeason}`} aria-hidden="true"></span>
                                                 <span className="sr-only">{t('seasonDetailsModal.clubSeasonLabel', 'Season')}: </span>
                                                 {item.clubSeason}
                                             </span>
@@ -301,7 +302,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         {/* Futsal - Orange dot */}
                                         {item.gameType === 'futsal' && (
                                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-orange-400" aria-hidden="true"></span>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gameType}`} aria-hidden="true"></span>
                                                 <span className="sr-only">{t('common.gameTypeLabel', 'Sport Type')}: </span>
                                                 {t('common.futsal', 'Futsal')}
                                             </span>
@@ -309,7 +310,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         {/* Gender - Pink dot */}
                                         {item.gender && (
                                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-pink-400" aria-hidden="true"></span>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gender}`} aria-hidden="true"></span>
                                                 <span className="sr-only">{t('common.genderLabel', 'Gender')}: </span>
                                                 {item.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
                                             </span>
@@ -317,7 +318,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         {/* Tournament Series - Amber dots */}
                                         {type === 'tournament' && (item as Tournament).series?.map(series => (
                                             <span key={series.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden="true"></span>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.series}`} aria-hidden="true"></span>
                                                 <span className="sr-only">{t('common.seriesLabel', 'Level')}: </span>
                                                 {t(`common.level${series.level}`, series.level)}
                                             </span>
