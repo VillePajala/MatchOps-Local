@@ -33,6 +33,17 @@ export interface PlannedGhost {
   relY: number;
   /** Display name of the player planned to enter here. */
   name: string;
+  /**
+   * Where this player's REAL disc currently sits, when they have one.
+   *
+   * The same name appears twice on the field - solid where the player is
+   * waiting, ghosted where the plan sends them next - and nothing tied the
+   * two together. The field draws a thread between them; these are its far
+   * end. Absent when the player is on neither the field nor the sideline
+   * (nothing to draw a thread from).
+   */
+  fromRelX?: number;
+  fromRelY?: number;
 }
 
 /**
@@ -59,6 +70,14 @@ export function buildPlannedGhosts(
   if (plannedSubs.length === 0 || subSlots.length === 0) return [];
 
   const nameById = new Map(players.map((p) => [p.id, p.nickname?.trim() || p.name]));
+  // Where each player's real disc is, for the thread back to it. Only placed
+  // players have one; a player in the squad but not on the field or sideline
+  // has no disc to connect to.
+  const placedById = new Map(
+    players
+      .filter((p) => typeof p.relX === 'number' && typeof p.relY === 'number')
+      .map((p) => [p.id, { relX: p.relX as number, relY: p.relY as number }]),
+  );
 
   // A slot counts as occupied when a real disc is within half a slot's spacing
   // of it - discs are dragged by hand, so exact coordinate equality would fail
@@ -89,7 +108,14 @@ export function buildPlannedGhosts(
     if (!slot || isOccupied(slot)) continue;
 
     placed.add(key);
-    ghosts.push({ id: sub.id, relX: slot.relX, relY: slot.relY, name });
+    const from = placedById.get(sub.inPlayerId);
+    ghosts.push({
+      id: sub.id,
+      relX: slot.relX,
+      relY: slot.relY,
+      name,
+      ...(from ? { fromRelX: from.relX, fromRelY: from.relY } : {}),
+    });
   }
 
   return ghosts;

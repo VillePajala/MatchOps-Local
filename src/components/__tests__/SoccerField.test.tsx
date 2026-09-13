@@ -714,6 +714,47 @@ describe('SoccerField Component - Interaction Testing', () => {
       spy.mockRestore();
     });
 
+    /**
+     * The sideline column sits at relX 0.96, so a centred name runs off a
+     * narrow canvas - which is exactly how it shipped, with the names sliced
+     * by the screen edge.
+     */
+    it('keeps the name inside the canvas instead of letting it clip', () => {
+      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+      render(<SoccerField {...defaultProps} plannedGhosts={GHOSTS} />);
+
+      const call = spy.mock.calls.find((c) => c[0] === 'Tomas');
+      expect(call).toBeDefined();
+      // Canvas is 800 wide here; 0.96 * 800 = 768 is the unclamped centre.
+      expect(Number(call![1])).toBeLessThanOrEqual(800);
+      expect(Number(call![1])).toBeGreaterThan(0);
+      spy.mockRestore();
+    });
+
+    /** The same name appears twice; a thread is what says they are one player. */
+    it('threads a ghost back to the disc the player is waiting on', () => {
+      const moveSpy = jest.spyOn(CanvasRenderingContext2D.prototype, 'moveTo');
+      render(
+        <SoccerField
+          {...defaultProps}
+          plannedGhosts={[{ ...GHOSTS[0], fromRelX: 0.96, fromRelY: 0.7 }]}
+        />,
+      );
+      // 800x600 canvas: the source disc is at (768, 420) and the ghost at
+      // (768, 144), so the thread starts one radius below the source disc.
+      // Asserting the exact point, because moveTo alone is called all over
+      // the field drawing and would pass with no thread at all.
+      expect(moveSpy.mock.calls).toContainEqual([768, 396]);
+      moveSpy.mockRestore();
+    });
+
+    it('draws no thread for a player with no disc on the field', () => {
+      const moveSpy = jest.spyOn(CanvasRenderingContext2D.prototype, 'moveTo');
+      render(<SoccerField {...defaultProps} plannedGhosts={[GHOSTS[0]]} />);
+      expect(moveSpy.mock.calls).not.toContainEqual([768, 396]);
+      moveSpy.mockRestore();
+    });
+
     it('paints nothing when there are no planned ghosts', () => {
       const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
       render(<SoccerField {...defaultProps} />);
