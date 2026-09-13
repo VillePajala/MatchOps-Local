@@ -13,6 +13,7 @@ import {
 import tinycolor from 'tinycolor2';
 import logger from '@/utils/logger';
 import { isSidelinePosition, getPositionLabel } from '@/utils/positionLabels';
+import type { PlannedGhost } from '@/utils/playtimePlanner/ghostSubs';
 import type { SubSlot } from '@/utils/formations';
 
 // Define props for SoccerField
@@ -57,6 +58,14 @@ interface SoccerFieldProps {
   formationSnapPoints?: Point[];
   /** Sub slots for substitution planning - shows labeled positions on sideline */
   subSlots?: SubSlot[];
+  /**
+   * Faint markers for planned entries no real disc represents - a player the
+   * plan brings on at a position they are not currently waiting at.
+   *
+   * Purely drawn: never hit-tested, never dragged, never part of `players`.
+   * They are a reminder of the plan, not a record of the match.
+   */
+  plannedGhosts?: PlannedGhost[];
 }
 
 /**
@@ -299,6 +308,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   isDrawingEnabled,
   formationSnapPoints,
   subSlots,
+  plannedGhosts,
 }, ref) => {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -525,6 +535,33 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       });
     }
 
+    // Planned-sub ghosts: drawn BEFORE the players so a real disc always wins
+    // the pixels, and skipped entirely on the tactics board, which is about
+    // shapes rather than the squad.
+    if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
+      plannedGhosts.forEach(ghost => {
+        const gx = ghost.relX * W;
+        const gy = ghost.relY * H;
+        ctx.save();
+        // A dashed outline with no fill: unmistakably not a player, and it
+        // echoes the dotted sub-slot circles already on the sideline rather
+        // than introducing a new mark to learn.
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(226, 232, 240, 0.45)';
+        ctx.beginPath();
+        ctx.arc(gx, gy, PLAYER_RADIUS * 0.82, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(226, 232, 240, 0.6)';
+        ctx.font = `500 ${Math.round(PLAYER_RADIUS * 0.44)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(ghost.name, gx, gy);
+        ctx.restore();
+      });
+    }
+
     // Draw players with polished enamel effect (only in non-tactical view)
     if (!isTacticsBoardView) {
       players.forEach(player => {
@@ -737,7 +774,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     return exportCanvas;
-  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, showPositionLabels, gameType, formationSnapPoints, subSlots, t]);
+  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, showPositionLabels, gameType, formationSnapPoints, subSlots, plannedGhosts, t]);
 
   // Expose canvas via ref for export functionality
   useImperativeHandle(ref, () => ({
