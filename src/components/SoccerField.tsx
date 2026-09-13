@@ -14,6 +14,7 @@ import tinycolor from 'tinycolor2';
 import logger from '@/utils/logger';
 import { isSidelinePosition, getPositionLabel } from '@/utils/positionLabels';
 import type { PlannedGhost } from '@/utils/playtimePlanner/ghostSubs';
+import type { PlannedChain } from '@/utils/playtimePlanner/plannedChains';
 import type { SubSlot } from '@/utils/formations';
 
 // Define props for SoccerField
@@ -66,6 +67,9 @@ interface SoccerFieldProps {
    * They are a reminder of the plan, not a record of the match.
    */
   plannedGhosts?: PlannedGhost[];
+  /** Full plan view: one divided pill per position. Drawn on an otherwise
+   *  empty field - the caller withholds discs, sideline and opponents. */
+  plannedChains?: PlannedChain[];
 }
 
 /**
@@ -169,6 +173,201 @@ function drawPlannedGhosts(
     ctx.fillStyle = 'rgba(226, 232, 240, 0.9)';
     ctx.fillText(ghost.name, tx, gy);
   });
+  ctx.restore();
+}
+
+/** Rounded rectangle path, by hand - ctx.roundRect is not everywhere yet. */
+function roundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
+  const rad = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rad, y);
+  ctx.lineTo(x + w - rad, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rad);
+  ctx.lineTo(x + w, y + h - rad);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rad, y + h);
+  ctx.lineTo(x + rad, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rad);
+  ctx.lineTo(x, y + rad);
+  ctx.quadraticCurveTo(x, y, x, y + rad);
+  ctx.closePath();
+}
+
+const CHAIN_ROW_H = 17;
+const CHAIN_PAD = 5;
+
+/**
+ * One hue per wave of substitutions, so every change happening at the same
+ * minute looks the same wherever it is on the pitch.
+ *
+ * Amber leads deliberately: a plan with a single substitution minute - the
+ * common case - looks exactly as it did before this existed, and amber goes on
+ * meaning "when". Later waves take hues that hold up on grass at a glance.
+ *
+ * Colour is an ACCELERATOR, never the information: the minute is printed on
+ * every row regardless, so a coach who cannot tell these hues apart loses
+ * speed and nothing else. Waves beyond the palette wrap, which is fine for the
+ * same reason - two distant minutes sharing a hue costs a second look, not a
+ * wrong substitution.
+ */
+const CHAIN_WAVE_COLORS = ['#F59E0B', '#38BDF8', '#A78BFA', '#34D399', '#FB7185'] as const;
+const waveColor = (i: number): string =>
+  CHAIN_WAVE_COLORS[((i % CHAIN_WAVE_COLORS.length) + CHAIN_WAVE_COLORS.length) % CHAIN_WAVE_COLORS.length];
+
+/**
+ * Draw the full plan: one divided pill per position.
+ *
+ * The third state of the field's plan toggle, and the only one that stands
+ * alone - the caller hands us an otherwise empty field (no discs, no sideline,
+ * no opponents) because the chains need every pixel of that space.
+ *
+ * The pill is the planner's own mark: position tag and starter on top, then
+ * each incoming player tagged with their minute. A coach reads one convention
+ * in both places.
+ *
+ * Chains of three or more run in TWO COLUMNS rather than growing downward.
+ * Centre-column positions sit as little as 0.14 apart - about 60px on a phone -
+ * so a tall pill would sit on its neighbour's head. Width is the cheap
+ * direction here, now that the sideline column is gone.
+ */
+function drawPlannedChains(
+  ctx: CanvasRenderingContext2D,
+  chains: readonly PlannedChain[],
+  W: number,
+  H: number,
+): void {
+  ctx.save();
+  ctx.textBaseline = 'middle';
+
+  chains.forEach((chain) => {
+    // A position nobody leaves has nothing to schedule. It still has to be
+    // there - a hole in the eleven reads as a bug - but it recedes, so the
+    // positions that DO change something come forward on their own.
+    const settled = chain.entries.length === 0;
+
+    const cols = chain.entries.length >= 3 ? 2 : 1;
+    const rows = Math.ceil(chain.entries.length / cols);
+
+    // One gutter for every minute in this pill, wide enough for the longest,
+    // so the names line up in a column instead of stepping in and out as the
+    // minutes go from 5' to 30'.
+    ctx.font = `700 11px Rajdhani, sans-serif`;
+    let gutter = 0;
+    chain.entries.forEach((e) => {
+      gutter = Math.max(gutter, ctx.measureText(`${e.minute}'`).width);
+    });
+    gutter += 6;
+
+    // Width is driven by the widest thing in the pill, so nothing is clipped.
+    ctx.font = `500 11px Rajdhani, sans-serif`;
+    let cellW = 0;
+    chain.entries.forEach((e) => {
+      cellW = Math.max(cellW, gutter + ctx.measureText(e.name).width);
+    });
+    cellW += 10;
+    ctx.font = `700 13px Rajdhani, sans-serif`;
+    const nameW = ctx.measureText(chain.starterName ?? '-').width;
+    ctx.font = `700 11px Rajdhani, sans-serif`;
+    const tagW = ctx.measureText(chain.positionLabel).width;
+    const headW = tagW + 6 + nameW;
+    const pillW = Math.max(headW + CHAIN_PAD * 2, cols * cellW + CHAIN_PAD * 2);
+    const pillH = CHAIN_PAD * 2 + (1 + rows) * CHAIN_ROW_H;
+
+    // Keep the whole pill on the canvas - the formation reaches relX 0.25/0.75
+    // and relY 0.92, so an unclamped pill leaves the pitch at the edges.
+    const cx = Math.min(Math.max(chain.relX * W, pillW / 2 + 2), W - pillW / 2 - 2);
+    const cy = Math.min(Math.max(chain.relY * H, pillH / 2 + 2), H - pillH / 2 - 2);
+    const x = cx - pillW / 2;
+    const y = cy - pillH / 2;
+
+    // A soft shadow, because grass is a busy, mid-tone texture and a flat dark
+    // panel on it reads as smudge rather than card.
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 2;
+    roundedRectPath(ctx, x, y, pillW, pillH, 6);
+    ctx.fillStyle = settled ? 'rgba(15, 23, 42, 0.62)' : 'rgba(15, 23, 42, 0.88)';
+    ctx.fill();
+    ctx.restore();
+
+    // Only a pill with something to say gets an edge.
+    if (!settled) {
+      roundedRectPath(ctx, x, y, pillW, pillH, 6);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+      ctx.stroke();
+    }
+
+    // Header: the position, then who starts it. The name outranks the tag -
+    // the coach knows the shape, they are looking for the person.
+    const headY = y + CHAIN_PAD + CHAIN_ROW_H / 2;
+    ctx.textAlign = 'left';
+    ctx.font = `700 11px Rajdhani, sans-serif`;
+    ctx.fillStyle = settled ? 'rgba(148, 163, 184, 0.65)' : 'rgba(148, 163, 184, 0.95)';
+    ctx.fillText(chain.positionLabel, x + CHAIN_PAD, headY);
+    ctx.font = `700 13px Rajdhani, sans-serif`;
+    ctx.fillStyle = chain.starterName
+      ? settled
+        ? 'rgba(255, 255, 255, 0.72)'
+        : '#FFFFFF'
+      : 'rgba(148, 163, 184, 0.6)';
+    ctx.fillText(chain.starterName ?? '-', x + CHAIN_PAD + tagW + 6, headY);
+
+    if (settled) {
+      return;
+    }
+
+    // Hairline under the header, echoing the planner's divided pill.
+    const divY = y + CHAIN_PAD + CHAIN_ROW_H;
+    ctx.beginPath();
+    ctx.moveTo(x + CHAIN_PAD, divY);
+    ctx.lineTo(x + pillW - CHAIN_PAD, divY);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+    ctx.stroke();
+
+    chain.entries.forEach((entry, i) => {
+      const col = cols === 1 ? 0 : i % cols;
+      const row = cols === 1 ? i : Math.floor(i / cols);
+      const ex = x + CHAIN_PAD + col * cellW;
+      const ey = divY + CHAIN_ROW_H / 2 + row * CHAIN_ROW_H;
+      const hue = waveColor(entry.waveIndex);
+
+      // A wash of the wave's hue behind the row. The tag alone is a small mark
+      // to find across eight pills; a tinted band is visible without being
+      // read, which is what "who goes on together" needs to be.
+      //
+      // Width comes from the PILL, not the cell. The pill is as wide as the
+      // header when a starter's name is longer than any entry, and sizing the
+      // band off cellW left a dark strip at the right edge - a row highlight
+      // that stops short reads as a half-filled progress bar.
+      const bandW = cols === 1 ? pillW - CHAIN_PAD * 2 + 4 : cellW - 6;
+      roundedRectPath(ctx, ex - 2, ey - CHAIN_ROW_H / 2 + 1, bandW, CHAIN_ROW_H - 2, 3);
+      ctx.globalAlpha = 0.14;
+      ctx.fillStyle = hue;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // The minute carries the colour: on the touchline you scan for WHEN.
+      // Right-aligned in its gutter so 5' and 30' share an edge.
+      ctx.font = `700 11px Rajdhani, sans-serif`;
+      ctx.fillStyle = hue;
+      ctx.textAlign = 'right';
+      ctx.fillText(`${entry.minute}'`, ex + gutter - 6, ey);
+      ctx.textAlign = 'left';
+      ctx.font = `500 11px Rajdhani, sans-serif`;
+      ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
+      ctx.fillText(entry.name, ex + gutter, ey);
+    });
+  });
+
   ctx.restore();
 }
 
@@ -388,6 +587,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   formationSnapPoints,
   subSlots,
   plannedGhosts,
+  plannedChains,
 }, ref) => {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -620,6 +820,9 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
       drawPlannedGhosts(ctx, plannedGhosts, W, H, FIELD_PLAYER_RADIUS);
     }
+    if (!isTacticsBoardView && plannedChains && plannedChains.length > 0) {
+      drawPlannedChains(ctx, plannedChains, W, H);
+    }
 
     // Draw players with polished enamel effect (only in non-tactical view)
     if (!isTacticsBoardView) {
@@ -833,7 +1036,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     return exportCanvas;
-  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, showPositionLabels, gameType, formationSnapPoints, subSlots, plannedGhosts, t]);
+  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, showPositionLabels, gameType, formationSnapPoints, subSlots, plannedGhosts, plannedChains, t]);
 
   // Expose canvas via ref for export functionality
   useImperativeHandle(ref, () => ({
@@ -1197,6 +1400,9 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
       drawPlannedGhosts(context, plannedGhosts, W, H, FIELD_PLAYER_RADIUS);
     }
+    if (!isTacticsBoardView && plannedChains && plannedChains.length > 0) {
+      drawPlannedChains(context, plannedChains, W, H);
+    }
 
     // --- Draw Players ---
     const playerRadius = FIELD_PLAYER_RADIUS;
@@ -1334,7 +1540,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     // --- End of draw ---
-  }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, subSlots, t, formationSnapPoints, plannedGhosts]);
+  }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, subSlots, t, formationSnapPoints, plannedGhosts, plannedChains]);
 
   // Add the new ResizeObserver effect
   useEffect(() => {

@@ -569,7 +569,13 @@ describe('Translation File Validation', () => {
       //     ways. Lands at 3252.
       // +1 opponentSweep.appliedListsOnly: a rename can touch only a league's
       //     list, where "Renamed in 0 games" is true and useless. Lands at 3253.
-      expect(enKeys.length).toBe(3253);
+      // +1 fieldTools.togglePlannedSubs: the plan control's tooltip was calling
+      //     a key that existed in NO locale file, so it fell back to English
+      //     for Finnish users. Lands at 3254.
+      // +3 fieldTools.planView*: the plan control is now a three-step cycle
+      //     (lineup / planned subs / subs and minutes) and has to name the
+      //     state it just became. Lands at 3257.
+      expect(enKeys.length).toBe(3257);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -750,7 +756,9 @@ describe('Translation File Validation', () => {
       // +2 inline add on the game form (see EN above). Lands at 3243.
       // +9 opponentSweep.* (see EN above). Lands at 3252.
       // +1 appliedListsOnly (see EN above). Lands at 3253.
-      expect(fiKeys.length).toBe(3253);
+      // +1 fieldTools.togglePlannedSubs (see EN above). Lands at 3254.
+      // +3 fieldTools.planView* (see EN above). Lands at 3257.
+      expect(fiKeys.length).toBe(3257);
     });
   });
 });
