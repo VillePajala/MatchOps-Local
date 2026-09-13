@@ -70,6 +70,20 @@ describe('buildPlannedChains', () => {
     expect(buildPlannedChains([], withSideline, players)).toHaveLength(4);
   });
 
+  /**
+   * @critical - the keeper vanished from the first build of this view. The
+   * obvious-looking `isFieldPosition` helper excludes relY > 0.9 because it
+   * exists to decide which positions get a SIDELINE SUB SLOT, and the keeper
+   * does not. A view claiming to show every position must not borrow it.
+   */
+  it('includes the goalkeeper, who sits below the outfield cutoff', () => {
+    const withKeeper = [...points, { relX: 0.5, relY: 0.92 }];
+    const keeper = [...players, { id: 'g1', name: 'Jasper', relX: 0.5, relY: 0.92 }] as Player[];
+    const chains = buildPlannedChains([], withKeeper, keeper);
+    expect(chains.map((c) => c.positionLabel)).toContain('GK');
+    expect(chains.find((c) => c.positionLabel === 'GK')!.starterName).toBe('Jasper');
+  });
+
   it('reports an unfilled position rather than inventing a starter', () => {
     const noStriker = players.filter((p) => p.id !== 'p1');
     const chains = buildPlannedChains([], points, noStriker);

@@ -22,7 +22,6 @@
  * @category Utils
  */
 
-import { isFieldPosition } from '@/utils/formations';
 import { getPositionLabelForFormationPosition } from '@/utils/positionLabels';
 import type { PlannedGameSub } from './gameSubs';
 import type { Player, Point } from '@/types';
@@ -56,11 +55,26 @@ export interface PlannedChain {
 const STARTER_TOLERANCE = 0.06;
 
 /**
+ * Which formation points get a pill.
+ *
+ * NOT `isFieldPosition` from formations.ts, though it looks like the obvious
+ * fit. That helper answers a different question - which points deserve a
+ * SIDELINE SUB SLOT - and so excludes the keeper (`relY <= 0.9`) along with
+ * the sideline column. Borrowing it here silently dropped the goalkeeper from
+ * a view whose whole claim is that it shows every position.
+ *
+ * Here the only thing to exclude is the sideline column itself: a waiting sub
+ * is not a position, and this view hides the sideline entirely.
+ */
+const SIDELINE_FROM = 0.95;
+const isChainPosition = (p: Point): boolean => p.relX < SIDELINE_FROM;
+
+/**
  * Build one chain per field position.
  *
  * Positions come from the game's own `formationSnapPoints`, so the view shows
- * the shape actually being played. Sideline slots are excluded - a waiting sub
- * is not a position, and this view hides the sideline entirely.
+ * the shape actually being played - GOALKEEPER INCLUDED. Only the sideline
+ * column is excluded; a waiting sub is not a position.
  *
  * A position with no planned changes still gets a chain: "nobody leaves this
  * spot" is information, and an eleven with holes in it would read as a bug.
@@ -92,7 +106,7 @@ export function buildPlannedChains(
 
   const chains: PlannedChain[] = [];
   for (const point of formationSnapPoints) {
-    if (!isFieldPosition(point)) continue;
+    if (!isChainPosition(point)) continue;
     const positionLabel = getPositionLabelForFormationPosition(point.relX, point.relY).label;
 
     // Whoever is standing closest to this point, within a nudge's tolerance.
