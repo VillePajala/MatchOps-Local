@@ -4,6 +4,17 @@
     {
       "date": "2026-09-13",
       "en": [
+        "The planned-substitution markers on the match field are clearer. Each one now marks the sideline spot itself rather than drawing a second circle inside it, and a dotted thread runs back to the player waiting elsewhere, so you can see at a glance that the two marks are the same player.",
+        "Names on those markers no longer run off the right edge of the screen."
+      ],
+      "fi": [
+        "Suunniteltujen vaihtojen merkit ottelunäkymässä ovat selkeämmät. Merkki korostaa nyt itse vaihtopaikkaa sen sijaan että piirtäisi toisen ympyrän sen sisään, ja katkoviiva yhdistää sen muualla odottavaan pelaajaan, joten näet yhdellä silmäyksellä että kyse on samasta pelaajasta.",
+        "Merkkien nimet eivät enää valu yli näytön oikeasta reunasta."
+      ]
+    },
+    {
+      "date": "2026-09-13",
+      "en": [
         "You can now list the teams in a league, and pick the opponent from that list when creating a game instead of typing the name every time. Typing is still allowed for a friendly or a one-off, and you can add a new team to the league straight from the game form.",
         "New tool under Competitions: Check team names. It finds one team you have written several ways - IPS, Ips, IPS/Sininen - and settles them on one spelling across your games. It never merges two teams that differ by their colour."
       ],

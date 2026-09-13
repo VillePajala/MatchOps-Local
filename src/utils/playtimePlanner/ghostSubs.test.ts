@@ -88,6 +88,23 @@ describe('buildPlannedGhosts', () => {
     expect(buildPlannedGhosts([sub({ inPlayerId: 'ghost', positionLabel: 'LM' })], slots, players)).toEqual([]);
   });
 
+  /**
+   * The field threads a ghost back to the player's real disc, so the two marks
+   * carrying one name read as one player rather than two.
+   */
+  it('carries the position of the disc the player is waiting on', () => {
+    const waiting = [...players, { id: 'p1', name: 'Tomas', relX: 0.96, relY: 0.3 }] as Player[];
+    const ghosts = buildPlannedGhosts([sub({ positionLabel: 'LM' })], slots, waiting);
+    expect(ghosts[0]).toMatchObject({ fromRelX: 0.96, fromRelY: 0.3 });
+  });
+
+  /** A squad member with no disc has nothing to thread back to. */
+  it('omits the origin for a player who is not placed', () => {
+    const ghosts = buildPlannedGhosts([sub({ positionLabel: 'LM' })], slots, players);
+    expect(ghosts[0].fromRelX).toBeUndefined();
+    expect(ghosts[0].fromRelY).toBeUndefined();
+  });
+
   it('prefers the nickname, which is what the disc shows', () => {
     const ghosts = buildPlannedGhosts([sub({ inPlayerId: 'p3', positionLabel: 'LM' })], slots, players);
     expect(ghosts[0].name).toBe('Pete');
