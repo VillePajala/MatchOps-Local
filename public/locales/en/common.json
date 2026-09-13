@@ -406,7 +406,11 @@
     "addHome": "Add Home",
     "addOpponent": "Add Opp",
     "clear": "Clear",
-    "reset": "Reset"
+    "reset": "Reset",
+    "togglePlannedSubs": "Show planned substitutions",
+    "planViewLineup": "Lineup only",
+    "planViewGhosts": "Planned substitutions",
+    "planViewChains": "Substitutions and minutes"
   },
   "gameResult": {
     "overtime": "OT",
