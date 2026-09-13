@@ -22,6 +22,7 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { extractTimestampFromId } from '@/utils/idGenerator';
+import { ENTITY_DOT } from '@/config/palette';
 
 /**
  * Get validated series level from tournament, returning null if invalid.
@@ -582,21 +583,21 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       {/* Game type */}
                       {game.gameType === 'futsal' && (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gameType}`}></span>
                           {t('common.gameTypeFutsal', 'Futsal')}
                         </span>
                       )}
                       {/* Gender */}
                       {game.gender && (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-pink-400"></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gender}`}></span>
                           {game.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
                         </span>
                       )}
                       {/* Season */}
                       {season && (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400" aria-hidden="true"></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.season}`} aria-hidden="true"></span>
                           <span className="sr-only">{t('common.season', 'League')}: </span>
                           {getSeasonDisplayName(season)}
                         </span>
@@ -604,14 +605,14 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       {/* League */}
                       {leagueName && (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.league}`}></span>
                           {leagueName}
                         </span>
                       )}
                       {/* Tournament */}
                       {tournament && (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400" aria-hidden="true"></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`} aria-hidden="true"></span>
                           <span className="sr-only">{t('common.tournament', 'Tournament')}: </span>
                           {getTournamentDisplayName(tournament)}
                         </span>
@@ -619,7 +620,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       {/* Series level */}
                       {seriesLevel && (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.series}`}></span>
                           {t(`common.level${seriesLevel}` as TranslationKey, seriesLevel)}
                         </span>
                       )}

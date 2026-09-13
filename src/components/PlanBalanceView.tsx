@@ -23,14 +23,18 @@ import { getGameSlots } from '@/utils/playtimePlanner/lineup';
 import { getPositionLabel } from '@/utils/positionLabels';
 import { fairnessChipColors } from '@/utils/playtimePlanner/colors';
 import { cardStyle, subtextStyle } from '@/styles/modalStyles';
+import { POSITION_ROLE_HEX } from '@/config/palette';
 
 /** Solid, distinct fill per zone for the distribution bar (dark-theme tuned). */
-const ZONE_BAR_COLOR: Record<PlanZone, string> = {
-  gk: '#38bdf8', // sky-400
-  def: '#60a5fa', // blue-400
-  mid: '#34d399', // emerald-400
-  att: '#fb7185', // rose-400
-};
+/**
+ * Zone colours come from the shared palette, not from here.
+ *
+ * They used to be local, and had drifted: this view painted the keeper sky and
+ * the defence blue, while PlayerPositionsEditor painted the keeper amber and
+ * the defence sky. Sky therefore meant "goalkeeper" on one screen and
+ * "defender" on another.
+ */
+const ZONE_BAR_COLOR: Record<PlanZone, string> = POSITION_ROLE_HEX;
 
 interface PlanBalanceViewProps {
   plan: PlaytimePlan;
