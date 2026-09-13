@@ -4,6 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
 
 export interface ConfirmationModalProps {
   isOpen: boolean;
@@ -105,7 +106,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] font-display"
+      className={`${MODAL_BACKDROP_BLOCKING} ${Z_LAYER.modalNested}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}

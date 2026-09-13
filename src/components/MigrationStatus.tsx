@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useMigrationStatus, MigrationProgress } from '@/hooks/useMigrationStatus';
 import { HiOutlineExclamationTriangle, HiOutlineCheckCircle, HiOutlineXMark } from 'react-icons/hi2';
+import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
 
 // Throttled progress component to prevent excessive re-renders
 const ThrottledProgress = React.memo(({ progress, t }: { progress: MigrationProgress | null; t: TFunction }) => {
@@ -82,7 +83,7 @@ function MigrationStatusComponent() {
   // Migration in progress
   if (isRunning) {
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className={`${MODAL_BACKDROP_BLOCKING} ${Z_LAYER.screenOverlay}`}>
         <div
           className="bg-slate-800 rounded-xl p-6 max-w-md mx-4 shadow-xl border border-slate-700"
           role="dialog"

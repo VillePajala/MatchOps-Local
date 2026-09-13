@@ -6,6 +6,7 @@ import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
 import logger from '@/utils/logger';
+import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
 
 interface PlayerDetailsModalProps {
   isOpen: boolean;
@@ -127,7 +128,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const isPending = isRosterUpdating;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[70] font-display">
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
