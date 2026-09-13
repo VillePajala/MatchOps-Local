@@ -14,6 +14,7 @@ import { planOpponentRename, renameInOpponentList } from '@/utils/opponentRename
 import logger from '@/utils/logger';
 import type { Season } from '@/types';
 import type { SavedGamesCollection } from '@/types/game';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface OpponentNameSweepModalProps {
   isOpen: boolean;
@@ -110,6 +111,9 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
       setApplying(null);
     }
   };
+
+  useEscapeToClose(isOpen, onClose);
+
 
   if (!isOpen) return null;
 

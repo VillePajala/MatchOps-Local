@@ -7,6 +7,7 @@ import type { ShootoutKick } from '@/types/game';
 import { getShootoutTally, getShootoutWinner } from '@/utils/shootout';
 import { CollapsibleModalHeader, ModalStickyPrimary, useCollapsingHeader } from '@/styles/modalStyles';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface ShootoutModalProps {
   isOpen: boolean;
@@ -57,6 +58,9 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  useEscapeToClose(isOpen, onClose);
+
 
   if (!isOpen) return null;
 

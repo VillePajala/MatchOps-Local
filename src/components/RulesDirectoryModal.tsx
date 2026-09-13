@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useId } from 'react';
 import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
@@ -12,6 +12,7 @@ import RuleViewerModal from '@/components/RuleViewerModal';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import type { TranslationKey } from '@/i18n-types';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface RulesDirectoryModalProps {
   isOpen: boolean;
@@ -123,10 +124,15 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
     return parsed.toLocaleDateString(i18n.language || undefined);
   }, [i18n.language]);
 
+  const modalTitleId = useId();
+
+  useEscapeToClose(isOpen, onClose, viewing === null);
+
+
   if (!isOpen) return null;
 
   return (
-    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
@@ -137,6 +143,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
         <div className="relative z-10 flex flex-col min-h-0 h-full">
           {/* Chrome slimming: X-header replaces the header + close-only footer. */}
           <CollapsibleModalHeader
+          titleId={modalTitleId}
             title={t('rulesDirectory.title', 'Säännöt')}
             onClose={onClose}
             closeLabel={t('common.doneButton', 'Done')}

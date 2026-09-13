@@ -149,7 +149,7 @@ export const ModalContainer: React.FC<{
 }> = ({ children, containerRef, 'aria-label': ariaLabel }) => (
   <div
     ref={containerRef}
-    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
+    className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`}
     {...(ariaLabel ? { role: 'dialog', 'aria-modal': true, 'aria-label': ariaLabel, tabIndex: -1 } : {})}
   >
     <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
@@ -352,7 +352,20 @@ export const CollapsibleModalHeader: React.FC<{
   /** Collapsing region below the title row (tabs, add buttons, counters). */
   children?: React.ReactNode;
   collapse?: CollapsingHeaderController;
-}> = ({ title, onClose, closeLabel = 'Close', closeDisabled, actions, children, collapse }) => {
+  /**
+   * Id stamped on the <h2>, so the modal that owns this header can point its
+   * `aria-labelledby` at the title already on screen.
+   *
+   * Ten modals had no accessible name at all, and most of them render a title
+   * that depends on state ("New player" vs "Edit player"). Duplicating that
+   * expression into an aria-label would have meant two sources of truth for
+   * the same words; naming the element the user can already see does not.
+   *
+   * Generate it with React.useId() in the caller so two open modals cannot
+   * collide.
+   */
+  titleId?: string;
+}> = ({ title, onClose, closeLabel = 'Close', closeDisabled, actions, children, collapse, titleId }) => {
   const showClose = useModalCloseVisible();
   // Balanced fixed-width side slots keep the title centered when the X shows or
   // a right-side action cluster is present. But on phones (X hidden) with no
@@ -373,7 +386,7 @@ export const CollapsibleModalHeader: React.FC<{
           centered, wrapping to a second line for long titles. `break-words`
           so even a single long word (e.g. a Finnish compound) wraps instead
           of overflowing/clipping. */}
-      <h2 className={`${titleStyle} flex-1 text-center text-balance break-words leading-tight min-w-0`}>{title}</h2>
+      <h2 id={titleId} className={`${titleStyle} flex-1 text-center text-balance break-words leading-tight min-w-0`}>{title}</h2>
       <div className={`flex items-center justify-end gap-1.5 ${sideSlot} shrink-0`}>{actions}</div>
     </div>
     {children && (
