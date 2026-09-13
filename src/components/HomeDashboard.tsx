@@ -18,14 +18,14 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
     <button
       type="button"
       onClick={onResume}
-      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500 transition-all"
+      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-900/80 to-slate-800/80 border border-indigo-600/50 text-white shadow-md hover:from-indigo-900 hover:to-slate-800 transition-all"
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-base font-extrabold truncate">{resume.opponent || t('startScreen.dashResumeGame', 'Game')}</span>
         <span className="text-xl font-black tabular-nums leading-none">{resume.ourScore}–{resume.theirScore}</span>
       </div>
       <div className="flex items-center justify-between mt-1 text-xs font-bold">
-        <span className="opacity-80">
+        <span className="text-slate-300">
           {resume.isPlayed
             ? t(resume.homeOrAway === 'home' ? 'startScreen.dashHome' : 'startScreen.dashAway', resume.homeOrAway === 'home' ? 'Home' : 'Away')
             : [
@@ -34,7 +34,13 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
                 typeof resume.timeElapsedSeconds === 'number' ? fmtElapsed(resume.timeElapsedSeconds) : null,
               ].filter(Boolean).join(' · ')}
         </span>
-        <span className="bg-slate-900 text-amber-200 rounded-full px-3 py-0.5">{t('startScreen.resumeCard', 'Continue')} →</span>
+        {/* The one amber thing on this card, and the only thing to press.
+            Amber used to coat the whole card, which put it in direct
+            competition with the amber wordmark directly above it - two large
+            amber blocks, neither reading as the action. The card is still the
+            most prominent surface on the tab through its gradient and border;
+            amber now means "press this" and nothing else. */}
+        <span className="bg-amber-500 text-slate-900 rounded-full px-3 py-1 font-extrabold">{t('startScreen.resumeCard', 'Continue')} →</span>
       </div>
     </button>
   );
@@ -51,13 +57,32 @@ function VuosiBar({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi'
       <span className="text-slate-600" aria-hidden="true">·</span>
       <span className="text-slate-300 tabular-nums">{vuosi.gamesPlayed} {t('startScreen.dashGames', 'games')}</span>
       <span className="text-slate-600" aria-hidden="true">·</span>
-      <span className="tabular-nums whitespace-nowrap">
+      {/* Green-grey-red is the football convention for W-D-L, so the colours
+          label these without spending width on words. */}
+      <span
+        className="tabular-nums whitespace-nowrap"
+        title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
+      >
         <span className="text-green-400 font-bold">{vuosi.wins}</span>
         <span className="text-slate-500">-{vuosi.ties}-</span>
         <span className="text-red-400 font-bold">{vuosi.losses}</span>
       </span>
       <span className="text-slate-600" aria-hidden="true">·</span>
-      <span className="text-slate-300 tabular-nums">{vuosi.goalsFor}–{vuosi.goalsAgainst}</span>
+      {/* Goal DIFFERENCE, not "117–154". The pair was two unlabelled numbers a
+          reader had to interpret; the difference is one number that says the
+          same thing, and its sign carries the meaning on its own. */}
+      <span
+        className={`tabular-nums font-bold ${
+          vuosi.goalDifference > 0
+            ? 'text-green-400'
+            : vuosi.goalDifference < 0
+              ? 'text-red-400'
+              : 'text-slate-300'
+        }`}
+        title={t('startScreen.dashGoalDiffTitle', 'Goal difference')}
+      >
+        {vuosi.goalDifference >= 0 ? '+' : ''}{vuosi.goalDifference}
+      </span>
       <span className="ml-auto text-slate-500" aria-hidden="true">›</span>
     </button>
   );
@@ -104,10 +129,22 @@ export function HomeDashboard({
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 px-0.5">
             {t('startScreen.dashRecent', 'Recent')}
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
-            {summary.recent.map((game) => (
-              <RecentCard key={game.id} game={game} onOpen={onOpenGame} />
-            ))}
+          {/* The strip scrolls, and the card at the edge used to be cut clean
+              through its own border - which reads as a rendering fault, not as
+              an invitation to scroll. The gradient lets it dissolve instead.
+              pointer-events-none so it never eats a tap on the card beneath. */}
+          <div className="relative">
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
+              {summary.recent.map((game) => (
+                <RecentCard key={game.id} game={game} onOpen={onOpenGame} />
+              ))}
+            </div>
+            {summary.recent.length > 2 && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-slate-900 to-transparent"
+              />
+            )}
           </div>
         </div>
       )}
@@ -161,10 +198,13 @@ export function HomeTeamScopeSelect({
 
 /** Joukkue tab: a one-line roster/team/personnel count header. */
 export function HomeCountsBar({ counts, t }: { counts: HomeSummary['counts']; t: TFunction }) {
+  // Pluralised: the previous form concatenated a number with a fixed plural
+  // noun, so Finnish read "1 joukkuetta" - the partitive is only correct above
+  // one. i18next handles both languages from one key.
   const parts = [
-    `${counts.players} ${t('startScreen.dashPlayers', 'players')}`,
-    `${counts.teams} ${t('startScreen.dashTeams', 'teams')}`,
-    `${counts.personnel} ${t('startScreen.dashPersonnel', 'staff')}`,
+    t('startScreen.dashPlayersCount', '{{count}} players', { count: counts.players }),
+    t('startScreen.dashTeamsCount', '{{count}} teams', { count: counts.teams }),
+    t('startScreen.dashPersonnelCount', '{{count}} staff', { count: counts.personnel }),
   ];
   return (
     <div className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-[13px] text-slate-300 mb-4">
@@ -197,7 +237,7 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
       </div>
       <div className="flex items-baseline justify-between gap-3 mt-0.5">
         <span className="text-base font-extrabold text-white">
-          {vuosi ? `${t('startScreen.dashSeason', 'Season')} ${vuosi.label}` : t('seasonTournamentModal.title', 'Competitions')}
+          {vuosi ? vuosi.label : t('seasonTournamentModal.title', 'Competitions')}
         </span>
         {vuosi && (
           <span className="text-sm font-bold tabular-nums whitespace-nowrap">
@@ -208,7 +248,9 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
         )}
       </div>
       <div className="text-xs text-indigo-200/70 mt-1 tabular-nums">
-        {counts.seasons} {t('startScreen.dashSeasons', 'leagues')} · {counts.tournaments} {t('startScreen.dashTournaments', 'tournaments')}
+        {t('startScreen.dashSeasonsCount', '{{count}} leagues', { count: counts.seasons })}
+        {' · '}
+        {t('startScreen.dashTournamentsCount', '{{count}} tournaments', { count: counts.tournaments })}
       </div>
     </button>
   );
@@ -221,10 +263,13 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
   t: TFunction;
 }) {
   if (!vuosi) return null;
+  // These tiles exist to be READ AT A GLANCE, and they were set at text-lg -
+  // smaller than the row labels underneath them, which inverted the emphasis
+  // on the one tab whose whole job is numbers.
   const tile = (n: React.ReactNode, label: string) => (
-    <div className="flex-1 text-center p-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60">
-      <div className="text-lg font-black text-slate-100 tabular-nums leading-tight">{n}</div>
-      <div className="text-[9px] uppercase tracking-wider text-slate-400 mt-0.5">{label}</div>
+    <div className="flex-1 text-center px-2 py-3 rounded-xl bg-slate-800/70 border border-slate-700/50">
+      <div className="text-2xl font-black text-slate-100 tabular-nums leading-none">{n}</div>
+      <div className="text-[9px] uppercase tracking-wider text-slate-400 mt-1.5 truncate">{label}</div>
     </div>
   );
   return (
@@ -237,9 +282,13 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
         `${vuosi.goalDifference >= 0 ? '+' : ''}${vuosi.goalDifference}`,
         t('startScreen.dashTileGoalDiff', 'Goal diff'),
       )}
+      {/* Goals big, name as the label. The name used to BE the number, set in
+          text-lg font-black, so anything longer than "Esko" overflowed a
+          third-width tile - and it broke the row's own rule that the big
+          figure is the figure and the small line names it. */}
       {tile(
-        topScorer ? <span className="text-sm">{topScorer.name} {topScorer.goals}</span> : '–',
-        t('startScreen.dashTileScorer', 'Top scorer'),
+        topScorer ? topScorer.goals : '–',
+        topScorer ? topScorer.name : t('startScreen.dashTileScorer', 'Top scorer'),
       )}
     </div>
   );

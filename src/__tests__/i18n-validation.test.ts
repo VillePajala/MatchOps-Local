@@ -546,18 +546,30 @@ describe('Translation File Validation', () => {
       // +3 net making the formats section contextual: four new keys
       //     (formatsFootballNone/ShowFutsal/AgeLabel/AllAges) less
       //     formatsFutsalOnly, whose job the heading now does. Lands at 3215.
+      // +5 Home visual pass: three section labels (People / Coaching / Tools)
+      //     that give each tab's stack of rows some structure, plus two
+      //     tooltips naming what the season bar's numbers are. Lands at 3220.
+      // +6 pluralised Club-tab counts (_one/_other x3): the old form pasted a
+      //     number onto a fixed plural noun, so Finnish read "1 joukkuetta".
+      //     Lands at 3226.
+      // +4 pluralised Kilpailut counts: the same concatenation bug the Club
+      //     tab had, missed because that card lives in another component -
+      //     Finnish read "1 sarjaa". Lands at 3230.
+      // +2 plan <-> game round trip: "this game's plan" in the match menu and
+      //     "open the game" in the planner, so the two halves of one match can
+      //     reach each other without going back through Home. Lands at 3232.
       // +9 opponentList.*: the teams a competition is played against, listed
       //     once and then picked from a dropdown when creating a game, so the
       //     one free-text field left on that form stops producing "IPS" and
-      //     "Ips" as different opponents. Lands at 3224.
+      //     "Ips" as different opponents. Lands at 3241.
       // +2 newGameSetupModal.addOpponentToSeason/opponentAddFailed: adding a
       //     team to the league from the game form itself, because a detour to
-      //     the competition manager is how the list stays empty. Lands at 3226.
+      //     the competition manager is how the list stays empty. Lands at 3243.
       // +9 opponentSweep.*: the tool that settles one team written several
-      //     ways. Lands at 3235.
+      //     ways. Lands at 3252.
       // +1 opponentSweep.appliedListsOnly: a rename can touch only a league's
-      //     list, where "Renamed in 0 games" is true and useless. Lands at 3236.
-      expect(enKeys.length).toBe(3236);
+      //     list, where "Renamed in 0 games" is true and useless. Lands at 3253.
+      expect(enKeys.length).toBe(3253);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -730,11 +742,15 @@ describe('Translation File Validation', () => {
       // +6 net for the in-app rule viewer (see EN above). Lands at 3211.
       // +1 ruleViewer.canvasLabel (see EN above). Lands at 3212.
       // +3 net for the contextual formats section (see EN above). Lands at 3215.
-      // +9 opponentList.* (see EN above). Lands at 3224.
-      // +2 inline add on the game form (see EN above). Lands at 3226.
-      // +9 opponentSweep.* (see EN above). Lands at 3235.
-      // +1 appliedListsOnly (see EN above). Lands at 3236.
-      expect(fiKeys.length).toBe(3236);
+      // +5 Home visual pass (see EN above). Lands at 3220.
+      // +6 pluralised counts (see EN above). Lands at 3226.
+      // +4 pluralised Kilpailut counts (see EN above). Lands at 3230.
+      // +2 plan <-> game round trip (see EN above). Lands at 3232.
+      // +9 opponentList.* (see EN above). Lands at 3241.
+      // +2 inline add on the game form (see EN above). Lands at 3243.
+      // +9 opponentSweep.* (see EN above). Lands at 3252.
+      // +1 appliedListsOnly (see EN above). Lands at 3253.
+      expect(fiKeys.length).toBe(3253);
     });
   });
 });

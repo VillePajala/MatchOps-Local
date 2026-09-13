@@ -66,6 +66,16 @@ interface ModalContextValue {
    *  resume-from-background loading flash, so React state alone survives. */
   isPlaytimePlannerOpen: boolean;
   setIsPlaytimePlannerOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /**
+   * Where the planner should land when it opens, or null for its own manager.
+   *
+   * Lives here rather than as a prop because the opener (the match menu) and
+   * the modal (ClubModalsHost) are on opposite sides of the tree. Cleared by
+   * the planner once consumed, so reopening it later lands on the manager
+   * rather than silently reopening someone else's plan.
+   */
+  plannerTarget: { planId: string; planGameId: string } | null;
+  setPlannerTarget: React.Dispatch<React.SetStateAction<{ planId: string; planGameId: string } | null>>;
   /** See PlannerLiveGameHooks - registered by the match view while mounted. */
   plannerLiveGameHooks: PlannerLiveGameHooks | null;
   setPlannerLiveGameHooks: React.Dispatch<React.SetStateAction<PlannerLiveGameHooks | null>>;
@@ -117,6 +127,7 @@ export const ModalProvider = ({ children, currentUserId }: {
   const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
   // L.3c: planner open-state + the match view's live-game hooks lifted here.
   const [isPlaytimePlannerOpen, setIsPlaytimePlannerOpen] = useState(false);
+  const [plannerTarget, setPlannerTarget] = useState<{ planId: string; planGameId: string } | null>(null);
   const [plannerLiveGameHooks, setPlannerLiveGameHooks] = useState<PlannerLiveGameHooks | null>(null);
   // Which competition kind the manager modal shows (set by the Kaudet/Turnaukset
   // rows before opening the shared modal).
@@ -408,6 +419,8 @@ export const ModalProvider = ({ children, currentUserId }: {
     setPlayerIdsForNewGame,
     isPlaytimePlannerOpen,
     setIsPlaytimePlannerOpen,
+    plannerTarget,
+    setPlannerTarget,
     plannerLiveGameHooks,
     setPlannerLiveGameHooks,
     isClubStatsOpen: clubStatsOpen,
@@ -438,6 +451,7 @@ export const ModalProvider = ({ children, currentUserId }: {
     modalState.newGameSetup, setIsNewGameSetupModalOpen,
     playerIdsForNewGame, setPlayerIdsForNewGame,
     isPlaytimePlannerOpen, setIsPlaytimePlannerOpen,
+    plannerTarget, setPlannerTarget,
     plannerLiveGameHooks, setPlannerLiveGameHooks,
     clubStatsOpen, setIsClubStatsOpen, openClubStatsToTab, clubStatsInitialTab,
     modalState.settings, setIsSettingsModalOpen,

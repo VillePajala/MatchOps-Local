@@ -585,7 +585,36 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
+    setPlannerTarget,
   } = useModalContext();
+
+  /**
+   * The plan this game was created from, if any.
+   *
+   * Drives the match menu's "this game's plan" row: the row exists only when
+   * there is a plan to open, which is what keeps it from becoming the general
+   * planner entry that restructure 3.1 deliberately removed from this menu.
+   */
+  const [thisGamePlanLink, setThisGamePlanLink] = useState<{ planId: string; planGameId: string } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const id = currentGameId;
+    if (!id || id === DEFAULT_GAME_ID) {
+      setThisGamePlanLink(null);
+      return;
+    }
+    void getPlanLink(id)
+      .then((link) => { if (!cancelled) setThisGamePlanLink(link); })
+      // Non-fatal: without a link the row simply does not appear.
+      .catch(() => { if (!cancelled) setThisGamePlanLink(null); });
+    return () => { cancelled = true; };
+  }, [currentGameId]);
+
+  const handleOpenThisGamePlan = useCallback(() => {
+    if (!thisGamePlanLink) return;
+    setPlannerTarget(thisGamePlanLink);
+    setIsPlaytimePlannerOpen(true);
+  }, [thisGamePlanLink, setPlannerTarget, setIsPlaytimePlannerOpen]);
 
 
   const openLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(true), [setIsLoadGameModalOpen]);
@@ -2461,6 +2490,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   };
 
   const controlBarProps: ComponentProps<typeof ControlBar> = {
+    onOpenThisGamePlan: thisGamePlanLink ? handleOpenThisGamePlan : undefined,
     timeElapsedInSeconds,
     isTimerRunning,
     onToggleLargeTimerOverlay: handleToggleLargeTimerOverlay,

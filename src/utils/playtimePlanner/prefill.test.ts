@@ -87,7 +87,7 @@ describe('buildPrefillFromPlan', () => {
     const g = planGame();
     const res = buildPrefillFromPlan(plan(g), g, roster);
     expect(res.plannedSubs).toEqual([
-      { id: 'x', slotId: 's0', timeSeconds: 720, inPlayerId: 'f', outPlayerId: 'b' },
+      expect.objectContaining({ id: 'x', slotId: 's0', timeSeconds: 720, inPlayerId: 'f', outPlayerId: 'b' }),
     ]);
   });
 
@@ -105,9 +105,9 @@ describe('buildPrefillFromPlan', () => {
     });
     const res = buildPrefillFromPlan(plan(g), g, roster);
     expect(res.plannedSubs).toEqual([
-      { id: 'x1', slotId: 's0', timeSeconds: 300, inPlayerId: 'f', outPlayerId: 'b' },
-      { id: 'x2', slotId: 's0', timeSeconds: 600, inPlayerId: 'b', outPlayerId: 'f' },
-      { id: 'x3', slotId: 's0', timeSeconds: 900, inPlayerId: 'f', outPlayerId: 'b' },
+      expect.objectContaining({ id: 'x1', slotId: 's0', timeSeconds: 300, inPlayerId: 'f', outPlayerId: 'b' }),
+      expect.objectContaining({ id: 'x2', slotId: 's0', timeSeconds: 600, inPlayerId: 'b', outPlayerId: 'f' }),
+      expect.objectContaining({ id: 'x3', slotId: 's0', timeSeconds: 900, inPlayerId: 'f', outPlayerId: 'b' }),
     ]);
     // The rotating incomer parks on the sideline ONCE (their first entry).
     expect(res.sidelinePlayers.filter((p) => p.id === 'f')).toHaveLength(1);
@@ -123,8 +123,8 @@ describe('buildPrefillFromPlan', () => {
     });
     const res = buildPrefillFromPlan(plan(g), g, roster);
     expect(res.plannedSubs).toEqual([
-      { id: 'x1', slotId: 'gk', timeSeconds: 300, inPlayerId: 'f', outPlayerId: 'a' },
-      { id: 'x2', slotId: 's2', timeSeconds: 600, inPlayerId: 'a', outPlayerId: 'd' },
+      expect.objectContaining({ id: 'x1', slotId: 'gk', timeSeconds: 300, inPlayerId: 'f', outPlayerId: 'a' }),
+      expect.objectContaining({ id: 'x2', slotId: 's2', timeSeconds: 600, inPlayerId: 'a', outPlayerId: 'd' }),
     ]);
   });
 
@@ -245,8 +245,8 @@ describe('buildPrefillFromPlan', () => {
     });
     const res = buildPrefillFromPlan(plan(g), g, roster);
     expect(res.plannedSubs).toEqual([
-      { id: 'first', slotId: 's0', timeSeconds: 600, inPlayerId: 'f', outPlayerId: 'b' },
-      { id: 'second', slotId: 's0', timeSeconds: 900, inPlayerId: 'c', outPlayerId: 'f' },
+      expect.objectContaining({ id: 'first', slotId: 's0', timeSeconds: 600, inPlayerId: 'f', outPlayerId: 'b' }),
+      expect.objectContaining({ id: 'second', slotId: 's0', timeSeconds: 900, inPlayerId: 'c', outPlayerId: 'f' }),
     ]);
   });
 
@@ -319,4 +319,20 @@ describe('prefill with per-game absences', () => {
     // p2 stays genuinely absent.
     expect(result.selectedPlayerIds).not.toContain('p2');
   });
+
+  /**
+   * @critical - the position is resolved HERE or nowhere. A created game
+   * persists only formationSnapPoints (coordinates, no slot ids), so once the
+   * game exists a planned sub's slotId can no longer be turned back into a
+   * position. Drop this and the field knows a sub is planned but not where,
+   * which is the whole gap the ghost markers close.
+   */
+  it('records the position each planned sub enters, since the game cannot resolve it later', () => {
+    const g = planGame({ subs: [{ id: 'x', slotId: 's0', timeSeconds: 600, inPlayerId: 'f' }] });
+    const out = buildPrefillFromPlan(plan(g), g, roster);
+    expect(out.plannedSubs).toHaveLength(1);
+    expect(typeof out.plannedSubs[0].positionLabel).toBe('string');
+    expect(out.plannedSubs[0].positionLabel).toBeTruthy();
+  });
+
 });
