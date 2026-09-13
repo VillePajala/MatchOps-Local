@@ -343,7 +343,13 @@ function drawPlannedChains(
       // A wash of the wave's hue behind the row. The tag alone is a small mark
       // to find across eight pills; a tinted band is visible without being
       // read, which is what "who goes on together" needs to be.
-      roundedRectPath(ctx, ex - 2, ey - CHAIN_ROW_H / 2 + 1, cellW - 6, CHAIN_ROW_H - 2, 3);
+      //
+      // Width comes from the PILL, not the cell. The pill is as wide as the
+      // header when a starter's name is longer than any entry, and sizing the
+      // band off cellW left a dark strip at the right edge - a row highlight
+      // that stops short reads as a half-filled progress bar.
+      const bandW = cols === 1 ? pillW - CHAIN_PAD * 2 + 4 : cellW - 6;
+      roundedRectPath(ctx, ex - 2, ey - CHAIN_ROW_H / 2 + 1, bandW, CHAIN_ROW_H - 2, 3);
       ctx.globalAlpha = 0.14;
       ctx.fillStyle = hue;
       ctx.fill();
