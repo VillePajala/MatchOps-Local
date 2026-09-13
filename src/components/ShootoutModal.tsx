@@ -6,6 +6,7 @@ import type { Player } from '@/types';
 import type { ShootoutKick } from '@/types/game';
 import { getShootoutTally, getShootoutWinner } from '@/utils/shootout';
 import { CollapsibleModalHeader, ModalStickyPrimary, useCollapsingHeader } from '@/styles/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
 
 interface ShootoutModalProps {
   isOpen: boolean;
@@ -104,7 +105,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[70] font-display"
+      className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`}
       role="dialog"
       aria-modal="true"
       aria-label={t('shootoutModal.title', 'Penalty Shootout')}

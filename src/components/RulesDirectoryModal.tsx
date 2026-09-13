@@ -11,6 +11,7 @@ import { searchRules, rulebookUrl, type RulesSport } from '@/config/rulesIndex';
 import RuleViewerModal from '@/components/RuleViewerModal';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import type { TranslationKey } from '@/i18n-types';
+import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
 
 interface RulesDirectoryModalProps {
   isOpen: boolean;
@@ -125,7 +126,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />

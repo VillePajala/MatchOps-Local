@@ -29,6 +29,7 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -1200,7 +1201,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   }
 
   return (
-    <div ref={modalRef} className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('gameSettingsModal.title', 'Match details')}>
+    <div ref={modalRef} className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('gameSettingsModal.title', 'Match details')}>
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />

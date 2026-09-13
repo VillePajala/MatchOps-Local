@@ -4,6 +4,17 @@
     {
       "date": "2026-09-13",
       "en": [
+        "Colours are more consistent across the app. The playing-time balance chart was drawing the goalkeeper and the defence in colours that disagreed with the position editor - they now match, with the keeper warm like the keeper's disc on the field.",
+        "Dialogs now share one backdrop instead of each having slightly its own, and a confirmation that opens on top of another screen consistently blurs what is behind it."
+      ],
+      "fi": [
+        "Värit ovat yhtenäisemmät läpi sovelluksen. Peliaikojen tasapainonäkymä piirsi maalivahdin ja puolustuksen eri väreillä kuin pelipaikkojen muokkaus - nyt ne täsmäävät, ja maalivahti on lämmin kuten maalivahdin kiekko kentällä.",
+        "Valintaikkunoilla on nyt yhtenäinen tausta sen sijaan että jokaisella olisi hieman omansa, ja toisen näkymän päälle avautuva varmistus sumentaa takanaan olevan johdonmukaisesti."
+      ]
+    },
+    {
+      "date": "2026-09-13",
+      "en": [
         "The plan button on the match field now steps through three views instead of two: the lineup on its own, the lineup with planned-substitution markers, and a new full plan view showing every position with its whole substitution schedule and the minute each change happens.",
         "The full plan view shows the plan alone on an empty pitch, so the schedules have room to be read."
       ],

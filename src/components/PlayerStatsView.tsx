@@ -35,6 +35,7 @@ import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import PlayerNotesSummaryCard from './PlayerNotesSummaryCard';
+import { ENTITY_DOT } from '@/config/palette';
 
 // Line badge colours mirror the position-category colours used in the positions editor.
 interface PlayerStatsViewProps {
@@ -1326,18 +1327,18 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           {/* Right: Category labels */}
                           <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-600/40 text-purple-200" title={t('playerStats.externalGame', 'External Game')}>
-                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`}></span>
                               {t('playerStats.external', 'EXT')}
                             </span>
                             {seasonName && (
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200" title={seasonName}>
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.season}`}></span>
                                 {seasonName}
                               </span>
                             )}
                             {tournamentName && (
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200" title={tournamentName}>
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.series}`}></span>
                                 {tournamentName}
                               </span>
                             )}

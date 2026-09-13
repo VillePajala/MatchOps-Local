@@ -26,6 +26,7 @@ import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
 import { getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
 import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
+import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -833,7 +834,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`}>
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
