@@ -25,6 +25,19 @@ export interface PlannedGameSub {
   inPlayerId: string;
   /** Who comes off (best-effort from the plan; null if unknown). Reality wins. */
   outPlayerId: string | null;
+  /**
+   * The position this sub enters, as a label ("RM", "CDM").
+   *
+   * Resolved at PREFILL time and carried here on purpose: a live game persists
+   * only `formationSnapPoints` - coordinates, no slot ids - so `slotId` cannot
+   * be turned back into a position once the game exists. Without this the field
+   * knows a sub is planned but not where, which is exactly what it could not
+   * show.
+   *
+   * Optional: subs stored before this existed simply have no position, and
+   * every consumer treats that as "unknown" rather than guessing.
+   */
+  positionLabel?: string;
 }
 
 /** Stored shape: map of real game id -> its planned subs. */

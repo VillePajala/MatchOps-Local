@@ -358,7 +358,8 @@
     "noPlayersForNewGame": "Tarvitset vähintään yhden pelaajan kokoonpanoon luodaksesi pelin. Haluatko lisätä pelaajia nyt?",
     "openTimer": "Avaa ajastin",
     "toggleTacticsBoardShow": "Taktiikkataulu",
-    "formationMenu": "Muodostelmavalikko"
+    "formationMenu": "Muodostelmavalikko",
+    "thisGamePlan": "Tämän ottelun suunnitelma"
   },
   "tooltips": {
     "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
@@ -1169,7 +1170,22 @@
     "gearSetup": "Käyttöönotto ({{done}}/4)",
     "dashAllTeams": "Kaikki joukkueet",
     "dashTeamLabel": "Joukkue",
-    "dashTeamScope": "Mistä joukkueesta nämä luvut ovat"
+    "dashTeamScope": "Mistä joukkueesta nämä luvut ovat",
+    "groupPeople": "Ihmiset",
+    "groupCoaching": "Valmennus",
+    "groupTools": "Työkalut",
+    "dashRecordTitle": "Voitot - tasapelit - häviöt",
+    "dashGoalDiffTitle": "Maaliero",
+    "dashPlayersCount_one": "{{count}} pelaaja",
+    "dashPlayersCount_other": "{{count}} pelaajaa",
+    "dashTeamsCount_one": "{{count}} joukkue",
+    "dashTeamsCount_other": "{{count}} joukkuetta",
+    "dashPersonnelCount_one": "{{count}} toimihenkilö",
+    "dashPersonnelCount_other": "{{count}} toimihenkilöä",
+    "dashSeasonsCount_one": "{{count}} sarja",
+    "dashSeasonsCount_other": "{{count}} sarjaa",
+    "dashTournamentsCount_one": "{{count}} turnaus",
+    "dashTournamentsCount_other": "{{count}} turnausta"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -3436,7 +3452,8 @@
       "addGame": "Lisää peli",
       "removeGame": "Poista peli",
       "trimConfirmTitle": "Poistetaanko {{name}}?",
-      "trimConfirmMessage": "Pelin kokoonpano ja vaihdot poistetaan. Kumoa (Pelit-välilehdellä) palauttaa ne."
+      "trimConfirmMessage": "Pelin kokoonpano ja vaihdot poistetaan. Kumoa (Pelit-välilehdellä) palauttaa ne.",
+      "openGame": "Avaa ottelu"
     },
     "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
     "deleteError": "Suunnitelman poistaminen epäonnistui.",
