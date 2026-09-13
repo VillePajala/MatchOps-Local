@@ -263,10 +263,13 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
   t: TFunction;
 }) {
   if (!vuosi) return null;
+  // These tiles exist to be READ AT A GLANCE, and they were set at text-lg -
+  // smaller than the row labels underneath them, which inverted the emphasis
+  // on the one tab whose whole job is numbers.
   const tile = (n: React.ReactNode, label: string) => (
-    <div className="flex-1 text-center p-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60">
-      <div className="text-lg font-black text-slate-100 tabular-nums leading-tight">{n}</div>
-      <div className="text-[9px] uppercase tracking-wider text-slate-400 mt-0.5 truncate">{label}</div>
+    <div className="flex-1 text-center px-2 py-3 rounded-xl bg-slate-800/70 border border-slate-700/50">
+      <div className="text-2xl font-black text-slate-100 tabular-nums leading-none">{n}</div>
+      <div className="text-[9px] uppercase tracking-wider text-slate-400 mt-1.5 truncate">{label}</div>
     </div>
   );
   return (

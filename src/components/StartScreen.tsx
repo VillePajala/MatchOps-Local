@@ -31,32 +31,44 @@ import {
 } from 'react-icons/hi2';
 
 /**
- * Home's entry vocabulary, in one place.
+ * Rows are LIST ITEMS inside a group, not cards.
  *
- * Every tab used to render its own copy of the same slate row, which is how
- * four different contexts - match day, the club, competitions, statistics -
- * ended up reading as one undifferentiated list. These three shapes are the
- * whole vocabulary now:
+ * Every element on every tab used to be the same slate fill, the same border
+ * and the same rounded-xl. Border, fill, radius and shadow each say "separate
+ * object", and spending all four on everything flattens the hierarchy instead
+ * of building it - six navigation rows became six competing objects, and the
+ * two cards that genuinely ARE objects (the resume card, the season card) had
+ * to shout over them.
  *
- *   Row   - a full-width destination. Icon, label, trailing affordance.
- *   Tile  - half-width, for two things of genuinely equal weight.
- *   Label - a quiet section heading, so a stack of rows has structure.
- *
- * The icons are the point: on a phone they are what makes a list scannable
- * without reading it, and they give each tab a recognisable silhouette.
+ * So the vocabulary now means something:
+ *   HomeGroup + HomeRow  - navigation. One container, hairline dividers.
+ *   HomeTile             - a pair of equals, still its own object.
+ *   cards (elsewhere)    - information worth its own surface.
  */
-type RowIcon = React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
-
 const ROW_BASE =
-  'w-full flex items-center gap-3 p-3 [@media(min-height:700px)]:p-3.5 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500';
-const ROW_ON = 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90';
-const ROW_OFF = 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed';
+  'w-full flex items-center gap-3 px-3.5 py-3 [@media(min-height:700px)]:py-3.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500';
+const ROW_ON = 'hover:bg-slate-700/50';
+const ROW_OFF = 'opacity-40 cursor-not-allowed';
 
+/**
+ * Section heading. Bound to the group BELOW it - more space above than below,
+ * so it reads as a heading for what follows rather than as a separator
+ * floating equidistant between two groups.
+ */
 const HomeSectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-0.5 pt-1">
+  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 pt-3 pb-1.5 [@media(min-height:700px)]:pt-4">
     {children}
   </div>
 );
+
+/** The container that makes a run of rows one object instead of several. */
+const HomeGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="rounded-xl bg-slate-800/70 border border-slate-700/50 overflow-hidden divide-y divide-slate-700/50">
+    {children}
+  </div>
+);
+
+type RowIcon = React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
 
 const HomeRow: React.FC<{
   icon: RowIcon;
@@ -82,12 +94,7 @@ const HomeRow: React.FC<{
 
 /** Same row, for a destination outside the app. The corner icon is honest. */
 const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; href: string }> = ({ icon: Icon, label, href }) => (
-  <a
-    href={href}
-    target="_blank"
-    rel="noopener noreferrer"
-    className={`${ROW_BASE} ${ROW_ON}`}
-  >
+  <a href={href} target="_blank" rel="noopener noreferrer" className={`${ROW_BASE} ${ROW_ON}`}>
     <Icon className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
     <span className="text-sm font-semibold text-white flex-1 min-w-0 truncate">{label}</span>
     <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500 flex-shrink-0" aria-hidden="true" />
@@ -97,6 +104,7 @@ const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; href: string }> = ({
 /**
  * Half-width tile. Icon above the label, centred - deliberately a different
  * shape from a Row, so a pair of equals does not look like two truncated rows.
+ * Keeps its own border, because a pair genuinely is two objects.
  */
 const HomeTile: React.FC<{
   icon: RowIcon;
@@ -110,8 +118,10 @@ const HomeTile: React.FC<{
     onClick={onClick}
     disabled={disabled}
     data-testid={testId}
-    className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3.5 rounded-xl border text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
-      disabled ? ROW_OFF : ROW_ON
+    className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3 [@media(min-height:700px)]:py-3.5 rounded-xl border text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
+      disabled
+        ? 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+        : 'bg-slate-800/70 border-slate-700/50 hover:bg-slate-700/70'
     }`}
   >
     <Icon className="w-5 h-5 text-slate-400" aria-hidden="true" />
@@ -565,37 +575,41 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     testId="tour-teams"
                   />
                 </div>
-                <HomeRow
-                  icon={HiOutlineIdentification}
-                  label={t('startScreen.rowPersonnel', 'Personnel')}
-                  onClick={onManagePersonnel}
-                  disabled={!onManagePersonnel}
-                />
+                <HomeGroup>
+                  <HomeRow
+                    icon={HiOutlineIdentification}
+                    label={t('startScreen.rowPersonnel', 'Personnel')}
+                    onClick={onManagePersonnel}
+                    disabled={!onManagePersonnel}
+                  />
+                </HomeGroup>
 
                 <HomeSectionLabel>{t('startScreen.groupCoaching', 'Coaching')}</HomeSectionLabel>
-                <HomeRow
-                  icon={HiOutlineClipboardDocumentList}
-                  label={t('startScreen.rowTraining', 'Warmup Plan')}
-                  onClick={onOpenTraining}
-                  disabled={!onOpenTraining}
-                />
+                <HomeGroup>
+                  <HomeRow
+                    icon={HiOutlineClipboardDocumentList}
+                    label={t('startScreen.rowTraining', 'Warmup Plan')}
+                    onClick={onOpenTraining}
+                    disabled={!onOpenTraining}
+                  />
                 {/* Rules belongs with the coaching material, by the same
                     reasoning 3.1b applied there: reference a coach consults,
                     not app configuration. It was the one such item still
                     hiding under the gear. */}
-                {onOpenRules && (
-                  <HomeRow
-                    icon={HiOutlineBookOpen}
-                    label={t('startScreen.rowRules', 'Rules')}
-                    onClick={onOpenRules}
-                    testId="club-rules"
+                  {onOpenRules && (
+                    <HomeRow
+                      icon={HiOutlineBookOpen}
+                      label={t('startScreen.rowRules', 'Rules')}
+                      onClick={onOpenRules}
+                      testId="club-rules"
+                    />
+                  )}
+                  <HomeLinkRow
+                    icon={HiOutlineAcademicCap}
+                    label={t('controlBar.coachingMaterials', 'Coaching Materials')}
+                    href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
                   />
-                )}
-                <HomeLinkRow
-                  icon={HiOutlineAcademicCap}
-                  label={t('controlBar.coachingMaterials', 'Coaching Materials')}
-                  href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
-                />
+                </HomeGroup>
               </>
             ) : activeTab === 'seasons' ? (
               /* Competitions panel: separate Kaudet and Turnaukset entries,
@@ -612,18 +626,20 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
                   <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyCompetitions', 'Create a league or tournament to group your games.')}</p>
                 )}
-                <HomeRow
-                  icon={HiOutlineCalendarDays}
-                  label={t('seasonTournamentModal.seasons', 'Leagues')}
-                  onClick={onManageSeasons}
-                  disabled={!onManageSeasons}
-                />
-                <HomeRow
-                  icon={HiOutlineTrophy}
-                  label={t('seasonTournamentModal.tournaments', 'Tournaments')}
-                  onClick={onManageTournaments}
-                  disabled={!onManageTournaments}
-                />
+                <HomeGroup>
+                  <HomeRow
+                    icon={HiOutlineCalendarDays}
+                    label={t('seasonTournamentModal.seasons', 'Leagues')}
+                    onClick={onManageSeasons}
+                    disabled={!onManageSeasons}
+                  />
+                  <HomeRow
+                    icon={HiOutlineTrophy}
+                    label={t('seasonTournamentModal.tournaments', 'Tournaments')}
+                    onClick={onManageTournaments}
+                    disabled={!onManageTournaments}
+                  />
+                </HomeGroup>
               </>
             ) : activeTab === 'stats' ? (
               /* Stats panel (W8): one row per aggregate stats tab - the rows
@@ -653,20 +669,22 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {/* Each scope gets the icon of the thing it aggregates, so the
                     four are told apart at a glance rather than by reading four
                     labels that all end in the same word. */}
-                {([
-                  ['season', t('startScreen.statsSeason', 'League stats'), HiOutlineCalendarDays],
-                  ['tournament', t('startScreen.statsTournament', 'Tournament stats'), HiOutlineTrophy],
-                  ['overall', t('startScreen.statsOverall', 'Overall stats'), HiOutlineChartBar],
-                  ['player', t('startScreen.statsPlayer', 'Player stats'), HiOutlineUserCircle],
-                ] as const).map(([tab, label, icon]) => (
-                  <HomeRow
-                    key={tab}
-                    icon={icon}
-                    label={label}
-                    onClick={onViewStatsTab ? () => onViewStatsTab(tab) : onViewStats}
-                    disabled={!hasSavedGames}
-                  />
-                ))}
+                <HomeGroup>
+                  {([
+                    ['season', t('startScreen.statsSeason', 'League stats'), HiOutlineCalendarDays],
+                    ['tournament', t('startScreen.statsTournament', 'Tournament stats'), HiOutlineTrophy],
+                    ['overall', t('startScreen.statsOverall', 'Overall stats'), HiOutlineChartBar],
+                    ['player', t('startScreen.statsPlayer', 'Player stats'), HiOutlineUserCircle],
+                  ] as const).map(([tab, label, icon]) => (
+                    <HomeRow
+                      key={tab}
+                      icon={icon}
+                      label={label}
+                      onClick={onViewStatsTab ? () => onViewStatsTab(tab) : onViewStats}
+                      disabled={!hasSavedGames}
+                    />
+                  ))}
+                </HomeGroup>
               </>
             ) : (
               /* Returning user: the Pelit front page (two-level restructure
@@ -792,11 +810,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       {t('startScreen.newGame', 'New Game')}
                     </button>
                     {hasSavedGames && (
-                      <HomeRow
-                        icon={HiOutlineFolderOpen}
-                        label={t('startScreen.savedGames', 'Saved games')}
-                        onClick={onLoadGame}
-                      />
+                      <HomeGroup>
+                        <HomeRow
+                          icon={HiOutlineFolderOpen}
+                          label={t('startScreen.savedGames', 'Saved games')}
+                          onClick={onLoadGame}
+                        />
+                      </HomeGroup>
                     )}
                   </>
                 ) : (
@@ -842,22 +862,24 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {!composeOnboarding && (
                   <HomeSectionLabel>{t('startScreen.groupTools', 'Tools')}</HomeSectionLabel>
                 )}
-                {!composeOnboarding && onOpenPlanner && (
-                  <HomeRow
-                    icon={HiOutlineClipboard}
-                    label={t('controlBar.planner', 'Match planner')}
-                    onClick={onOpenPlanner}
-                  />
-                )}
                 {/* Taso is a game-day workflow tool (submit the lineup before,
                     report the result after) - it earns a games-tab row, not a
                     burial under the gear. */}
                 {!composeOnboarding && (
-                  <HomeLinkRow
-                    icon={HiOutlineRectangleStack}
-                    label={t('startScreen.tasoLink', 'Taso - lineups & results')}
-                    href="https://taso.palloliitto.fi"
-                  />
+                  <HomeGroup>
+                    {onOpenPlanner && (
+                      <HomeRow
+                        icon={HiOutlineClipboard}
+                        label={t('controlBar.planner', 'Match planner')}
+                        onClick={onOpenPlanner}
+                      />
+                    )}
+                    <HomeLinkRow
+                      icon={HiOutlineRectangleStack}
+                      label={t('startScreen.tasoLink', 'Taso - lineups & results')}
+                      href="https://taso.palloliitto.fi"
+                    />
+                  </HomeGroup>
                 )}
               </>
             )}
