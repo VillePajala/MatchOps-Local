@@ -25,6 +25,7 @@ import {
   HiOutlineXMark
 } from 'react-icons/hi2';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface ImportResult {
   successful: number;
@@ -51,6 +52,9 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
 
   // Focus trap: keeps Tab cycling within modal
   useFocusTrap(modalRef, isOpen);
+
+  useEscapeToClose(isOpen, onClose);
+
 
   if (!isOpen) return null;
 

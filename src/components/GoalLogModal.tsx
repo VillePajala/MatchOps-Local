@@ -15,6 +15,7 @@ import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 // Re-export shared types for backward compatibility with test imports
 export type { GameEvent, GameEventType } from '@/types/game';
@@ -363,6 +364,10 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   const sortedEvents = useMemo(() => {
     return localGameEvents.filter((e) => e.type !== 'note').sort((a, b) => a.time - b.time);
   }, [localGameEvents]);
+
+
+  useEscapeToClose(isOpen, onClose, !showDeleteEventConfirm && !showRecalcConfirm);
+
 
 
   if (!isOpen) return null;
