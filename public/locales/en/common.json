@@ -358,7 +358,8 @@
     "noPlayersForNewGame": "You need at least one player in your roster to create a game. Would you like to add players now?",
     "openTimer": "Open Timer",
     "toggleTacticsBoardShow": "Tactics Board",
-    "formationMenu": "Formation menu"
+    "formationMenu": "Formation menu",
+    "thisGamePlan": "This game's plan"
   },
   "tooltips": {
     "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
@@ -3451,7 +3452,8 @@
       "addGame": "Add game",
       "removeGame": "Remove game",
       "trimConfirmTitle": "Remove {{name}}?",
-      "trimConfirmMessage": "Its lineup and substitutions are deleted. Undo (on the Games tab) restores them."
+      "trimConfirmMessage": "Its lineup and substitutions are deleted. Undo (on the Games tab) restores them.",
+      "openGame": "Open the game"
     },
     "saveError": "Could not save the plan. Your latest changes may not persist.",
     "deleteError": "Could not delete the plan.",

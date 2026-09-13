@@ -555,7 +555,10 @@ describe('Translation File Validation', () => {
       // +4 pluralised Kilpailut counts: the same concatenation bug the Club
       //     tab had, missed because that card lives in another component -
       //     Finnish read "1 sarjaa". Lands at 3230.
-      expect(enKeys.length).toBe(3230);
+      // +2 plan <-> game round trip: "this game's plan" in the match menu and
+      //     "open the game" in the planner, so the two halves of one match can
+      //     reach each other without going back through Home. Lands at 3232.
+      expect(enKeys.length).toBe(3232);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -731,7 +734,8 @@ describe('Translation File Validation', () => {
       // +5 Home visual pass (see EN above). Lands at 3220.
       // +6 pluralised counts (see EN above). Lands at 3226.
       // +4 pluralised Kilpailut counts (see EN above). Lands at 3230.
-      expect(fiKeys.length).toBe(3230);
+      // +2 plan <-> game round trip (see EN above). Lands at 3232.
+      expect(fiKeys.length).toBe(3232);
     });
   });
 });

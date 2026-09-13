@@ -102,6 +102,17 @@ interface ControlBarProps {
    *  access to the planner right after creating/entering a game. Opens the
    *  HOST planner over the match. */
   onOpenPlanner?: () => void;
+  /**
+   * Open THIS game's plan in the planner. Supplied only when the game was
+   * created from a plan, so the row appears exactly when there is something to
+   * open.
+   *
+   * This is not the planner entry that restructure 3.1 removed from the match
+   * menu. That one was a general "open the planner", which belongs on Home
+   * because it CREATES games; this is a contextual jump to the plan this match
+   * already came from, and it cannot be reached any other way.
+   */
+  onOpenThisGamePlan?: () => void;
   /** R6: game-day reference material stays reachable mid-match. */
   onOpenTraining?: () => void;
   onOpenRules?: () => void;
@@ -141,6 +152,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   finishProgress,
   onOpenPlayerAssessmentModal,
   onOpenPlanner,
+  onOpenThisGamePlan,
   onOpenTraining,
   onOpenRules,
   onOpenAppSettings,
@@ -611,6 +623,17 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               <button onClick={wrapModal(onOpenPlanner)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
                 <HiOutlineTableCells className="w-5 h-5 mr-2" />
                 {t('controlBar.planner', 'Match planner')}
+                <span className="ml-auto text-slate-500" aria-hidden="true">&rarr;</span>
+              </button>
+            )}
+            {onOpenThisGamePlan && (
+              <button
+                onClick={wrapModal(onOpenThisGamePlan)}
+                data-testid="open-this-game-plan"
+                className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+              >
+                <HiOutlineTableCells className="w-5 h-5 mr-2" />
+                {t('controlBar.thisGamePlan', "This game's plan")}
                 <span className="ml-auto text-slate-500" aria-hidden="true">&rarr;</span>
               </button>
             )}

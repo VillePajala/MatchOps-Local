@@ -55,3 +55,22 @@ export const deletePlanLink = async (gameId: string): Promise<boolean> =>
  */
 export const deletePlanLinksForPlan = async (planId: string): Promise<boolean> =>
   (await getDataStore()).deletePlaytimePlanLinksForPlan(planId);
+
+/**
+ * Real games created from one planned game, newest id last.
+ *
+ * The reverse of getPlanLink, and the half the planner needs to offer "open
+ * the game" - the store is keyed by real game id, so finding a planned game's
+ * games means a scan. That is fine at this scale (one entry per game created
+ * from a plan) and keeps the store single-keyed rather than maintaining an
+ * index that can drift out of step with it.
+ */
+export const getGamesForPlanGame = async (
+  planId: string,
+  planGameId: string,
+): Promise<string[]> => {
+  const all = await getAllPlanLinks();
+  return Object.entries(all)
+    .filter(([, link]) => link.planId === planId && link.planGameId === planGameId)
+    .map(([gameId]) => gameId);
+};
