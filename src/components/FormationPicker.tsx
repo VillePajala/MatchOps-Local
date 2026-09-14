@@ -42,8 +42,8 @@ const MenuContent: React.FC<{
 
   // Size classes - mobile matches other modal styling (like RosterSettingsModal)
   const headerClass = isMobile
-    ? "relative z-10 flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 shrink-0"
-    : "relative z-10 px-4 py-3 border-b border-slate-700/20 shrink-0 text-center";
+    ? "relative z-10 flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-white/10 shrink-0"
+    : "relative z-10 px-4 py-3 border-b border-white/10 shrink-0 text-center";
   const titleClass = isMobile
     ? "text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg"
     : "text-sm font-bold text-yellow-400";
@@ -52,8 +52,8 @@ const MenuContent: React.FC<{
     ? "relative z-10 overflow-y-auto flex-1 p-6 pb-20 space-y-4"
     : "relative z-10 overflow-y-auto min-h-0 flex-1 p-2 space-y-2";
   const autoButtonClass = isMobile
-    ? "w-full px-4 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
-    : "w-full px-3 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30";
+    ? "w-full px-4 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-purple-600 text-white hover:bg-purple-500 border border-purple-400/30"
+    : "w-full px-3 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-purple-600 text-white hover:bg-purple-500 border border-purple-400/30";
   const cardClass = isMobile ? "p-4 rounded-lg" : "p-2 rounded-lg";
   const sizeHeaderClass = isMobile
     ? "px-1 py-1 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 mb-2"
@@ -71,7 +71,7 @@ const MenuContent: React.FC<{
   return (
     <>
       {/* Background effects (from modalStyles) */}
-      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+      <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
 
       {/* Header */}

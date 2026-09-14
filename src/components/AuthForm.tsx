@@ -387,17 +387,17 @@ export default function AuthForm({
   // Shared style definitions
   const primaryButtonStyle =
     'w-full h-12 px-4 py-2 rounded-md text-base font-bold transition-all duration-200 ' +
-    'focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-900 ' +
-    'bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] ' +
-    'hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner ' +
+    'focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-slate-900 ' +
+    'bg-gradient-to-b from-purple-500 to-purple-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] ' +
+    'hover:from-purple-600 hover:to-purple-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner ' +
     'border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)] ' +
-    'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-indigo-500 disabled:hover:to-indigo-600 disabled:active:scale-100';
+    'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-purple-500 disabled:hover:to-purple-600 disabled:active:scale-100';
 
-  const linkButtonStyle = 'text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors';
+  const linkButtonStyle = 'text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors';
 
   const inputStyle =
     'w-full h-12 px-4 rounded-md bg-slate-800 border border-slate-700 text-white ' +
-    'placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent';
+    'placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent';
 
   // --- Set New Password Screen (after reset OTP verified) ---
   if (pendingPasswordReset && showNewPasswordForm) {
@@ -710,7 +710,7 @@ export default function AuthForm({
                 checked={hasAcceptedTerms}
                 onChange={(e) => setHasAcceptedTerms(e.target.checked)}
                 disabled={isLoading}
-                className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
+                className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-purple-500 focus:ring-purple-500 focus:ring-offset-slate-900 cursor-pointer"
               />
               <span className="text-slate-400 text-xs leading-relaxed group-hover:text-slate-300 transition-colors">
                 {t('auth.termsConsent', 'I have read and agree to the')}{' '}
@@ -718,7 +718,7 @@ export default function AuthForm({
                   href="/terms"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300 underline"
+                  className="text-purple-400 hover:text-purple-300 underline"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {t('auth.termsLink', 'Terms of Service')}
@@ -728,7 +728,7 @@ export default function AuthForm({
                   href="/privacy-policy"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300 underline"
+                  className="text-purple-400 hover:text-purple-300 underline"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {t('auth.privacyLink', 'Privacy Policy')}

@@ -82,7 +82,7 @@ const PlayerDevelopmentRadar: React.FC<PlayerDevelopmentRadarProps> = ({ axes, m
         <polygon points={polygon((a) => a.current)} fill="rgba(129,140,248,0.25)" stroke="#818cf8" strokeWidth={1.5} />
       </svg>
       <div className="flex gap-4 text-xs mt-1 text-slate-300">
-        <span className="flex items-center gap-1"><span className="inline-block w-4 border-t-2 border-indigo-400" />{currentLabel}</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-4 border-t-2 border-purple-400" />{currentLabel}</span>
         <span className="flex items-center gap-1"><span className="inline-block w-4 border-t-2 border-dashed border-slate-400" />{baselineLabel}</span>
       </div>
     </div>

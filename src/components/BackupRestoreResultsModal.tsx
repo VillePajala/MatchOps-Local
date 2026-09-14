@@ -62,7 +62,7 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
     <DialogBackdrop className="z-[60]" onClick={handleBackdropClick}>
       <div ref={modalRef} className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl max-w-2xl w-full flex flex-col text-slate-100 max-h-[85vh]" role="dialog" aria-modal="true">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900/20 backdrop-blur-sm flex-shrink-0">
+        <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-900/20 backdrop-blur-sm flex-shrink-0">
           <div className="flex items-center space-x-3">
             <HiOutlineCheckCircle className="w-8 h-8 text-green-500" />
             <h2 className="text-xl font-semibold text-green-600">
@@ -84,7 +84,7 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {/* Games */}
               <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
-                <div className="text-2xl font-bold text-indigo-400">{statistics.gamesImported}</div>
+                <div className="text-2xl font-bold text-purple-400">{statistics.gamesImported}</div>
                 <div className="text-sm text-slate-400">{t('backupRestore.gamesImported', { count: statistics.gamesImported, defaultValue_one: 'Game', defaultValue_other: 'Games' })}</div>
               </div>
 
@@ -140,7 +140,7 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
           )}
         </div>
 
-        <div className="px-4 py-2 border-t border-slate-600 bg-slate-900/20 backdrop-blur-sm flex justify-end flex-shrink-0">
+        <div className="px-4 py-2 border-t border-white/10 bg-slate-900/20 backdrop-blur-sm flex justify-end flex-shrink-0">
           <button onClick={onClose} className={primaryButtonStyle}>
             {t('common.continue', 'Continue')}
           </button>

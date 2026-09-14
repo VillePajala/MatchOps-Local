@@ -88,7 +88,7 @@ export function GameNotesEditor({
             // hides its own errors - after which nothing about the match
             // persists and nothing on screen says so. Stop at the cap instead.
             maxLength={VALIDATION_LIMITS.GAME_NOTES_MAX}
-            className="w-full h-64 min-h-[10rem] resize-y p-3 bg-slate-700 border border-slate-600 rounded-md shadow-sm text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full h-64 min-h-[10rem] resize-y p-3 bg-slate-700 border border-slate-600 rounded-md shadow-sm text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
             placeholder={t('gameStatsModal.notesPlaceholder', 'Notes...') ?? undefined}
           />
           {/* Silent until it matters: a counter over a long report is noise,
@@ -123,7 +123,7 @@ export function GameNotesEditor({
             <button
               type="button"
               onClick={onSaveNotes}
-              className={`${ROW_BTN} bg-indigo-600 text-white hover:bg-indigo-500`}
+              className={`${ROW_BTN} bg-purple-600 text-white hover:bg-purple-500`}
             >
               {t('common.save', 'Save')}
             </button>

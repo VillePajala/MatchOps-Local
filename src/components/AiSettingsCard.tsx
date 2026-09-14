@@ -35,9 +35,9 @@ interface AiSettingsCardProps {
 
 const rowStyle = 'p-3 bg-slate-800/50 rounded-md';
 const primary =
-  'rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500';
+  'rounded-md bg-purple-600 hover:bg-purple-500 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500';
 const secondary =
-  'rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500';
+  'rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500';
 const danger =
   'rounded-md bg-red-700 hover:bg-red-600 border border-red-500/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-red-500';
 
@@ -147,7 +147,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
       </p>
       <p className="text-sm text-slate-400 mb-2">
         {t('aiSettings.experimentalNote', 'Needs your own OpenAI account and API key. Built for coaches comfortable with that; not for everyone yet.')}{' '}
-        <a href="/voice-notes" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline" data-testid="ai-parent-page">
+        <a href="/voice-notes" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline" data-testid="ai-parent-page">
           {t('aiSettings.parentPageLink', 'Page for families: what leaves the phone')}
         </a>
       </p>
@@ -168,7 +168,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
           </label>
           <p className="text-sm text-slate-400">
             {t('aiSettings.keyHint', 'Create a dedicated key for MatchOps and set a monthly spend cap on it.')}{' '}
-            <a href={provider.keysUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline">
+            <a href={provider.keysUrl} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline">
               {t('aiSettings.keyLink', 'Open the provider\'s key page')}
             </a>
           </p>
@@ -181,7 +181,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
               value={keyInput}
               onChange={(e) => setKeyInput(e.target.value)}
               placeholder="sk-..."
-              className="flex-1 min-w-0 bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 min-w-0 bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
             <button type="button" onClick={() => void connect()} disabled={!keyInput.trim() || testing} className={primary} data-testid="ai-connect">
               {testing ? t('aiSettings.testing', 'Checking...') : t('aiSettings.connect', 'Connect')}
@@ -207,7 +207,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
             type="checkbox"
             checked={state.pseudonymize}
             onChange={(e) => setPseudonymizeNames(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900"
+            className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-purple-500 focus:ring-purple-500 focus:ring-offset-slate-900"
             data-testid="ai-pseudonymize"
           />
           <span>
@@ -226,7 +226,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
             id="ai-model-select"
             value={state.model ?? DRAFTING_MODEL}
             onChange={(e) => setAiModel(e.target.value === DRAFTING_MODEL ? null : e.target.value)}
-            className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+            className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500"
             data-testid="ai-model-select"
           >
             <option value={DRAFTING_MODEL}>

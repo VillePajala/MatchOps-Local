@@ -378,7 +378,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light pointer-events-none" />
 
         {/* Chrome slimming: X-header; the (single) Add button collapses on scroll. */}
         <CollapsibleModalHeader
@@ -390,7 +390,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
           <div className="px-6 pt-3 pb-4">
             <button
               onClick={kind === 'season' ? handleAddSeason : handleAddTournament}
-              className="w-full px-4 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
+              className="w-full px-4 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-purple-600 text-white hover:bg-purple-500 border border-purple-400/30"
             >
               {kind === 'season'
                 ? t('seasonTournamentModal.addSeason', 'Add League')
@@ -436,14 +436,14 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
                 autoComplete="off"
-                className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
               />
               <button
                 type="button"
                 onClick={() => setShowArchived(v => !v)}
                 aria-pressed={showArchived}
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                  showArchived ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  showArchived ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                 }`}
               >
                 {t('seasonTournamentModal.showArchived', 'Show Archived')}

@@ -54,7 +54,7 @@ export function PlayerStatsTable({
   return (
     <table className="w-full text-sm table-fixed">
       <thead className="text-slate-300">
-        <tr className="border-b border-slate-700">
+        <tr className="border-b border-white/10">
           <th
             className="px-2 py-2 text-left"
             style={{ width: '40%' }}
@@ -62,7 +62,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('name')}
-              className="w-full flex items-center hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full flex items-center hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
             >
               {t('common.player', 'Pelaaja')} {getSortIcon('name')}
             </button>
@@ -74,7 +74,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('gamesPlayed')}
-              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
             >
               {t('common.gamesPlayedShort', 'GP')} {getSortIcon('gamesPlayed')}
             </button>
@@ -86,7 +86,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('goals')}
-              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
             >
               {t('common.goalsShort', 'M')} {getSortIcon('goals')}
             </button>
@@ -98,7 +98,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('assists')}
-              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
             >
               {t('common.assistsShort', 'S')} {getSortIcon('assists')}
             </button>
@@ -110,7 +110,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('totalScore')}
-              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
             >
               {t('common.totalScoreShort', 'Pts')} {getSortIcon('totalScore')}
             </button>
@@ -122,7 +122,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('avgPoints')}
-              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
             >
               {t('common.avgPointsShort', 'KA')} {getSortIcon('avgPoints')}
             </button>
@@ -134,7 +134,7 @@ export function PlayerStatsTable({
           playerStats.map((player) => (
             <tr
               key={player.id}
-              className="border-b border-slate-800 hover:bg-slate-800/40 cursor-pointer"
+              className="border-b border-white/10 hover:bg-slate-800/40 cursor-pointer"
               onClick={() => onPlayerRowClick(player)}
             >
               <td className="px-2 py-2 font-medium truncate">{player.name}</td>
@@ -163,7 +163,7 @@ export function PlayerStatsTable({
           </tr>
         )}
         {playerStats.length > 0 && (
-          <tr className="border-t border-slate-700 bg-slate-800/60 font-semibold">
+          <tr className="border-t border-white/10 bg-slate-800/60 font-semibold">
             <td className="px-2 py-2">{t('playerStats.totalsRow', 'Totals')}</td>
             <td className="px-0.5 py-2 text-center text-yellow-400">{totals.gamesPlayed}</td>
             <td className="px-0.5 py-2 text-center text-yellow-400">{totals.goals}</td>

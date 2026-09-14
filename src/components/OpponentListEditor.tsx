@@ -89,14 +89,14 @@ const OpponentListEditor: React.FC<OpponentListEditorProps> = ({
           data-testid="opponent-input"
           aria-label={t('opponentList.addLabel', 'Add a team')}
           placeholder={t('opponentList.placeholder', 'e.g. IPS Punainen')}
-          className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
         />
         <button
           type="button"
           onClick={() => trimmed && !alreadyListed && commit(trimmed)}
           disabled={!trimmed || !!alreadyListed}
           data-testid="opponent-add"
-          className="px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+          className="px-3 py-2 rounded-md bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <HiOutlinePlus className="w-4 h-4" aria-hidden="true" />
           <span className="sr-only">{t('opponentList.addLabel', 'Add a team')}</span>

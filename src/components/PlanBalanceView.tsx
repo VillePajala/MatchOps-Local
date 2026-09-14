@@ -333,7 +333,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
             aria-selected={mode === m}
             onClick={() => setMode(m)}
             className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              mode === m ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              mode === m ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
           >
             {label}
@@ -375,7 +375,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
               className={[
                 'flex items-center justify-between gap-2 px-4 py-3 min-h-[3.25rem] rounded-lg border border-black/25',
                 'text-left font-semibold text-sm shadow-[0_1px_2px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400',
                 highlighted ? 'ring-2 ring-amber-300 ring-offset-2 ring-offset-slate-900 brightness-110' : '',
                 anyHighlight && !highlighted ? 'opacity-40' : '',
               ].join(' ')}
@@ -463,7 +463,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                       type="button"
                       onClick={() => onOpenGame(g.id)}
                       title={g.label}
-                      className={`${tileClasses} focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400`}
+                      className={`${tileClasses} focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400`}
                     >
                       <span className="text-[9px] font-medium text-slate-400">
                         {gameShort(i)}
@@ -513,7 +513,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                     onClick={() => setGranularity(g)}
                     aria-pressed={granularity === g}
                     className={`flex-1 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                      granularity === g ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      granularity === g ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
                     {label}
@@ -564,7 +564,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                           aria-pressed={highlighted}
                           className={[
                             'w-full flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border border-slate-600/50 bg-slate-800/60 text-left',
-                            'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                            'focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400',
                             highlighted ? 'ring-2 ring-amber-300' : '',
                             anyHighlight && !highlighted ? 'opacity-40' : '',
                           ].join(' ')}
@@ -612,7 +612,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                         aria-pressed={highlighted}
                         className={[
                           'w-full flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border border-slate-600/50 bg-slate-800/60 text-left',
-                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400',
                           highlighted ? 'ring-2 ring-amber-300' : '',
                           anyHighlight && !highlighted ? 'opacity-40' : '',
                         ].join(' ')}

@@ -81,7 +81,7 @@ export function FilterControls({
         <select
           value={selectedSeasonIdFilter}
           onChange={(e) => onSeasonFilterChange(e.target.value)}
-          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
         >
           <option value="all">{t('gameStatsModal.filterAllSeasons', 'All Leagues')}</option>
           {seasons.map((s) => (
@@ -99,7 +99,7 @@ export function FilterControls({
             // Reset series filter when tournament changes
             onSeriesFilterChange('all');
           }}
-          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
         >
           <option value="all">{t('gameStatsModal.filterAllTournaments', 'All Tournaments')}</option>
           {tournaments.map((tour) => (
@@ -131,7 +131,7 @@ export function FilterControls({
           onChange={(e) =>
             onTeamFilterChange(e.target.value as 'all' | 'legacy' | string)
           }
-          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
         >
           <option value="all">{t('loadGameModal.allTeamsFilter', 'All Teams')}</option>
           <option value="legacy">{t('loadGameModal.legacyGamesFilter', 'Legacy Games')}</option>
@@ -147,7 +147,7 @@ export function FilterControls({
         <select
           value={selectedGameTypeFilter}
           onChange={(e) => onGameTypeFilterChange?.(e.target.value as GameType | 'all')}
-          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
         >
           <option value="all">{t('gameStatsModal.filterAllGameTypes', 'All Sports')}</option>
           <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>

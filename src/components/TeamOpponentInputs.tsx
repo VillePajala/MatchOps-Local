@@ -76,7 +76,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           value={teamName}
           onChange={(e) => onTeamNameChange(e.target.value)}
           placeholder={teamPlaceholder}
-          className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${teamError ? 'border-red-500' : 'border-slate-600'}`}
+          className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm ${teamError ? 'border-red-500' : 'border-slate-600'}`}
           onKeyDown={onKeyDown}
           disabled={disabled}
           autoComplete="off"
@@ -98,7 +98,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           value={opponentName}
           onChange={(e) => onOpponentNameChange(e.target.value)}
           placeholder={opponentPlaceholder}
-          className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${opponentError ? 'border-red-500' : 'border-slate-600'}`}
+          className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm ${opponentError ? 'border-red-500' : 'border-slate-600'}`}
           onKeyDown={onKeyDown}
           disabled={disabled}
           autoComplete="off"
@@ -125,7 +125,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
                     disabled={disabled}
                     className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
                       chosen
-                        ? 'bg-indigo-600 border-indigo-400/40 text-white'
+                        ? 'bg-purple-600 border-purple-400/40 text-white'
                         : 'bg-slate-700/70 border-slate-600/60 text-slate-200 hover:bg-slate-600/70'
                     }`}
                   >

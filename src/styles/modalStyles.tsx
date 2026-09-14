@@ -28,15 +28,43 @@ export const modalContainerStyle =
  * Background effect layers for modal
  * Use these divs inside the modal container for consistent visual effects
  */
+/**
+ * One wash, not three.
+ *
+ * This used to layer a purple soft-light wash under a sky-400 gradient under a
+ * 50px-blurred sky glow. The two sky layers were ambient haze relating to
+ * nothing in the product - the templated "gradient wash as decoration" - and
+ * they cost a compositor pass with a blur on exactly the cheap Android
+ * hardware this app is meant to run well on.
+ *
+ * The purple wash stays and now earns its place: the interface is purple
+ * because the player discs are, so a faint purple cast over a modal reads as
+ * the product's own colour rather than generic atmosphere.
+ */
 export const ModalBackgroundEffects: React.FC = () => (
-  <>
-    {/* Exactly the GameSettings layer set - an extra bottom glow here made
-        these modals read subtly hazier than the rest of the app. */}
-    <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-    <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-    <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50 pointer-events-none" />
-  </>
+  <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light pointer-events-none" />
 );
+
+// ============================================================================
+// Pitch markings
+// ============================================================================
+
+/**
+ * Separation, drawn the way the pitch draws it.
+ *
+ * The field marks itself out in white paint at low opacity on grass, and that
+ * is the app's one genuinely distinctive graphic language. Everywhere else was
+ * separating things with grey hairlines - border-slate-700/50 and eight near
+ * variants - which is the same device every dark dashboard uses.
+ *
+ * White at low alpha reads as a line ON a surface rather than a seam BETWEEN
+ * two greys, which is both cleaner against the slate and the same idea as a
+ * touchline. Use these for DIVIDERS - separation between items in one
+ * container. Container outlines stay grey: a box edge is not a pitch marking,
+ * and making everything a line would be the decoration this replaces.
+ */
+export const pitchDivide = "divide-white/10";
+export const pitchLine = "border-white/10";
 
 // ============================================================================
 // Typography Styles
@@ -69,14 +97,14 @@ export const itemRowStyle =
   "bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/60 transition-colors";
 
 export const itemRowEditingStyle =
-  "bg-slate-700/75 border-indigo-500";
+  "bg-slate-700/75 border-purple-500";
 
 // ============================================================================
 // Input Styles
 // ============================================================================
 
 export const inputBaseStyle =
-  "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white placeholder-slate-400";
+  "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500 sm:text-sm text-white placeholder-slate-400";
 
 export const textareaStyle =
   `${inputBaseStyle} resize-none`;
@@ -93,7 +121,7 @@ const _buttonBaseStyle =
   "px-4 py-3 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const primaryButtonStyle =
-  "px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30";
+  "px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-purple-600 text-white hover:bg-purple-500 border border-purple-400/30";
 
 export const secondaryButtonStyle =
   "px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-600 text-white hover:bg-slate-500 border border-slate-400/30";
@@ -112,7 +140,7 @@ export const iconButtonBaseStyle =
   "p-1.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const iconButtonEditStyle =
-  `${iconButtonBaseStyle} text-slate-400 hover:text-indigo-400`;
+  `${iconButtonBaseStyle} text-slate-400 hover:text-purple-400`;
 
 export const iconButtonDangerStyle =
   `${iconButtonBaseStyle} text-slate-400 hover:text-red-500`;
@@ -138,10 +166,10 @@ export const badgeAwardStyle =
 // ============================================================================
 
 export const headerStyle =
-  "flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0";
+  "flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-white/10 flex-shrink-0";
 
 export const footerStyle =
-  "px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex justify-end items-center gap-4 flex-shrink-0";
+  "px-6 py-3 bg-slate-800/50 border-t border-white/10 backdrop-blur-sm flex justify-end items-center gap-4 flex-shrink-0";
 
 // ============================================================================
 // Helper Components
@@ -265,7 +293,7 @@ export function useCollapsingHeader(): CollapsingHeaderController {
 // hidden on Android TWA (hardware back) and mobile Safari (browser back +
 // edge-swipe), where a visible X is redundant. See useModalCloseVisible.
 export const modalCloseButtonStyle =
-  "items-center justify-center p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0";
+  "items-center justify-center p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 flex-shrink-0";
 
 function subscribeCloseVisibility(cb: () => void): () => void {
   const mq = typeof window !== 'undefined' && window.matchMedia
@@ -292,7 +320,7 @@ export function useModalCloseVisible(): boolean {
 // replaces the old Cancel+Save footer (Cancel is the header X / hardware
 // back). Utilities do NOT live here; they go inline by their content.
 export const modalStickyBarStyle =
-  "flex-shrink-0 px-4 py-2.5 border-t border-slate-700/30 bg-slate-800/60 backdrop-blur-sm";
+  "flex-shrink-0 px-4 py-2.5 border-t border-white/10 bg-slate-800/60 backdrop-blur-sm";
 
 export const ModalStickyPrimary: React.FC<{
   onClick: () => void;
@@ -310,7 +338,7 @@ export const ModalStickyPrimary: React.FC<{
       onClick={onClick}
       disabled={disabled}
       data-testid={dataTestId}
-      className="w-full px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full px-4 py-2 rounded-md text-sm font-semibold bg-purple-600 text-white hover:bg-purple-500 border border-purple-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {children}
     </button>
@@ -335,7 +363,7 @@ export const ModalToggleButton: React.FC<{
     onClick={onToggle}
     aria-pressed={pressed}
     disabled={disabled}
-    className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${pressed ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} ${className}`}
+    className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${pressed ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} ${className}`}
   >
     {children}
   </button>
@@ -397,7 +425,7 @@ export const CollapsibleModalHeader: React.FC<{
       <div className={`flex items-center justify-end gap-1.5 ${sideSlot} shrink-0`}>{actions}</div>
     </div>
     {children && (
-      <div ref={collapse?.outerRef} className="overflow-hidden border-b border-slate-700/20">
+      <div ref={collapse?.outerRef} className="overflow-hidden border-b border-white/10">
         <div ref={collapse?.innerRef}>{children}</div>
       </div>
     )}
@@ -493,7 +521,7 @@ export const wizardModalLargeStyle =
   "relative w-full max-w-lg bg-slate-800 border border-slate-600 rounded-lg shadow-2xl max-h-[85vh] flex flex-col";
 
 export const wizardHeaderStyle =
-  "flex items-center justify-between px-6 py-4 border-b border-slate-600";
+  "flex items-center justify-between px-6 py-4 border-b border-white/10";
 
 export const wizardTitleStyle =
   "text-lg font-semibold text-slate-100";
@@ -502,7 +530,7 @@ export const wizardContentStyle =
   "px-6 py-5 overflow-y-auto flex-1 min-h-0";
 
 export const wizardFooterStyle =
-  "px-6 py-4 border-t border-slate-600 flex gap-3 justify-end";
+  "px-6 py-4 border-t border-white/10 flex gap-3 justify-end";
 
 // Data summary boxes
 export const dataSummaryBoxStyle =

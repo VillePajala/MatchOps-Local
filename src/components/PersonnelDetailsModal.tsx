@@ -179,7 +179,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light pointer-events-none" />
 
         {/* Chrome slimming: X-header (Cancel) + sticky Save. */}
         <CollapsibleModalHeader
@@ -216,7 +216,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
                     if (errorMessage) setErrorMessage(null);
                   }}
                   placeholder={t('personnelDetailsModal.namePlaceholder', 'Enter name')}
-                  className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 ${
+                  className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500 ${
                     errorMessage ? 'border-red-500' : 'border-slate-600'
                   }`}
                   required
@@ -231,7 +231,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as PersonnelRole)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-purple-500 focus:border-purple-500"
                 >
                   {PERSONNEL_ROLES.map(({ value, labelKey }) => (
                     <option key={value} value={value}>
@@ -251,7 +251,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder={t('personnelDetailsModal.phonePlaceholder', 'Phone number')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
 
@@ -265,7 +265,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t('personnelDetailsModal.emailPlaceholder', 'Email address')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
 
@@ -285,7 +285,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={t('personnelDetailsModal.notesPlaceholder', 'Additional notes')}
                   rows={3}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
             </div>

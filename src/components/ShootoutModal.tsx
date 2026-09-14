@@ -159,7 +159,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
                   type="button"
                   disabled={starterLocked}
                   onClick={() => setFirstKick(side)}
-                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${starter === side ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} ${starterLocked ? 'opacity-70 cursor-default' : ''}`}
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${starter === side ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} ${starterLocked ? 'opacity-70 cursor-default' : ''}`}
                 >
                   {side === 'you' ? teamName : opponentName}
                 </button>
@@ -168,18 +168,18 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
           </div>
 
           {/* Your team kick entry */}
-          <div className={`bg-slate-900/50 rounded-lg p-3 border space-y-2 ${nextUp === 'you' ? 'border-indigo-400 ring-2 ring-indigo-400/40' : 'border-slate-700'}`}>
+          <div className={`bg-slate-900/50 rounded-lg p-3 border space-y-2 ${nextUp === 'you' ? 'border-purple-400 ring-2 ring-purple-400/40' : 'border-slate-700'}`}>
             <label htmlFor="shootoutScorer" className="flex items-center justify-between text-sm font-medium text-slate-300">
               <span>{teamName}</span>
               {nextUp === 'you' && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">{t('shootoutModal.upNext', 'Up next')}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300">{t('shootoutModal.upNext', 'Up next')}</span>
               )}
             </label>
             <select
               id="shootoutScorer"
               value={scorerId}
               onChange={(e) => setScorerId(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
             >
               <option value="">{t('shootoutModal.unknownShooter', 'Shooter (optional)')}</option>
               {availablePlayers.map((p) => (
@@ -205,11 +205,11 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
           </div>
 
           {/* Opponent kick entry */}
-          <div className={`bg-slate-900/50 rounded-lg p-3 border space-y-2 ${nextUp === 'opponent' ? 'border-indigo-400 ring-2 ring-indigo-400/40' : 'border-slate-700'}`}>
+          <div className={`bg-slate-900/50 rounded-lg p-3 border space-y-2 ${nextUp === 'opponent' ? 'border-purple-400 ring-2 ring-purple-400/40' : 'border-slate-700'}`}>
             <span className="flex items-center justify-between text-sm font-medium text-slate-300">
               <span>{opponentName}</span>
               {nextUp === 'opponent' && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">{t('shootoutModal.upNext', 'Up next')}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300">{t('shootoutModal.upNext', 'Up next')}</span>
               )}
             </span>
             <div className="flex gap-2">
@@ -244,7 +244,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
                   return (
                     <li
                       key={kick.id}
-                      className={`flex items-center justify-between text-sm rounded px-3 py-1.5 transition-colors ${isNewest ? 'bg-indigo-500/15 ring-1 ring-indigo-400/40' : 'bg-slate-900/40'}`}
+                      className={`flex items-center justify-between text-sm rounded px-3 py-1.5 transition-colors ${isNewest ? 'bg-purple-500/15 ring-1 ring-purple-400/40' : 'bg-slate-900/40'}`}
                     >
                       <span className={isNewest ? 'text-white' : 'text-slate-200'}>
                         <span className="text-slate-400 mr-2">{kick.order + 1}.</span>
