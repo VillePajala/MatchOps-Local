@@ -221,7 +221,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                               feature; on a phone the book opens at page 1 and
                               the reader navigates themselves, so the number
                               has to be readable at a glance. */}
-                          <span className="shrink-0 text-sm font-semibold text-yellow-400 tabular-nums">
+                          <span className="shrink-0 text-sm font-semibold text-amber-400 tabular-nums">
                             {t('rulesDirectory.pageN', 's. {{n}}', { n: h.page })}
                           </span>
                         </button>
@@ -341,7 +341,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                             <React.Fragment key={f.sourceLabel}>
                               <tr className="border-t border-white/10 align-top">
                                 <td className="py-1.5 pr-3 text-slate-200 whitespace-nowrap">{f.sourceLabel}</td>
-                                <td className="py-1.5 pr-3 text-yellow-400 font-semibold whitespace-nowrap">{f.fieldSize}</td>
+                                <td className="py-1.5 pr-3 text-amber-400 font-semibold whitespace-nowrap">{f.fieldSize}</td>
                                 <td className="py-1.5 pr-3 text-slate-300">{f.playingTimeText}</td>
                                 <td className="py-1.5 pr-3 text-slate-300 whitespace-nowrap">{f.field}</td>
                                 <td className="py-1.5 text-slate-300 whitespace-nowrap">{f.ball}</td>

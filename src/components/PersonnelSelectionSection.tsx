@@ -27,9 +27,9 @@ const PersonnelSelectionSection: React.FC<PersonnelSelectionSectionProps> = ({
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-200">{title}</h3>
         <div className="text-sm text-slate-400">
-          <span className="text-yellow-400 font-semibold">{selectedPersonnelIds.length}</span>
+          <span className="text-amber-400 font-semibold">{selectedPersonnelIds.length}</span>
           {' / '}
-          <span className="text-yellow-400 font-semibold">{availablePersonnel.length}</span>
+          <span className="text-amber-400 font-semibold">{availablePersonnel.length}</span>
           {' '}
           {t('personnel.selected', 'selected')}
         </div>

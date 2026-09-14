@@ -71,7 +71,7 @@ export const pitchLine = "border-white/10";
 // ============================================================================
 
 export const titleStyle =
-  "text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg";
+  "text-3xl font-bold text-amber-400 tracking-wide drop-shadow-lg";
 
 export const labelStyle =
   "text-sm font-medium text-slate-300 mb-1";

@@ -45,7 +45,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
 
   const sectionBox = 'bg-slate-900/50 rounded-lg p-4 border border-slate-700/50';
   const list = 'text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400';
-  const heading = 'text-2xl font-bold text-yellow-300';
+  const heading = 'text-2xl font-bold text-amber-300';
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('instructionsModal.title')}>
@@ -172,7 +172,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
 
           {/* Tips */}
           <section className="space-y-3">
-            <h3 className="text-xl font-semibold text-yellow-300">{t('instructionsModal.tips.title')}</h3>
+            <h3 className="text-xl font-semibold text-amber-300">{t('instructionsModal.tips.title')}</h3>
             <div className="bg-purple-900/30 rounded-lg p-4 border border-purple-700/50">
               <ul className="list-disc list-inside space-y-1 text-slate-300">
                 <li>{t('instructionsModal.tips.tip1')}</li>

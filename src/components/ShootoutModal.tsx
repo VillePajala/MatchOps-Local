@@ -132,7 +132,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
         <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pb-4 pt-4 space-y-5" onScroll={headerCollapse.onScroll}>
           {/* Tally */}
           <div className="bg-slate-900/70 rounded-lg p-4 text-center border border-slate-700">
-            <div className="text-4xl font-bold text-yellow-400">
+            <div className="text-4xl font-bold text-amber-400">
               {yourScore} - {oppScore}
             </div>
             <div className="text-sm text-slate-400 mt-1">

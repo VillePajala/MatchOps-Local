@@ -52,7 +52,7 @@ export function GameInfoCard({
             <span className="font-semibold text-slate-100 flex-1 text-right">
               {homeTeamName}
             </span>
-            <span className="text-2xl text-yellow-400 font-bold mx-4">
+            <span className="text-2xl text-amber-400 font-bold mx-4">
               {homeScore} - {awayScore}
               {(wentToOvertime || wentToPenalties) && (
                 <span className="text-sm text-slate-400 font-medium ml-2">

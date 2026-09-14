@@ -132,7 +132,7 @@ export function GameNotesEditor({
       ) : (
         <div
           data-testid="report-editor-open"
-          className="cursor-pointer whitespace-pre-wrap min-h-[6rem] p-3 rounded-md border border-slate-700/50 bg-slate-700/50 text-sm text-slate-300 hover:text-yellow-400 transition-colors"
+          className="cursor-pointer whitespace-pre-wrap min-h-[6rem] p-3 rounded-md border border-slate-700/50 bg-slate-700/50 text-sm text-slate-300 hover:text-amber-400 transition-colors"
           onClick={onStartEdit}
         >
           {gameNotes || (

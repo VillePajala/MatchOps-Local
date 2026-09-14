@@ -373,7 +373,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
             : t('playtimePlanner.lineup.slotEmpty', '{{position}}: empty', {
                 position: positionLabel,
               });
-          const selectionRing = 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800';
+          const selectionRing = 'ring-2 ring-amber-300 ring-offset-1 ring-offset-green-800';
           const conflictRing = conflictSlots.has(slot.slotId)
             ? 'ring-2 ring-red-500 ring-offset-1 ring-offset-green-800'
             : hlRing(involved);

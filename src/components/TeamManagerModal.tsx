@@ -507,7 +507,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                 {placements.map((p, idx) => (
                                   <span
                                     key={idx}
-                                    className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-900/30 text-yellow-300 border border-yellow-700/50 flex items-center gap-1"
+                                    className="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-300 border border-amber-700/50 flex items-center gap-1"
                                     title={p.name}
                                   >
                                     {p.emoji} {p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name}

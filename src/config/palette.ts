@@ -114,6 +114,20 @@ export const STATUS = {
  */
 export const UI = {
   primary: 'purple',
+  /**
+   * ONE warm accent, not three. Purple sits at ~271 degrees and gold at ~38 is
+   * split-complementary to it - the harmonious relationship, and one with real
+   * kit precedent. But the app had yellow (~48) AND amber (~38) doing separate
+   * jobs ten degrees apart: too close to read as different categories, far
+   * enough that a yellow number beside an amber button looked like a mistake.
+   *
+   * Yellow folded into amber. The "press this" versus "this number matters"
+   * distinction now rides on FILL versus TEXT - a solid amber block is a
+   * button, amber text is emphasis - which was always the stronger signal.
+   *
+   * Orange survives this collapse because it is genuinely semantic: the
+   * substitution WARNING tier escalating to red. See STATUS.
+   */
   cta: 'amber',
   danger: 'red',
   /** The brand purple, currently the player discs on the field. */

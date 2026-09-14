@@ -85,7 +85,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
     if (importResult.failed.length === 0) {
       return <HiOutlineCheckCircle className="w-8 h-8 text-green-500" />;
     } else if (importResult.successful > 0) {
-      return <HiOutlineExclamationTriangle className="w-8 h-8 text-yellow-500" />;
+      return <HiOutlineExclamationTriangle className="w-8 h-8 text-amber-500" />;
     } else {
       return <HiOutlineXCircle className="w-8 h-8 text-red-500" />;
     }
@@ -98,7 +98,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
     if (importResult.failed.length === 0) {
       return 'text-green-600';
     } else if (importResult.successful > 0) {
-      return 'text-yellow-600';
+      return 'text-amber-600';
     } else {
       return 'text-red-600';
     }

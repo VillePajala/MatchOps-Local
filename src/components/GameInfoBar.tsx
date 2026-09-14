@@ -10,6 +10,8 @@ interface GameInfoBarProps {
   onTeamNameChange: (newName: string) => void;
   onOpponentNameChange: (newName: string) => void;
   homeOrAway: 'home' | 'away';
+  /** The team's kit colour, when they have one. Undefined for most teams. */
+  teamColor?: string;
 }
 
 const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
@@ -20,6 +22,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
   onTeamNameChange,
   onOpponentNameChange,
   homeOrAway,
+  teamColor,
 }) => {
   const [editingField, setEditingField] = useState<'left' | 'right' | null>(null);
   const [editValue, setEditValue] = useState<string>('');
@@ -128,6 +131,11 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
               onTouchEnd={() => handleTap('left')}
               onDoubleClick={() => handleStartEdit('left')}
               title={leftTeamName}
+              // The kit colour as an underline rather than a dot or a filled
+              // background: it has to sit beside an editable name without
+              // competing with it, and a rule under the word reads as "these
+              // are their colours" the way a scarf does.
+              style={teamColor ? { boxShadow: `inset 0 -3px 0 0 ${teamColor}` } : undefined}
             >
               {leftTeamName}
             </span>
@@ -146,7 +154,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
             totals all sit at text-2xl or larger. The app was presenting "how
             many teams you have" as more important than "what the score is".
             tabular-nums so the chip does not jump width between 0-0 and 10-9. */}
-        <span className="bg-slate-700 px-2.5 py-0.5 rounded text-yellow-300 text-xl font-black tabular-nums leading-none flex-shrink-0">
+        <span className="bg-slate-700 px-2.5 py-0.5 rounded text-amber-300 text-xl font-black tabular-nums leading-none flex-shrink-0">
           {leftScore} - {rightScore}
         </span>
 

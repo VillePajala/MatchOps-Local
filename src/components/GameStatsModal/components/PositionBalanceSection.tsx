@@ -140,7 +140,7 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
                   return (
                     <td
                       key={c.key}
-                      className={`px-0.5 py-2 text-center ${n > 0 ? 'text-yellow-400 font-semibold' : 'text-slate-600'}`}
+                      className={`px-0.5 py-2 text-center ${n > 0 ? 'text-amber-400 font-semibold' : 'text-slate-600'}`}
                     >
                       {n > 0 ? n : '–'}
                     </td>
