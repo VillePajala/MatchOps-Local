@@ -111,7 +111,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
       {/* Center Content: Teams and Score */}
       <div className="relative flex-1 flex items-center justify-center space-x-2.5 font-semibold z-10 max-w-full">
         {/* Left Team Name */}
-        <div className="text-right min-w-0 max-w-[140px] overflow-hidden" title={editingField !== 'left' ? "Double-click to edit" : undefined}>
+        <div className="flex-1 basis-0 min-w-0 text-right overflow-hidden" title={editingField !== 'left' ? "Double-click to edit" : undefined}>
           {editingField === 'left' ? (
             <input
               ref={teamInputRef}
@@ -134,7 +134,12 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
           )}
         </div>
 
-        {/* Score.
+        {/* Score. The fixed centre of the bar: the flanking name blocks share
+            equal flex basis, so the number stays put whatever the teams are
+            called. Centring the whole string instead let the score slide
+            around as names changed length - a scoreboard's number does not
+            move because the away side has a long name.
+
             Numerals as display type, applied in the one place it was most
             obviously missing. This was text-sm - the same size as body copy -
             while the match timer, the home dashboard tiles and the player
@@ -146,7 +151,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
         </span>
 
         {/* Right Team Name */}
-        <div className="text-left min-w-0 max-w-[140px] overflow-hidden" title={editingField !== 'right' ? "Double-click to edit" : undefined}>
+        <div className="flex-1 basis-0 min-w-0 text-left overflow-hidden" title={editingField !== 'right' ? "Double-click to edit" : undefined}>
           {editingField === 'right' ? (
             <input
               ref={opponentInputRef}
