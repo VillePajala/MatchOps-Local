@@ -92,7 +92,7 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
   return (
     <section className="bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner">
       <h3 className="text-lg font-semibold text-slate-200 mb-1">{title}</h3>
-      <p className="text-xs text-slate-400 mb-3">
+      <p className="text-sm text-slate-400 mb-3">
         {t('gameStatsModal.positionBalance.gamesCovered', 'Positions recorded in {{recorded}}/{{scanned}} games', {
           recorded: diversity.totalGames,
           scanned: scopeGames,

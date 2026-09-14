@@ -477,7 +477,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               : t('teamManager.playersCount', '{{count}} players', { count: rosterCounts[team.id] || 0 })
                             }
                           </span>
-                          <span className="text-slate-500 text-[10px]">
+                          <span className="text-slate-400 text-xs">
                             {t('teamManager.createdAt', 'Created {{date}}', {
                               date: new Date(team.createdAt).toLocaleDateString()
                             })}

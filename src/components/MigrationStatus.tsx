@@ -106,7 +106,7 @@ function MigrationStatusComponent() {
 
             <ThrottledProgress progress={progress} t={t} />
 
-            <p className="text-xs text-slate-500 mt-4">
+            <p className="text-sm text-slate-400 mt-4">
               {t('migrationStatus.dontCloseApp', "Please don't close the app during this process.")}
             </p>
           </div>

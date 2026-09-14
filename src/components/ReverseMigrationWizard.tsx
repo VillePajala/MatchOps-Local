@@ -694,7 +694,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
               >
                 {t('reverseMigration.complete.doneAndReload', 'Done & Reload')}
               </button>
-              <p className="text-xs text-slate-500">
+              <p className="text-sm text-slate-400">
                 {t('reverseMigration.complete.reloadNote', 'The page will reload to apply changes')}
               </p>
             </div>

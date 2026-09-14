@@ -600,17 +600,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             <div>
               <p className="text-3xl font-bold text-yellow-400">{playerStats.totalGoals}</p>
               <p className="text-sm text-slate-300 font-medium">{t('playerStats.goals', 'Goals')}</p>
-              <p className="text-xs text-slate-400 mt-1">({playerStats.avgGoalsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-sm text-slate-400 mt-1">({playerStats.avgGoalsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
             </div>
             <div>
               <p className="text-3xl font-bold text-yellow-400">{playerStats.totalAssists}</p>
               <p className="text-sm text-slate-300 font-medium">{t('playerStats.assists', 'Assists')}</p>
-              <p className="text-xs text-slate-400 mt-1">({playerStats.avgAssistsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-sm text-slate-400 mt-1">({playerStats.avgAssistsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
             </div>
             <div>
               <p className="text-3xl font-bold text-yellow-400">{playerStats.totalGoals + playerStats.totalAssists}</p>
               <p className="text-sm text-slate-300 font-medium">{t('playerStats.points', 'Points')}</p>
-              <p className="text-xs text-slate-400 mt-1">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-sm text-slate-400 mt-1">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
             </div>
           </div>
           {/* Wearing the armband, only when it happened. A zero here would
@@ -665,7 +665,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mb-3">
+            <p className="text-sm text-slate-400 mb-3">
               {t('gameStatsModal.positionBalance.gamesCovered', 'Positions recorded in {{recorded}}/{{scanned}} games', {
                 recorded: positionSummary.totalGames,
                 scanned: playerStats.totalGames,
@@ -681,7 +681,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               ))}
             </div>
             {positionSummary.narrow && (
-              <p className="text-xs text-amber-300/80 mt-3">
+              <p className="text-sm text-amber-300/80 mt-3">
                 {t('playerStats.positionsPlayed.narrowHint', 'Played only one line this season - a chance to broaden.')}
               </p>
             )}
@@ -795,7 +795,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     <option key={team.id} value={team.id}>{team.name}</option>
                   ))}
                 </select>
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-1 text-xs text-slate-400">
                   {adjTeamId
                     ? t('playerStats.whichTeamMineHint', 'Counts toward this team in team statistics.')
                     : t('playerStats.whichTeamOtherHint', 'Counts toward the player, but not toward any of your teams.')}
@@ -871,7 +871,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               </div>
               <div>
                 <label className="block text-xs text-slate-400 mb-1">{t('playerStats.score', 'Score')}</label>
-                <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                <div className="flex justify-between text-xs text-slate-400 mb-1">
                   <span>{leftScoreLabel}</span>
                   <span>{rightScoreLabel}</span>
                 </div>
@@ -927,7 +927,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 >
                   {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                 </ModalToggleButton>
-                <p className="text-xs text-slate-500 mt-1 ml-1">
+                <p className="text-sm text-slate-400 mt-1 ml-1">
                   {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
                 </p>
               </div>
@@ -1113,7 +1113,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                               <option key={team.id} value={team.id}>{team.name}</option>
                             ))}
                           </select>
-                          <p className="mt-1 text-[11px] text-slate-400">
+                          <p className="mt-1 text-xs text-slate-400">
                             {editTeamId
                               ? t('playerStats.whichTeamMineHint', 'Counts toward this team in team statistics.')
                               : t('playerStats.whichTeamOtherHint', 'Counts toward the player, but not toward any of your teams.')}
@@ -1125,7 +1125,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         </div>
                         <div className="lg:col-span-2">
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.score', 'Score')}</label>
-                          <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                          <div className="flex justify-between text-xs text-slate-400 mb-1">
                             <span>{editHomeAway === 'away' ? (editOpponentName || t('playerStats.opponent', 'Opponent')) : (editExternalTeam || t('playerStats.team', 'Team'))}</span>
                             <span>{editHomeAway === 'away' ? (editExternalTeam || t('playerStats.team', 'Team')) : (editOpponentName || t('playerStats.opponent', 'Opponent'))}</span>
                           </div>
@@ -1187,7 +1187,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           >
                             {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                           </ModalToggleButton>
-                          <p className="text-xs text-slate-500 mt-1 ml-1">
+                          <p className="text-sm text-slate-400 mt-1 ml-1">
                             {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
                           </p>
                         </div>
@@ -1221,7 +1221,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       className={`relative bg-gradient-to-br from-slate-600/50 to-slate-800/30 border border-slate-700/50 p-4 rounded-md transition-all shadow-inner ${counted ? '' : 'opacity-50'}`}
                     >
                       {!counted && (
-                        <p className="pl-2 mb-1 text-[11px] font-medium text-amber-300/90">
+                        <p className="pl-2 mb-1 text-xs font-medium text-amber-300/90">
                           {t('playerStats.adjustmentNotCounted', 'Not counted under the current filters')}
                         </p>
                       )}
@@ -1239,7 +1239,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             </p>
                             {/* Note if present */}
                             {a.note && (
-                              <p className="text-xs text-slate-300 italic mt-1">&ldquo;{a.note}&rdquo;</p>
+                              <p className="text-sm text-slate-300 italic mt-1">&ldquo;{a.note}&rdquo;</p>
                             )}
                           </div>
 
@@ -1249,11 +1249,11 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             <div className="flex items-center">
                               <div className="text-center mx-2">
                                 <p className={`font-bold text-xl ${a.goalsDelta > 0 ? 'text-green-400' : 'text-slate-300'}`}>{a.goalsDelta}</p>
-                                <p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p>
+                                <p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p>
                               </div>
                               <div className="text-center mx-2">
                                 <p className={`font-bold text-xl ${a.assistsDelta > 0 ? 'text-blue-400' : 'text-slate-300'}`}>{a.assistsDelta}</p>
-                                <p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p>
+                                <p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p>
                               </div>
                             </div>
 
@@ -1522,7 +1522,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     <div className="bg-slate-900/70 border border-slate-700 rounded-lg shadow-inner p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="w-1.5 h-3.5 rounded-full bg-emerald-400" />
-                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">{t('playerStats.strengths', 'Strengths')}</p>
+                        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-300">{t('playerStats.strengths', 'Strengths')}</p>
                       </div>
                       <ul className="space-y-1">
                         {playerDevelopment.strengths.map(m => (
@@ -1538,7 +1538,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     <div className="bg-slate-900/70 border border-slate-700 rounded-lg shadow-inner p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="w-1.5 h-3.5 rounded-full bg-amber-400" />
-                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-300">{t('playerStats.focusAreas', 'Focus areas')}</p>
+                        <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">{t('playerStats.focusAreas', 'Focus areas')}</p>
                       </div>
                       <ul className="space-y-1">
                         {playerDevelopment.focusAreas.map(m => (
@@ -1594,7 +1594,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(assessmentTrends).map(([metric, data]) => (
                     <div key={metric} className="bg-slate-800/40 p-2 rounded">
-                      <p className="text-xs text-slate-300 mb-1">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</p>
+                      <p className="text-sm text-slate-300 mb-1">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</p>
                       <MetricTrendChart data={data} />
                     </div>
                   ))}
@@ -1663,11 +1663,11 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <div key={id} className="p-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-md transition-all">
                     <p className="font-semibold text-slate-100 mb-1">{stats.name}</p>
                     <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                      <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-xs text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.points}</p><p className="text-xs text-slate-400">{t('playerStats.points', 'Points')}</p></div>
-                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-xs text-slate-400"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
+                      <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-sm text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
+                      <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
+                      <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
+                      <div><p className="font-bold text-yellow-400">{stats.points}</p><p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p></div>
+                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-sm text-slate-400"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
                     </div>
                   </div>
                 ))}
@@ -1689,11 +1689,11 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       )}
                     </p>
                     <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                      <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-xs text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.points}</p><p className="text-xs text-slate-400">{t('playerStats.points', 'Points')}</p></div>
-                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-xs text-slate-400"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
+                      <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-sm text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
+                      <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
+                      <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
+                      <div><p className="font-bold text-yellow-400">{stats.points}</p><p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p></div>
+                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-sm text-slate-400"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
                     </div>
                   </div>
                 ))}
@@ -1736,17 +1736,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             <span className="ml-2 inline-block bg-indigo-600/60 text-indigo-100 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.assessed', 'Assessed')}>{t('playerStats.assessed', 'Assessed')}</span>
                           )}
                         </p>
-                        <p className="text-xs text-slate-400">{formatDisplayDate(game.date)}</p>
+                        <p className="text-sm text-slate-400">{formatDisplayDate(game.date)}</p>
                       </div>
                     </div>
                     <div className="flex items-center">
                       <div className="text-center mx-2">
                         <p className={`font-bold text-xl ${game.goals > 0 ? 'text-green-400' : 'text-slate-300'}`}>{game.goals}</p>
-                        <p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p>
+                        <p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p>
                       </div>
                       <div className="text-center mx-2">
                         <p className={`font-bold text-xl ${game.assists > 0 ? 'text-blue-400' : 'text-slate-300'}`}>{game.assists}</p>
-                        <p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p>
+                        <p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p>
                       </div>
                     </div>
                   </GameWrapper>

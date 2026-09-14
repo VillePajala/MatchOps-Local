@@ -172,7 +172,7 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
 
             {/* Offline notice */}
             {!isOnline && (
-              <p className="text-xs text-slate-500 text-center">
+              <p className="text-sm text-slate-400 text-center">
                 {t('cloudSync.pendingSync.offlineNotice', 'Cannot sync while offline')}
               </p>
             )}

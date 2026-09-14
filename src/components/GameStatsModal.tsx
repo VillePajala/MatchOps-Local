@@ -1010,7 +1010,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           {noteEvents.length === 0 && voiceClipCount === 0 && (
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner" data-testid="game-notes-empty">
               <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('dictation.notesTitle', 'Notes')}</h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-sm text-slate-400">
                 {t('gameStatsModal.spineNotesEmpty', 'Nothing noted from this match yet. Write one above, or dictate it during the game with the microphone button.')}
               </p>
             </div>
@@ -1025,7 +1025,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         content: (
           <div data-testid="positions-editor" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
             <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameSettingsModal.lineupTitle', 'Positions played')}</h3>
-            <p className="text-xs text-slate-400 mb-4">{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
+            <p className="text-sm text-slate-400 mb-4">{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
             <PlayerPositionsEditor
               players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
               value={playerPositions ?? {}}
@@ -1125,7 +1125,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         content: (
           <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
             <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameStatsModal.wrapUpAssessments', 'Player assessments')}</h3>
-            <p className="text-xs text-slate-400 mb-4">
+            <p className="text-sm text-slate-400 mb-4">
               {t('loadGameModal.assessmentsProgress', '{{done}}/{{total}} assessed', {
                 done: currentGameCompleteness.assessments.done,
                 total: currentGameCompleteness.assessments.total,
@@ -1370,7 +1370,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
                   {spineSteps.map((step, i) => (
                     <section key={step.key} id={step.id} data-testid={`spine-${step.key}`} className="space-y-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-300">
+                      <p className="text-sm font-semibold uppercase tracking-wider text-indigo-300">
                         {t('gameStatsModal.spineStep', 'Step {{n}} of {{total}}', { n: i + 1, total: spineSteps.length })}
                       </p>
                       {step.content}

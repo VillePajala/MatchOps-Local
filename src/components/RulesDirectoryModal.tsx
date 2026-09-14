@@ -181,7 +181,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
                 {hits.length === 0 ? (
-                  <p className="text-xs text-slate-400" data-testid="rules-no-hits">
+                  <p className="text-sm text-slate-400" data-testid="rules-no-hits">
                     {t('rulesDirectory.noHits', 'Ei osumia. Kokeile toista sanaa tai selaa sääntökirjaa.')}
                   </p>
                 ) : (
@@ -222,10 +222,10 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                     ))}
                   </ul>
                 )}
-                <p className="text-xs text-slate-400">
+                <p className="text-sm text-slate-400">
                   {t('rulesDirectory.pageHint2', 'Sääntö avautuu suoraan oikealta sivulta. Vain luetut sivut ladataan.')}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm text-slate-400">
                   {t('rulesDirectory.lookupNote', 'Säännöt julkaisee IFAB (jalkapallo) ja FIFA (futsal).')}
                 </p>
               </Section>
@@ -236,7 +236,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   There are three different kinds of rule and they live apart,
                   so the page says which is which and puts the coach's OWN
                   series first - that is the only one that is actually theirs. */}
-              <p className="text-xs text-slate-400">
+              <p className="text-sm text-slate-400">
                 {t(
                   'rulesDirectory.intro',
                   'Säännöt ovat kolmessa paikassa: sarjakohtaiset säännöt, ikäluokkien pelimuodot ja lajisäännöt.',
@@ -244,7 +244,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
               </p>
 
               <Section title={t('rulesDirectory.seriesTitle', 'Sarjakohtaiset säännöt')}>
-                <p className="text-xs text-slate-400 -mt-1">
+                <p className="text-sm text-slate-400 -mt-1">
                   {t(
                     'rulesDirectory.seriesHelp',
                     'Pelaajamäärä, peliaika ja kentän koko määritellään sarjoittain, eikä sovellus tiedä missä sarjassa joukkueesi pelaa - MatchOps ei ole yhteydessä Palloliiton järjestelmään. Etsi sarjasi listasta ja avaa Info > Säännöt.',
@@ -281,7 +281,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
               >
                 {sport === 'football' && !showAllFormats ? (
                   <>
-                    <p className="text-xs text-slate-400 -mt-1">
+                    <p className="text-sm text-slate-400 -mt-1">
                       {t(
                         'rulesDirectory.formatsFootballNone',
                         'Jalkapallon pelimuotoja ei julkaista taulukkona. Katso oman sarjasi tiedot yltä.',
@@ -298,7 +298,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   </>
                 ) : (
                   <>
-                    <p className="text-xs text-slate-400 -mt-1">
+                    <p className="text-sm text-slate-400 -mt-1">
                       {t(
                         'rulesDirectory.formatsCaveat',
                         'Palloliiton valtakunnalliset oletukset ikäluokittain. Sarja voi poiketa näistä - tarkista oman sarjasi tiedot.',
@@ -364,7 +364,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                     {GAME_FORMATS_GENERAL_NOTES.map((n) => (
                       <p key={n} className="text-xs text-slate-400">{n}</p>
                     ))}
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm text-slate-400">
                       {t('rulesDirectory.formatsSource', 'Lähde: {{title}}', { title: GAME_FORMATS_SOURCE.title })}
                     </p>
                   </>
@@ -387,7 +387,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   Palloliitto's index - a superseded PDF still opens, so the age
                   of the check is the only thing that tells a coach how much to
                   trust what they are about to read. */}
-              <p className="text-xs text-slate-500 text-center pt-2">
+              <p className="text-sm text-slate-400 text-center pt-2">
                 {t('rulesDirectory.footer', 'Linkit avautuvat selaimessa. Säännöt ylläpitää Palloliitto.')}
                 {' '}
                 {t('rulesDirectory.checkedOn', 'Linkit tarkistettu {{date}}.', { date: checkedOn })}

@@ -473,7 +473,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                         disagrees with the goal log (events are the source of truth). */}
                     {goalLogScore.mismatch && (
                       <div className="mt-3 pt-3 border-t border-slate-700/60 space-y-2">
-                        <p className="text-xs text-amber-300">
+                        <p className="text-sm text-amber-300">
                           {t(
                             'goalLogModal.scoreMismatch',
                             'Saved score ({{cur}}) doesn\'t match the goal log ({{log}}).',

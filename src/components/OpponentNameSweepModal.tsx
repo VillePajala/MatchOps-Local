@@ -123,7 +123,7 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
             onClose={onClose}
             closeLabel={t('common.doneButton', 'Done')}
           >
-            <p className="text-xs text-slate-400 px-6 pt-2 pb-3 text-center">
+            <p className="text-sm text-slate-400 px-6 pt-2 pb-3 text-center">
               {t('opponentSweep.subtitle', 'One team written several ways counts as several opponents in your statistics.')}
             </p>
           </CollapsibleModalHeader>

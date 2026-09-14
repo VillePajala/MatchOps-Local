@@ -180,7 +180,7 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
         {t('playerNotesSummary.title', 'Read these notes as one account')}
       </h3>
       {/* The coach sees the scope before deciding, not afterwards. */}
-      <p className="text-xs text-slate-400 mb-3" data-testid="player-notes-summary-scope">
+      <p className="text-sm text-slate-400 mb-3" data-testid="player-notes-summary-scope">
         {t(
           'playerNotesSummary.scope',
           'Sends {{notes}} of your notes about this player, from {{matches}} matches, to your AI provider. Nothing is saved or changed.',
@@ -188,7 +188,7 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
         )}
       </p>
       {scope.omitted > 0 && (
-        <p className="text-xs text-amber-300 mb-3" data-testid="player-notes-summary-omitted">
+        <p className="text-sm text-amber-300 mb-3" data-testid="player-notes-summary-omitted">
           {t('playerNotesSummary.omitted', 'The {{count}} oldest notes are left out of this request.', {
             count: scope.omitted,
           })}
@@ -220,7 +220,7 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
           >
             {summary}
           </p>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-sm text-slate-400">
             {t('playerNotesSummary.footer', 'Your own notes, organised. Nothing here was added to the record.')}
           </p>
           <button

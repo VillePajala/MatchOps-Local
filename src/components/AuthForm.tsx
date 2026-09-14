@@ -445,7 +445,7 @@ export default function AuthForm({
             autoComplete="new-password"
             disabled={isLoading}
           />
-          <p className="text-slate-500 text-xs">
+          <p className="text-slate-400 text-sm">
             {t('auth.passwordRequirements', 'Password must be at least 8 characters.')}
           </p>
 
@@ -699,7 +699,7 @@ export default function AuthForm({
               autoComplete="new-password"
               disabled={isLoading}
             />
-            <p className="text-slate-500 text-xs">
+            <p className="text-slate-400 text-sm">
               {t('auth.passwordRequirements', 'Password must be at least 8 characters.')}
             </p>
 

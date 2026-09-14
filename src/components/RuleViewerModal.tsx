@@ -213,7 +213,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
         <ModalBackgroundEffects />
         <div className="relative z-10 flex flex-col h-full min-h-0">
           <CollapsibleModalHeader title={title} onClose={onClose} closeLabel={t('common.close', 'Close')}>
-            <p className="text-xs text-slate-400 px-6 pb-3 text-center">
+            <p className="text-sm text-slate-400 px-6 pb-3 text-center">
               {t('ruleViewer.subtitle', 'Virallinen sääntökirja. Sivu {{n}}{{total}}.', {
                 n: current,
                 total: total ? `/${total}` : '',

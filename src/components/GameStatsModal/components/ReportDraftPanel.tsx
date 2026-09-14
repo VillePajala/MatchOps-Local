@@ -326,7 +326,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
         <h4 className="text-sm font-semibold text-slate-200 mb-1">
           {t('reportDraft.title', 'Draft with AI')}
         </h4>
-        <p className="text-xs text-slate-400">
+        <p className="text-sm text-slate-400">
           {t(
             'reportDraft.notConnected',
             'Connect your own AI provider in Settings to draft a report from this match. Your notes stay on this phone until you press Draft.',
@@ -354,7 +354,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
 
       {!draft && (
         <>
-          <p className="text-xs text-slate-400 mb-3">
+          <p className="text-sm text-slate-400 mb-3">
             {t(
               'reportDraft.intro',
               'Sends this match to your own AI provider and brings back a draft. Nothing is saved until you approve it.',
@@ -388,14 +388,14 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
 
       {draft && preview && (
         <div className="space-y-4" data-testid="report-draft-review">
-          <p className="text-xs text-slate-400">
+          <p className="text-sm text-slate-400">
             {draftedAs === 'tidy'
               ? t('reportDraft.reviewHintTidy', 'Your own account, organised under the headings. Untick anything that lost your meaning.')
               : t('reportDraft.reviewHint', 'Untick anything you do not want. Only ticked items are saved.')}
           </p>
 
           {draft.dataCaveat && (
-            <p className="text-xs text-amber-300" data-testid="report-draft-caveat">
+            <p className="text-sm text-amber-300" data-testid="report-draft-caveat">
               {draft.dataCaveat}
             </p>
           )}
@@ -488,19 +488,19 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
               // The coach's own report was sent as source material, so the draft
               // can cover the same ground. Say so where the choice is made,
               // rather than after they are looking at it twice.
-              <p className="text-xs text-slate-400" data-testid="report-draft-duplication-note">
+              <p className="text-sm text-slate-400" data-testid="report-draft-duplication-note">
                 {t('reportDraft.duplicationNote', 'The draft was written knowing what you already wrote, so it may cover the same ground twice. Replace avoids that, and you can undo it.')}
               </p>
             )}
             {mode === 'replace' && existingReport.trim() && (
-              <p className="text-xs text-amber-300" data-testid="report-draft-replace-warning">
+              <p className="text-sm text-amber-300" data-testid="report-draft-replace-warning">
                 {t('reportDraft.replaceWarning', 'Your current report text will be overwritten. You can undo it right after.')}
               </p>
             )}
           </fieldset>
 
           {preview.reportTruncated && (
-            <p className="text-xs text-amber-300" data-testid="report-draft-truncation-warning">
+            <p className="text-sm text-amber-300" data-testid="report-draft-truncation-warning">
               {t('reportDraft.truncationWarning', 'This would exceed the {{max}} character limit, so the end would be cut. Untick a section or choose Replace.', {
                 max: VALIDATION_LIMITS.GAME_NOTES_MAX,
               })}
@@ -508,7 +508,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
           )}
 
           {preview.droppedRefs.length > 0 && (
-            <p className="text-xs text-amber-300" data-testid="report-draft-dropped-warning">
+            <p className="text-sm text-amber-300" data-testid="report-draft-dropped-warning">
               {t('reportDraft.droppedWarning', '{{count}} note(s) could not be matched to a player and will not be saved.', {
                 count: new Set(preview.droppedRefs).size,
               })}

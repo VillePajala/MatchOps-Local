@@ -94,7 +94,7 @@ export function GameNotesEditor({
           {/* Silent until it matters: a counter over a long report is noise,
               but running out of room without warning is a lost paragraph. */}
           {editGameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX * 0.9 && (
-            <p className="text-xs text-amber-300 tabular-nums" data-testid="report-editor-remaining">
+            <p className="text-sm text-amber-300 tabular-nums" data-testid="report-editor-remaining">
               {t('gameStatsModal.notesRemaining', '{{remaining}} characters left', {
                 // Older data can already sit past the cap, and "-50 characters
                 // left" is not a thing. Zero is the honest floor.

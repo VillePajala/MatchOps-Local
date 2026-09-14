@@ -575,7 +575,12 @@ describe('Translation File Validation', () => {
       // +3 fieldTools.planView*: the plan control is now a three-step cycle
       //     (lineup / planned subs / subs and minutes) and has to name the
       //     state it just became. Lands at 3257.
-      expect(enKeys.length).toBe(3257);
+      // -3 startScreen.group*: the Home tab group headings (People / Coaching
+      //     / Tools) are gone. They were 10px, all-caps and tracked out in a
+      //     condensed face - three legibility problems stacked - and they
+      //     restated a grouping the container edge and gap already made.
+      //     Lands at 3254.
+      expect(enKeys.length).toBe(3254);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -758,7 +763,8 @@ describe('Translation File Validation', () => {
       // +1 appliedListsOnly (see EN above). Lands at 3253.
       // +1 fieldTools.togglePlannedSubs (see EN above). Lands at 3254.
       // +3 fieldTools.planView* (see EN above). Lands at 3257.
-      expect(fiKeys.length).toBe(3257);
+      // -3 startScreen.group* (see EN above). Lands at 3254.
+      expect(fiKeys.length).toBe(3254);
     });
   });
 });

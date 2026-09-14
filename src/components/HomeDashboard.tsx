@@ -97,7 +97,7 @@ function RecentCard({ game, onOpen }: { game: HomeRecentGame; onOpen?: (id: stri
     >
       <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
       <div className={`text-sm font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
-      <div className="text-[10px] text-slate-500 tabular-nums">{game.date?.slice(5).replace('-', '.')}</div>
+      <div className="text-xs text-slate-400 tabular-nums">{game.date?.slice(5).replace('-', '.')}</div>
     </button>
   );
 }
@@ -126,7 +126,7 @@ export function HomeDashboard({
       {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
       {summary.recent.length > 0 && (
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 px-0.5">
+          <div className="text-xs font-semibold text-slate-400 mb-1.5 px-0.5">
             {t('startScreen.dashRecent', 'Recent')}
           </div>
           {/* The strip scrolls, and the card at the edge used to be cut clean
@@ -232,7 +232,7 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
       onClick={onOpen}
       className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-indigo-900/70 to-slate-800/70 border border-indigo-700/40 hover:from-indigo-900/90 hover:to-slate-800/90 transition-all mb-4"
     >
-      <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/80">
+      <div className="text-xs font-semibold text-indigo-300/80">
         {t('startScreen.dashClubSeason', 'This season')}
       </div>
       <div className="flex items-baseline justify-between gap-3 mt-0.5">
@@ -269,7 +269,7 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
   const tile = (n: React.ReactNode, label: string) => (
     <div className="flex-1 text-center px-2 py-3 rounded-xl bg-slate-800/70 border border-slate-700/50">
       <div className="text-2xl font-black text-slate-100 tabular-nums leading-none">{n}</div>
-      <div className="text-[9px] uppercase tracking-wider text-slate-400 mt-1.5 truncate">{label}</div>
+      <div className="text-xs text-slate-400 mt-1.5 truncate">{label}</div>
     </div>
   );
   return (

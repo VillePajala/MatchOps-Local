@@ -287,9 +287,9 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         )}
                                     </div>
                                     {type==='tournament' && ((item as Tournament).startDate || (item as Tournament).endDate) && (
-                                        <p className="text-xs text-slate-400">{(item as Tournament).startDate || ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' - ' : ''}{(item as Tournament).endDate || ''}</p>
+                                        <p className="text-sm text-slate-400">{(item as Tournament).startDate || ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' - ' : ''}{(item as Tournament).endDate || ''}</p>
                                     )}
-                                    <p className="text-xs text-slate-400">{t('seasonTournamentModal.statsGames')}: {stats[item.id]?.games || 0} | {t('seasonTournamentModal.statsGoals')}: {stats[item.id]?.goals || 0}</p>
+                                    <p className="text-sm text-slate-400">{t('seasonTournamentModal.statsGames')}: {stats[item.id]?.games || 0} | {t('seasonTournamentModal.statsGoals')}: {stats[item.id]?.goals || 0}</p>
                                     {/* Context badges */}
                                     <div className="flex flex-wrap gap-1.5 mt-2">
                                         {/* Club Season - Green dot */}

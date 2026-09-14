@@ -140,7 +140,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
             {/* pt-2: the subtitle sat flush against the header with no
                 breathing room above it. */}
             {hint && (
-              <p className="text-xs text-slate-400 px-6 pt-2 pb-3 text-center">
+              <p className="text-sm text-slate-400 px-6 pt-2 pb-3 text-center">
                 {hint}
               </p>
             )}
