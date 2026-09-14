@@ -2,6 +2,17 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-14",
+      "en": [
+        "The Escape key now closes almost every dialog in the app - it previously worked in about a third of them. Where a dialog has a confirmation open on top of it, Escape closes just the confirmation first.",
+        "Screen readers now announce every dialog as a dialog and read its title, which several screens did not do before."
+      ],
+      "fi": [
+        "Escape-näppäin sulkee nyt lähes kaikki sovelluksen ikkunat - aiemmin se toimi noin kolmasosassa. Jos ikkunan päällä on varmistus, Escape sulkee ensin vain varmistuksen.",
+        "Ruudunlukuohjelmat tunnistavat nyt jokaisen ikkunan ikkunaksi ja lukevat sen otsikon, mikä ei aiemmin toiminut kaikissa näkymissä."
+      ]
+    },
+    {
       "date": "2026-09-13",
       "en": [
         "Colours are more consistent across the app. The playing-time balance chart was drawing the goalkeeper and the defence in colours that disagreed with the position editor - they now match, with the keeper warm like the keeper's disc on the field.",

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { HiOutlineShare, HiOutlineClipboardCopy, HiOutlineCheck } from 'react-icons/hi';
 import { modalContainerStyle, ModalBackgroundEffects, CollapsibleModalHeader } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 /** One switch over what the text contains, for a caller that builds it in parts. */
 export interface RecapSection {
@@ -95,6 +96,9 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
     setText(recap);
     setStale(false);
   };
+
+  useEscapeToClose(isOpen, onClose);
+
 
   if (!isOpen) return null;
 

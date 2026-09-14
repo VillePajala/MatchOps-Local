@@ -33,7 +33,8 @@ import DeleteBlockedDialog from './DeleteBlockedDialog';
 import { useResourceLimit } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 import { ENTITY_DOT } from '@/config/palette';
-import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
@@ -284,6 +285,9 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   };
 
   // Note: Team switching removed - teams are now contextually selected
+
+  useEscapeToClose(isOpen, onClose, !deleteConfirmTeamId);
+
 
   if (!isOpen) return null;
 

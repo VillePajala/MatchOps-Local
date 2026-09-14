@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import PlayerAssessmentCard from './PlayerAssessmentCard';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 interface PlayerAssessmentModalProps {
   isOpen: boolean;

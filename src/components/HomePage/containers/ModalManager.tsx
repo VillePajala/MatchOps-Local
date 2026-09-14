@@ -30,7 +30,7 @@ import type {
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 
 

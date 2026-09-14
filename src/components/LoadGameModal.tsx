@@ -23,7 +23,7 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { extractTimestampFromId } from '@/utils/idGenerator';
 import { ENTITY_DOT } from '@/config/palette';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 /**
  * Get validated series level from tournament, returning null if invalid.
