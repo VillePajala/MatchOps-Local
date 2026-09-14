@@ -3,6 +3,7 @@
 import React from 'react';
 import type { TFunction } from 'i18next';
 import type { HomeSummary, HomeResumeGame, HomeRecentGame } from '@/utils/homeSummary';
+import PitchRule from '@/components/PitchRule';
 
 /** Result shown through the score colour only (no coloured card edge). */
 const scoreColour: Record<'W' | 'D' | 'L', string> = {
@@ -126,9 +127,9 @@ export function HomeDashboard({
       {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
       {summary.recent.length > 0 && (
         <div>
-          <div className="text-xs font-semibold text-slate-400 mb-1.5 px-0.5">
-            {t('startScreen.dashRecent', 'Recent')}
-          </div>
+          {/* The one place the pitch vocabulary is used: a section boundary
+              drawn as the halfway line, which is already what a divider is. */}
+          <PitchRule className="mb-2">{t('startScreen.dashRecent', 'Recent')}</PitchRule>
           {/* The strip scrolls, and the card at the edge used to be cut clean
               through its own border - which reads as a rendering fault, not as
               an invitation to scroll. The gradient lets it dissolve instead.

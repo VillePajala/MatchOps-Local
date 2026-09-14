@@ -580,7 +580,13 @@ describe('Translation File Validation', () => {
       //     condensed face - three legibility problems stacked - and they
       //     restated a grouping the container edge and gap already made.
       //     Lands at 3254.
-      expect(enKeys.length).toBe(3254);
+      // +2 unifiedTeamModal.kitColorLabel/kitColorNone: teams can finally be
+      //     given their kit colour. Team.color was persisted through the types
+      //     and both datastores, but the only picker lived in a component
+      //     nothing imported - so no team could ever have one. Lands at 3256.
+      // +10 unifiedTeamModal.kitColor.*: the swatch names, which are what a
+      //     screen reader announces for a row of coloured circles. Lands at 3266.
+      expect(enKeys.length).toBe(3266);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -764,7 +770,9 @@ describe('Translation File Validation', () => {
       // +1 fieldTools.togglePlannedSubs (see EN above). Lands at 3254.
       // +3 fieldTools.planView* (see EN above). Lands at 3257.
       // -3 startScreen.group* (see EN above). Lands at 3254.
-      expect(fiKeys.length).toBe(3254);
+      // +2 kit colour label + clear (see EN above). Lands at 3256.
+      // +10 kitColor.* swatch names (see EN above). Lands at 3266.
+      expect(fiKeys.length).toBe(3266);
     });
   });
 });
