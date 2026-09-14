@@ -421,7 +421,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   px size, bounded so it never gets silly on very small/large
                   screens. Dashboard mode is a touch larger now that the tighter
                   cards freed room. */}
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.1rem,10vw,2.9rem)] [@media(min-height:700px)]:text-[clamp(2.6rem,11.5vw,3.9rem)]' : 'text-[clamp(2rem,9.5vw,2.9rem)] [@media(min-height:700px)]:text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.4rem,11.5vw,3.3rem)] [@media(min-height:700px)]:text-[clamp(3rem,13vw,4.4rem)]' : 'text-[clamp(2rem,9.5vw,2.9rem)] [@media(min-height:700px)]:text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
@@ -821,9 +821,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
                       data-testid="tour-new-game"
-                      className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500 bg-gradient-to-r from-amber-500 to-amber-600 border-amber-400/50 text-slate-900 hover:from-amber-400 hover:to-amber-500 ${dashboardOn ? 'flex-1' : 'w-full'}`}
+                      className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${canResume
+                        ? 'focus:ring-purple-500 bg-slate-800/90 border-slate-700/60 text-white hover:bg-slate-700/90'
+                        : 'focus:ring-amber-500 bg-amber-500 border-amber-400/50 text-slate-900 hover:bg-amber-400'} ${dashboardOn ? 'flex-1' : 'w-full'}`}
                     >
-                      <HiOutlinePlusCircle className="w-5 h-5 flex-shrink-0 text-slate-900" aria-hidden="true" />
+                      <HiOutlinePlusCircle className={`w-5 h-5 flex-shrink-0 ${canResume ? 'text-slate-400' : 'text-slate-900'}`} aria-hidden="true" />
                       <span className="text-[13px] font-bold leading-tight">
                         {t('startScreen.newGame', 'New Game')}
                       </span>
