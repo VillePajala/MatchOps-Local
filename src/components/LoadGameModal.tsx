@@ -653,7 +653,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('loadGame.title', 'Load Game')}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
 
         {/* Modal-chrome slimming: X-header replaces the header + the
             close-only footer. Filter/checkbox stay in the scroll body. */}
@@ -677,7 +677,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               onClick={() => setShowUnplayedOnly(v => !v)}
               aria-pressed={showUnplayedOnly}
               className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                showUnplayedOnly ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                showUnplayedOnly ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
               {t('loadGameModal.showUnplayedOnly', 'Show only unplayed games')}

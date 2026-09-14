@@ -202,7 +202,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="px-4 py-2 rounded-md text-sm font-medium bg-purple-600 hover:bg-purple-500 text-white inline-flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-md text-sm font-medium bg-purple-700 hover:bg-purple-600 text-white inline-flex items-center gap-1.5"
                 >
                   <HiOutlineShare />
                   {t('recap.share', 'Share')}

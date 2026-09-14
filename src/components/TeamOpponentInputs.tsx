@@ -125,7 +125,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
                     disabled={disabled}
                     className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
                       chosen
-                        ? 'bg-purple-600 border-purple-400/40 text-white'
+                        ? 'bg-purple-700 border-purple-400/40 text-white'
                         : 'bg-slate-700/70 border-slate-600/60 text-slate-200 hover:bg-slate-600/70'
                     }`}
                   >

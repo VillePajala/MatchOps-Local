@@ -535,9 +535,9 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50 pointer-events-none" />
-        <div className="absolute -inset-[50px] bg-purple-600/5 blur-2xl bottom-0 opacity-50 pointer-events-none" />
+        <div className="absolute -inset-[50px] bg-purple-700/5 blur-2xl bottom-0 opacity-50 pointer-events-none" />
 
         {/* Chrome slimming: X-header (Cancel; in roster-edit sub-mode the X
             returns to the team form) + sticky primary. */}
@@ -617,7 +617,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           onClick={() => handleTabChange('none')}
                           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             activeTab === 'none'
-                              ? 'bg-purple-600 text-white'
+                              ? 'bg-purple-700 text-white'
                               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                           }`}
                         >
@@ -628,7 +628,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           onClick={() => handleTabChange('season')}
                           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             activeTab === 'season'
-                              ? 'bg-purple-600 text-white'
+                              ? 'bg-purple-700 text-white'
                               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                           }`}
                         >
@@ -639,7 +639,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           onClick={() => handleTabChange('tournament')}
                           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             activeTab === 'tournament'
-                              ? 'bg-purple-600 text-white'
+                              ? 'bg-purple-700 text-white'
                               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                           }`}
                         >

@@ -51,9 +51,9 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('instructionsModal.title')}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
         <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-purple-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-purple-700/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
 
         <CollapsibleModalHeader
           title={t('instructionsModal.title')}

@@ -315,7 +315,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         onClick={() => void save()}
         disabled={!text.trim() || transcribing || busy}
         data-testid="note-composer-save"
-        className="mt-2 w-full px-4 py-2 rounded-md text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="mt-2 w-full px-4 py-2 rounded-md text-sm font-semibold bg-purple-700 hover:bg-purple-600 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {t('noteComposer.save', 'Add the note')}
       </button>

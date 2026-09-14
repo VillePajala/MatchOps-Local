@@ -114,7 +114,7 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
           <button
             onClick={handleBackupNow}
             disabled={busy}
-            className="px-3 py-1.5 text-sm rounded-md bg-purple-600 hover:bg-purple-500 text-white font-medium disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 text-sm rounded-md bg-purple-700 hover:bg-purple-600 text-white font-medium disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
             {t("backupReminder.backupNow", "Back up now")}
           </button>

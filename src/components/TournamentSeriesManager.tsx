@@ -108,7 +108,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
             type="button"
             onClick={handleAddSeries}
             disabled={!newSeriesLevel}
-            className="px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-purple-400/30"
+            className="px-3 py-2 bg-purple-700 hover:bg-purple-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-purple-400/30"
             aria-label={t('tournamentDetailsModal.confirmAddSeries', 'Confirm add level')}
           >
             {t('common.add', 'Add')}

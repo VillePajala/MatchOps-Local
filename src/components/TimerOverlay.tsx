@@ -152,8 +152,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const controlLabelStyle = "text-sm font-medium text-slate-300 mr-2";
   // Add action button styles for consistency - flat style with subtle border
   const actionButtonBase = "text-white font-bold py-2.5 px-4 rounded-sm pointer-events-auto text-base transition-colors";
-  const primaryActionStyle = `${actionButtonBase} bg-purple-600 hover:bg-purple-500 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-purple-400/30`;
-  const secondaryActionStyle = `${actionButtonBase} bg-purple-600 hover:bg-purple-500 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-purple-400/30`;
+  const primaryActionStyle = `${actionButtonBase} bg-purple-700 hover:bg-purple-600 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-purple-400/30`;
+  const secondaryActionStyle = `${actionButtonBase} bg-purple-700 hover:bg-purple-600 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-purple-400/30`;
   const dangerActionStyle = `${actionButtonBase} bg-red-700 hover:bg-red-600 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-red-500/30`;
   
   // Kirjuri (PR 2): the first press explains + asks for the mic (the app's
@@ -434,7 +434,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 type="button"
                 onClick={() => { onClose?.(); onFinishGame(); }}
                 data-testid="timer-finish-game"
-                className="w-full px-4 py-3 rounded-md text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/30 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-slate-800"
+                className="w-full px-4 py-3 rounded-md text-sm font-semibold bg-purple-700 hover:bg-purple-600 text-white border border-purple-400/30 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-slate-800"
               >
                 {t('timerOverlay.finishGameButton', 'Finish this game')}
                 {finishProgress && (
@@ -449,7 +449,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               <button
                 type="button"
                 onClick={() => { onClose?.(); onOpenPlayerAssessmentModal(); }}
-                className="w-full px-4 py-3 rounded-md text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/30 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-slate-800"
+                className="w-full px-4 py-3 rounded-md text-sm font-semibold bg-purple-700 hover:bg-purple-600 text-white border border-purple-400/30 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-slate-800"
               >
                 {t('timerOverlay.assessPlayersButton', 'Assess players')}
               </button>

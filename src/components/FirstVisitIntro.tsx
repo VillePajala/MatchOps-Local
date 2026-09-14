@@ -112,7 +112,7 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
             markSeen(surface, userId);
             setDismissed(true);
           }}
-          className="w-full mt-3 rounded-md bg-purple-600 hover:bg-purple-500 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500"
+          className="w-full mt-3 rounded-md bg-purple-700 hover:bg-purple-600 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500"
         >
           {t('firstVisit.gotIt', 'Got it')}
         </button>

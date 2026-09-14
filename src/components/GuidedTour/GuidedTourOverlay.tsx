@@ -332,7 +332,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
                 onClick={() => onApplyChoice(choice.apply)}
                 className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500 ${
                   selected
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-purple-700 text-white'
                     : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                 }`}
               >
@@ -364,7 +364,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             type="button"
             data-testid="guided-tour-manual-advance"
             onClick={onNext}
-            className="flex-1 rounded-md bg-purple-600 hover:bg-purple-500 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500"
+            className="flex-1 rounded-md bg-purple-700 hover:bg-purple-600 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500"
           >
             {t(step.manualAdvance.labelKey, step.manualAdvance.label)}
           </button>
@@ -374,7 +374,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             type="button"
             data-testid="guided-tour-continue"
             onClick={() => window.history.back()}
-            className="flex-1 rounded-md bg-purple-600 hover:bg-purple-500 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500"
+            className="flex-1 rounded-md bg-purple-700 hover:bg-purple-600 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500"
           >
             {t('guidedTour.buttons.continue', 'Continue')}
           </button>
@@ -386,7 +386,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             type="button"
             data-testid="guided-tour-next"
             onClick={onNext}
-            className="flex-1 rounded-md bg-purple-600 hover:bg-purple-500 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500"
+            className="flex-1 rounded-md bg-purple-700 hover:bg-purple-600 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500"
           >
             {nextLabel}
           </button>
@@ -434,7 +434,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
                   type="button"
                   data-testid="guided-tour-pill-advance"
                   onClick={onNext}
-                  className="pointer-events-auto -my-1 rounded-full bg-purple-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-purple-500"
+                  className="pointer-events-auto -my-1 rounded-full bg-purple-700 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-purple-600"
                 >
                   {t(step.manualAdvance.labelKey, step.manualAdvance.label)}
                 </button>
@@ -503,7 +503,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
                 type="button"
                 data-testid="guided-tour-pill-advance"
                 onClick={onNext}
-                className="pointer-events-auto -my-1 rounded-full bg-purple-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-purple-500"
+                className="pointer-events-auto -my-1 rounded-full bg-purple-700 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-purple-600"
               >
                 {t(step.manualAdvance.labelKey, step.manualAdvance.label)}
               </button>

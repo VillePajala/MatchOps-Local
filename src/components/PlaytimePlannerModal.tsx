@@ -1669,7 +1669,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           }
           className={`absolute bottom-4 right-4 z-20 p-3 rounded-full shadow-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 ${
             gamesLayout === 'grid'
-              ? 'bg-purple-600 text-white hover:bg-purple-500'
+              ? 'bg-purple-700 text-white hover:bg-purple-600'
               : 'bg-slate-700 text-slate-200 hover:bg-slate-600 border border-slate-600'
           }`}
         >
@@ -1788,7 +1788,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   setView(tab);
                 }}
                 className={`flex-1 px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  view === tab ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  view === tab ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                 }`}
               >
                 {label}
@@ -1955,7 +1955,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   onClick={() => setShowArchived((v) => !v)}
                   aria-pressed={showArchived}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                    showArchived ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    showArchived ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
                   {t('playtimePlanner.manager.showArchived', 'Show archived')}
@@ -2150,7 +2150,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                                   key={c.id}
                                   type="button"
                                   onClick={() => handleReplacePlanPlayer(p.id, c)}
-                                  className="px-3 py-1.5 rounded-full bg-slate-700 border border-slate-500/40 text-slate-100 text-sm font-medium hover:bg-purple-600"
+                                  className="px-3 py-1.5 rounded-full bg-slate-700 border border-slate-500/40 text-slate-100 text-sm font-medium hover:bg-purple-700"
                                 >
                                   {c.name}
                                 </button>
@@ -2429,7 +2429,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       className={[
                         'w-28 pl-3 pr-6 py-2 rounded-lg text-left border transition-colors',
                         isCurrent
-                          ? 'bg-purple-600 border-purple-400/40'
+                          ? 'bg-purple-700 border-purple-400/40'
                           : 'bg-slate-800 border-slate-600 hover:bg-slate-700',
                         g.included ? '' : 'opacity-50',
                       ].join(' ')}

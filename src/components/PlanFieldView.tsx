@@ -362,7 +362,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               : 'border-white/90 text-white'
             : slot.isGoalie
               ? 'bg-amber-500 text-slate-900 border-amber-300'
-              : 'bg-purple-600 text-white border-purple-300';
+              : 'bg-purple-700 text-white border-purple-300';
 
           const slotSelected = selection?.type === 'slot' && selection.slotId === slot.slotId;
           const starterLabel = filled

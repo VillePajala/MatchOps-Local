@@ -35,7 +35,7 @@ interface AiSettingsCardProps {
 
 const rowStyle = 'p-3 bg-slate-800/50 rounded-md';
 const primary =
-  'rounded-md bg-purple-600 hover:bg-purple-500 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500';
+  'rounded-md bg-purple-700 hover:bg-purple-600 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500';
 const secondary =
   'rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500';
 const danger =

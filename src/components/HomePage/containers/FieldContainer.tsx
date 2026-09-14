@@ -576,7 +576,7 @@ export function FieldContainer({
 
               <div className="text-center">
                 <div className="mb-4">
-                  <div className="w-16 h-16 mx-auto bg-purple-600/20 rounded-full flex items-center justify-center mb-3">
+                  <div className="w-16 h-16 mx-auto bg-purple-700/20 rounded-full flex items-center justify-center mb-3">
                     <div className="text-3xl">⚽</div>
                   </div>
                   <h3 className="text-2xl font-bold text-purple-300 mb-2">
@@ -601,14 +601,14 @@ export function FieldContainer({
                 {availablePlayers.length === 0 ? (
                   <button
                     onClick={() => onOpenRosterModal?.()}
-                    className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    className="w-full px-6 py-3 bg-purple-700 hover:bg-purple-600 text-white rounded-lg font-semibold transition-colors shadow-lg"
                   >
                     {t('firstGame.setupRoster', 'Set Up Team Roster')}
                   </button>
                 ) : (
                   <button
                     onClick={() => onOpenNewGameSetup?.()}
-                    className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    className="w-full px-6 py-3 bg-purple-700 hover:bg-purple-600 text-white rounded-lg font-semibold transition-colors shadow-lg"
                   >
                     {t('firstGame.createGame', 'Create Your First Match')}
                   </button>

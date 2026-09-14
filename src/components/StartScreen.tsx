@@ -483,7 +483,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('games')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'games'
-                      ? 'bg-purple-600 text-white shadow-inner'
+                      ? 'bg-purple-700 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -497,7 +497,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('team')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'team'
-                      ? 'bg-purple-600 text-white shadow-inner'
+                      ? 'bg-purple-700 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -514,7 +514,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('seasons')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'seasons'
-                      ? 'bg-purple-600 text-white shadow-inner'
+                      ? 'bg-purple-700 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -527,7 +527,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('stats')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'stats'
-                      ? 'bg-purple-600 text-white shadow-inner'
+                      ? 'bg-purple-700 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -902,7 +902,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
                 >
                   <span>{t('startScreen.gearSimplifiedView', 'Simplified view')}</span>
-                  <span className={`inline-flex items-center h-6 w-11 rounded-full p-0.5 transition-colors flex-shrink-0 ${homeView === 'simple' ? 'bg-purple-500' : 'bg-slate-600'}`} aria-hidden="true">
+                  <span className={`inline-flex items-center h-6 w-11 rounded-full p-0.5 transition-colors flex-shrink-0 ${homeView === 'simple' ? 'bg-purple-600' : 'bg-slate-600'}`} aria-hidden="true">
                     <span className={`h-5 w-5 rounded-full bg-white transition-transform ${homeView === 'simple' ? 'translate-x-5' : ''}`} />
                   </span>
                 </button>

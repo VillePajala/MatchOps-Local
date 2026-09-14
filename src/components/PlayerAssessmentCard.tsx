@@ -121,7 +121,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
           <div className="flex gap-2">
             <button
               type="button"
-              className="px-4 py-2 rounded-sm text-sm font-medium transition-colors bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50 border border-purple-400/30"
+              className="px-4 py-2 rounded-sm text-sm font-medium transition-colors bg-purple-700 hover:bg-purple-600 text-white disabled:opacity-50 border border-purple-400/30"
               onClick={handleSave}
               disabled={!isValid}
               aria-label={t('playerAssessmentModal.saveButton', 'Save')}

@@ -806,13 +806,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <div className="lg:col-span-3">
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
                 <div className="flex gap-1 mb-2">
-                  <button type="button" onClick={() => { setAdjSeasonId(''); setAdjTournamentId(''); setAdjIncludeInSeasonTournament(false); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!adjSeasonId && !adjTournamentId ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                  <button type="button" onClick={() => { setAdjSeasonId(''); setAdjTournamentId(''); setAdjIncludeInSeasonTournament(false); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!adjSeasonId && !adjTournamentId ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.eiMitaan', 'None')}
                   </button>
-                  <button type="button" onClick={() => { setAdjTournamentId(''); if (seasons.length > 0) { if (!adjSeasonId) setAdjSeasonId(seasons[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjSeasonId ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                  <button type="button" onClick={() => { setAdjTournamentId(''); if (seasons.length > 0) { if (!adjSeasonId) setAdjSeasonId(seasons[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjSeasonId ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.kausi', 'League')}
                   </button>
-                  <button type="button" onClick={() => { setAdjSeasonId(''); if (tournaments.length > 0) { if (!adjTournamentId) setAdjTournamentId(tournaments[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjTournamentId ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                  <button type="button" onClick={() => { setAdjSeasonId(''); if (tournaments.length > 0) { if (!adjTournamentId) setAdjTournamentId(tournaments[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjTournamentId ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.turnaus', 'Tournament')}
                   </button>
                 </div>
@@ -937,7 +937,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               </div>
               <div className="lg:col-span-3 flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowAdjForm(false)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium text-white">{t('common.cancel', 'Cancel')}</button>
-                <button type="submit" data-testid="save-external-game" className="px-4 py-2 bg-purple-600 rounded hover:bg-purple-500 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
+                <button type="submit" data-testid="save-external-game" className="px-4 py-2 bg-purple-700 rounded hover:bg-purple-600 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
               </div>
             </form>
           )}
@@ -1052,13 +1052,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         <div className="lg:col-span-3">
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
                           <div className="flex gap-1 mb-2">
-                            <button type="button" onClick={() => { setEditSeasonId(''); setEditTournamentId(''); setEditIncludeInSeasonTournament(false); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!editSeasonId && !editTournamentId ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                            <button type="button" onClick={() => { setEditSeasonId(''); setEditTournamentId(''); setEditIncludeInSeasonTournament(false); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!editSeasonId && !editTournamentId ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                               {t('gameSettingsModal.eiMitaan', 'None')}
                             </button>
-                            <button type="button" onClick={() => { setEditTournamentId(''); if (!editSeasonId && seasons.length > 0) setEditSeasonId(seasons[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editSeasonId ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                            <button type="button" onClick={() => { setEditTournamentId(''); if (!editSeasonId && seasons.length > 0) setEditSeasonId(seasons[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editSeasonId ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                               {t('gameSettingsModal.kausi', 'League')}
                             </button>
-                            <button type="button" onClick={() => { setEditSeasonId(''); if (!editTournamentId && tournaments.length > 0) setEditTournamentId(tournaments[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editTournamentId ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                            <button type="button" onClick={() => { setEditSeasonId(''); if (!editTournamentId && tournaments.length > 0) setEditTournamentId(tournaments[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editTournamentId ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                               {t('gameSettingsModal.turnaus', 'Tournament')}
                             </button>
                           </div>
@@ -1197,7 +1197,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         </div>
                         <div className="lg:col-span-3 flex justify-end gap-3 pt-2">
                           <button type="button" onClick={() => setEditingAdjId(null)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium text-white">{t('common.cancel', 'Cancel')}</button>
-                          <button type="submit" className="px-4 py-2 bg-purple-600 rounded hover:bg-purple-500 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
+                          <button type="submit" className="px-4 py-2 bg-purple-700 rounded hover:bg-purple-600 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
                         </div>
                       </form>
                     );
@@ -1326,7 +1326,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
                           {/* Right: Category labels */}
                           <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-600/40 text-purple-200" title={t('playerStats.externalGame', 'External Game')}>
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-700/40 text-purple-200" title={t('playerStats.externalGame', 'External Game')}>
                               <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`}></span>
                               {t('playerStats.external', 'EXT')}
                             </span>
@@ -1443,7 +1443,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         onClick={() => setAssessmentSeason(value)}
                         aria-pressed={assessmentSeason === value}
                         className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                          assessmentSeason === value ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          assessmentSeason === value ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                         }`}
                       >
                         {label}
@@ -1464,7 +1464,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       onClick={() => setScope(value)}
                       aria-pressed={scope === value}
                       className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                        scope === value ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        scope === value ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                       }`}
                     >
                       {label}
@@ -1479,7 +1479,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     aria-pressed={recencyWeighted}
                     title={t('playerStats.recencyWeightedTooltip', 'Weight recent games more, to show current form rather than the lifetime average')}
                     className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      recencyWeighted ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      recencyWeighted ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
                     {t('playerStats.recencyWeighted', 'Current form')}
@@ -1497,7 +1497,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     aria-pressed={useDemandCorrection}
                     title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
                     className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      useDemandCorrection ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      useDemandCorrection ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
                     {t('playerStats.useDemandCorrection', 'Weight by Difficulty')}
@@ -1724,7 +1724,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           )}
                           {t('playerStats.vs', 'vs')} {game.opponentName}
                           {game.isExternal && (
-                            <span className="ml-2 inline-block bg-purple-600/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.externalGame', 'External Game')}>{t('playerStats.external', 'EXT')}</span>
+                            <span className="ml-2 inline-block bg-purple-700/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.externalGame', 'External Game')}>{t('playerStats.external', 'EXT')}</span>
                           )}
                           {game.receivedFairPlayCard && (
                             <span className="ml-2 inline-block bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.fairPlayCard', 'Fair Play Card')}>FP</span>
@@ -1733,7 +1733,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             <span className="ml-2 inline-block bg-orange-500/50 text-orange-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('common.gameTypeFutsal', 'Futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</span>
                           )}
                           {!game.isExternal && Boolean(savedGames[game.gameId]?.assessments?.[player.id]) && (
-                            <span className="ml-2 inline-block bg-purple-600/60 text-purple-100 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.assessed', 'Assessed')}>{t('playerStats.assessed', 'Assessed')}</span>
+                            <span className="ml-2 inline-block bg-purple-700/60 text-purple-100 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.assessed', 'Assessed')}>{t('playerStats.assessed', 'Assessed')}</span>
                           )}
                         </p>
                         <p className="text-sm text-slate-400">{formatDisplayDate(game.date)}</p>

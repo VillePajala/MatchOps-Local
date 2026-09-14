@@ -227,7 +227,7 @@ export function StatsFilterPanel({
         data-testid="stats-filter-bar"
         className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
           summary.length > 0
-            ? 'bg-purple-600/15 border-purple-500/40 text-purple-200'
+            ? 'bg-purple-700/15 border-purple-500/40 text-purple-200'
             : 'bg-slate-800/60 border-slate-700/60 text-slate-300'
         } ${children ? 'mt-2' : ''}`}
       >
@@ -360,7 +360,7 @@ export function StatsFilterPanel({
               {t('gameStatsModal.filtersClear', 'Clear')}
             </button>
             <button type="button" onClick={apply} data-testid="stats-filter-apply"
-              className="flex-1 px-3 py-2 rounded-md text-sm font-semibold bg-purple-600 text-white hover:bg-purple-500 transition-colors">
+              className="flex-1 px-3 py-2 rounded-md text-sm font-semibold bg-purple-700 text-white hover:bg-purple-600 transition-colors">
               {t('gameStatsModal.filtersApply', 'Apply')}
             </button>
           </div>

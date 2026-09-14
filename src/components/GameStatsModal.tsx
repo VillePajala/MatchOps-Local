@@ -825,14 +825,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const getTabStyle = (tab: StatsTab) => {
     const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors';
     if (activeTab === tab) {
-      return `${baseStyle} bg-purple-600 text-white`;
+      return `${baseStyle} bg-purple-700 text-white`;
     }
     return `${baseStyle} bg-slate-700 text-slate-300 hover:bg-slate-600`;
   };
 
   const getPlayerTabStyle = () => {
     const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors flex-1';
-    return `${baseStyle} ${activeTab === 'player' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+    return `${baseStyle} ${activeTab === 'player' ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
   };
 
   // Tab title helper
@@ -967,7 +967,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
           />
           {onAddGoal && (
-            <button type="button" onClick={onAddGoal} data-testid="spine-add-goal" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500 transition-colors">
+            <button type="button" onClick={onAddGoal} data-testid="spine-add-goal" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-purple-700 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500 transition-colors">
               {t('gameStatsModal.spineAddGoal', 'Add a goal')}
             </button>
           )}
@@ -1131,7 +1131,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 total: currentGameCompleteness.assessments.total,
               })}
             </p>
-            <button type="button" onClick={onOpenAssessments} data-testid="spine-open-assessments" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500 transition-colors">
+            <button type="button" onClick={onOpenAssessments} data-testid="spine-open-assessments" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-purple-700 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500 transition-colors">
               {t('gameStatsModal.spineOpenAssessments', 'Open player assessments')}
             </button>
           </div>
@@ -1156,7 +1156,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           <button
             type="button"
             onClick={() => setShowRecap(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-slate-800"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-purple-700 hover:bg-purple-600 text-white shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-slate-800"
           >
             <HiOutlineShare className="text-base" />
             {t('recap.button', 'Generate match recap')}
@@ -1175,9 +1175,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
         <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-purple-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-purple-700/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
         {/* Chrome slimming: X-header (Done->X); the tab strip collapses on scroll. */}
         <CollapsibleModalHeader
           title={getTabTitle()}
