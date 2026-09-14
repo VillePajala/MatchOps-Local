@@ -47,7 +47,7 @@ interface StatsFilterPanelProps {
 }
 
 const SELECT =
-  'w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
+  'w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500';
 const LABEL = 'block text-xs font-medium text-slate-400 mb-1';
 
 export function StatsFilterPanel({
@@ -227,7 +227,7 @@ export function StatsFilterPanel({
         data-testid="stats-filter-bar"
         className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
           summary.length > 0
-            ? 'bg-indigo-600/15 border-indigo-500/40 text-indigo-200'
+            ? 'bg-purple-600/15 border-purple-500/40 text-purple-200'
             : 'bg-slate-800/60 border-slate-700/60 text-slate-300'
         } ${children ? 'mt-2' : ''}`}
       >
@@ -345,7 +345,7 @@ export function StatsFilterPanel({
             <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
               <input
                 type="checkbox"
-                className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-indigo-600 focus:ring-indigo-500"
+                className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-purple-600 focus:ring-purple-500"
                 checked={draft.includeFriendlies}
                 onChange={(e) => set('includeFriendlies', e.target.checked)}
                 data-testid="stats-filter-friendlies"
@@ -360,7 +360,7 @@ export function StatsFilterPanel({
               {t('gameStatsModal.filtersClear', 'Clear')}
             </button>
             <button type="button" onClick={apply} data-testid="stats-filter-apply"
-              className="flex-1 px-3 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition-colors">
+              className="flex-1 px-3 py-2 rounded-md text-sm font-semibold bg-purple-600 text-white hover:bg-purple-500 transition-colors">
               {t('gameStatsModal.filtersApply', 'Apply')}
             </button>
           </div>

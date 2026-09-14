@@ -68,7 +68,7 @@ export function ReConsentModal() {
     <DialogBackdrop className="z-[100]">
       <div ref={modalRef} className="bg-slate-800 rounded-lg shadow-2xl max-w-md w-full border border-slate-600 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="reconsent-title">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-900/50 border-b border-slate-600">
+        <div className="px-6 py-4 bg-slate-900/50 border-b border-white/10">
           <h2 id="reconsent-title" className="text-xl font-bold text-yellow-400">
             {t('reConsent.title', 'Updated Terms & Privacy Policy')}
           </h2>
@@ -92,14 +92,14 @@ export function ReConsentModal() {
             <Link
               href="/terms"
               target="_blank"
-              className="text-indigo-400 hover:text-indigo-300 underline"
+              className="text-purple-400 hover:text-purple-300 underline"
             >
               {t('reConsent.termsLink', 'Terms of Service')}
             </Link>
             <Link
               href="/privacy-policy"
               target="_blank"
-              className="text-indigo-400 hover:text-indigo-300 underline"
+              className="text-purple-400 hover:text-purple-300 underline"
             >
               {t('reConsent.privacyLink', 'Privacy Policy')}
             </Link>
@@ -113,7 +113,7 @@ export function ReConsentModal() {
               checked={hasAccepted}
               onChange={(e) => setHasAccepted(e.target.checked)}
               disabled={isSubmitting}
-              className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
+              className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-purple-500 focus:ring-purple-500 focus:ring-offset-slate-900 cursor-pointer"
             />
             <label
               htmlFor="re-consent-checkbox"
@@ -133,7 +133,7 @@ export function ReConsentModal() {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-900/30 border-t border-slate-600 flex gap-3">
+        <div className="px-6 py-4 bg-slate-900/30 border-t border-white/10 flex gap-3">
           <button
             onClick={handleDecline}
             disabled={isSubmitting}

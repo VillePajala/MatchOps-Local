@@ -4,6 +4,19 @@
     {
       "date": "2026-09-14",
       "en": [
+        "The app now uses the same purple as the players on the field. The interface used to be a slightly different blue-purple that appeared nowhere else, so the colour you see all match is now the colour of the whole app.",
+        "Lines that separate things are drawn like the markings on the pitch - thin and white - instead of grey seams.",
+        "Text is bigger and easier to read in a lot of places, especially the small explanatory text under settings, and the tiniest labels are gone."
+      ],
+      "fi": [
+        "Sovellus käyttää nyt samaa violettia kuin pelaajat kentällä. Käyttöliittymä oli aiemmin hieman eri sinivioletti jota ei näkynyt missään muualla, joten koko ottelun ajan näkemäsi väri on nyt koko sovelluksen väri.",
+        "Asioita erottavat viivat piirretään kuin kentän viivat - ohuina ja valkoisina - harmaiden saumojen sijaan.",
+        "Teksti on isompaa ja luettavampaa monin paikoin, erityisesti asetusten selitystekstit, ja kaikkein pienimmät tekstit on poistettu."
+      ]
+    },
+    {
+      "date": "2026-09-14",
+      "en": [
         "The Escape key now closes almost every dialog in the app - it previously worked in about a third of them. Where a dialog has a confirmation open on top of it, Escape closes just the confirmation first.",
         "Screen readers now announce every dialog as a dialog and read its title, which several screens did not do before."
       ],

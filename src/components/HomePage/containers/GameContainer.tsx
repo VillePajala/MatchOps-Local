@@ -11,7 +11,7 @@ import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 import { FieldContainer } from './FieldContainer';
 import type { FieldContainerProps } from './FieldContainer';
 
-const barStyle = 'flex-shrink-0 bg-slate-800 border-b border-slate-700';
+const barStyle = 'flex-shrink-0 bg-slate-800 border-b border-white/10';
 type ControlBarProps = React.ComponentProps<typeof ControlBar>;
 
 export interface GameContainerProps {

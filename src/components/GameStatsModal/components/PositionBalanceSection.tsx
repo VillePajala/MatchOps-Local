@@ -20,7 +20,7 @@ const LOW_COVERAGE = 0.5;
 // Full-width segmented toggle, matching the sport/gender toggles in the app.
 const toggleBtn = (active: boolean) =>
   `flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-    active ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+    active ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
   }`;
 
 /**
@@ -112,7 +112,7 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
       <div className={`overflow-x-auto ${lowCoverage ? 'opacity-60' : ''}`}>
         <table className="w-full text-sm">
           <thead className="text-slate-300">
-            <tr className="border-b border-slate-700">
+            <tr className="border-b border-white/10">
               <th className="px-2 py-2 text-left font-medium">
                 {t('gameStatsModal.positionBalance.player', 'Player')}
               </th>
@@ -125,7 +125,7 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
           </thead>
           <tbody className="text-slate-100">
             {rows.map(row => (
-              <tr key={row.playerId} className="border-b border-slate-800 hover:bg-slate-800/40">
+              <tr key={row.playerId} className="border-b border-white/10 hover:bg-slate-800/40">
                 <td className="px-2 py-2 font-medium">
                   {/* Narrow players are called out by an amber name (no fragile dot). */}
                   <span

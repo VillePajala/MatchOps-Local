@@ -680,7 +680,7 @@ describe('<GameSettingsModal />', () => {
       renderModal();
       const section = getAssociationSection();
       const noneButton = within(section).getByText(t('gameSettingsModal.eiMitaan'));
-      expect(noneButton).toHaveClass('bg-indigo-600');
+      expect(noneButton).toHaveClass('bg-purple-600');
       expect(within(section).queryByRole('combobox')).not.toBeInTheDocument();
     });
 
@@ -1311,11 +1311,11 @@ describe('<GameSettingsModal />', () => {
 
       // Find Soccer button and verify it's selected
       const soccerButton = screen.getByRole('button', { name: t('common.gameTypeSoccer') });
-      expect(soccerButton).toHaveClass('bg-indigo-600');
+      expect(soccerButton).toHaveClass('bg-purple-600');
 
       // Futsal should not be selected
       const futsalButton = screen.getByRole('button', { name: t('common.gameTypeFutsal') });
-      expect(futsalButton).not.toHaveClass('bg-indigo-600');
+      expect(futsalButton).not.toHaveClass('bg-purple-600');
     });
 
     test('displays Futsal as selected when gameType is futsal', async () => {
@@ -1327,11 +1327,11 @@ describe('<GameSettingsModal />', () => {
 
       // Futsal should be selected
       const futsalButton = screen.getByRole('button', { name: t('common.gameTypeFutsal') });
-      expect(futsalButton).toHaveClass('bg-indigo-600');
+      expect(futsalButton).toHaveClass('bg-purple-600');
 
       // Soccer should not be selected
       const soccerButton = screen.getByRole('button', { name: t('common.gameTypeSoccer') });
-      expect(soccerButton).not.toHaveClass('bg-indigo-600');
+      expect(soccerButton).not.toHaveClass('bg-purple-600');
     });
 
     test('calls onGameTypeChange when toggling from Soccer to Futsal', async () => {
@@ -1410,7 +1410,7 @@ describe('<GameSettingsModal />', () => {
       // Verify Futsal is now displayed as selected
       await waitFor(() => {
         const updatedFutsalButton = screen.getByRole('button', { name: t('common.gameTypeFutsal') });
-        expect(updatedFutsalButton).toHaveClass('bg-indigo-600');
+        expect(updatedFutsalButton).toHaveClass('bg-purple-600');
       });
     });
 

@@ -135,7 +135,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light pointer-events-none" />
 
         {/* Chrome slimming: X-header (Cancel) + sticky Save. */}
         <CollapsibleModalHeader
@@ -164,7 +164,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                     setNameError(null);
                   }}
                   placeholder={t('playerDetailsModal.namePlaceholder', 'Enter player name')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
                   required
                 />
                 {nameError && (
@@ -182,7 +182,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
                   placeholder={t('playerDetailsModal.nicknamePlaceholder', 'Optional nickname')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
                 />
                 <p className="mt-1 text-sm text-slate-400">
                   {t('playerDetailsModal.nicknameHint', 'Shown on field if provided')}
@@ -199,7 +199,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   value={jerseyNumber}
                   onChange={(e) => setJerseyNumber(e.target.value)}
                   placeholder={t('playerDetailsModal.jerseyNumberPlaceholder', 'e.g., 10')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
 
@@ -213,7 +213,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={t('playerDetailsModal.notesPlaceholder', 'Optional notes about this player')}
                   rows={3}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
             </div>

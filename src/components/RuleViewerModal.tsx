@@ -234,7 +234,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
                 <button
                   type="button"
                   onClick={openInBrowser}
-                  className="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white"
+                  className="px-4 py-2 rounded-md text-sm font-medium bg-purple-600 hover:bg-purple-500 text-white"
                 >
                   {t('ruleViewer.openInBrowser', 'Avaa selaimessa')}
                 </button>
@@ -260,7 +260,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
             )}
           </div>
 
-          <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-t border-slate-700/60">
+          <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-t border-white/10">
             <button
               type="button"
               onClick={() => setCurrent((p) => Math.max(1, p - 1))}

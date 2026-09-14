@@ -221,10 +221,10 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('personnelManager.title', 'Personnel Manager')}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
         {/* Background effects */}
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-purple-600/5 blur-2xl bottom-0 opacity-50" />
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col min-h-0 h-full">
@@ -255,7 +255,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               autoComplete="off"
-              className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
             />
 
             {/* Personnel List */}
@@ -292,7 +292,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                                 // Prevent triggering parent card's onClick (which opens edit modal)
                                 onClick={(e) => e.stopPropagation()}
                                 aria-label={t('personnel.callPhone', { phone: person.phone })}
-                                className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
+                                className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-purple-400 transition-colors"
                               >
                                 <HiOutlinePhone className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                                 <span>{person.phone}</span>
@@ -307,7 +307,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                                 // Prevent triggering parent card's onClick (which opens edit modal)
                                 onClick={(e) => e.stopPropagation()}
                                 aria-label={t('personnel.sendEmail', { email: person.email })}
-                                className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
+                                className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-purple-400 transition-colors"
                               >
                                 <HiOutlineEnvelope className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                                 <span>{person.email}</span>

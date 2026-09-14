@@ -301,7 +301,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light pointer-events-none" />
 
         {/* Chrome slimming: X-header (Done→X); Add Team collapses on scroll. */}
         <CollapsibleModalHeader
@@ -314,7 +314,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
             <button
               onClick={handleCreateTeam}
               data-testid="tour-add-team"
-              className="w-full py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
+              className="w-full py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-purple-600 text-white hover:bg-purple-500 border border-purple-400/30"
               aria-label={t('teamManager.createNewTeam', 'Create new team')}
             >
               {t('teamManager.addTeam', 'Add Team')}
@@ -333,14 +333,14 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               onChange={e => setSearchText(e.target.value)}
               autoComplete="off"
               aria-label={t('teamManager.searchAriaLabel', 'Search teams by name')}
-              className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
             />
             <button
               type="button"
               onClick={() => setShowArchived(v => !v)}
               aria-pressed={showArchived}
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                showArchived ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                showArchived ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
               {t('teamManager.showArchived', 'Show Archived')}
@@ -574,7 +574,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           {/* Utility action, inline at the bottom of the content (chrome
               slimming): games left behind by deleted teams. */}
           {onManageOrphanedGames && (
-            <div className="mt-6 pt-4 border-t border-slate-700/40">
+            <div className="mt-6 pt-4 border-t border-white/10">
               <button
                 onClick={onManageOrphanedGames}
                 className="px-4 py-2 rounded-md font-medium text-amber-300 bg-amber-900/20 hover:bg-amber-900/30 border border-amber-600/30 transition-colors text-sm"

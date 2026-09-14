@@ -362,7 +362,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               : 'border-white/90 text-white'
             : slot.isGoalie
               ? 'bg-amber-500 text-slate-900 border-amber-300'
-              : 'bg-indigo-600 text-white border-indigo-300';
+              : 'bg-purple-600 text-white border-purple-300';
 
           const slotSelected = selection?.type === 'slot' && selection.slotId === slot.slotId;
           const starterLabel = filled
@@ -417,7 +417,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   className={[
                     'flex overflow-hidden border-2 transition-colors shadow-md shadow-black/40',
                     slotSubs.length > 1 ? 'flex-col rounded-2xl' : 'rounded-full h-10',
-                    rampMode ? 'border-white/90' : 'border-indigo-300',
+                    rampMode ? 'border-white/90' : 'border-purple-300',
                     conflictRing,
                   ].join(' ')}
                 >
@@ -636,7 +636,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   onClick={() => handleBenchClick(id)}
                   disabled={inert}
                   title={sitsOut ? t('playtimePlanner.lineup.notInGame', 'Not in this game') : undefined}
-                  className={`flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed ${dimClass(involved)}`}
+                  className={`flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:opacity-50 disabled:cursor-not-allowed ${dimClass(involved)}`}
                 >
                   <span
                     className={[
@@ -728,7 +728,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                       type="button"
                       onClick={() => onToggleAbsent(p.id)}
                       aria-pressed={absent}
-                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 ${
                         absent
                           ? 'bg-red-900/40 border-red-600 text-red-200 line-through font-medium'
                           : 'bg-transparent border-slate-600/60 text-slate-400 hover:bg-slate-700 hover:text-slate-200'

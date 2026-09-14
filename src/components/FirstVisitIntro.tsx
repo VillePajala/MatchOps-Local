@@ -94,7 +94,7 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
   // visible - the card is temporary and dismissible, and in that moment the
   // guidance matters more than rules/camera shortcuts.
   const frame =
-    'rounded-2xl p-[1.5px] bg-gradient-to-br from-sky-400 via-indigo-400 to-fuchsia-500 shadow-[0_18px_50px_rgba(0,0,0,0.55)]';
+    'rounded-2xl p-[1.5px] bg-gradient-to-br from-sky-400 via-purple-400 to-fuchsia-500 shadow-[0_18px_50px_rgba(0,0,0,0.55)]';
   const base = overlay ? `absolute inset-x-3 top-3 z-30 ${frame}` : frame;
 
   return (
@@ -112,7 +112,7 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
             markSeen(surface, userId);
             setDismissed(true);
           }}
-          className="w-full mt-3 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+          className="w-full mt-3 rounded-md bg-purple-600 hover:bg-purple-500 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500"
         >
           {t('firstVisit.gotIt', 'Got it')}
         </button>

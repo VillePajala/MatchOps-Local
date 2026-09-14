@@ -81,7 +81,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
       >
         <span className="font-semibold">{player.name}</span>
         {isSaved ? (
-          <HiCheckCircle className="text-indigo-400" />
+          <HiCheckCircle className="text-purple-400" />
         ) : (
           <HiXCircle className="text-slate-500" />
         )}
@@ -121,7 +121,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
           <div className="flex gap-2">
             <button
               type="button"
-              className="px-4 py-2 rounded-sm text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 border border-indigo-400/30"
+              className="px-4 py-2 rounded-sm text-sm font-medium transition-colors bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50 border border-purple-400/30"
               onClick={handleSave}
               disabled={!isValid}
               aria-label={t('playerAssessmentModal.saveButton', 'Save')}

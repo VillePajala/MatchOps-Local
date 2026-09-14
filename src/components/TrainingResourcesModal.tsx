@@ -126,7 +126,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
               type="text"
               value={section.title}
               onChange={(e) => updateSection(section.id, { title: e.target.value })}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-1.5 text-lg font-semibold text-slate-200 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-1.5 text-lg font-semibold text-slate-200 focus:outline-none focus:border-purple-500"
               placeholder={t('warmupPlanModal.sectionTitlePlaceholder', 'Section Title')}
             />
             <div className="flex items-center justify-between gap-2">
@@ -161,7 +161,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
           <textarea
             value={section.content}
             onChange={(e) => updateSection(section.id, { content: e.target.value })}
-            className="w-full bg-slate-700/70 border border-slate-600 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-indigo-500 resize-y min-h-[100px]"
+            className="w-full bg-slate-700/70 border border-slate-600 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-purple-500 resize-y min-h-[100px]"
             placeholder={t('warmupPlanModal.contentPlaceholder', 'Enter content here... Use • for bullet points')}
             rows={5}
           />
@@ -181,10 +181,10 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background effects */}
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-purple-600/5 blur-2xl bottom-0 opacity-50" />
 
         <div className="relative z-10 flex flex-col min-h-0 h-full">
           {/* Chrome slimming: X-header. The action buttons live in one row

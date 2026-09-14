@@ -833,7 +833,7 @@ export default function CloudSyncSection({
 
       {/* Cloud Account Section - Shown in LOCAL mode when user has cloud account info */}
       {currentMode === 'local' && cloudAccountInfo && (
-        <div className="pt-4 mt-4 border-t border-slate-700">
+        <div className="pt-4 mt-4 border-t border-white/10">
           <div className="flex items-center gap-2 mb-3">
             <HiOutlineLockClosed className="h-5 w-5 text-slate-400" />
             <h4 className="text-sm font-medium text-slate-300">

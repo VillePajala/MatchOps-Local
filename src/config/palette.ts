@@ -101,12 +101,19 @@ export const STATUS = {
 /**
  * Ordinary interface colour.
  *
+ * PRIMARY IS PURPLE, not the indigo it was. The app's most recognisable
+ * surface is the pitch, where every player disc is #7E22CE - which is exactly
+ * tailwind's purple-700. The chrome was indigo, a neighbouring hue chosen by
+ * nobody in particular, so the product's own colour appeared on one screen and
+ * nowhere else. Matching weights (indigo-600 -> purple-600) puts the interface
+ * in the same family as the discs.
+ *
  * `cta` is amber and is deliberately scarce: on the home screen amber means
  * one thing, "press this". Spending it on decoration is what makes a call to
  * action stop being one.
  */
 export const UI = {
-  primary: 'indigo',
+  primary: 'purple',
   cta: 'amber',
   danger: 'red',
   /** The brand purple, currently the player discs on the field. */

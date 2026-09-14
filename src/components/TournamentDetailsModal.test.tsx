@@ -587,7 +587,7 @@ describe('TournamentDetailsModal', () => {
 
       // Soccer button should be selected by default (has indigo background)
       const soccerButton = screen.getByRole('button', { name: i18n.t('common.gameTypeSoccer', 'Soccer') });
-      expect(soccerButton).toHaveClass('bg-indigo-600');
+      expect(soccerButton).toHaveClass('bg-purple-600');
 
       // Enter required name
       const nameInput = screen.getByPlaceholderText(i18n.t('tournamentDetailsModal.namePlaceholder', 'e.g., Nordic Cup 2024'));
@@ -620,7 +620,7 @@ describe('TournamentDetailsModal', () => {
       await user.click(futsalButton);
 
       // Futsal button should now be selected
-      expect(futsalButton).toHaveClass('bg-indigo-600');
+      expect(futsalButton).toHaveClass('bg-purple-600');
 
       // Click save
       const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
@@ -646,11 +646,11 @@ describe('TournamentDetailsModal', () => {
 
       // Futsal button should be selected (has indigo background)
       const futsalButton = screen.getByRole('button', { name: i18n.t('common.gameTypeFutsal', 'Futsal') });
-      expect(futsalButton).toHaveClass('bg-indigo-600');
+      expect(futsalButton).toHaveClass('bg-purple-600');
 
       // Soccer button should NOT be selected
       const soccerButton = screen.getByRole('button', { name: i18n.t('common.gameTypeSoccer', 'Soccer') });
-      expect(soccerButton).not.toHaveClass('bg-indigo-600');
+      expect(soccerButton).not.toHaveClass('bg-purple-600');
     });
 
     it('loads tournament with existing soccer gameType and shows soccer selected', async () => {
@@ -665,11 +665,11 @@ describe('TournamentDetailsModal', () => {
 
       // Soccer button should be selected (has indigo background)
       const soccerButton = screen.getByRole('button', { name: i18n.t('common.gameTypeSoccer', 'Soccer') });
-      expect(soccerButton).toHaveClass('bg-indigo-600');
+      expect(soccerButton).toHaveClass('bg-purple-600');
 
       // Futsal button should NOT be selected
       const futsalButton = screen.getByRole('button', { name: i18n.t('common.gameTypeFutsal', 'Futsal') });
-      expect(futsalButton).not.toHaveClass('bg-indigo-600');
+      expect(futsalButton).not.toHaveClass('bg-purple-600');
     });
 
     it('defaults to soccer when editing tournament without gameType set', async () => {
@@ -685,7 +685,7 @@ describe('TournamentDetailsModal', () => {
 
       // Soccer should be selected by default for legacy data
       const soccerButton = screen.getByRole('button', { name: i18n.t('common.gameTypeSoccer', 'Soccer') });
-      expect(soccerButton).toHaveClass('bg-indigo-600');
+      expect(soccerButton).toHaveClass('bg-purple-600');
     });
 
     it('allows switching between soccer and futsal', async () => {
@@ -699,18 +699,18 @@ describe('TournamentDetailsModal', () => {
       const futsalButton = screen.getByRole('button', { name: i18n.t('common.gameTypeFutsal', 'Futsal') });
 
       // Initially soccer is selected (default)
-      expect(soccerButton).toHaveClass('bg-indigo-600');
-      expect(futsalButton).not.toHaveClass('bg-indigo-600');
+      expect(soccerButton).toHaveClass('bg-purple-600');
+      expect(futsalButton).not.toHaveClass('bg-purple-600');
 
       // Click futsal
       await user.click(futsalButton);
-      expect(futsalButton).toHaveClass('bg-indigo-600');
-      expect(soccerButton).not.toHaveClass('bg-indigo-600');
+      expect(futsalButton).toHaveClass('bg-purple-600');
+      expect(soccerButton).not.toHaveClass('bg-purple-600');
 
       // Click soccer again
       await user.click(soccerButton);
-      expect(soccerButton).toHaveClass('bg-indigo-600');
-      expect(futsalButton).not.toHaveClass('bg-indigo-600');
+      expect(soccerButton).toHaveClass('bg-purple-600');
+      expect(futsalButton).not.toHaveClass('bg-purple-600');
     });
   });
 });

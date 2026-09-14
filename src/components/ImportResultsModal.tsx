@@ -128,7 +128,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
             <div className="text-center py-8">
               <p className="text-slate-300 mb-4">{t('importResults.processing')}</p>
               <div className="w-full bg-slate-700 rounded-full h-2">
-                <div className="bg-indigo-500 h-2 rounded-full animate-pulse w-1/2"></div>
+                <div className="bg-purple-500 h-2 rounded-full animate-pulse w-1/2"></div>
               </div>
             </div>
           ) : importResult ? (
@@ -142,7 +142,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
                     <div className="text-sm text-slate-400">{t('importResults.successful')}</div>
                   </div>
                   <div className="bg-slate-800/60 border border-slate-700 rounded p-3">
-                    <div className="text-2xl font-bold text-indigo-400">{importResult.skipped}</div>
+                    <div className="text-2xl font-bold text-purple-400">{importResult.skipped}</div>
                     <div className="text-sm text-slate-400">{t('importResults.skipped')}</div>
                   </div>
                   <div className="bg-slate-800/60 border border-slate-700 rounded p-3">
@@ -164,7 +164,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
                     style={{ width: `${(importResult.successful / getTotalProcessed()) * 100}%` }}
                   ></div>
                   <div
-                    className={`${progressBarFillStyle} bg-indigo-500`}
+                    className={`${progressBarFillStyle} bg-purple-500`}
                     style={{
                       width: `${(importResult.skipped / getTotalProcessed()) * 100}%`,
                       marginLeft: `${(importResult.successful / getTotalProcessed()) * 100}%`

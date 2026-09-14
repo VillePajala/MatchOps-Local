@@ -564,7 +564,7 @@ export function FieldContainer({
         fcPlayersOnField.length === 0 &&
         fcDrawings.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-            <div className="relative bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+            <div className="relative bg-slate-800/95 border border-purple-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
               {/* Dismiss button */}
               <button
                 onClick={() => setIsSetupOverlayDismissed(true)}
@@ -576,10 +576,10 @@ export function FieldContainer({
 
               <div className="text-center">
                 <div className="mb-4">
-                  <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
+                  <div className="w-16 h-16 mx-auto bg-purple-600/20 rounded-full flex items-center justify-center mb-3">
                     <div className="text-3xl">⚽</div>
                   </div>
-                  <h3 className="text-2xl font-bold text-indigo-300 mb-2">
+                  <h3 className="text-2xl font-bold text-purple-300 mb-2">
                     {availablePlayers.length === 0
                       ? t('firstGame.titleNoPlayers', 'Ready to get started?')
                       : t('firstGame.title', 'Ready to track your first game?')}
@@ -601,14 +601,14 @@ export function FieldContainer({
                 {availablePlayers.length === 0 ? (
                   <button
                     onClick={() => onOpenRosterModal?.()}
-                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
                   >
                     {t('firstGame.setupRoster', 'Set Up Team Roster')}
                   </button>
                 ) : (
                   <button
                     onClick={() => onOpenNewGameSetup?.()}
-                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
                   >
                     {t('firstGame.createGame', 'Create Your First Match')}
                   </button>
