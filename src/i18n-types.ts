@@ -3143,6 +3143,7 @@ export type TranslationKey =
   | 'unifiedTeamModal.kitColor.sky'
   | 'unifiedTeamModal.kitColor.white'
   | 'unifiedTeamModal.kitColor.yellow'
+  | 'unifiedTeamModal.kitColorCustom'
   | 'unifiedTeamModal.kitColorLabel'
   | 'unifiedTeamModal.kitColorNone'
   | 'unifiedTeamModal.noPlayersSelected'

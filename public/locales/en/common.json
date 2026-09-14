@@ -1665,7 +1665,8 @@
       "purple": "Purple",
       "sky": "Light blue",
       "maroon": "Maroon"
-    }
+    },
+    "kitColorCustom": "Custom colour"
   },
   "personnel": {
     "selected": "selected",
