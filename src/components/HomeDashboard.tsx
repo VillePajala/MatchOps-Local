@@ -19,7 +19,7 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
     <button
       type="button"
       onClick={onResume}
-      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-purple-900/80 to-slate-800/80 border border-purple-600/50 text-white shadow-md hover:from-purple-900 hover:to-slate-800 transition-all"
+      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-purple-800 via-purple-900/85 to-slate-800/80 border border-purple-500/60 text-white shadow-md hover:from-purple-900 hover:to-slate-800 transition-all"
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-base font-extrabold truncate">{resume.opponent || t('startScreen.dashResumeGame', 'Game')}</span>
