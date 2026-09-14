@@ -307,7 +307,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   aria-pressed={format === f}
                   className={`flex-1 h-11 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500 ${
                     format === f
-                      ? 'bg-purple-600 border border-purple-400/30 text-white'
+                      ? 'bg-purple-700 border border-purple-400/30 text-white'
                       : 'bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700'
                   }`}
                 >

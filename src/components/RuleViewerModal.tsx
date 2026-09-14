@@ -234,7 +234,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
                 <button
                   type="button"
                   onClick={openInBrowser}
-                  className="px-4 py-2 rounded-md text-sm font-medium bg-purple-600 hover:bg-purple-500 text-white"
+                  className="px-4 py-2 rounded-md text-sm font-medium bg-purple-700 hover:bg-purple-600 text-white"
                 >
                   {t('ruleViewer.openInBrowser', 'Avaa selaimessa')}
                 </button>

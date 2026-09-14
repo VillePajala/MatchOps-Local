@@ -247,7 +247,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
                       key={id}
                       type="button"
                       onClick={() => pick(id)}
-                      className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-purple-600 border border-slate-500/40 text-sm font-medium text-slate-100"
+                      className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-purple-700 border border-slate-500/40 text-sm font-medium text-slate-100"
                     >
                       {nameById.get(id) ?? id}
                       {fair && (
@@ -276,7 +276,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
                         key={id}
                         type="button"
                         onClick={() => pick(id)}
-                        className="px-3 py-1.5 rounded-full bg-slate-800 hover:bg-purple-600 border border-dashed border-slate-500/60 text-sm font-medium text-slate-200"
+                        className="px-3 py-1.5 rounded-full bg-slate-800 hover:bg-purple-700 border border-dashed border-slate-500/60 text-sm font-medium text-slate-200"
                       >
                         {nameById.get(id) ?? id}
                         {fair && (

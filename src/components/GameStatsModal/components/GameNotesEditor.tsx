@@ -123,7 +123,7 @@ export function GameNotesEditor({
             <button
               type="button"
               onClick={onSaveNotes}
-              className={`${ROW_BTN} bg-purple-600 text-white hover:bg-purple-500`}
+              className={`${ROW_BTN} bg-purple-700 text-white hover:bg-purple-600`}
             >
               {t('common.save', 'Save')}
             </button>

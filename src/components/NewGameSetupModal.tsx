@@ -839,10 +839,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
         {/* Background effects */}
-        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-purple-600/5 blur-2xl bottom-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-purple-700/5 blur-2xl bottom-0 opacity-50" />
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col min-h-0">
@@ -861,7 +861,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 <button
                   type="button"
                   onClick={handleRepeatLastGame}
-                  className="w-full px-4 py-2 rounded-md bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 text-sm font-medium border border-purple-500/40 transition-colors"
+                  className="w-full px-4 py-2 rounded-md bg-purple-700/20 hover:bg-purple-700/30 text-purple-200 text-sm font-medium border border-purple-500/40 transition-colors"
                 >
                   {t('newGameSetupModal.repeatLastGame', 'Repeat last game')}
                 </button>
@@ -1060,7 +1060,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           onClick={() => handleTabChange('none')}
                           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             activeTab === 'none'
-                              ? 'bg-purple-600 text-white'
+                              ? 'bg-purple-700 text-white'
                               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                           }`}
                         >
@@ -1070,7 +1070,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           onClick={() => handleTabChange('season')}
                           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             activeTab === 'season'
-                              ? 'bg-purple-600 text-white'
+                              ? 'bg-purple-700 text-white'
                               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                           }`}
                         >
@@ -1080,7 +1080,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           onClick={() => handleTabChange('tournament')}
                           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             activeTab === 'tournament'
-                              ? 'bg-purple-600 text-white'
+                              ? 'bg-purple-700 text-white'
                               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                           }`}
                         >
@@ -1247,7 +1247,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     onClick={() => setGameType('soccer')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gameType === 'soccer'
-                        ? 'bg-purple-600 text-white'
+                        ? 'bg-purple-700 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -1258,7 +1258,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     onClick={() => setGameType('futsal')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gameType === 'futsal'
-                        ? 'bg-purple-600 text-white'
+                        ? 'bg-purple-700 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -1315,7 +1315,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     onClick={() => setGender(undefined)}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gender === undefined
-                        ? 'bg-purple-600 text-white'
+                        ? 'bg-purple-700 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -1326,7 +1326,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     onClick={() => setGender('boys')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gender === 'boys'
-                        ? 'bg-purple-600 text-white'
+                        ? 'bg-purple-700 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -1337,7 +1337,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     onClick={() => setGender('girls')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gender === 'girls'
-                        ? 'bg-purple-600 text-white'
+                        ? 'bg-purple-700 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -1435,7 +1435,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     onClick={() => setLocalHomeOrAway('home')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       localHomeOrAway === 'home'
-                        ? 'bg-purple-600 text-white'
+                        ? 'bg-purple-700 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -1445,7 +1445,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     onClick={() => setLocalHomeOrAway('away')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       localHomeOrAway === 'away'
-                        ? 'bg-purple-600 text-white'
+                        ? 'bg-purple-700 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >

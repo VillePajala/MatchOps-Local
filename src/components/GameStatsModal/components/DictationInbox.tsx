@@ -367,7 +367,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
               type="button"
               onClick={() => void transcribeAll()}
               data-testid="dictation-transcribe"
-              className="w-full mb-3 rounded-md bg-purple-600 hover:bg-purple-500 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              className="w-full mb-3 rounded-md bg-purple-700 hover:bg-purple-600 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
             >
               {t('dictation.transcribe', 'Transcribe {{count}} clips (about ${{cost}})', { count: untranscribed.length, cost: costUsd })}
             </button>
@@ -449,7 +449,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                   onClick={() => void accept(clip)}
                   disabled={!canSave}
                   data-testid="dictation-accept"
-                  className="flex-1 rounded-md bg-purple-600 hover:bg-purple-500 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500"
+                  className="flex-1 rounded-md bg-purple-700 hover:bg-purple-600 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500"
                 >
                   {t('dictation.accept', 'Save note')}
                 </button>

@@ -136,7 +136,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
           {/* Tactics Toggle */}
           <button
             onClick={onToggleTacticsBoard}
-            className={`${buttonStyle} ${isTacticsBoardView ? 'bg-purple-600 hover:bg-purple-500' : 'bg-slate-700 hover:bg-slate-600'}`}
+            className={`${buttonStyle} ${isTacticsBoardView ? 'bg-purple-700 hover:bg-purple-600' : 'bg-slate-700 hover:bg-slate-600'}`}
             title={t(isTacticsBoardView ? 'controlBar.toggleTacticsBoardHide' : 'controlBar.toggleTacticsBoardShow') ?? 'Tactics'}
           >
             <HiOutlineClipboard className={iconSize} />
@@ -149,7 +149,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
           {!isTacticsBoardView ? (
             <button
               onClick={onPlaceAllPlayers}
-              className={`${buttonStyle} bg-purple-600 hover:bg-purple-500`}
+              className={`${buttonStyle} bg-purple-700 hover:bg-purple-600`}
               title={t('controlBar.placeAllPlayers', 'Place All Players')}
             >
               <HiOutlineSquares2X2 className={iconSize} />
@@ -160,7 +160,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
           ) : (
             <button
               onClick={onAddHomeDisc}
-              className={`${buttonStyle} bg-purple-600 hover:bg-purple-500`}
+              className={`${buttonStyle} bg-purple-700 hover:bg-purple-600`}
               title={t('controlBar.addHomeDisc', 'Add Home Disc')}
             >
               <HiOutlinePlusCircle className={iconSize} />

@@ -203,7 +203,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
                   disabled={disabled || !newPlayerName.trim() || isSubmittingAdd}
                   className={`flex-1 px-4 py-2.5 rounded-md text-sm font-semibold transition-colors ${
                     !disabled && newPlayerName.trim() && !isSubmittingAdd
-                      ? 'bg-purple-600 hover:bg-purple-500 text-white'
+                      ? 'bg-purple-700 hover:bg-purple-600 text-white'
                       : 'bg-slate-700 text-slate-500 cursor-not-allowed'
                   }`}
                 >
@@ -229,7 +229,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
               type="button"
               onClick={() => setIsAddingOpen(true)}
               disabled={disabled}
-              className="w-full px-3 py-2 rounded-md bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-semibold transition-colors"
+              className="w-full px-3 py-2 rounded-md bg-purple-700 hover:bg-purple-600 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-semibold transition-colors"
             >
               + {addPlayerLabel}
             </button>

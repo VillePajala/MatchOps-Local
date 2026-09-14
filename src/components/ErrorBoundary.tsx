@@ -168,7 +168,7 @@ class ErrorBoundary extends Component<Props, State> {
           <div className="flex gap-3">
             <button
               onClick={this.handleRetry}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-sm font-medium transition-colors border border-purple-400/30"
+              className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white rounded-sm font-medium transition-colors border border-purple-400/30"
             >
               {i18n.t('errors.tryAgain', 'Try Again')}
             </button>

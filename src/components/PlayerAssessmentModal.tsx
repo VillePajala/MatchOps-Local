@@ -122,10 +122,10 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('playerAssessment.title', 'Player Assessments')}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
-        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-purple-600/5 blur-2xl bottom-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-purple-700/5 blur-2xl bottom-0 opacity-50" />
 
         <div className="relative z-10 flex flex-col min-h-0">
           {/* Chrome slimming: X-header; progress counter collapses on scroll. */}

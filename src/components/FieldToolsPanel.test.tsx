@@ -181,7 +181,7 @@ describe('FieldToolsPanel', () => {
     it('applies active styling when isTacticsBoardView is true', () => {
       render(<FieldToolsPanel {...defaultProps} isTacticsBoardView={true} />);
       const tacticsButton = screen.getByText('Tactics').closest('button');
-      expect(tacticsButton?.className).toContain('bg-purple-600');
+      expect(tacticsButton?.className).toContain('bg-purple-700');
     });
 
     it('applies inactive styling when isTacticsBoardView is false', () => {

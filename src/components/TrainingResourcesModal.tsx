@@ -181,10 +181,10 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background effects */}
-        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-purple-600/5 blur-2xl bottom-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-purple-700/5 blur-2xl bottom-0 opacity-50" />
 
         <div className="relative z-10 flex flex-col min-h-0 h-full">
           {/* Chrome slimming: X-header. The action buttons live in one row

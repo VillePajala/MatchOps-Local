@@ -333,7 +333,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
             aria-selected={mode === m}
             onClick={() => setMode(m)}
             className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              mode === m ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              mode === m ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
           >
             {label}
@@ -513,7 +513,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                     onClick={() => setGranularity(g)}
                     aria-pressed={granularity === g}
                     className={`flex-1 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                      granularity === g ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      granularity === g ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
                     {label}

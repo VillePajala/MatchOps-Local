@@ -103,7 +103,7 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
               aria-pressed={format === f}
               onClick={() => setFormat(f)}
               className={`flex-1 px-2 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                format === f ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                format === f ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
               {formatButtonLabel(f)}

@@ -68,7 +68,7 @@ function MarketingConsentToggle() {
           role="switch"
           aria-checked={isGranted}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 ${
-            isGranted ? 'bg-purple-600' : 'bg-slate-600'
+            isGranted ? 'bg-purple-700' : 'bg-slate-600'
           }`}
         >
           <span
@@ -567,7 +567,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const getTabStyle = (tab: SettingsTab) => {
     const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors';
     if (activeTab === tab) {
-      return `${baseStyle} bg-purple-600 text-white`;
+      return `${baseStyle} bg-purple-700 text-white`;
     }
     return `${baseStyle} bg-slate-700 text-slate-300 hover:bg-slate-600`;
   };
@@ -617,10 +617,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'App Settings')}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full`}>
-        <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-purple-600/5 blur-2xl bottom-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-purple-700/5 blur-2xl bottom-0 opacity-50" />
 
         <div className="relative z-10 flex flex-col h-full">
           {/* Chrome slimming: X-header + collapsing tab strip; close-only
@@ -877,7 +877,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       onClick={onCreateBackup}
                       aria-label={t('settingsModal.backupShareAria', 'Share backup')}
                       title={t('settingsModal.backupShareAria', 'Share backup')}
-                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded text-sm font-medium transition-colors"
+                      className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-white rounded text-sm font-medium transition-colors"
                     >
                       <HiOutlineShare className="h-5 w-5" />
                     </button>
@@ -914,7 +914,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       }
                     }}
                     disabled={authMode !== 'cloud' || isDownloadingCloudData}
-                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+                    className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
                     aria-label={t('settingsModal.gdpr.downloadButton', 'Download')}
                   >
                     {isDownloadingCloudData
@@ -1218,7 +1218,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   {storageEstimate && (
                     <div className="w-full bg-slate-700 rounded-md h-2 overflow-hidden">
                       <div
-                        className="bg-purple-500 h-2"
+                        className="bg-purple-600 h-2"
                         style={{ width: `${Math.min(100, (storageEstimate.usage / storageEstimate.quota) * 100)}%` }}
                       />
                     </div>
@@ -1265,7 +1265,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
                 <a
                   href={feedbackHref}
-                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+                  className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
                 >
                   ✉ {t('settingsModal.emailButton', 'Email')}
                 </a>

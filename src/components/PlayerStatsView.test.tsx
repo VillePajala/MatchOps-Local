@@ -296,7 +296,7 @@ describe('External game cards styling', () => {
 
     // Find EXT badge and verify it has purple styling
     const extBadge = screen.getByText('EXT').closest('span');
-    expect(extBadge).toHaveClass('bg-purple-600/40');
+    expect(extBadge).toHaveClass('bg-purple-700/40');
 
     // Find purple dot inside EXT badge
     const purpleDot = extBadge?.querySelector('.bg-purple-400');
