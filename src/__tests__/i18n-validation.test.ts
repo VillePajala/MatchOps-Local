@@ -586,7 +586,9 @@ describe('Translation File Validation', () => {
       //     nothing imported - so no team could ever have one. Lands at 3256.
       // +10 unifiedTeamModal.kitColor.*: the swatch names, which are what a
       //     screen reader announces for a row of coloured circles. Lands at 3266.
-      expect(enKeys.length).toBe(3266);
+      // +1 unifiedTeamModal.kitColorCustom: the escape hatch for a club whose
+      //     strip is not one of the presets. Lands at 3267.
+      expect(enKeys.length).toBe(3267);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -772,7 +774,8 @@ describe('Translation File Validation', () => {
       // -3 startScreen.group* (see EN above). Lands at 3254.
       // +2 kit colour label + clear (see EN above). Lands at 3256.
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3266);
+      // +1 kitColorCustom (see EN above). Lands at 3267.
+      expect(fiKeys.length).toBe(3267);
     });
   });
 });

@@ -1525,7 +1525,8 @@
       "purple": "Violetti",
       "sky": "Vaaleansininen",
       "maroon": "Viininpunainen"
-    }
+    },
+    "kitColorCustom": "Oma väri"
   },
   "personnel": {
     "selected": "valittu",

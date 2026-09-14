@@ -61,4 +61,22 @@ describe('TeamKitColorPicker', () => {
     fireEvent.click(screen.getAllByRole('radio')[0]);
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  /** A club with an odd strip should not be told their colour does not exist. */
+  it('accepts a colour outside the preset set', () => {
+    const onChange = jest.fn();
+    render(<TeamKitColorPicker value={undefined} onChange={onChange} />);
+    fireEvent.change(screen.getByLabelText('Custom colour'), { target: { value: '#123456' } });
+    expect(onChange).toHaveBeenCalledWith('#123456'.toUpperCase());
+  });
+
+  /** A stored custom colour must read back as chosen, not as "none". */
+  it('marks a custom colour as the current one', () => {
+    render(<TeamKitColorPicker value="#123456" onChange={jest.fn()} />);
+    expect(screen.getByLabelText('No colour')).toHaveAttribute('aria-checked', 'false');
+    const presetsChecked = screen
+      .getAllByRole('radio')
+      .filter((r) => r.getAttribute('aria-checked') === 'true');
+    expect(presetsChecked).toHaveLength(0);
+  });
 });
