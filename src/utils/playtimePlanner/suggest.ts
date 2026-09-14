@@ -25,6 +25,37 @@ import { getPositionLabelForFormationPosition, getRunningIntensity } from '@/uti
  * Generate fair lineups + half-time subs for all included games.
  * Returns a NEW plan; the input is never mutated.
  */
+/**
+ * Which positions get relieved first at half time.
+ *
+ * Owner's order, from coaching a season of it: RIGHT MID, then LEFT MID, then
+ * STRIKER. The wide midfielders cover the most ground repeatedly - up and back
+ * for ninety minutes - where a striker's work is harder but intermittent, so
+ * the wings are where fresh legs buy the most.
+ *
+ * This is NOT the same question as `getRunningIntensity`, which ranks the
+ * striker top and is right to: the striker does run hardest. "Who runs most"
+ * and "who should be relieved first" are different judgements, so this is its
+ * own ordering rather than a fudge of that table - which is also used to place
+ * the starting XI and should not be bent to serve rotation.
+ *
+ * Anything not named here falls back to running load, which was the previous
+ * behaviour for every position.
+ */
+const SUB_FIRST: readonly string[] = ['RM', 'LM', 'ST'];
+
+/**
+ * Higher = subbed earlier. Named positions sit above every other slot; the
+ * rest keep their running-load order beneath them.
+ */
+const subRankOf = (label: string): number => {
+  const i = SUB_FIRST.indexOf(label);
+  // 100 clears the 0-5 running-load band with room to spare, and reversing the
+  // index keeps SUB_FIRST readable in the order a coach would say it.
+  return i === -1 ? getRunningIntensity(label) : 100 + (SUB_FIRST.length - i);
+};
+
+
 export function suggestFairShareLineup(plan: PlaytimePlan): PlaytimePlan {
   // Nothing to generate: return the SAME reference so callers (history, the
   // debounced autosave) treat it as a no-op rather than a phantom edit.
@@ -62,17 +93,17 @@ export function suggestFairShareLineup(plan: PlaytimePlan): PlaytimePlan {
     // full game (never subbed), so the biggest deficit gets the biggest slice -
     // and next game the accumulator hands the gloves to someone else.
     const gkSlot = slots.find((s) => s.isGoalie);
-    // Outfield slots ordered by RUNNING LOAD, lowest first (CB -> fullbacks ->
-    // defensive mids -> central mids -> wide mids -> wingers/striker). Ties
-    // keep preset order for determinism.
+    // Outfield slots ordered LAST-TO-BE-SUBBED first. Reversed below for the
+    // half-time targets, so this one ordering drives both halves of the
+    // decision and they cannot drift apart. Ties keep preset order for
+    // determinism.
     const outfieldSlots = slots
       .filter((s) => !s.isGoalie)
-      .map((slot, presetIndex) => ({
-        slot,
-        presetIndex,
-        intensity: getRunningIntensity(getPositionLabelForFormationPosition(slot.relX, slot.relY).label),
-      }))
-      .sort((a, b) => a.intensity - b.intensity || a.presetIndex - b.presetIndex);
+      .map((slot, presetIndex) => {
+        const label = getPositionLabelForFormationPosition(slot.relX, slot.relY).label;
+        return { slot, presetIndex, label, subRank: subRankOf(label) };
+      })
+      .sort((a, b) => a.subRank - b.subRank || a.presetIndex - b.presetIndex);
     // Least-played starters take the LOW-running slots (they stay the whole
     // game); the best-served of the XI take the high-running roles, which are
     // exactly the slots the half-time rotation targets below - so the legs
