@@ -483,7 +483,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('games')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'games'
-                      ? 'bg-purple-700 text-white shadow-inner'
+                      ? 'bg-purple-700/30 text-purple-100 ring-1 ring-inset ring-purple-500/50'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -497,7 +497,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('team')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'team'
-                      ? 'bg-purple-700 text-white shadow-inner'
+                      ? 'bg-purple-700/30 text-purple-100 ring-1 ring-inset ring-purple-500/50'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -514,7 +514,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('seasons')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'seasons'
-                      ? 'bg-purple-700 text-white shadow-inner'
+                      ? 'bg-purple-700/30 text-purple-100 ring-1 ring-inset ring-purple-500/50'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -527,7 +527,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('stats')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'stats'
-                      ? 'bg-purple-700 text-white shadow-inner'
+                      ? 'bg-purple-700/30 text-purple-100 ring-1 ring-inset ring-purple-500/50'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
