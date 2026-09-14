@@ -410,7 +410,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1 [@media(min-height:600px)]:pt-[9vh]' : 'pt-3 [@media(min-height:600px)]:pt-[5vh]'}`}>
+        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1 [@media(min-height:600px)]:pt-[4vh]' : 'pt-3 [@media(min-height:600px)]:pt-[5vh]'}`}>
           <div className={`text-center ${dashboardOn ? 'mb-1' : 'mb-4'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
@@ -822,10 +822,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       onClick={onNewGame ?? onGetStarted}
                       data-testid="tour-new-game"
                       className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${canResume
-                        ? 'focus:ring-purple-500 bg-slate-800/90 border-slate-700/60 text-white hover:bg-slate-700/90'
+                        ? 'focus:ring-amber-500 bg-slate-800/90 border-amber-500/35 text-white hover:bg-slate-700/90'
                         : 'focus:ring-amber-500 bg-amber-500 border-amber-400/50 text-slate-900 hover:bg-amber-400'} ${dashboardOn ? 'flex-1' : 'w-full'}`}
                     >
-                      <HiOutlinePlusCircle className={`w-5 h-5 flex-shrink-0 ${canResume ? 'text-slate-400' : 'text-slate-900'}`} aria-hidden="true" />
+                      <HiOutlinePlusCircle className={`w-5 h-5 flex-shrink-0 ${canResume ? 'text-amber-400' : 'text-slate-900'}`} aria-hidden="true" />
                       <span className="text-[13px] font-bold leading-tight">
                         {t('startScreen.newGame', 'New Game')}
                       </span>
