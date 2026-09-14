@@ -415,13 +415,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
                 full-size on first-run / empty state). */}
-            <div className={`relative inline-block ${dashboardOn ? '' : 'mb-1.5'}`}>
+            <div className={`relative inline-block ${dashboardOn ? 'mb-3 [@media(min-height:700px)]:mb-4' : 'mb-1.5'}`}>
               {/* Fluid logo: clamp(min, vw, max) scales the wordmark with the
                   screen width (bigger phones -> bigger logo) instead of a fixed
                   px size, bounded so it never gets silly on very small/large
                   screens. Dashboard mode is a touch larger now that the tighter
                   cards freed room. */}
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(1.9rem,9vw,2.6rem)] [@media(min-height:700px)]:text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(2rem,9.5vw,2.9rem)] [@media(min-height:700px)]:text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.1rem,10vw,2.9rem)] [@media(min-height:700px)]:text-[clamp(2.6rem,11.5vw,3.9rem)]' : 'text-[clamp(2rem,9.5vw,2.9rem)] [@media(min-height:700px)]:text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
@@ -483,7 +483,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('games')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'games'
-                      ? 'bg-purple-700/30 text-purple-100 ring-1 ring-inset ring-purple-500/50'
+                      ? 'bg-purple-700 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -497,7 +497,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('team')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'team'
-                      ? 'bg-purple-700/30 text-purple-100 ring-1 ring-inset ring-purple-500/50'
+                      ? 'bg-purple-700 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -514,7 +514,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('seasons')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'seasons'
-                      ? 'bg-purple-700/30 text-purple-100 ring-1 ring-inset ring-purple-500/50'
+                      ? 'bg-purple-700 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -527,7 +527,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('stats')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'stats'
-                      ? 'bg-purple-700/30 text-purple-100 ring-1 ring-inset ring-purple-500/50'
+                      ? 'bg-purple-700 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -821,9 +821,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
                       data-testid="tour-new-game"
-                      className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500 bg-amber-500/15 border-amber-400/40 text-amber-100 hover:bg-amber-500/25 ${dashboardOn ? 'flex-1' : 'w-full'}`}
+                      className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500 bg-gradient-to-r from-amber-500 to-amber-600 border-amber-400/50 text-slate-900 hover:from-amber-400 hover:to-amber-500 ${dashboardOn ? 'flex-1' : 'w-full'}`}
                     >
-                      <HiOutlinePlusCircle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                      <HiOutlinePlusCircle className="w-5 h-5 flex-shrink-0 text-slate-900" aria-hidden="true" />
                       <span className="text-[13px] font-bold leading-tight">
                         {t('startScreen.newGame', 'New Game')}
                       </span>
