@@ -1511,7 +1511,21 @@
     "placement9th": "9. sija",
     "placement10th": "10. sija",
     "placementUpdated": "Sijoitus päivitetty onnistuneesti",
-    "placementUpdateFailed": "Sijoituksen päivitys epäonnistui"
+    "placementUpdateFailed": "Sijoituksen päivitys epäonnistui",
+    "kitColorLabel": "Peliasun väri",
+    "kitColorNone": "Ei väriä",
+    "kitColor": {
+      "red": "Punainen",
+      "blue": "Sininen",
+      "white": "Valkoinen",
+      "black": "Musta",
+      "yellow": "Keltainen",
+      "green": "Vihreä",
+      "orange": "Oranssi",
+      "purple": "Violetti",
+      "sky": "Vaaleansininen",
+      "maroon": "Viininpunainen"
+    }
   },
   "personnel": {
     "selected": "valittu",

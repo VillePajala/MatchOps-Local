@@ -134,8 +134,14 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
           )}
         </div>
 
-        {/* Score */}
-        <span className="bg-slate-700 px-2 py-0.5 rounded text-yellow-300 text-sm font-bold flex-shrink-0">
+        {/* Score.
+            Numerals as display type, applied in the one place it was most
+            obviously missing. This was text-sm - the same size as body copy -
+            while the match timer, the home dashboard tiles and the player
+            totals all sit at text-2xl or larger. The app was presenting "how
+            many teams you have" as more important than "what the score is".
+            tabular-nums so the chip does not jump width between 0-0 and 10-9. */}
+        <span className="bg-slate-700 px-2.5 py-0.5 rounded text-yellow-300 text-xl font-black tabular-nums leading-none flex-shrink-0">
           {leftScore} - {rightScore}
         </span>
 

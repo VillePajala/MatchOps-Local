@@ -4,6 +4,7 @@ import React, { useState, useMemo, useId } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
+import TeamKitColorPicker from '@/components/TeamKitColorPicker';
 import { Team, Player, Tournament, Season } from '@/types';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import {
@@ -53,6 +54,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   const [ageGroup, setAgeGroup] = useState('');
   const [notes, setNotes] = useState('');
   const [archived, setArchived] = useState(false);
+  const [kitColor, setKitColor] = useState<string | undefined>(undefined);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   // Context binding state (for differentiating teams with same name)
@@ -113,6 +115,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         setAgeGroup('');
         setNotes('');
         setArchived(false);
+        setKitColor(undefined);
         setBoundSeasonId('');
         setBoundTournamentId('');
         setBoundTournamentSeriesId('');
@@ -127,6 +130,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         setAgeGroup(team.ageGroup || '');
         setNotes(team.notes || '');
         setArchived(team.archived || false);
+        setKitColor(team.color || undefined);
         setBoundSeasonId(team.boundSeasonId || '');
         setBoundTournamentId(team.boundTournamentId || '');
         setBoundTournamentSeriesId(team.boundTournamentSeriesId || '');
@@ -439,6 +443,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
           name: trimmedName,
           ageGroup: ageGroup || undefined,
           notes: notes || undefined,
+          color: kitColor,
           archived,
           boundSeasonId: boundSeasonId || undefined,
           boundTournamentId: boundTournamentId || undefined,
@@ -464,6 +469,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
             name: trimmedName,
             ageGroup: ageGroup || undefined,
             notes: notes || undefined,
+            color: kitColor,
             archived,
             boundSeasonId: boundSeasonId || undefined,
             boundTournamentId: boundTournamentId || undefined,
@@ -748,6 +754,15 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         maxLength={1000}
                       />
                     </div>
+
+                    {/* Kit colour - sits after notes so the required name and
+                        the format fields come first; a colour is optional and
+                        nobody should have to scroll past it to save a team. */}
+                    <TeamKitColorPicker
+                      value={kitColor}
+                      onChange={setKitColor}
+                      disabled={isPending}
+                    />
 
                     {/* Archived */}
                     <ModalToggleButton pressed={archived} onToggle={() => setArchived(v => !v)}>

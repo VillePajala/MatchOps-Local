@@ -1651,7 +1651,21 @@
     "placement9th": "9th Place",
     "placement10th": "10th Place",
     "placementUpdated": "Placement updated successfully",
-    "placementUpdateFailed": "Failed to update placement"
+    "placementUpdateFailed": "Failed to update placement",
+    "kitColorLabel": "Kit colour",
+    "kitColorNone": "No colour",
+    "kitColor": {
+      "red": "Red",
+      "blue": "Blue",
+      "white": "White",
+      "black": "Black",
+      "yellow": "Yellow",
+      "green": "Green",
+      "orange": "Orange",
+      "purple": "Purple",
+      "sky": "Light blue",
+      "maroon": "Maroon"
+    }
   },
   "personnel": {
     "selected": "selected",

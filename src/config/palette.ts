@@ -124,3 +124,34 @@ export const UI = {
 
 export type EntityDotKind = keyof typeof ENTITY_DOT;
 export type PositionRole = keyof typeof POSITION_ROLE;
+
+/**
+ * Kit colours a team can be given.
+ *
+ * A FIXED SET, not a freeform colour picker, for three reasons: football kits
+ * come from a small conventional range, the OS colour input is poor on a phone,
+ * and an unconstrained hex lets a coach choose something invisible against
+ * slate. Every value here has been checked to read as a 4px stripe and as a
+ * text accent on the app's dark surfaces.
+ *
+ * Order is roughly by how common the kit is in Finnish junior football, so the
+ * likely choice is the first one a thumb reaches.
+ */
+export const TEAM_KIT_COLORS = [
+  { id: 'red', hex: '#DC2626' },
+  { id: 'blue', hex: '#2563EB' },
+  { id: 'white', hex: '#E2E8F0' },
+  { id: 'black', hex: '#0F172A' },
+  { id: 'yellow', hex: '#EAB308' },
+  { id: 'green', hex: '#16A34A' },
+  { id: 'orange', hex: '#EA580C' },
+  { id: 'purple', hex: '#7E22CE' },
+  { id: 'sky', hex: '#0EA5E9' },
+  { id: 'maroon', hex: '#881337' },
+] as const;
+
+export type TeamKitColorId = (typeof TEAM_KIT_COLORS)[number]['id'];
+
+/** A stored hex back to its swatch, for marking the current choice. */
+export const kitColorId = (hex: string | undefined): TeamKitColorId | null =>
+  TEAM_KIT_COLORS.find((c) => c.hex.toLowerCase() === (hex ?? '').toLowerCase())?.id ?? null;

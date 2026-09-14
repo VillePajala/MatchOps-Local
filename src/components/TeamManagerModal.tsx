@@ -418,6 +418,18 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                           title={t('teamManager.roster', 'Roster')}
                         >
                           <div className="flex items-center gap-2">
+                            {/* Kit stripe. The colour is the team's, so it is
+                                set inline rather than from a class - and it is
+                                a STRIPE rather than a dot because a kit reads
+                                as a band of colour, and a 3px bar survives
+                                being glanced at where a dot does not. */}
+                            {team.color && (
+                              <span
+                                aria-hidden="true"
+                                className="w-1 h-5 rounded-full shrink-0"
+                                style={{ backgroundColor: team.color }}
+                              />
+                            )}
                             <span className="text-slate-200 truncate" title={team.name}>{team.name}</span>
                             {team.archived && (
                               <span className="text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600 shrink-0">
