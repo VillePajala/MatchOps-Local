@@ -1458,17 +1458,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                             <div className="space-y-0 text-sm">
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGames}</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.totalGames}</span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.record', 'Record')}</span>
-                                <span className="text-yellow-400 font-bold">
+                                <span className="text-amber-400 font-bold">
                                   {tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
@@ -1481,19 +1481,19 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2">
                                 <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
                               </div>
                             </div>
                           </div>

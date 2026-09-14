@@ -998,10 +998,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <>
                   {/* Re-sync from Cloud */}
                   <div className="space-y-2">
-                    <h4 className="text-md font-semibold text-yellow-300">
+                    <h4 className="text-md font-semibold text-amber-300">
                       {t('settingsModal.resyncTitle', 'Re-sync from Cloud')}
                     </h4>
-                    <p className="text-sm text-yellow-200">
+                    <p className="text-sm text-amber-200">
                       {t('settingsModal.resyncDescription',
                         'Clear local data and re-download from cloud. Your cloud backup will be restored.')}
                     </p>
@@ -1026,7 +1026,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                           setResyncConfirm('');
                         }
                       }}
-                      className="w-full py-2 px-4 rounded-md text-sm font-medium bg-yellow-600 text-white hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="w-full py-2 px-4 rounded-md text-sm font-medium bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       disabled={resyncConfirm.trim() !== 'RESYNC'}
                     >
                       {t('settingsModal.resyncButton', 'Re-sync from Cloud')}

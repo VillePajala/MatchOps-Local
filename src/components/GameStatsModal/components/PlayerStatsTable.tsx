@@ -138,19 +138,19 @@ export function PlayerStatsTable({
               onClick={() => onPlayerRowClick(player)}
             >
               <td className="px-2 py-2 font-medium truncate">{player.name}</td>
-              <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">
+              <td className="px-0.5 py-2 text-center text-amber-400 font-semibold">
                 {player.gamesPlayed}
               </td>
-              <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">
+              <td className="px-0.5 py-2 text-center text-amber-400 font-semibold">
                 {player.goals}
               </td>
-              <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">
+              <td className="px-0.5 py-2 text-center text-amber-400 font-semibold">
                 {player.assists}
               </td>
-              <td className="px-0.5 py-2 text-center text-yellow-400 font-bold">
+              <td className="px-0.5 py-2 text-center text-amber-400 font-bold">
                 {player.totalScore}
               </td>
-              <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">
+              <td className="px-0.5 py-2 text-center text-amber-400 font-semibold">
                 {player.avgPoints.toFixed(1)}
               </td>
             </tr>
@@ -165,13 +165,13 @@ export function PlayerStatsTable({
         {playerStats.length > 0 && (
           <tr className="border-t border-white/10 bg-slate-800/60 font-semibold">
             <td className="px-2 py-2">{t('playerStats.totalsRow', 'Totals')}</td>
-            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.gamesPlayed}</td>
-            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.goals}</td>
-            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.assists}</td>
-            <td className="px-0.5 py-2 text-center text-yellow-400 font-bold">
+            <td className="px-0.5 py-2 text-center text-amber-400">{totals.gamesPlayed}</td>
+            <td className="px-0.5 py-2 text-center text-amber-400">{totals.goals}</td>
+            <td className="px-0.5 py-2 text-center text-amber-400">{totals.assists}</td>
+            <td className="px-0.5 py-2 text-center text-amber-400 font-bold">
               {totals.totalScore}
             </td>
-            <td className="px-0.5 py-2 text-center text-yellow-400">
+            <td className="px-0.5 py-2 text-center text-amber-400">
               {totals.gamesPlayed > 0 ? (totals.totalScore / totals.gamesPlayed).toFixed(1) : '0.0'}
             </td>
           </tr>

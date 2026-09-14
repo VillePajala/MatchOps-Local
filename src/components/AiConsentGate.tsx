@@ -69,7 +69,7 @@ const AiConsentGate: React.FC<AiConsentGateProps> = ({ isOpen, onAccepted, onCan
         data-testid="ai-consent-gate"
       >
         <div className="px-6 py-4 bg-slate-900/50 border-b border-white/10">
-          <h2 id="ai-consent-title" className="text-xl font-bold text-yellow-400">
+          <h2 id="ai-consent-title" className="text-xl font-bold text-amber-400">
             {t('aiConsent.title', 'Before you connect an AI provider')}
           </h2>
           <p className="text-sm text-slate-400 mt-1">{t('aiConsent.version', 'Version')}: {AI_CONSENT_VERSION}</p>

@@ -491,7 +491,7 @@ export function FieldContainer({
         {onOpenRulesModal && (
           <button
             onClick={onOpenRulesModal}
-            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
             title={t('rulesDirectory.buttonTitle', 'View rules')}
             aria-label={t('rulesDirectory.buttonTitle', 'View rules')}
           >
@@ -508,7 +508,7 @@ export function FieldContainer({
                 handleExportField();
               }
             }}
-            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
             title={t('export.buttonTitle', 'Export field as image')}
             aria-label={t('export.buttonTitle', 'Export field as image')}
           >
@@ -518,7 +518,7 @@ export function FieldContainer({
         {/* Position labels toggle */}
         <button
           onClick={() => onTogglePositionLabels(!(gameSessionState.showPositionLabels ?? true))}
-          className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+          className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
           title={t('field.togglePositionLabels', 'Toggle position labels')}
           aria-label={t('field.togglePositionLabels', 'Toggle position labels')}
           aria-pressed={gameSessionState.showPositionLabels ?? true}
@@ -532,7 +532,7 @@ export function FieldContainer({
           <button
             onClick={cyclePlanView}
             data-testid="toggle-planned-ghosts"
-            className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+            className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
             title={planViewLabel}
             aria-label={planViewLabel}
           >

@@ -100,7 +100,7 @@ const PlayerDisk: React.FC<PlayerDiskProps> = React.memo(({
   const isInBar = !!onPlayerDragStartFromBar;
   const diskSizeClasses = isInBar ? "w-16 h-16 p-1" : "w-20 h-20 p-2";
   const textSizeClasses = isInBar ? "text-sm" : "text-sm";
-  const selectionRingClass = selectedPlayerIdFromBar === id ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-900' : '';
+  const selectionRingClass = selectedPlayerIdFromBar === id ? 'ring-4 ring-amber-400 ring-offset-2 ring-offset-slate-900' : '';
   const goalieFillColor = '#F97316'; // Orange-500
   const defaultFillColor = color || '#7E22CE'; // Existing default purple
   const defaultTextColor = 'text-white';
@@ -158,7 +158,7 @@ const PlayerDisk: React.FC<PlayerDiskProps> = React.memo(({
       {playerStats.goals > 0 && (
         <StatBadge
           count={playerStats.goals}
-          bgColor="bg-yellow-400"
+          bgColor="bg-amber-400"
           positionClasses="top-[2px] right-[2px]"
           title={`${playerStats.goals} Goals`}
         />

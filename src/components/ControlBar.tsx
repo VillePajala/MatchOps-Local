@@ -543,7 +543,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
         <div className="absolute inset-0 bg-purple-600/10 mix-blend-soft-light pointer-events-none" />
         {/* Header */}
         <div className="relative px-4 py-3 border-b border-white/10 flex justify-between items-center z-10">
-          <h3 className="text-lg font-semibold text-yellow-300">{t('controlBar.menu.title', 'Menu')}</h3>
+          <h3 className="text-lg font-semibold text-amber-300">{t('controlBar.menu.title', 'Menu')}</h3>
           <button
             onClick={() => { setIsSettingsMenuOpen(false); setDragOffset(0); }}
             className="text-slate-400 hover:text-slate-200 p-1 rounded"

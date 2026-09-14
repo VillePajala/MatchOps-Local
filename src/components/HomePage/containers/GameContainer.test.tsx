@@ -52,6 +52,14 @@ const mockPlayerBarModule = jest.requireMock('@/components/PlayerBar').default a
 // Use shared fixture instead of local createProps
 const { createGameContainerProps } = TestFixtures.gameContainer;
 
+// The container resolves the current team's kit colour for the match bar.
+// Its own tests render a bare shell with no AuthProvider, and a presentational
+// container should not need real auth to prove it renders - so the query is
+// stubbed rather than the whole provider tree stood up.
+jest.mock('@/hooks/useTeamQueries', () => ({
+  useTeamsQuery: () => ({ data: [] }),
+}));
+
 describe('GameContainer', () => {
   beforeEach(() => {
     jest.clearAllMocks();

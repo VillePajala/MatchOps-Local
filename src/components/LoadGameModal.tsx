@@ -387,6 +387,12 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             // page level with no session in scope): mid-match the current
             // game's row may trail the live score by one autosave debounce -
             // an accepted, documented trade-off.
+            // The team's kit colour, for the stripe that lets a season's
+            // games read as one team without parsing every name.
+            const rowTeamColor = game.teamId
+              ? teams.find((tm) => tm.id === game.teamId)?.color
+              : undefined;
+
             const displayHomeScore = game.homeScore ?? 0;
             const displayAwayScore = game.awayScore ?? 0;
 
@@ -464,6 +470,13 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                           </span>
                         </>
                       ) : null}
+                      {rowTeamColor && (
+                        <span
+                          aria-hidden="true"
+                          className="w-1 h-4 rounded-full shrink-0 mr-1.5"
+                          style={{ backgroundColor: rowTeamColor }}
+                        />
+                      )}
                       <span className="font-semibold text-base text-slate-100">
                         {displayHomeTeamName}
                       </span>

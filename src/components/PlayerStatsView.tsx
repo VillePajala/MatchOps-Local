@@ -571,7 +571,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-yellow-400">{player.name}</h2>
+            <h2 className="text-2xl font-bold text-amber-400">{player.name}</h2>
           </div>
         </div>
 
@@ -594,21 +594,21 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           {/* Primary Stats Row with Averages */}
           <div className="grid grid-cols-4 gap-3 sm:gap-4 text-center">
             <div>
-              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalGames}</p>
+              <p className="text-3xl font-bold text-amber-400">{playerStats.totalGames}</p>
               <p className="text-sm text-slate-300 font-medium">{t('playerStats.gamesPlayed', 'Games Played')}</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalGoals}</p>
+              <p className="text-3xl font-bold text-amber-400">{playerStats.totalGoals}</p>
               <p className="text-sm text-slate-300 font-medium">{t('playerStats.goals', 'Goals')}</p>
               <p className="text-sm text-slate-400 mt-1">({playerStats.avgGoalsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalAssists}</p>
+              <p className="text-3xl font-bold text-amber-400">{playerStats.totalAssists}</p>
               <p className="text-sm text-slate-300 font-medium">{t('playerStats.assists', 'Assists')}</p>
               <p className="text-sm text-slate-400 mt-1">({playerStats.avgAssistsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalGoals + playerStats.totalAssists}</p>
+              <p className="text-3xl font-bold text-amber-400">{playerStats.totalGoals + playerStats.totalAssists}</p>
               <p className="text-sm text-slate-300 font-medium">{t('playerStats.points', 'Points')}</p>
               <p className="text-sm text-slate-400 mt-1">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
             </div>
@@ -671,12 +671,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 scanned: playerStats.totalGames,
               })}
             </p>
-            {/* Positions played, back-to-front, in the app's muted-label + yellow-count stat style. */}
+            {/* Positions played, back-to-front, in the app's muted-label + amber-count stat style. */}
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {POSITION_IDS.filter(id => (positionSummary.byPosition[id] ?? 0) > 0).map(id => (
                 <span key={id} className="text-slate-300">
                   {t(`playingPositions.${id}.abbrev` as TranslationKey, id.toUpperCase())}{' '}
-                  <span className="text-yellow-400 font-semibold">{positionSummary.byPosition[id]}</span>
+                  <span className="text-amber-400 font-semibold">{positionSummary.byPosition[id]}</span>
                 </span>
               ))}
             </div>
@@ -1663,10 +1663,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <div key={id} className="p-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-md transition-all">
                     <p className="font-semibold text-slate-100 mb-1">{stats.name}</p>
                     <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                      <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-sm text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.points}</p><p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p></div>
+                      <div><p className="font-bold text-amber-400">{stats.gamesPlayed}</p><p className="text-sm text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
+                      <div><p className="font-bold text-amber-400">{stats.goals}</p><p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
+                      <div><p className="font-bold text-amber-400">{stats.assists}</p><p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
+                      <div><p className="font-bold text-amber-400">{stats.points}</p><p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p></div>
                       <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-sm text-slate-400"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
                     </div>
                   </div>
@@ -1689,10 +1689,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       )}
                     </p>
                     <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                      <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-sm text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
-                      <div><p className="font-bold text-yellow-400">{stats.points}</p><p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p></div>
+                      <div><p className="font-bold text-amber-400">{stats.gamesPlayed}</p><p className="text-sm text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
+                      <div><p className="font-bold text-amber-400">{stats.goals}</p><p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
+                      <div><p className="font-bold text-amber-400">{stats.assists}</p><p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
+                      <div><p className="font-bold text-amber-400">{stats.points}</p><p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p></div>
                       <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-sm text-slate-400"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
                     </div>
                   </div>

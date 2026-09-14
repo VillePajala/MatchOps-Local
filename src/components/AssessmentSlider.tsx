@@ -44,7 +44,7 @@ const AssessmentSlider: React.FC<AssessmentSliderProps> = ({
           }, 70%, 50%)`,
         }}
       />
-      <span className="text-sm text-yellow-400 w-6 text-right">{value}</span>
+      <span className="text-sm text-amber-400 w-6 text-right">{value}</span>
     </div>
   );
 };

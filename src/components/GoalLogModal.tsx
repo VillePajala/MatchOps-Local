@@ -392,7 +392,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
           >
             <div className="px-6 pt-1 pb-2 text-center text-sm">
               <div className="flex justify-center items-center text-slate-300">
-                <span className="text-yellow-400 font-semibold">{formatTime(currentTime)}</span>
+                <span className="text-amber-400 font-semibold">{formatTime(currentTime)}</span>
               </div>
             </div>
           </CollapsibleModalHeader>

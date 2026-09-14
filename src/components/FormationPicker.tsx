@@ -45,8 +45,8 @@ const MenuContent: React.FC<{
     ? "relative z-10 flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-white/10 shrink-0"
     : "relative z-10 px-4 py-3 border-b border-white/10 shrink-0 text-center";
   const titleClass = isMobile
-    ? "text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg"
-    : "text-sm font-bold text-yellow-400";
+    ? "text-3xl font-bold text-amber-400 tracking-wide drop-shadow-lg"
+    : "text-sm font-bold text-amber-400";
   const subtitleClass = isMobile ? "text-sm text-slate-400 mt-1" : "text-xs text-slate-400 mt-0.5";
   const contentClass = isMobile
     ? "relative z-10 overflow-y-auto flex-1 p-6 pb-20 space-y-4"
@@ -59,8 +59,8 @@ const MenuContent: React.FC<{
     ? "px-1 py-1 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 mb-2"
     : "px-1 py-0.5 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-1.5";
   const badgeClass = isMobile
-    ? "inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-yellow-500/20 text-yellow-400 normal-case"
-    : "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-yellow-500/20 text-yellow-400 normal-case";
+    ? "inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-400 normal-case"
+    : "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-500/20 text-amber-400 normal-case";
   const gridClass = isMobile ? "grid grid-cols-2 gap-3" : "grid grid-cols-2 gap-1.5";
   const presetButtonClass = isMobile
     ? "px-4 py-4 text-left text-base rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 text-slate-100 hover:from-slate-600/60 hover:to-slate-800/40"
@@ -102,13 +102,13 @@ const MenuContent: React.FC<{
           <div
             key={size}
             className={`bg-gradient-to-br from-slate-900/60 to-slate-800/40 ${cardClass} border shadow-inner ${
-              size === recommendedSize ? 'border-yellow-500/50' : 'border-slate-700'
+              size === recommendedSize ? 'border-amber-500/50' : 'border-slate-700'
             }`}
           >
             {/* Size header */}
             <div
               className={`${sizeHeaderClass} ${
-                size === recommendedSize ? 'text-yellow-400' : 'text-slate-400'
+                size === recommendedSize ? 'text-amber-400' : 'text-slate-400'
               }`}
             >
               {size}
