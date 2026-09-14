@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-14",
+      "en": [
+        "When the planner suggests a lineup, half-time changes now go to the right midfielder first, then the left, then the striker. With two substitutes that means both wide midfield places, where the running is hardest to sustain."
+      ],
+      "fi": [
+        "Kun suunnittelu ehdottaa kokoonpanoa, puoliajan vaihdot menevät nyt ensin oikealle laitahyökkääjälle, sitten vasemmalle ja vasta sen jälkeen kärkeen. Kahdella vaihtopelaajalla molemmat laitapaikat, joissa juoksua on vaikeinta jaksaa."
+      ]
+    },
+    {
       "date": "2026-09-13",
       "en": [
         "Colours are more consistent across the app. The playing-time balance chart was drawing the goalkeeper and the defence in colours that disagreed with the position editor - they now match, with the keeper warm like the keeper's disc on the field.",
