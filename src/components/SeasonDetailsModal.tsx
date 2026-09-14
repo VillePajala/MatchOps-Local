@@ -299,7 +299,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                       <p className="text-amber-200 text-sm">
                         {t('seasonDetailsModal.seasonDatesNotConfigured', 'Season dates not configured')}
                       </p>
-                      <p className="text-amber-300/70 text-xs mt-1">
+                      <p className="text-amber-300/70 text-sm mt-1">
                         {t('seasonDetailsModal.configureInSettings', 'Configure in Settings to calculate club seasons correctly.')}
                       </p>
                       {onOpenSettings && (
@@ -541,7 +541,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
                 {/* Show count when filters active */}
                 {(areaFilter !== 'all' || levelFilter !== 'all') && (
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-sm text-slate-400">
                     {t('leagues.showingCount', '{{count}} leagues', { count: filteredLeagues.filter(l => !l.isCustom).length })}
                   </p>
                 )}

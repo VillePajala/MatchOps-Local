@@ -51,7 +51,7 @@ const RecommendedSetupCard: React.FC<RecommendedSetupCardProps> = ({ progress, o
           ×
         </button>
       </div>
-      <p className="text-xs text-slate-400 mb-3">
+      <p className="text-sm text-slate-400 mb-3">
         {t('recommendedSetup.subtitle', 'A quick setup unlocks player, team, and competition stats.')} ({doneCount}/{steps.length})
       </p>
       <ul className="space-y-1.5 mb-3">
@@ -64,7 +64,7 @@ const RecommendedSetupCard: React.FC<RecommendedSetupCardProps> = ({ progress, o
           </li>
         ))}
       </ul>
-      <p className="text-xs text-slate-500 mb-3">
+      <p className="text-sm text-slate-400 mb-3">
         {t('recommendedSetup.payoff', 'Games started from a team pull in its roster and competition automatically — and your stats roll up by player, team, and competition.')}
       </p>
       <a

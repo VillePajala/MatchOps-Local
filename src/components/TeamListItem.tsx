@@ -111,7 +111,7 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
         />
         <div>
           <h3 className="text-slate-200 font-medium">{team.name}</h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-sm text-slate-400">
             {t('teamManager.createdAt', 'Created {{date}}', {
               date: new Date(team.createdAt).toLocaleDateString()
             })}

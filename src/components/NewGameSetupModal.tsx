@@ -902,12 +902,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   ))}
                 </select>
                 {selectedTeamId && (
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-sm text-slate-400">
                     {t('newGameSetupModal.teamSelectedNote', 'Player roster will be loaded from selected team.')}
                   </p>
                 )}
                 {!selectedTeamId && (
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-sm text-slate-400">
                     {teams.some((team) => !team.archived)
                       ? t('newGameSetupModal.selectTeamTip', 'Tip: pick a team to auto-fill its roster and linked competition.')
                       : t('newGameSetupModal.masterRosterNote', 'Using master roster - all players available.')}
@@ -983,7 +983,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     </select>
                   )}
                   {prefillMissingCount > 0 && (
-                    <p className="mt-1 text-xs text-amber-400">
+                    <p className="mt-1 text-sm text-amber-400">
                       {t('newGameSetupModal.prefillMissingPlayers', '{{count}} planned players are not in this roster and were skipped.', {
                         count: prefillMissingCount,
                       })}

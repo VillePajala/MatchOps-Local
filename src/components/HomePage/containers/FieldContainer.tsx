@@ -551,7 +551,7 @@ export function FieldContainer({
           name its state - the icon alone only tells the person who built it. */}
       {(plannedGhosts.length > 0 || hasChainView) && planView !== 'lineup' && (
         <div className="absolute top-16 right-4 z-20 pointer-events-none">
-          <span className="px-2 py-0.5 rounded-md bg-slate-900/75 text-[11px] font-medium text-slate-200 backdrop-blur-sm shadow">
+          <span className="px-2 py-0.5 rounded-md bg-slate-900/75 text-xs font-medium text-slate-200 backdrop-blur-sm shadow">
             {planViewLabel}
           </span>
         </div>

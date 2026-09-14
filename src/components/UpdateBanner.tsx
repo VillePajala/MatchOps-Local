@@ -84,7 +84,7 @@ const UpdateBanner: React.FC<UpdateBannerProps> = ({ phase, onInstall, onReload,
                 ? t("updateBanner.readyTitle", "Päivitys valmis")
                 : t("updateBanner.title", "Päivitys saatavilla")}
             </p>
-            <p className="text-xs leading-relaxed text-slate-200/90">
+            <p className="text-sm leading-relaxed text-slate-200/90">
               {phase === 'ready'
                 ? t("updateBanner.readyMessage", "Lataa sivu uudelleen ottaaksesi päivityksen käyttöön.")
                 : t("updateBanner.message", "Uusia ominaisuuksia ja parannuksia.")}

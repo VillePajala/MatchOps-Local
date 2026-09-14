@@ -571,7 +571,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                             </span>
                           )}
                           {game.numberOfPeriods && game.periodDurationMinutes && (
-                            <span className="text-slate-400 text-[10px]">
+                            <span className="text-slate-400 text-xs">
                               {game.numberOfPeriods}×{game.periodDurationMinutes}min
                             </span>
                           )}

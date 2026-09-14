@@ -83,7 +83,7 @@ export function ReConsentModal() {
             )}
           </p>
 
-          <p className="text-slate-400 text-xs">
+          <p className="text-slate-400 text-sm">
             {t('reConsent.version', 'Policy Version')}: {POLICY_VERSION}
           </p>
 

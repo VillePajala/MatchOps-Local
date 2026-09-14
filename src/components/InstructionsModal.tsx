@@ -182,7 +182,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             </div>
           </section>
 
-          <p className="text-xs text-slate-500 text-center pt-2">v{packageJson.version}</p>
+          <p className="text-sm text-slate-400 text-center pt-2">v{packageJson.version}</p>
         </div>
       </div>
     </div>

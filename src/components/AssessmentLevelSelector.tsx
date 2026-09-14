@@ -60,7 +60,7 @@ const AssessmentLevelSelector: React.FC<AssessmentLevelSelectorProps> = ({
         )}
       </div>
       {description && showDescription && (
-        <p className="text-xs text-slate-400 -mt-0.5 mb-0.5">{description}</p>
+        <p className="text-sm text-slate-400 -mt-0.5 mb-0.5">{description}</p>
       )}
       <div className="flex flex-wrap gap-1" role="group" aria-label={label}>
         {positions.map((pos) => {

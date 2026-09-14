@@ -347,7 +347,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
         {t('dictation.inboxTitle', 'Voice notes to review')}{' '}
         <span className="text-sm font-medium text-slate-400">({clips.length})</span>
       </h3>
-      <p className="text-xs text-slate-400 mb-2">
+      <p className="text-sm text-slate-400 mb-2">
         {t('dictation.inboxHint', 'Listen, write what you said, check the player, save.')}
       </p>
       {ai.connected ? (
@@ -374,7 +374,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
           )
         )
       ) : (
-        <p className="text-xs text-slate-500 mb-3" data-testid="dictation-transcribe-hint">
+        <p className="text-sm text-slate-400 mb-3" data-testid="dictation-transcribe-hint">
           {t('dictation.transcribeHint', 'Connect your own AI provider in Settings to transcribe clips automatically.')}
         </p>
       )}
@@ -438,7 +438,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                 </select>
               </div>
               {draft.text.length >= MAX_NOTE_CHARS - 100 && (
-                <p className="text-right text-xs text-slate-400" data-testid="dictation-char-count">
+                <p className="text-right text-sm text-slate-400" data-testid="dictation-char-count">
                   {draft.text.length}/{MAX_NOTE_CHARS}
                 </p>
               )}

@@ -180,7 +180,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   placeholder={t('playerDetailsModal.nicknamePlaceholder', 'Optional nickname')}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                 />
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-sm text-slate-400">
                   {t('playerDetailsModal.nicknameHint', 'Shown on field if provided')}
                 </p>
               </div>

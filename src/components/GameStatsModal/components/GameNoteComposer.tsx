@@ -252,7 +252,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
       {canRecord && dictation && (
         <div className="mt-2">
           {dictation.permission === 'denied' ? (
-            <p className="text-xs text-amber-300">
+            <p className="text-sm text-amber-300">
               {t('dictation.permissionDenied', "Microphone access was denied. Allow it in your phone's app settings to dictate notes.")}
             </p>
           ) : (
@@ -302,7 +302,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
                 />
               )}
               {recorded && !dictation.isRecording && !transcribing && (
-                <p className="text-xs text-slate-400 mt-1" data-testid="note-composer-recorded">
+                <p className="text-sm text-slate-400 mt-1" data-testid="note-composer-recorded">
                   {t('noteComposer.recordedHint', 'Waiting in the voice notes above, where you write it out and choose the player.')}
                 </p>
               )}

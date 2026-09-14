@@ -48,8 +48,15 @@ export const titleStyle =
 export const labelStyle =
   "text-sm font-medium text-slate-300 mb-1";
 
+// 14px, not 12px. This is the longest continuous prose in the app - the
+// explanatory sentence under a setting - and it was set at the smallest
+// readable size in Rajdhani, a CONDENSED face whose narrow letters are hardest
+// to read exactly there. Size is the legibility win; the colour deliberately
+// stays slate-400, because labelStyle is already "text-sm ... text-slate-300"
+// and matching both would leave a field's label and its help text
+// indistinguishable.
 export const subtextStyle =
-  "text-xs text-slate-400";
+  "text-sm text-slate-400";
 
 // ============================================================================
 // Card & Section Styles

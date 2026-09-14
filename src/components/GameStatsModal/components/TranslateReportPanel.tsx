@@ -160,7 +160,7 @@ const TranslateReportPanel: React.FC<TranslateReportPanelProps> = ({
       <h4 className="text-sm font-semibold text-slate-200 mb-1">
         {t('translateReport.title', 'Read this report in another language')}
       </h4>
-      <p className="text-xs text-slate-400 mb-3">
+      <p className="text-sm text-slate-400 mb-3">
         {t(
           'translateReport.blurb',
           'For sharing with a family who reads another language. This never changes your report.',

@@ -285,7 +285,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                       <p className="text-amber-200 text-sm">
                         {t('tournamentDetailsModal.seasonDatesNotConfigured', 'Season dates not configured')}
                       </p>
-                      <p className="text-amber-300/70 text-xs mt-1">
+                      <p className="text-amber-300/70 text-sm mt-1">
                         {t('tournamentDetailsModal.configureInSettings', 'Configure in Settings to calculate club seasons correctly.')}
                       </p>
                       {onOpenSettings && (

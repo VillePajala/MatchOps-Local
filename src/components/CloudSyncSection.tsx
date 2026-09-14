@@ -633,7 +633,7 @@ export default function CloudSyncSection({
           {/* Paused Warning */}
           {syncStatus.isPaused && (
             <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/30">
-              <p className="text-xs text-amber-300">
+              <p className="text-sm text-amber-300">
                 {t('cloudSync.syncDetails.pausedWarning', 'Sync is paused. Changes are saved locally and will sync when you resume.')}
               </p>
             </div>
@@ -819,14 +819,14 @@ export default function CloudSyncSection({
 
       {/* Migration Note */}
       {currentMode === 'local' && cloudAvailable && (
-        <p className="text-xs text-slate-500">
+        <p className="text-sm text-slate-400">
           {t('cloudSync.migrationNote', 'When you enable cloud sync, you can migrate your existing local data to the cloud.')}
         </p>
       )}
 
       {/* Switch to Local Mode note - explains the cloud data deletion option */}
       {currentMode === 'cloud' && (
-        <p className="text-xs text-slate-500">
+        <p className="text-sm text-slate-400">
           {t('cloudSync.switchToLocalNote', 'When switching to local mode, you can choose to keep or delete your cloud data.')}
         </p>
       )}
@@ -848,13 +848,13 @@ export default function CloudSyncSection({
               <p className="text-sm font-medium text-slate-200">
                 {cloudAccountInfo?.email || t('cloudSync.cloudAccount.unknownEmail', 'Unknown')}
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-sm text-slate-400">
                 {t('cloudSync.cloudAccount.lastSynced', 'Last synced: {{date}}', {
                   date: formatDate(cloudAccountInfo?.lastSyncedAt),
                 })}
               </p>
               {cloudAccountInfo?.hasCloudData && (
-                <p className="text-xs text-amber-400 mt-1">
+                <p className="text-sm text-amber-400 mt-1">
                   {t('cloudSync.cloudAccount.hasCloudData', 'You have data stored in the cloud.')}
                 </p>
               )}
@@ -868,7 +868,7 @@ export default function CloudSyncSection({
                 <p className="text-sm font-medium text-slate-200">
                   {t('cloudSync.cloudAccount.deleteCloudData', 'Delete All Cloud Data')}
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-sm text-slate-400">
                   {t('cloudSync.cloudAccount.deleteNote', 'This will permanently delete all your data from our servers.')}
                 </p>
               </div>

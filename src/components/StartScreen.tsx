@@ -55,12 +55,6 @@ const ROW_OFF = 'opacity-40 cursor-not-allowed';
  * so it reads as a heading for what follows rather than as a separator
  * floating equidistant between two groups.
  */
-const HomeSectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 pt-3 pb-1.5 [@media(min-height:700px)]:pt-4">
-    {children}
-  </div>
-);
-
 /** The container that makes a run of rows one object instead of several. */
 const HomeGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="rounded-xl bg-slate-800/70 border border-slate-700/50 overflow-hidden divide-y divide-slate-700/50">
@@ -558,7 +552,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     kinds of thing: the PEOPLE in the club, and the MATERIAL a
                     coach consults. Before this they were five identical rows
                     with no indication that the boundary existed. */}
-                <HomeSectionLabel>{t('startScreen.groupPeople', 'People')}</HomeSectionLabel>
                 <div className="flex gap-2.5">
                   <HomeTile
                     icon={HiOutlineUsers}
@@ -584,7 +577,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   />
                 </HomeGroup>
 
-                <HomeSectionLabel>{t('startScreen.groupCoaching', 'Coaching')}</HomeSectionLabel>
                 <HomeGroup>
                   <HomeRow
                     icon={HiOutlineClipboardDocumentList}
@@ -741,7 +733,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.heroAddPlayers', 'Add players')}</span>
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
+                        <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
                           {t('startScreen.stepBadge', 'Step {{n}}', { n: 1 })}
                         </span>
                       </button>
@@ -754,7 +746,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.heroCreateTeam', 'Create your team')}</span>
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
+                        <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
                           {t('startScreen.stepBadge', 'Step {{n}}', { n: 2 })}
                         </span>
                       </button>
@@ -767,7 +759,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.newGame', 'New Game')}</span>
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
+                        <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
                           {t('startScreen.stepBadge', 'Step {{n}}', { n: 3 })}
                         </span>
                       </button>
@@ -854,14 +846,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {/* Side entries are DEFERRED while composing (owner round 4:
                     they pushed the onboarding screen past the fold and are
                     dead weight before the first game); back automatically
-                    once a game exists.
-
-                    Grouped under a label now: the planner and Taso are tools a
-                    coach reaches for around a match, not more ways to start
-                    one, and sitting flush under New Game implied otherwise. */}
-                {!composeOnboarding && (
-                  <HomeSectionLabel>{t('startScreen.groupTools', 'Tools')}</HomeSectionLabel>
-                )}
+                    once a game exists. */}
                 {/* Taso is a game-day workflow tool (submit the lineup before,
                     report the result after) - it earns a games-tab row, not a
                     burial under the gear. */}
