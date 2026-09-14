@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import packageJson from '../../package.json';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import {
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,

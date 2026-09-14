@@ -72,7 +72,7 @@ import { useDraftEstimate } from '@/hooks/useDraftEstimate';
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 /** Stable no-op callback to avoid creating new function references on each render */
 const NOOP = () => {};

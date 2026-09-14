@@ -18,7 +18,8 @@ import { getGamesWithPersonnel } from '@/utils/personnelManager';
 import { getSafeTelHref, getSafeMailtoHref } from '@/utils/contactValidation';
 import ConfirmationModal from './ConfirmationModal';
 import PersonnelDetailsModal from './PersonnelDetailsModal';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import {
   CollapsibleModalHeader,
   useCollapsingHeader,
@@ -210,6 +211,9 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
       t(getRoleLabelKey(p.role)).toLowerCase().includes(searchText.toLowerCase())
     );
   }, [personnel, searchText, t]);
+
+  useEscapeToClose(isOpen, onClose);
+
 
   if (!isOpen) return null;
 

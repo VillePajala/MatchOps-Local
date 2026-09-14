@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { CollapsibleModalHeader, modalContainerStyle, ModalBackgroundEffects } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { withPage } from '@/config/rulesIndex';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 /**
  * Reads one page of an official rulebook, in the app.
@@ -199,6 +200,9 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
       window.removeEventListener('resize', onResize);
     };
   }, [isOpen]);
+
+  useEscapeToClose(isOpen, onClose);
+
 
   if (!isOpen) return null;
 

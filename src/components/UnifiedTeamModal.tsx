@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useId } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +23,8 @@ import { AGE_GROUPS } from '@/config/gameOptions';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface UnifiedTeamModalProps {
   isOpen: boolean;
@@ -516,10 +517,15 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
   const isPending = addTeamMutation.isPending || updateTeamMutation.isPending || setTeamRosterMutation.isPending;
 
+  const modalTitleId = useId();
+
+  useEscapeToClose(isOpen, onClose);
+
+
   if (!isOpen) return null;
 
   return (
-    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
@@ -531,6 +537,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
             returns to the team form) + sticky primary. */}
         <div className="relative z-10">
           <CollapsibleModalHeader
+          titleId={modalTitleId}
             title={mode === 'create'
               ? t('unifiedTeamModal.createTitle', 'Create Team')
               : team?.name || t('unifiedTeamModal.editTitle', 'Edit Team')}

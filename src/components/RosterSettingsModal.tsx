@@ -21,7 +21,8 @@ import PlayerDetailsModal from './PlayerDetailsModal';
 import { useResourceLimit } from '@/hooks/usePremium';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { extractTimestampFromId } from '@/utils/idGenerator';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 // Helper to extract last name (last word of full name) - pure function, no dependencies
 const getLastName = (fullName: string): string => {
@@ -186,6 +187,9 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
       (p.nickname && p.nickname.toLowerCase().includes(search))
     );
   }, [availablePlayers, sortBy, searchText]);
+
+  useEscapeToClose(isOpen, onClose, !showDeleteConfirm);
+
 
   if (!isOpen) return null;
 
