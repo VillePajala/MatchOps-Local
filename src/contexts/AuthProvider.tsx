@@ -333,6 +333,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
+        // Re-consent on a RESTORED session, not just on an interactive sign-in.
+        //
+        // The check lived in exactly two places - signIn() and 'token_refreshed'
+        // - and neither runs on the common path. The app keeps you signed in, so
+        // reopening it restores a stored session without calling signIn(); the
+        // prompt then waited for Supabase to refresh the token at some arbitrary
+        // later moment and appeared mid-task. Owner hit it while removing a
+        // player from a plan, where the modal's only exit (Decline) signs you
+        // out - so a stray policy check became "accept, or lose your place".
+        //
+        // Checked BEFORE setUser/setSession for the same reason signIn() does it
+        // in that order: needsReConsent must be set first, or the app renders
+        // logged-in for a frame before the modal appears.
+        if (currentSession && isCloudAvailable()) {
+          try {
+            const latestConsent = await service.getLatestConsent();
+            if (latestConsent && latestConsent.policyVersion !== POLICY_VERSION) {
+              logger.info('[AuthProvider] Restored session predates the current policy - requiring re-consent');
+              setNeedsReConsent(true);
+            }
+          } catch (consentError) {
+            // Never block startup on this. A user who cannot be checked is left
+            // alone; the token-refresh path will catch them later, which is the
+            // behaviour they had before this check existed.
+            logger.warn('[AuthProvider] Failed to check consent on session restore:', consentError);
+            if (!(consentError instanceof NetworkError)) {
+              try {
+                Sentry.captureException(consentError, {
+                  tags: { flow: 'session-restore-consent-check' },
+                  level: 'warning',
+                });
+              } catch {
+                // Sentry failure is acceptable
+              }
+            }
+          }
+          if (!mounted) return;
+        }
+
         setUser(resolvedUser);
         setSession(currentSession);
 
