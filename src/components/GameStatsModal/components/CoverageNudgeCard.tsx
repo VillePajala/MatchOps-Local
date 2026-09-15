@@ -61,7 +61,7 @@ const CoverageNudgeCard: React.FC<CoverageNudgeCardProps> = ({ games, players, l
         </p>
       ) : (
         <>
-          <p className="text-xs text-slate-500 mb-2">
+          <p className="text-sm text-slate-400 mb-2">
             {t('coverageNudge.lead', 'Nothing written yet about:')}
           </p>
           <ul className="space-y-1" data-testid="coverage-nudge-list">
@@ -77,7 +77,7 @@ const CoverageNudgeCard: React.FC<CoverageNudgeCardProps> = ({ games, players, l
             ))}
           </ul>
           {rest > 0 && (
-            <p className="mt-2 text-xs text-slate-500" data-testid="coverage-nudge-rest">
+            <p className="mt-2 text-sm text-slate-400" data-testid="coverage-nudge-rest">
               {t('coverageNudge.andMore', 'and {{count}} more', { count: rest })}
             </p>
           )}

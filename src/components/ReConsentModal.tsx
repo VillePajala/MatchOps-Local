@@ -68,8 +68,8 @@ export function ReConsentModal() {
     <DialogBackdrop className="z-[100]">
       <div ref={modalRef} className="bg-slate-800 rounded-lg shadow-2xl max-w-md w-full border border-slate-600 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="reconsent-title">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-900/50 border-b border-slate-600">
-          <h2 id="reconsent-title" className="text-xl font-bold text-yellow-400">
+        <div className="px-6 py-4 bg-slate-900/50 border-b border-white/10">
+          <h2 id="reconsent-title" className="text-xl font-bold text-amber-400">
             {t('reConsent.title', 'Updated Terms & Privacy Policy')}
           </h2>
         </div>
@@ -83,7 +83,7 @@ export function ReConsentModal() {
             )}
           </p>
 
-          <p className="text-slate-400 text-xs">
+          <p className="text-slate-400 text-sm">
             {t('reConsent.version', 'Policy Version')}: {POLICY_VERSION}
           </p>
 
@@ -133,7 +133,7 @@ export function ReConsentModal() {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-900/30 border-t border-slate-600 flex gap-3">
+        <div className="px-6 py-4 bg-slate-900/30 border-t border-white/10 flex gap-3">
           <button
             onClick={handleDecline}
             disabled={isSubmitting}

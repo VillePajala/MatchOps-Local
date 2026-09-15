@@ -92,7 +92,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
         className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 bg-slate-800/98 backdrop-blur-lg rounded-2xl shadow-2xl border border-slate-600/50 p-4 animate-slide-up"
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700">
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/10">
           <h3 className="text-lg font-semibold text-slate-200">
             {t('fieldTools.title', 'Field Tools')}
           </h3>

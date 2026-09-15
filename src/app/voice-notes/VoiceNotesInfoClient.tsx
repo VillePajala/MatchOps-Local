@@ -42,7 +42,7 @@ export function VoiceNotesInfoClient() {
           {list(tk, ['voiceNotesInfo.rights1', 'voiceNotesInfo.rights2', 'voiceNotesInfo.rights3'])}
         </section>
 
-        <footer className="pt-6 border-t border-slate-700 text-sm text-slate-500">
+        <footer className="pt-6 border-t border-white/10 text-sm text-slate-500">
           <p className="mb-2">{t('voiceNotesInfo.asOf')}</p>
           <a href="/privacy-policy" className="text-indigo-400 hover:text-indigo-300 underline">
             {t('voiceNotesInfo.policyLink')}

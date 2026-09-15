@@ -114,14 +114,14 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <h3 className="text-lg font-semibold text-slate-200">{title}</h3>
         <div className="text-sm text-slate-400">
-          <span className="text-yellow-400 font-semibold">{selectedPlayerIds.length}</span>{' / '}
-          <span className="text-yellow-400 font-semibold">{availablePlayers.length}</span>{' '}
+          <span className="text-amber-400 font-semibold">{selectedPlayerIds.length}</span>{' / '}
+          <span className="text-amber-400 font-semibold">{availablePlayers.length}</span>{' '}
           {playersSelectedText}
         </div>
       </div>
       {availablePlayers.length > 0 ? (
         <>
-          <div className="flex items-center py-2 px-1 border-b border-slate-700/50 mb-4 flex-shrink-0">
+          <div className="flex items-center py-2 px-1 border-b border-white/10 mb-4 flex-shrink-0">
             <label className="flex items-center text-sm text-slate-300 hover:text-slate-200 cursor-pointer">
               <input
                 type="checkbox"

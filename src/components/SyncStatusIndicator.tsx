@@ -61,7 +61,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
   const hasSubscription = subscription?.isActive ?? false;
 
   // Field variant base styles (matches rules/screenshot buttons)
-  const fieldBaseClass = 'bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none';
+  const fieldBaseClass = 'bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none';
 
   // Local mode: just phone icon
   if (mode === 'local') {

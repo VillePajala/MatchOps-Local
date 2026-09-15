@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useId } from 'react';
 import { primaryButtonStyle, secondaryButtonStyle, CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useWarmupPlan } from '@/hooks/useWarmupPlan';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
 import { FaChevronUp, FaChevronDown, FaPlus, FaTimes, FaPen, FaUndo } from 'react-icons/fa';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface TrainingResourcesModalProps {
   isOpen: boolean;
@@ -95,6 +96,11 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
     setEditedPlan({ ...editedPlan, sections });
   }, [editedPlan]);
 
+  const modalTitleId = useId();
+
+  useEscapeToClose(isOpen, onClose, !showResetConfirm);
+
+
   if (!isOpen) return null;
 
   const displayPlan = isEditMode ? editedPlan : plan;
@@ -172,7 +178,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
   );
 
   return (
-    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
@@ -185,6 +191,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
               inside the collapse region and fold away on scroll. The X
               absorbs Done (view) / Cancel (edit). */}
           <CollapsibleModalHeader
+          titleId={modalTitleId}
             title={t('warmupPlanModal.title', 'Warmup')}
             onClose={isEditMode ? cancelEditing : onClose}
             closeLabel={isEditMode ? t('warmupPlanModal.cancelButton', 'Cancel') : t('common.doneButton', 'Done')}

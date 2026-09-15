@@ -54,7 +54,7 @@ export function PlayerStatsTable({
   return (
     <table className="w-full text-sm table-fixed">
       <thead className="text-slate-300">
-        <tr className="border-b border-slate-700">
+        <tr className="border-b border-white/10">
           <th
             className="px-2 py-2 text-left"
             style={{ width: '40%' }}
@@ -134,23 +134,23 @@ export function PlayerStatsTable({
           playerStats.map((player) => (
             <tr
               key={player.id}
-              className="border-b border-slate-800 hover:bg-slate-800/40 cursor-pointer"
+              className="border-b border-white/10 hover:bg-slate-800/40 cursor-pointer"
               onClick={() => onPlayerRowClick(player)}
             >
               <td className="px-2 py-2 font-medium truncate">{player.name}</td>
-              <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">
+              <td className="px-0.5 py-2 text-center text-amber-400 font-semibold">
                 {player.gamesPlayed}
               </td>
-              <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">
+              <td className="px-0.5 py-2 text-center text-amber-400 font-semibold">
                 {player.goals}
               </td>
-              <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">
+              <td className="px-0.5 py-2 text-center text-amber-400 font-semibold">
                 {player.assists}
               </td>
-              <td className="px-0.5 py-2 text-center text-yellow-400 font-bold">
+              <td className="px-0.5 py-2 text-center text-amber-400 font-bold">
                 {player.totalScore}
               </td>
-              <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">
+              <td className="px-0.5 py-2 text-center text-amber-400 font-semibold">
                 {player.avgPoints.toFixed(1)}
               </td>
             </tr>
@@ -163,15 +163,15 @@ export function PlayerStatsTable({
           </tr>
         )}
         {playerStats.length > 0 && (
-          <tr className="border-t border-slate-700 bg-slate-800/60 font-semibold">
+          <tr className="border-t border-white/10 bg-slate-800/60 font-semibold">
             <td className="px-2 py-2">{t('playerStats.totalsRow', 'Totals')}</td>
-            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.gamesPlayed}</td>
-            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.goals}</td>
-            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.assists}</td>
-            <td className="px-0.5 py-2 text-center text-yellow-400 font-bold">
+            <td className="px-0.5 py-2 text-center text-amber-400">{totals.gamesPlayed}</td>
+            <td className="px-0.5 py-2 text-center text-amber-400">{totals.goals}</td>
+            <td className="px-0.5 py-2 text-center text-amber-400">{totals.assists}</td>
+            <td className="px-0.5 py-2 text-center text-amber-400 font-bold">
               {totals.totalScore}
             </td>
-            <td className="px-0.5 py-2 text-center text-yellow-400">
+            <td className="px-0.5 py-2 text-center text-amber-400">
               {totals.gamesPlayed > 0 ? (totals.totalScore / totals.gamesPlayed).toFixed(1) : '0.0'}
             </td>
           </tr>

@@ -72,7 +72,7 @@ import { useDraftEstimate } from '@/hooks/useDraftEstimate';
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 /** Stable no-op callback to avoid creating new function references on each render */
 const NOOP = () => {};
@@ -967,7 +967,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
           />
           {onAddGoal && (
-            <button type="button" onClick={onAddGoal} data-testid="spine-add-goal" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors">
+            <button type="button" onClick={onAddGoal} data-testid="spine-add-goal" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors">
               {t('gameStatsModal.spineAddGoal', 'Add a goal')}
             </button>
           )}
@@ -1010,7 +1010,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           {noteEvents.length === 0 && voiceClipCount === 0 && (
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner" data-testid="game-notes-empty">
               <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('dictation.notesTitle', 'Notes')}</h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-sm text-slate-400">
                 {t('gameStatsModal.spineNotesEmpty', 'Nothing noted from this match yet. Write one above, or dictate it during the game with the microphone button.')}
               </p>
             </div>
@@ -1025,7 +1025,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         content: (
           <div data-testid="positions-editor" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
             <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameSettingsModal.lineupTitle', 'Positions played')}</h3>
-            <p className="text-xs text-slate-400 mb-4">{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
+            <p className="text-sm text-slate-400 mb-4">{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
             <PlayerPositionsEditor
               players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
               value={playerPositions ?? {}}
@@ -1125,13 +1125,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         content: (
           <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
             <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameStatsModal.wrapUpAssessments', 'Player assessments')}</h3>
-            <p className="text-xs text-slate-400 mb-4">
+            <p className="text-sm text-slate-400 mb-4">
               {t('loadGameModal.assessmentsProgress', '{{done}}/{{total}} assessed', {
                 done: currentGameCompleteness.assessments.done,
                 total: currentGameCompleteness.assessments.total,
               })}
             </p>
-            <button type="button" onClick={onOpenAssessments} data-testid="spine-open-assessments" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors">
+            <button type="button" onClick={onOpenAssessments} data-testid="spine-open-assessments" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors">
               {t('gameStatsModal.spineOpenAssessments', 'Open player assessments')}
             </button>
           </div>
@@ -1370,7 +1370,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
                   {spineSteps.map((step, i) => (
                     <section key={step.key} id={step.id} data-testid={`spine-${step.key}`} className="space-y-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-300">
+                      <p className="text-sm font-semibold uppercase tracking-wider text-indigo-300">
                         {t('gameStatsModal.spineStep', 'Step {{n}} of {{total}}', { n: i + 1, total: spineSteps.length })}
                       </p>
                       {step.content}
@@ -1456,21 +1456,21 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                               }
                             </h3>
                             <div className="space-y-0 text-sm">
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGames}</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.totalGames}</span>
                               </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.record', 'Record')}</span>
-                                <span className="text-yellow-400 font-bold">
+                                <span className="text-amber-400 font-bold">
                                   {tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}
                                 </span>
                               </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
                               </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
                                 <span
                                   className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
@@ -1479,21 +1479,21 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                                   {tournamentSeasonStats.totalGoalDifference}
                                 </span>
                               </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
                               </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
                               </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2">
                                 <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
+                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
                               </div>
                             </div>
                           </div>

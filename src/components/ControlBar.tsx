@@ -352,7 +352,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   return (
     <>
       {/* Bottom Bar - Reduced padding from p-4 to p-2 */}
-      <div className="relative bg-gradient-to-b from-slate-800 to-slate-900 p-2 shadow-xl border-t border-slate-700 backdrop-blur-md flex justify-center items-center gap-2 z-40 overflow-x-auto">
+      <div className="relative bg-gradient-to-b from-slate-800 to-slate-900 p-2 shadow-xl border-t border-white/10 backdrop-blur-md flex justify-center items-center gap-2 z-40 overflow-x-auto">
         {/* Modal background effects for unified feel */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
@@ -542,8 +542,8 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         {/* Header */}
-        <div className="relative px-4 py-3 border-b border-slate-700/80 flex justify-between items-center z-10">
-          <h3 className="text-lg font-semibold text-yellow-300">{t('controlBar.menu.title', 'Menu')}</h3>
+        <div className="relative px-4 py-3 border-b border-white/10 flex justify-between items-center z-10">
+          <h3 className="text-lg font-semibold text-amber-300">{t('controlBar.menu.title', 'Menu')}</h3>
           <button
             onClick={() => { setIsSettingsMenuOpen(false); setDragOffset(0); }}
             className="text-slate-400 hover:text-slate-200 p-1 rounded"
@@ -671,7 +671,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               there, which is exactly what a coach needs mid-session when
               transcription says it is not connected. */}
           {(onOpenAppSettings || onGoToStartScreen) && (
-            <div className="pt-2 border-t border-slate-700/60">
+            <div className="pt-2 border-t border-white/10">
               {onOpenAppSettings && (
                 <button
                   onClick={wrapModal(onOpenAppSettings)}

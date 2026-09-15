@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { Player, Season, Tournament, Team, Personnel, GameType, Gender, Point } from '@/types';
@@ -26,7 +26,7 @@ import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
 import { getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
 import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -831,10 +831,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     }
   };
 
+  const modalTitleId = useId();
+
   if (!isOpen) return null;
 
   return (
-    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
@@ -848,6 +850,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               the header and the Cancel/Create footer. "Repeat last game"
               (utility) sits in the collapsing region below the title. */}
           <CollapsibleModalHeader
+          titleId={modalTitleId}
             title={t('newGameSetupModal.title', 'New Game Setup')}
             onClose={onCancel}
             closeLabel={t('common.cancelButton', 'Cancel')}
@@ -902,12 +905,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   ))}
                 </select>
                 {selectedTeamId && (
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-sm text-slate-400">
                     {t('newGameSetupModal.teamSelectedNote', 'Player roster will be loaded from selected team.')}
                   </p>
                 )}
                 {!selectedTeamId && (
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-sm text-slate-400">
                     {teams.some((team) => !team.archived)
                       ? t('newGameSetupModal.selectTeamTip', 'Tip: pick a team to auto-fill its roster and linked competition.')
                       : t('newGameSetupModal.masterRosterNote', 'Using master roster - all players available.')}
@@ -983,7 +986,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     </select>
                   )}
                   {prefillMissingCount > 0 && (
-                    <p className="mt-1 text-xs text-amber-400">
+                    <p className="mt-1 text-sm text-amber-400">
                       {t('newGameSetupModal.prefillMissingPlayers', '{{count}} planned players are not in this roster and were skipped.', {
                         count: prefillMissingCount,
                       })}

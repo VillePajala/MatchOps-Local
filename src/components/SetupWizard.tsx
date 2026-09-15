@@ -392,7 +392,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 {t('setupWizard.add', 'Add')}
               </button>
             </div>
-            <p className="text-right text-xs text-slate-400 mt-2" data-testid="wizard-player-count">
+            <p className="text-right text-sm text-slate-400 mt-2" data-testid="wizard-player-count">
               {t('setupWizard.playersAdded', '{{count}} players added', { count: totalCount })}
             </p>
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 mt-2 -mx-1 px-1">

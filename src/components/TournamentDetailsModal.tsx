@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useId } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +14,8 @@ import { createLogger } from '@/utils/logger';
 import TournamentSeriesManager from './TournamentSeriesManager';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { HiExclamationTriangle } from 'react-icons/hi2';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 const logger = createLogger('TournamentDetailsModal');
 
@@ -50,6 +51,8 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   });
 
   // Form state
+  useEscapeToClose(isOpen, onClose);
+  const modalTitleId = useId();
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
@@ -257,7 +260,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   const isPending = mode === 'create' ? addTournamentMutation?.isPending : updateTournamentMutation?.isPending;
 
   return (
-    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
@@ -265,6 +268,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
 
         {/* Chrome slimming: X-header (Cancel) + sticky Save. */}
         <CollapsibleModalHeader
+          titleId={modalTitleId}
           title={mode === 'create'
                 ? t('tournamentDetailsModal.createTitle', 'Create Tournament')
                 : tournament?.name || t('tournamentDetailsModal.editTitle', 'Tournament Details')}
@@ -285,7 +289,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                       <p className="text-amber-200 text-sm">
                         {t('tournamentDetailsModal.seasonDatesNotConfigured', 'Season dates not configured')}
                       </p>
-                      <p className="text-amber-300/70 text-xs mt-1">
+                      <p className="text-amber-300/70 text-sm mt-1">
                         {t('tournamentDetailsModal.configureInSettings', 'Configure in Settings to calculate club seasons correctly.')}
                       </p>
                       {onOpenSettings && (

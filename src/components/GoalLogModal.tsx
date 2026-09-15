@@ -14,7 +14,8 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 // Re-export shared types for backward compatibility with test imports
 export type { GameEvent, GameEventType } from '@/types/game';
@@ -365,6 +366,10 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   }, [localGameEvents]);
 
 
+  useEscapeToClose(isOpen, onClose, !showDeleteEventConfirm && !showRecalcConfirm);
+
+
+
   if (!isOpen) return null;
 
   return (
@@ -387,7 +392,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
           >
             <div className="px-6 pt-1 pb-2 text-center text-sm">
               <div className="flex justify-center items-center text-slate-300">
-                <span className="text-yellow-400 font-semibold">{formatTime(currentTime)}</span>
+                <span className="text-amber-400 font-semibold">{formatTime(currentTime)}</span>
               </div>
             </div>
           </CollapsibleModalHeader>
@@ -472,8 +477,8 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                     {/* Score reconciliation: shown only when the stored score
                         disagrees with the goal log (events are the source of truth). */}
                     {goalLogScore.mismatch && (
-                      <div className="mt-3 pt-3 border-t border-slate-700/60 space-y-2">
-                        <p className="text-xs text-amber-300">
+                      <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                        <p className="text-sm text-amber-300">
                           {t(
                             'goalLogModal.scoreMismatch',
                             'Saved score ({{cur}}) doesn\'t match the goal log ({{log}}).',

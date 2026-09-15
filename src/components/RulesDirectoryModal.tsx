@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useId } from 'react';
 import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
@@ -11,7 +11,8 @@ import { searchRules, rulebookUrl, type RulesSport } from '@/config/rulesIndex';
 import RuleViewerModal from '@/components/RuleViewerModal';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import type { TranslationKey } from '@/i18n-types';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface RulesDirectoryModalProps {
   isOpen: boolean;
@@ -123,10 +124,15 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
     return parsed.toLocaleDateString(i18n.language || undefined);
   }, [i18n.language]);
 
+  const modalTitleId = useId();
+
+  useEscapeToClose(isOpen, onClose, viewing === null);
+
+
   if (!isOpen) return null;
 
   return (
-    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
@@ -137,6 +143,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
         <div className="relative z-10 flex flex-col min-h-0 h-full">
           {/* Chrome slimming: X-header replaces the header + close-only footer. */}
           <CollapsibleModalHeader
+          titleId={modalTitleId}
             title={t('rulesDirectory.title', 'Säännöt')}
             onClose={onClose}
             closeLabel={t('common.doneButton', 'Done')}
@@ -181,7 +188,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
                 {hits.length === 0 ? (
-                  <p className="text-xs text-slate-400" data-testid="rules-no-hits">
+                  <p className="text-sm text-slate-400" data-testid="rules-no-hits">
                     {t('rulesDirectory.noHits', 'Ei osumia. Kokeile toista sanaa tai selaa sääntökirjaa.')}
                   </p>
                 ) : (
@@ -214,7 +221,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                               feature; on a phone the book opens at page 1 and
                               the reader navigates themselves, so the number
                               has to be readable at a glance. */}
-                          <span className="shrink-0 text-sm font-semibold text-yellow-400 tabular-nums">
+                          <span className="shrink-0 text-sm font-semibold text-amber-400 tabular-nums">
                             {t('rulesDirectory.pageN', 's. {{n}}', { n: h.page })}
                           </span>
                         </button>
@@ -222,10 +229,10 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                     ))}
                   </ul>
                 )}
-                <p className="text-xs text-slate-400">
+                <p className="text-sm text-slate-400">
                   {t('rulesDirectory.pageHint2', 'Sääntö avautuu suoraan oikealta sivulta. Vain luetut sivut ladataan.')}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm text-slate-400">
                   {t('rulesDirectory.lookupNote', 'Säännöt julkaisee IFAB (jalkapallo) ja FIFA (futsal).')}
                 </p>
               </Section>
@@ -236,7 +243,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   There are three different kinds of rule and they live apart,
                   so the page says which is which and puts the coach's OWN
                   series first - that is the only one that is actually theirs. */}
-              <p className="text-xs text-slate-400">
+              <p className="text-sm text-slate-400">
                 {t(
                   'rulesDirectory.intro',
                   'Säännöt ovat kolmessa paikassa: sarjakohtaiset säännöt, ikäluokkien pelimuodot ja lajisäännöt.',
@@ -244,7 +251,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
               </p>
 
               <Section title={t('rulesDirectory.seriesTitle', 'Sarjakohtaiset säännöt')}>
-                <p className="text-xs text-slate-400 -mt-1">
+                <p className="text-sm text-slate-400 -mt-1">
                   {t(
                     'rulesDirectory.seriesHelp',
                     'Pelaajamäärä, peliaika ja kentän koko määritellään sarjoittain, eikä sovellus tiedä missä sarjassa joukkueesi pelaa - MatchOps ei ole yhteydessä Palloliiton järjestelmään. Etsi sarjasi listasta ja avaa Info > Säännöt.',
@@ -281,7 +288,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
               >
                 {sport === 'football' && !showAllFormats ? (
                   <>
-                    <p className="text-xs text-slate-400 -mt-1">
+                    <p className="text-sm text-slate-400 -mt-1">
                       {t(
                         'rulesDirectory.formatsFootballNone',
                         'Jalkapallon pelimuotoja ei julkaista taulukkona. Katso oman sarjasi tiedot yltä.',
@@ -298,7 +305,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   </>
                 ) : (
                   <>
-                    <p className="text-xs text-slate-400 -mt-1">
+                    <p className="text-sm text-slate-400 -mt-1">
                       {t(
                         'rulesDirectory.formatsCaveat',
                         'Palloliiton valtakunnalliset oletukset ikäluokittain. Sarja voi poiketa näistä - tarkista oman sarjasi tiedot.',
@@ -332,9 +339,9 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                         <tbody>
                           {shownFormats.map((f) => (
                             <React.Fragment key={f.sourceLabel}>
-                              <tr className="border-t border-slate-700/60 align-top">
+                              <tr className="border-t border-white/10 align-top">
                                 <td className="py-1.5 pr-3 text-slate-200 whitespace-nowrap">{f.sourceLabel}</td>
-                                <td className="py-1.5 pr-3 text-yellow-400 font-semibold whitespace-nowrap">{f.fieldSize}</td>
+                                <td className="py-1.5 pr-3 text-amber-400 font-semibold whitespace-nowrap">{f.fieldSize}</td>
                                 <td className="py-1.5 pr-3 text-slate-300">{f.playingTimeText}</td>
                                 <td className="py-1.5 pr-3 text-slate-300 whitespace-nowrap">{f.field}</td>
                                 <td className="py-1.5 text-slate-300 whitespace-nowrap">{f.ball}</td>
@@ -364,7 +371,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                     {GAME_FORMATS_GENERAL_NOTES.map((n) => (
                       <p key={n} className="text-xs text-slate-400">{n}</p>
                     ))}
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm text-slate-400">
                       {t('rulesDirectory.formatsSource', 'Lähde: {{title}}', { title: GAME_FORMATS_SOURCE.title })}
                     </p>
                   </>
@@ -387,7 +394,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   Palloliitto's index - a superseded PDF still opens, so the age
                   of the check is the only thing that tells a coach how much to
                   trust what they are about to read. */}
-              <p className="text-xs text-slate-500 text-center pt-2">
+              <p className="text-sm text-slate-400 text-center pt-2">
                 {t('rulesDirectory.footer', 'Linkit avautuvat selaimessa. Säännöt ylläpitää Palloliitto.')}
                 {' '}
                 {t('rulesDirectory.checkedOn', 'Linkit tarkistettu {{date}}.', { date: checkedOn })}

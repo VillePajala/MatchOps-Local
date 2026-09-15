@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { HiOutlineShare, HiOutlineClipboardCopy, HiOutlineCheck } from 'react-icons/hi';
 import { modalContainerStyle, ModalBackgroundEffects, CollapsibleModalHeader } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 /** One switch over what the text contains, for a caller that builds it in parts. */
 export interface RecapSection {
@@ -96,6 +97,9 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
     setStale(false);
   };
 
+  useEscapeToClose(isOpen, onClose);
+
+
   if (!isOpen) return null;
 
   const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
@@ -140,7 +144,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
             {/* pt-2: the subtitle sat flush against the header with no
                 breathing room above it. */}
             {hint && (
-              <p className="text-xs text-slate-400 px-6 pt-2 pb-3 text-center">
+              <p className="text-sm text-slate-400 px-6 pt-2 pb-3 text-center">
                 {hint}
               </p>
             )}

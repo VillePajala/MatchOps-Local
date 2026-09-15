@@ -70,21 +70,21 @@ export function TeamPerformanceCard({
     <div className={cardClassName}>
       <h3 className="text-xl font-semibold text-slate-200 mb-4">{title}</h3>
       <div className="space-y-0 text-sm">
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
           <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
-          <span className="text-yellow-400 font-bold">{gamesPlayed}</span>
+          <span className="text-amber-400 font-bold">{gamesPlayed}</span>
         </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
           <span className="text-slate-300">{t('common.record', 'Record')}</span>
-          <span className="text-yellow-400 font-bold">
+          <span className="text-amber-400 font-bold">
             {wins}-{losses}-{ties}
           </span>
         </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
           <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
-          <span className="text-yellow-400 font-bold">{winPercentage.toFixed(1)}%</span>
+          <span className="text-amber-400 font-bold">{winPercentage.toFixed(1)}%</span>
         </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
           <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
           <span
             className={`font-bold ${goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
@@ -93,24 +93,24 @@ export function TeamPerformanceCard({
             {goalDifference}
           </span>
         </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
           <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
-          <span className="text-yellow-400 font-bold">{goalsFor}</span>
+          <span className="text-amber-400 font-bold">{goalsFor}</span>
         </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
           <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
-          <span className="text-yellow-400 font-bold">{goalsAgainst}</span>
+          <span className="text-amber-400 font-bold">{goalsAgainst}</span>
         </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
           <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-          <span className="text-yellow-400 font-bold">{averageGoalsFor.toFixed(1)}</span>
+          <span className="text-amber-400 font-bold">{averageGoalsFor.toFixed(1)}</span>
         </div>
         <div className="flex justify-between items-center py-1.5 px-2">
           <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-          <span className="text-yellow-400 font-bold">{averageGoalsAgainst.toFixed(1)}</span>
+          <span className="text-amber-400 font-bold">{averageGoalsAgainst.toFixed(1)}</span>
         </div>
         {lastGameDate && (
-          <div className="flex justify-between items-center py-1.5 px-2 border-t border-slate-700/50">
+          <div className="flex justify-between items-center py-1.5 px-2 border-t border-white/10">
             <span className="text-slate-300">{t('common.lastGame', 'Last Game')}</span>
             <span className="text-slate-400 text-xs">{lastGameDate}</span>
           </div>

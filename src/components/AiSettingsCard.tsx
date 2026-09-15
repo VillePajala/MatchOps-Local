@@ -142,10 +142,10 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
         </span>
       </div>
 
-      <p className="text-xs text-slate-400 mb-2">
+      <p className="text-sm text-slate-400 mb-2">
         {t('aiSettings.intro', 'Voice notes work without this. Transcription and drafts need your own AI provider account - the recordings then go from your phone to that provider only, on your key, only when you press the button.')}
       </p>
-      <p className="text-xs text-slate-400 mb-2">
+      <p className="text-sm text-slate-400 mb-2">
         {t('aiSettings.experimentalNote', 'Needs your own OpenAI account and API key. Built for coaches comfortable with that; not for everyone yet.')}{' '}
         <a href="/voice-notes" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline" data-testid="ai-parent-page">
           {t('aiSettings.parentPageLink', 'Page for families: what leaves the phone')}
@@ -166,7 +166,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
           <label htmlFor="ai-key-input" className="block text-sm font-medium text-slate-200">
             {t('aiSettings.keyLabel', '{{provider}} API key', { provider: provider.label })}
           </label>
-          <p className="text-xs text-slate-400">
+          <p className="text-sm text-slate-400">
             {t('aiSettings.keyHint', 'Create a dedicated key for MatchOps and set a monthly spend cap on it.')}{' '}
             <a href={provider.keysUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline">
               {t('aiSettings.keyLink', 'Open the provider\'s key page')}
@@ -259,7 +259,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
                 : t('aiSettings.modelLoad', 'Show the models on my account')}
             </button>
           )}
-          <p className="text-xs text-slate-400">
+          <p className="text-sm text-slate-400">
             {state.model && state.model !== DRAFTING_MODEL
               ? t('aiSettings.modelCustomHint', 'The cost figures here are the default model\'s prices, so they are only a rough guide for {{model}}. Larger models write better and cost more.', { model: state.model })
               : t('aiSettings.modelHint', 'Only the low-cost models on your account are offered, so a mis-tap here cannot run up a bill. There is no automatic fallback either: if a model stops working the draft says so, rather than quietly using another one.')}
@@ -279,7 +279,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
                 since: usage.since,
               })}
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-sm text-slate-400">
               {t('aiSettings.usageBreakdown', '{{transcriptions}} transcriptions, {{drafts}} report drafts, {{readbacks}} translations and summaries. An estimate from list prices - your provider\'s bill is the real number.', {
                 transcriptions: usage.transcriptions,
                 drafts: usage.drafts,
@@ -291,7 +291,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
             </button>
           </>
         ) : (
-          <p className="text-xs text-slate-400">{t('aiSettings.usageNone', 'Nothing used on this device yet.')}</p>
+          <p className="text-sm text-slate-400">{t('aiSettings.usageNone', 'Nothing used on this device yet.')}</p>
         )}
       </div>
 
@@ -311,7 +311,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
 
       <details className={rowStyle}>
         <summary className="text-sm font-medium text-slate-200 cursor-pointer">{t('aiSettings.parentTextTitle', 'Text for parents')}</summary>
-        <p className="text-xs text-slate-400 mt-2 mb-2">{t('aiSettings.parentTextHint', 'A ready-made note you can send to families about the notes you keep.')}</p>
+        <p className="text-sm text-slate-400 mt-2 mb-2">{t('aiSettings.parentTextHint', 'A ready-made note you can send to families about the notes you keep.')}</p>
         <textarea readOnly value={parentText} rows={6} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm text-slate-100" aria-label={t('aiSettings.parentTextTitle', 'Text for parents')} />
         <button type="button" onClick={() => void copyParentText()} className={`${secondary} mt-2`} data-testid="ai-copy-parent-text">
           {t('aiSettings.copy', 'Copy')}

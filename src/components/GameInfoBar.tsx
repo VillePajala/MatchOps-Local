@@ -10,6 +10,8 @@ interface GameInfoBarProps {
   onTeamNameChange: (newName: string) => void;
   onOpponentNameChange: (newName: string) => void;
   homeOrAway: 'home' | 'away';
+  /** The team's kit colour, when they have one. Undefined for most teams. */
+  teamColor?: string;
 }
 
 const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
@@ -20,6 +22,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
   onTeamNameChange,
   onOpponentNameChange,
   homeOrAway,
+  teamColor,
 }) => {
   const [editingField, setEditingField] = useState<'left' | 'right' | null>(null);
   const [editValue, setEditValue] = useState<string>('');
@@ -111,7 +114,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
       {/* Center Content: Teams and Score */}
       <div className="relative flex-1 flex items-center justify-center space-x-2.5 font-semibold z-10 max-w-full">
         {/* Left Team Name */}
-        <div className="text-right min-w-0 max-w-[140px] overflow-hidden" title={editingField !== 'left' ? "Double-click to edit" : undefined}>
+        <div className="flex-1 basis-0 min-w-0 text-right overflow-hidden" title={editingField !== 'left' ? "Double-click to edit" : undefined}>
           {editingField === 'left' ? (
             <input
               ref={teamInputRef}
@@ -128,19 +131,35 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
               onTouchEnd={() => handleTap('left')}
               onDoubleClick={() => handleStartEdit('left')}
               title={leftTeamName}
+              // The kit colour as an underline rather than a dot or a filled
+              // background: it has to sit beside an editable name without
+              // competing with it, and a rule under the word reads as "these
+              // are their colours" the way a scarf does.
+              style={teamColor ? { boxShadow: `inset 0 -3px 0 0 ${teamColor}` } : undefined}
             >
               {leftTeamName}
             </span>
           )}
         </div>
 
-        {/* Score */}
-        <span className="bg-slate-700 px-2 py-0.5 rounded text-yellow-300 text-sm font-bold flex-shrink-0">
+        {/* Score. The fixed centre of the bar: the flanking name blocks share
+            equal flex basis, so the number stays put whatever the teams are
+            called. Centring the whole string instead let the score slide
+            around as names changed length - a scoreboard's number does not
+            move because the away side has a long name.
+
+            Numerals as display type, applied in the one place it was most
+            obviously missing. This was text-sm - the same size as body copy -
+            while the match timer, the home dashboard tiles and the player
+            totals all sit at text-2xl or larger. The app was presenting "how
+            many teams you have" as more important than "what the score is".
+            tabular-nums so the chip does not jump width between 0-0 and 10-9. */}
+        <span className="bg-slate-700 px-2.5 py-0.5 rounded text-amber-300 text-xl font-black tabular-nums leading-none flex-shrink-0">
           {leftScore} - {rightScore}
         </span>
 
         {/* Right Team Name */}
-        <div className="text-left min-w-0 max-w-[140px] overflow-hidden" title={editingField !== 'right' ? "Double-click to edit" : undefined}>
+        <div className="flex-1 basis-0 min-w-0 text-left overflow-hidden" title={editingField !== 'right' ? "Double-click to edit" : undefined}>
           {editingField === 'right' ? (
             <input
               ref={opponentInputRef}

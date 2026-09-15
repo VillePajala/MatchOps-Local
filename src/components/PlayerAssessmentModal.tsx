@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import PlayerAssessmentCard from './PlayerAssessmentCard';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 interface PlayerAssessmentModalProps {
   isOpen: boolean;
@@ -138,7 +138,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
             <div className="px-4 sm:px-6 pt-1 pb-4 text-center text-sm">
               <div className="flex justify-center items-center text-slate-300">
                 <span>
-                  <span className="text-yellow-400 font-semibold">{savedIds.length}/{selectedPlayerIds.length}</span>
+                  <span className="text-amber-400 font-semibold">{savedIds.length}/{selectedPlayerIds.length}</span>
                   {" "}{t('playerAssessmentModal.assessed', 'assessed')}
                 </span>
               </div>
@@ -159,7 +159,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
                       <span className="font-semibold text-slate-100 flex-1 text-right">
                         {displayHomeTeamName || 'Home'}
                       </span>
-                      <span className="text-2xl text-yellow-400 font-bold mx-4">
+                      <span className="text-2xl text-amber-400 font-bold mx-4">
                         {homeScore} - {awayScore}
                       </span>
                       <span className="font-semibold text-slate-100 flex-1 text-left">

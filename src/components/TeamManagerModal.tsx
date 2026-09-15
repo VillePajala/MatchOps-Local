@@ -33,7 +33,8 @@ import DeleteBlockedDialog from './DeleteBlockedDialog';
 import { useResourceLimit } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
 import { ENTITY_DOT } from '@/config/palette';
-import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
@@ -285,6 +286,9 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
   // Note: Team switching removed - teams are now contextually selected
 
+  useEscapeToClose(isOpen, onClose, !deleteConfirmTeamId);
+
+
   if (!isOpen) return null;
 
   return (
@@ -414,6 +418,18 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                           title={t('teamManager.roster', 'Roster')}
                         >
                           <div className="flex items-center gap-2">
+                            {/* Kit stripe. The colour is the team's, so it is
+                                set inline rather than from a class - and it is
+                                a STRIPE rather than a dot because a kit reads
+                                as a band of colour, and a 3px bar survives
+                                being glanced at where a dot does not. */}
+                            {team.color && (
+                              <span
+                                aria-hidden="true"
+                                className="w-1 h-5 rounded-full shrink-0"
+                                style={{ backgroundColor: team.color }}
+                              />
+                            )}
                             <span className="text-slate-200 truncate" title={team.name}>{team.name}</span>
                             {team.archived && (
                               <span className="text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600 shrink-0">
@@ -477,7 +493,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               : t('teamManager.playersCount', '{{count}} players', { count: rosterCounts[team.id] || 0 })
                             }
                           </span>
-                          <span className="text-slate-500 text-[10px]">
+                          <span className="text-slate-400 text-xs">
                             {t('teamManager.createdAt', 'Created {{date}}', {
                               date: new Date(team.createdAt).toLocaleDateString()
                             })}
@@ -491,7 +507,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                 {placements.map((p, idx) => (
                                   <span
                                     key={idx}
-                                    className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-900/30 text-yellow-300 border border-yellow-700/50 flex items-center gap-1"
+                                    className="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-300 border border-amber-700/50 flex items-center gap-1"
                                     title={p.name}
                                   >
                                     {p.emoji} {p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name}
@@ -570,7 +586,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           {/* Utility action, inline at the bottom of the content (chrome
               slimming): games left behind by deleted teams. */}
           {onManageOrphanedGames && (
-            <div className="mt-6 pt-4 border-t border-slate-700/40">
+            <div className="mt-6 pt-4 border-t border-white/10">
               <button
                 onClick={onManageOrphanedGames}
                 className="px-4 py-2 rounded-md font-medium text-amber-300 bg-amber-900/20 hover:bg-amber-900/30 border border-amber-600/30 transition-colors text-sm"
