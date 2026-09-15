@@ -2,6 +2,23 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-15",
+      "en": [
+        "Opponent names now settle on the spelling you already use. Type \"lautp/sininen\" when you have written \"LauTP / Sininen\" before and the app fills in your spelling, so the same team stops splitting into several opponents in your statistics.",
+        "A league or tournament now suggests the teams you have already played in it, with no list to fill in first. Listing teams by hand still works and those come first.",
+        "If the app changes an opponent's name to a spelling you used earlier and that earlier one is the wrong one, you can now say \"use mine instead\" right there. It renames the team in every past game too, so a name that went in wrong on the first try is no longer stuck.",
+        "The statistics screen now tells you when teams are written several ways, because that is where it distorts the numbers, and opens the fixing tool from there. It used to be mentioned only in the competitions manager.",
+        "You can now rename any team, not just ones written inconsistently. A name that went in wrong and was repeated the same way every time had no way to be corrected before."
+      ],
+      "fi": [
+        "Vastustajan nimi asettuu nyt siihen kirjoitusasuun, jota olet jo käyttänyt. Kirjoita \"lautp/sininen\", kun olet aiemmin kirjoittanut \"LauTP / Sininen\", niin sovellus täydentää oman kirjoitusasusi - näin sama joukkue ei enää jakaudu tilastoissa useaksi eri vastustajaksi.",
+        "Sarja tai turnaus ehdottaa nyt joukkueita, joita olet siinä jo pelannut, ilman että listaa tarvitsee ensin täyttää. Joukkueiden listaaminen käsin toimii edelleen, ja ne näkyvät ensimmäisinä.",
+        "Jos sovellus muuttaa vastustajan nimen aiemmin käyttämääsi kirjoitusasuun ja juuri se vanha on väärin, voit nyt valita siinä samassa \"käytä minun kirjoitusasuani\". Nimi vaihtuu myös kaikkiin aiempiin otteluihin, joten ensimmäisellä kerralla väärin mennyt nimi ei jää enää jumiin.",
+        "Tilastonäkymä kertoo nyt, jos joukkueita on kirjoitettu usealla tavalla - juuri siellä se vääristää lukuja - ja korjaustyökalun saa auki samasta paikasta. Aiemmin asiasta mainittiin vain kilpailujen hallinnassa.",
+        "Voit nyt vaihtaa minkä tahansa joukkueen nimen, et vain epäyhtenäisesti kirjoitettujen. Väärin kirjoitettua nimeä, joka toistui joka kerta samanlaisena, ei aiemmin saanut mitenkään korjattua."
+      ]
+    },
+    {
       "date": "2026-09-14",
       "en": [
         "Lines that separate things are drawn like the markings on the pitch - thin and white - instead of grey seams.",

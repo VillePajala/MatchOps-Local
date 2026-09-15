@@ -148,4 +148,57 @@ describe('OpponentNameSweepModal', () => {
     renderModal();
     expect(await screen.findByTestId('opponent-sweep-clean')).toBeInTheDocument();
   });
+
+  /**
+   * The gap a conflict list cannot close: a name spelled consistently WRONG
+   * produces no disagreement, so it never appears above - and until this
+   * section existed nothing in the app could correct it.
+   * @critical
+   */
+  describe('renaming a team that has no conflict', () => {
+    it('lists a team written the same way everywhere', async () => {
+      renderModal();
+      // "IPS/Sininen" appears once, in one spelling, so it is NOT a conflict.
+      await waitFor(() =>
+        expect(screen.getByTestId('opponent-row-ips sininen')).toBeInTheDocument(),
+      );
+      expect(screen.queryByTestId('opponent-sweep-group-ips sininen')).not.toBeInTheDocument();
+    });
+
+    it('renames it everywhere on request', async () => {
+      renderModal();
+      await waitFor(() =>
+        expect(screen.getByTestId('opponent-row-ips sininen')).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByTestId('opponent-row-toggle-ips sininen'));
+      fireEvent.change(screen.getByTestId('opponent-row-input-ips sininen'), {
+        target: { value: 'IPS / Sininen' },
+      });
+      fireEvent.click(screen.getByTestId('opponent-row-apply-ips sininen'));
+      await waitFor(() =>
+        expect(mockSaveGame).toHaveBeenCalledWith(
+          'g4',
+          expect.objectContaining({ opponentName: 'IPS / Sininen' }),
+          'user-1',
+        ),
+      );
+    });
+
+    /** The blast radius is still one name, even from this section. */
+    it('leaves every other team alone', async () => {
+      renderModal();
+      await waitFor(() =>
+        expect(screen.getByTestId('opponent-row-ips sininen')).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByTestId('opponent-row-toggle-ips sininen'));
+      fireEvent.change(screen.getByTestId('opponent-row-input-ips sininen'), {
+        target: { value: 'IPS / Sininen' },
+      });
+      fireEvent.click(screen.getByTestId('opponent-row-apply-ips sininen'));
+      await waitFor(() => expect(mockSaveGame).toHaveBeenCalled());
+      const renamed = mockSaveGame.mock.calls.map((c) => c[0]);
+      expect(renamed).toEqual(['g4']);
+    });
+  });
+
 });

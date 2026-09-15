@@ -59,13 +59,14 @@ import { useModalContext } from '@/contexts/ModalProvider';
 import { useModalHardwareBack, useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useAppSettingsController } from '@/hooks/useAppSettingsController';
 import { useSeasonTournamentManagement } from '@/hooks/useSeasonTournamentManagement';
-import { addOpponentToList } from '@/utils/opponentNames';
+import { addOpponentToList, preferredSpellings } from '@/utils/opponentNames';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import { useRosterSettingsController } from '@/hooks/useRosterSettingsController';
 import { useLoadGameController } from '@/hooks/useLoadGameController';
 import { useClubStatsController } from '@/hooks/useClubStatsController';
 import { useNewGameSetupController } from '@/hooks/useNewGameSetupController';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
+import { useOpponentRename } from '@/hooks/useOpponentRename';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
 const TrainingResourcesModal = dynamic(() => import('@/components/TrainingResourcesModal'));
@@ -180,12 +181,58 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   // a global opponent list with an edit button is the first step back toward
   // treating opponents as entities, which is what the design rejects.
   const knownOpponents = React.useMemo(
+    // preferredSpellings, not a plain dedupe: when a name has been written
+    // several ways the pool must offer the one used MOST, because that is the
+    // spelling the sweep tool would settle on. A dedupe keeps whichever came
+    // back from the database first, which is arbitrary.
+    // Two tiers: a curated name outranks a frequent one, and within each tier
+    // the most-used spelling wins. Same rule as useOpponentSuggestions.
     () => [
-      ...seasonTournament.seasons.flatMap((s) => s.opponents ?? []),
-      ...Object.values(newGameSetup.savedGames ?? {}).map((g) => g?.opponentName ?? ''),
+      ...preferredSpellings(seasonTournament.seasons.flatMap((s) => s.opponents ?? [])),
+      ...preferredSpellings(
+        Object.values(newGameSetup.savedGames ?? {}).map((g) => g?.opponentName ?? ''),
+      ),
     ].reduce<string[]>((kept, name) => addOpponentToList(kept, name), []),
     [seasonTournament.seasons, newGameSetup.savedGames],
   );
+
+  /**
+   * Opponent names each competition has ALREADY MET, keyed by season or
+   * tournament id. Derived, never stored, exactly like knownOpponents above.
+   *
+   * WHY THIS EXISTS AT ALL. A season carries a curated `opponents` list, but
+   * prod says 0 of 9 seasons have one - curating twelve names up front is
+   * homework, and typing the opponent takes two seconds, so the homework does
+   * not happen and the list stays empty forever. Games already record who was
+   * played; that IS the league's team list, arriving for free, one fixture at
+   * a time. The dropdown becomes useful on game two instead of after a chore.
+   *
+   * It covers tournaments too, which is deliberate: prod shows only 6.5% of
+   * tournament games are against a team met again in the same tournament, so
+   * asking a coach to curate a tournament list would never pay - but deriving
+   * one costs nothing and helps the cases that do repeat.
+   */
+  // Enabled only while the new-game form is open: nothing else on this host
+  // renames an opponent, so the queries behind it stay idle otherwise.
+  const { renameOpponent } = useOpponentRename(isNewGameSetupModalOpen);
+
+  const playedOpponentsByCompetition = React.useMemo(() => {
+    // Every occurrence is collected first and ranked after, so the spelling a
+    // competition offers is the one it has used most - same rule as the pool
+    // above and as the sweep tool.
+    const occurrences: Record<string, string[]> = {};
+    for (const game of Object.values(newGameSetup.savedGames ?? {})) {
+      const name = game?.opponentName ?? '';
+      if (!name.trim()) continue;
+      for (const id of [game?.seasonId, game?.tournamentId]) {
+        if (!id) continue;
+        (occurrences[id] ??= []).push(name);
+      }
+    }
+    return Object.fromEntries(
+      Object.entries(occurrences).map(([id, names]) => [id, preferredSpellings(names)]),
+    );
+  }, [newGameSetup.savedGames]);
 
   // Cancel/close for NewGameSetup: reset the controller's slider state and
   // clear the shared prefill so the next open starts from modal defaults.
@@ -386,6 +433,11 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
             });
           }}
           knownOpponents={knownOpponents}
+          playedOpponentsByCompetition={playedOpponentsByCompetition}
+          /* Lets a coach refuse an adopted spelling and push their own over
+             the history. Same hook the sweep tool uses, so the two entry
+             points cannot do different things to the data. */
+          onRenameOpponent={renameOpponent}
         />
       )}
       <ConfirmationModal
