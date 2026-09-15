@@ -7,7 +7,7 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeTeamScopeSelect, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeTeamScopeSelect, HomeCountsBar, HomeSeasonCard, HomeStatsTiles, HOME_CARD } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '@/components/GuidedTour/firstRunTour';
@@ -116,11 +116,9 @@ const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; href: string }> = ({
  * shape from a Row, so a pair of equals does not look like two truncated rows.
  * Keeps its own border, because a pair genuinely is two objects.
  *
- * Indigo, by the rule the other tabs already follow: a REPEATED equal card
- * takes the flat indigo surface (the recent-games cards), a SINGLE full-width
- * summary takes the indigo gradient (the resume card, the season card). Pelit
- * and Kilpailut each had a coloured element and Seura had none, which read as
- * the club tab being the unfinished one. Disabled stays slate - a tile you
+ * Wears HOME_CARD, the same gradient as the resume card, so the club tab has
+ * the colour the other tabs had and it is the app's one card surface rather
+ * than a second one invented for here. Disabled stays slate - a tile you
  * cannot press has no business wearing the live colour.
  */
 const HomeTile: React.FC<{
@@ -138,7 +136,7 @@ const HomeTile: React.FC<{
     className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3 [@media(min-height:700px)]:py-3.5 rounded-xl border text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
       disabled
         ? 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-        : 'bg-indigo-900/70 border-indigo-600/50 hover:bg-indigo-800/70'
+        : HOME_CARD
     }`}
   >
     <Icon className="w-5 h-5 text-indigo-300" aria-hidden="true" />
