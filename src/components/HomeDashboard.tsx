@@ -261,10 +261,13 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
   // These tiles exist to be READ AT A GLANCE, and they were set at text-lg -
   // smaller than the row labels underneath them, which inverted the emphasis
   // on the one tab whose whole job is numbers.
+  // Flat indigo, the surface every repeated equal card in the app uses. The
+  // W-D-L and goal-difference greens and reds are semantic and stay as they
+  // are; they still carry on this ground.
   const tile = (n: React.ReactNode, label: string) => (
-    <div className="flex-1 text-center px-2 py-3 rounded-xl bg-slate-800/70 border border-slate-700/50">
+    <div className="flex-1 text-center px-2 py-3 rounded-xl bg-indigo-900/70 border border-indigo-600/50">
       <div className="text-2xl font-black text-slate-100 tabular-nums leading-none">{n}</div>
-      <div className="text-xs text-slate-400 mt-1.5 truncate">{label}</div>
+      <div className="text-xs text-indigo-200/70 mt-1.5 truncate">{label}</div>
     </div>
   );
   return (
