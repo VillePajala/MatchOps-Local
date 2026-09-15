@@ -12,19 +12,21 @@ import type { HomeSummary, HomeResumeGame, HomeRecentGame } from '@/utils/homeSu
  *
  * QUIET, AND IT FADES. These are repeated cards - the ramp runs across each
  * one separately, so whatever it does it does two or three times in a row.
- * The resume card's gradient at that repetition was far too loud. This one
- * keeps close endpoints, no via stop, and the soft border the season card
- * uses, so the colour never gets bright enough to stripe.
+ * The resume card's gradient at that repetition was far too loud.
  *
  * Colour at the left, fading into the page's own slate at the right - the
  * direction the resume card and the season card already run, so every card on
  * Home is lit from the same side.
  *
- * The resume card keeps its strong gradient. It appears once, it is the hero,
- * and it is the thing these should not compete with.
+ * WHY 45 AND NOT LOWER. Composited over the slate-900 page, the left end sits
+ * at rgb(30,33,81) against a rgb(15,23,42) background and the right end at
+ * rgb(27,37,56), so the ramp itself is a blue shift of about 25 levels and
+ * almost nothing in red and green. At /70 that shift was 47 and the row read
+ * as stripes; below about /35 the card stops separating from the page at all,
+ * which is the mistake a flat indigo-950/45 already made here once.
  */
 export const HOME_CARD =
-  'bg-gradient-to-r from-indigo-900/70 to-slate-800/80 border-indigo-700/40 shadow-md hover:from-indigo-800/80 hover:to-slate-800';
+  'bg-gradient-to-r from-indigo-900/45 to-slate-800/80 border-indigo-800/35 shadow-md hover:from-indigo-800/50 hover:to-slate-800';
 
 /** Result shown through the score colour only (no coloured card edge). */
 const scoreColour: Record<'W' | 'D' | 'L', string> = {
