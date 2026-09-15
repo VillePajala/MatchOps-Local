@@ -41,6 +41,8 @@ import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { dictationVocabularyFor } from '@/utils/transcription';
 import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { groupOpponentVariants } from '@/utils/opponentNames';
+import { computeHeadToHead } from '@/utils/headToHead';
+import HeadToHeadCard from '@/components/GameStatsModal/components/HeadToHeadCard';
 import OpponentNameSweepModal from '@/components/OpponentNameSweepModal';
 import { queryKeys } from '@/config/queryKeys';
 
@@ -583,6 +585,53 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       averageGoalsAgainst: rec.gamesPlayed > 0 ? rec.goalsAgainst / rec.gamesPlayed : 0,
     };
   }, [activeTab, includeFriendlies, savedGames, selectedTeamIdFilter, selectedClubSeason, selectedGameTypeFilter, selectedGenderFilter, clubSeasonStartDate, clubSeasonEndDate]);
+
+  /**
+   * Your record against each opponent, in whatever the tab is currently
+   * showing. The first thing in the app that reads opponentName as DATA, which
+   * is what the spelling work existed to make possible.
+   *
+   * Scoped through filterGameIds with the tab's own filters, so it can never
+   * disagree with the record card above it - including the season, tournament
+   * and series selections, which is what makes a row mean "against them in
+   * THIS competition" rather than "ever".
+   */
+  const headToHead = useMemo(() => {
+    if (activeTab !== 'overall' && activeTab !== 'season' && activeTab !== 'tournament') {
+      return [];
+    }
+    const scopedGameIds = filterGameIds(savedGames, {
+      playedOnly: true,
+      teamFilter: selectedTeamIdFilter,
+      seasonFilter: selectedSeasonIdFilter,
+      tournamentFilter: selectedTournamentIdFilter,
+      seriesFilter: selectedSeriesIdFilter,
+      gameTypeFilter: selectedGameTypeFilter,
+      genderFilter: selectedGenderFilter,
+      clubSeasonFilter: selectedClubSeason,
+      clubSeasonStartDate,
+      clubSeasonEndDate,
+      activeTab,
+      includeFriendlies,
+    });
+    const scopedGames = scopedGameIds
+      .map((id) => savedGames?.[id])
+      .filter(Boolean) as AppState[];
+    return computeHeadToHead(scopedGames);
+  }, [
+    activeTab,
+    savedGames,
+    selectedTeamIdFilter,
+    selectedSeasonIdFilter,
+    selectedTournamentIdFilter,
+    selectedSeriesIdFilter,
+    selectedGameTypeFilter,
+    selectedGenderFilter,
+    selectedClubSeason,
+    clubSeasonStartDate,
+    clubSeasonEndDate,
+    includeFriendlies,
+  ]);
 
   // Tab counter memoized for performance
   // Calculate team assessment averages (applying same filters as overallTeamStats)
@@ -1424,6 +1473,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-6">
+                    {/* By opponent, directly under the record it breaks down.
+                        Renders nothing below two opponents - with one it would
+                        restate the card above in more space. */}
+                    <HeadToHeadCard rows={headToHead} />
                     {/* Overall Statistics Section */}
                     {activeTab === 'overall' && overallTeamStats && (
                       <TeamPerformanceCard
