@@ -552,6 +552,8 @@
     "warnings": "Warnings"
   },
   "gameStatsModal": {
+    "nameConflicts": "{{count}} teams are written several ways, so they count as separate opponents here.",
+    "nameConflictsAction": "Check team names",
     "title": "Game Statistics",
     "closeButton": "Close",
     "editButton": "Edit",
@@ -3710,6 +3712,10 @@
     "discard": "Discard this draft",
     "previewToggle": "Preview the text",
     "applied": "Draft saved to the match report.",
+    "allTeamsTitle": "All teams",
+    "allTeamsHint": "Rename any team, even one that is spelled the same way everywhere.",
+    "filterPlaceholder": "Search teams",
+    "usedIn": "{{count}} games",
     "applyFailed": "Could not save the draft.",
     "undo": "Undo: bring my earlier text back",
     "undone": "Your earlier report text is back.",
