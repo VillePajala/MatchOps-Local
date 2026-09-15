@@ -81,6 +81,50 @@ export function addOpponentToList(list: readonly string[], name: string): string
   return [...list, trimmed];
 }
 
+/**
+ * One spelling per name, chosen the way the sweep tool chooses its suggestion:
+ * MOST USED, ties broken by first appearance.
+ *
+ * WHY THIS EXISTS. Both halves of the feature answer "which spelling is the
+ * real one", and they must not answer it differently. The sweep tool ranks by
+ * use. Entry-time adoption used to take whatever `find` hit first in a pool
+ * assembled from saved games in database order - so a spelling typed once
+ * could outrank one typed six times, and the field would pull a coach back
+ * onto a variant the sweep tool was simultaneously offering to replace.
+ *
+ * Ranking the pool fixes that at the source rather than at each call site:
+ * `findExistingSpelling` still returns the first match, but the first match is
+ * now the most-used one. A one-off typo is outvoted as soon as the name is
+ * typed correctly more often than not.
+ *
+ * Input is every occurrence, not a deduplicated list - the repetition is what
+ * produces the ranking. Names with a single spelling pass through unchanged.
+ */
+export function preferredSpellings(occurrences: readonly string[]): string[] {
+  const byName = new Map<string, { counts: Map<string, number>; firstSeen: string[] }>();
+
+  for (const raw of occurrences) {
+    const spelling = (raw ?? '').trim();
+    const key = normalizeOpponentName(spelling);
+    if (!key) continue;
+    let entry = byName.get(key);
+    if (!entry) {
+      entry = { counts: new Map(), firstSeen: [] };
+      byName.set(key, entry);
+    }
+    if (!entry.counts.has(spelling)) entry.firstSeen.push(spelling);
+    entry.counts.set(spelling, (entry.counts.get(spelling) ?? 0) + 1);
+  }
+
+  // Map order is the order names were first seen, so the returned list keeps a
+  // stable, explainable sequence rather than jumping about as counts change.
+  return [...byName.values()].map(({ counts, firstSeen }) =>
+    firstSeen.reduce((best, spelling) =>
+      (counts.get(spelling) ?? 0) > (counts.get(best) ?? 0) ? spelling : best,
+    ),
+  );
+}
+
 /** One group of spellings that all denote the same name. */
 export interface OpponentVariantGroup {
   /** The normalised key the variants share. Not for display. */

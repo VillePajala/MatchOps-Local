@@ -1094,6 +1094,10 @@
     "prefillMissingPlayers_one": "{{count}} suunniteltu pelaaja ei ole tässä pelaajalistassa ja jätettiin pois.",
     "prefillMissingPlayers_other": "{{count}} suunniteltua pelaajaa ei ole tässä pelaajalistassa ja jätettiin pois.",
     "addOpponentToSeason": "Lisää sarjaan",
+    "opponentAdopted": "Vaihdettu muotoon ”{{adopted}}”, jota olet käyttänyt aiemmin.",
+    "keepSpelling": "Käytä kaikkialla muotoa ”{{typed}}”",
+    "keepSpellingWorking": "Vaihdetaan…",
+    "keepSpellingFailed": "Kirjoitusasun vaihto ei onnistunut. Yritä uudelleen.",
     "opponentAddFailed": "Joukkuetta ei voitu lisätä sarjaan."
   },
   "startScreen": {

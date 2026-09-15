@@ -2,18 +2,11 @@
 
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/config/queryKeys';
-import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import { CollapsibleModalHeader, ModalContainer } from '@/styles/modalStyles';
-import { getSeasons, updateSeason } from '@/utils/seasons';
-import { getSavedGames, saveGame } from '@/utils/savedGames';
 import { useOpponentVariantGroups } from '@/hooks/useOpponentVariantGroups';
-import { planOpponentRename, renameInOpponentList } from '@/utils/opponentRename';
+import { useOpponentRename } from '@/hooks/useOpponentRename';
 import logger from '@/utils/logger';
-import type { Season } from '@/types';
-import type { SavedGamesCollection } from '@/types/game';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface OpponentNameSweepModalProps {
@@ -38,20 +31,7 @@ interface OpponentNameSweepModalProps {
  */
 const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
-  const { userId } = useDataStore();
   const { showToast } = useToast();
-  const queryClient = useQueryClient();
-
-  const { data: seasons } = useQuery<Season[]>({
-    queryKey: [...queryKeys.seasons, userId],
-    queryFn: () => getSeasons(userId),
-    enabled: isOpen,
-  });
-  const { data: savedGames } = useQuery<SavedGamesCollection>({
-    queryKey: [...queryKeys.savedGames, userId],
-    queryFn: () => getSavedGames(userId),
-    enabled: isOpen,
-  });
 
   /** Chosen spelling per group, keyed by the group's normalised key. */
   const [choices, setChoices] = useState<Record<string, string>>({});
@@ -66,41 +46,23 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
     [allGroups, resolved],
   );
 
-  const apply = async (key: string, canonical: string) => {
-    const plan = planOpponentRename(key, canonical, savedGames, seasons);
-    if (plan.isNoop) return;
+  // The writes live in useOpponentRename because the new-game form performs the
+  // same rename when a coach refuses an adopted spelling. Two entry points, one
+  // code path, so they cannot drift apart.
+  const { renameOpponent } = useOpponentRename(isOpen);
 
+  const apply = async (key: string, canonical: string) => {
     setApplying(key);
     try {
-      // Games first: they are the data the statistics read. A competition list
-      // left stale is cosmetic and the coach can fix it by hand; a half-renamed
-      // set of games is the thing that silently splits an opponent in two.
-      for (const gameId of plan.gameIds) {
-        const game = savedGames?.[gameId];
-        if (!game) continue;
-        await saveGame(gameId, { ...game, opponentName: plan.canonical }, userId);
-      }
-
-      for (const seasonId of plan.seasonIds) {
-        const season = (seasons ?? []).find((s) => s.id === seasonId);
-        if (!season) continue;
-        await updateSeason(
-          { ...season, opponents: renameInOpponentList(season.opponents ?? [], key, plan.canonical) },
-          userId,
-        );
-      }
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.seasons }),
-      ]);
+      const result = await renameOpponent(key, canonical);
+      if (!result) return;
       setResolved((prev) => [...prev, key]);
       // A stale spelling can live on a league's list while no current game uses
       // it, in which case "Renamed in 0 games" is true and useless - the league
       // list was the thing that changed.
       showToast(
-        plan.gameIds.length > 0
-          ? t('opponentSweep.applied', 'Renamed in {{count}} games.', { count: plan.gameIds.length })
+        result.gamesChanged > 0
+          ? t('opponentSweep.applied', 'Renamed in {{count}} games.', { count: result.gamesChanged })
           : t('opponentSweep.appliedListsOnly', 'Renamed in the competition list.'),
         'success',
       );

@@ -1833,4 +1833,130 @@ describe('NewGameSetupModal', () => {
     });
   });
 
+  /**
+   * The escape hatch. Without it, adoption is a one-way door: every entry gets
+   * rewritten onto the first spelling, so a second spelling never appears,
+   * "most used" can never shift, and the sweep tool - which only lists names
+   * written two or more ways - never shows the name again. A name captured
+   * wrongly on its first use would be uncorrectable.
+   * @critical
+   */
+  describe('refusing an adopted spelling', () => {
+    const typeAndBlur = async (value: string) => {
+      const input = screen.getByRole('textbox', { name: /Opponent Name/i });
+      await act(async () => {
+        fireEvent.change(input, { target: { value } });
+      });
+      await act(async () => {
+        fireEvent.blur(input);
+      });
+      return input;
+    };
+
+    it('says so when it changed what was typed, and offers the way out', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal
+            {...defaultProps}
+            knownOpponents={['ips musta']}
+            onRenameOpponent={jest.fn().mockResolvedValue(undefined)}
+          />
+        </ToastProvider>,
+      );
+      const input = await typeAndBlur('IPS/Musta');
+      expect(input).toHaveValue('ips musta');
+      expect(screen.getByTestId('opponent-adopted-notice')).toBeInTheDocument();
+      expect(screen.getByTestId('opponent-keep-typed')).toBeInTheDocument();
+    });
+
+    /** The whole point: the coach's spelling replaces the stored one everywhere. */
+    it('renames every past use to the typed spelling', async () => {
+      const onRenameOpponent = jest.fn().mockResolvedValue(undefined);
+      render(
+        <ToastProvider>
+          <NewGameSetupModal
+            {...defaultProps}
+            knownOpponents={['ips musta']}
+            onRenameOpponent={onRenameOpponent}
+          />
+        </ToastProvider>,
+      );
+      const input = await typeAndBlur('IPS/Musta');
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('opponent-keep-typed'));
+      });
+      expect(onRenameOpponent).toHaveBeenCalledWith('ips musta', 'IPS/Musta');
+      await waitFor(() => expect(input).toHaveValue('IPS/Musta'));
+      expect(screen.queryByTestId('opponent-adopted-notice')).not.toBeInTheDocument();
+    });
+
+    /** The game being created must carry the refused spelling, not the old one. */
+    it('starts the game with the spelling the coach kept', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal
+            {...defaultProps}
+            knownOpponents={['ips musta']}
+            onRenameOpponent={jest.fn().mockResolvedValue(undefined)}
+          />
+        </ToastProvider>,
+      );
+      await typeAndBlur('IPS/Musta');
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('opponent-keep-typed'));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      expect(mockOnStart.mock.calls[0][2]).toBe('IPS/Musta');
+    });
+
+    it('says nothing when the typed name was left alone', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal
+            {...defaultProps}
+            knownOpponents={['ips musta']}
+            onRenameOpponent={jest.fn()}
+          />
+        </ToastProvider>,
+      );
+      await typeAndBlur('HJK');
+      expect(screen.queryByTestId('opponent-adopted-notice')).not.toBeInTheDocument();
+    });
+
+    /** Editing again answers the question; the offer belonged to text now gone. */
+    it('withdraws the offer once the coach types again', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal
+            {...defaultProps}
+            knownOpponents={['ips musta']}
+            onRenameOpponent={jest.fn()}
+          />
+        </ToastProvider>,
+      );
+      await typeAndBlur('IPS/Musta');
+      expect(screen.getByTestId('opponent-adopted-notice')).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.change(screen.getByRole('textbox', { name: /Opponent Name/i }), {
+          target: { value: 'HJ' },
+        });
+      });
+      expect(screen.queryByTestId('opponent-adopted-notice')).not.toBeInTheDocument();
+    });
+
+    /** No host handler means no promise we cannot keep. */
+    it('does not offer a rename the host cannot perform', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} knownOpponents={['ips musta']} />
+        </ToastProvider>,
+      );
+      await typeAndBlur('IPS/Musta');
+      expect(screen.queryByTestId('opponent-adopted-notice')).not.toBeInTheDocument();
+    });
+  });
+
 });
