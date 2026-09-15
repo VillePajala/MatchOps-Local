@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-16",
+      "en": [
+        "Typing a team's full name in the opponent field now shows that team and its sibling teams, instead of unrelated suggestions. Typing \"IPS\" brings up IPS, IPS/Sininen and IPS/Punainen."
+      ],
+      "fi": [
+        "Kun kirjoitat vastustajakenttään joukkueen koko nimen, näet nyt sen joukkueen ja saman seuran muut joukkueet, et enää muita ehdotuksia. \"IPS\" tuo esiin IPS:n, IPS/Sinisen ja IPS/Punaisen."
+      ]
+    },
+    {
       "date": "2026-09-15",
       "en": [
         "Statistics now show your record against each team: games, wins-draws-losses, goals and goal difference, for whatever the view is filtered to. Every spelling of a team counts as that one team.",
