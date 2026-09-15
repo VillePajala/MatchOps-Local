@@ -45,6 +45,22 @@ import {
  *   HomeTile             - a pair of equals, still its own object.
  *   cards (elsewhere)    - information worth its own surface.
  */
+/**
+ * ONE GAP, BOTH AXES. The tile pair and the action pair sit `gap-2.5` apart
+ * horizontally, so the stack between blocks uses the same 2.5 vertically -
+ * a different vertical rhythm from the horizontal one reads as a mistake even
+ * when nobody can name which number is wrong. No breakpoint bump for the same
+ * reason: a taller screen would open the vertical gaps and leave the
+ * horizontal ones at 2.5, breaking the unity exactly where there is most room
+ * to notice it. Gaps INSIDE a block (HomeGroup's dividers, the tab strip)
+ * are a different thing and keep their own values.
+ *
+ * Both are written out as whole class names, not composed from a shared '2.5',
+ * because Tailwind scans source for complete literals and would emit neither.
+ */
+const STACK = 'space-y-2.5';  // vertical
+const ROW_GAP = 'gap-2.5';    // horizontal
+
 const ROW_BASE =
   'w-full flex items-center gap-3 px-3.5 py-3 [@media(min-height:700px)]:py-3.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500';
 const ROW_ON = 'hover:bg-slate-700/50';
@@ -537,7 +553,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
 
           {/* === ACTION BUTTONS === */}
-          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'space-y-1.5 [@media(min-height:700px)]:space-y-2' : 'space-y-2 [@media(min-height:700px)]:space-y-3'}`}>
+          <div className={`max-w-sm mx-auto w-full ${STACK}`}>
             {activeTab === 'team' ? (
               /* Team panel (restructure 1.3b): every club-people item gets a
                  Home entry - the rows open the EXISTING modals (strangler). */
@@ -552,7 +568,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     kinds of thing: the PEOPLE in the club, and the MATERIAL a
                     coach consults. Before this they were five identical rows
                     with no indication that the boundary existed. */}
-                <div className="flex gap-2.5">
+                <div className={`flex ${ROW_GAP}`}>
                   <HomeTile
                     icon={HiOutlineUsers}
                     label={t('startScreen.rowPlayers', 'Players')}
@@ -816,7 +832,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                      these two step back. New Game still outranks the archive:
                      starting a match is why the app exists, browsing old ones
                      is occasional, and equal weight said otherwise. */
-                  <div className={dashboardOn ? 'flex gap-2.5' : 'space-y-3'}>
+                  <div className={dashboardOn ? `flex ${ROW_GAP}` : STACK}>
                     <button
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
