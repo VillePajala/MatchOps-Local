@@ -1152,4 +1152,57 @@ describe('GameStatsModal', () => {
       expect(screen.getByRole('heading', { name: i18n.t('gameStatsModal.playerStatsTitle') })).toBeInTheDocument();
     });
   });
+
+  /**
+   * The warning belongs where the damage shows. One team written several ways
+   * is several opponents to every aggregate figure on this screen, and the
+   * competitions manager - the only place this was surfaced before - is a
+   * screen a coach opens twice a season.
+   * @critical
+   */
+  describe('warning that team names split the figures', () => {
+    const withVariants = () => ({
+      ...getDefaultProps(),
+      aggregateOnly: true,
+      savedGames: {
+        g1: { ...minimalMockAppState, opponentName: 'IPS/Musta' },
+        g2: { ...minimalMockAppState, opponentName: 'ips musta' },
+      },
+    });
+
+    it('warns when a team is written more than one way', async () => {
+      renderComponent(withVariants() as TestProps);
+      await waitFor(() => {
+        expect(screen.getByTestId('stats-open-name-sweep')).toBeInTheDocument();
+      });
+    });
+
+    it('says nothing when every team is written one way', async () => {
+      renderComponent({
+        ...getDefaultProps(),
+        aggregateOnly: true,
+        savedGames: {
+          g1: { ...minimalMockAppState, opponentName: 'IPS/Musta' },
+          g2: { ...minimalMockAppState, opponentName: 'IPS/Musta' },
+        },
+      } as TestProps);
+      await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+      expect(screen.queryByTestId('stats-open-name-sweep')).not.toBeInTheDocument();
+    });
+
+    it('opens the tool that fixes it', async () => {
+      renderComponent(withVariants() as TestProps);
+      await waitFor(() => expect(screen.getByTestId('stats-open-name-sweep')).toBeInTheDocument());
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('stats-open-name-sweep'));
+      });
+      // A second dialog on top of the stats one. Asserted by role rather than
+      // by title: the sweep tool's strings are not in this suite's i18n bundle,
+      // so it renders its English fallbacks and a t() lookup here would compare
+      // the raw key against them.
+      await waitFor(() => {
+        expect(screen.getAllByRole('dialog').length).toBeGreaterThan(1);
+      });
+    });
+  });
 });

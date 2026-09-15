@@ -101,6 +101,18 @@ interface NewGameSetupModalProps {
    * keystroke to be worth anything.
    */
   knownOpponents?: string[];
+  /**
+   * Opponent names each competition has already met, keyed by season or
+   * tournament id. Supplied by the host from saved games, so a competition's
+   * list is useful without anyone curating one first.
+   */
+  playedOpponentsByCompetition?: Record<string, string[]>;
+  /**
+   * Replace every occurrence of one opponent spelling with another, across
+   * games and competition lists. Supplied by the host, which owns the writes.
+   * Without it the "use mine instead" offer simply does not appear.
+   */
+  onRenameOpponent?: (from: string, to: string) => Promise<unknown>;
   tournaments: Tournament[];
   teams: Team[];
   personnel: Personnel[];
@@ -121,6 +133,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   seasons,
   onAddOpponentToSeason,
   knownOpponents,
+  playedOpponentsByCompetition,
+  onRenameOpponent,
   tournaments,
   teams,
   personnel,
@@ -378,10 +392,22 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   // The teams listed on the competition this game belongs to. Offered as a
   // dropdown; the field stays free text, so nothing here can block a game.
+  //
+  // Curated names first, then the ones this competition has actually played.
+  // A coach who took the trouble to list their league should see their own
+  // order; everyone else - which prod says is everyone, 0 of 9 seasons have a
+  // list - still gets a useful list built from their own fixtures.
+  const competitionId = selectedSeasonId ?? selectedTournamentId;
   const seasonOpponents = useMemo<string[]>(() => {
-    if (!selectedSeasonId) return [];
-    return seasons.find((s) => s.id === selectedSeasonId)?.opponents ?? [];
-  }, [selectedSeasonId, seasons]);
+    const curated = selectedSeasonId
+      ? seasons.find((s) => s.id === selectedSeasonId)?.opponents ?? []
+      : [];
+    const played = competitionId ? playedOpponentsByCompetition?.[competitionId] ?? [] : [];
+    return [...curated, ...played].reduce<string[]>(
+      (kept, name) => addOpponentToList(kept, name),
+      [],
+    );
+  }, [selectedSeasonId, seasons, competitionId, playedOpponentsByCompetition]);
 
   // The competition's own teams lead, because those were curated for exactly
   // this fixture; everything else the coach has ever typed follows, so the
@@ -393,6 +419,91 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     ),
     [seasonOpponents, knownOpponents],
   );
+
+  /** A spelling the coach chose over the adopted one. Exempt from adoption. */
+  const [insistedSpelling, setInsistedSpelling] = useState<string | null>(null);
+
+  /**
+   * The spelling already in use for what the coach typed, or what they typed.
+   *
+   * `findExistingSpelling` was written for exactly this and was never wired to
+   * anything - it only decided whether to offer "add to this league", so the
+   * raw keystrokes still became the game's opponent. Prod shows what that
+   * costs: 13 opponents carry more than one spelling, one of them seven
+   * ("LAUTP / Sininen", "Lautp sininen", "LAUTP/Sininen", ...), and every
+   * variant differs only in case, spacing or slash - exactly what the
+   * normaliser already collapses.
+   *
+   * Matching is exact-after-normalising, never fuzzy, so a genuinely new name
+   * is returned untouched and "IPS/Punainen" is never adopted onto
+   * "IPS/Sininen". See utils/opponentNames.ts for why that matters here.
+   */
+  const canonicalOpponent = useCallback(
+    (raw: string) => {
+      const trimmed = raw.trim();
+      // A spelling the coach explicitly kept is never overridden again. The
+      // rename that backs their choice refreshes the pool asynchronously, so
+      // without this the submit-time pass could still see the old spelling and
+      // quietly undo the very correction they just made.
+      if (insistedSpelling && trimmed === insistedSpelling) return trimmed;
+      return findExistingSpelling(trimmed, opponentOptions) ?? trimmed;
+    },
+    [opponentOptions, insistedSpelling],
+  );
+
+  /**
+   * The spelling the coach typed, when adoption overrode it. Drives the offer
+   * to push their spelling back over the history instead.
+   *
+   * WITHOUT THIS, ADOPTION IS A TRAP. Once every entry is rewritten onto the
+   * first spelling, a second spelling can never appear, so "most used" can
+   * never shift and the sweep tool - which only lists names written two or
+   * more ways - never shows the name again. A name captured wrongly on its
+   * first use would have no route back. Refusal is what makes adoption safe.
+   */
+  const [adoptedOver, setAdoptedOver] = useState<{ typed: string; adopted: string } | null>(null);
+
+  // Applied on blur so the coach SEES the field settle on the existing
+  // spelling before starting the game. Silently rewriting it at submit alone
+  // would be a change they never witnessed - and a change they cannot see is
+  // one they cannot refuse.
+  const handleOpponentBlur = useCallback(() => {
+    setOpponentName((current) => {
+      const typed = current.trim();
+      const adopted = canonicalOpponent(typed);
+      setAdoptedOver(adopted && typed && adopted !== typed ? { typed, adopted } : null);
+      return adopted;
+    });
+  }, [canonicalOpponent]);
+
+  // Typing again is its own answer: the offer belongs to the text that is gone.
+  const handleOpponentNameChange = useCallback((value: string) => {
+    setAdoptedOver(null);
+    setInsistedSpelling((current) => (current === value.trim() ? current : null));
+    setOpponentName(value);
+  }, []);
+
+  /**
+   * "No, use mine" - keep the typed spelling AND rewrite every game and
+   * competition list that used the other one, so the correction is not undone
+   * by the next adoption.
+   */
+  const [keepingTyped, setKeepingTyped] = useState(false);
+  const handleKeepTypedSpelling = useCallback(async () => {
+    if (!adoptedOver || !onRenameOpponent) return;
+    const { typed, adopted } = adoptedOver;
+    setKeepingTyped(true);
+    try {
+      await onRenameOpponent(adopted, typed);
+      setInsistedSpelling(typed);
+      setOpponentName(typed);
+      setAdoptedOver(null);
+    } catch {
+      showToast(t('newGameSetupModal.keepSpellingFailed', 'Could not change the spelling. Please try again.'), 'error');
+    } finally {
+      setKeepingTyped(false);
+    }
+  }, [adoptedOver, onRenameOpponent, showToast, t]);
 
   // A typed name that is not on the list yet. Offering to add it HERE rather
   // than sending the coach to the competition manager is the point: a detour
@@ -707,7 +818,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   const handleStartClick = async () => {
     const trimmedHomeTeamName = homeTeamName.trim();
-    const trimmedOpponentName = opponentName.trim();
+    // Canonicalised, not just trimmed: blur normally handles this, but a name
+    // that arrived by prefill ("repeat last game") and was submitted without
+    // the field ever being focused would otherwise slip through untouched.
+    const trimmedOpponentName = canonicalOpponent(opponentName);
 
     if (!trimmedHomeTeamName) {
       setHomeTeamError(t('newGameSetupModal.homeTeamNameRequired', 'Home Team Name is required.'));
@@ -924,7 +1038,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   teamName={homeTeamName}
                   opponentName={opponentName}
                   onTeamNameChange={handleTeamNameChange}
-                  onOpponentNameChange={(v) => { setOpponentName(v); if (opponentError) setOpponentError(null); }}
+                  onOpponentNameChange={(v) => { handleOpponentNameChange(v); if (opponentError) setOpponentError(null); }}
                   teamLabel={t('newGameSetupModal.homeTeamName', 'Your Team Name') + ' *'}
                   teamPlaceholder={t('newGameSetupModal.homeTeamPlaceholder', 'e.g., Galaxy U10')}
                   opponentLabel={t('newGameSetupModal.opponentNameLabel', 'Opponent Name') + ' *'}
@@ -935,8 +1049,36 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   teamError={homeTeamError}
                   opponentError={opponentError}
                   opponentOptions={opponentOptions}
+                  onOpponentBlur={handleOpponentBlur}
                   opponentFooter={
-                    opponentIsNew ? (
+                    /* The adoption notice outranks "add to this league": the
+                       field just changed under the coach's hands, and telling
+                       them so - with the way out - matters more than an
+                       invitation to curate. */
+                    adoptedOver && onRenameOpponent ? (
+                      <div className="mt-2" data-testid="opponent-adopted-notice">
+                        <p className="text-xs text-slate-400">
+                          {t(
+                            'newGameSetupModal.opponentAdopted',
+                            'Changed to “{{adopted}}”, the spelling you have used before.',
+                            { adopted: adoptedOver.adopted },
+                          )}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleKeepTypedSpelling}
+                          disabled={keepingTyped}
+                          data-testid="opponent-keep-typed"
+                          className="mt-1.5 px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-100 text-xs font-semibold shadow-sm transition-colors disabled:opacity-50"
+                        >
+                          {keepingTyped
+                            ? t('newGameSetupModal.keepSpellingWorking', 'Changing…')
+                            : t('newGameSetupModal.keepSpelling', 'Use “{{typed}}” everywhere instead', {
+                                typed: adoptedOver.typed,
+                              })}
+                        </button>
+                      </div>
+                    ) : opponentIsNew ? (
                       <button
                         type="button"
                         onClick={handleAddOpponentToSeason}

@@ -6,7 +6,12 @@ import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import { getSeasons } from '@/utils/seasons';
 import { getSavedGames } from '@/utils/savedGames';
-import { groupOpponentVariants, type OpponentVariantGroup } from '@/utils/opponentNames';
+import {
+  groupOpponentVariants,
+  listOpponents,
+  type OpponentVariantGroup,
+  type OpponentUsage,
+} from '@/utils/opponentNames';
 import type { Season } from '@/types';
 import type { SavedGamesCollection } from '@/types/game';
 
@@ -44,6 +49,32 @@ export function useOpponentVariantGroups(enabled = true): OpponentVariantGroup[]
     const fromGames = Object.values(savedGames ?? {}).map((g) => g?.opponentName ?? '');
     const fromSeasons = (seasons ?? []).flatMap((s) => s.opponents ?? []);
     return groupOpponentVariants([...fromGames, ...fromSeasons]);
+  }, [savedGames, seasons]);
+}
+
+/**
+ * Every opponent, one row each, from the same occurrences the conflict list
+ * reads. Same source on purpose: "12 teams" and "2 of them written two ways"
+ * must never be computed from different data.
+ */
+export function useAllOpponents(enabled = true): OpponentUsage[] {
+  const { userId } = useDataStore();
+
+  const { data: seasons } = useQuery<Season[]>({
+    queryKey: [...queryKeys.seasons, userId],
+    queryFn: () => getSeasons(userId),
+    enabled,
+  });
+  const { data: savedGames } = useQuery<SavedGamesCollection>({
+    queryKey: [...queryKeys.savedGames, userId],
+    queryFn: () => getSavedGames(userId),
+    enabled,
+  });
+
+  return useMemo(() => {
+    const fromGames = Object.values(savedGames ?? {}).map((g) => g?.opponentName ?? '');
+    const fromSeasons = (seasons ?? []).flatMap((s) => s.opponents ?? []);
+    return listOpponents([...fromGames, ...fromSeasons]);
   }, [savedGames, seasons]);
 }
 

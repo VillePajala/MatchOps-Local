@@ -6,7 +6,7 @@ import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import { getSeasons } from '@/utils/seasons';
 import { getSavedGames } from '@/utils/savedGames';
-import { addOpponentToList } from '@/utils/opponentNames';
+import { addOpponentToList, preferredSpellings } from '@/utils/opponentNames';
 import type { Season, SavedGamesCollection } from '@/types';
 
 /**
@@ -47,10 +47,14 @@ export function useOpponentSuggestions(): string[] {
     const fromCompetitions = (seasons ?? []).flatMap((s) => s.opponents ?? []);
     const fromGames = Object.values(savedGames ?? {}).map((g) => g?.opponentName ?? '');
 
-    return [...fromCompetitions, ...fromGames].reduce<string[]>(
-      (kept, name) => addOpponentToList(kept, name),
-      [],
-    );
+    // Two tiers, not one ranking: a curated name outranks a frequent one
+    // because the coach typed it into a list on purpose, and WITHIN each tier
+    // the most-used spelling wins. Ranking the two together would let six
+    // games written one way overrule the list the coach actually wrote.
+    return [
+      ...preferredSpellings(fromCompetitions),
+      ...preferredSpellings(fromGames),
+    ].reduce<string[]>((kept, name) => addOpponentToList(kept, name), []);
   }, [seasons, savedGames]);
 }
 

@@ -552,6 +552,8 @@
     "warnings": "Warnings"
   },
   "gameStatsModal": {
+    "nameConflicts": "{{count}} teams are written several ways, so they count as separate opponents here.",
+    "nameConflictsAction": "Check team names",
     "title": "Game Statistics",
     "closeButton": "Close",
     "editButton": "Edit",
@@ -1082,6 +1084,10 @@
     "prefillMissingPlayers_one": "{{count}} planned player is not in this roster and was skipped.",
     "prefillMissingPlayers_other": "{{count}} planned players are not in this roster and were skipped.",
     "addOpponentToSeason": "Add to this league",
+    "opponentAdopted": "Changed to “{{adopted}}”, the spelling you have used before.",
+    "keepSpelling": "Use “{{typed}}” everywhere instead",
+    "keepSpellingWorking": "Changing…",
+    "keepSpellingFailed": "Could not change the spelling. Please try again.",
     "opponentAddFailed": "Could not add the team to the league."
   },
   "gameSettingsModal": {
@@ -3706,6 +3712,10 @@
     "discard": "Discard this draft",
     "previewToggle": "Preview the text",
     "applied": "Draft saved to the match report.",
+    "allTeamsTitle": "All teams",
+    "allTeamsHint": "Rename any team, even one that is spelled the same way everywhere.",
+    "filterPlaceholder": "Search teams",
+    "usedIn": "{{count}} games",
     "applyFailed": "Could not save the draft.",
     "undo": "Undo: bring my earlier text back",
     "undone": "Your earlier report text is back.",

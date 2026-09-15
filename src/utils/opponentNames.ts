@@ -81,6 +81,102 @@ export function addOpponentToList(list: readonly string[], name: string): string
   return [...list, trimmed];
 }
 
+/**
+ * One spelling per name, chosen the way the sweep tool chooses its suggestion:
+ * MOST USED, ties broken by first appearance.
+ *
+ * WHY THIS EXISTS. Both halves of the feature answer "which spelling is the
+ * real one", and they must not answer it differently. The sweep tool ranks by
+ * use. Entry-time adoption used to take whatever `find` hit first in a pool
+ * assembled from saved games in database order - so a spelling typed once
+ * could outrank one typed six times, and the field would pull a coach back
+ * onto a variant the sweep tool was simultaneously offering to replace.
+ *
+ * Ranking the pool fixes that at the source rather than at each call site:
+ * `findExistingSpelling` still returns the first match, but the first match is
+ * now the most-used one. A one-off typo is outvoted as soon as the name is
+ * typed correctly more often than not.
+ *
+ * Input is every occurrence, not a deduplicated list - the repetition is what
+ * produces the ranking. Names with a single spelling pass through unchanged.
+ */
+export function preferredSpellings(occurrences: readonly string[]): string[] {
+  const byName = new Map<string, { counts: Map<string, number>; firstSeen: string[] }>();
+
+  for (const raw of occurrences) {
+    const spelling = (raw ?? '').trim();
+    const key = normalizeOpponentName(spelling);
+    if (!key) continue;
+    let entry = byName.get(key);
+    if (!entry) {
+      entry = { counts: new Map(), firstSeen: [] };
+      byName.set(key, entry);
+    }
+    if (!entry.counts.has(spelling)) entry.firstSeen.push(spelling);
+    entry.counts.set(spelling, (entry.counts.get(spelling) ?? 0) + 1);
+  }
+
+  // Map order is the order names were first seen, so the returned list keeps a
+  // stable, explainable sequence rather than jumping about as counts change.
+  return [...byName.values()].map(({ counts, firstSeen }) =>
+    firstSeen.reduce((best, spelling) =>
+      (counts.get(spelling) ?? 0) > (counts.get(best) ?? 0) ? spelling : best,
+    ),
+  );
+}
+
+/** One opponent, however it is spelled, with how much it is used. */
+export interface OpponentUsage {
+  /** The normalised key. Not for display; identifies the name for a rename. */
+  key: string;
+  /** The spelling to show: the most used, ties broken by first appearance. */
+  spelling: string;
+  /** Total occurrences across every spelling of this name. */
+  count: number;
+  /** How many distinct spellings exist. More than one means a conflict. */
+  variants: number;
+}
+
+/**
+ * Every opponent this coach has, one row each, most used first.
+ *
+ * WHY THIS IS SEPARATE FROM groupOpponentVariants. That function answers "what
+ * is inconsistent" and deliberately drops any name written only one way. But a
+ * name can be consistently WRONG - captured badly on its first use and then
+ * repeated - and such a name is invisible to a conflict list by definition.
+ * Without this, the app could tidy up disagreements and still offer no way to
+ * correct a name every record agrees on.
+ *
+ * Input is every occurrence, so `count` is usage rather than distinct rows.
+ */
+export function listOpponents(occurrences: readonly string[]): OpponentUsage[] {
+  const byName = new Map<string, { counts: Map<string, number>; firstSeen: string[] }>();
+
+  for (const raw of occurrences) {
+    const spelling = (raw ?? '').trim();
+    const key = normalizeOpponentName(spelling);
+    if (!key) continue;
+    let entry = byName.get(key);
+    if (!entry) {
+      entry = { counts: new Map(), firstSeen: [] };
+      byName.set(key, entry);
+    }
+    if (!entry.counts.has(spelling)) entry.firstSeen.push(spelling);
+    entry.counts.set(spelling, (entry.counts.get(spelling) ?? 0) + 1);
+  }
+
+  return [...byName.entries()]
+    .map(([key, { counts, firstSeen }]) => ({
+      key,
+      spelling: firstSeen.reduce((best, s) =>
+        (counts.get(s) ?? 0) > (counts.get(best) ?? 0) ? s : best,
+      ),
+      count: [...counts.values()].reduce((sum, n) => sum + n, 0),
+      variants: counts.size,
+    }))
+    .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+}
+
 /** One group of spellings that all denote the same name. */
 export interface OpponentVariantGroup {
   /** The normalised key the variants share. Not for display. */

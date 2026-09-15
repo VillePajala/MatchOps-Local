@@ -803,6 +803,8 @@
     "sortByOldest": "Vanhimmat"
   },
   "gameStatsModal": {
+    "nameConflicts": "{{count}} joukkuetta on kirjoitettu usealla tavalla, joten ne lasketaan tässä eri vastustajiksi.",
+    "nameConflictsAction": "Tarkista joukkueiden nimet",
     "title": "Ottelutilastot",
     "closeButton": "Sulje",
     "editButton": "Muokkaa",
@@ -1094,6 +1096,10 @@
     "prefillMissingPlayers_one": "{{count}} suunniteltu pelaaja ei ole tässä pelaajalistassa ja jätettiin pois.",
     "prefillMissingPlayers_other": "{{count}} suunniteltua pelaajaa ei ole tässä pelaajalistassa ja jätettiin pois.",
     "addOpponentToSeason": "Lisää sarjaan",
+    "opponentAdopted": "Vaihdettu muotoon ”{{adopted}}”, jota olet käyttänyt aiemmin.",
+    "keepSpelling": "Käytä kaikkialla muotoa ”{{typed}}”",
+    "keepSpellingWorking": "Vaihdetaan…",
+    "keepSpellingFailed": "Kirjoitusasun vaihto ei onnistunut. Yritä uudelleen.",
     "opponentAddFailed": "Joukkuetta ei voitu lisätä sarjaan."
   },
   "startScreen": {
@@ -3706,6 +3712,10 @@
     "discard": "Hylkää luonnos",
     "previewToggle": "Esikatsele teksti",
     "applied": "Luonnos tallennettu otteluraporttiin.",
+    "allTeamsTitle": "Kaikki joukkueet",
+    "allTeamsHint": "Voit vaihtaa minkä tahansa joukkueen nimen, vaikka se olisi kirjoitettu kaikkialla samalla tavalla.",
+    "filterPlaceholder": "Hae joukkueita",
+    "usedIn": "{{count}} ottelua",
     "applyFailed": "Luonnoksen tallennus ei onnistunut.",
     "undo": "Peruuta: palauta aiempi tekstini",
     "undone": "Aiempi raporttitekstisi on palautettu.",
