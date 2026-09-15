@@ -116,10 +116,10 @@ const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; href: string }> = ({
  * shape from a Row, so a pair of equals does not look like two truncated rows.
  * Keeps its own border, because a pair genuinely is two objects.
  *
- * Wears HOME_CARD, the same gradient as the resume card, so the club tab has
- * the colour the other tabs had and it is the app's one card surface rather
- * than a second one invented for here. Disabled stays slate - a tile you
- * cannot press has no business wearing the live colour.
+ * Wears HOME_CARD, the shared Home card surface, so the club tab has the
+ * colour the other tabs had without inventing a second surface for here.
+ * Disabled stays slate - a tile you cannot press has no business wearing the
+ * live colour.
  */
 const HomeTile: React.FC<{
   icon: RowIcon;
