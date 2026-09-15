@@ -115,6 +115,13 @@ const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; href: string }> = ({
  * Half-width tile. Icon above the label, centred - deliberately a different
  * shape from a Row, so a pair of equals does not look like two truncated rows.
  * Keeps its own border, because a pair genuinely is two objects.
+ *
+ * Indigo, by the rule the other tabs already follow: a REPEATED equal card
+ * takes the flat indigo surface (the recent-games cards), a SINGLE full-width
+ * summary takes the indigo gradient (the resume card, the season card). Pelit
+ * and Kilpailut each had a coloured element and Seura had none, which read as
+ * the club tab being the unfinished one. Disabled stays slate - a tile you
+ * cannot press has no business wearing the live colour.
  */
 const HomeTile: React.FC<{
   icon: RowIcon;
@@ -131,10 +138,10 @@ const HomeTile: React.FC<{
     className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3 [@media(min-height:700px)]:py-3.5 rounded-xl border text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
       disabled
         ? 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-        : 'bg-slate-800/70 border-slate-700/50 hover:bg-slate-700/70'
+        : 'bg-indigo-900/70 border-indigo-600/50 hover:bg-indigo-800/70'
     }`}
   >
-    <Icon className="w-5 h-5 text-slate-400" aria-hidden="true" />
+    <Icon className="w-5 h-5 text-indigo-300" aria-hidden="true" />
     <span className="text-sm font-semibold text-white leading-tight">{label}</span>
   </button>
 );
