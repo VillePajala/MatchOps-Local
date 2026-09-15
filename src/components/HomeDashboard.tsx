@@ -147,22 +147,30 @@ export function HomeDashboard({
       {summary.resume && <ResumeCard resume={summary.resume} onResume={onResume} t={t} />}
       {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
       {summary.recent.length > 0 && (
-        /* The strip scrolls, and the card at the edge used to be cut clean
-           through its own border - which reads as a rendering fault, not as
-           an invitation to scroll. The gradient lets it dissolve instead.
-           pointer-events-none so it never eats a tap on the card beneath. */
-        <div className="relative">
-          <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
-            {summary.recent.map((game) => (
-              <RecentCard key={game.id} game={game} onOpen={onOpenGame} />
-            ))}
+        /* Label and strip are one block: the heading's margin is spacing
+           INSIDE it, not a gap between blocks, so the Home stack's own gap is
+           still the only thing separating this from what follows. */
+        <div>
+          <div className="text-xs font-semibold text-slate-400 px-1 mb-1.5">
+            {t('startScreen.dashRecent', 'Recent')}
           </div>
-          {summary.recent.length > 2 && (
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-slate-900 to-transparent"
-            />
-          )}
+          {/* The strip scrolls, and the card at the edge used to be cut clean
+              through its own border - which reads as a rendering fault, not as
+              an invitation to scroll. The gradient lets it dissolve instead.
+              pointer-events-none so it never eats a tap on the card beneath. */}
+          <div className="relative">
+            <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
+              {summary.recent.map((game) => (
+                <RecentCard key={game.id} game={game} onOpen={onOpenGame} />
+              ))}
+            </div>
+            {summary.recent.length > 2 && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-slate-900 to-transparent"
+              />
+            )}
+          </div>
         </div>
       )}
     </>
