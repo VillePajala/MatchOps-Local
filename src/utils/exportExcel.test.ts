@@ -911,4 +911,57 @@ describe('Excel Export Utilities', () => {
       }).toThrow('Failed to export game to Excel');
     });
   });
+
+  /**
+   * The breakdown a coach would otherwise build by hand in the spreadsheet -
+   * and would build wrongly, because a raw opponentName column splits one team
+   * across several rows.
+   * @critical
+   */
+  describe('opponent breakdown sheet', () => {
+    // Local rather than the outer describe's fixture: that one is scoped to
+    // another block, and these tests care only about the opponent sheet.
+    const noPlayerStats: PlayerStatRow[] = [];
+
+    const gameVs = (opponentName: string, our: number, theirs: number) =>
+      ({
+        playersOnField: [], opponents: [], drawings: [], availablePlayers: [],
+        showPlayerNames: true, teamName: 'Us', gameEvents: [],
+        opponentName, homeOrAway: 'home', homeScore: our, awayScore: theirs,
+        gameDate: '2024-01-01', isPlayed: true, selectedPlayerIds: [],
+      }) as unknown as SavedGamesCollection[string];
+
+    it('groups every spelling of a team into one row', () => {
+      const games: SavedGamesCollection = {
+        g1: gameVs('LauTP / Sininen', 2, 0),
+        g2: gameVs('LAUTP/Sininen', 1, 3),
+        g3: gameVs('HJK', 1, 1),
+      };
+      exportAggregateExcel(games, noPlayerStats, [], [], []);
+      const workbook = (XLSX.utils.book_new as jest.Mock).mock.results[0].value;
+      expect(workbook.SheetNames).toContain('Opponent Breakdown');
+
+      const sheetCall = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls.find(
+        (call) => Array.isArray(call[0]) && call[0][0] && 'Opponent' in call[0][0],
+      );
+      expect(sheetCall).toBeDefined();
+      const rows = sheetCall![0] as Array<Record<string, unknown>>;
+      // Two teams, not three rows: the two LauTP spellings are one team.
+      expect(rows).toHaveLength(2);
+      const lautp = rows.find((r) => String(r['Opponent']).toLowerCase().includes('lautp'))!;
+      expect(lautp['Games Played']).toBe(2);
+      expect(lautp['Record']).toBe('1-1-0');
+    });
+
+    /** One opponent restates the Team Performance sheet, so it is omitted. */
+    it('is omitted when there is only one opponent', () => {
+      exportAggregateExcel(
+        { g1: gameVs('HJK', 1, 0), g2: gameVs('HJK', 2, 0) },
+        noPlayerStats,
+        [], [], [],
+      );
+      const workbook = (XLSX.utils.book_new as jest.Mock).mock.results[0].value;
+      expect(workbook.SheetNames).not.toContain('Opponent Breakdown');
+    });
+  });
 });

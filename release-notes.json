@@ -2,6 +2,19 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-15",
+      "en": [
+        "Statistics now show your record against each team: games, wins-draws-losses, goals and goal difference, for whatever the view is filtered to. Every spelling of a team counts as that one team.",
+        "Saved games can be filtered by opponent. Picking a team finds every game against it however the name was written, without pulling in a different team that shares the club name.",
+        "The Excel export has an Opponent Breakdown sheet with the same per-team record, grouped the same way."
+      ],
+      "fi": [
+        "Tilastot näyttävät nyt tuloksesi kutakin joukkuetta vastaan: ottelut, voitot-tasapelit-häviöt, maalit ja maaliero sen mukaan, mitä näkymässä on rajattu. Joukkueen kaikki kirjoitusasut lasketaan samaksi joukkueeksi.",
+        "Tallennettuja otteluita voi suodattaa vastustajan mukaan. Joukkueen valitseminen löytää kaikki ottelut sitä vastaan riippumatta siitä, miten nimi on kirjoitettu, eikä tuo mukaan saman seuran toista joukkuetta.",
+        "Excel-vientiin tuli Vastustajaerittely-välilehti, jossa on sama joukkuekohtainen tulos samalla tavalla ryhmiteltynä."
+      ]
+    },
+    {
       "date": "2026-09-16",
       "en": [
         "Typing a team's full name in the opponent field now shows that team and its sibling teams, instead of unrelated suggestions. Typing \"IPS\" brings up IPS, IPS/Sininen and IPS/Punainen."
