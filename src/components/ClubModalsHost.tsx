@@ -187,6 +187,35 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     [seasonTournament.seasons, newGameSetup.savedGames],
   );
 
+  /**
+   * Opponent names each competition has ALREADY MET, keyed by season or
+   * tournament id. Derived, never stored, exactly like knownOpponents above.
+   *
+   * WHY THIS EXISTS AT ALL. A season carries a curated `opponents` list, but
+   * prod says 0 of 9 seasons have one - curating twelve names up front is
+   * homework, and typing the opponent takes two seconds, so the homework does
+   * not happen and the list stays empty forever. Games already record who was
+   * played; that IS the league's team list, arriving for free, one fixture at
+   * a time. The dropdown becomes useful on game two instead of after a chore.
+   *
+   * It covers tournaments too, which is deliberate: prod shows only 6.5% of
+   * tournament games are against a team met again in the same tournament, so
+   * asking a coach to curate a tournament list would never pay - but deriving
+   * one costs nothing and helps the cases that do repeat.
+   */
+  const playedOpponentsByCompetition = React.useMemo(() => {
+    const byCompetition: Record<string, string[]> = {};
+    for (const game of Object.values(newGameSetup.savedGames ?? {})) {
+      const name = game?.opponentName ?? '';
+      if (!name.trim()) continue;
+      for (const id of [game?.seasonId, game?.tournamentId]) {
+        if (!id) continue;
+        byCompetition[id] = addOpponentToList(byCompetition[id] ?? [], name);
+      }
+    }
+    return byCompetition;
+  }, [newGameSetup.savedGames]);
+
   // Cancel/close for NewGameSetup: reset the controller's slider state and
   // clear the shared prefill so the next open starts from modal defaults.
   const handleCloseNewGameSetup = () => {
@@ -386,6 +415,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
             });
           }}
           knownOpponents={knownOpponents}
+          playedOpponentsByCompetition={playedOpponentsByCompetition}
         />
       )}
       <ConfirmationModal
