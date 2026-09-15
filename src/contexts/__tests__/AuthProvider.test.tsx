@@ -623,6 +623,100 @@ describe('AuthProvider', () => {
       backendConfig.getBackendMode.mockReturnValue('cloud');
     });
 
+    /**
+     * @critical - the returning-user path, which had NO coverage and is the
+     * common one: the app keeps you signed in, so reopening it RESTORES a
+     * session without calling signIn(). The consent check lived only in
+     * signIn() and 'token_refreshed', so a user on an old policy was not
+     * prompted at startup - the prompt waited for a background token refresh
+     * and landed mid-task, where the modal's only exit signs you out.
+     */
+    it('prompts for re-consent when a RESTORED session predates the policy', async () => {
+      // createMockCloudAuthService(true) starts with an existing session, i.e.
+      // the app reopening with a stored login - no signIn() call anywhere.
+      mockAuthService.getLatestConsent = jest.fn().mockResolvedValue({
+        policyVersion: '2024-01',
+        consentedAt: new Date().toISOString(),
+      });
+
+      function RestoredSessionComponent() {
+        const { needsReConsent, isLoading } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <span data-testid="needs-reconsent">{needsReConsent ? 'yes' : 'no'}</span>
+          </div>
+        );
+      }
+
+      render(
+        <AuthProvider>
+          <RestoredSessionComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('yes');
+      });
+    });
+
+    it('leaves a restored session alone when its consent is current', async () => {
+      mockAuthService.getLatestConsent = jest.fn().mockResolvedValue({
+        policyVersion: POLICY_VERSION,
+        consentedAt: new Date().toISOString(),
+      });
+
+      function CurrentConsentComponent() {
+        const { needsReConsent, isLoading } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <span data-testid="needs-reconsent">{needsReConsent ? 'yes' : 'no'}</span>
+          </div>
+        );
+      }
+
+      render(
+        <AuthProvider>
+          <CurrentConsentComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+      expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('no');
+    });
+
+    /** Startup must never be blocked by a consent lookup that fails. */
+    it('still finishes loading when the consent check throws on restore', async () => {
+      mockAuthService.getLatestConsent = jest.fn().mockRejectedValue(new Error('boom'));
+
+      function FailingConsentComponent() {
+        const { isLoading, needsReConsent } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <span data-testid="needs-reconsent">{needsReConsent ? 'yes' : 'no'}</span>
+          </div>
+        );
+      }
+
+      render(
+        <AuthProvider>
+          <FailingConsentComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+      expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('no');
+    });
+
     it('should set needsReConsent when user has old policy version', async () => {
       // Mock old policy version
       mockAuthService.getLatestConsent = jest.fn().mockResolvedValue({

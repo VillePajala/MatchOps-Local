@@ -7,13 +7,17 @@
         "Lines that separate things are drawn like the markings on the pitch - thin and white - instead of grey seams.",
         "Text is bigger and easier to read in a lot of places, especially the small explanatory text under settings, and the tiniest labels are gone.",
         "Teams can be given their kit colour, which then shows as a stripe beside the team name. The colour was always stored but there was no way to choose one.",
-        "The score in the match bar is much bigger. It was the same size as ordinary text while the timer and the home screen counters were far larger."
+        "The score in the match bar is much bigger. It was the same size as ordinary text while the timer and the home screen counters were far larger.",
+        "Blocks on the home screen are spaced evenly. The same gap now separates them whether they sit side by side or stacked, and individual blocks no longer add space of their own on top of it.",
+        "The Players and Teams tiles and the statistics tiles are coloured like the cards on the games and competitions tabs, instead of being the only plain grey ones."
       ],
       "fi": [
         "Asioita erottavat viivat piirretään kuin kentän viivat - ohuina ja valkoisina - harmaiden saumojen sijaan.",
         "Teksti on isompaa ja luettavampaa monin paikoin, erityisesti asetusten selitystekstit, ja kaikkein pienimmät tekstit on poistettu.",
         "Joukkueelle voi nyt valita peliasun värin, joka näkyy raitana joukkueen nimen vieressä. Väri on aina tallennettu, mutta sitä ei päässyt valitsemaan.",
-        "Ottelupalkin tulos on selvästi isompi. Se oli samankokoinen kuin tavallinen teksti, vaikka kello ja alkunäkymän luvut ovat paljon suurempia."
+        "Ottelupalkin tulos on selvästi isompi. Se oli samankokoinen kuin tavallinen teksti, vaikka kello ja alkunäkymän luvut ovat paljon suurempia.",
+        "Alkunäkymän lohkojen välit ovat yhtenäiset. Sama väli erottaa ne sekä vierekkäin että allekkain, eivätkä yksittäiset lohkot enää lisää siihen omaa ylimääräistä väliään.",
+        "Pelaajat- ja Joukkueet-ruudut sekä tilastoruudut on väritetty samoin kuin Pelit- ja Kilpailut-välilehtien kortit, eivätkä ne enää ole ainoat harmaat."
       ]
     },
     {
@@ -25,6 +29,24 @@
       "fi": [
         "Escape-näppäin sulkee nyt lähes kaikki sovelluksen ikkunat - aiemmin se toimi noin kolmasosassa. Jos ikkunan päällä on varmistus, Escape sulkee ensin vain varmistuksen.",
         "Ruudunlukuohjelmat tunnistavat nyt jokaisen ikkunan ikkunaksi ja lukevat sen otsikon, mikä ei aiemmin toiminut kaikissa näkymissä."
+      ]
+    },
+    {
+      "date": "2026-09-14",
+      "en": [
+        "When the planner suggests a lineup, half-time changes now go to the right midfielder first, then the left, then the striker. With two substitutes that means both wide midfield places, where the running is hardest to sustain."
+      ],
+      "fi": [
+        "Kun suunnittelu ehdottaa kokoonpanoa, puoliajan vaihdot menevät nyt ensin oikealle laitahyökkääjälle, sitten vasemmalle ja vasta sen jälkeen kärkeen. Kahdella vaihtopelaajalla molemmat laitapaikat, joissa juoksua on vaikeinta jaksaa."
+      ]
+    },
+    {
+      "date": "2026-09-14",
+      "en": [
+        "The updated terms prompt now appears when you open the app, instead of interrupting you later while you are in the middle of something."
+      ],
+      "fi": [
+        "Päivitettyjen ehtojen hyväksyntä kysytään nyt sovellusta avatessa, eikä keskeytä työtä kesken kaiken myöhemmin."
       ]
     },
     {

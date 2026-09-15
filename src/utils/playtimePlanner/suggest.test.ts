@@ -42,6 +42,34 @@ describe('suggestFairShareLineup', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  /**
+   * @critical - the owner's own formation and the order they coach to. The
+   * running-load table ranks the striker top, and the test above is right to
+   * assert that for a formation with no wide midfielders - but where RM and LM
+   * exist they come first, because wide mids cover the most ground repeatedly
+   * where a striker's work is intermittent.
+   */
+  it('relieves RM, then LM, then ST when the formation has wide midfielders', () => {
+    const labelBySlot = new Map(
+      getGameSlots('8v8-2-1-2-1-1').map((s) => [
+        s.slotId,
+        s.isGoalie ? 'GK' : getPositionLabelForFormationPosition(s.relX, s.relY).label,
+      ]),
+    );
+
+    // 11 players against 8 slots leaves a bench of 3 - enough to see all three.
+    const three = suggestFairShareLineup(
+      plan([game('g1', { formationId: '8v8-2-1-2-1-1' })], 11),
+    ).games[0];
+    expect(three.subs.map((s) => labelBySlot.get(s.slotId))).toEqual(['RM', 'LM', 'ST']);
+
+    // Two subs must take the first two, not the striker.
+    const two = suggestFairShareLineup(
+      plan([game('g2', { formationId: '8v8-2-1-2-1-1' })], 10),
+    ).games[0];
+    expect(two.subs.map((s) => labelBySlot.get(s.slotId))).toEqual(['RM', 'LM']);
+  });
+
   it('targets the HIGHEST-running positions for subs (wingers/striker first)', () => {
     // 8v8-3-3-1 (GK + 3 def + 3 mid + 1 att) with 2 bench players: the two
     // half-time changes must land on the two highest-running outfield slots -
