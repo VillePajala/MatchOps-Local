@@ -101,4 +101,50 @@ describe('TeamOpponentInputs suggestion chips', () => {
     renderInputs({ opponentOptions: [] });
     expect(screen.queryByTestId('opponent-options')).not.toBeInTheDocument();
   });
+
+  /**
+   * Reported from a real phone: typing "Ips" with "IPS" already known showed
+   * six unrelated teams. Text that exactly matched an option used to reopen
+   * the whole list, which was invisible while the list was uncapped and a
+   * visibly broken search once it was capped at six.
+   * @critical
+   */
+  describe('text in the field always filters', () => {
+    const ipsPool = [
+      'KTP Juniorit / Raita',
+      'KJP/3',
+      'KJP/4',
+      'JIPPO / Valkoinen',
+      'Ylämyllyn Yllätys / Sinivalkoinen',
+      'FC LaPa P9',
+      'IPS',
+      'IPS/Sininen',
+      'IPS/Punainen',
+    ];
+
+    it('finds a team whose name is typed in full', () => {
+      renderInputs({ opponentOptions: ipsPool, opponentName: 'Ips' });
+      expect(chipNames()).toContain('IPS');
+    });
+
+    /** Club + colour is how Finnish teams are named, so siblings are the point. */
+    it('offers the sibling teams alongside it', () => {
+      renderInputs({ opponentOptions: ipsPool, opponentName: 'Ips' });
+      expect(chipNames()).toEqual(
+        expect.arrayContaining(['IPS', 'IPS/Sininen', 'IPS/Punainen']),
+      );
+    });
+
+    it('drops the teams that do not match', () => {
+      renderInputs({ opponentOptions: ipsPool, opponentName: 'Ips' });
+      expect(chipNames()).not.toContain('KJP/3');
+      expect(chipNames()).not.toContain('KTP Juniorit / Raita');
+    });
+
+    /** After tapping a chip the field holds that exact name; still filtered. */
+    it('keeps filtering after a chip has been tapped', () => {
+      renderInputs({ opponentOptions: ipsPool, opponentName: 'KJP/3' });
+      expect(chipNames()).toEqual(['KJP/3']);
+    });
+  });
 });
