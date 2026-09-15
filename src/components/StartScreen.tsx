@@ -562,7 +562,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <HomeCountsBar counts={homeSummary.counts} t={t} />
                 )}
                 {homeSummary?.countsReady && homeSummary.counts.players === 0 && (
-                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
+                  <p className="text-sm text-slate-400 px-1 text-center">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
                 )}
                 {/* Two groups, because the Club tab holds two different
                     kinds of thing: the PEOPLE in the club, and the MATERIAL a
@@ -632,7 +632,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   />
                 )}
                 {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
-                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyCompetitions', 'Create a league or tournament to group your games.')}</p>
+                  <p className="text-sm text-slate-400 px-1 text-center">{t('startScreen.emptyCompetitions', 'Create a league or tournament to group your games.')}</p>
                 )}
                 <HomeGroup>
                   <HomeRow
@@ -672,7 +672,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   </>
                 )}
                 {!hasSavedGames && (
-                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
+                  <p className="text-sm text-slate-400 px-1 text-center">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
                 )}
                 {/* Each scope gets the icon of the thing it aggregates, so the
                     four are told apart at a glance rather than by reading four

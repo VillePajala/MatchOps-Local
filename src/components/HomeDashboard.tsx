@@ -130,7 +130,7 @@ export function HomeDashboard({
            an invitation to scroll. The gradient lets it dissolve instead.
            pointer-events-none so it never eats a tap on the card beneath. */
         <div className="relative">
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
             {summary.recent.map((game) => (
               <RecentCard key={game.id} game={game} onOpen={onOpenGame} />
             ))}
@@ -171,7 +171,7 @@ export function HomeTeamScopeSelect({
   // wall once real data (six same-named teams with context) hit them.
   return (
     <label
-      className="w-full flex items-center gap-2 px-3.5 py-2.5 mb-3 rounded-xl bg-slate-800/70 border border-slate-700/60 text-[13px] focus-within:ring-2 focus-within:ring-indigo-500"
+      className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60 text-[13px] focus-within:ring-2 focus-within:ring-indigo-500"
       data-testid="home-team-scope"
     >
       <span className="font-extrabold text-indigo-200 whitespace-nowrap">{t('startScreen.dashTeamLabel', 'Team')}</span>
@@ -202,7 +202,7 @@ export function HomeCountsBar({ counts, t }: { counts: HomeSummary['counts']; t:
     t('startScreen.dashPersonnelCount', '{{count}} staff', { count: counts.personnel }),
   ];
   return (
-    <div className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-[13px] text-slate-300 mb-4">
+    <div className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-[13px] text-slate-300">
       {parts.map((p, i) => (
         <React.Fragment key={p}>
           {i > 0 && <span className="text-slate-600" aria-hidden="true">·</span>}
@@ -225,7 +225,7 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
     <button
       type="button"
       onClick={onOpen}
-      className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-indigo-900/70 to-slate-800/70 border border-indigo-700/40 hover:from-indigo-900/90 hover:to-slate-800/90 transition-all mb-4"
+      className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-indigo-900/70 to-slate-800/70 border border-indigo-700/40 hover:from-indigo-900/90 hover:to-slate-800/90 transition-all"
     >
       <div className="text-xs font-semibold text-indigo-300/80">
         {t('startScreen.dashClubSeason', 'This season')}
@@ -268,7 +268,7 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
     </div>
   );
   return (
-    <div className="flex gap-2 mb-4">
+    <div className="flex gap-2">
       {tile(
         <span><span className="text-green-400">{vuosi.wins}</span>-{vuosi.ties}-<span className="text-red-400">{vuosi.losses}</span></span>,
         t('startScreen.dashTileResults', 'Results'),
