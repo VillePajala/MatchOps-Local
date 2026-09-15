@@ -591,7 +591,7 @@ describe('Translation File Validation', () => {
       // -1 startScreen.dashRecent: the recent-games strip is introduced by the
       //     halfway-line rule alone now. The word restated what the rule
       //     already said. Lands at 3266.
-      expect(enKeys.length).toBe(3277);
+      expect(enKeys.length).toBe(3278);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -779,7 +779,7 @@ describe('Translation File Validation', () => {
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3277);
+      expect(fiKeys.length).toBe(3278);
     });
   });
 });

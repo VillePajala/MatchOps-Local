@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { normalizeOpponentName } from '@/utils/opponentNames';
 
 export interface TeamOpponentInputsProps {
@@ -34,6 +35,14 @@ export interface TeamOpponentInputsProps {
   onOpponentBlur?: () => void;
 }
 
+/**
+ * How many suggestion chips to show before the coach types, and while they are
+ * typing. Small at rest so the form below stays reachable; a little more while
+ * searching, where the chips are the thing being looked at.
+ */
+const RESTING_CHIP_LIMIT = 6;
+const SEARCHING_CHIP_LIMIT = 12;
+
 const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
   teamName,
   opponentName,
@@ -53,6 +62,10 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
   onOpponentBlur,
   opponentFooter,
 }) => {
+  // Labels arrive as props because each consumer modal has its own key
+  // namespace; this one string is the component's own, describing capping that
+  // only it knows about.
+  const { t } = useTranslation();
   const allOptions = (opponentOptions ?? []).filter((name) => name.trim() !== '');
 
   /**
@@ -64,11 +77,28 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
    * having picked one team does not strand the coach with a single chip when
    * they meant to pick another.
    */
+  /*
+   * CAPPED, because a real coach's pool is not small. After a season or two
+   * this list is thirty-odd teams, and rendering all of them before a single
+   * key is pressed pushed every other field in the form - team, date, season,
+   * the create button - off the bottom of the phone. A suggestion list that
+   * buries the form it belongs to is worse than no suggestion list.
+   *
+   * The cap applies to the RESTING state hardest. What it truncates is
+   * meaningful rather than arbitrary: the caller puts the competition's own
+   * teams first and the rest in order of use, so the few shown are the few
+   * most likely. Typing searches the WHOLE pool, so nothing is unreachable -
+   * and the hint below says so, because a truncated list that looks complete
+   * would have a coach believe a team is missing.
+   */
   const typed = normalizeOpponentName(opponentName);
   const exactlyChosen = allOptions.some((name) => normalizeOpponentName(name) === typed);
-  const options = !typed || exactlyChosen
-    ? allOptions
-    : allOptions.filter((name) => normalizeOpponentName(name).includes(typed));
+  const searching = !!typed && !exactlyChosen;
+  const matches = searching
+    ? allOptions.filter((name) => normalizeOpponentName(name).includes(typed))
+    : allOptions;
+  const options = matches.slice(0, searching ? SEARCHING_CHIP_LIMIT : RESTING_CHIP_LIMIT);
+  const hiddenCount = matches.length - options.length;
   return (
     <>
       <div className="mb-4">
@@ -142,6 +172,17 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
                 );
               })}
             </div>
+            {/* Says the list is partial. Without it a coach whose team is not
+                among the six believes the app has forgotten it, and types the
+                name fresh - which is how a second spelling gets created, the
+                exact thing the suggestions exist to prevent. */}
+            {hiddenCount > 0 && (
+              <p className="mt-1.5 text-xs text-slate-400" data-testid="opponent-options-more">
+                {t('common.moreOpponents', '+{{count}} more. Type to search them all.', {
+                  count: hiddenCount,
+                })}
+              </p>
+            )}
           </>
         )}
         {opponentFooter}

@@ -421,6 +421,7 @@
     "updateError": "Joukkueen päivittäminen epäonnistui. Yritä uudelleen."
   },
   "common": {
+    "moreOpponents": "+{{count}} muuta. Kirjoita hakeaksesi kaikista.",
     "notSet": "Ei asetettu",
     "actions": "Toiminnot",
     "add": "Lisää",
