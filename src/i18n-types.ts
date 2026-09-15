@@ -421,6 +421,7 @@ export type TranslationKey =
   | 'common.loading'
   | 'common.location'
   | 'common.losses'
+  | 'common.moreOpponents'
   | 'common.moreOptions'
   | 'common.next'
   | 'common.noPlayersMatchFilter'
