@@ -5,20 +5,23 @@ import type { TFunction } from 'i18next';
 import type { HomeSummary, HomeResumeGame, HomeRecentGame } from '@/utils/homeSummary';
 
 /**
- * The Home card surface: the gradient the resume ("Jatka") card wears, now
- * shared by every pressable card on Home - recent games, the Pelaajat and
- * Joukkueet tiles, the stats tiles.
+ * The Home card surface: recent games, the Pelaajat and Joukkueet tiles, the
+ * stats tiles. One literal string rather than four copies, because a gradient
+ * spelled out in four files drifts the moment one of them is touched. Written
+ * out whole, not composed, since Tailwind scans for complete class names.
  *
- * One literal string rather than four copies, because a gradient spelled out
- * in four files drifts the moment one of them is touched. Written out whole,
- * not composed, since Tailwind scans for complete class names.
+ * QUIET, AND IT BUILDS. These are repeated cards - the ramp runs across each
+ * one separately, so whatever it does it does two or three times in a row.
+ * The resume card's gradient at that repetition was far too loud. This one
+ * starts at the page's own slate and arrives at indigo, so the colour lands on
+ * the right edge and the left edge barely departs from the background: close
+ * endpoints, no via stop, and the same soft border the season card uses.
  *
- * The ramp runs left to right across each card individually, so a row of
- * narrow cards repeats it rather than continuing it - each card catches the
- * light from its own left edge.
+ * The resume card keeps its strong gradient. It appears once, it is the hero,
+ * and it is the thing these should not compete with.
  */
 export const HOME_CARD =
-  'bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border-indigo-500/60 shadow-md hover:from-indigo-900 hover:to-slate-800';
+  'bg-gradient-to-r from-slate-800/80 to-indigo-900/70 border-indigo-700/40 shadow-md hover:from-slate-800 hover:to-indigo-800/80';
 
 /** Result shown through the score colour only (no coloured card edge). */
 const scoreColour: Record<'W' | 'D' | 'L', string> = {
@@ -34,7 +37,7 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
     <button
       type="button"
       onClick={onResume}
-      className={`w-full text-left px-3.5 py-2.5 rounded-xl border text-white transition-all ${HOME_CARD}`}
+      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md hover:from-indigo-900 hover:to-slate-800 transition-all"
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-base font-extrabold truncate">{resume.opponent || t('startScreen.dashResumeGame', 'Game')}</span>
