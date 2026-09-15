@@ -10,18 +10,21 @@ import type { HomeSummary, HomeResumeGame, HomeRecentGame } from '@/utils/homeSu
  * spelled out in four files drifts the moment one of them is touched. Written
  * out whole, not composed, since Tailwind scans for complete class names.
  *
- * QUIET, AND IT BUILDS. These are repeated cards - the ramp runs across each
+ * QUIET, AND IT FADES. These are repeated cards - the ramp runs across each
  * one separately, so whatever it does it does two or three times in a row.
  * The resume card's gradient at that repetition was far too loud. This one
- * starts at the page's own slate and arrives at indigo, so the colour lands on
- * the right edge and the left edge barely departs from the background: close
- * endpoints, no via stop, and the same soft border the season card uses.
+ * keeps close endpoints, no via stop, and the soft border the season card
+ * uses, so the colour never gets bright enough to stripe.
+ *
+ * Colour at the left, fading into the page's own slate at the right - the
+ * direction the resume card and the season card already run, so every card on
+ * Home is lit from the same side.
  *
  * The resume card keeps its strong gradient. It appears once, it is the hero,
  * and it is the thing these should not compete with.
  */
 export const HOME_CARD =
-  'bg-gradient-to-r from-slate-800/80 to-indigo-900/70 border-indigo-700/40 shadow-md hover:from-slate-800 hover:to-indigo-800/80';
+  'bg-gradient-to-r from-indigo-900/70 to-slate-800/80 border-indigo-700/40 shadow-md hover:from-indigo-800/80 hover:to-slate-800';
 
 /** Result shown through the score colour only (no coloured card edge). */
 const scoreColour: Record<'W' | 'D' | 'L', string> = {
