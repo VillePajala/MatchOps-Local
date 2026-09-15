@@ -376,10 +376,10 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('goalLog.title', 'Goal Log')}>
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
         {/* Background effects (standard 4-layer pattern) */}
-        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-purple-700/5 blur-2xl bottom-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col h-full">
@@ -427,7 +427,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                             setAssisterId('');
                           }
                         }}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       >
                         <option value="" disabled>{t('goalLogModal.selectPlaceholder', '-- Select Scorer --')}</option>
                         {playerOptions}
@@ -443,7 +443,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                         id="assisterSelect"
                         value={assisterId}
                         onChange={(e) => setAssisterId(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         disabled={!scorerId}
                       >
                         <option value="">{t('goalLogModal.noAssisterPlaceholder', '-- No Assist --')}</option>
@@ -460,7 +460,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                         onClick={handleLogOwnGoalClick}
                         data-testid="tour-confirm-goal"
                         disabled={!scorerId}
-                        className="w-full px-4 py-2 rounded-sm font-semibold text-white bg-purple-700 hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-purple-400/30"
+                        className="w-full px-4 py-2 rounded-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-indigo-400/30"
                       >
                         {t('goalLogModal.logGoalButton', 'Log Goal')}
                       </button>
@@ -522,7 +522,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                         key={event.id}
                         className={`p-3 rounded-md ${
                           editingGoalId === event.id
-                            ? 'bg-slate-700/75 border border-purple-500'
+                            ? 'bg-slate-700/75 border border-indigo-500'
                             : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40'
                         }`}
                       >
@@ -543,7 +543,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                 }
                               }}
                               placeholder={t('gameSettingsModal.timeFormatPlaceholder', 'MM:SS')}
-                              className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 shadow-sm ${goalTimeError ? 'border-red-500' : 'border-slate-600'}`}
+                              className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm ${goalTimeError ? 'border-red-500' : 'border-slate-600'}`}
                               autoComplete="off"
                               maxLength={5}
                               onFocus={(e) => e.target.select()}
@@ -554,7 +554,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                 <select
                                   value={editGoalScorerId}
                                   onChange={(e) => setEditGoalScorerId(e.target.value)}
-                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 shadow-sm"
+                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
                                 >
                                   <option value="">{t('gameSettingsModal.selectScorer', 'Select Scorer...')}</option>
                                   {availablePlayers.map(player => (
@@ -565,7 +565,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                 <select
                                   value={editGoalAssisterId ?? ''}
                                   onChange={(e) => setEditGoalAssisterId(e.target.value || undefined)}
-                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 shadow-sm"
+                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
                                 >
                                   <option value="">{t('gameSettingsModal.selectAssister', 'Select Assister (Optional)...')}</option>
                                   {availablePlayers.map(player => (
@@ -584,7 +584,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                               </button>
                               <button
                                 onClick={() => handleSaveGoal(event.id)}
-                                className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white rounded-sm text-sm font-medium transition-colors border border-purple-400/30"
+                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors border border-indigo-400/30"
                                 disabled={isProcessing}
                               >
                                 {t('common.save', 'Save')}

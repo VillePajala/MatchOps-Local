@@ -1204,10 +1204,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     <div ref={modalRef} className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('gameSettingsModal.title', 'Match details')}>
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
         {/* Background effects */}
-        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-purple-700/5 blur-2xl bottom-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col h-full">
@@ -1239,7 +1239,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   id="teamSelectGameSettings"
                   value={selectedTeamId || ''}
                   onChange={(e) => handleTeamSelection(e.target.value || null)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                 >
                   <option value="">
                     {t('gameSettingsModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
@@ -1386,7 +1386,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         () => setCaptainIdLocal(captainId ?? ''),
                       );
                     }}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   >
                     <option value="">{t('gameSettingsModal.noCaptain', '-- No captain --')}</option>
                     {availablePlayers.filter(p => selectedPlayerIds.includes(p.id)).map((player) => (
@@ -1420,7 +1420,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     <select
                       value={availablePlayers.find(p => p.receivedFairPlayCard)?.id || ''}
                       onChange={(e) => handleFairPlayCardClick(e.target.value || null)}
-                      className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                      className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     >
                       <option value="">{t('gameSettingsModal.selectPlayerForFairPlay', '-- Select Player --')}</option>
                       {availablePlayers.filter(p => selectedPlayerIds.includes(p.id)).map((player) => (
@@ -1452,7 +1452,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   onClick={() => handleTabChange('none')}
                   className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     activeTab === 'none'
-                      ? 'bg-purple-700 text-white'
+                      ? 'bg-indigo-600 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
@@ -1462,7 +1462,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   onClick={() => handleTabChange('season')}
                   className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     activeTab === 'season'
-                      ? 'bg-purple-700 text-white'
+                      ? 'bg-indigo-600 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
@@ -1472,7 +1472,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   onClick={() => handleTabChange('tournament')}
                   className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     activeTab === 'tournament'
-                      ? 'bg-purple-700 text-white'
+                      ? 'bg-indigo-600 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
@@ -1488,7 +1488,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     id="seasonSelect"
                     value={seasonId || ''}
                     onChange={handleSeasonChange}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   >
                     <option value="">{t('gameSettingsModal.selectSeason', '-- Select League --')}</option>
                     {sortedSeasons.map((season) => (
@@ -1521,7 +1521,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                               // selection stays shown via the option rendered below.
                               setLeagueLevelFilter(e.target.value as LeagueLevelFilter);
                             }}
-                            className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-purple-500 focus:border-purple-500"
+                            className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
                           >
                             {LEAGUE_LEVEL_FILTERS.map(level => (
                               <option key={level.id} value={level.id}>
@@ -1542,7 +1542,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                               // not clear/persist the saved league.
                               setLeagueAreaFilter(e.target.value as LeagueAreaFilter);
                             }}
-                            className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-purple-500 focus:border-purple-500"
+                            className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
                           >
                             {LEAGUE_AREA_FILTERS.map(area => (
                               <option key={area.id} value={area.id}>
@@ -1571,7 +1571,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                             { source: 'stateSync' }
                           );
                         }}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                       >
                         <option value="">{t('gameSettingsModal.selectLeague', '-- Select official league --')}</option>
                         {/* CR-M4: keep the saved league visible even when the current
@@ -1610,7 +1610,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                               );
                             }}
                             placeholder={t('gameSettingsModal.customLeaguePlaceholder', 'Enter the official league name')}
-                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                           />
                         </div>
                       )}
@@ -1626,7 +1626,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     id="tournamentSelect"
                     value={tournamentId || ''}
                     onChange={handleTournamentChange}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   >
                     <option value="">{t('gameSettingsModal.selectTournament', '-- Select Tournament --')}</option>
                     {sortedTournaments.map((tournament) => (
@@ -1663,7 +1663,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                           { source: 'stateSync' }
                         );
                       }}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     >
                       <option value="">{t('common.none', 'None')}</option>
                       {validSeries.map((series) => (
@@ -1684,7 +1684,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                           { source: 'stateSync', expectedState: { tournamentLevel: value } }
                         );
                       }}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     >
                       <option value="">{t('common.none', 'None')}</option>
                       {availableLevels.map((lvl) => (
@@ -1713,7 +1713,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       { source: 'stateSync', expectedState: { ageGroup: value } }
                     );
                   }}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                 >
                   <option value="">{t('common.none', 'None')}</option>
                   {AGE_GROUPS.map((group) => (
@@ -1741,7 +1741,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     }}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gameType === 'soccer'
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -1758,7 +1758,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     }}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gameType === 'futsal'
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -1784,7 +1784,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     }}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gender === undefined
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -1801,7 +1801,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     }}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gender === 'boys'
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -1818,7 +1818,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     }}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gender === 'girls'
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -1846,7 +1846,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         { source: 'stateSync', expectedState: { gameDate: value } }
                       );
                     }}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     autoComplete="off"
                   />
                 </div>
@@ -1866,7 +1866,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       onChange={handleHourChange}
                       onBlur={commitGameTime}
                       placeholder={t('gameSettingsModal.hourPlaceholder', 'HH')}
-                      className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm text-center"
+                      className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -1883,7 +1883,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       onChange={handleMinuteChange}
                       onBlur={commitGameTime}
                       placeholder={t('gameSettingsModal.minutePlaceholder', 'MM')}
-                      className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm text-center"
+                      className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -1912,7 +1912,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         );
                     }}
                     placeholder={t('gameSettingsModal.locationPlaceholder', 'e.g., Central Park Field 2')}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="words"
@@ -1937,7 +1937,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       }}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors w-full ${
                         homeOrAway === 'home'
-                          ? 'bg-purple-700 text-white'
+                          ? 'bg-indigo-600 text-white'
                           : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                       }`}
                     >
@@ -1954,7 +1954,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       }}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors w-full ${
                         homeOrAway === 'away'
-                          ? 'bg-purple-700 text-white'
+                          ? 'bg-indigo-600 text-white'
                           : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                       }`}
                     >
@@ -1988,7 +1988,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         { source: 'stateSync', expectedState: { numberOfPeriods: periods } }
                       );
                   }}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                 >
                   <option value={1}>1</option>
                   <option value={2}>2</option>
@@ -2026,7 +2026,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       );
                     }
                   }}
-                  className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+                  className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -2069,7 +2069,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   }}
                   className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                     !isPlayed
-                      ? 'bg-purple-700 text-white'
+                      ? 'bg-indigo-600 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
@@ -2090,7 +2090,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   }}
                   className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                     isFriendlyLocal
-                      ? 'bg-purple-700 text-white'
+                      ? 'bg-indigo-600 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
@@ -2108,7 +2108,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     }}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       wentToOvertime
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -2124,7 +2124,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     }}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       wentToPenalties
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -2135,7 +2135,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsShootoutModalOpen(true)}
-                  className="inline-flex items-center text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                  className="inline-flex items-center text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
                 >
                   {(() => {
                     const kicks = shootoutKicks ?? [];

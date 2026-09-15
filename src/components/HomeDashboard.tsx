@@ -19,7 +19,7 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
     <button
       type="button"
       onClick={onResume}
-      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-purple-800 via-purple-900/85 to-slate-800/80 border border-purple-500/60 text-white shadow-md hover:from-purple-900 hover:to-slate-800 transition-all"
+      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md hover:from-indigo-900 hover:to-slate-800 transition-all"
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-base font-extrabold truncate">{resume.opponent || t('startScreen.dashResumeGame', 'Game')}</span>
@@ -54,7 +54,7 @@ function VuosiBar({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi'
       onClick={onOpen}
       className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/70 transition-all text-[13px]"
     >
-      <span className="font-extrabold text-purple-200 whitespace-nowrap">{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
+      <span className="font-extrabold text-indigo-200 whitespace-nowrap">{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
       <span className="text-slate-600" aria-hidden="true">·</span>
       <span className="text-slate-300 tabular-nums">{vuosi.gamesPlayed} {t('startScreen.dashGames', 'games')}</span>
       <span className="text-slate-600" aria-hidden="true">·</span>
@@ -94,7 +94,7 @@ function RecentCard({ game, onOpen }: { game: HomeRecentGame; onOpen?: (id: stri
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className="flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl bg-purple-950/45 border border-purple-800/45 hover:bg-purple-900/45 transition-all"
+      className="flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl bg-indigo-950/45 border border-indigo-800/45 hover:bg-indigo-900/45 transition-all"
     >
       <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
       <div className={`text-sm font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
@@ -129,7 +129,7 @@ export function HomeDashboard({
         <div>
           {/* The one place the pitch vocabulary is used: a section boundary
               drawn as the halfway line, which is already what a divider is. */}
-          <PitchRule className="mb-2">{t('startScreen.dashRecent', 'Recent')}</PitchRule>
+          <PitchRule className="mb-2" />
           {/* The strip scrolls, and the card at the edge used to be cut clean
               through its own border - which reads as a rendering fault, not as
               an invitation to scroll. The gradient lets it dissolve instead.
@@ -177,10 +177,10 @@ export function HomeTeamScopeSelect({
   // wall once real data (six same-named teams with context) hit them.
   return (
     <label
-      className="w-full flex items-center gap-2 px-3.5 py-2.5 mb-3 rounded-xl bg-slate-800/70 border border-slate-700/60 text-[13px] focus-within:ring-2 focus-within:ring-purple-500"
+      className="w-full flex items-center gap-2 px-3.5 py-2.5 mb-3 rounded-xl bg-slate-800/70 border border-slate-700/60 text-[13px] focus-within:ring-2 focus-within:ring-indigo-500"
       data-testid="home-team-scope"
     >
-      <span className="font-extrabold text-purple-200 whitespace-nowrap">{t('startScreen.dashTeamLabel', 'Team')}</span>
+      <span className="font-extrabold text-indigo-200 whitespace-nowrap">{t('startScreen.dashTeamLabel', 'Team')}</span>
       <span className="text-slate-600" aria-hidden="true">·</span>
       <select
         value={scope}
@@ -231,9 +231,9 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
     <button
       type="button"
       onClick={onOpen}
-      className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-purple-900/70 to-slate-800/70 border border-purple-700/40 hover:from-purple-900/90 hover:to-slate-800/90 transition-all mb-4"
+      className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-indigo-900/70 to-slate-800/70 border border-indigo-700/40 hover:from-indigo-900/90 hover:to-slate-800/90 transition-all mb-4"
     >
-      <div className="text-xs font-semibold text-purple-300/80">
+      <div className="text-xs font-semibold text-indigo-300/80">
         {t('startScreen.dashClubSeason', 'This season')}
       </div>
       <div className="flex items-baseline justify-between gap-3 mt-0.5">
@@ -248,7 +248,7 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
           </span>
         )}
       </div>
-      <div className="text-xs text-purple-200/70 mt-1 tabular-nums">
+      <div className="text-xs text-indigo-200/70 mt-1 tabular-nums">
         {t('startScreen.dashSeasonsCount', '{{count}} leagues', { count: counts.seasons })}
         {' · '}
         {t('startScreen.dashTournamentsCount', '{{count}} tournaments', { count: counts.tournaments })}

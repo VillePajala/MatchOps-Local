@@ -62,7 +62,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('name')}
-              className="w-full flex items-center hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="w-full flex items-center hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               {t('common.player', 'Pelaaja')} {getSortIcon('name')}
             </button>
@@ -74,7 +74,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('gamesPlayed')}
-              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               {t('common.gamesPlayedShort', 'GP')} {getSortIcon('gamesPlayed')}
             </button>
@@ -86,7 +86,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('goals')}
-              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               {t('common.goalsShort', 'M')} {getSortIcon('goals')}
             </button>
@@ -98,7 +98,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('assists')}
-              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               {t('common.assistsShort', 'S')} {getSortIcon('assists')}
             </button>
@@ -110,7 +110,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('totalScore')}
-              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               {t('common.totalScoreShort', 'Pts')} {getSortIcon('totalScore')}
             </button>
@@ -122,7 +122,7 @@ export function PlayerStatsTable({
           >
             <button
               onClick={() => onSort('avgPoints')}
-              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               {t('common.avgPointsShort', 'KA')} {getSortIcon('avgPoints')}
             </button>

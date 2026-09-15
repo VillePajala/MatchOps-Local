@@ -355,7 +355,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
       <div className="relative bg-gradient-to-b from-slate-800 to-slate-900 p-2 shadow-xl border-t border-white/10 backdrop-blur-md flex justify-center items-center gap-2 z-40 overflow-x-auto">
         {/* Modal background effects for unified feel */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         {!isFieldToolsOpen ? (
           /* Collapsed State - Normal View. Since the bar-level Home button was
              removed (owner feedback: Home is the menu "Koti" entry + hardware
@@ -482,7 +482,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             {isTacticsBoardView && (
               <button
                 onClick={onAddHomeDisc}
-                className={`${buttonStyle} bg-purple-700/80 hover:bg-purple-700 focus:ring-purple-500 border-purple-500/30`}
+                className={`${buttonStyle} bg-purple-700/80 hover:bg-purple-600 focus:ring-purple-500 border-purple-500/30`}
                 title={t('controlBar.addHomeDisc', 'Add Home Disc')}
               >
                 <HiOutlinePlusCircle className={iconSize} />
@@ -540,7 +540,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
       >
         {/* Modal background effects for unified feel */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         {/* Header */}
         <div className="relative px-4 py-3 border-b border-white/10 flex justify-between items-center z-10">
           <h3 className="text-lg font-semibold text-amber-300">{t('controlBar.menu.title', 'Menu')}</h3>

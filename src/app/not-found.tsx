@@ -15,7 +15,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/"
-          className="px-6 py-3 bg-purple-700 hover:bg-purple-700 text-white rounded-md font-medium transition-colors inline-block"
+          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-600 text-white rounded-md font-medium transition-colors inline-block"
         >
           <span lang="fi">Etusivulle</span>{' / '}
           <span lang="en">Go Home</span>

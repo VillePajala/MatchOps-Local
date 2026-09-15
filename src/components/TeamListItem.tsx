@@ -59,7 +59,7 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
 
   if (isEditing) {
     return (
-      <div className="flex items-center justify-between p-3 bg-slate-700/75 border border-purple-500 rounded-lg">
+      <div className="flex items-center justify-between p-3 bg-slate-700/75 border border-indigo-500 rounded-lg">
         <div className="flex items-center gap-3 flex-1">
           <div
             className="w-4 h-4 rounded border-2 border-slate-400 flex-shrink-0"
@@ -70,7 +70,7 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
             value={editTeamName}
             onChange={(e) => onEditNameChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-slate-600 text-slate-200 px-2 py-1 rounded text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+            className="flex-1 bg-slate-600 text-slate-200 px-2 py-1 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
             placeholder={t('teamManager.teamNamePlaceholder', 'Team name')}
             autoFocus
           />

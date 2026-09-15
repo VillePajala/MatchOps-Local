@@ -109,7 +109,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
     >
       {/* Modal background effects for unified feel */}
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-      <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
+      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
       {/* Center Content: Teams and Score */}
       <div className="relative flex-1 flex items-center justify-center space-x-2.5 font-semibold z-10 max-w-full">

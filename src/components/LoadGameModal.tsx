@@ -286,7 +286,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   if (isLoadingGamesList) {
     mainContent = (
       <div className="flex flex-col items-center justify-center h-full text-slate-400 py-10">
-        <svg className="animate-spin h-8 w-8 text-purple-400 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg className="animate-spin h-8 w-8 text-indigo-400 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
@@ -422,7 +422,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
             // Current game highlight with glow
             const currentGameClass = isCurrent
-              ? 'ring-1 ring-purple-400/60 bg-purple-900/20'
+              ? 'ring-1 ring-indigo-400/60 bg-indigo-900/20'
               : '';
 
             return (
@@ -514,7 +514,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                           disabled={disableActions}
                         >
                           {isLoadActionActive ? (
-                            <svg className="animate-spin h-4 w-4 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <svg className="animate-spin h-4 w-4 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
@@ -653,7 +653,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('loadGame.title', 'Load Game')}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
         {/* Modal-chrome slimming: X-header replaces the header + the
             close-only footer. Filter/checkbox stay in the scroll body. */}
@@ -667,7 +667,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
         <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pt-4 pb-6">
           {/* Search and filters */}
           <div className="relative mb-4">
-            <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" />
+            <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
           </div>
           <div className="mb-4">
             {/* Filter toggle button - matches the "Show archived" toggles in
@@ -677,7 +677,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               onClick={() => setShowUnplayedOnly(v => !v)}
               aria-pressed={showUnplayedOnly}
               className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                showUnplayedOnly ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                showUnplayedOnly ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
               {t('loadGameModal.showUnplayedOnly', 'Show only unplayed games')}

@@ -67,8 +67,8 @@ function MarketingConsentToggle() {
           disabled={isUpdating}
           role="switch"
           aria-checked={isGranted}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 ${
-            isGranted ? 'bg-purple-700' : 'bg-slate-600'
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 ${
+            isGranted ? 'bg-indigo-600' : 'bg-slate-600'
           }`}
         >
           <span
@@ -567,14 +567,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const getTabStyle = (tab: SettingsTab) => {
     const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors';
     if (activeTab === tab) {
-      return `${baseStyle} bg-purple-700 text-white`;
+      return `${baseStyle} bg-indigo-600 text-white`;
     }
     return `${baseStyle} bg-slate-700 text-slate-300 hover:bg-slate-600`;
   };
 
   const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
   const inputStyle =
-    'block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500 sm:text-sm text-white';
+    'block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white';
   const feedbackSubject = t('settingsModal.feedbackEmailSubject', 'MatchOps feedback');
   const feedbackBody = t(
     'settingsModal.feedbackEmailBody',
@@ -617,10 +617,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'App Settings')}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full`}>
-        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-purple-700/5 blur-2xl bottom-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
         <div className="relative z-10 flex flex-col h-full">
           {/* Chrome slimming: X-header + collapsing tab strip; close-only
@@ -667,7 +667,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   id="language-select"
                   value={language}
                   onChange={(e) => onLanguageChange(e.target.value)}
-                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="en">English</option>
                   <option value="fi">Suomi</option>
@@ -691,7 +691,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   checked={assessmentsEnabled}
                   onChange={(e) => handleAssessmentsEnabledChange(e.target.checked)}
                   aria-label={t('settingsModal.assessmentsEnabledLabel', 'Player assessments')}
-                  className="w-5 h-5 rounded border-slate-500 bg-slate-700 text-purple-600 focus:ring-purple-500"
+                  className="w-5 h-5 rounded border-slate-500 bg-slate-700 text-indigo-600 focus:ring-indigo-500"
                 />
               </div>
               {assessmentsEnabled && (<>
@@ -709,7 +709,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   id="assessment-rating-style-select"
                   value={assessmentRatingStyle}
                   onChange={(e) => handleAssessmentRatingStyleChange(e.target.value as AssessmentRatingStyle)}
-                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="words">{t('settingsModal.assessmentRatingStyleWords', 'Words (5 levels)')}</option>
                   <option value="num5">{t('settingsModal.assessmentRatingStyleNum5', 'Numbers 1-5')}</option>
@@ -730,7 +730,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   id="assessment-template-select"
                   value={assessmentTemplate}
                   onChange={(e) => handleAssessmentTemplateChange(e.target.value as AssessmentTemplate)}
-                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="balanced">{t('settingsModal.assessmentTemplateBalanced', 'Balanced (10)')}</option>
                   <option value="light6">{t('settingsModal.assessmentTemplateLight6', 'Light 6 (U7-U9)')}</option>
@@ -751,7 +751,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   onBlur={() => onDefaultTeamNameChange(teamName)}
-                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-40"
+                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 w-40"
                 />
               </div>
             </div>
@@ -877,7 +877,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       onClick={onCreateBackup}
                       aria-label={t('settingsModal.backupShareAria', 'Share backup')}
                       title={t('settingsModal.backupShareAria', 'Share backup')}
-                      className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-white rounded text-sm font-medium transition-colors"
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors"
                     >
                       <HiOutlineShare className="h-5 w-5" />
                     </button>
@@ -914,7 +914,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       }
                     }}
                     disabled={authMode !== 'cloud' || isDownloadingCloudData}
-                    className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
                     aria-label={t('settingsModal.gdpr.downloadButton', 'Download')}
                   >
                     {isDownloadingCloudData
@@ -1218,7 +1218,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   {storageEstimate && (
                     <div className="w-full bg-slate-700 rounded-md h-2 overflow-hidden">
                       <div
-                        className="bg-purple-600 h-2"
+                        className="bg-indigo-500 h-2"
                         style={{ width: `${Math.min(100, (storageEstimate.usage / storageEstimate.quota) * 100)}%` }}
                       />
                     </div>
@@ -1265,7 +1265,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
                 <a
                   href={feedbackHref}
-                  className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
                 >
                   ✉ {t('settingsModal.emailButton', 'Email')}
                 </a>
@@ -1298,7 +1298,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     href="/privacy-policy"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-purple-400 hover:text-purple-300 underline"
+                    className="text-indigo-400 hover:text-indigo-300 underline"
                   >
                     {t('settingsModal.privacyPolicy', 'Privacy Policy')}
                   </a>
@@ -1306,7 +1306,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     href="/terms"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-purple-400 hover:text-purple-300 underline"
+                    className="text-indigo-400 hover:text-indigo-300 underline"
                   >
                     {t('settingsModal.termsOfService', 'Terms of Service')}
                   </a>
@@ -1347,7 +1347,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className={`${MODAL_BACKDROP_BLOCKING} ${Z_LAYER.modalNested}`}>
           <div className="bg-slate-800 rounded-xl p-6 max-w-sm mx-4 shadow-xl border border-slate-700 text-center">
             <div
-              className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500 mx-auto mb-4"
+              className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500 mx-auto mb-4"
               role="status"
               aria-label={t('settingsModal.restoring', 'Restoring backup...')}
             />

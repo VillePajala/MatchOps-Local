@@ -264,7 +264,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
         {/* Chrome slimming: X-header (Cancel) + sticky Save. */}
         <CollapsibleModalHeader
@@ -330,7 +330,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     if (errorMessage) setErrorMessage(null);
                   }}
                   placeholder={t('tournamentDetailsModal.namePlaceholder', 'Enter tournament name')}
-                  className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500 ${
+                  className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 ${
                     errorMessage ? 'border-red-500' : 'border-slate-600'
                   }`}
                   required
@@ -347,7 +347,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder={t('tournamentDetailsModal.locationPlaceholder', 'Enter location')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
 
@@ -359,7 +359,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                 <select
                   value={ageGroup}
                   onChange={(e) => setAgeGroup(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">{t('common.selectAgeGroup', '-- Select Age Group --')}</option>
                   {AGE_GROUPS.map(group => (
@@ -379,7 +379,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     onClick={() => setGameType('soccer')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gameType === 'soccer'
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -390,7 +390,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     onClick={() => setGameType('futsal')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gameType === 'futsal'
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -410,7 +410,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     onClick={() => setGender(undefined)}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gender === undefined
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -421,7 +421,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     onClick={() => setGender('boys')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gender === 'boys'
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -432,7 +432,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     onClick={() => setGender('girls')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gender === 'girls'
-                        ? 'bg-purple-700 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
@@ -457,7 +457,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
                 <div>
@@ -468,7 +468,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -498,7 +498,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     value={periodCount || ''}
                     onChange={(e) => setPeriodCount(parseIntOrUndefined(e.target.value))}
                     placeholder={t('tournamentDetailsModal.periodCountPlaceholder', 'e.g., 2')}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
                 <div>
@@ -510,7 +510,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     value={periodDuration || ''}
                     onChange={(e) => setPeriodDuration(parseIntOrUndefined(e.target.value))}
                     placeholder={t('tournamentDetailsModal.periodDurationPlaceholder', 'e.g., 20')}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -523,7 +523,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                 <select
                   value={awardedPlayerId || ''}
                   onChange={(e) => setAwardedPlayerId(e.target.value || undefined)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
                   aria-label={t('tournaments.selectAwardWinner', 'Select Player of Tournament')}
                 >
                   <option value="">{t('tournaments.selectAwardWinner', '-- Select Player of Tournament --')}</option>
@@ -543,7 +543,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={t('tournamentDetailsModal.notesPlaceholder', 'Enter any notes')}
                   rows={3}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
 

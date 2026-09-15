@@ -23,7 +23,7 @@ interface AiConsentGateProps {
 }
 
 const checkboxStyle =
-  'mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-purple-500 focus:ring-purple-500 focus:ring-offset-slate-900 cursor-pointer';
+  'mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer';
 
 export const DictationRules: React.FC = () => {
   const { t } = useTranslation();

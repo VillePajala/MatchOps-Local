@@ -1667,9 +1667,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
               : t('playtimePlanner.lineup.viewSingle', 'Single game')
           }
-          className={`absolute bottom-4 right-4 z-20 p-3 rounded-full shadow-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 ${
+          className={`absolute bottom-4 right-4 z-20 p-3 rounded-full shadow-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
             gamesLayout === 'grid'
-              ? 'bg-purple-700 text-white hover:bg-purple-600'
+              ? 'bg-indigo-600 text-white hover:bg-indigo-500'
               : 'bg-slate-700 text-slate-200 hover:bg-slate-600 border border-slate-600'
           }`}
         >
@@ -1697,7 +1697,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 );
               }}
               aria-label={t('playtimePlanner.lineup.gameName', 'Game name')}
-              className={`${titleStyle} w-full bg-transparent text-center rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500`}
+              className={`${titleStyle} w-full bg-transparent text-center rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
             />
           </div>
         ) : view === 'plan' ? (
@@ -1710,7 +1710,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 updateActivePlan((plan) => ({ ...plan, name: value }), { coalesceKey: 'plan-name' });
               }}
               aria-label={t('playtimePlanner.setup.nameLabel', 'Plan name')}
-              className={`${titleStyle} w-full bg-transparent text-center rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500`}
+              className={`${titleStyle} w-full bg-transparent text-center rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
             />
           </div>
         ) : (
@@ -1788,7 +1788,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   setView(tab);
                 }}
                 className={`flex-1 px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  view === tab ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  view === tab ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                 }`}
               >
                 {label}
@@ -1802,7 +1802,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       <ScrollableContent className="px-6 py-4" onScroll={handleContentScroll} data-testid="planner-scroll">
         {view === 'loading' && (
           <div className="flex flex-col items-center justify-center py-10 text-slate-400">
-            <svg className="animate-spin h-8 w-8 mb-3 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <svg className="animate-spin h-8 w-8 mb-3 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
@@ -1955,7 +1955,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   onClick={() => setShowArchived((v) => !v)}
                   aria-pressed={showArchived}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                    showArchived ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    showArchived ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
                   {t('playtimePlanner.manager.showArchived', 'Show archived')}
@@ -1971,7 +1971,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleOpenPlan(p.id)}
-                    className="flex-1 min-w-0 flex items-center justify-between gap-3 p-4 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 rounded-lg"
+                    className="flex-1 min-w-0 flex items-center justify-between gap-3 p-4 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-lg"
                   >
                     <span className="min-w-0">
                       <span className="flex items-center gap-2 min-w-0">
@@ -2132,7 +2132,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                           <button
                             type="button"
                             onClick={() => setReplacingId(replacingId === p.id ? null : p.id)}
-                            className="text-sm font-medium text-purple-400 hover:text-purple-300 py-2 px-2"
+                            className="text-sm font-medium text-indigo-400 hover:text-indigo-300 py-2 px-2"
                           >
                             {t('playtimePlanner.players.replaceAction', 'Replace')}
                           </button>
@@ -2150,7 +2150,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                                   key={c.id}
                                   type="button"
                                   onClick={() => handleReplacePlanPlayer(p.id, c)}
-                                  className="px-3 py-1.5 rounded-full bg-slate-700 border border-slate-500/40 text-slate-100 text-sm font-medium hover:bg-purple-700"
+                                  className="px-3 py-1.5 rounded-full bg-slate-700 border border-slate-500/40 text-slate-100 text-sm font-medium hover:bg-indigo-600"
                                 >
                                   {c.name}
                                 </button>
@@ -2429,14 +2429,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       className={[
                         'w-28 pl-3 pr-6 py-2 rounded-lg text-left border transition-colors',
                         isCurrent
-                          ? 'bg-purple-700 border-purple-400/40'
+                          ? 'bg-indigo-600 border-indigo-400/40'
                           : 'bg-slate-800 border-slate-600 hover:bg-slate-700',
                         g.included ? '' : 'opacity-50',
                       ].join(' ')}
                     >
                       <span
                         className={`block text-xs font-semibold tabular-nums ${
-                          isCurrent ? 'text-purple-200' : 'text-slate-400'
+                          isCurrent ? 'text-indigo-200' : 'text-slate-400'
                         }`}
                       >
                         {t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 })}
@@ -2467,7 +2467,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       aria-pressed={g.included}
                       aria-label={`${toggleTitle}: ${g.label}`}
                       title={toggleTitle}
-                      className="absolute top-0 right-0 p-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 after:absolute after:-inset-1.5 after:content-['']"
+                      className="absolute top-0 right-0 p-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 after:absolute after:-inset-1.5 after:content-['']"
                     >
                       <span
                         aria-hidden="true"
@@ -2552,7 +2552,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                               setSubSheetTarget(null);
                               setGamesLayout('single');
                             }}
-                            className="text-sm text-purple-400 hover:text-purple-300 py-2 px-2 -my-2"
+                            className="text-sm text-indigo-400 hover:text-indigo-300 py-2 px-2 -my-2"
                           >
                             {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
                           </button>
@@ -2578,7 +2578,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                                 ? t('playtimePlanner.lineup.includedToggle', 'Counted in totals - tap to exclude')
                                 : t('playtimePlanner.lineup.excludedToggle', 'Excluded from totals - tap to include')
                             }
-                            className="p-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
+                            className="p-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                           >
                             <span
                               aria-hidden="true"

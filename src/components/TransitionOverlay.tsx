@@ -14,7 +14,7 @@ export default function TransitionOverlay({ message }: TransitionOverlayProps) {
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto">
       <div className="flex flex-col items-center gap-4 px-6">
         <div
-          className="h-10 w-10 animate-spin rounded-full border-4 border-slate-600 border-t-purple-400"
+          className="h-10 w-10 animate-spin rounded-full border-4 border-slate-600 border-t-indigo-400"
           role="status"
           aria-label={message}
         />

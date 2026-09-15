@@ -83,7 +83,7 @@ function HomePageInner(props: HomePageProps) {
       {!layoutReady && (
         <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center">
           <div className="flex flex-col items-center gap-6">
-            <div className="w-16 h-16 border-4 border-slate-700 border-t-purple-500 rounded-full animate-spin" aria-hidden="true" />
+            <div className="w-16 h-16 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin" aria-hidden="true" />
             <p className="text-slate-400 text-sm">{t('status.loadingGameData', 'Loading Game Data...')}</p>
           </div>
         </div>

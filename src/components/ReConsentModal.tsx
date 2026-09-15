@@ -92,14 +92,14 @@ export function ReConsentModal() {
             <Link
               href="/terms"
               target="_blank"
-              className="text-purple-400 hover:text-purple-300 underline"
+              className="text-indigo-400 hover:text-indigo-300 underline"
             >
               {t('reConsent.termsLink', 'Terms of Service')}
             </Link>
             <Link
               href="/privacy-policy"
               target="_blank"
-              className="text-purple-400 hover:text-purple-300 underline"
+              className="text-indigo-400 hover:text-indigo-300 underline"
             >
               {t('reConsent.privacyLink', 'Privacy Policy')}
             </Link>
@@ -113,7 +113,7 @@ export function ReConsentModal() {
               checked={hasAccepted}
               onChange={(e) => setHasAccepted(e.target.checked)}
               disabled={isSubmitting}
-              className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-purple-500 focus:ring-purple-500 focus:ring-offset-slate-900 cursor-pointer"
+              className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
             />
             <label
               htmlFor="re-consent-checkbox"

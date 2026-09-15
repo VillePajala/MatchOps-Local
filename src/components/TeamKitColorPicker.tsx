@@ -68,7 +68,7 @@ export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
               onClick={() => onChange(c.hex)}
               // The ring, not a border, marks the choice: a border would change
               // the swatch's size and make the row jump as you tap along it.
-              className={`w-9 h-9 rounded-full transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:opacity-50 ${
+              className={`w-9 h-9 rounded-full transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50 ${
                 selected ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800' : 'ring-1 ring-white/20'
               }`}
               style={{ backgroundColor: c.hex }}
@@ -79,7 +79,7 @@ export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
             so the swatch keeps the size and ring of its neighbours - styling
             <input type="color"> directly is unreliable across browsers. */}
         <label
-          className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-shadow focus-within:ring-2 focus-within:ring-purple-400 ${
+          className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-shadow focus-within:ring-2 focus-within:ring-indigo-400 ${
             isCustom ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800' : 'ring-1 ring-white/20'
           } ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
           style={isCustom ? { backgroundColor: value } : undefined}
@@ -103,7 +103,7 @@ export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
           aria-label={t('unifiedTeamModal.kitColorNone', 'No colour')}
           disabled={disabled}
           onClick={() => onChange(undefined)}
-          className={`w-9 h-9 rounded-full flex items-center justify-center text-slate-400 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:opacity-50 ${
+          className={`w-9 h-9 rounded-full flex items-center justify-center text-slate-400 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50 ${
             !value ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800' : 'ring-1 ring-white/20'
           }`}
         >

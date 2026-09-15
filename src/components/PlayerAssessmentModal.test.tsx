@@ -55,7 +55,7 @@ describe('PlayerAssessmentModal', () => {
         },
       },
     });
-    expect(container.querySelector('.text-purple-400')).toBeInTheDocument();
+    expect(container.querySelector('.text-indigo-400')).toBeInTheDocument();
   });
 
   it('calls onDelete when reset button clicked', () => {

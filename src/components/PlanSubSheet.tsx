@@ -154,7 +154,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
             type="button"
             onClick={() => step(-5)}
             aria-label="-5"
-            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-xs font-semibold leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
+            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-xs font-semibold leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             −5
           </button>
@@ -162,7 +162,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
             type="button"
             onClick={() => step(-1)}
             aria-label="-1"
-            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
+            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             −
           </button>
@@ -173,7 +173,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
             type="button"
             onClick={() => step(1)}
             aria-label="+1"
-            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
+            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             +
           </button>
@@ -181,7 +181,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
             type="button"
             onClick={() => step(5)}
             aria-label="+5"
-            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-xs font-semibold leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
+            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-xs font-semibold leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             +5
           </button>
@@ -247,7 +247,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
                       key={id}
                       type="button"
                       onClick={() => pick(id)}
-                      className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-purple-700 border border-slate-500/40 text-sm font-medium text-slate-100"
+                      className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-indigo-600 border border-slate-500/40 text-sm font-medium text-slate-100"
                     >
                       {nameById.get(id) ?? id}
                       {fair && (
@@ -276,7 +276,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
                         key={id}
                         type="button"
                         onClick={() => pick(id)}
-                        className="px-3 py-1.5 rounded-full bg-slate-800 hover:bg-purple-700 border border-dashed border-slate-500/60 text-sm font-medium text-slate-200"
+                        className="px-3 py-1.5 rounded-full bg-slate-800 hover:bg-indigo-600 border border-dashed border-slate-500/60 text-sm font-medium text-slate-200"
                       >
                         {nameById.get(id) ?? id}
                         {fair && (

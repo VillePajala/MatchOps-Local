@@ -1028,7 +1028,7 @@ describe('NewGameSetupModal', () => {
 
       // Find the Soccer button by text and verify it's selected (has active styling)
       const soccerButton = screen.getByRole('button', { name: /Soccer/i });
-      expect(soccerButton).toHaveClass('bg-purple-700');
+      expect(soccerButton).toHaveClass('bg-indigo-600');
     });
 
     it('should prefill game type from selected season', async () => {
@@ -1061,7 +1061,7 @@ describe('NewGameSetupModal', () => {
       // Verify Futsal is now selected
       await waitFor(() => {
         const futsalButton = screen.getByRole('button', { name: /Futsal/i });
-        expect(futsalButton).toHaveClass('bg-purple-700');
+        expect(futsalButton).toHaveClass('bg-indigo-600');
       });
     });
 
@@ -1095,7 +1095,7 @@ describe('NewGameSetupModal', () => {
       // Verify Futsal is now selected
       await waitFor(() => {
         const futsalButton = screen.getByRole('button', { name: /Futsal/i });
-        expect(futsalButton).toHaveClass('bg-purple-700');
+        expect(futsalButton).toHaveClass('bg-indigo-600');
       });
     });
 
@@ -1112,7 +1112,7 @@ describe('NewGameSetupModal', () => {
 
       // Initially Soccer should be selected
       const soccerButton = screen.getByRole('button', { name: /Soccer/i });
-      expect(soccerButton).toHaveClass('bg-purple-700');
+      expect(soccerButton).toHaveClass('bg-indigo-600');
 
       // Click Futsal button
       const futsalButton = screen.getByRole('button', { name: /Futsal/i });
@@ -1122,8 +1122,8 @@ describe('NewGameSetupModal', () => {
 
       // Verify Futsal is now selected and Soccer is not
       await waitFor(() => {
-        expect(futsalButton).toHaveClass('bg-purple-700');
-        expect(soccerButton).not.toHaveClass('bg-purple-700');
+        expect(futsalButton).toHaveClass('bg-indigo-600');
+        expect(soccerButton).not.toHaveClass('bg-indigo-600');
       });
     });
 
@@ -1257,7 +1257,7 @@ describe('NewGameSetupModal', () => {
       // Verify Soccer remains selected (default)
       await waitFor(() => {
         const soccerButton = screen.getByRole('button', { name: /Soccer/i });
-        expect(soccerButton).toHaveClass('bg-purple-700');
+        expect(soccerButton).toHaveClass('bg-indigo-600');
       });
     });
   });

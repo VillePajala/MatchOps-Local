@@ -245,7 +245,7 @@ describe('LoadGameModal', () => {
     const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
 
     // Check for the indigo ring indicator (current game styling)
-    expect(gameCard).toHaveClass('ring-1', 'ring-purple-400/60', 'bg-purple-900/20');
+    expect(gameCard).toHaveClass('ring-1', 'ring-indigo-400/60', 'bg-indigo-900/20');
   });
 
   describe('orphaned tournamentSeriesId handling', () => {

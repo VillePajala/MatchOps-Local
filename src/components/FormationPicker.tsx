@@ -52,8 +52,8 @@ const MenuContent: React.FC<{
     ? "relative z-10 overflow-y-auto flex-1 p-6 pb-20 space-y-4"
     : "relative z-10 overflow-y-auto min-h-0 flex-1 p-2 space-y-2";
   const autoButtonClass = isMobile
-    ? "w-full px-4 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-purple-700 text-white hover:bg-purple-600 border border-purple-400/30"
-    : "w-full px-3 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-purple-700 text-white hover:bg-purple-600 border border-purple-400/30";
+    ? "w-full px-4 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
+    : "w-full px-3 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30";
   const cardClass = isMobile ? "p-4 rounded-lg" : "p-2 rounded-lg";
   const sizeHeaderClass = isMobile
     ? "px-1 py-1 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 mb-2"
@@ -71,7 +71,7 @@ const MenuContent: React.FC<{
   return (
     <>
       {/* Background effects (from modalStyles) */}
-      <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
+      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
 
       {/* Header */}

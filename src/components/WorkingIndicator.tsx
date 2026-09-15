@@ -39,7 +39,7 @@ const WorkingIndicator: React.FC<WorkingIndicatorProps> = ({
     data-testid={testId}
   >
     <svg
-      className="h-3.5 w-3.5 shrink-0 animate-spin text-purple-400 motion-reduce:animate-none"
+      className="h-3.5 w-3.5 shrink-0 animate-spin text-indigo-400 motion-reduce:animate-none"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
