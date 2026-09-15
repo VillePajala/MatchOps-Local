@@ -6,6 +6,7 @@ import { SavedGamesCollection } from '@/types'; // Keep this if SavedGamesCollec
 import { Season, Tournament, Team } from '@/types'; // Corrected import path
 import type { TranslationKey } from '@/i18n-types';
 import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
+import { listOpponents, normalizeOpponentName } from '@/utils/opponentNames';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { resolveGameResult } from '@/utils/gameResult';
 import { computeGameCompleteness } from '@/utils/gameCompleteness';
@@ -92,6 +93,27 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   const [filterType, setFilterType] = useState<'season' | 'tournament' | 'team' | null>(null);
   const [filterId, setFilterId] = useState<string | null>(null);
   const [showUnplayedOnly, setShowUnplayedOnly] = useState<boolean>(false);
+  /** Normalised opponent key, so every spelling of one team is one choice. */
+  const [opponentFilter, setOpponentFilter] = useState<string>('all');
+
+  /**
+   * The teams in this list, one entry per team however it is spelled.
+   *
+   * NOT the same as typing a name into the search box. Search is a substring
+   * match, so "IPS" also returns IPS/Sininen and IPS/Punainen - two different
+   * squads - while a name written two ways is split across two searches. This
+   * matches on the normalised key instead: one team, one option, every
+   * spelling of it included and no sibling team swept in.
+   */
+  const opponentOptions = useMemo(
+    () =>
+      listOpponents(
+        Object.entries(savedGames)
+          .filter(([id]) => id !== DEFAULT_GAME_ID)
+          .map(([, game]) => game?.opponentName ?? ''),
+      ),
+    [savedGames],
+  );
 
   // Confirmation modal state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -207,7 +229,12 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       return match;
     });
 
-    const filteredByPlayed = filteredByBadge.filter(id => {
+    const filteredByOpponent = filteredByBadge.filter(id => {
+      if (opponentFilter === 'all') return true;
+      return normalizeOpponentName(savedGames[id]?.opponentName) === opponentFilter;
+    });
+
+    const filteredByPlayed = filteredByOpponent.filter(id => {
       if (!showUnplayedOnly) return true;
       const gameData = savedGames[id];
       if (!gameData) return false;
@@ -252,7 +279,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     });
 
     return gamesWithSortKeys.map(g => g.id);
-  }, [savedGames, searchText, filterType, filterId, showUnplayedOnly, entityMaps]);
+  }, [savedGames, searchText, filterType, filterId, showUnplayedOnly, opponentFilter, entityMaps]);
 
   const handleDeleteClick = (gameId: string, gameName: string) => {
     setGameToDelete({ id: gameId, name: gameName });
@@ -301,7 +328,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       </div>
     );
   } else if (filteredGameIds.length === 0) {
-    const hasFilters = searchText || (filterType && filterId);
+    const hasFilters = searchText || (filterType && filterId) || opponentFilter !== 'all';
     mainContent = (
       <div className="flex flex-col items-center justify-center py-16 px-4">
         {/* Soccer ball illustration */}
@@ -669,6 +696,30 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           <div className="relative mb-4">
             <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
           </div>
+          {/* Only worth a control when there is a choice to make. */}
+          {opponentOptions.length > 1 && (
+            <div className="mb-4">
+              <label htmlFor="opponentFilterSelect" className="sr-only">
+                {t('loadGameModal.opponentFilterLabel', 'Opponent')}
+              </label>
+              <select
+                id="opponentFilterSelect"
+                value={opponentFilter}
+                onChange={(e) => setOpponentFilter(e.target.value)}
+                data-testid="load-game-opponent-filter"
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                <option value="all">
+                  {t('loadGameModal.allOpponentsFilter', 'All opponents')}
+                </option>
+                {opponentOptions.map((opponent) => (
+                  <option key={opponent.key} value={opponent.key}>
+                    {opponent.spelling} ({opponent.count})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="mb-4">
             {/* Filter toggle button - matches the "Show archived" toggles in
                 the Team/Season managers (aria-pressed, indigo when active). */}

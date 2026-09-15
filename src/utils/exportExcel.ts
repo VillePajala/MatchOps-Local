@@ -10,6 +10,7 @@ import {
 } from '@/types';
 import { formatTime } from './time';
 import { resolveGameResult } from '@/utils/gameResult';
+import { computeHeadToHead } from '@/utils/headToHead';
 import { ASSESSMENT_METRICS } from '@/config/assessmentMetrics';
 
 // Only export columns for metrics that actually have data, so a coach using a
@@ -567,6 +568,42 @@ export const exportAggregateExcel = (
 
     const seasonSheet = XLSX.utils.json_to_sheet(seasonBreakdown);
     XLSX.utils.book_append_sheet(workbook, seasonSheet, translate('export.sheetSeasonBreakdown', 'Season Breakdown'));
+  }
+
+  /*
+   * Opponent Breakdown.
+   *
+   * GROUPED, which is the whole point. A column of raw opponentName strings
+   * would put "LAUTP/Sininen" and "Lautp / Sininen" on separate rows and hand
+   * the coach a spreadsheet that quietly lies - the same split the app now
+   * prevents. computeHeadToHead groups by the same normalised key used
+   * everywhere else, so one team is one row here too.
+   *
+   * Below two opponents it is omitted: a one-row breakdown restates the Team
+   * Performance sheet.
+   */
+  const opponentRows = computeHeadToHead(gameArray);
+  if (opponentRows.length > 1) {
+    const opponentBreakdown = opponentRows.map((row) => {
+      const winPct =
+        row.gamesPlayed > 0 ? ((row.wins / row.gamesPlayed) * 100).toFixed(1) : '0.0';
+      return {
+        [translate('export.opponent', 'Opponent')]: row.opponent,
+        [translate('export.gamesPlayed', 'Games Played')]: row.gamesPlayed,
+        [translate('export.record', 'Record')]: `${row.wins}-${row.losses}-${row.ties}`,
+        [translate('export.winPercentage', 'Win %')]: `${winPct}%`,
+        [translate('export.goalsFor', 'Goals For')]: row.goalsFor,
+        [translate('export.goalsAgainst', 'Goals Against')]: row.goalsAgainst,
+        [translate('export.goalDifference', 'Goal Diff')]:
+          row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference,
+      };
+    });
+    const opponentSheet = XLSX.utils.json_to_sheet(opponentBreakdown);
+    XLSX.utils.book_append_sheet(
+      workbook,
+      opponentSheet,
+      translate('export.sheetOpponentBreakdown', 'Opponent Breakdown'),
+    );
   }
 
   // Sheet 5: Tournament Breakdown (if we have multiple tournaments in dataset)

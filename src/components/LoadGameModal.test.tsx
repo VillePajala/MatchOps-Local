@@ -759,4 +759,61 @@ describe('LoadGameModal', () => {
       expect(within(gameCard).getByText('common.gameTypeFutsal')).toBeInTheDocument();
     });
   });
+
+  /**
+   * A team written two ways is one choice here, and a sibling team is never
+   * swept in - neither of which free-text search can do.
+   * @critical
+   */
+  describe('filtering by opponent', () => {
+    const gamesWithVariants = (): SavedGamesCollection => ({
+      g1: { opponentName: 'IPS/Sininen', gameDate: '2024-01-01', isPlayed: true } as unknown as AppState,
+      g2: { opponentName: 'ips sininen', gameDate: '2024-02-01', isPlayed: true } as unknown as AppState,
+      g3: { opponentName: 'IPS/Punainen', gameDate: '2024-03-01', isPlayed: true } as unknown as AppState,
+    });
+
+    it('offers one option per team however it is spelled', async () => {
+      await renderModal({ savedGames: gamesWithVariants() });
+      const select = screen.getByTestId('load-game-opponent-filter') as HTMLSelectElement;
+      // "all" plus the two REAL teams - not three.
+      expect(select.querySelectorAll('option')).toHaveLength(3);
+    });
+
+    /* The <option> elements carry the same names, so every assertion below
+       looks only outside the select - otherwise the filter would appear to
+       prove itself. */
+    const inTheList = (pattern: RegExp) =>
+      screen.queryAllByText(pattern).filter((el) => el.closest('select') === null);
+
+    it('keeps both spellings of the chosen team', async () => {
+      await renderModal({ savedGames: gamesWithVariants() });
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('load-game-opponent-filter'), {
+          target: { value: 'ips sininen' },
+        });
+      });
+      expect(inTheList(/IPS\/Sininen/)).toHaveLength(1);
+      expect(inTheList(/ips sininen/)).toHaveLength(1);
+    });
+
+    /** The trap a substring search falls into: "IPS" matches both squads. */
+    it('does not sweep in a sibling team', async () => {
+      await renderModal({ savedGames: gamesWithVariants() });
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('load-game-opponent-filter'), {
+          target: { value: 'ips sininen' },
+        });
+      });
+      expect(inTheList(/IPS\/Punainen/)).toHaveLength(0);
+    });
+
+    it('offers no control when there is only one team', async () => {
+      await renderModal({
+        savedGames: {
+          g1: { opponentName: 'HJK', gameDate: '2024-01-01', isPlayed: true } as unknown as AppState,
+        },
+      });
+      expect(screen.queryByTestId('load-game-opponent-filter')).not.toBeInTheDocument();
+    });
+  });
 });
