@@ -94,7 +94,7 @@ function RecentCard({ game, onOpen }: { game: HomeRecentGame; onOpen?: (id: stri
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className="flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl bg-indigo-950/45 border border-indigo-800/45 hover:bg-indigo-900/45 transition-all"
+      className="flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl bg-indigo-900/70 border border-indigo-600/50 shadow-md hover:bg-indigo-800/70 transition-all"
     >
       <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
       <div className={`text-sm font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
