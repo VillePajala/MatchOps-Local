@@ -153,16 +153,24 @@ jest.mock('@/hooks/useLoadGameController', () => ({
 
 jest.mock('@/components/NewGameSetupModal', () => ({
   __esModule: true,
-  default: ({ onStart, onCancel, onAddOpponentToSeason }: {
+  default: ({ onStart, onCancel, onAddOpponentToSeason, onRenameOpponent, knownOpponents, playedOpponentsByCompetition }: {
     onStart: (...args: unknown[]) => void;
     onCancel: () => void;
     onAddOpponentToSeason?: (seasonId: string, name: string) => Promise<void>;
+    onRenameOpponent?: (from: string, to: string) => Promise<unknown>;
+    knownOpponents?: string[];
+    playedOpponentsByCompetition?: Record<string, string[]>;
   }) => (
     <div data-testid="new-game-setup-modal">
+      <span data-testid="known-opponents">{(knownOpponents ?? []).join('|')}</span>
+      <span data-testid="played-by-competition">
+        {JSON.stringify(playedOpponentsByCompetition ?? {})}
+      </span>
       <button onClick={() => onStart(['p1'], 'Home', 'Away')}>confirm-new-game</button>
       <button onClick={onCancel}>cancel-new-game</button>
       <button onClick={() => onAddOpponentToSeason?.('s1', 'KuPS')}>add-opponent</button>
       <button onClick={() => onAddOpponentToSeason?.('nope', 'KuPS')}>add-opponent-bad-season</button>
+      <button onClick={() => onRenameOpponent?.('ips musta', 'IPS/Musta')}>rename-opponent</button>
     </div>
   ),
 }));
@@ -175,6 +183,15 @@ const mockNewGameSetupController = {
   handleStartNewGameWithSetup: jest.fn(),
   handleCancelNewGameSetup: jest.fn(),
 };
+// The rename hook reaches for auth + the query cache, which this suite does not
+// stand up. Its own behaviour is covered by the sweep tool and the game form;
+// here we only care that the host hands the callback down.
+const mockRenameOpponent = jest.fn().mockResolvedValue({ gamesChanged: 1, listsChanged: 0 });
+jest.mock('@/hooks/useOpponentRename', () => ({
+  __esModule: true,
+  useOpponentRename: () => ({ renameOpponent: mockRenameOpponent, isRenaming: false }),
+}));
+
 jest.mock('@/hooks/useNewGameSetupController', () => ({
   __esModule: true,
   useNewGameSetupController: () => mockNewGameSetupController,
@@ -672,6 +689,82 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
         fireEvent.click(screen.getByText('add-opponent-bad-season'));
       });
       expect(mockUpdateSeasonMutateAsync).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * The escape hatch from adoption reaches the data through this host.
+   * @critical
+   */
+  describe('pushing the coach\u2019s own spelling over the history', () => {
+    it('performs the rename the game form asks for', async () => {
+      renderHost();
+      await act(async () => {
+        fireEvent.click(screen.getByText('open-new-game'));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText('rename-opponent'));
+      });
+      expect(mockRenameOpponent).toHaveBeenCalledWith('ips musta', 'IPS/Musta');
+    });
+  });
+
+  /**
+   * The pools the game form matches against. Ranking happens HERE, so this is
+   * the only place the "most used wins" promise can be checked end to end.
+   * @critical
+   */
+  describe('ranking the opponent pools', () => {
+    const gamesWithVariants = {
+      g1: { opponentName: 'ips musta', seasonId: 's1' },
+      g2: { opponentName: 'IPS/Musta', seasonId: 's1' },
+      g3: { opponentName: 'IPS/Musta', seasonId: 's1' },
+      g4: { opponentName: 'IPS/Musta', seasonId: 's1' },
+    };
+
+    /**
+     * The coach's question: typed wrong once, right three times after. The
+     * one-off must not keep winning just because its game came back first.
+     */
+    it('offers the most-used spelling, not the first one stored', async () => {
+      mockNewGameSetupController.savedGames = gamesWithVariants;
+      renderHost();
+      await act(async () => {
+        fireEvent.click(screen.getByText('open-new-game'));
+      });
+      // Only one spelling survives, and it is the one used three times.
+      expect(screen.getByTestId('known-opponents')).toHaveTextContent('IPS/Musta');
+      expect(screen.getByTestId('known-opponents')).not.toHaveTextContent('ips musta');
+      mockNewGameSetupController.savedGames = {};
+    });
+
+    it('ranks a competition\u2019s own list the same way', async () => {
+      mockNewGameSetupController.savedGames = gamesWithVariants;
+      renderHost();
+      await act(async () => {
+        fireEvent.click(screen.getByText('open-new-game'));
+      });
+      expect(JSON.parse(screen.getByTestId('played-by-competition').textContent ?? '{}')).toEqual({
+        s1: ['IPS/Musta'],
+      });
+      mockNewGameSetupController.savedGames = {};
+    });
+
+    /** A curated name is a deliberate choice and outranks a frequent one. */
+    it('lets the curated spelling beat a more frequent one', async () => {
+      mockNewGameSetupController.savedGames = {
+        g1: { opponentName: 'ips', seasonId: 's1' },
+        g2: { opponentName: 'ips', seasonId: 's1' },
+        g3: { opponentName: 'ips', seasonId: 's1' },
+      };
+      renderHost();
+      await act(async () => {
+        fireEvent.click(screen.getByText('open-new-game'));
+      });
+      // Season s1 is curated as ['IPS'] in this suite's fixtures.
+      expect(screen.getByTestId('known-opponents')).toHaveTextContent('IPS');
+      expect(screen.getByTestId('known-opponents').textContent).not.toContain('ips');
+      mockNewGameSetupController.savedGames = {};
     });
   });
 

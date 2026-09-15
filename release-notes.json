@@ -5,11 +5,13 @@
       "date": "2026-09-15",
       "en": [
         "Opponent names now settle on the spelling you already use. Type \"lautp/sininen\" when you have written \"LauTP / Sininen\" before and the app fills in your spelling, so the same team stops splitting into several opponents in your statistics.",
-        "A league or tournament now suggests the teams you have already played in it, with no list to fill in first. Listing teams by hand still works and those come first."
+        "A league or tournament now suggests the teams you have already played in it, with no list to fill in first. Listing teams by hand still works and those come first.",
+        "If the app changes an opponent's name to a spelling you used earlier and that earlier one is the wrong one, you can now say \"use mine instead\" right there. It renames the team in every past game too, so a name that went in wrong on the first try is no longer stuck."
       ],
       "fi": [
         "Vastustajan nimi asettuu nyt siihen kirjoitusasuun, jota olet jo käyttänyt. Kirjoita \"lautp/sininen\", kun olet aiemmin kirjoittanut \"LauTP / Sininen\", niin sovellus täydentää oman kirjoitusasusi - näin sama joukkue ei enää jakaudu tilastoissa useaksi eri vastustajaksi.",
-        "Sarja tai turnaus ehdottaa nyt joukkueita, joita olet siinä jo pelannut, ilman että listaa tarvitsee ensin täyttää. Joukkueiden listaaminen käsin toimii edelleen, ja ne näkyvät ensimmäisinä."
+        "Sarja tai turnaus ehdottaa nyt joukkueita, joita olet siinä jo pelannut, ilman että listaa tarvitsee ensin täyttää. Joukkueiden listaaminen käsin toimii edelleen, ja ne näkyvät ensimmäisinä.",
+        "Jos sovellus muuttaa vastustajan nimen aiemmin käyttämääsi kirjoitusasuun ja juuri se vanha on väärin, voit nyt valita siinä samassa \"käytä minun kirjoitusasuani\". Nimi vaihtuu myös kaikkiin aiempiin otteluihin, joten ensimmäisellä kerralla väärin mennyt nimi ei jää enää jumiin."
       ]
     },
     {

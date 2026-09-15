@@ -10,6 +10,7 @@ import {
   findExistingSpelling,
   addOpponentToList,
   groupOpponentVariants,
+  preferredSpellings,
 } from './opponentNames';
 
 describe('normalizeOpponentName', () => {
@@ -161,5 +162,50 @@ describe('groupOpponentVariants', () => {
 
   it('ignores blanks rather than grouping them together', () => {
     expect(groupOpponentVariants(['', '  ', 'IPS'])).toEqual([]);
+  });
+});
+
+/**
+ * The rule that keeps entry-time adoption and the sweep tool from
+ * contradicting each other.
+ * @critical
+ */
+describe('preferredSpellings', () => {
+  it('keeps the spelling used most', () => {
+    expect(
+      preferredSpellings(['lautp/sininen', 'LauTP / Sininen', 'LauTP / Sininen']),
+    ).toEqual(['LauTP / Sininen']);
+  });
+
+  /**
+   * The coach's real question: typed wrong once, right several times after.
+   * The one-off must be outvoted rather than anchoring the name forever.
+   */
+  it('lets a correct spelling outvote an early typo', () => {
+    const occurrences = ['ips musta', 'IPS/Musta', 'IPS/Musta', 'IPS/Musta'];
+    expect(preferredSpellings(occurrences)).toEqual(['IPS/Musta']);
+  });
+
+  /** Stable, not arbitrary: a tie keeps whichever was seen first. */
+  it('breaks a tie on first appearance', () => {
+    expect(preferredSpellings(['KuPS', 'kups'])).toEqual(['KuPS']);
+    expect(preferredSpellings(['kups', 'KuPS'])).toEqual(['kups']);
+  });
+
+  it('agrees with what the sweep tool would suggest', () => {
+    const occurrences = ['Lautp sininen', 'LAUTP/Sininen', 'LAUTP/Sininen'];
+    const [group] = groupOpponentVariants(occurrences);
+    expect(preferredSpellings(occurrences)).toEqual([group.suggested]);
+  });
+
+  it('never merges two real teams', () => {
+    expect(preferredSpellings(['IPS/Punainen', 'IPS/Sininen']).sort()).toEqual([
+      'IPS/Punainen',
+      'IPS/Sininen',
+    ]);
+  });
+
+  it('passes a single-spelling name through and ignores blanks', () => {
+    expect(preferredSpellings(['HJK', '', '   '])).toEqual(['HJK']);
   });
 });
