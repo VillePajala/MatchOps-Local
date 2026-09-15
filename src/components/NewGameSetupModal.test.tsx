@@ -1594,7 +1594,18 @@ describe('NewGameSetupModal', () => {
      * Having picked one team must not strand the coach with a single chip when
      * they meant to pick a different one.
      */
-    it('brings the full list back once a team is chosen exactly', async () => {
+    /**
+     * REVERSED DELIBERATELY 2026-09-16. This used to assert that choosing a
+     * team exactly brought the WHOLE list back, so a coach who tapped the
+     * wrong chip was not stranded with only that chip. That was reasonable
+     * while the list was uncapped, and became a visibly broken search once it
+     * was capped at six: typing "Ips" against 69 known teams showed the first
+     * six of the 69, none of them IPS. Reported from a real phone.
+     *
+     * Text in the field now always filters. Picking a different team costs an
+     * edit to the field, which re-opens the list.
+     */
+    it('keeps the list filtered to the team that was chosen', async () => {
       render(
         <ToastProvider>
           <NewGameSetupModal {...defaultProps} />
@@ -1606,7 +1617,7 @@ describe('NewGameSetupModal', () => {
       });
       const options = screen.getByTestId('opponent-options');
       expect(options).toHaveTextContent('IPS');
-      expect(options).toHaveTextContent('KuPS');
+      expect(options).not.toHaveTextContent('KuPS');
     });
 
     it('offers no chips for a name that matches none, leaving the add instead', async () => {

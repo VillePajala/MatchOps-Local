@@ -73,9 +73,19 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
    * that used to do it was removed because <input list> re-roles the field to
    * combobox, so the filtering has to live here instead.
    *
-   * Once the text matches an option exactly the full list comes back, so
-   * having picked one team does not strand the coach with a single chip when
-   * they meant to pick another.
+   * TEXT IN THE FIELD ALWAYS FILTERS, including text that exactly matches an
+   * option. There used to be an exception for that case - the whole list came
+   * back, so tapping a chip did not strand the coach with only the chip they
+   * had just tapped. Harmless while the list was uncapped, because the team
+   * they wanted was still somewhere in it. Once the list was capped at six it
+   * became a visibly broken search: typing "Ips" with "IPS" among 69 known
+   * teams showed the first six of those 69, none of them IPS.
+   *
+   * Filtering on an exact match is also the more useful answer, not merely the
+   * less broken one. Finnish clubs name teams club + colour, so "Ips" matching
+   * IPS, IPS/Sininen and IPS/Punainen shows the coach exactly the set they
+   * need to tell apart. The stranding it used to avoid costs a keystroke:
+   * editing the field re-opens the list.
    */
   /*
    * CAPPED, because a real coach's pool is not small. After a season or two
@@ -92,8 +102,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
    * would have a coach believe a team is missing.
    */
   const typed = normalizeOpponentName(opponentName);
-  const exactlyChosen = allOptions.some((name) => normalizeOpponentName(name) === typed);
-  const searching = !!typed && !exactlyChosen;
+  const searching = !!typed;
   const matches = searching
     ? allOptions.filter((name) => normalizeOpponentName(name).includes(typed))
     : allOptions;
