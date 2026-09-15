@@ -11,6 +11,7 @@ import {
   addOpponentToList,
   groupOpponentVariants,
   preferredSpellings,
+  listOpponents,
 } from './opponentNames';
 
 describe('normalizeOpponentName', () => {
@@ -207,5 +208,38 @@ describe('preferredSpellings', () => {
 
   it('passes a single-spelling name through and ignores blanks', () => {
     expect(preferredSpellings(['HJK', '', '   '])).toEqual(['HJK']);
+  });
+});
+
+/**
+ * The list a conflict view can never produce: a name spelled the same way
+ * everywhere is invisible to groupOpponentVariants by definition, and that is
+ * exactly the name a coach may need to correct.
+ * @critical
+ */
+describe('listOpponents', () => {
+  it('includes a name written only one way', () => {
+    expect(groupOpponentVariants(['HJK', 'HJK'])).toHaveLength(0);
+    expect(listOpponents(['HJK', 'HJK'])).toEqual([
+      { key: 'hjk', spelling: 'HJK', count: 2, variants: 1 },
+    ]);
+  });
+
+  it('shows one row per team, using the most-used spelling', () => {
+    const rows = listOpponents(['ips musta', 'IPS/Musta', 'IPS/Musta']);
+    expect(rows).toEqual([{ key: 'ips musta', spelling: 'IPS/Musta', count: 3, variants: 2 }]);
+  });
+
+  it('puts the most-played team first', () => {
+    const rows = listOpponents(['HJK', 'KuPS', 'KuPS', 'KuPS']);
+    expect(rows.map((r) => r.spelling)).toEqual(['KuPS', 'HJK']);
+  });
+
+  it('keeps two real teams apart', () => {
+    expect(listOpponents(['IPS/Punainen', 'IPS/Sininen'])).toHaveLength(2);
+  });
+
+  it('ignores blanks', () => {
+    expect(listOpponents(['', '  ', 'HJK'])).toHaveLength(1);
   });
 });

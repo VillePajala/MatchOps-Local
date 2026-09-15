@@ -4,10 +4,11 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { CollapsibleModalHeader, ModalContainer } from '@/styles/modalStyles';
-import { useOpponentVariantGroups } from '@/hooks/useOpponentVariantGroups';
+import { useOpponentVariantGroups, useAllOpponents } from '@/hooks/useOpponentVariantGroups';
 import { useOpponentRename } from '@/hooks/useOpponentRename';
 import logger from '@/utils/logger';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
+import { normalizeOpponentName } from '@/utils/opponentNames';
 
 interface OpponentNameSweepModalProps {
   isOpen: boolean;
@@ -45,6 +46,25 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
     () => allGroups.filter((group) => !resolved.includes(group.key)),
     [allGroups, resolved],
   );
+
+  /**
+   * Every team, not only the inconsistent ones.
+   *
+   * A conflict list cannot reach a name that is consistently WRONG - captured
+   * badly on its first use and repeated ever since, so no disagreement exists
+   * for it to find. That name is exactly the one a coach wants to correct, and
+   * until now nothing in the app could.
+   */
+  const allOpponents = useAllOpponents(isOpen);
+  const [filter, setFilter] = useState('');
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameTo, setRenameTo] = useState('');
+  const visible = useMemo(() => {
+    const needle = normalizeOpponentName(filter);
+    return needle
+      ? allOpponents.filter((o) => normalizeOpponentName(o.spelling).includes(needle))
+      : allOpponents;
+  }, [allOpponents, filter]);
 
   // The writes live in useOpponentRename because the new-game form performs the
   // same rename when a coach refuses an adopted spelling. Two entry points, one
@@ -150,7 +170,88 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                   </div>
                 );
               })
-        )}
+            )}
+
+            {/* EVERY TEAM, below the conflicts. The conflicts are what the app
+                can spot on its own and are worth the coach's attention first;
+                this section is for the name only the coach knows is wrong,
+                which no conflict list can ever surface. */}
+            {allOpponents.length > 0 && (
+              <div className="pt-4 mt-2 border-t border-white/10 space-y-3">
+                <h3 className="text-sm font-semibold text-slate-300">
+                  {t('opponentSweep.allTeamsTitle', 'All teams')}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  {t(
+                    'opponentSweep.allTeamsHint',
+                    'Rename any team, even one that is spelled the same way everywhere.',
+                  )}
+                </p>
+                {allOpponents.length > 8 && (
+                  <input
+                    type="text"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    placeholder={t('opponentSweep.filterPlaceholder', 'Search teams')}
+                    aria-label={t('opponentSweep.filterPlaceholder', 'Search teams')}
+                    data-testid="opponent-sweep-filter"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                )}
+                {visible.map((opponent) => {
+                  const open = renaming === opponent.key;
+                  const busy = applying === opponent.key;
+                  return (
+                    <div
+                      key={opponent.key}
+                      data-testid={`opponent-row-${opponent.key}`}
+                      className="bg-slate-900/70 p-3 rounded-lg border border-slate-700"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRenaming(open ? null : opponent.key);
+                          setRenameTo(opponent.spelling);
+                        }}
+                        data-testid={`opponent-row-toggle-${opponent.key}`}
+                        className="w-full flex items-center justify-between gap-3 text-left"
+                      >
+                        <span className="text-sm text-white truncate">{opponent.spelling}</span>
+                        <span className="text-xs text-slate-400 tabular-nums flex-shrink-0">
+                          {t('opponentSweep.usedIn', '{{count}} games', { count: opponent.count })}
+                        </span>
+                      </button>
+                      {open && (
+                        <div className="mt-3 space-y-2">
+                          <input
+                            type="text"
+                            value={renameTo}
+                            onChange={(e) => setRenameTo(e.target.value)}
+                            aria-label={t('opponentSweep.canonicalLabel', 'Spelling to keep')}
+                            data-testid={`opponent-row-input-${opponent.key}`}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await apply(opponent.key, renameTo);
+                              setRenaming(null);
+                            }}
+                            disabled={busy || !renameTo.trim()}
+                            data-testid={`opponent-row-apply-${opponent.key}`}
+                            className="w-full px-4 py-2.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
+                          >
+                            {busy
+                              ? t('opponentSweep.applying', 'Renaming…')
+                              : t('opponentSweep.apply', 'Use this everywhere')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
       </div>
     </ModalContainer>
   );

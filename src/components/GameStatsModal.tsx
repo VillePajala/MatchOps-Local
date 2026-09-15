@@ -40,6 +40,8 @@ import { computeGameCompleteness } from '@/utils/gameCompleteness';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { dictationVocabularyFor } from '@/utils/transcription';
 import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
+import { groupOpponentVariants } from '@/utils/opponentNames';
+import OpponentNameSweepModal from '@/components/OpponentNameSweepModal';
 import { queryKeys } from '@/config/queryKeys';
 
 // Import extracted hooks
@@ -295,6 +297,21 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents);
   // Current-game tab plus the four aggregate tabs, each hidden by its own host.
   const visibleTabCount = (aggregateOnly ? 0 : 1) + (currentGameOnly ? 0 : 4);
+
+  // Counted from the games and seasons this modal ALREADY holds, rather than
+  // through useOpponentVariantGroups. That hook would re-fetch every saved game
+  // to render a warning banner, and savedGames is right here as a prop. Same
+  // groupOpponentVariants over the same records, so it agrees with the tool the
+  // banner opens; only the way the records are obtained differs.
+  const nameConflicts = useMemo(
+    () =>
+      groupOpponentVariants([
+        ...Object.values(savedGames ?? {}).map((g) => g?.opponentName ?? ''),
+        ...seasons.flatMap((season) => season.opponents ?? []),
+      ]).length,
+    [savedGames, seasons],
+  );
+  const [showNameSweep, setShowNameSweep] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(
     initialSelectedPlayerId ? availablePlayers.find(p => p.id === initialSelectedPlayerId) || null : null
   );
@@ -1224,6 +1241,33 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             className="mx-4 my-4 sm:mx-6"
             text={t('firstVisit.stats', 'Game stats live here: this game, league, tournament and per-player views from the tabs.')}
           />
+          {/* HERE, not only in the competitions manager, because this is where
+              the damage shows. One team written several ways is several
+              opponents to every figure on this screen, and a coach looking at
+              a number they doubt is the one person with both the reason and
+              the knowledge to fix it. The competitions manager is a screen
+              they open twice a season. Hidden on the current-game tab: a
+              single match's figures are not aggregated, so nothing there is
+              distorted by it. */}
+          {nameConflicts > 0 && activeTab !== 'currentGame' && (
+            <div className="mx-4 sm:mx-6 mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5">
+              <p className="text-xs text-amber-200/90">
+                {t(
+                  'gameStatsModal.nameConflicts',
+                  '{{count}} teams are written several ways, so they count as separate opponents here.',
+                  { count: nameConflicts },
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowNameSweep(true)}
+                data-testid="stats-open-name-sweep"
+                className="mt-1.5 px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs font-bold transition-colors"
+              >
+                {t('gameStatsModal.nameConflictsAction', 'Check team names')}
+              </button>
+            </div>
+          )}
           {activeTab === 'player' ? (
             <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6">
               {/* Player filter with collapsible Game Type and Season filters */}
@@ -1577,6 +1621,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           title={t('taso.title', 'For Taso')}
           subtitle={t('taso.subtitle', 'The match data you need to type into Taso.')}
         />
+        {/* Rendered here as well as from the competitions manager: the tool is
+            self-contained, and the point of the banner above is that a coach
+            should not have to go looking for it. */}
+        <OpponentNameSweepModal isOpen={showNameSweep} onClose={() => setShowNameSweep(false)} />
       </div>
     </div>
   );
