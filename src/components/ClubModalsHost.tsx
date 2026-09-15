@@ -284,7 +284,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
         data-testid="reset-overlay"
       >
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-slate-700 border-t-purple-500 rounded-full animate-spin" />
+          <div className="w-16 h-16 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
           <div className="text-center">
             <h2 className="text-xl font-bold text-slate-200 mb-2">
               {t('reset.resetting', 'Resetting Application...')}

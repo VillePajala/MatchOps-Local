@@ -90,7 +90,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
           <select
             value={newSeriesLevel}
             onChange={(e) => setNewSeriesLevel(e.target.value)}
-            className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-purple-500 focus:border-purple-500"
+            className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
             aria-label={t('tournamentDetailsModal.selectLevelForNewSeries', 'Select the new level')}
           >
             <option value="">{t('common.selectLevel', '-- Select Level --')}</option>
@@ -108,7 +108,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
             type="button"
             onClick={handleAddSeries}
             disabled={!newSeriesLevel}
-            className="px-3 py-2 bg-purple-700 hover:bg-purple-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-purple-400/30"
+            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-indigo-400/30"
             aria-label={t('tournamentDetailsModal.confirmAddSeries', 'Confirm add level')}
           >
             {t('common.add', 'Add')}

@@ -535,9 +535,9 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50 pointer-events-none" />
-        <div className="absolute -inset-[50px] bg-purple-700/5 blur-2xl bottom-0 opacity-50 pointer-events-none" />
+        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50 pointer-events-none" />
 
         {/* Chrome slimming: X-header (Cancel; in roster-edit sub-mode the X
             returns to the team form) + sticky primary. */}
@@ -577,7 +577,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         onChange={(e) => setName(e.target.value)}
                         data-testid="tour-team-name"
                         placeholder={t('teamDetailsModal.namePlaceholder', 'Enter team name')}
-                        className={`w-full px-3 py-2 bg-slate-700 border ${duplicateError ? 'border-red-500' : 'border-slate-600'} rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500`}
+                        className={`w-full px-3 py-2 bg-slate-700 border ${duplicateError ? 'border-red-500' : 'border-slate-600'} rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500`}
                         required
                       />
                       {duplicateError && (
@@ -593,7 +593,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                       <select
                         value={ageGroup}
                         onChange={(e) => setAgeGroup(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-purple-500 focus:border-purple-500"
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
                       >
                         <option value="">{t('teamDetailsModal.selectAgeGroup', '-- Select Age Group --')}</option>
                         {AGE_GROUPS.map((ag) => (
@@ -617,7 +617,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           onClick={() => handleTabChange('none')}
                           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             activeTab === 'none'
-                              ? 'bg-purple-700 text-white'
+                              ? 'bg-indigo-600 text-white'
                               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                           }`}
                         >
@@ -628,7 +628,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           onClick={() => handleTabChange('season')}
                           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             activeTab === 'season'
-                              ? 'bg-purple-700 text-white'
+                              ? 'bg-indigo-600 text-white'
                               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                           }`}
                         >
@@ -639,7 +639,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           onClick={() => handleTabChange('tournament')}
                           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             activeTab === 'tournament'
-                              ? 'bg-purple-700 text-white'
+                              ? 'bg-indigo-600 text-white'
                               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                           }`}
                         >
@@ -653,7 +653,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           <select
                             value={boundSeasonId}
                             onChange={(e) => handleSeasonChange(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                           >
                             <option value="">{t('newGameSetupModal.selectSeason', '-- Select League --')}</option>
                             {sortedSeasons.map((s) => (
@@ -671,7 +671,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           <select
                             value={boundTournamentId}
                             onChange={(e) => handleTournamentChange(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                           >
                             <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
                             {sortedTournaments.map((tourn) => (
@@ -693,7 +693,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             id="boundTournamentSeriesSelect"
                             value={boundTournamentSeriesId}
                             onChange={(e) => setBoundTournamentSeriesId(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                           >
                             <option value="">{t('teamDetailsModal.selectSeries', '-- Select level --')}</option>
                             {selectedTournament.series.map((series) => (
@@ -725,7 +725,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           <select
                             value={gameType}
                             onChange={(e) => setGameType(e.target.value as 'soccer' | 'futsal' | '')}
-                            className="w-full px-3 py-2 text-sm bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-purple-500 focus:border-purple-500"
+                            className="w-full px-3 py-2 text-sm bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
                           >
                             <option value="">{t('teamDetailsModal.anyGameType', '-- Any --')}</option>
                             <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>
@@ -749,7 +749,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder={t('teamDetailsModal.notesPlaceholder', 'Enter team notes or description')}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500 resize-none"
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
                         rows={3}
                         maxLength={1000}
                       />
@@ -796,7 +796,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                   onChange={(e) => handlePlacementChange('tournament', tournament.id, e.target.value)}
                                   disabled={updatePlacementMutation.isPending}
                                   aria-label={`Tournament placement for ${tournament.name}`}
-                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <option value="">{t('unifiedTeamModal.selectPlacement', 'Select placement...')}</option>
                                   <option value="1">{t('unifiedTeamModal.placement1st', '1st Place 🥇')}</option>
@@ -833,7 +833,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                   onChange={(e) => handlePlacementChange('season', season.id, e.target.value)}
                                   disabled={updatePlacementMutation.isPending}
                                   aria-label={`Season placement for ${season.name}`}
-                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <option value="">{t('unifiedTeamModal.selectPlacement', 'Select placement...')}</option>
                                   <option value="1">{t('unifiedTeamModal.placement1st', '1st Place 🥇')}</option>

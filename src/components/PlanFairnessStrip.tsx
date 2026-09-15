@@ -90,7 +90,7 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
                 title={row.name}
                 className={[
                   'w-full px-1.5 py-1 rounded-md text-center leading-tight',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
                   highlighted ? 'ring-2 ring-amber-300' : '',
                   anyHighlight && !highlighted ? 'opacity-40' : '',
                 ].join(' ')}

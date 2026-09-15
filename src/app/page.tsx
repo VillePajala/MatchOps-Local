@@ -1631,7 +1631,7 @@ export default function Home() {
                 </p>
                 <button
                   onClick={() => window.location.reload()}
-                  className="w-full h-12 px-4 py-2 rounded-md text-base font-bold bg-gradient-to-b from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-700 transition-all"
+                  className="w-full h-12 px-4 py-2 rounded-md text-base font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-600 transition-all"
                 >
                   {t('page.tryAgain', 'Try Again')}
                 </button>
@@ -1675,7 +1675,7 @@ export default function Home() {
                   <div className="space-y-3">
                     <button
                       onClick={retryAuthInit}
-                      className="w-full h-12 px-4 py-2 rounded-md text-base font-bold bg-gradient-to-b from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-700 transition-all"
+                      className="w-full h-12 px-4 py-2 rounded-md text-base font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-600 transition-all"
                     >
                       {t('page.tryAgain', 'Try Again')}
                     </button>

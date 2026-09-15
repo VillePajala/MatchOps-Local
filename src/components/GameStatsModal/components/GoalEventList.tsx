@@ -94,7 +94,7 @@ export function GoalEventList({
             key={goal.id}
             className={`p-3 rounded-md border transition-all ${
               editingGoalId === goal.id
-                ? 'bg-slate-700/75 border-purple-500'
+                ? 'bg-slate-700/75 border-indigo-500'
                 : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 border-slate-700/50'
             }`}
           >
@@ -159,7 +159,7 @@ export function GoalEventList({
                   </button>
                   <button
                     onClick={onSaveEditGoal}
-                    className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white rounded-sm text-sm font-medium transition-colors border border-purple-400/30"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors border border-indigo-400/30"
                   >
                     {t('common.save', 'Save Changes')}
                   </button>

@@ -49,7 +49,7 @@ const GameNotesList: React.FC<GameNotesListProps> = ({ notes, availablePlayers, 
                   <span className="font-semibold text-slate-300">
                     {t('dictation.periodClock', 'P{{period}} {{clock}}', { period: note.period ?? '', clock: formatClock(note.time) })}
                   </span>
-                  {who && <span className="text-purple-300 font-medium">{who}</span>}
+                  {who && <span className="text-indigo-300 font-medium">{who}</span>}
                   <span className="rounded-full bg-slate-700/60 px-2 py-0.5">{sourceLabel(note.source)}</span>
                 </div>
                 <p className="text-sm text-slate-100 mt-1 whitespace-pre-wrap break-words">{note.text}</p>
@@ -59,7 +59,7 @@ const GameNotesList: React.FC<GameNotesListProps> = ({ notes, availablePlayers, 
                   type="button"
                   onClick={() => setPendingDelete(note.id)}
                   aria-label={t('common.delete', 'Delete')}
-                  className="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-700 hover:text-red-300 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-700 hover:text-red-300 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <HiOutlineTrash className="h-4 w-4" />
                 </button>

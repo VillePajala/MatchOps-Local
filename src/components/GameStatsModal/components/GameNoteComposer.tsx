@@ -234,7 +234,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         id="note-composer-player"
         value={entityId}
         onChange={(e) => setEntityId(e.target.value)}
-        className="w-full mb-3 bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+        className="w-full mb-3 bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
       >
         <option value="">{t('noteComposer.wholeMatch', 'The match')}</option>
         {players.map((p) => (
@@ -247,7 +247,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         rows={3}
         aria-label={t('noteComposer.title', 'Add a note')}
         placeholder={t('noteComposer.placeholder', 'What did you see? One observation is enough.')}
-        className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+        className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
       />
       {canRecord && dictation && (
         <div className="mt-2">
@@ -315,7 +315,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         onClick={() => void save()}
         disabled={!text.trim() || transcribing || busy}
         data-testid="note-composer-save"
-        className="mt-2 w-full px-4 py-2 rounded-md text-sm font-semibold bg-purple-700 hover:bg-purple-600 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="mt-2 w-full px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {t('noteComposer.save', 'Add the note')}
       </button>

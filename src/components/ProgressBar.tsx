@@ -16,7 +16,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ current, total }) => {
       aria-valuemin={0}
       aria-valuemax={total}
     >
-      <div className="h-full bg-purple-700" style={{ width: `${pct}%` }} />
+      <div className="h-full bg-indigo-600" style={{ width: `${pct}%` }} />
     </div>
   );
 };

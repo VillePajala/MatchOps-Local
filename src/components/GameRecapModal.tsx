@@ -161,7 +161,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
                       checked={section.checked}
                       onChange={() => onToggleSection?.(section.key)}
                       data-testid={`recap-section-${section.key}`}
-                      className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-purple-600 focus:ring-purple-500"
+                      className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-indigo-600 focus:ring-indigo-500"
                     />
                     {section.label}
                   </label>
@@ -187,7 +187,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
               value={text}
               onChange={e => setText(e.target.value)}
               aria-label={heading}
-              className="flex-1 w-full min-h-[16rem] resize-none bg-slate-900/60 border border-slate-600 rounded-md text-slate-100 text-sm p-3 font-mono whitespace-pre-wrap focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="flex-1 w-full min-h-[16rem] resize-none bg-slate-900/60 border border-slate-600 rounded-md text-slate-100 text-sm p-3 font-mono whitespace-pre-wrap focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             <div className="flex flex-wrap gap-2">
               <button
@@ -202,7 +202,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="px-4 py-2 rounded-md text-sm font-medium bg-purple-700 hover:bg-purple-600 text-white inline-flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white inline-flex items-center gap-1.5"
                 >
                   <HiOutlineShare />
                   {t('recap.share', 'Share')}

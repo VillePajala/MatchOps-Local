@@ -20,7 +20,7 @@ const LOW_COVERAGE = 0.5;
 // Full-width segmented toggle, matching the sport/gender toggles in the app.
 const toggleBtn = (active: boolean) =>
   `flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-    active ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+    active ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
   }`;
 
 /**

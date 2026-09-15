@@ -51,9 +51,9 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('instructionsModal.title')}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-purple-700/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-indigo-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
 
         <CollapsibleModalHeader
           title={t('instructionsModal.title')}
@@ -97,7 +97,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
               <ul className={list}>
                 <li>
                   <span className="text-slate-200">{t('firstGameGuide.tacticsButtonTip', 'Click Tactics Board to access drawing tools:')}</span>
-                  <HiOutlineClipboard aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
+                  <HiOutlineClipboard aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
                 </li>
                 <li>
                   <span className="text-slate-200">{t('firstGameGuide.placeAllTip', 'Place all players at once:')}</span>
@@ -159,7 +159,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <h3 className={heading}>{t('appGuide.matchMenuTitle', 'The match menu')}</h3>
             <p className="text-sm text-slate-300">
               {t('appGuide.matchMenuNote', 'While in a match, the menu holds match-day actions:')}
-              <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
+              <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
             </p>
             <div className={sectionBox}>
               <ul className={list}>
@@ -173,7 +173,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
           {/* Tips */}
           <section className="space-y-3">
             <h3 className="text-xl font-semibold text-amber-300">{t('instructionsModal.tips.title')}</h3>
-            <div className="bg-purple-900/30 rounded-lg p-4 border border-purple-700/50">
+            <div className="bg-indigo-900/30 rounded-lg p-4 border border-indigo-700/50">
               <ul className="list-disc list-inside space-y-1 text-slate-300">
                 <li>{t('instructionsModal.tips.tip1')}</li>
                 <li>{t('instructionsModal.tips.tip2')}</li>

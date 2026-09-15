@@ -172,14 +172,14 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                       onChange={(e) => setChoices((prev) => ({ ...prev, [group.key]: e.target.value }))}
                       aria-label={t('opponentSweep.canonicalLabel', 'Spelling to keep')}
                       data-testid={`opponent-sweep-input-${group.key}`}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                     <button
                       type="button"
                       onClick={() => apply(group.key, chosen)}
                       disabled={busy || !chosen.trim()}
                       data-testid={`opponent-sweep-apply-${group.key}`}
-                      className="w-full px-4 py-2.5 rounded-md bg-purple-700 hover:bg-purple-600 text-white text-sm font-semibold whitespace-nowrap disabled:opacity-50 transition-colors"
+                      className="w-full px-4 py-2.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold whitespace-nowrap disabled:opacity-50 transition-colors"
                     >
                       {busy
                         ? t('opponentSweep.applying', 'Renaming…')

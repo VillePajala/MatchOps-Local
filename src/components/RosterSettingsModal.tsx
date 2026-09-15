@@ -197,10 +197,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('rosterSettings.title', 'Roster Settings')}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
         {/* Background effects */}
-        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-purple-700/5 blur-2xl bottom-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col min-h-0 flex-1">
@@ -233,12 +233,12 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                 value={searchText}
                 onChange={handleSearchChange}
                 autoComplete="off"
-                className="flex-1 min-w-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                className="flex-1 min-w-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="flex-shrink-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                className="flex-shrink-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 aria-label={t('rosterSettingsModal.sortBy', 'Sort by')}
               >
                 <option value="lastName">{t('rosterSettingsModal.sortByLastName', 'Last Name')}</option>

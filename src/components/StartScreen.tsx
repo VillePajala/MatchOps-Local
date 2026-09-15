@@ -46,7 +46,7 @@ import {
  *   cards (elsewhere)    - information worth its own surface.
  */
 const ROW_BASE =
-  'w-full flex items-center gap-3 px-3.5 py-3 [@media(min-height:700px)]:py-3.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-purple-500';
+  'w-full flex items-center gap-3 px-3.5 py-3 [@media(min-height:700px)]:py-3.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500';
 const ROW_ON = 'hover:bg-slate-700/50';
 const ROW_OFF = 'opacity-40 cursor-not-allowed';
 
@@ -112,7 +112,7 @@ const HomeTile: React.FC<{
     onClick={onClick}
     disabled={disabled}
     data-testid={testId}
-    className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3 [@media(min-height:700px)]:py-3.5 rounded-xl border text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500 ${
+    className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3 [@media(min-height:700px)]:py-3.5 rounded-xl border text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
       disabled
         ? 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
         : 'bg-slate-800/70 border-slate-700/50 hover:bg-slate-700/70'
@@ -483,7 +483,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('games')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'games'
-                      ? 'bg-purple-700 text-white shadow-inner'
+                      ? 'bg-indigo-600 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -497,7 +497,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('team')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'team'
-                      ? 'bg-purple-700 text-white shadow-inner'
+                      ? 'bg-indigo-600 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -514,7 +514,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('seasons')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'seasons'
-                      ? 'bg-purple-700 text-white shadow-inner'
+                      ? 'bg-indigo-600 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -527,7 +527,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => setActiveTab('stats')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'stats'
-                      ? 'bg-purple-700 text-white shadow-inner'
+                      ? 'bg-indigo-600 text-white shadow-inner'
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
@@ -730,7 +730,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         type="button"
                         onClick={onManageRoster}
                         disabled={!onManageRoster}
-                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500"
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.heroAddPlayers', 'Add players')}</span>
                         <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
@@ -743,7 +743,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         type="button"
                         onClick={onManageTeams}
                         disabled={!onManageTeams}
-                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500"
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.heroCreateTeam', 'Create your team')}</span>
                         <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
@@ -756,7 +756,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         type="button"
                         onClick={onNewGame ?? onGetStarted}
                         data-testid="tour-new-game"
-                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500"
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.newGame', 'New Game')}</span>
                         <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
@@ -822,10 +822,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       onClick={onNewGame ?? onGetStarted}
                       data-testid="tour-new-game"
                       className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${canResume
-                        ? 'focus:ring-amber-500 bg-slate-800/90 border-amber-500/35 text-white hover:bg-slate-700/90'
+                        ? 'focus:ring-indigo-500 bg-indigo-600 border-indigo-500 text-white hover:bg-indigo-500'
                         : 'focus:ring-amber-500 bg-amber-500 border-amber-400/50 text-slate-900 hover:bg-amber-400'} ${dashboardOn ? 'flex-1' : 'w-full'}`}
                     >
-                      <HiOutlinePlusCircle className={`w-5 h-5 flex-shrink-0 ${canResume ? 'text-amber-400' : 'text-slate-900'}`} aria-hidden="true" />
+                      <HiOutlinePlusCircle className={`w-5 h-5 flex-shrink-0 ${canResume ? 'text-indigo-100' : 'text-slate-900'}`} aria-hidden="true" />
                       <span className="text-[13px] font-bold leading-tight">
                         {t('startScreen.newGame', 'New Game')}
                       </span>
@@ -834,7 +834,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       <button
                         type="button"
                         onClick={onLoadGame}
-                        className={`flex items-center justify-center gap-2 p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500 ${dashboardOn ? 'flex-1' : 'w-full'}`}
+                        className={`flex items-center justify-center gap-2 p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${dashboardOn ? 'flex-1' : 'w-full'}`}
                       >
                         <HiOutlineFolderOpen className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
                         <span className="text-[13px] font-semibold text-white leading-tight">
@@ -904,7 +904,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
                 >
                   <span>{t('startScreen.gearSimplifiedView', 'Simplified view')}</span>
-                  <span className={`inline-flex items-center h-6 w-11 rounded-full p-0.5 transition-colors flex-shrink-0 ${homeView === 'simple' ? 'bg-purple-600' : 'bg-slate-600'}`} aria-hidden="true">
+                  <span className={`inline-flex items-center h-6 w-11 rounded-full p-0.5 transition-colors flex-shrink-0 ${homeView === 'simple' ? 'bg-indigo-500' : 'bg-slate-600'}`} aria-hidden="true">
                     <span className={`h-5 w-5 rounded-full bg-white transition-transform ${homeView === 'simple' ? 'translate-x-5' : ''}`} />
                   </span>
                 </button>

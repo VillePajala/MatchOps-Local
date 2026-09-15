@@ -135,10 +135,10 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background effects */}
-        <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-purple-700/5 blur-2xl bottom-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
         <div className="relative z-10 flex flex-col min-h-0 h-full">
           {/* Chrome slimming: X-header replaces the header + close-only footer. */}
@@ -169,7 +169,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                       aria-pressed={sport === s}
                       data-testid={`rules-sport-${s}`}
                       className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        sport === s ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        sport === s ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                       }`}
                     >
                       {s === 'football'
@@ -185,7 +185,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   data-testid="rules-search"
                   aria-label={t('rulesDirectory.lookupTitle', 'Etsi sääntö')}
                   placeholder={t('rulesDirectory.searchPlaceholder', 'Esim. paitsio, kentältäpoisto, vaihdot')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
                 {hits.length === 0 ? (
                   <p className="text-sm text-slate-400" data-testid="rules-no-hits">
@@ -316,7 +316,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                       onChange={(e) => setAgeGroup(e.target.value)}
                       data-testid="formats-age"
                       aria-label={t('rulesDirectory.formatsAgeLabel', 'Ikäluokka')}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
                       <option value="">{t('rulesDirectory.formatsAllAges', 'Kaikki ikäluokat')}</option>
                       {AGE_GROUPS.map((a) => (

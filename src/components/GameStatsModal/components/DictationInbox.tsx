@@ -367,7 +367,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
               type="button"
               onClick={() => void transcribeAll()}
               data-testid="dictation-transcribe"
-              className="w-full mb-3 rounded-md bg-purple-700 hover:bg-purple-600 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              className="w-full mb-3 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
             >
               {t('dictation.transcribe', 'Transcribe {{count}} clips (about ${{cost}})', { count: untranscribed.length, cost: costUsd })}
             </button>
@@ -404,7 +404,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                   type="button"
                   onClick={() => void play(clip.id)}
                   aria-label={playingId === clip.id ? t('dictation.stop', 'Stop') : t('dictation.play', 'Play')}
-                  className="ml-auto inline-flex items-center gap-1 rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-3 py-1.5 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                  className="ml-auto inline-flex items-center gap-1 rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-3 py-1.5 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
                 >
                   {playingId === clip.id ? <HiOutlineStop className="h-4 w-4" /> : <HiOutlinePlay className="h-4 w-4" />}
                   {playingId === clip.id ? t('dictation.stop', 'Stop') : t('dictation.play', 'Play')}
@@ -418,7 +418,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                 maxLength={MAX_NOTE_CHARS}
                 aria-label={t('dictation.textPlaceholder', 'What did you say?')}
                 data-testid="dictation-text"
-                className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500"
+                className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
               />
               <div className="flex items-center gap-2">
                 <label htmlFor={`dictation-player-${clip.id}`} className="text-xs text-slate-400 shrink-0">{t('dictation.playerLabel', 'About')}</label>
@@ -427,7 +427,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                   value={guessedId}
                   onChange={(e) => setDrafts((prev) => ({ ...prev, [clip.id]: { ...draftFor(clip.id), playerId: e.target.value } }))}
                   data-testid="dictation-player"
-                  className="flex-1 min-w-0 rounded-md bg-slate-700 border border-slate-600 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="flex-1 min-w-0 rounded-md bg-slate-700 border border-slate-600 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">{t('dictation.gameNote', 'The match')}</option>
                   {sortedPlayers.map((p) => (
@@ -449,7 +449,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                   onClick={() => void accept(clip)}
                   disabled={!canSave}
                   data-testid="dictation-accept"
-                  className="flex-1 rounded-md bg-purple-700 hover:bg-purple-600 border border-purple-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500"
+                  className="flex-1 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                 >
                   {t('dictation.accept', 'Save note')}
                 </button>
@@ -459,7 +459,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                   onClick={() => setPendingDiscard(clip.id)}
                   disabled={busy}
                   data-testid="dictation-discard"
-                  className="rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500"
+                  className="rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                 >
                   {t('dictation.discard', 'Discard')}
                 </button>

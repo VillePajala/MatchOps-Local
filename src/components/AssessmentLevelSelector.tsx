@@ -77,7 +77,7 @@ const AssessmentLevelSelector: React.FC<AssessmentLevelSelectorProps> = ({
               onClick={() => onChange(displayToCanonical(pos, styleMax))}
               className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
                 selected
-                  ? 'bg-purple-700 text-white'
+                  ? 'bg-indigo-600 text-white'
                   : 'bg-slate-800/40 text-slate-300 hover:bg-slate-800/60'
               }`}
             >

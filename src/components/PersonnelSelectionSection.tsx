@@ -51,7 +51,7 @@ const PersonnelSelectionSection: React.FC<PersonnelSelectionSectionProps> = ({
                     onSelectedPersonnelChange(availablePersonnel.map((p) => p.id));
                   }
                 }}
-                className="form-checkbox h-4 w-4 text-purple-600 bg-slate-700 border-slate-500 rounded focus:ring-purple-500 focus:ring-offset-slate-800"
+                className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
               />
               <span className="ml-2">{t('personnel.selectAll', 'Select All')}</span>
             </label>
@@ -78,7 +78,7 @@ const PersonnelSelectionSection: React.FC<PersonnelSelectionSectionProps> = ({
                         onSelectedPersonnelChange([...selectedPersonnelIds, person.id]);
                       }
                     }}
-                    className="form-checkbox h-4 w-4 text-purple-600 bg-slate-700 border-slate-500 rounded focus:ring-purple-500 focus:ring-offset-slate-800"
+                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
                   />
                   <div className="ml-2">
                     <span className="text-slate-200">{person.name}</span>

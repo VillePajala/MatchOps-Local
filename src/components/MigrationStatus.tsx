@@ -38,7 +38,7 @@ const ThrottledProgress = React.memo(({ progress, t }: { progress: MigrationProg
     <>
       <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
         <div
-          className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+          className="bg-indigo-500 h-2 rounded-full transition-all duration-300"
           style={{ width: `${throttledProgress.percentage}%` }}
           role="progressbar"
           aria-valuenow={Math.round(throttledProgress.percentage)}
@@ -93,7 +93,7 @@ function MigrationStatusComponent() {
         >
           <div className="text-center">
             <div
-              className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"
+              className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto mb-4"
               role="status"
               aria-label={t('migrationStatus.inProgress', 'Migration in progress')}
             ></div>

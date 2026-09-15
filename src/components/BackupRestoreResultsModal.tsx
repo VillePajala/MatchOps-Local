@@ -84,7 +84,7 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {/* Games */}
               <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
-                <div className="text-2xl font-bold text-purple-400">{statistics.gamesImported}</div>
+                <div className="text-2xl font-bold text-indigo-400">{statistics.gamesImported}</div>
                 <div className="text-sm text-slate-400">{t('backupRestore.gamesImported', { count: statistics.gamesImported, defaultValue_one: 'Game', defaultValue_other: 'Games' })}</div>
               </div>
 

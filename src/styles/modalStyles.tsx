@@ -42,7 +42,7 @@ export const modalContainerStyle =
  * the product's own colour rather than generic atmosphere.
  */
 export const ModalBackgroundEffects: React.FC = () => (
-  <div className="absolute inset-0 bg-purple-700/10 mix-blend-soft-light pointer-events-none" />
+  <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 );
 
 // ============================================================================
@@ -97,14 +97,14 @@ export const itemRowStyle =
   "bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/60 transition-colors";
 
 export const itemRowEditingStyle =
-  "bg-slate-700/75 border-purple-500";
+  "bg-slate-700/75 border-indigo-500";
 
 // ============================================================================
 // Input Styles
 // ============================================================================
 
 export const inputBaseStyle =
-  "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500 sm:text-sm text-white placeholder-slate-400";
+  "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white placeholder-slate-400";
 
 export const textareaStyle =
   `${inputBaseStyle} resize-none`;
@@ -121,7 +121,7 @@ const _buttonBaseStyle =
   "px-4 py-3 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const primaryButtonStyle =
-  "px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-purple-700 text-white hover:bg-purple-600 border border-purple-400/30";
+  "px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30";
 
 export const secondaryButtonStyle =
   "px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-600 text-white hover:bg-slate-500 border border-slate-400/30";
@@ -140,7 +140,7 @@ export const iconButtonBaseStyle =
   "p-1.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const iconButtonEditStyle =
-  `${iconButtonBaseStyle} text-slate-400 hover:text-purple-400`;
+  `${iconButtonBaseStyle} text-slate-400 hover:text-indigo-400`;
 
 export const iconButtonDangerStyle =
   `${iconButtonBaseStyle} text-slate-400 hover:text-red-500`;
@@ -293,7 +293,7 @@ export function useCollapsingHeader(): CollapsingHeaderController {
 // hidden on Android TWA (hardware back) and mobile Safari (browser back +
 // edge-swipe), where a visible X is redundant. See useModalCloseVisible.
 export const modalCloseButtonStyle =
-  "items-center justify-center p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 flex-shrink-0";
+  "items-center justify-center p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0";
 
 function subscribeCloseVisibility(cb: () => void): () => void {
   const mq = typeof window !== 'undefined' && window.matchMedia
@@ -338,7 +338,7 @@ export const ModalStickyPrimary: React.FC<{
       onClick={onClick}
       disabled={disabled}
       data-testid={dataTestId}
-      className="w-full px-4 py-2 rounded-md text-sm font-semibold bg-purple-700 text-white hover:bg-purple-600 border border-purple-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {children}
     </button>
@@ -363,7 +363,7 @@ export const ModalToggleButton: React.FC<{
     onClick={onToggle}
     aria-pressed={pressed}
     disabled={disabled}
-    className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${pressed ? 'bg-purple-700 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} ${className}`}
+    className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${pressed ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} ${className}`}
   >
     {children}
   </button>
