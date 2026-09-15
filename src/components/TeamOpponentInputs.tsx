@@ -26,6 +26,12 @@ export interface TeamOpponentInputsProps {
   opponentOptions?: string[];
   /** Rendered under the opponent field - used for "add this to the league". */
   opponentFooter?: React.ReactNode;
+  /**
+   * Fired when the opponent field loses focus. The host uses it to settle the
+   * text on the spelling already in use, where one exists - visibly, while the
+   * coach is still looking at the field.
+   */
+  onOpponentBlur?: () => void;
 }
 
 const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
@@ -44,6 +50,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
   teamError,
   opponentError,
   opponentOptions,
+  onOpponentBlur,
   opponentFooter,
 }) => {
   const allOptions = (opponentOptions ?? []).filter((name) => name.trim() !== '');
@@ -97,6 +104,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           ref={opponentInputRef}
           value={opponentName}
           onChange={(e) => onOpponentNameChange(e.target.value)}
+          onBlur={onOpponentBlur}
           placeholder={opponentPlaceholder}
           className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${opponentError ? 'border-red-500' : 'border-slate-600'}`}
           onKeyDown={onKeyDown}

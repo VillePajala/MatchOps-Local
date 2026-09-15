@@ -101,6 +101,12 @@ interface NewGameSetupModalProps {
    * keystroke to be worth anything.
    */
   knownOpponents?: string[];
+  /**
+   * Opponent names each competition has already met, keyed by season or
+   * tournament id. Supplied by the host from saved games, so a competition's
+   * list is useful without anyone curating one first.
+   */
+  playedOpponentsByCompetition?: Record<string, string[]>;
   tournaments: Tournament[];
   teams: Team[];
   personnel: Personnel[];
@@ -121,6 +127,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   seasons,
   onAddOpponentToSeason,
   knownOpponents,
+  playedOpponentsByCompetition,
   tournaments,
   teams,
   personnel,
@@ -378,10 +385,22 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   // The teams listed on the competition this game belongs to. Offered as a
   // dropdown; the field stays free text, so nothing here can block a game.
+  //
+  // Curated names first, then the ones this competition has actually played.
+  // A coach who took the trouble to list their league should see their own
+  // order; everyone else - which prod says is everyone, 0 of 9 seasons have a
+  // list - still gets a useful list built from their own fixtures.
+  const competitionId = selectedSeasonId ?? selectedTournamentId;
   const seasonOpponents = useMemo<string[]>(() => {
-    if (!selectedSeasonId) return [];
-    return seasons.find((s) => s.id === selectedSeasonId)?.opponents ?? [];
-  }, [selectedSeasonId, seasons]);
+    const curated = selectedSeasonId
+      ? seasons.find((s) => s.id === selectedSeasonId)?.opponents ?? []
+      : [];
+    const played = competitionId ? playedOpponentsByCompetition?.[competitionId] ?? [] : [];
+    return [...curated, ...played].reduce<string[]>(
+      (kept, name) => addOpponentToList(kept, name),
+      [],
+    );
+  }, [selectedSeasonId, seasons, competitionId, playedOpponentsByCompetition]);
 
   // The competition's own teams lead, because those were curated for exactly
   // this fixture; everything else the coach has ever typed follows, so the
@@ -393,6 +412,33 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     ),
     [seasonOpponents, knownOpponents],
   );
+
+  /**
+   * The spelling already in use for what the coach typed, or what they typed.
+   *
+   * `findExistingSpelling` was written for exactly this and was never wired to
+   * anything - it only decided whether to offer "add to this league", so the
+   * raw keystrokes still became the game's opponent. Prod shows what that
+   * costs: 13 opponents carry more than one spelling, one of them seven
+   * ("LAUTP / Sininen", "Lautp sininen", "LAUTP/Sininen", ...), and every
+   * variant differs only in case, spacing or slash - exactly what the
+   * normaliser already collapses.
+   *
+   * Matching is exact-after-normalising, never fuzzy, so a genuinely new name
+   * is returned untouched and "IPS/Punainen" is never adopted onto
+   * "IPS/Sininen". See utils/opponentNames.ts for why that matters here.
+   */
+  const canonicalOpponent = useCallback(
+    (raw: string) => findExistingSpelling(raw.trim(), opponentOptions) ?? raw.trim(),
+    [opponentOptions],
+  );
+
+  // Applied on blur so the coach SEES the field settle on the existing
+  // spelling before starting the game. Silently rewriting it at submit alone
+  // would be a change they never witnessed.
+  const handleOpponentBlur = useCallback(() => {
+    setOpponentName((current) => canonicalOpponent(current));
+  }, [canonicalOpponent]);
 
   // A typed name that is not on the list yet. Offering to add it HERE rather
   // than sending the coach to the competition manager is the point: a detour
@@ -707,7 +753,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   const handleStartClick = async () => {
     const trimmedHomeTeamName = homeTeamName.trim();
-    const trimmedOpponentName = opponentName.trim();
+    // Canonicalised, not just trimmed: blur normally handles this, but a name
+    // that arrived by prefill ("repeat last game") and was submitted without
+    // the field ever being focused would otherwise slip through untouched.
+    const trimmedOpponentName = canonicalOpponent(opponentName);
 
     if (!trimmedHomeTeamName) {
       setHomeTeamError(t('newGameSetupModal.homeTeamNameRequired', 'Home Team Name is required.'));
@@ -935,6 +984,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   teamError={homeTeamError}
                   opponentError={opponentError}
                   opponentOptions={opponentOptions}
+                  onOpponentBlur={handleOpponentBlur}
                   opponentFooter={
                     opponentIsNew ? (
                       <button

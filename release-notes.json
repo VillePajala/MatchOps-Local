@@ -2,6 +2,17 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-15",
+      "en": [
+        "Opponent names now settle on the spelling you already use. Type \"lautp/sininen\" when you have written \"LauTP / Sininen\" before and the app fills in your spelling, so the same team stops splitting into several opponents in your statistics.",
+        "A league or tournament now suggests the teams you have already played in it, with no list to fill in first. Listing teams by hand still works and those come first."
+      ],
+      "fi": [
+        "Vastustajan nimi asettuu nyt siihen kirjoitusasuun, jota olet jo käyttänyt. Kirjoita \"lautp/sininen\", kun olet aiemmin kirjoittanut \"LauTP / Sininen\", niin sovellus täydentää oman kirjoitusasusi - näin sama joukkue ei enää jakaudu tilastoissa useaksi eri vastustajaksi.",
+        "Sarja tai turnaus ehdottaa nyt joukkueita, joita olet siinä jo pelannut, ilman että listaa tarvitsee ensin täyttää. Joukkueiden listaaminen käsin toimii edelleen, ja ne näkyvät ensimmäisinä."
+      ]
+    },
+    {
       "date": "2026-09-14",
       "en": [
         "Lines that separate things are drawn like the markings on the pitch - thin and white - instead of grey seams.",
