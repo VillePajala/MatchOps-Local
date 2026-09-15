@@ -4,6 +4,19 @@
     {
       "date": "2026-09-15",
       "en": [
+        "Statistics now show your record against each team: games, wins-draws-losses, goals and goal difference, for whatever the view is filtered to. Every spelling of a team counts as that one team.",
+        "Saved games can be filtered by opponent. Picking a team finds every game against it however the name was written, without pulling in a different team that shares the club name.",
+        "The Excel export has an Opponent Breakdown sheet with the same per-team record, grouped the same way."
+      ],
+      "fi": [
+        "Tilastot näyttävät nyt tuloksesi kutakin joukkuetta vastaan: ottelut, voitot-tasapelit-häviöt, maalit ja maaliero sen mukaan, mitä näkymässä on rajattu. Joukkueen kaikki kirjoitusasut lasketaan samaksi joukkueeksi.",
+        "Tallennettuja otteluita voi suodattaa vastustajan mukaan. Joukkueen valitseminen löytää kaikki ottelut sitä vastaan riippumatta siitä, miten nimi on kirjoitettu, eikä tuo mukaan saman seuran toista joukkuetta.",
+        "Excel-vientiin tuli Vastustajaerittely-välilehti, jossa on sama joukkuekohtainen tulos samalla tavalla ryhmiteltynä."
+      ]
+    },
+    {
+      "date": "2026-09-15",
+      "en": [
         "Opponent names now settle on the spelling you already use. Type \"lautp/sininen\" when you have written \"LauTP / Sininen\" before and the app fills in your spelling, so the same team stops splitting into several opponents in your statistics.",
         "A league or tournament now suggests the teams you have already played in it, with no list to fill in first. Listing teams by hand still works and those come first.",
         "If the app changes an opponent's name to a spelling you used earlier and that earlier one is the wrong one, you can now say \"use mine instead\" right there. It renames the team in every past game too, so a name that went in wrong on the first try is no longer stuck.",

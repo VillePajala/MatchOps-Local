@@ -552,6 +552,15 @@
     "warnings": "Warnings"
   },
   "gameStatsModal": {
+    "headToHeadPlayed": "P",
+    "headToHeadRecord": "W-D-L",
+    "headToHeadGoals": "Goals",
+    "headToHeadGd": "GD",
+    "headToHeadShowLess": "Show less",
+    "headToHead": "By opponent",
+    "headToHeadHint": "Your record against each team in this view.",
+    "headToHeadTeam": "Team",
+    "headToHeadShowAll": "Show all {{count}} teams",
     "nameConflicts": "{{count}} teams are written several ways, so they count as separate opponents here.",
     "nameConflictsAction": "Check team names",
     "title": "Game Statistics",
@@ -928,6 +937,8 @@
     "title": "Load Game"
   },
   "loadGameModal": {
+    "opponentFilterLabel": "Opponent",
+    "allOpponentsFilter": "All opponents",
     "title": "Load Game",
     "gameActions": "Game actions",
     "gamesCount": "Games",
@@ -2200,6 +2211,8 @@
     "reassignDescription": "Select a team to associate this game with, or choose \"No Team\" to use the master roster."
   },
   "export": {
+    "opponent": "Opponent",
+    "sheetOpponentBreakdown": "Opponent Breakdown",
     "exportGameFailed": "Failed to export game. Please try again.",
     "exportStatsFailed": "Failed to export stats. Please try again.",
     "exportPlayerFailed": "Failed to export player stats. Please try again.",
