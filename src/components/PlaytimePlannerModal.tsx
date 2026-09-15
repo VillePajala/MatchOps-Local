@@ -1734,7 +1734,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           former top-of-content spot didn't work) - New plan stays the primary,
           Import is the secondary. */}
       {view === 'manager' && (
-        <div className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0 flex gap-2">
+        <div className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-white/10 flex-shrink-0 flex gap-2">
           <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} flex-1`}>
             {t('playtimePlanner.manager.new', 'New plan')}
           </button>
@@ -1755,7 +1755,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         <div ref={tabsOuterRef} className="flex-shrink-0 overflow-hidden">
         <div
           ref={tabsInnerRef}
-          className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20"
+          className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-white/10"
         >
           <div
             className="flex w-full gap-2"
@@ -2516,7 +2516,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 onToggleAbsenceOpen={() => setAbsenceOpen((v) => !v)}
               />
             </div>
-            <div className="border-t border-slate-700/40 pt-4">
+            <div className="border-t border-white/10 pt-4">
               <PlanSubsEditor
                 game={editingGame}
                 players={activePlan.players}

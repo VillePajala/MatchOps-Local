@@ -151,7 +151,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
 
             {/* Use without account option */}
             {onUseLocalMode && (
-              <div className="mt-8 pt-6 border-t border-slate-700/50 text-center">
+              <div className="mt-8 pt-6 border-t border-white/10 text-center">
                 <button
                   type="button"
                   onClick={onUseLocalMode}

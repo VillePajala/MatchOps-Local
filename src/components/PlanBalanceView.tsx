@@ -354,7 +354,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
               className={`flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left cursor-pointer ${warningTone[w.kind]}`}
             >
               <span className="text-[13px] font-bold">{w.label}</span>
-              <span className="text-[11px] opacity-85">{w.detail}</span>
+              <span className="text-xs opacity-85">{w.detail}</span>
             </button>
           ))}
         </div>
@@ -432,7 +432,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                       style={{ width: `${barW}%`, backgroundColor: c.bg }}
                     />
                   </div>
-                  <p className="mt-1 text-xs font-medium text-slate-400">
+                  <p className="mt-1 text-sm font-medium text-slate-400">
                     {t('playtimePlanner.balance.ofFairShare', '{{pct}}% of share', { pct })}
                     {deltaStr ? ` · ${deltaStr}` : ''}
                   </p>
@@ -543,7 +543,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                       <span className="text-[13px] font-bold">
                         {t('playtimePlanner.balance.oneZone', '{{count}} players play only one position', { count: singleZoneIds.length })}
                       </span>
-                      <span className="text-[11px] opacity-85">
+                      <span className="text-xs opacity-85">
                         {t('playtimePlanner.balance.oneZoneDetail', 'Tap to review and rotate them')}
                       </span>
                     </button>

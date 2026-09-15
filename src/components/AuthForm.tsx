@@ -389,7 +389,7 @@ export default function AuthForm({
     'w-full h-12 px-4 py-2 rounded-md text-base font-bold transition-all duration-200 ' +
     'focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-900 ' +
     'bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] ' +
-    'hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner ' +
+    'hover:from-indigo-600 hover:to-indigo-600 hover:shadow-lg active:scale-[0.98] active:shadow-inner ' +
     'border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)] ' +
     'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-indigo-500 disabled:hover:to-indigo-600 disabled:active:scale-100';
 
@@ -445,7 +445,7 @@ export default function AuthForm({
             autoComplete="new-password"
             disabled={isLoading}
           />
-          <p className="text-slate-500 text-xs">
+          <p className="text-slate-400 text-sm">
             {t('auth.passwordRequirements', 'Password must be at least 8 characters.')}
           </p>
 
@@ -699,7 +699,7 @@ export default function AuthForm({
               autoComplete="new-password"
               disabled={isLoading}
             />
-            <p className="text-slate-500 text-xs">
+            <p className="text-slate-400 text-sm">
               {t('auth.passwordRequirements', 'Password must be at least 8 characters.')}
             </p>
 

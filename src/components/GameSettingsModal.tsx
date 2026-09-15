@@ -29,7 +29,7 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -1251,12 +1251,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   ))}
                 </select>
                 {selectedTeamId && (
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-sm text-slate-400">
                     {t('gameSettingsModal.teamSelectedNote', 'Player roster loaded from selected team.')}
                   </p>
                 )}
                 {!selectedTeamId && (
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-sm text-slate-400">
                     {t('gameSettingsModal.masterRosterNote', 'Using master roster - all players available.')}
                   </p>
                 )}
@@ -1591,7 +1591,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
                       {/* Show count when filters active */}
                       {(leagueAreaFilter !== 'all' || leagueLevelFilter !== 'all') && (
-                        <p className="mt-1 text-xs text-slate-400">
+                        <p className="mt-1 text-sm text-slate-400">
                           {t('leagues.showingCount', '{{count}} leagues', { count: filteredLeagues.filter(l => !l.isCustom).length })}
                         </p>
                       )}

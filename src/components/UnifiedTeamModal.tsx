@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useId } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
+import TeamKitColorPicker from '@/components/TeamKitColorPicker';
 import { Team, Player, Tournament, Season } from '@/types';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import {
@@ -23,7 +24,8 @@ import { AGE_GROUPS } from '@/config/gameOptions';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface UnifiedTeamModalProps {
   isOpen: boolean;
@@ -52,6 +54,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   const [ageGroup, setAgeGroup] = useState('');
   const [notes, setNotes] = useState('');
   const [archived, setArchived] = useState(false);
+  const [kitColor, setKitColor] = useState<string | undefined>(undefined);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   // Context binding state (for differentiating teams with same name)
@@ -112,6 +115,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         setAgeGroup('');
         setNotes('');
         setArchived(false);
+        setKitColor(undefined);
         setBoundSeasonId('');
         setBoundTournamentId('');
         setBoundTournamentSeriesId('');
@@ -126,6 +130,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         setAgeGroup(team.ageGroup || '');
         setNotes(team.notes || '');
         setArchived(team.archived || false);
+        setKitColor(team.color || undefined);
         setBoundSeasonId(team.boundSeasonId || '');
         setBoundTournamentId(team.boundTournamentId || '');
         setBoundTournamentSeriesId(team.boundTournamentSeriesId || '');
@@ -438,6 +443,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
           name: trimmedName,
           ageGroup: ageGroup || undefined,
           notes: notes || undefined,
+          color: kitColor,
           archived,
           boundSeasonId: boundSeasonId || undefined,
           boundTournamentId: boundTournamentId || undefined,
@@ -463,6 +469,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
             name: trimmedName,
             ageGroup: ageGroup || undefined,
             notes: notes || undefined,
+            color: kitColor,
             archived,
             boundSeasonId: boundSeasonId || undefined,
             boundTournamentId: boundTournamentId || undefined,
@@ -516,10 +523,15 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
   const isPending = addTeamMutation.isPending || updateTeamMutation.isPending || setTeamRosterMutation.isPending;
 
+  const modalTitleId = useId();
+
+  useEscapeToClose(isOpen, onClose);
+
+
   if (!isOpen) return null;
 
   return (
-    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
@@ -531,6 +543,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
             returns to the team form) + sticky primary. */}
         <div className="relative z-10">
           <CollapsibleModalHeader
+          titleId={modalTitleId}
             title={mode === 'create'
               ? t('unifiedTeamModal.createTitle', 'Create Team')
               : team?.name || t('unifiedTeamModal.editTitle', 'Edit Team')}
@@ -592,7 +605,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     </div>
 
                     {/* Team Context Section */}
-                    <div className="border-t border-slate-600 pt-4 mt-2">
+                    <div className="border-t border-white/10 pt-4 mt-2">
                       <h4 className="text-sm font-medium text-slate-300 mb-2">
                         {t('teamDetailsModal.contextSection', 'Team Context')}
                       </h4>
@@ -741,6 +754,15 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         maxLength={1000}
                       />
                     </div>
+
+                    {/* Kit colour - sits after notes so the required name and
+                        the format fields come first; a colour is optional and
+                        nobody should have to scroll past it to save a team. */}
+                    <TeamKitColorPicker
+                      value={kitColor}
+                      onChange={setKitColor}
+                      disabled={isPending}
+                    />
 
                     {/* Archived */}
                     <ModalToggleButton pressed={archived} onToggle={() => setArchived(v => !v)}>

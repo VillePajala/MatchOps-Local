@@ -552,7 +552,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           {/* Overtime / penalties — edge-of-game actions, tucked behind an
               expander so the substitution-interval list keeps its room. Still
               one tap away at any game state (the timer often lags reality). */}
-          <div className="pt-2 border-t border-slate-700/60">
+          <div className="pt-2 border-t border-white/10">
             <button
               type="button"
               onClick={() => setShowEndGameControls((v) => !v)}

@@ -22,7 +22,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import AiSettingsCard from '@/components/AiSettingsCard';
 import CloudSyncSection from './CloudSyncSection';
 import TransitionOverlay from './TransitionOverlay';
-import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
 
 /**
  * MarketingConsentToggle - Toggle for granting/withdrawing marketing consent.
@@ -58,7 +58,7 @@ function MarketingConsentToggle() {
           <p className="text-sm font-medium text-slate-200">
             {t('marketingConsent.settingsLabel', 'Product updates & tips')}
           </p>
-          <p className="text-xs text-slate-400">
+          <p className="text-sm text-slate-400">
             {t('marketingConsent.settingsDescription', 'Receive occasional emails about new features, tips, and announcements.')}
           </p>
         </div>
@@ -681,7 +681,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   <label htmlFor="assessments-enabled-toggle" className="block text-sm font-medium text-slate-200 cursor-pointer">
                     {t('settingsModal.assessmentsEnabledLabel', 'Player assessments')}
                   </label>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm text-slate-400">
                     {t('settingsModal.assessmentsEnabledHint', 'Rate players after each game on a set of qualities. Off by default. Ratings you have already made are kept either way.')}
                   </p>
                 </div>
@@ -701,7 +701,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   <p className="text-sm font-medium text-slate-200">
                     {t('settingsModal.assessmentRatingStyleLabel', 'Assessment rating style')}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm text-slate-400">
                     {t('settingsModal.assessmentRatingStyleHint', 'How player ratings are shown and entered. Switching is safe - existing ratings are kept.')}
                   </p>
                 </div>
@@ -722,7 +722,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   <p className="text-sm font-medium text-slate-200">
                     {t('settingsModal.assessmentTemplateLabel', 'Assessment metrics')}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm text-slate-400">
                     {t('settingsModal.assessmentTemplateHint', 'Which set of qualities to assess. Switching is safe - past ratings are kept.')}
                   </p>
                 </div>
@@ -825,7 +825,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 </div>
                 {/* Example */}
-                <p className="text-xs text-slate-400 mt-2">
+                <p className="text-sm text-slate-400 mt-2">
                   {t('settingsModal.seasonExample', 'Example: If your season starts {{startDate}}, the 2024-25 season runs {{startDate}}, 2024 → {{endDate}}, 2025.', {
                     startDate: formatDateForDisplay(clubSeasonStartDate),
                     endDate: formatDateForDisplay(clubSeasonEndDate)
@@ -868,7 +868,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <p className="text-sm font-medium text-slate-200">
                       {t('settingsModal.backupButton', 'Backup All Data')}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-sm text-slate-400">
                       {t('settingsModal.backupCardDesc', 'Export all your data to a backup file you can keep.')}
                     </p>
                   </div>
@@ -897,7 +897,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <p className="text-sm font-medium text-slate-200">
                       {t('settingsModal.gdpr.downloadTitle', 'Download Cloud Data')}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-sm text-slate-400">
                       {authMode === 'cloud'
                         ? t('settingsModal.gdpr.downloadDescriptionCloud', 'Download all data stored on the server to a file you can keep.')
                         : t('settingsModal.gdpr.downloadDescriptionLocal', 'Cloud account required. Your local data can be exported using Backup above.')}
@@ -927,7 +927,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <p className="text-sm font-medium text-slate-200">
                       {t('settingsModal.restoreButton', 'Restore from Backup')}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-sm text-slate-400">
                       {t('settingsModal.restoreCardDesc', 'Replace current data with a backup file.')}
                     </p>
                   </div>
@@ -941,15 +941,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Automatic Restore Points (Data Safety - Layer 1) */}
-              <div className="pt-3 mt-1 border-t border-slate-700/60 space-y-2">
+              <div className="pt-3 mt-1 border-t border-white/10 space-y-2">
                 <div>
                   <p className="text-sm font-medium text-slate-200">
                     {t('settingsModal.restorePoints.title', 'Automatic Restore Points')}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm text-slate-400">
                     {t('settingsModal.restorePoints.description', 'The app automatically keeps recent on-device backups. Restore one if something goes wrong.')}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-sm text-slate-400 mt-1">
                     {restorePoints === null
                       ? t('settingsModal.restorePoints.loading', 'Loading restore points...')
                       : restorePoints.length > 0
@@ -958,7 +958,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </p>
                 </div>
                 {restorePoints !== null && (restorePoints.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">
+                  <p className="text-sm text-slate-400 italic">
                     {t('settingsModal.restorePoints.empty', 'No restore points yet - one is created automatically.')}
                   </p>
                 ) : (
@@ -970,7 +970,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             {new Date(snap.createdAt).toLocaleString()}
                             <span className="ml-2 text-xs text-slate-400">({restorePointReasonLabel(snap.reason)})</span>
                           </p>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-sm text-slate-400">
                             {t('settingsModal.restorePoints.summary', '{{games}} games, {{players}} players', { games: snap.summary.games, players: snap.summary.players })}
                           </p>
                         </div>
@@ -998,10 +998,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <>
                   {/* Re-sync from Cloud */}
                   <div className="space-y-2">
-                    <h4 className="text-md font-semibold text-yellow-300">
+                    <h4 className="text-md font-semibold text-amber-300">
                       {t('settingsModal.resyncTitle', 'Re-sync from Cloud')}
                     </h4>
-                    <p className="text-sm text-yellow-200">
+                    <p className="text-sm text-amber-200">
                       {t('settingsModal.resyncDescription',
                         'Clear local data and re-download from cloud. Your cloud backup will be restored.')}
                     </p>
@@ -1026,7 +1026,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                           setResyncConfirm('');
                         }
                       }}
-                      className="w-full py-2 px-4 rounded-md text-sm font-medium bg-yellow-600 text-white hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="w-full py-2 px-4 rounded-md text-sm font-medium bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       disabled={resyncConfirm.trim() !== 'RESYNC'}
                     >
                       {t('settingsModal.resyncButton', 'Re-sync from Cloud')}
@@ -1083,7 +1083,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </p>
                     {/* Keep-data affordance: let users who only want out of cloud export first */}
                     <div className="mb-3 p-2 rounded-md bg-slate-800/60 border border-slate-700">
-                      <p className="text-xs text-slate-300 mb-2">
+                      <p className="text-sm text-slate-300 mb-2">
                         {t(
                           'settingsModal.deleteAccountKeepDataHint',
                           'Want to keep your data? Export a backup first — you can restore it on another device or after creating a new account.'
@@ -1169,7 +1169,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
 
             {/* GDPR Data Rights footnote */}
-            <p className="text-xs text-slate-500 px-1">
+            <p className="text-sm text-slate-400 px-1">
               {t('settingsModal.gdpr.footnote', 'Under GDPR, you can export your data using Backup or Download above, delete it using Danger Zone, or correct any data directly in the app.')}
             </p>
             </>
@@ -1231,7 +1231,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <p className="text-sm font-medium text-slate-200">
                       {t('settingsModal.checkForUpdates', 'Check for Updates')}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-sm text-slate-400">
                       {t('settingsModal.checkForUpdatesDesc', 'Check if a new version is available.')}
                     </p>
                   </div>
@@ -1256,10 +1256,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   <p className="text-sm font-medium text-slate-200">
                     {t('settingsModal.sendFeedback', 'Send Feedback')}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm text-slate-400">
                     {t('settingsModal.sendFeedbackDesc', 'Share feedback, questions, or ideas.')}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-sm text-slate-400 mt-1">
                     {t('settingsModal.sendFeedbackPrivacy', 'No game, roster, or player data is attached automatically.')}
                   </p>
                 </div>
@@ -1277,7 +1277,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   <p className="text-sm font-medium text-slate-200">
                     {t('settingsModal.copyAppInfo', 'Copy app info')}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm text-slate-400">
                     {t('settingsModal.copyAppInfoDesc', 'Copy version and device details you can paste into feedback.')}
                   </p>
                 </div>
@@ -1292,7 +1292,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Legal Links */}
-              <div className="pt-2 border-t border-slate-700">
+              <div className="pt-2 border-t border-white/10">
                 <div className="flex gap-4 text-sm">
                   <a
                     href="/privacy-policy"

@@ -4,6 +4,30 @@ import React from 'react';
 import type { TFunction } from 'i18next';
 import type { HomeSummary, HomeResumeGame, HomeRecentGame } from '@/utils/homeSummary';
 
+/**
+ * The Home card surface: recent games, the Pelaajat and Joukkueet tiles, the
+ * stats tiles. One literal string rather than four copies, because a gradient
+ * spelled out in four files drifts the moment one of them is touched. Written
+ * out whole, not composed, since Tailwind scans for complete class names.
+ *
+ * QUIET, AND IT FADES. These are repeated cards - the ramp runs across each
+ * one separately, so whatever it does it does two or three times in a row.
+ * The resume card's gradient at that repetition was far too loud.
+ *
+ * Colour at the left, fading into the page's own slate at the right - the
+ * direction the resume card and the season card already run, so every card on
+ * Home is lit from the same side.
+ *
+ * WHY 45 AND NOT LOWER. Composited over the slate-900 page, the left end sits
+ * at rgb(30,33,81) against a rgb(15,23,42) background and the right end at
+ * rgb(27,37,56), so the ramp itself is a blue shift of about 25 levels and
+ * almost nothing in red and green. At /70 that shift was 47 and the row read
+ * as stripes; below about /35 the card stops separating from the page at all,
+ * which is the mistake a flat indigo-950/45 already made here once.
+ */
+export const HOME_CARD =
+  'bg-gradient-to-r from-indigo-900/45 to-slate-800/80 border-indigo-800/35 shadow-md hover:from-indigo-800/50 hover:to-slate-800';
+
 /** Result shown through the score colour only (no coloured card edge). */
 const scoreColour: Record<'W' | 'D' | 'L', string> = {
   W: 'text-green-300',
@@ -18,7 +42,7 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
     <button
       type="button"
       onClick={onResume}
-      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-900/80 to-slate-800/80 border border-indigo-600/50 text-white shadow-md hover:from-indigo-900 hover:to-slate-800 transition-all"
+      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md hover:from-indigo-900 hover:to-slate-800 transition-all"
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-base font-extrabold truncate">{resume.opponent || t('startScreen.dashResumeGame', 'Game')}</span>
@@ -93,11 +117,11 @@ function RecentCard({ game, onOpen }: { game: HomeRecentGame; onOpen?: (id: stri
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className="flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-700/70 transition-all"
+      className={`flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl border transition-all ${HOME_CARD}`}
     >
       <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
       <div className={`text-sm font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
-      <div className="text-[10px] text-slate-500 tabular-nums">{game.date?.slice(5).replace('-', '.')}</div>
+      <div className="text-xs text-slate-400 tabular-nums">{game.date?.slice(5).replace('-', '.')}</div>
     </button>
   );
 }
@@ -125,8 +149,11 @@ export function HomeDashboard({
       {summary.resume && <ResumeCard resume={summary.resume} onResume={onResume} t={t} />}
       {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
       {summary.recent.length > 0 && (
+        /* Label and strip are one block: the heading's margin is spacing
+           INSIDE it, not a gap between blocks, so the Home stack's own gap is
+           still the only thing separating this from what follows. */
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 px-0.5">
+          <div className="text-xs font-semibold text-slate-400 px-1 mb-1.5">
             {t('startScreen.dashRecent', 'Recent')}
           </div>
           {/* The strip scrolls, and the card at the edge used to be cut clean
@@ -134,7 +161,7 @@ export function HomeDashboard({
               an invitation to scroll. The gradient lets it dissolve instead.
               pointer-events-none so it never eats a tap on the card beneath. */}
           <div className="relative">
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
               {summary.recent.map((game) => (
                 <RecentCard key={game.id} game={game} onOpen={onOpenGame} />
               ))}
@@ -176,7 +203,7 @@ export function HomeTeamScopeSelect({
   // wall once real data (six same-named teams with context) hit them.
   return (
     <label
-      className="w-full flex items-center gap-2 px-3.5 py-2.5 mb-3 rounded-xl bg-slate-800/70 border border-slate-700/60 text-[13px] focus-within:ring-2 focus-within:ring-indigo-500"
+      className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60 text-[13px] focus-within:ring-2 focus-within:ring-indigo-500"
       data-testid="home-team-scope"
     >
       <span className="font-extrabold text-indigo-200 whitespace-nowrap">{t('startScreen.dashTeamLabel', 'Team')}</span>
@@ -207,7 +234,7 @@ export function HomeCountsBar({ counts, t }: { counts: HomeSummary['counts']; t:
     t('startScreen.dashPersonnelCount', '{{count}} staff', { count: counts.personnel }),
   ];
   return (
-    <div className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-[13px] text-slate-300 mb-4">
+    <div className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-[13px] text-slate-300">
       {parts.map((p, i) => (
         <React.Fragment key={p}>
           {i > 0 && <span className="text-slate-600" aria-hidden="true">·</span>}
@@ -230,9 +257,9 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
     <button
       type="button"
       onClick={onOpen}
-      className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-indigo-900/70 to-slate-800/70 border border-indigo-700/40 hover:from-indigo-900/90 hover:to-slate-800/90 transition-all mb-4"
+      className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-indigo-900/70 to-slate-800/70 border border-indigo-700/40 hover:from-indigo-900/90 hover:to-slate-800/90 transition-all"
     >
-      <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/80">
+      <div className="text-xs font-semibold text-indigo-300/80">
         {t('startScreen.dashClubSeason', 'This season')}
       </div>
       <div className="flex items-baseline justify-between gap-3 mt-0.5">
@@ -266,14 +293,17 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
   // These tiles exist to be READ AT A GLANCE, and they were set at text-lg -
   // smaller than the row labels underneath them, which inverted the emphasis
   // on the one tab whose whole job is numbers.
+  // The shared Home card surface. The W-D-L and goal-difference greens and
+  // reds are semantic and stay as they are; they still carry on this ground.
+  // Not pressable, so no hover - the constant's hover classes are inert on a div.
   const tile = (n: React.ReactNode, label: string) => (
-    <div className="flex-1 text-center px-2 py-3 rounded-xl bg-slate-800/70 border border-slate-700/50">
+    <div className={`flex-1 text-center px-2 py-3 rounded-xl border ${HOME_CARD}`}>
       <div className="text-2xl font-black text-slate-100 tabular-nums leading-none">{n}</div>
-      <div className="text-[9px] uppercase tracking-wider text-slate-400 mt-1.5 truncate">{label}</div>
+      <div className="text-xs text-indigo-200/70 mt-1.5 truncate">{label}</div>
     </div>
   );
   return (
-    <div className="flex gap-2 mb-4">
+    <div className="flex gap-2">
       {tile(
         <span><span className="text-green-400">{vuosi.wins}</span>-{vuosi.ties}-<span className="text-red-400">{vuosi.losses}</span></span>,
         t('startScreen.dashTileResults', 'Results'),

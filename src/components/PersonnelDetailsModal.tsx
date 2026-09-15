@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,8 @@ import { Personnel, PersonnelRole } from '@/types/personnel';
 import logger from '@/utils/logger';
 import { AlreadyExistsError, ValidationError } from '@/interfaces/DataStoreErrors';
 import CertificationManager from './CertificationManager';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface PersonnelDetailsModalProps {
   isOpen: boolean;
@@ -43,6 +44,8 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
   const { t } = useTranslation();
 
   // Form state
+  useEscapeToClose(isOpen, onClose);
+  const modalTitleId = useId();
   const [name, setName] = useState('');
   const [role, setRole] = useState<PersonnelRole>('head_coach');
   const [phone, setPhone] = useState('');
@@ -172,7 +175,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
   }
 
   return (
-    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
@@ -180,6 +183,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
 
         {/* Chrome slimming: X-header (Cancel) + sticky Save. */}
         <CollapsibleModalHeader
+          titleId={modalTitleId}
           title={mode === 'create'
                 ? t('personnelDetailsModal.createTitle', 'Add Personnel')
                 : t('personnelDetailsModal.editTitle', 'Personnel Details')}

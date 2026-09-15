@@ -517,7 +517,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
             >
               {t('migration.discardLocalData', 'Discard local data')}
             </button>
-            <p className="text-xs text-slate-500 text-center">
+            <p className="text-sm text-slate-400 text-center">
               {t('migration.canImportLater', 'You can import local data later from Settings → Cloud Sync.')}
             </p>
           </div>

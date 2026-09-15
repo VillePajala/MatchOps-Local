@@ -92,7 +92,7 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
   return (
     <section className="bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner">
       <h3 className="text-lg font-semibold text-slate-200 mb-1">{title}</h3>
-      <p className="text-xs text-slate-400 mb-3">
+      <p className="text-sm text-slate-400 mb-3">
         {t('gameStatsModal.positionBalance.gamesCovered', 'Positions recorded in {{recorded}}/{{scanned}} games', {
           recorded: diversity.totalGames,
           scanned: scopeGames,
@@ -112,7 +112,7 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
       <div className={`overflow-x-auto ${lowCoverage ? 'opacity-60' : ''}`}>
         <table className="w-full text-sm">
           <thead className="text-slate-300">
-            <tr className="border-b border-slate-700">
+            <tr className="border-b border-white/10">
               <th className="px-2 py-2 text-left font-medium">
                 {t('gameStatsModal.positionBalance.player', 'Player')}
               </th>
@@ -125,7 +125,7 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
           </thead>
           <tbody className="text-slate-100">
             {rows.map(row => (
-              <tr key={row.playerId} className="border-b border-slate-800 hover:bg-slate-800/40">
+              <tr key={row.playerId} className="border-b border-white/10 hover:bg-slate-800/40">
                 <td className="px-2 py-2 font-medium">
                   {/* Narrow players are called out by an amber name (no fragile dot). */}
                   <span
@@ -140,7 +140,7 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
                   return (
                     <td
                       key={c.key}
-                      className={`px-0.5 py-2 text-center ${n > 0 ? 'text-yellow-400 font-semibold' : 'text-slate-600'}`}
+                      className={`px-0.5 py-2 text-center ${n > 0 ? 'text-amber-400 font-semibold' : 'text-slate-600'}`}
                     >
                       {n > 0 ? n : '–'}
                     </td>

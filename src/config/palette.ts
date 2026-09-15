@@ -101,12 +101,33 @@ export const STATUS = {
 /**
  * Ordinary interface colour.
  *
+ * PRIMARY IS PURPLE, not the indigo it was. The app's most recognisable
+ * surface is the pitch, where every player disc is #7E22CE - which is exactly
+ * tailwind's purple-700. The chrome was indigo, a neighbouring hue chosen by
+ * nobody in particular, so the product's own colour appeared on one screen and
+ * nowhere else. Matching weights (indigo-600 -> purple-600) puts the interface
+ * in the same family as the discs.
+ *
  * `cta` is amber and is deliberately scarce: on the home screen amber means
  * one thing, "press this". Spending it on decoration is what makes a call to
  * action stop being one.
  */
 export const UI = {
-  primary: 'indigo',
+  primary: 'purple',
+  /**
+   * ONE warm accent, not three. Purple sits at ~271 degrees and gold at ~38 is
+   * split-complementary to it - the harmonious relationship, and one with real
+   * kit precedent. But the app had yellow (~48) AND amber (~38) doing separate
+   * jobs ten degrees apart: too close to read as different categories, far
+   * enough that a yellow number beside an amber button looked like a mistake.
+   *
+   * Yellow folded into amber. The "press this" versus "this number matters"
+   * distinction now rides on FILL versus TEXT - a solid amber block is a
+   * button, amber text is emphasis - which was always the stronger signal.
+   *
+   * Orange survives this collapse because it is genuinely semantic: the
+   * substitution WARNING tier escalating to red. See STATUS.
+   */
   cta: 'amber',
   danger: 'red',
   /** The brand purple, currently the player discs on the field. */
@@ -117,3 +138,34 @@ export const UI = {
 
 export type EntityDotKind = keyof typeof ENTITY_DOT;
 export type PositionRole = keyof typeof POSITION_ROLE;
+
+/**
+ * Kit colours a team can be given.
+ *
+ * A FIXED SET, not a freeform colour picker, for three reasons: football kits
+ * come from a small conventional range, the OS colour input is poor on a phone,
+ * and an unconstrained hex lets a coach choose something invisible against
+ * slate. Every value here has been checked to read as a 4px stripe and as a
+ * text accent on the app's dark surfaces.
+ *
+ * Order is roughly by how common the kit is in Finnish junior football, so the
+ * likely choice is the first one a thumb reaches.
+ */
+export const TEAM_KIT_COLORS = [
+  { id: 'red', hex: '#DC2626' },
+  { id: 'blue', hex: '#2563EB' },
+  { id: 'white', hex: '#E2E8F0' },
+  { id: 'black', hex: '#0F172A' },
+  { id: 'yellow', hex: '#EAB308' },
+  { id: 'green', hex: '#16A34A' },
+  { id: 'orange', hex: '#EA580C' },
+  { id: 'purple', hex: '#7E22CE' },
+  { id: 'sky', hex: '#0EA5E9' },
+  { id: 'maroon', hex: '#881337' },
+] as const;
+
+export type TeamKitColorId = (typeof TEAM_KIT_COLORS)[number]['id'];
+
+/** A stored hex back to its swatch, for marking the current choice. */
+export const kitColorId = (hex: string | undefined): TeamKitColorId | null =>
+  TEAM_KIT_COLORS.find((c) => c.hex.toLowerCase() === (hex ?? '').toLowerCase())?.id ?? null;

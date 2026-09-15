@@ -71,7 +71,7 @@ const OpponentListEditor: React.FC<OpponentListEditorProps> = ({
 
   return (
     <div className="space-y-2">
-      {hint && <p className="text-xs text-slate-400">{hint}</p>}
+      {hint && <p className="text-sm text-slate-400">{hint}</p>}
 
       <div className="flex gap-2">
         <input
@@ -104,7 +104,7 @@ const OpponentListEditor: React.FC<OpponentListEditorProps> = ({
       </div>
 
       {alreadyListed && (
-        <p className="text-xs text-amber-400" data-testid="opponent-duplicate">
+        <p className="text-sm text-amber-400" data-testid="opponent-duplicate">
           {t('opponentList.alreadyListed', '{{name}} is already on the list.', { name: alreadyListed })}
         </p>
       )}
@@ -127,7 +127,7 @@ const OpponentListEditor: React.FC<OpponentListEditorProps> = ({
       )}
 
       {value.length === 0 ? (
-        <p className="text-xs text-slate-500" data-testid="opponent-empty">
+        <p className="text-sm text-slate-400" data-testid="opponent-empty">
           {t('opponentList.empty', 'No teams listed yet. You can always type an opponent by hand when creating a game.')}
         </p>
       ) : (

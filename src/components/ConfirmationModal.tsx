@@ -4,7 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
 
 export interface ConfirmationModalProps {
   isOpen: boolean;

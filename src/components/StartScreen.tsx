@@ -7,7 +7,7 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeTeamScopeSelect, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeTeamScopeSelect, HomeCountsBar, HomeSeasonCard, HomeStatsTiles, HOME_CARD } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '@/components/GuidedTour/firstRunTour';
@@ -45,6 +45,22 @@ import {
  *   HomeTile             - a pair of equals, still its own object.
  *   cards (elsewhere)    - information worth its own surface.
  */
+/**
+ * ONE GAP, BOTH AXES. The tile pair and the action pair sit `gap-2.5` apart
+ * horizontally, so the stack between blocks uses the same 2.5 vertically -
+ * a different vertical rhythm from the horizontal one reads as a mistake even
+ * when nobody can name which number is wrong. No breakpoint bump for the same
+ * reason: a taller screen would open the vertical gaps and leave the
+ * horizontal ones at 2.5, breaking the unity exactly where there is most room
+ * to notice it. Gaps INSIDE a block (HomeGroup's dividers, the tab strip)
+ * are a different thing and keep their own values.
+ *
+ * Both are written out as whole class names, not composed from a shared '2.5',
+ * because Tailwind scans source for complete literals and would emit neither.
+ */
+const STACK = 'space-y-2.5';  // vertical
+const ROW_GAP = 'gap-2.5';    // horizontal
+
 const ROW_BASE =
   'w-full flex items-center gap-3 px-3.5 py-3 [@media(min-height:700px)]:py-3.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500';
 const ROW_ON = 'hover:bg-slate-700/50';
@@ -55,15 +71,9 @@ const ROW_OFF = 'opacity-40 cursor-not-allowed';
  * so it reads as a heading for what follows rather than as a separator
  * floating equidistant between two groups.
  */
-const HomeSectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 pt-3 pb-1.5 [@media(min-height:700px)]:pt-4">
-    {children}
-  </div>
-);
-
 /** The container that makes a run of rows one object instead of several. */
 const HomeGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="rounded-xl bg-slate-800/70 border border-slate-700/50 overflow-hidden divide-y divide-slate-700/50">
+  <div className="rounded-xl bg-slate-800/70 border border-slate-700/50 overflow-hidden divide-y divide-white/10">
     {children}
   </div>
 );
@@ -105,6 +115,11 @@ const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; href: string }> = ({
  * Half-width tile. Icon above the label, centred - deliberately a different
  * shape from a Row, so a pair of equals does not look like two truncated rows.
  * Keeps its own border, because a pair genuinely is two objects.
+ *
+ * Wears HOME_CARD, the shared Home card surface, so the club tab has the
+ * colour the other tabs had without inventing a second surface for here.
+ * Disabled stays slate - a tile you cannot press has no business wearing the
+ * live colour.
  */
 const HomeTile: React.FC<{
   icon: RowIcon;
@@ -121,10 +136,10 @@ const HomeTile: React.FC<{
     className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3 [@media(min-height:700px)]:py-3.5 rounded-xl border text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
       disabled
         ? 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-        : 'bg-slate-800/70 border-slate-700/50 hover:bg-slate-700/70'
+        : HOME_CARD
     }`}
   >
-    <Icon className="w-5 h-5 text-slate-400" aria-hidden="true" />
+    <Icon className="w-5 h-5 text-indigo-300" aria-hidden="true" />
     <span className="text-sm font-semibold text-white leading-tight">{label}</span>
   </button>
 );
@@ -416,18 +431,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1 [@media(min-height:600px)]:pt-[9vh]' : 'pt-3 [@media(min-height:600px)]:pt-[5vh]'}`}>
+        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1 [@media(min-height:600px)]:pt-[4vh]' : 'pt-3 [@media(min-height:600px)]:pt-[5vh]'}`}>
           <div className={`text-center ${dashboardOn ? 'mb-1' : 'mb-4'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
                 full-size on first-run / empty state). */}
-            <div className={`relative inline-block ${dashboardOn ? '' : 'mb-1.5'}`}>
+            <div className={`relative inline-block ${dashboardOn ? 'mb-3 [@media(min-height:700px)]:mb-4' : 'mb-1.5'}`}>
               {/* Fluid logo: clamp(min, vw, max) scales the wordmark with the
                   screen width (bigger phones -> bigger logo) instead of a fixed
                   px size, bounded so it never gets silly on very small/large
                   screens. Dashboard mode is a touch larger now that the tighter
                   cards freed room. */}
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(1.9rem,9vw,2.6rem)] [@media(min-height:700px)]:text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(2rem,9.5vw,2.9rem)] [@media(min-height:700px)]:text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.4rem,11.5vw,3.3rem)] [@media(min-height:700px)]:text-[clamp(3rem,13vw,4.4rem)]' : 'text-[clamp(2rem,9.5vw,2.9rem)] [@media(min-height:700px)]:text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
@@ -543,7 +558,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
 
           {/* === ACTION BUTTONS === */}
-          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'space-y-1.5 [@media(min-height:700px)]:space-y-2' : 'space-y-2 [@media(min-height:700px)]:space-y-3'}`}>
+          <div className={`max-w-sm mx-auto w-full ${STACK}`}>
             {activeTab === 'team' ? (
               /* Team panel (restructure 1.3b): every club-people item gets a
                  Home entry - the rows open the EXISTING modals (strangler). */
@@ -552,14 +567,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <HomeCountsBar counts={homeSummary.counts} t={t} />
                 )}
                 {homeSummary?.countsReady && homeSummary.counts.players === 0 && (
-                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
+                  <p className="text-sm text-slate-400 px-1 text-center">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
                 )}
                 {/* Two groups, because the Club tab holds two different
                     kinds of thing: the PEOPLE in the club, and the MATERIAL a
                     coach consults. Before this they were five identical rows
                     with no indication that the boundary existed. */}
-                <HomeSectionLabel>{t('startScreen.groupPeople', 'People')}</HomeSectionLabel>
-                <div className="flex gap-2.5">
+                <div className={`flex ${ROW_GAP}`}>
                   <HomeTile
                     icon={HiOutlineUsers}
                     label={t('startScreen.rowPlayers', 'Players')}
@@ -584,7 +598,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   />
                 </HomeGroup>
 
-                <HomeSectionLabel>{t('startScreen.groupCoaching', 'Coaching')}</HomeSectionLabel>
                 <HomeGroup>
                   <HomeRow
                     icon={HiOutlineClipboardDocumentList}
@@ -624,7 +637,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   />
                 )}
                 {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
-                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyCompetitions', 'Create a league or tournament to group your games.')}</p>
+                  <p className="text-sm text-slate-400 px-1 text-center">{t('startScreen.emptyCompetitions', 'Create a league or tournament to group your games.')}</p>
                 )}
                 <HomeGroup>
                   <HomeRow
@@ -664,7 +677,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   </>
                 )}
                 {!hasSavedGames && (
-                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
+                  <p className="text-sm text-slate-400 px-1 text-center">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
                 )}
                 {/* Each scope gets the icon of the thing it aggregates, so the
                     four are told apart at a glance rather than by reading four
@@ -741,7 +754,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.heroAddPlayers', 'Add players')}</span>
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
+                        <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
                           {t('startScreen.stepBadge', 'Step {{n}}', { n: 1 })}
                         </span>
                       </button>
@@ -754,7 +767,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.heroCreateTeam', 'Create your team')}</span>
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
+                        <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
                           {t('startScreen.stepBadge', 'Step {{n}}', { n: 2 })}
                         </span>
                       </button>
@@ -767,7 +780,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.newGame', 'New Game')}</span>
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
+                        <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
                           {t('startScreen.stepBadge', 'Step {{n}}', { n: 3 })}
                         </span>
                       </button>
@@ -824,14 +837,16 @@ const StartScreen: React.FC<StartScreenProps> = ({
                      these two step back. New Game still outranks the archive:
                      starting a match is why the app exists, browsing old ones
                      is occasional, and equal weight said otherwise. */
-                  <div className={dashboardOn ? 'flex gap-2.5' : 'space-y-3'}>
+                  <div className={dashboardOn ? `flex ${ROW_GAP}` : STACK}>
                     <button
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
                       data-testid="tour-new-game"
-                      className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500 bg-amber-500/15 border-amber-400/40 text-amber-100 hover:bg-amber-500/25 ${dashboardOn ? 'flex-1' : 'w-full'}`}
+                      className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${canResume
+                        ? 'focus:ring-indigo-500 bg-indigo-600 border-indigo-500 text-white hover:bg-indigo-500'
+                        : 'focus:ring-amber-500 bg-amber-500 border-amber-400/50 text-slate-900 hover:bg-amber-400'} ${dashboardOn ? 'flex-1' : 'w-full'}`}
                     >
-                      <HiOutlinePlusCircle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                      <HiOutlinePlusCircle className={`w-5 h-5 flex-shrink-0 ${canResume ? 'text-indigo-100' : 'text-slate-900'}`} aria-hidden="true" />
                       <span className="text-[13px] font-bold leading-tight">
                         {t('startScreen.newGame', 'New Game')}
                       </span>
@@ -854,14 +869,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {/* Side entries are DEFERRED while composing (owner round 4:
                     they pushed the onboarding screen past the fold and are
                     dead weight before the first game); back automatically
-                    once a game exists.
-
-                    Grouped under a label now: the planner and Taso are tools a
-                    coach reaches for around a match, not more ways to start
-                    one, and sitting flush under New Game implied otherwise. */}
-                {!composeOnboarding && (
-                  <HomeSectionLabel>{t('startScreen.groupTools', 'Tools')}</HomeSectionLabel>
-                )}
+                    once a game exists. */}
                 {/* Taso is a game-day workflow tool (submit the lineup before,
                     report the result after) - it earns a games-tab row, not a
                     burial under the gear. */}
@@ -994,7 +1002,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   {t('startScreen.gearSignOut', 'Sign out')}
                 </button>
               )}
-              <div className="pt-2 mt-1 border-t border-slate-700/60 px-3 text-xs">
+              <div className="pt-2 mt-1 border-t border-white/10 px-3 text-xs">
                 <a href="https://www.match-ops.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-amber-400 transition-colors">match-ops.com</a>
               </div>
             </div>

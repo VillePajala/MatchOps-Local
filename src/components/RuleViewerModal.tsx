@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { CollapsibleModalHeader, modalContainerStyle, ModalBackgroundEffects } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { withPage } from '@/config/rulesIndex';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 /**
  * Reads one page of an official rulebook, in the app.
@@ -200,6 +201,9 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
     };
   }, [isOpen]);
 
+  useEscapeToClose(isOpen, onClose);
+
+
   if (!isOpen) return null;
 
   const openInBrowser = () => {
@@ -213,7 +217,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
         <ModalBackgroundEffects />
         <div className="relative z-10 flex flex-col h-full min-h-0">
           <CollapsibleModalHeader title={title} onClose={onClose} closeLabel={t('common.close', 'Close')}>
-            <p className="text-xs text-slate-400 px-6 pb-3 text-center">
+            <p className="text-sm text-slate-400 px-6 pb-3 text-center">
               {t('ruleViewer.subtitle', 'Virallinen sääntökirja. Sivu {{n}}{{total}}.', {
                 n: current,
                 total: total ? `/${total}` : '',
@@ -256,7 +260,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
             )}
           </div>
 
-          <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-t border-slate-700/60">
+          <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-t border-white/10">
             <button
               type="button"
               onClick={() => setCurrent((p) => Math.max(1, p - 1))}

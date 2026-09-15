@@ -170,7 +170,7 @@ export default function WelcomeScreen({
             )}
             {/* Settings note — only shown when there's actually a choice to change */}
             {!hideLocalModeOptions && (
-              <p className="text-slate-500 text-xs text-center pt-1">
+              <p className="text-slate-400 text-sm text-center pt-1">
                 {t('welcome.changeInSettings', 'You can change this later in Settings')}
               </p>
             )}

@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useMigrationStatus, MigrationProgress } from '@/hooks/useMigrationStatus';
 import { HiOutlineExclamationTriangle, HiOutlineCheckCircle, HiOutlineXMark } from 'react-icons/hi2';
-import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
 
 // Throttled progress component to prevent excessive re-renders
 const ThrottledProgress = React.memo(({ progress, t }: { progress: MigrationProgress | null; t: TFunction }) => {
@@ -106,7 +106,7 @@ function MigrationStatusComponent() {
 
             <ThrottledProgress progress={progress} t={t} />
 
-            <p className="text-xs text-slate-500 mt-4">
+            <p className="text-sm text-slate-400 mt-4">
               {t('migrationStatus.dontCloseApp', "Please don't close the app during this process.")}
             </p>
           </div>

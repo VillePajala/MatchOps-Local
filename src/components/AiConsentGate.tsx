@@ -68,11 +68,11 @@ const AiConsentGate: React.FC<AiConsentGateProps> = ({ isOpen, onAccepted, onCan
         aria-labelledby="ai-consent-title"
         data-testid="ai-consent-gate"
       >
-        <div className="px-6 py-4 bg-slate-900/50 border-b border-slate-600">
-          <h2 id="ai-consent-title" className="text-xl font-bold text-yellow-400">
+        <div className="px-6 py-4 bg-slate-900/50 border-b border-white/10">
+          <h2 id="ai-consent-title" className="text-xl font-bold text-amber-400">
             {t('aiConsent.title', 'Before you connect an AI provider')}
           </h2>
-          <p className="text-xs text-slate-400 mt-1">{t('aiConsent.version', 'Version')}: {AI_CONSENT_VERSION}</p>
+          <p className="text-sm text-slate-400 mt-1">{t('aiConsent.version', 'Version')}: {AI_CONSENT_VERSION}</p>
         </div>
 
         <div className="px-6 py-4 space-y-4 overflow-y-auto">
@@ -94,7 +94,7 @@ const AiConsentGate: React.FC<AiConsentGateProps> = ({ isOpen, onAccepted, onCan
             <DictationRules />
           </section>
 
-          <section className="space-y-3 pt-2 border-t border-slate-700">
+          <section className="space-y-3 pt-2 border-t border-white/10">
             <label className="flex items-start gap-3 cursor-pointer">
               <input type="checkbox" checked={box1} onChange={(e) => setBox1(e.target.checked)} className={checkboxStyle} data-testid="ai-consent-box-1" />
               <span className="text-sm text-slate-300">{t('aiConsent.box1', 'I understand recordings and notes go to my own AI provider, under my account, and MatchOps never receives them.')}</span>
@@ -110,7 +110,7 @@ const AiConsentGate: React.FC<AiConsentGateProps> = ({ isOpen, onAccepted, onCan
           </section>
         </div>
 
-        <div className="px-6 py-4 bg-slate-900/30 border-t border-slate-600 flex gap-3">
+        <div className="px-6 py-4 bg-slate-900/30 border-t border-white/10 flex gap-3">
           <button type="button" onClick={onCancel} className={`flex-1 ${secondaryButtonStyle}`}>
             {t('common.cancel', 'Cancel')}
           </button>

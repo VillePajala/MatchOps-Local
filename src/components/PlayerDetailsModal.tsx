@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
 import logger from '@/utils/logger';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface PlayerDetailsModalProps {
   isOpen: boolean;
@@ -32,6 +33,8 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const { t } = useTranslation();
 
   // Form state
+  useEscapeToClose(isOpen, onClose);
+  const modalTitleId = useId();
   const [name, setName] = useState('');
   const [nickname, setNickname] = useState('');
   const [jerseyNumber, setJerseyNumber] = useState('');
@@ -128,7 +131,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const isPending = isRosterUpdating;
 
   return (
-    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
@@ -136,6 +139,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
 
         {/* Chrome slimming: X-header (Cancel) + sticky Save. */}
         <CollapsibleModalHeader
+          titleId={modalTitleId}
           title={mode === 'create'
             ? t('playerDetailsModal.createTitle', 'Add Player')
             : t('playerDetailsModal.editTitle', 'Player Details')}
@@ -180,7 +184,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   placeholder={t('playerDetailsModal.nicknamePlaceholder', 'Optional nickname')}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                 />
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-sm text-slate-400">
                   {t('playerDetailsModal.nicknameHint', 'Shown on field if provided')}
                 </p>
               </div>

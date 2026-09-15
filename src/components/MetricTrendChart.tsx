@@ -26,7 +26,7 @@ const TrendTooltip: React.FC<TrendTooltipProps> = ({ active, payload }) => {
   return (
     <div className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs shadow-lg">
       <div className="text-slate-400">{dateText}</div>
-      <div className="text-yellow-400 font-semibold">{point.value}</div>
+      <div className="text-amber-400 font-semibold">{point.value}</div>
     </div>
   );
 };

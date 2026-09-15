@@ -21,7 +21,8 @@ import type { EntityReferences } from '@/interfaces/DataStore';
 import logger from '@/utils/logger';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { ENTITY_DOT } from '@/config/palette';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
@@ -82,6 +83,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     // from the same hook, so the badge cannot advertise work that is not there.
     const nameConflicts = useOpponentVariantGroups(isOpen).length;
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    useEscapeToClose(isOpen, onClose, !showDeleteConfirm);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string; type: 'season' | 'tournament' } | null>(null);
 
     // Delete blocked state
@@ -287,9 +289,9 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         )}
                                     </div>
                                     {type==='tournament' && ((item as Tournament).startDate || (item as Tournament).endDate) && (
-                                        <p className="text-xs text-slate-400">{(item as Tournament).startDate || ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' - ' : ''}{(item as Tournament).endDate || ''}</p>
+                                        <p className="text-sm text-slate-400">{(item as Tournament).startDate || ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' - ' : ''}{(item as Tournament).endDate || ''}</p>
                                     )}
-                                    <p className="text-xs text-slate-400">{t('seasonTournamentModal.statsGames')}: {stats[item.id]?.games || 0} | {t('seasonTournamentModal.statsGoals')}: {stats[item.id]?.goals || 0}</p>
+                                    <p className="text-sm text-slate-400">{t('seasonTournamentModal.statsGames')}: {stats[item.id]?.games || 0} | {t('seasonTournamentModal.statsGoals')}: {stats[item.id]?.goals || 0}</p>
                                     {/* Context badges */}
                                     <div className="flex flex-wrap gap-1.5 mt-2">
                                         {/* Club Season - Green dot */}
