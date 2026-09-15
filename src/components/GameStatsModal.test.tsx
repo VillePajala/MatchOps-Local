@@ -1205,4 +1205,66 @@ describe('GameStatsModal', () => {
       });
     });
   });
+
+  /**
+   * The first surface that reads opponentName as data rather than as a
+   * caption, and the payoff for making the spelling stable.
+   * @critical
+   */
+  describe('record by opponent', () => {
+    const vs = (opponentName: string, our: number, theirs: number) => ({
+      ...minimalMockAppState,
+      opponentName,
+      homeOrAway: 'home' as const,
+      homeScore: our,
+      awayScore: theirs,
+      isPlayed: true,
+    });
+
+    it('breaks the record down per opponent', async () => {
+      renderComponent({
+        ...getDefaultProps(),
+        aggregateOnly: true,
+        initialTab: 'overall',
+        savedGames: { g1: vs('HJK', 2, 0), g2: vs('KuPS', 1, 3) },
+      } as TestProps);
+      await waitFor(() => {
+        expect(screen.getByTestId('head-to-head-card')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('head-to-head-row-hjk')).toBeInTheDocument();
+      expect(screen.getByTestId('head-to-head-row-kups')).toBeInTheDocument();
+    });
+
+    /** Two spellings of one club are one row - the whole reason this works. */
+    it('counts both spellings of a team as that one team', async () => {
+      renderComponent({
+        ...getDefaultProps(),
+        aggregateOnly: true,
+        initialTab: 'overall',
+        savedGames: {
+          g1: vs('LauTP / Sininen', 1, 0),
+          g2: vs('LAUTP/Sininen', 0, 2),
+          g3: vs('HJK', 1, 1),
+        },
+      } as TestProps);
+      await waitFor(() => {
+        expect(screen.getByTestId('head-to-head-card')).toBeInTheDocument();
+      });
+      const row = screen.getByTestId('head-to-head-row-lautp sininen');
+      expect(row).toHaveTextContent('2');
+      expect(screen.queryAllByTestId(/^head-to-head-row-/)).toHaveLength(2);
+    });
+
+    /** With one opponent it would restate the record card directly above. */
+    it('says nothing when there is only one opponent', async () => {
+      renderComponent({
+        ...getDefaultProps(),
+        aggregateOnly: true,
+        initialTab: 'overall',
+        savedGames: { g1: vs('HJK', 2, 0), g2: vs('HJK', 1, 1) },
+      } as TestProps);
+      await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+      expect(screen.queryByTestId('head-to-head-card')).not.toBeInTheDocument();
+    });
+  });
 });

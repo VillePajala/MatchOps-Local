@@ -804,6 +804,15 @@
     "sortByOldest": "Vanhimmat"
   },
   "gameStatsModal": {
+    "headToHeadPlayed": "O",
+    "headToHeadRecord": "V-T-H",
+    "headToHeadGoals": "Maalit",
+    "headToHeadGd": "ME",
+    "headToHeadShowLess": "Näytä vähemmän",
+    "headToHead": "Vastustajittain",
+    "headToHeadHint": "Tuloksesi kutakin joukkuetta vastaan tässä näkymässä.",
+    "headToHeadTeam": "Joukkue",
+    "headToHeadShowAll": "Näytä kaikki {{count}} joukkuetta",
     "nameConflicts": "{{count}} joukkuetta on kirjoitettu usealla tavalla, joten ne lasketaan tässä eri vastustajiksi.",
     "nameConflictsAction": "Tarkista joukkueiden nimet",
     "title": "Ottelutilastot",
@@ -929,6 +938,8 @@
     "title": "Tallennetut pelit"
   },
   "loadGameModal": {
+    "opponentFilterLabel": "Vastustaja",
+    "allOpponentsFilter": "Kaikki vastustajat",
     "title": "Tallennetut pelit",
     "gameActions": "Pelitoiminnot",
     "gamesCount": "Pelejä",
@@ -2201,6 +2212,8 @@
     "reassignDescription": "Valitse joukkue, johon peli liitetään, tai valitse \"Ei joukkuetta\" käyttääksesi pääkokoonpanoa."
   },
   "export": {
+    "opponent": "Vastustaja",
+    "sheetOpponentBreakdown": "Vastustajaerittely",
     "exportGameFailed": "Pelin vienti epäonnistui. Yritä uudelleen.",
     "exportStatsFailed": "Tilastojen vienti epäonnistui. Yritä uudelleen.",
     "exportPlayerFailed": "Pelaajan tilastojen vienti epäonnistui. Yritä uudelleen.",
