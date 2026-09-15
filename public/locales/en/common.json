@@ -421,6 +421,7 @@
     "updateError": "Failed to update team. Please try again."
   },
   "common": {
+    "moreOpponents": "+{{count}} more. Type to search them all.",
     "notSet": "Not Set",
     "actions": "Actions",
     "add": "Add",
