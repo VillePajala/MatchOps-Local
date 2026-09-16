@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import SteadyDigits from '@/components/SteadyDigits';
 
 interface GameInfoBarProps {
   teamName: string;
@@ -153,10 +154,13 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
             while the match timer, the home dashboard tiles and the player
             totals all sit at text-2xl or larger. The app was presenting "how
             many teams you have" as more important than "what the score is".
-            tabular-nums so the chip does not jump width between 0-0 and 10-9. */}
-        <span className="bg-slate-700 px-2.5 py-0.5 rounded text-amber-300 text-xl font-black tabular-nums leading-none flex-shrink-0">
-          {leftScore} - {rightScore}
-        </span>
+            The chip must not jump width between 0-0 and 10-9 - which is what
+            the tabular-nums here used to promise and never delivered, because
+            Rajdhani ships no tnum feature and the class was inert. SteadyDigits
+            boxes each digit instead (see that component for the measurements). */}
+        <SteadyDigits className="bg-slate-700 px-2.5 py-0.5 rounded text-amber-300 text-xl font-black leading-none flex-shrink-0">
+          {`${leftScore} - ${rightScore}`}
+        </SteadyDigits>
 
         {/* Right Team Name */}
         <div className="flex-1 basis-0 min-w-0 text-left overflow-hidden" title={editingField !== 'right' ? "Double-click to edit" : undefined}>
