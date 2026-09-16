@@ -27,6 +27,7 @@ import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGame
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { disableCloudMode, clearCloudAccountInfo, updateCloudAccountInfo } from '@/config/backendConfig';
 import logger from '@/utils/logger';
+import { AGE_GROUPS } from '@/config/gameOptions';
 import * as Sentry from '@sentry/nextjs';
 
 // =============================================================================
@@ -699,13 +700,7 @@ async function performReverseMigration(
         logger.warn('[ReverseMigrationService] Error closing cloudStore:', e);
       }
     }
-    if (localStore) {
-      try {
-        await localStore.close();
-      } catch (e) {
-        logger.warn('[ReverseMigrationService] Error closing localStore:', e);
-      }
-    }
+    // Not closed, for the reason given in hydrateLocalFromCloud's cleanup.
   }
 }
 
@@ -1518,6 +1513,38 @@ export interface HydrationResult {
 }
 
 /**
+ * Strip an age group the app no longer recognises, keeping the record.
+ *
+ * RESTORING IS NOT THE SAME AS CREATING. `AGE_GROUPS` is U7-U21, and write
+ * validation rejects anything else - which is right for a coach filling in a
+ * form, and wrong for data the cloud already holds. Seasons and games written
+ * by an older build (or by a Finnish label like "P10") were being thrown out
+ * whole on the way down, one bad string costing an entire game.
+ *
+ * So the unrecognised value is dropped and the record kept. The age group is a
+ * label; the match is the thing the coach cannot get back. `RulesDirectoryModal`
+ * already takes this line, falling back to '' rather than trusting a stored
+ * value blindly.
+ *
+ * Logged rather than silent: it is still a small loss, and a run that quietly
+ * edits data on the way in should say so.
+ */
+function withRestorableAgeGroup<T extends { ageGroup?: string; name?: string }>(
+  entity: T,
+  what: string,
+): T {
+  if (!entity.ageGroup || (AGE_GROUPS as readonly string[]).includes(entity.ageGroup)) {
+    return entity;
+  }
+  logger.warn('[ReverseMigrationService] Dropping unrecognised age group on restore', {
+    what,
+    name: entity.name,
+    ageGroup: entity.ageGroup,
+  });
+  return { ...entity, ageGroup: undefined };
+}
+
+/**
  * Hydrate local storage from cloud data.
  *
  * This is used when a user signs in to cloud mode but has no local data.
@@ -1729,7 +1756,7 @@ export async function hydrateLocalFromCloud(
       try {
         const existingTeam = existingTeamMap.get(team.id);
         if (shouldWriteBasedOnTimestamp(team.updatedAt, existingTeam?.updatedAt)) {
-          await localStore.upsertTeam(team);
+          await localStore.upsertTeam(withRestorableAgeGroup(team, 'team'));
           counts.teams++;
         } else {
           skipped.teams++;
@@ -1767,7 +1794,7 @@ export async function hydrateLocalFromCloud(
       try {
         const existingSeason = existingSeasonMap.get(season.id);
         if (shouldWriteBasedOnTimestamp(season.updatedAt, existingSeason?.updatedAt)) {
-          await localStore.upsertSeason(season);
+          await localStore.upsertSeason(withRestorableAgeGroup(season, 'season'));
           counts.seasons++;
         } else {
           skipped.seasons++;
@@ -1792,7 +1819,7 @@ export async function hydrateLocalFromCloud(
       try {
         const existingTournament = existingTournamentMap.get(tournament.id);
         if (shouldWriteBasedOnTimestamp(tournament.updatedAt, existingTournament?.updatedAt)) {
-          await localStore.upsertTournament(tournament);
+          await localStore.upsertTournament(withRestorableAgeGroup(tournament, 'tournament'));
           counts.tournaments++;
         } else {
           skipped.tournaments++;
@@ -1852,7 +1879,7 @@ export async function hydrateLocalFromCloud(
       try {
         const existingGame = existingGames[gameId];
         if (shouldWriteBasedOnTimestamp(game.updatedAt, existingGame?.updatedAt)) {
-          await localStore.saveGame(gameId, game);
+          await localStore.saveGame(gameId, withRestorableAgeGroup(game, 'game'));
           counts.games++;
         } else {
           skipped.games++;
@@ -1954,10 +1981,85 @@ export async function hydrateLocalFromCloud(
     } catch (e) {
       logger.warn('[ReverseMigrationService] Error closing cloudStore during hydration:', e);
     }
-    try {
-      if (localStore) await localStore.close();
-    } catch (e) {
-      logger.warn('[ReverseMigrationService] Error closing localStore during hydration:', e);
-    }
+    // DELIBERATELY NOT closing localStore. `LocalDataStore.close()` calls
+    // `closeUserStorageAdapter(userId)`, which closes the PROCESS-WIDE cached
+    // IndexedDB adapter for that user - not just this instance's handle. That
+    // is right for the factory, which closes the store on sign-out or a user
+    // switch, and `closeUserStorageAdapter` says so about itself: "safe
+    // because close() is called on sign-out and get() is called on sign-in -
+    // these never overlap in a single-user PWA."
+    //
+    // A transient store created mid-session breaks that assumption. Closing it
+    // pulled the connection out from under the app's own DataStore, which went
+    // on holding a closed adapter for the rest of the page's life - every read
+    // failing, the coach shown first-run onboarding over their own account,
+    // and nothing fixing it short of reopening the app. The retries could not
+    // win because each attempt re-broke it on the way out.
+    //
+    // The adapter is cached and shared by design and the factory owns its
+    // lifecycle, so the correct cleanup here is none at all.
   }
+}
+
+/**
+ * Is this failure the auth layer not being ready yet, rather than a real fault?
+ *
+ * Shared so the two callers cannot drift apart: `page.tsx` tests the string
+ * from `hasCloudData()` and the array from `hydrateLocalFromCloud()`, and it
+ * had grown its own copy of this list in both places.
+ *
+ * These are not failures at all - the Supabase client loads its session from
+ * storage asynchronously, so a check that runs too early sees no session. The
+ * caller's job is to wait and let the normal retry come round again, NOT to
+ * tell the coach anything.
+ */
+export function isAuthNotReadyError(error: string | string[] | undefined): boolean {
+  const texts = typeof error === 'string' ? [error] : error ?? [];
+  return texts.some(
+    (e) => e.includes('Not authenticated') || e.includes('auth') || e.includes('sign in'),
+  );
+}
+
+/** Attempts, and the pause before each retry. Short: the first call blocks startup. */
+const HYDRATION_RETRY_DELAYS_MS = [400, 1200];
+
+/**
+ * `hydrateLocalFromCloud` with retries, which is what every caller wants.
+ *
+ * WHY THIS EXISTS. A first load on a new origin - a fresh preview URL, or a
+ * coach signing in on a new phone - is the one case where local is empty and
+ * everything has to come down from the cloud. It is also the case most exposed
+ * to a race: the Supabase session is restored asynchronously, so the first
+ * attempt can start before the token is reliably in place. The observed
+ * symptom was an alarming "could not load your cloud data" over an app showing
+ * none of the coach's games, which a reload then fixed - the worst possible
+ * moment to imply that data is gone.
+ *
+ * RETRYING IS SAFE because hydration is merge-safe by construction: it skips
+ * any entity whose local copy is newer, so running it twice imports nothing
+ * twice. That is the same property that lets the background path re-run it on
+ * every launch.
+ *
+ * Auth-not-ready is NOT retried here. It has its own, better handling in the
+ * caller - stand down and let the next effect cycle try once auth has settled -
+ * and burning the retries on it would only delay that by a couple of seconds.
+ */
+export async function hydrateLocalFromCloudWithRetry(
+  userId: string,
+  onProgress?: (message: string, progress: number) => void,
+): Promise<HydrationResult> {
+  let result = await hydrateLocalFromCloud(userId, onProgress);
+
+  for (const delay of HYDRATION_RETRY_DELAYS_MS) {
+    if (result.success || isAuthNotReadyError(result.errors)) return result;
+
+    logger.warn('[ReverseMigrationService] Hydration failed, retrying', {
+      delay,
+      errors: result.errors,
+    });
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    result = await hydrateLocalFromCloud(userId, onProgress);
+  }
+
+  return result;
 }
