@@ -716,13 +716,15 @@ async function performMigration(
         logger.warn('[MigrationService] Error closing cloudStore:', e);
       }
     }
-    if (localStore) {
-      try {
-        await localStore.close();
-      } catch (e) {
-        logger.warn('[MigrationService] Error closing localStore:', e);
-      }
-    }
+    // NOT closing localStore - see the same note in reverseMigrationService.
+    // LocalDataStore.close() closes the PROCESS-WIDE cached adapter for the
+    // user (or clears the global cache when there is no userId), not just this
+    // instance's handle. That is right for the factory on sign-out, and wrong
+    // for a transient store built mid-session: it pulls the connection out
+    // from under the app's own DataStore, which then reads through a closed
+    // adapter until the page is reloaded. The adapter is cached and shared by
+    // design and the factory owns its lifecycle, so the right cleanup here is
+    // none.
     // Note: Migration lock (migrationPromise) is reset in the wrapper function
   }
 }
@@ -1797,11 +1799,11 @@ export async function hasLocalDataToMigrate(userId?: string): Promise<LocalDataC
     }
     return { hasData: false, checkFailed: true, error: errorMsg };
   } finally {
-    try {
-      await localStore.close();
-    } catch (e) {
-      logger.warn('[MigrationService] Error closing localStore in hasLocalDataToMigrate:', e);
-    }
+    // Not closed. This is a READ-ONLY check that runs on every sign-in
+    // (page.tsx), from CloudSyncSection and from clearLocalData - closing the
+    // user's shared adapter from a check is the worst version of the bug
+    // described in reverseMigrationService, because nothing here was even
+    // writing.
   }
 }
 
@@ -1860,10 +1862,9 @@ export async function getLocalDataSummary(): Promise<MigrationCounts> {
     logger.error('[MigrationService] Failed to get local data summary:', errorMsg);
     throw err;
   } finally {
-    try {
-      await localStore.close();
-    } catch (e) {
-      logger.warn('[MigrationService] Error closing localStore in getLocalDataSummary:', e);
-    }
+    // Not closed. Built WITHOUT a userId, so close() took the other branch -
+    // clearAdapterCacheWithCleanup(), which closes and clears the GLOBAL
+    // adapter cache that local-mode users run on. Another read-only summary
+    // with no business ending anyone's connection.
   }
 }
