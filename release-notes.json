@@ -4,6 +4,15 @@
     {
       "date": "2026-09-16",
       "en": [
+        "The Update button on the update prompt no longer does nothing. It used to be ignored if the downloaded update had moved on since the prompt appeared - the prompt stayed and the reload step never came. It now always gets you to Reload, which applies the update whatever the state."
+      ],
+      "fi": [
+        "Päivitysilmoituksen Päivitä-painike ei enää jää joskus reagoimatta. Aiemmin painallus jäi huomiotta, jos ladattu päivitys oli ehtinyt vaihtua ilmoituksen ilmestymisen jälkeen - ilmoitus jäi näkyviin eikä lataa uudelleen -vaihetta tullut. Nyt painike vie aina Lataa uudelleen -vaiheeseen, joka ottaa päivityksen käyttöön joka tapauksessa."
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "en": [
         "The clock in the bottom bar and the score chip above the pitch no longer shift width as the numbers change, so the buttons beside them stop nudging sideways every second."
       ],
       "fi": [
