@@ -738,6 +738,85 @@ describe('reverseMigrationService', () => {
     });
   });
 
+  /**
+   * @critical - restoring is not the same as creating. Reproduces the failure
+   * the owner hit: "Failed to save season Kevatsarja P10: Invalid age group"
+   * repeated for every affected game, with those records simply absent
+   * afterwards.
+   */
+  describe('an age group the app no longer recognises', () => {
+    const BAD = 'P10'; // Finnish style; AGE_GROUPS is U7-U21
+
+    it('keeps the season and drops only the label', async () => {
+      (mockSupabaseDataStore.getSeasons as jest.Mock).mockResolvedValue([
+        { ...mockSeason, name: 'Kevatsarja P10', ageGroup: BAD },
+      ]);
+
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+
+      expect(mockLocalDataStore.upsertSeason).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Kevatsarja P10', ageGroup: undefined }),
+      );
+    });
+
+    it('keeps the game, which is the part the coach cannot get back', async () => {
+      (mockSupabaseDataStore.getGames as jest.Mock).mockResolvedValue({
+        game_mock_1: { ...mockGame, ageGroup: BAD },
+      });
+
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+
+      expect(mockLocalDataStore.saveGame).toHaveBeenCalledWith(
+        'game_mock_1',
+        expect.objectContaining({ ageGroup: undefined }),
+      );
+    });
+
+    /**
+     * The whole point, and the only test here that reproduces the real
+     * failure: the doubles are made to reject a bad age group the way
+     * LocalDataStore's validation actually does, so without the sanitiser this
+     * fails exactly as the owner's phone did.
+     */
+    it('does not fail the hydration', async () => {
+      const rejectBadAgeGroup = (entity: { ageGroup?: string }) => {
+        if (entity.ageGroup && !/^U(?:[7-9]|1\d|2[01])$/.test(entity.ageGroup)) {
+          return Promise.reject(new Error('Invalid age group'));
+        }
+        return Promise.resolve(entity);
+      };
+      (mockLocalDataStore.upsertSeason as jest.Mock).mockImplementation(rejectBadAgeGroup);
+      (mockLocalDataStore.saveGame as jest.Mock).mockImplementation((_id, game) =>
+        rejectBadAgeGroup(game),
+      );
+
+      (mockSupabaseDataStore.getSeasons as jest.Mock).mockResolvedValue([
+        { ...mockSeason, name: 'Kevatsarja P10', ageGroup: BAD },
+      ]);
+      (mockSupabaseDataStore.getGames as jest.Mock).mockResolvedValue({
+        game_mock_1: { ...mockGame, ageGroup: BAD },
+      });
+
+      const result = await hydrateLocalFromCloudWithRetry('test-user-id');
+
+      expect(result.errors).toEqual([]);
+      expect(result.success).toBe(true);
+      expect(result.counts.seasons).toBeGreaterThan(0);
+    });
+
+    it('leaves a recognised age group exactly as it was', async () => {
+      (mockSupabaseDataStore.getSeasons as jest.Mock).mockResolvedValue([
+        { ...mockSeason, ageGroup: 'U11' },
+      ]);
+
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+
+      expect(mockLocalDataStore.upsertSeason).toHaveBeenCalledWith(
+        expect.objectContaining({ ageGroup: 'U11' }),
+      );
+    });
+  });
+
   describe('isAuthNotReadyError', () => {
     it.each([
       ['No active session. Please sign in again.'],
