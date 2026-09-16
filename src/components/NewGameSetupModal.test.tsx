@@ -1970,4 +1970,91 @@ describe('NewGameSetupModal', () => {
     });
   });
 
+  /**
+   * The half of the wizard's age-group question that actually delivers.
+   * Writing the answer onto the TEAM alone changes nothing a coach can see -
+   * nothing reads teams.ageGroup. It has to become the default here.
+   * @critical
+   */
+  describe('the wizard’s age group as a new-game default', () => {
+    const withStoredAge = async (age: string, run: () => Promise<void> | void) => {
+      setOnboardingUserId('user-1');
+      localStorage.setItem('matchops_setup_age_group_user-1', age);
+      try {
+        await run();
+      } finally {
+        setOnboardingUserId(undefined);
+        localStorage.removeItem('matchops_setup_age_group_user-1');
+      }
+    };
+
+    const ageSelect = () => document.querySelector('#ageGroupSelect') as HTMLSelectElement;
+
+    it('prefills the age group the coach answered', async () => {
+      await withStoredAge('U10', async () => {
+        render(
+          <ToastProvider>
+            <NewGameSetupModal {...defaultProps} />
+          </ToastProvider>,
+        );
+        await waitFor(() => expect(ageSelect()).toBeInTheDocument());
+        expect(ageSelect().value).toBe('U10');
+      });
+    });
+
+    /**
+     * Precedence, and it matters: a competition setting is a statement about
+     * THIS fixture, the wizard answer is a guess about the coach.
+     */
+    it('lets a league’s own age group win', async () => {
+      await withStoredAge('U10', async () => {
+        render(
+          <ToastProvider>
+            <NewGameSetupModal
+              {...defaultProps}
+              seasons={[{ id: 'sA', name: 'Itä P13', ageGroup: 'U13' }]}
+            />
+          </ToastProvider>,
+        );
+        await act(async () => {
+          fireEvent.click(screen.getByRole('button', { name: /League/i }));
+        });
+        await waitFor(() => expect(document.getElementById('seasonSelect')).toBeInTheDocument());
+        await act(async () => {
+          fireEvent.change(document.getElementById('seasonSelect') as HTMLSelectElement, {
+            target: { value: 'sA' },
+          });
+        });
+        await waitFor(() => expect(ageSelect().value).toBe('U13'));
+      });
+    });
+
+    it('stays empty when the coach skipped the question', async () => {
+      setOnboardingUserId('user-1');
+      try {
+        render(
+          <ToastProvider>
+            <NewGameSetupModal {...defaultProps} />
+          </ToastProvider>,
+        );
+        await waitFor(() => expect(ageSelect()).toBeInTheDocument());
+        expect(ageSelect().value).toBe('');
+      } finally {
+        setOnboardingUserId(undefined);
+      }
+    });
+
+    /** localStorage is editable; an unrecognised value must not reach a game. */
+    it('ignores a value that is not an age group', async () => {
+      await withStoredAge('U99', async () => {
+        render(
+          <ToastProvider>
+            <NewGameSetupModal {...defaultProps} />
+          </ToastProvider>,
+        );
+        await waitFor(() => expect(ageSelect()).toBeInTheDocument());
+        expect(ageSelect().value).toBe('');
+      });
+    });
+  });
 });

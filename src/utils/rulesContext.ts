@@ -39,6 +39,16 @@ export interface RulesContext {
  */
 export function preferredRulesContext(
   savedGames: Record<string, Partial<AppState>> | undefined,
+  /**
+   * The coach's teams, used ONLY when no game names an age group.
+   *
+   * Games come first and keep coming first: a game is a record of what was
+   * actually played, while a team's age group is a label that goes stale at
+   * season rollover. But a coach who has set their teams up and not yet
+   * recorded a game got a generic Rules screen - the one moment the screen is
+   * most worth having, since they are still working out what applies to them.
+   */
+  teams?: readonly { ageGroup?: string }[],
 ): RulesContext {
   const games = Object.values(savedGames ?? {});
 
@@ -75,6 +85,32 @@ export function preferredRulesContext(
     const b = ageGroupToNumber(ageGroup);
     if (a !== null && b !== null ? a < b : age.localeCompare(ageGroup) < 0) {
       ageGroup = age;
+    }
+  }
+
+  // Fall back to the teams only when the games said nothing. Same rule as
+  // above - most common wins, ties break on the lower age group - because a
+  // coach with a U9 and a U13 team is likelier to be looking up the younger
+  // format, where the rules differ most from the adult game.
+  if (!ageGroup && teams?.length) {
+    const teamAges = new Map<string, number>();
+    for (const team of teams) {
+      const age = team?.ageGroup?.trim();
+      if (age) teamAges.set(age, (teamAges.get(age) ?? 0) + 1);
+    }
+    let bestTeam = 0;
+    for (const [age, n] of teamAges) {
+      if (n > bestTeam) {
+        bestTeam = n;
+        ageGroup = age;
+        continue;
+      }
+      if (n !== bestTeam || ageGroup === undefined) continue;
+      const a = ageGroupToNumber(age);
+      const b = ageGroupToNumber(ageGroup);
+      if (a !== null && b !== null ? a < b : age.localeCompare(ageGroup) < 0) {
+        ageGroup = age;
+      }
     }
   }
 
