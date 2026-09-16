@@ -4,6 +4,15 @@
     {
       "date": "2026-09-16",
       "en": [
+        "The match clock no longer slides sideways as it runs. The app's typeface draws 1 much narrower than 8, so a centred clock shifted every time a digit changed; each digit now sits in a box of the same width."
+      ],
+      "fi": [
+        "Otteluajastin ei enää liiku sivusuunnassa käydessään. Sovelluksen kirjasimessa 1 on selvästi kapeampi kuin 8, joten keskitetty kello siirtyi aina numeron vaihtuessa. Nyt jokainen numero on yhtä leveässä ruudussa."
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "en": [
         "The How it works guide has been brought up to date: it no longer says no account is needed (the Play Store version requires one), no longer promises player assessments in the finish-game view, and now mentions the Rules screen, the setup checklist and how opponent names settle on the spelling you already use."
       ],
       "fi": [
