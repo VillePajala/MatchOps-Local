@@ -420,7 +420,11 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
             >
               <div className="flex items-baseline justify-between gap-3 mb-2.5">
                 <span className="flex-1 min-w-0 truncate text-lg font-bold text-slate-100">{name}</span>
-                <span className="shrink-0 text-xl font-bold text-amber-300 tabular-nums">
+                {/* NUMBERS LEAD (owner, 2026-09-16). This figure was text-xl
+                    against a text-lg name - the number the whole screen exists
+                    to compare, barely ahead of the label identifying it. The
+                    name keeps its size: you still find the row by name. */}
+                <span className="shrink-0 text-2xl font-black text-amber-300 tabular-nums leading-none">
                   {toMin(p.totalSeconds)}&#39;
                 </span>
               </div>

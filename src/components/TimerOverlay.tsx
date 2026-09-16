@@ -294,9 +294,19 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 text-xl font-semibold">
             <span className="text-slate-400 text-right leading-tight">{displayHomeTeamName}</span>
             <span className="flex items-center justify-center gap-2 whitespace-nowrap">
-              <span className={`text-2xl font-bold ${homeScoreDisplayColor}`}>{homeScore}</span>
-              <span className="text-slate-400">-</span>
-              <span className={`text-2xl font-bold ${awayScoreDisplayColor}`}>{awayScore}</span>
+              {/* NUMBERS LEAD (owner, 2026-09-16). The team names stay at
+                  text-xl; only the score grows, because the score is what is
+                  glanced at from the touchline and the names are already
+                  known. SteadyDigits so a two-digit score cannot shunt the
+                  centred row sideways - the same Rajdhani problem the clock
+                  below has. */}
+              <SteadyDigits className={`text-4xl font-black leading-none ${homeScoreDisplayColor}`}>
+                {String(homeScore)}
+              </SteadyDigits>
+              <span className="text-slate-400 text-2xl">-</span>
+              <SteadyDigits className={`text-4xl font-black leading-none ${awayScoreDisplayColor}`}>
+                {String(awayScore)}
+              </SteadyDigits>
             </span>
             {/* --- Opponent Name Display/Edit --- */}
             {isEditingOpponentName ? (
