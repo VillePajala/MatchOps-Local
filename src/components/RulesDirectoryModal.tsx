@@ -144,7 +144,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
           {/* Chrome slimming: X-header replaces the header + close-only footer. */}
           <CollapsibleModalHeader
           titleId={modalTitleId}
-            title={t('rulesDirectory.title', 'Säännöt')}
+            title={t('rulesDirectory.title', 'Rules')}
             onClose={onClose}
             closeLabel={t('common.doneButton', 'Done')}
           />
@@ -159,7 +159,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   own sites, so the app carries our topic wording plus the law
                   numbers, titles and pages, and every result opens the rights
                   holder's own document at that page. Never paste rule text. */}
-              <Section title={t('rulesDirectory.lookupTitle', 'Etsi sääntö')}>
+              <Section title={t('rulesDirectory.lookupTitle', 'Find a rule')}>
                 <div className="flex gap-2">
                   {(['football', 'futsal'] as const).map((s) => (
                     <button
@@ -173,7 +173,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                       }`}
                     >
                       {s === 'football'
-                        ? t('rulesDirectory.sportFootball', 'Jalkapallo')
+                        ? t('rulesDirectory.sportFootball', 'Football')
                         : t('rulesDirectory.sportFutsal', 'Futsal')}
                     </button>
                   ))}
@@ -183,13 +183,13 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   data-testid="rules-search"
-                  aria-label={t('rulesDirectory.lookupTitle', 'Etsi sääntö')}
-                  placeholder={t('rulesDirectory.searchPlaceholder', 'Esim. paitsio, kentältäpoisto, vaihdot')}
+                  aria-label={t('rulesDirectory.lookupTitle', 'Find a rule')}
+                  placeholder={t('rulesDirectory.searchPlaceholder', 'e.g. offside, sending off, substitutions')}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
                 {hits.length === 0 ? (
                   <p className="text-sm text-slate-400" data-testid="rules-no-hits">
-                    {t('rulesDirectory.noHits', 'Ei osumia. Kokeile toista sanaa tai selaa sääntökirjaa.')}
+                    {t('rulesDirectory.noHits', 'No matches. Try another word, or browse the rulebook.')}
                   </p>
                 ) : (
                   <ul className="space-y-1" data-testid="rules-hits">
@@ -203,7 +203,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                               title:
                                 h.law === null
                                   ? h.title
-                                  : `${t('rulesDirectory.lawN', 'Sääntö {{n}}', { n: h.law })} - ${h.title}`,
+                                  : `${t('rulesDirectory.lawN', 'Law {{n}}', { n: h.law })} - ${h.title}`,
                             })
                           }
                           className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-slate-800/70 hover:bg-slate-700/70 text-left transition-colors"
@@ -212,7 +212,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                             <span className="text-sm text-slate-200">
                               {h.law === null
                                 ? h.title
-                                : `${t('rulesDirectory.lawN', 'Sääntö {{n}}', { n: h.law })} - ${h.title}`}
+                                : `${t('rulesDirectory.lawN', 'Law {{n}}', { n: h.law })} - ${h.title}`}
                             </span>
                             {h.via && <span className="block text-xs text-slate-400 truncate">{h.via}</span>}
                           </span>
@@ -222,7 +222,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                               the reader navigates themselves, so the number
                               has to be readable at a glance. */}
                           <span className="shrink-0 text-sm font-semibold text-amber-400 tabular-nums">
-                            {t('rulesDirectory.pageN', 's. {{n}}', { n: h.page })}
+                            {t('rulesDirectory.pageN', 'p. {{n}}', { n: h.page })}
                           </span>
                         </button>
                       </li>
@@ -230,10 +230,10 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   </ul>
                 )}
                 <p className="text-sm text-slate-400">
-                  {t('rulesDirectory.pageHint2', 'Sääntö avautuu suoraan oikealta sivulta. Vain luetut sivut ladataan.')}
+                  {t('rulesDirectory.pageHint2', 'The rule opens straight at the right page. Only the pages you read are downloaded.')}
                 </p>
                 <p className="text-sm text-slate-400">
-                  {t('rulesDirectory.lookupNote', 'Säännöt julkaisee IFAB (jalkapallo) ja FIFA (futsal).')}
+                  {t('rulesDirectory.lookupNote', 'The laws are published by IFAB (football) and FIFA (futsal).')}
                 </p>
               </Section>
 
@@ -246,15 +246,15 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
               <p className="text-sm text-slate-400">
                 {t(
                   'rulesDirectory.intro',
-                  'Säännöt ovat kolmessa paikassa: sarjakohtaiset säännöt, ikäluokkien pelimuodot ja lajisäännöt.',
+                  'Rules live in three places: league-specific rules, the age-group formats, and the laws of the game.',
                 )}
               </p>
 
-              <Section title={t('rulesDirectory.seriesTitle', 'Sarjakohtaiset säännöt')}>
+              <Section title={t('rulesDirectory.seriesTitle', 'League-specific rules')}>
                 <p className="text-sm text-slate-400 -mt-1">
                   {t(
                     'rulesDirectory.seriesHelp',
-                    'Pelaajamäärä, peliaika ja kentän koko määritellään sarjoittain, eikä sovellus tiedä missä sarjassa joukkueesi pelaa - MatchOps ei ole yhteydessä Palloliiton järjestelmään. Etsi sarjasi listasta ja avaa Info > Säännöt.',
+                    'Player count, playing time and pitch size are set per league, and the app does not know which league your team plays in - MatchOps is not connected to Palloliitto\'s system. Find your league in the list and open Info > Rules.',
                   )}
                 </p>
                 {SERIES_LINKS.map((link) => (
@@ -282,7 +282,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   data. Football coaches now get one line instead of a table they
                   must scroll past, and futsal coaches get their own age band. */}
               <Section
-                title={t('rulesDirectory.formatsTitle', 'Pelimuodot - futsal {{season}}', {
+                title={t('rulesDirectory.formatsTitle', 'Game formats - futsal {{season}}', {
                   season: GAME_FORMATS_SOURCE.season,
                 })}
               >
@@ -291,7 +291,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                     <p className="text-sm text-slate-400 -mt-1">
                       {t(
                         'rulesDirectory.formatsFootballNone',
-                        'Jalkapallon pelimuotoja ei julkaista taulukkona. Katso oman sarjasi tiedot yltä.',
+                        'Football formats are not published as a table. Check your own league above.',
                       )}
                     </p>
                     <button
@@ -300,7 +300,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                       data-testid="formats-expand"
                       className="w-full px-3 py-2 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100"
                     >
-                      {t('rulesDirectory.formatsShowFutsal', 'Näytä futsalin pelimuodot')}
+                      {t('rulesDirectory.formatsShowFutsal', 'Show futsal formats')}
                     </button>
                   </>
                 ) : (
@@ -308,17 +308,17 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                     <p className="text-sm text-slate-400 -mt-1">
                       {t(
                         'rulesDirectory.formatsCaveat',
-                        'Palloliiton valtakunnalliset oletukset ikäluokittain. Sarja voi poiketa näistä - tarkista oman sarjasi tiedot.',
+                        'Palloliitto\'s national defaults by age group. Your league may differ - check your own league.',
                       )}
                     </p>
                     <select
                       value={ageGroup}
                       onChange={(e) => setAgeGroup(e.target.value)}
                       data-testid="formats-age"
-                      aria-label={t('rulesDirectory.formatsAgeLabel', 'Ikäluokka')}
+                      aria-label={t('rulesDirectory.formatsAgeLabel', 'Age group')}
                       className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
-                      <option value="">{t('rulesDirectory.formatsAllAges', 'Kaikki ikäluokat')}</option>
+                      <option value="">{t('rulesDirectory.formatsAllAges', 'All age groups')}</option>
                       {AGE_GROUPS.map((a) => (
                         <option key={a} value={a}>
                           {a}
@@ -329,11 +329,11 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                       <table className="w-full text-left text-xs" data-testid="formats-table">
                         <thead>
                           <tr className="text-slate-400">
-                            <th className="py-1.5 pr-3 font-medium">{t('rulesDirectory.colAge', 'Ikäluokka')}</th>
-                            <th className="py-1.5 pr-3 font-medium">{t('rulesDirectory.colPlayers', 'Pelimuoto')}</th>
-                            <th className="py-1.5 pr-3 font-medium whitespace-nowrap">{t('rulesDirectory.colTime', 'Peliaika')}</th>
-                            <th className="py-1.5 pr-3 font-medium whitespace-nowrap">{t('rulesDirectory.colField', 'Kenttä')}</th>
-                            <th className="py-1.5 font-medium whitespace-nowrap">{t('rulesDirectory.colBall', 'Pallo')}</th>
+                            <th className="py-1.5 pr-3 font-medium">{t('rulesDirectory.colAge', 'Age group')}</th>
+                            <th className="py-1.5 pr-3 font-medium">{t('rulesDirectory.colPlayers', 'Format')}</th>
+                            <th className="py-1.5 pr-3 font-medium whitespace-nowrap">{t('rulesDirectory.colTime', 'Playing time')}</th>
+                            <th className="py-1.5 pr-3 font-medium whitespace-nowrap">{t('rulesDirectory.colField', 'Court')}</th>
+                            <th className="py-1.5 font-medium whitespace-nowrap">{t('rulesDirectory.colBall', 'Ball')}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -365,14 +365,14 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                         data-testid="formats-show-all"
                         className="text-xs text-slate-400 hover:text-slate-200 underline"
                       >
-                        {t('rulesDirectory.formatsAllAges', 'Kaikki ikäluokat')}
+                        {t('rulesDirectory.formatsAllAges', 'All age groups')}
                       </button>
                     )}
                     {GAME_FORMATS_GENERAL_NOTES.map((n) => (
                       <p key={n} className="text-xs text-slate-400">{n}</p>
                     ))}
                     <p className="text-sm text-slate-400">
-                      {t('rulesDirectory.formatsSource', 'Lähde: {{title}}', { title: GAME_FORMATS_SOURCE.title })}
+                      {t('rulesDirectory.formatsSource', 'Source: {{title}}', { title: GAME_FORMATS_SOURCE.title })}
                     </p>
                   </>
                 )}
@@ -380,7 +380,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
 
               {/* The laws of the game: same for everyone, and the least
                   likely thing a coach is actually looking for, so last. */}
-              <Section title={t('rulesDirectory.rulebooksTitle', 'Lajisäännöt')}>
+              <Section title={t('rulesDirectory.rulebooksTitle', 'Laws of the game')}>
                 {RULEBOOK_LINKS.map((link) => (
                   <LinkButton
                     key={link.id}
@@ -395,9 +395,9 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   of the check is the only thing that tells a coach how much to
                   trust what they are about to read. */}
               <p className="text-sm text-slate-400 text-center pt-2">
-                {t('rulesDirectory.footer', 'Linkit avautuvat selaimessa. Säännöt ylläpitää Palloliitto.')}
+                {t('rulesDirectory.footer', 'Rulebook links open in your browser. Rules maintained by Palloliitto.')}
                 {' '}
-                {t('rulesDirectory.checkedOn', 'Linkit tarkistettu {{date}}.', { date: checkedOn })}
+                {t('rulesDirectory.checkedOn', 'Links checked {{date}}.', { date: checkedOn })}
               </p>
             </div>
           </div>

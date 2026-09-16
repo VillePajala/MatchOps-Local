@@ -4,6 +4,15 @@
     {
       "date": "2026-09-16",
       "en": [
+        "Internal tidy-up with no visible change: the English wording written in the code now matches the English the app actually shows. Some of it had drifted so far that Finnish text was sitting where an English default belonged."
+      ],
+      "fi": [
+        "Sisäinen siivous ilman näkyvää muutosta: koodiin kirjoitettu englanninkielinen teksti vastaa nyt sitä englantia, jota sovellus oikeasti näyttää. Osa oli eriytynyt niin pahasti, että englanninkielisen oletuksen paikalla oli suomenkielistä tekstiä."
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "en": [
         "Choosing a team's kit colour no longer opens your phone's own colour dialog. There is a grid of 23 colours in the app instead, all checked to stay visible against the dark background. A colour you picked earlier with the old tool is still shown and still selected."
       ],
       "fi": [

@@ -456,7 +456,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                   className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
                                 >
                                   <HiOutlinePencil className="w-4 h-4" />
-                                  {t('teamManager.edit', 'Muokkaa')}
+                                  {t('teamManager.edit', 'Edit')}
                                 </button>
                                 <button
                                   onClick={() => handleToggleArchive(team.id, team.archived || false)}
@@ -603,7 +603,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           <div className={`${MODAL_BACKDROP_BLOCKING} ${Z_LAYER.modalNested}`}>
             <div className="bg-slate-800 p-6 rounded-lg border border-slate-600 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold text-slate-100 mb-4">
-                {t('common.confirmDelete', 'Confirm Delete')}
+                {t('common.confirmDelete', 'Are you sure you want to delete this item?')}
               </h3>
               <div className="text-slate-300 mb-6 space-y-3">
                 <p>

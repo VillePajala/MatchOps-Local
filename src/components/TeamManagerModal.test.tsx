@@ -162,7 +162,7 @@ describe('TeamManagerModal', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
+        expect(screen.getByText('Are you sure you want to delete this item?')).toBeInTheDocument();
         expect(screen.getByText(/Delete team "Team Alpha"/i)).toBeInTheDocument();
       });
     });
@@ -217,7 +217,7 @@ describe('TeamManagerModal', () => {
       fireEvent.click(screen.getByText('Delete'));
 
       await waitFor(() => {
-        expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
+        expect(screen.getByText('Are you sure you want to delete this item?')).toBeInTheDocument();
       });
 
       // Find the delete button in the confirmation modal by its text and role
@@ -248,7 +248,7 @@ describe('TeamManagerModal', () => {
       });
 
       await waitFor(() => {
-        expect(screen.queryByText('Confirm Delete')).not.toBeInTheDocument();
+        expect(screen.queryByText('Are you sure you want to delete this item?')).not.toBeInTheDocument();
       });
 
       expect(teamsUtils.deleteTeam).not.toHaveBeenCalled();
@@ -309,7 +309,7 @@ describe('TeamManagerModal', () => {
       fireEvent.click(actionsButtons[0]);
 
       await waitFor(() => {
-        expect(screen.getByText('Muokkaa')).toBeInTheDocument();
+        expect(screen.getByText('Edit')).toBeInTheDocument();
         expect(screen.getByText('Delete')).toBeInTheDocument();
       });
     });
@@ -321,13 +321,13 @@ describe('TeamManagerModal', () => {
       fireEvent.click(actionsButtons[0]);
 
       await waitFor(() => {
-        expect(screen.getByText('Muokkaa')).toBeInTheDocument();
+        expect(screen.getByText('Edit')).toBeInTheDocument();
       });
 
       fireEvent.mouseDown(document.body);
 
       await waitFor(() => {
-        expect(screen.queryByText('Muokkaa')).not.toBeInTheDocument();
+        expect(screen.queryByText('Edit')).not.toBeInTheDocument();
       });
     });
 
@@ -339,13 +339,13 @@ describe('TeamManagerModal', () => {
       // Open
       fireEvent.click(actionsButton);
       await waitFor(() => {
-        expect(screen.getByText('Muokkaa')).toBeInTheDocument();
+        expect(screen.getByText('Edit')).toBeInTheDocument();
       });
 
       // Close
       fireEvent.click(actionsButton);
       await waitFor(() => {
-        expect(screen.queryByText('Muokkaa')).not.toBeInTheDocument();
+        expect(screen.queryByText('Edit')).not.toBeInTheDocument();
       });
     });
   });

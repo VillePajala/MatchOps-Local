@@ -174,7 +174,7 @@ export default function AuthForm({
 
     const trimmedCode = otpCode.trim();
     if (!trimmedCode || trimmedCode.length < 6 || trimmedCode.length > 8) {
-      setError(t('auth.otpInvalidLength', 'Please enter the verification code from your email'));
+      setError(t('auth.otpInvalidLength', 'Please enter the 8-digit code from your email'));
       setIsLoading(false);
       return;
     }
@@ -585,7 +585,7 @@ export default function AuthForm({
             inputMode="numeric"
             pattern="[0-9]*"
             maxLength={8}
-            placeholder={t('auth.otpPlaceholder', '000000')}
+            placeholder={t('auth.otpPlaceholder', '00000000')}
             value={otpCode}
             onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
             className={inputStyle + ' text-center text-2xl tracking-[0.5em] font-mono'}
@@ -640,7 +640,7 @@ export default function AuthForm({
       <p className="text-slate-400 text-center mb-6 text-sm">
         {mode === 'signIn' && t('auth.signInSubtitle', 'Sign in to sync your data across devices')}
         {mode === 'signUp' && t('auth.signUpSubtitle', 'Create an account to enable cloud sync')}
-        {mode === 'resetPassword' && t('auth.resetSubtitle', 'Enter your email to receive reset instructions')}
+        {mode === 'resetPassword' && t('auth.resetSubtitle', 'Enter your email to receive a reset code')}
       </p>
 
       {/* Error/Success Messages */}

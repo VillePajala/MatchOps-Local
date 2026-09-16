@@ -142,9 +142,9 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
               {winner === null ? (
                 <span className="text-slate-400">{t('shootoutModal.tied', 'Tied — keep logging until decided')}</span>
               ) : winner === yourSide ? (
-                <span className="text-green-400 font-semibold">{t('shootoutModal.youWin', 'You win the shootout')}</span>
+                <span className="text-green-400 font-semibold">{t('shootoutModal.youWin', 'Shootout won')}</span>
               ) : (
-                <span className="text-red-400 font-semibold">{t('shootoutModal.youLose', 'Opponent wins the shootout')}</span>
+                <span className="text-red-400 font-semibold">{t('shootoutModal.youLose', 'Shootout lost')}</span>
               )}
             </div>
           </div>
@@ -233,10 +233,10 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
           {/* Kick log — newest first, latest highlighted, so each tap visibly adds a row */}
           <div>
             <h3 className="text-sm font-semibold text-slate-300 mb-2">
-              {t('shootoutModal.kickLog', 'Kicks')}{kicks.length > 0 ? ` (${kicks.length})` : ''}
+              {t('shootoutModal.kickLog', 'Shots')}{kicks.length > 0 ? ` (${kicks.length})` : ''}
             </h3>
             {kicks.length === 0 ? (
-              <p className="text-sm text-slate-400">{t('shootoutModal.noKicks', 'No kicks logged yet.')}</p>
+              <p className="text-sm text-slate-400">{t('shootoutModal.noKicks', 'No shots logged yet.')}</p>
             ) : (
               <ul className="space-y-1">
                 {[...kicks].reverse().map((kick) => {
@@ -257,7 +257,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
                         <button
                           type="button"
                           onClick={() => removeKick(kick.id)}
-                          aria-label={t('shootoutModal.removeKick', 'Remove kick')}
+                          aria-label={t('shootoutModal.removeKick', 'Remove shot')}
                           className="text-slate-400 hover:text-red-400 text-lg leading-none"
                         >
                           ×

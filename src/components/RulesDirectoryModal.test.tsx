@@ -78,7 +78,7 @@ describe('RulesDirectoryModal', () => {
     const onClose = jest.fn();
     render(<RulesDirectoryModal isOpen onClose={onClose} />);
     fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'paitsio' } });
-    fireEvent.click(within(screen.getByTestId('rules-hits')).getByText(/Sääntö 11/).closest('button')!);
+    fireEvent.click(within(screen.getByTestId('rules-hits')).getByText(/Law 11/).closest('button')!);
     await waitFor(() => expect(getPage).toHaveBeenCalledWith(61));
 
     await act(async () => {
@@ -113,15 +113,15 @@ describe('RulesDirectoryModal', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
 
     // Verify title is present
-    expect(screen.getByText('Säännöt')).toBeInTheDocument();
+    expect(screen.getByText('Rules')).toBeInTheDocument();
 
     // Verify section header is present (was "Palloliitto"; the sections are
     // now named by what kind of rule they hold).
-    expect(screen.getByText('Lajisäännöt')).toBeInTheDocument();
+    expect(screen.getByText('Laws of the game')).toBeInTheDocument();
 
     // Substring, not the whole string: the footer also carries the
     // links-checked-on date, so the paragraph is two sentences now.
-    expect(screen.getByText(/Linkit avautuvat selaimessa/)).toBeInTheDocument();
+    expect(screen.getByText(/Rulebook links open in your browser/)).toBeInTheDocument();
   });
 
   /**
@@ -292,8 +292,8 @@ describe('RulesDirectoryModal', () => {
   it('says the formats are national defaults that a series may differ from', () => {
     render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" />);
     // This modal's fallbacks are Finnish, like its title and footer.
-    expect(screen.getByText(/valtakunnalliset oletukset ikäluokittain/i)).toBeInTheDocument();
-    expect(screen.getByText(/Sarja voi poiketa näistä/i)).toBeInTheDocument();
+    expect(screen.getByText(/national defaults by age group/i)).toBeInTheDocument();
+    expect(screen.getByText(/Your league may differ/i)).toBeInTheDocument();
   });
 
   /**
@@ -365,12 +365,12 @@ describe('RulesDirectoryModal', () => {
     // Heading names the sport and season, and is NOT identical to the link to
     // the same PDF below it.
     const { unmount } = render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" />);
-    expect(screen.getByRole('heading', { name: `Pelimuodot - futsal ${GAME_FORMATS_SOURCE.season}` })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: `Game formats - futsal ${GAME_FORMATS_SOURCE.season}` })).toBeInTheDocument();
     unmount();
 
     // A football coach is told why, rather than shown another sport's table.
     render(<RulesDirectoryModal {...defaultProps} defaultSport="football" />);
-    expect(screen.getByText(/ei julkaista taulukkona/i)).toBeInTheDocument();
+    expect(screen.getByText(/not published as a table/i)).toBeInTheDocument();
   });
 
   /**
@@ -382,9 +382,9 @@ describe('RulesDirectoryModal', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
     fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'kentältäpoisto' } });
     const hits = screen.getByTestId('rules-hits');
-    expect(within(hits).getByText(/Sääntö 12/)).toBeInTheDocument();
+    expect(within(hits).getByText(/Law 12/)).toBeInTheDocument();
 
-    fireEvent.click(within(hits).getByText(/Sääntö 12/).closest('button')!);
+    fireEvent.click(within(hits).getByText(/Law 12/).closest('button')!);
     // Not window.open: a browser hand-off lands on page 1 on a phone.
     await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));
     expect(mockWindowOpen).not.toHaveBeenCalled();
@@ -394,7 +394,7 @@ describe('RulesDirectoryModal', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
     fireEvent.click(screen.getByTestId('rules-sport-futsal'));
     fireEvent.change(screen.getByTestId('rules-search'), { target: { value: '12' } });
-    fireEvent.click(within(screen.getByTestId('rules-hits')).getByText(/Sääntö 12/).closest('button')!);
+    fireEvent.click(within(screen.getByTestId('rules-hits')).getByText(/Law 12/).closest('button')!);
     // Futsal's Law 12 is page 41, and it must come from the futsal book.
     await waitFor(() => expect(getPage).toHaveBeenCalledWith(41));
     expect(getDocument).toHaveBeenCalledWith(
@@ -411,8 +411,8 @@ describe('RulesDirectoryModal', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
     fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'paitsio' } });
     const hits = screen.getByTestId('rules-hits');
-    expect(within(hits).getByText('s. 61')).toBeInTheDocument();
-    expect(screen.getByText(/avautuu suoraan oikealta sivulta/i)).toBeInTheDocument();
+    expect(within(hits).getByText('p. 61')).toBeInTheDocument();
+    expect(screen.getByText(/opens straight at the right page/i)).toBeInTheDocument();
   });
 
   /**
@@ -424,7 +424,7 @@ describe('RulesDirectoryModal', () => {
     fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'sin bin' } });
     const hits = screen.getByTestId('rules-hits');
     const row = within(hits).getByText(/sin bin/i).closest('button')!;
-    expect(row.textContent).not.toMatch(/Sääntö \d/);
+    expect(row.textContent).not.toMatch(/Law \d/);
 
     fireEvent.click(row);
     await waitFor(() => expect(getPage).toHaveBeenCalledWith(10));
@@ -446,9 +446,9 @@ describe('RulesDirectoryModal', () => {
    */
   it('sends the coach to their own series for the rules that are series-specific', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
-    expect(screen.getByText('Sarjakohtaiset säännöt')).toBeInTheDocument();
+    expect(screen.getByText('League-specific rules')).toBeInTheDocument();
     // Says plainly that the app cannot know which league you are in.
-    expect(screen.getByText(/ei ole yhteydessä Palloliiton järjestelmään/i)).toBeInTheDocument();
+    expect(screen.getByText(/not connected to Palloliitto/i)).toBeInTheDocument();
 
     const seriesLink = screen.getByText('Selaa sarjoja (Tulospalvelu)').closest('button');
     fireEvent.click(seriesLink!);
@@ -461,9 +461,9 @@ describe('RulesDirectoryModal', () => {
 
   it('names the three places rules live, so the page reads as a map not a dump', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
-    expect(screen.getByText(/kolmessa paikassa/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Sarjakohtaiset säännöt' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Lajisäännöt' })).toBeInTheDocument();
+    expect(screen.getByText(/in three places/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'League-specific rules' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Laws of the game' })).toBeInTheDocument();
   });
 
   /**

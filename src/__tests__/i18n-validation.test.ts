@@ -235,6 +235,65 @@ describe('Translation File Validation', () => {
       }
     });
 
+    /**
+     * A `t('key', 'fallback')` whose fallback disagrees with the shipped
+     * English means the source says one thing and the app says another.
+     * Harmless to a user - the locale value always wins, and the fallback only
+     * appears if the key goes missing - but it made the code unreadable as a
+     * record of what the app says, and 147 of them had accumulated. Several
+     * were FINNISH text sitting in an English fallback; others named a
+     * different thing entirely ("Game Type" in code where the app says "Link
+     * to Competition").
+     *
+     * Skips template-literal keys and multi-line values, which the sweep could
+     * not safely rewrite either.
+     * @critical
+     */
+    it('every fallback matches the shipped English', () => {
+      const drift: string[] = [];
+      const sourceFiles: string[] = [];
+      const walk = (dir: string) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) walk(full);
+          else if (/\.tsx?$/.test(entry.name) && !entry.name.includes('.test.')) {
+            sourceFiles.push(full);
+          }
+        }
+      };
+      walk(path.join(process.cwd(), 'src'));
+
+      for (const file of sourceFiles) {
+        const src = fs.readFileSync(file, 'utf-8');
+        const pattern = /t\(\s*'([\w.]+)'\s*,\s*'((?:[^'\\]|\\.)*)'/g;
+        let match: RegExpExecArray | null;
+        while ((match = pattern.exec(src)) !== null) {
+          const [, key, rawFallback] = match;
+          const value = getValueAtPath(en, key);
+          if (typeof value !== 'string') continue;
+          if (value.includes('\n')) continue;
+          // Decode the literal the way JS would. A plain \' unescape is not
+          // enough: a source file may write an apostrophe as \u0027, which is
+          // correct at runtime but looks like six characters to a text
+          // comparison - and reads as drift that is not there.
+          let fallback: string;
+          try {
+            fallback = JSON.parse(`"${rawFallback.replace(/\\'/g, "'").replace(/"/g, '\\"')}"`);
+          } catch {
+            fallback = rawFallback.replace(/\\'/g, "'");
+          }
+          if (value !== fallback) {
+            drift.push(`${key} (${file.split('/').pop()}): code "${fallback}" vs live "${value}"`);
+          }
+        }
+      }
+      if (drift.length > 0) {
+        failWith(
+          `${drift.length} fallback(s) disagree with en/common.json:\n  ${drift.slice(0, 10).join('\n  ')}`,
+        );
+      }
+    });
+
     it('no TODO/FIXME/TRANSLATE placeholders in EN', () => {
       // Case-SENSITIVE on purpose. A placeholder shouts: "TODO", "TRANSLATE".
       // Matching case-insensitively also caught the ordinary English words, so
