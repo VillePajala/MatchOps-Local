@@ -1961,3 +1961,66 @@ export async function hydrateLocalFromCloud(
     }
   }
 }
+
+/**
+ * Is this failure the auth layer not being ready yet, rather than a real fault?
+ *
+ * Shared so the two callers cannot drift apart: `page.tsx` tests the string
+ * from `hasCloudData()` and the array from `hydrateLocalFromCloud()`, and it
+ * had grown its own copy of this list in both places.
+ *
+ * These are not failures at all - the Supabase client loads its session from
+ * storage asynchronously, so a check that runs too early sees no session. The
+ * caller's job is to wait and let the normal retry come round again, NOT to
+ * tell the coach anything.
+ */
+export function isAuthNotReadyError(error: string | string[] | undefined): boolean {
+  const texts = typeof error === 'string' ? [error] : error ?? [];
+  return texts.some(
+    (e) => e.includes('Not authenticated') || e.includes('auth') || e.includes('sign in'),
+  );
+}
+
+/** Attempts, and the pause before each retry. Short: the first call blocks startup. */
+const HYDRATION_RETRY_DELAYS_MS = [400, 1200];
+
+/**
+ * `hydrateLocalFromCloud` with retries, which is what every caller wants.
+ *
+ * WHY THIS EXISTS. A first load on a new origin - a fresh preview URL, or a
+ * coach signing in on a new phone - is the one case where local is empty and
+ * everything has to come down from the cloud. It is also the case most exposed
+ * to a race: the Supabase session is restored asynchronously, so the first
+ * attempt can start before the token is reliably in place. The observed
+ * symptom was an alarming "could not load your cloud data" over an app showing
+ * none of the coach's games, which a reload then fixed - the worst possible
+ * moment to imply that data is gone.
+ *
+ * RETRYING IS SAFE because hydration is merge-safe by construction: it skips
+ * any entity whose local copy is newer, so running it twice imports nothing
+ * twice. That is the same property that lets the background path re-run it on
+ * every launch.
+ *
+ * Auth-not-ready is NOT retried here. It has its own, better handling in the
+ * caller - stand down and let the next effect cycle try once auth has settled -
+ * and burning the retries on it would only delay that by a couple of seconds.
+ */
+export async function hydrateLocalFromCloudWithRetry(
+  userId: string,
+  onProgress?: (message: string, progress: number) => void,
+): Promise<HydrationResult> {
+  let result = await hydrateLocalFromCloud(userId, onProgress);
+
+  for (const delay of HYDRATION_RETRY_DELAYS_MS) {
+    if (result.success || isAuthNotReadyError(result.errors)) return result;
+
+    logger.warn('[ReverseMigrationService] Hydration failed, retrying', {
+      delay,
+      errors: result.errors,
+    });
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    result = await hydrateLocalFromCloud(userId, onProgress);
+  }
+
+  return result;
+}
