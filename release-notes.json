@@ -13,6 +13,15 @@
     {
       "date": "2026-09-16",
       "en": [
+        "Numbers that are meant to be read at a glance are now set larger than the words beside them: the three statistics tiles, the match score, the season record and the planned minutes per player. Everything else is unchanged, including tables, where you look for the name first."
+      ],
+      "fi": [
+        "Numerot, jotka on tarkoitettu luettaviksi yhdellä silmäyksellä, ovat nyt isommalla kuin viereiset sanat: kolme tilastoruutua, ottelun tulos, kauden tulos ja pelaajien suunnitellut minuutit. Muu säilyy ennallaan, myös taulukot, joista etsitään ensin nimi."
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "en": [
         "The setup wizard now asks for your age group, and actually uses the answer: it becomes the default for new games and opens the Rules screen on your own age group instead of a generic one. Skipping it is fine and changes nothing. A league or tournament setting still wins."
       ],
       "fi": [

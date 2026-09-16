@@ -268,8 +268,10 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
         <span className="text-base font-extrabold text-white">
           {vuosi ? vuosi.label : t('seasonTournamentModal.title', 'Competitions')}
         </span>
+        {/* Was text-sm - SMALLER than the "This season" label beside it, which
+            is backwards whatever else one thinks about numerals. */}
         {vuosi && (
-          <span className="text-sm font-bold tabular-nums whitespace-nowrap">
+          <span className="text-xl font-black tabular-nums whitespace-nowrap leading-none">
             <span className="text-green-400">{vuosi.wins}</span>
             <span className="text-slate-400">-{vuosi.ties}-</span>
             <span className="text-red-400">{vuosi.losses}</span>
@@ -298,10 +300,19 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
   // The shared Home card surface. The W-D-L and goal-difference greens and
   // reds are semantic and stay as they are; they still carry on this ground.
   // Not pressable, so no hover - the constant's hover classes are inert on a div.
+  //
+  // NUMBERS LEAD (owner, 2026-09-16). The figure was text-2xl over a text-xs
+  // label - barely a 2:1 ratio, so the tile read as a sentence rather than as
+  // a statistic. These three figures are the whole reason the Tilastot tab
+  // exists, so the number becomes the display element and the label drops to a
+  // caption. Rajdhani is a condensed face drawn for sport; this is the one
+  // place on Home that is purely numbers, and it was being set like body text.
   const tile = (n: React.ReactNode, label: string) => (
     <div className={`flex-1 text-center px-2 py-3 rounded-xl border ${HOME_CARD}`}>
-      <div className="text-2xl font-black text-slate-100 tabular-nums leading-none">{n}</div>
-      <div className="text-xs text-indigo-200/70 mt-1.5 truncate">{label}</div>
+      <div className="text-4xl font-black text-white tabular-nums leading-none tracking-tight">{n}</div>
+      <div className="text-[0.65rem] font-semibold uppercase tracking-wider text-indigo-200/70 mt-2 truncate">
+        {label}
+      </div>
     </div>
   );
   return (
