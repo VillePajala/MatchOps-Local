@@ -308,10 +308,27 @@ evidently declares no matching intent filters. The statement file and the app
 disagree, and the phone wins. Anyone reading assetlinks.json alone would
 conclude Coach is deep-linkable; it is not.
 
-**Consequence for the app:** the myClub row can and should open the member app;
-the Coach row can only offer its store page, where an installed app shows
-"Avaa". Do not re-add an intent for Coach without new evidence from that
-screen.
+**And the member app cannot be opened either, for a different reason.** An
+intent aimed at `id.myclub.fi/flow/login`, with `package=fi.myclub.member`, the
+host matching `*.myclub.fi` and link-opening switched on, still fell through to
+its fallback - in a **plain Chrome tab**, not only inside the installed PWA, so
+the app context was not the cause. The host matches and the path does not:
+`id.myclub.fi` is the identity service, and an app that claimed its own login
+URLs would break signing in through a browser, so that page is very likely
+excluded deliberately.
+
+**Consequence for the app:** neither row can open its app, so both are plain
+links. Do not re-add an intent for either without new evidence from that
+settings screen.
+
+**And this is the argument for the club-subdomain setting** deferred in the
+roadmap. The one myClub address correct for every user - the central login - is
+precisely the one address that cannot open the app. A club-specific
+`<club>.myclub.fi` stands a real chance of being claimed, which would make that
+setting worth its weight for a second reason beyond landing the coach at their
+own club. **Unverified**: someone with the app installed should open their own
+club's address in Chrome and see whether it opens the app. That single test
+decides whether the setting buys anything.
 
 ### 7.6 Sources
 

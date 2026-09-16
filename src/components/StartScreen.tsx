@@ -29,12 +29,7 @@ import {
   HiOutlineFolderOpen,
   HiOutlineClipboard,
 } from 'react-icons/hi2';
-import {
-  TASO_URL,
-  MYCLUB_URL,
-  MYCLUB_COACH_STORE_URL,
-  MYCLUB_INTENT_URL,
-} from '@/config/externalLinks';
+import { TASO_URL, MYCLUB_URL, MYCLUB_COACH_STORE_URL } from '@/config/externalLinks';
 
 /**
  * Rows are LIST ITEMS inside a group, not cards.
@@ -127,19 +122,6 @@ const HomeLinkRow: React.FC<{
     <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500 flex-shrink-0" aria-hidden="true" />
   </a>
 );
-
-/**
- * Sends the tap to an installed Android app instead of the browser.
- *
- * Both myClub apps claim their web URLs, so both rows use this. Falls through
- * to the href on anything that cannot honour an Android intent, and the intent
- * itself carries a fallback for the app simply not being installed.
- */
-const openInApp = (intentUrl: string): React.MouseEventHandler<HTMLAnchorElement> => (e) => {
-  if (!isAndroid()) return;
-  e.preventDefault();
-  window.location.href = intentUrl;
-};
 
 /**
  * Half-width tile. Icon above the label, centred - deliberately a different
@@ -926,7 +908,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       icon={HiOutlineCalendarDays}
                       label={t('startScreen.myClubLink', 'myClub - events & attendance')}
                       href={MYCLUB_URL}
-                      onClick={openInApp(MYCLUB_INTENT_URL)}
                     />
                     <HomeLinkRow
                       icon={HiOutlineIdentification}
