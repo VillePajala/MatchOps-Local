@@ -74,7 +74,7 @@ export function GameNotesEditor({
   return (
     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
       <h3 className="text-xl font-semibold text-slate-200 mb-4">
-        {t('gameStatsModal.notesTitle', 'Game Notes')}
+        {t('gameStatsModal.notesTitle', 'Match report')}
       </h3>
       {isEditingNotes ? (
         <div className="space-y-3">
@@ -89,7 +89,7 @@ export function GameNotesEditor({
             // persists and nothing on screen says so. Stop at the cap instead.
             maxLength={VALIDATION_LIMITS.GAME_NOTES_MAX}
             className="w-full h-64 min-h-[10rem] resize-y p-3 bg-slate-700 border border-slate-600 rounded-md shadow-sm text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder={t('gameStatsModal.notesPlaceholder', 'Notes...') ?? undefined}
+            placeholder={t('gameStatsModal.notesPlaceholder', 'Add notes here...') ?? undefined}
           />
           {/* Silent until it matters: a counter over a long report is noise,
               but running out of room without warning is a lost paragraph. */}
@@ -137,7 +137,7 @@ export function GameNotesEditor({
         >
           {gameNotes || (
             <span className="italic text-slate-400">
-              {t('gameStatsModal.noNotes', 'No notes.')}
+              {t('gameStatsModal.noNotes', 'No notes added')}
             </span>
           )}
         </div>

@@ -279,7 +279,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   const nextLabel = isFinal
     ? t('guidedTour.buttons.finish', 'Done')
     : t('guidedTour.buttons.next', 'Next');
-  const skipLabel = t('guidedTour.buttons.skip', 'Skip');
+  const skipLabel = t('guidedTour.buttons.skip', 'Skip guide');
 
   // Pill text keeps live progress visible even mid-form (terse done/target).
   let pillText = message;

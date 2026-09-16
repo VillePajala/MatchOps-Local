@@ -477,7 +477,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 title={!(gameStatus === 'inProgress' && isTimerRunning) ? t('timerOverlay.disabledWhenPaused', 'Disabled while paused') ?? undefined : undefined}
                 className={`${primaryActionStyle} w-full ${!(gameStatus === 'inProgress' && isTimerRunning) ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
-                {t('timerOverlay.confirmSubButton', 'Vaihto tehty')}
+                {t('timerOverlay.confirmSubButton', 'Substitution Made')}
               </button>
             </div>
             
@@ -551,14 +551,14 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 className={`${secondaryActionStyle} flex-1`}
                 title={`${displayHomeTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >
-                {t('timerOverlay.teamGoalButton', 'Kirjaa maali')}
+                {t('timerOverlay.teamGoalButton', 'Log Goal')}
               </button>
               <button 
                 onClick={handleOpponentGoalClick} 
                 className={`${dangerActionStyle} flex-1`}
                 title={`${displayAwayTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >
-                {t('timerOverlay.opponentGoalButton', 'Vastustaja +1')}
+                {t('timerOverlay.opponentGoalButton', 'Opponent +1')}
               </button>
             </div>
           </div>
@@ -590,14 +590,14 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                       : 'bg-slate-700/60 border-slate-600 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
-                  {wentToOvertime ? '✓ ' : ''}{t('timerOverlay.wentToOvertime', 'Went to overtime')}
+                  {wentToOvertime ? '✓ ' : ''}{t('timerOverlay.wentToOvertime', 'Overtime')}
                 </button>
                 <button
                   type="button"
                   onClick={onRecordShootout}
                   className={`${secondaryActionStyle} flex-1`}
                 >
-                  {t('timerOverlay.recordShootout', 'Record penalty shootout')}
+                  {t('timerOverlay.recordShootout', 'Penalties')}
                 </button>
               </div>
             )}

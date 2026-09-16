@@ -156,7 +156,7 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
       }
     } catch (error) {
       logger.error('[useGoalEditor] Failed to delete event:', error);
-      showToast(t('gameStatsModal.deleteEventFailed', 'Failed to delete event. Please try again.'), 'error');
+      showToast(t('gameStatsModal.deleteEventFailed', 'Failed to delete the event. Please try again.'), 'error');
     } finally {
       setIsDeletingEvent(false);
       setShowDeleteConfirm(false);

@@ -4,6 +4,15 @@
     {
       "date": "2026-09-16",
       "en": [
+        "Internal tidy-up with no visible change: the English wording written in the code now matches the English the app actually shows. Some of it had drifted so far that Finnish text was sitting where an English default belonged."
+      ],
+      "fi": [
+        "Sisäinen siivous ilman näkyvää muutosta: koodiin kirjoitettu englanninkielinen teksti vastaa nyt sitä englantia, jota sovellus oikeasti näyttää. Osa oli eriytynyt niin pahasti, että englanninkielisen oletuksen paikalla oli suomenkielistä tekstiä."
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "en": [
         "The Update button on the update prompt no longer does nothing. It used to be ignored if the downloaded update had moved on since the prompt appeared - the prompt stayed and the reload step never came. It now always gets you to Reload, which applies the update whatever the state."
       ],
       "fi": [

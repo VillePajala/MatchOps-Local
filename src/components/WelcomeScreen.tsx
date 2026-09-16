@@ -142,7 +142,7 @@ export default function WelcomeScreen({
                   {t('welcome.startLocal', 'Start without an account')}
                 </div>
                 <div className="text-green-400 text-xs font-medium uppercase tracking-wide mb-1">
-                  {t('welcome.badgeFree', 'Free')}
+                  {t('welcome.badgeFree', 'FREE')}
                 </div>
                 <div className="text-slate-400 text-sm">
                   {t('welcome.startLocalDesc', 'Your data is saved on this device only.')}
