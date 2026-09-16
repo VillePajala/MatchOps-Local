@@ -321,14 +321,27 @@ excluded deliberately.
 links. Do not re-add an intent for either without new evidence from that
 settings screen.
 
-**And this is the argument for the club-subdomain setting** deferred in the
-roadmap. The one myClub address correct for every user - the central login - is
-precisely the one address that cannot open the app. A club-specific
-`<club>.myclub.fi` stands a real chance of being claimed, which would make that
-setting worth its weight for a second reason beyond landing the coach at their
-own club. **Unverified**: someone with the app installed should open their own
-club's address in Chrome and see whether it opens the app. That single test
-decides whether the setting buys anything.
+**A club subdomain does not open it either - tested, and myClub proves it
+themselves.** Opening `pepo.myclub.fi` in Chrome, signed in, with the member
+app installed, stayed in the browser. The page then displayed myClub's own
+interstitial: *"Huomasimme, etta kaytat myClubia mobiiliselaimessa. Uusi
+myClub-sovellus on nyt ladattavissa sovelluskaupoissa"* with a Play badge and
+"Ei kiitos, jatkan selaimella".
+
+That banner only needs to exist because myClub cannot hand off to their own app
+from their own site. If their club URLs were genuinely app-claimed, Android
+would have opened the app and there would be nothing to advertise. It is the
+same statement-file-versus-manifest disagreement as Coach, on a larger scale:
+`assetlinks.json` says `handle_all_urls`, the apps claim far less.
+
+**Settled: no myClub URL opens the myClub app.** Use plain links and stop
+looking.
+
+**What the test did establish** is worth keeping. After signing in, a coach
+lands on `https://<club>.myclub.fi/flow/` - the club dashboard, with attendance
+and events on it. The central login we can hardcode is two steps short of that.
+So the club-subdomain setting still earns its place, but for landing the coach
+where they work rather than for opening anything.
 
 ### 7.6 Sources
 
