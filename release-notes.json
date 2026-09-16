@@ -4,10 +4,10 @@
     {
       "date": "2026-09-16",
       "en": [
-        "Fixed a problem that could make the app look empty right after signing in on a new phone. Your games and players were always safe in the cloud, but the app could lose its connection to its own storage and show the first-time setup instead. It no longer does that, and if loading ever does not finish, the app now retries and refreshes itself rather than leaving you stuck."
+        "Fixed a problem that could make the app look empty right after signing in on a new phone. Your games and players were always safe in the cloud, but the app could lose its connection to its own storage and show the first-time setup instead. It no longer does that, and if loading ever does not finish, the app now retries and refreshes itself rather than leaving you stuck. Separately, games and seasons labelled with an age group the app no longer offers (an older label, or the Finnish style like \"P10\") were being skipped when loading from the cloud. They now come across intact - only the unrecognised label is dropped, never the match."
       ],
       "fi": [
-        "Korjattu ongelma, joka saattoi saada sovelluksen näyttämään tyhjältä heti uudelle puhelimelle kirjautumisen jälkeen. Ottelusi ja pelaajasi olivat aina tallessa pilvessä, mutta sovellus saattoi menettää yhteyden omaan tallennustilaansa ja näyttää käyttöönoton alkuvaiheet. Näin ei enää käy, ja jos lataus jää kesken, sovellus yrittää uudelleen ja päivittää itsensä sen sijaan että jättäisi sinut jumiin."
+        "Korjattu ongelma, joka saattoi saada sovelluksen näyttämään tyhjältä heti uudelle puhelimelle kirjautumisen jälkeen. Ottelusi ja pelaajasi olivat aina tallessa pilvessä, mutta sovellus saattoi menettää yhteyden omaan tallennustilaansa ja näyttää käyttöönoton alkuvaiheet. Näin ei enää käy, ja jos lataus jää kesken, sovellus yrittää uudelleen ja päivittää itsensä sen sijaan että jättäisi sinut jumiin. Lisäksi ottelut ja sarjat, joiden ikäluokkamerkintää sovellus ei enää tarjoa (vanha merkintä tai suomalainen tyyli kuten \"P10\"), jäivät aiemmin lataamatta pilvestä. Nyt ne tulevat mukaan sellaisenaan - vain tunnistamaton merkintä poistetaan, ei koskaan ottelua."
       ]
     },
     {
