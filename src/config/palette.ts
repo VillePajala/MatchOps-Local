@@ -151,6 +151,24 @@ export type PositionRole = keyof typeof POSITION_ROLE;
  * Order is roughly by how common the kit is in Finnish junior football, so the
  * likely choice is the first one a thumb reaches.
  */
+/**
+ * Kit colours, as a GRID rather than a short row plus an escape hatch.
+ *
+ * The ten below with their original hexes are the first ten, unchanged and in
+ * order: a stored colour must keep matching its swatch, and altering a hex
+ * here would quietly orphan every team already saved with it.
+ *
+ * The rest widen the range enough that the native <input type="color"> could
+ * be dropped. That input was the actual problem with the old picker - on a
+ * phone it hands the coach the OS colour dialog, so a carefully styled dark
+ * app suddenly shows a system panel. No amount of work on the swatches around
+ * it fixed that; only removing it did.
+ *
+ * Twenty-three colours in a six-wide grid is four rows, with the clear button
+ * taking the last cell. Every hex is chosen to stay legible against the app's
+ * slate; black is deliberately the page's own slate-900 and reads as an
+ * outlined circle, which is what a black kit should look like here.
+ */
 export const TEAM_KIT_COLORS = [
   { id: 'red', hex: '#DC2626' },
   { id: 'blue', hex: '#2563EB' },
@@ -162,6 +180,19 @@ export const TEAM_KIT_COLORS = [
   { id: 'purple', hex: '#7E22CE' },
   { id: 'sky', hex: '#0EA5E9' },
   { id: 'maroon', hex: '#881337' },
+  { id: 'pink', hex: '#EC4899' },
+  { id: 'amber', hex: '#F59E0B' },
+  { id: 'lime', hex: '#84CC16' },
+  { id: 'forest', hex: '#15803D' },
+  { id: 'teal', hex: '#0D9488' },
+  { id: 'cyan', hex: '#06B6D4' },
+  { id: 'navy', hex: '#1E3A8A' },
+  { id: 'indigo', hex: '#4F46E5' },
+  { id: 'violet', hex: '#7C3AED' },
+  { id: 'magenta', hex: '#C026D3' },
+  { id: 'silver', hex: '#94A3B8' },
+  { id: 'grey', hex: '#475569' },
+  { id: 'brown', hex: '#78350F' },
 ] as const;
 
 export type TeamKitColorId = (typeof TEAM_KIT_COLORS)[number]['id'];
