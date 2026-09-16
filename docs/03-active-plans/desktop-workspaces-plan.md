@@ -1,6 +1,45 @@
 # Desktop Workspaces — Ground-Up Plan
 
-**Status:** 📋 Planning (DRAFT) · Big bet (P4) · Not started
+**Status:** 🧊 **PARKED AS AN IDEA 2026-09-16 (owner).** Not scheduled, not
+started, and not to be picked up without revisiting §0 first.
+
+> **Why it is parked, in the owner's own words:** *"I thought I would use the
+> desktop to prepare games during the workdays but it turns out I never do. This
+> is mostly because we have streamlined the app so there isn't obvious gaps in
+> user flows."*
+>
+> That is the strongest possible reason to stop, and it is worth stating plainly:
+> **the desktop project was a solution to a problem the phone app no longer has.**
+> The premise behind every workspace below is that preparation and review are
+> awkward on a phone. They were. The onboarding, planner and dashboard work
+> closed those gaps, so the laptop moment never arrives.
+>
+> The one exception the owner named — having **Taso and the app side by side** —
+> is real but small, and it is not a desktop problem at all. See §0.
+>
+> The plan below is kept because the *findings* are durable: §4 (the seam is two
+> symbols), §5 (four assumptions of exclusivity) and §6 (zero keyboard, zero
+> multi-select) are true of the codebase regardless of whether desktop is ever
+> built, and §6 in particular contains a bug fix worth doing on its own.
+
+---
+
+## 0. Before restarting this, check the premise
+
+Do not reopen this plan because the mocks look good. Reopen it only if one of
+these becomes true:
+
+1. **Someone actually works on a laptop.** The owner does not. Until a real
+   user does, every workspace below is speculative.
+2. **A new user flow appears that a phone genuinely cannot carry.** The
+   workspaces exist to fix awkwardness that has since been engineered away.
+3. **match-ops.com needs a desktop face for marketing.** That is the Season
+   workspace (§8.5) alone, roughly a week, and does not need the rest of this
+   document.
+
+---
+
+**Was:** 📋 Planning (DRAFT) · Big bet (P4) · Not started
 **Last updated:** 2026-09-16
 **Supersedes the approach in:** #360 (phone-frame column)
 **Mocks:** https://claude.ai/code/artifact/c7b07907-81de-42e4-9b5c-2e5beaf2173c
@@ -351,7 +390,53 @@ goal log exist. The loop closes here.
 
 ---
 
-## 13. Open questions for the owner
+## 13. The Taso side-by-side question (answered 2026-09-16)
+
+The owner's one genuine desktop use case: **Taso open beside the app** while
+typing up a match. A previous answer of "not possible" was given. It was right
+about two things and wrong about the third.
+
+**Still true:**
+
+- **Embedding Taso inside MatchOps: no.** A third-party site behind a login.
+  Sites like that ship framing protection and it is not ours to change. Our own
+  CSP is `frame-ancestors 'none'`; embedding *them* would need `frame-src`
+  permission *and* their cooperation.
+- **Taso API sync: no.** The key is club-issued, its stated terms are
+  server-to-server, and this app has no server. Already recorded under the
+  Palloliitto section of the roadmap.
+
+**Wrong:**
+
+- **Side by side via Android split-screen was never blocked by Taso or by any
+  API.** It is an OS feature — two apps, two panes, Taso in Chrome beside
+  MatchOps. Taso does not have to cooperate at all. The earlier "no" was
+  answering the embedding question, not this one.
+
+**What would need to be true, in cost order:**
+
+1. **The TWA activity must be resizeable.** This is the only real gate.
+   **Unverifiable from this repo** - the Bubblewrap/Android wrapper lives
+   elsewhere. Default is resizeable for targetSdk ≥ 24 unless explicitly
+   disabled.
+2. **NOT the orientation lock.** An earlier draft of this section led with
+   `"orientation": "portrait-primary"` in `public/manifest.json` as the likely
+   blocker. That was wrong, and the owner caught it: **Android ignores an
+   activity's orientation request while it is in multi-window**, so a
+   portrait-locked app still splits.
+3. **The layout must survive roughly half the height.** This is the actual work
+   and it is not small: exactly **one file** in the app uses short-viewport
+   queries (`StartScreen`, `min-height:600px/700px`). The match screen — pitch,
+   player bar, control bar — has none, and at ~350px tall would be unusable.
+
+**Verdict:** possible, and not a desktop feature. It is a manifest change plus
+short-viewport work, with the existing "Pöytäkirja Tasoon" helper doing the
+rest. The owner's own assessment — *"such a small part of the whole that it
+doesn't make you bother"* — is recorded here rather than acted on.
+
+---
+
+## 14. Open questions for the owner
 
 1. **Is a laptop ever actually at a game?** Decides whether §8.2 is built at all.
 2. **Availability** — worth a data-model addition, or is a coach's head enough?
