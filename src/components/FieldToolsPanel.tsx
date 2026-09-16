@@ -150,7 +150,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
             <button
               onClick={onPlaceAllPlayers}
               className={`${buttonStyle} bg-indigo-600 hover:bg-indigo-500`}
-              title={t('controlBar.placeAllPlayers', 'Place All Players')}
+              title={t('controlBar.placeAllPlayers', 'Place All Players on Field')}
             >
               <HiOutlineSquares2X2 className={iconSize} />
               <span className="text-xs mt-1 text-slate-200">

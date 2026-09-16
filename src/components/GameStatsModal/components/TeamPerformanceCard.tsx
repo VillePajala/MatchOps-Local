@@ -81,11 +81,11 @@ export function TeamPerformanceCard({
           </span>
         </div>
         <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-          <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
+          <span className="text-slate-300">{t('common.winPercentage', 'Win Percentage')}</span>
           <span className="text-amber-400 font-bold">{winPercentage.toFixed(1)}%</span>
         </div>
         <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-          <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
+          <span className="text-slate-300">{t('common.goalDifference', 'Goal Difference')}</span>
           <span
             className={`font-bold ${goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
           >
@@ -143,7 +143,7 @@ export function TeamPerformanceCard({
               <RatingBar value={teamAssessmentAverages.finalScore} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(teamAssessmentAverages.finalScore)} />
             </div>
             <div className="text-xs text-slate-400 text-right">
-              {teamAssessmentAverages.count} {t('playerStats.ratedGames', 'rated')}
+              {teamAssessmentAverages.count} {t('playerStats.ratedGames', 'rated games')}
             </div>
           </div>
         </div>

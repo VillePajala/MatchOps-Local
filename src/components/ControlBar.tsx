@@ -573,7 +573,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               {t('controlBar.menu.thisMatch', 'This match')}
             </h4>
             <button onClick={wrapImmediate(onQuickSave)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineArchiveBoxArrowDown className="w-5 h-5 mr-2" /> {t('controlBar.saveGame', 'Save')}
+              <HiOutlineArchiveBoxArrowDown className="w-5 h-5 mr-2" /> {t('controlBar.saveGame', 'Quick Save')}
             </button>
             <button
               onClick={wrapModal(onOpenGameSettingsModal)}
@@ -590,7 +590,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
                 className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
                 title={t('instructionsModal.controlBar.assessPlayers')}
               >
-                <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Assess Players')}
+                <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Record Performance')}
               </button>
             )}
             <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">

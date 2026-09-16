@@ -276,7 +276,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     try {
       await exportPlayerDevelopmentCard({
         playerName: player.name,
-        countLabel: `${playerDevelopment.count} ${t('playerStats.ratedGames', 'rated')}`,
+        countLabel: `${playerDevelopment.count} ${t('playerStats.ratedGames', 'rated games')}`,
         max: ASSESSMENT_MAX,
         axes: radarAxes.map(a => ({ label: a.label, current: a.current, baseline: a.baseline })),
         strengths: playerDevelopment.strengths.map(toItem),
@@ -886,7 +886,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 <input type="date" value={adjGameDate} onChange={e => setAdjGameDate(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games')}</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games Played')}</label>
                 <div className="flex items-center gap-2">
                   <button type="button" aria-label={t('playerStats.decreaseGames', 'Decrease games')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                   <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjGames)} onChange={e => setAdjGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
@@ -1146,7 +1146,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           <input type="date" value={editGameDate} onChange={e => setEditGameDate(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games')}</label>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games Played')}</label>
                           <div className="flex items-center gap-2">
                             <button type="button" aria-label={t('playerStats.decreaseGames', 'Decrease games')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                             <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGames)} onChange={e => setEditGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
@@ -1358,7 +1358,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         {/* Delete Confirmation Dialog */}
         <ConfirmationModal
           isOpen={showDeleteConfirm !== null}
-          title={t('common.confirmDelete', 'Confirm Delete')}
+          title={t('common.confirmDelete', 'Are you sure you want to delete this item?')}
           message={t('playerStats.deleteConfirmMessage', 'Are you sure you want to delete this external game entry? This action cannot be undone.')}
           onConfirm={async () => {
             if (!player || !showDeleteConfirm) return;
@@ -1500,7 +1500,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       useDemandCorrection ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
-                    {t('playerStats.useDemandCorrection', 'Weight by Difficulty')}
+                    {t('playerStats.useDemandCorrection', 'By difficulty')}
                   </button>
                 </div>
               </div>
@@ -1587,7 +1587,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <span className="w-4" />
                 </div>
                 <div className="text-xs text-slate-400 text-right">
-                  {playerDevelopment.count} {t('playerStats.ratedGames', 'rated')}
+                  {playerDevelopment.count} {t('playerStats.ratedGames', 'rated games')}
                 </div>
               </div>
               {assessmentTrends && (

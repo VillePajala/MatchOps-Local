@@ -96,7 +96,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
   };
 
   const formatDisplayDate = (isoDate: string): string => {
-    if (!isoDate) return t('common.notSet', 'Ei asetettu');
+    if (!isoDate) return t('common.notSet', 'Not Set');
     try {
       if (isoDate.length !== 10) {
         return isoDate;
@@ -130,7 +130,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
         <div className="relative z-10 flex flex-col min-h-0">
           {/* Chrome slimming: X-header; progress counter collapses on scroll. */}
           <CollapsibleModalHeader
-            title={t('playerAssessmentModal.title', 'Arvioi pelaajat')}
+            title={t('playerAssessmentModal.title', 'Record Performance')}
             onClose={onClose}
             closeLabel={t('common.doneButton', 'Done')}
             collapse={headerCollapse}

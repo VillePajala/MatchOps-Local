@@ -1004,7 +1004,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               (utility) sits in the collapsing region below the title. */}
           <CollapsibleModalHeader
           titleId={modalTitleId}
-            title={t('newGameSetupModal.title', 'New Game Setup')}
+            title={t('newGameSetupModal.title', 'Create New Match')}
             onClose={onCancel}
             closeLabel={t('common.cancelButton', 'Cancel')}
             collapse={headerCollapse}
@@ -1221,7 +1221,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 availablePersonnel={personnel}
                 selectedPersonnelIds={selectedPersonnelIds}
                 onSelectedPersonnelChange={setSelectedPersonnelIds}
-                title={t('newGameSetupModal.selectPersonnel', 'Select Personnel')}
+                title={t('newGameSetupModal.selectPersonnel', 'Select Personnel (Coaches, Trainers, etc.)')}
               />
             </div>
 
@@ -1651,7 +1651,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             {/* CARD 3: Pelin asetukset (Game Configuration) */}
             <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
-                {t('newGameSetupModal.gameConfigLabel', 'Pelin asetukset')}
+                {t('newGameSetupModal.gameConfigLabel', 'Game Configuration')}
               </h3>
 
               {/* Number of Periods */}

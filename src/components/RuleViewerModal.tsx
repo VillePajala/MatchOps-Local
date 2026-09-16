@@ -218,7 +218,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
         <div className="relative z-10 flex flex-col h-full min-h-0">
           <CollapsibleModalHeader title={title} onClose={onClose} closeLabel={t('common.close', 'Close')}>
             <p className="text-sm text-slate-400 px-6 pb-3 text-center">
-              {t('ruleViewer.subtitle', 'Virallinen sääntökirja. Sivu {{n}}{{total}}.', {
+              {t('ruleViewer.subtitle', 'Official rulebook. Page {{n}}{{total}}.', {
                 n: current,
                 total: total ? `/${total}` : '',
               })}
@@ -229,21 +229,21 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
             {status === 'error' ? (
               <div className="p-6 text-center space-y-3">
                 <p className="text-sm text-slate-300">
-                  {t('ruleViewer.error', 'Sääntökirjaa ei saatu auki. Tarkista verkkoyhteys.')}
+                  {t('ruleViewer.error', 'Could not open the rulebook. Check your connection.')}
                 </p>
                 <button
                   type="button"
                   onClick={openInBrowser}
                   className="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white"
                 >
-                  {t('ruleViewer.openInBrowser', 'Avaa selaimessa')}
+                  {t('ruleViewer.openInBrowser', 'Open in browser')}
                 </button>
               </div>
             ) : (
               <>
                 {status !== 'ready' && (
                   <p className="absolute top-1/2 text-sm text-slate-400" data-testid="rule-viewer-loading">
-                    {t('ruleViewer.loading', 'Ladataan sivua...')}
+                    {t('ruleViewer.loading', 'Loading the page...')}
                   </p>
                 )}
                 {/* A canvas carries no text, so without a label a screen
@@ -253,7 +253,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
                   ref={canvasRef}
                   data-testid="rule-viewer-canvas"
                   role="img"
-                  aria-label={t('ruleViewer.canvasLabel', '{{title}}, sivu {{n}}', { title, n: current })}
+                  aria-label={t('ruleViewer.canvasLabel', '{{title}}, page {{n}}', { title, n: current })}
                   className="max-w-full"
                 />
               </>
@@ -268,14 +268,14 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
               data-testid="rule-viewer-prev"
               className="px-4 py-2 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100 disabled:opacity-40"
             >
-              {t('ruleViewer.prev', 'Edellinen')}
+              {t('ruleViewer.prev', 'Previous')}
             </button>
             <button
               type="button"
               onClick={openInBrowser}
               className="px-3 py-2 rounded-md text-xs text-slate-300 hover:text-white"
             >
-              {t('ruleViewer.openInBrowser', 'Avaa selaimessa')}
+              {t('ruleViewer.openInBrowser', 'Open in browser')}
             </button>
             <button
               type="button"
@@ -284,7 +284,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
               data-testid="rule-viewer-next"
               className="px-4 py-2 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100 disabled:opacity-40"
             >
-              {t('ruleViewer.next', 'Seuraava')}
+              {t('ruleViewer.next', 'Next')}
             </button>
           </div>
         </div>
