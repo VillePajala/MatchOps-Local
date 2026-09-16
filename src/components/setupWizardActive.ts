@@ -1,6 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { AGE_GROUPS } from '@/config/gameOptions';
 
 /**
  * Wizard-active store (module level, dependency-free).
@@ -146,6 +147,44 @@ export function getStoredSetupFormat(userId: string | null | undefined): SetupFo
     // eslint-disable-next-line no-restricted-globals -- per-user UI default hint, not app data
     const value = localStorage.getItem(`${FORMAT_PREFIX}${userId ?? 'local'}`);
     return value === '5v5' || value === '8v8' || value === '11v11' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+// --- Wizard age-group preference ---------------------------------------------
+// The SAME shape as the format above, and for the same reason: the wizard asks
+// a question, and the answer has to reach a game or it changes nothing a coach
+// can see. Writing it only onto the team would leave it unread - nothing in
+// new-game setup or the Rules screen looks at teams.ageGroup.
+const AGE_GROUP_PREFIX = 'matchops_setup_age_group_';
+
+/** Written by the wizard when the coach answers Ikäluokka. */
+export function storeSetupAgeGroup(userId: string | null | undefined, ageGroup: string): void {
+  try {
+    // eslint-disable-next-line no-restricted-globals -- per-user UI default hint, not app data
+    localStorage.setItem(`${AGE_GROUP_PREFIX}${userId ?? 'local'}`, ageGroup);
+  } catch {
+    // Non-critical preference - ignore.
+  }
+}
+
+/**
+ * The coach's own Ikäluokka answer, used as the DEFAULT age group for a new
+ * game. Validated against AGE_GROUPS on the way out rather than trusted: this
+ * is localStorage, and an unrecognised value would otherwise be written onto a
+ * game and then into the stats filters.
+ *
+ * Ranks BELOW a season or tournament setting (see NewGameSetupModal): an
+ * explicit competition value is a statement about this fixture, while this is
+ * a guess about the coach.
+ */
+export function getStoredSetupAgeGroup(userId: string | null | undefined): string | null {
+  if (typeof window === 'undefined' || userId === undefined) return null;
+  try {
+    // eslint-disable-next-line no-restricted-globals -- per-user UI default hint, not app data
+    const value = localStorage.getItem(`${AGE_GROUP_PREFIX}${userId ?? 'local'}`);
+    return value && AGE_GROUPS.includes(value) ? value : null;
   } catch {
     return null;
   }
