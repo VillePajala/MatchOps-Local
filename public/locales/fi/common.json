@@ -1023,6 +1023,7 @@
     "playerBarCrashed": "Pelaajapalkki kaatui. Päivitä sivu."
   },
   "newGameSetupModal": {
+    "formatNudge": "{{ageGroup}} pelaa virallisesti muotoa {{official}}. Voit silti valita toisen - sarja voi poiketa.",
     "formationLabel": "Muodostelma",
     "title": "Luo uusi ottelu",
     "repeatLastGame": "Toista edellinen peli",

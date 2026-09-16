@@ -1446,6 +1446,7 @@ export type TranslationKey =
   | 'newGameSetupModal.errorAddingSeasonGeneric'
   | 'newGameSetupModal.errorAddingTournamentGeneric'
   | 'newGameSetupModal.errors.dataLoadFailed'
+  | 'newGameSetupModal.formatNudge'
   | 'newGameSetupModal.formationLabel'
   | 'newGameSetupModal.friendlyToggle'
   | 'newGameSetupModal.gameConfigLabel'
