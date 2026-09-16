@@ -1545,7 +1545,20 @@
       "orange": "Oranssi",
       "purple": "Violetti",
       "sky": "Vaaleansininen",
-      "maroon": "Viininpunainen"
+      "maroon": "Viininpunainen",
+      "pink": "Pinkki",
+      "amber": "Keltaoranssi",
+      "lime": "Limetti",
+      "forest": "Metsänvihreä",
+      "teal": "Sinivihreä",
+      "cyan": "Syaani",
+      "navy": "Laivastonsininen",
+      "indigo": "Indigo",
+      "violet": "Violetti",
+      "magenta": "Magenta",
+      "silver": "Hopea",
+      "grey": "Harmaa",
+      "brown": "Ruskea"
     },
     "kitColorCustom": "Oma väri"
   },
