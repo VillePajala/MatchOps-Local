@@ -23,6 +23,7 @@ import {
   HiOutlineBookOpen,
 } from 'react-icons/hi2';
 import FormationPicker from './FormationPicker';
+import SteadyDigits from '@/components/SteadyDigits';
 import { useTranslation } from 'react-i18next';
 import { debug } from '@/utils/debug';
 import logger from '@/utils/logger';
@@ -396,9 +397,13 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               title={t('controlBar.openTimer', 'Open Timer')}
               aria-label={t('controlBar.openTimer', 'Open Timer')}
             >
-              <span className={`${DESIGN_TOKENS.TIMER_FONT_SIZE} font-bold tabular-nums leading-none transition-colors ${isTimerRunning ? 'text-green-400' : 'text-slate-300'}`}>
+              {/* SteadyDigits, not tabular-nums: Rajdhani has no tnum feature
+                  so that class is inert (see SteadyDigits). At text-2xl the
+                  digit spread is ~5px each, and this clock sits in a flex row -
+                  so every button beside it shifted once a second. */}
+              <SteadyDigits className={`${DESIGN_TOKENS.TIMER_FONT_SIZE} font-bold leading-none transition-colors ${isTimerRunning ? 'text-green-400' : 'text-slate-300'}`}>
                 {formatTime(timeElapsedInSeconds)}
-              </span>
+              </SteadyDigits>
             </button>
 
             {/* Reset Field Button - Square shape (with confirmation) */}
