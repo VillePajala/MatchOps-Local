@@ -69,6 +69,7 @@ import { isPlayStoreContext } from '@/utils/platform';
 import TransitionOverlay from '@/components/TransitionOverlay';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
+import { reloadApp, claimReloadAttempt, clearReloadOnce } from '@/utils/reloadApp';
 
 // Toast display duration before force reload - allows user to see the notification
 const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
@@ -1176,6 +1177,9 @@ export default function Home() {
               });
               await queryClient.refetchQueries();
               setRefreshTrigger(prev => prev + 1);
+              // Worked, so a later failure in this same tab still gets its one
+              // recovery reload rather than inheriting a spent attempt.
+              clearReloadOnce('cloudHydration');
               logger.info('[page.tsx] Setting migration completed flag after successful hydration', {
                 userId: userId?.slice(0, 8) + '...',
               });
@@ -1207,6 +1211,22 @@ export default function Home() {
                 level: 'error',
                 extra: { errors: hydrationResult.errors, userId: userId?.slice(0, 8) },
               });
+
+              // THE RETRIES CANNOT WIN THIS ONE. Observed on a first sign-in:
+              // every attempt fails and closing the app fixes it, which means
+              // the broken thing is the page rather than the call - so running
+              // the call again in the same page was never going to help. Do
+              // the reload the coach would otherwise do by hand.
+              //
+              // Deliberately BEFORE setMigrationCompleted: leaving the flag
+              // unset means the fresh page runs this same blocking path again
+              // and has the data in hand before any UI appears, rather than
+              // letting the user in on an empty local store and filling it
+              // silently behind them.
+              if (claimReloadAttempt('cloudHydration')) {
+                reloadApp();
+                return;
+              }
               // On a Vercel preview, put the actual reason on screen. This
               // failure only reproduces on a device - a phone signing in on a
               // fresh origin - where no console is reachable, so the reason
