@@ -69,4 +69,41 @@ describe('preferredRulesContext', () => {
     expect(preferredRulesContext({ a: g({ gameType: 'soccer' }) }).ageGroup).toBeUndefined();
     expect(preferredRulesContext({ a: g({ ageGroup: '  ' }) }).ageGroup).toBeUndefined();
   });
+
+  /**
+   * The Rules screen is most worth having before a coach has played anything -
+   * that is exactly when they are working out what applies to them - and until
+   * now it was generic in precisely that moment.
+   * @critical
+   */
+  describe('falling back to the coach’s teams', () => {
+    it('uses a team’s age group when no game names one', () => {
+      expect(preferredRulesContext({}, [{ ageGroup: 'U10' }]).ageGroup).toBe('U10');
+    });
+
+    /** A game is what was played; a team label goes stale at rollover. */
+    it('still prefers what the games say', () => {
+      const games = { g1: { ageGroup: 'U13' } };
+      expect(preferredRulesContext(games, [{ ageGroup: 'U10' }]).ageGroup).toBe('U13');
+    });
+
+    it('takes the most common team age group', () => {
+      const teams = [{ ageGroup: 'U13' }, { ageGroup: 'U9' }, { ageGroup: 'U9' }];
+      expect(preferredRulesContext({}, teams).ageGroup).toBe('U9');
+    });
+
+    /** Ties break LOW: the younger format differs most from the adult game. */
+    it('breaks a tie on the lower age group, numerically', () => {
+      const teams = [{ ageGroup: 'U13' }, { ageGroup: 'U9' }];
+      expect(preferredRulesContext({}, teams).ageGroup).toBe('U9');
+    });
+
+    it('ignores teams with no age group', () => {
+      expect(preferredRulesContext({}, [{}, { ageGroup: '  ' }]).ageGroup).toBeUndefined();
+    });
+
+    it('behaves as before when no teams are passed', () => {
+      expect(preferredRulesContext({}).ageGroup).toBeUndefined();
+    });
+  });
 });

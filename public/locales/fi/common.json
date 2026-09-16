@@ -209,6 +209,9 @@
     }
   },
   "setupWizard": {
+    "ageGroupLabel": "Ikäluokka (valinnainen)",
+    "ageGroupNone": "Ei valittu",
+    "ageGroupHint": "Näyttää ikäluokkasi säännöt ja pelimuodon, ja toimii uusien otteluiden oletuksena.",
     "add": "Lisää",
     "back": "Takaisin",
     "error": "Tallennus epäonnistui - yritä uudelleen.",
