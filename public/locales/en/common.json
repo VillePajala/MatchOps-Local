@@ -3369,7 +3369,7 @@
     "legacyDataMigrated_other": "Your data has been migrated to your account ({{count}} items)",
     "legacyMigrationFailed": "Could not migrate your data. Please try again later.",
     "dataLoadedFromCloud": "Your data has been loaded from the cloud.",
-    "failedToLoadCloudData": "Failed to load your cloud data. Please try refreshing.",
+    "failedToLoadCloudData": "Your cloud data did not finish loading. Nothing has been lost - it will try again automatically.",
     "partialSyncComplete": "Sync complete. Some cloud data may not have loaded - refresh to retry.",
     "signingOut": "Signing out...",
     "loadingYourData": "Loading your data...",

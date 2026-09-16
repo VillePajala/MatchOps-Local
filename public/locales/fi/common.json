@@ -3369,7 +3369,7 @@
     "legacyDataMigrated_other": "Tietosi on siirretty tilillesi ({{count}} kohdetta)",
     "legacyMigrationFailed": "Tietojesi siirto epäonnistui. Yritä myöhemmin uudelleen.",
     "dataLoadedFromCloud": "Tietosi on ladattu pilvestä.",
-    "failedToLoadCloudData": "Pilvitietojen lataus epäonnistui. Kokeile päivittää sivu.",
+    "failedToLoadCloudData": "Pilvitietojen lataus jäi kesken. Mitään ei ole kadonnut - yritetään automaattisesti uudelleen.",
     "partialSyncComplete": "Synkronointi valmis. Osa pilvitiedoista ei ehkä latautunut - päivitä sivu uudelleenyritykseen.",
     "signingOut": "Kirjaudutaan ulos...",
     "loadingYourData": "Ladataan tietojasi...",

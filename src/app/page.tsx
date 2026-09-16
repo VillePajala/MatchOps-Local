@@ -69,6 +69,7 @@ import { isPlayStoreContext } from '@/utils/platform';
 import TransitionOverlay from '@/components/TransitionOverlay';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
+import { reloadApp, claimReloadAttempt, clearReloadOnce } from '@/utils/reloadApp';
 
 // Toast display duration before force reload - allows user to see the notification
 const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
@@ -1017,7 +1018,7 @@ export default function Home() {
           // Run cloud check + hydration entirely in background (fire and forget)
           (async () => {
             try {
-              const { hasCloudData, hydrateLocalFromCloud } = await import('@/services/reverseMigrationService');
+              const { hasCloudData, hydrateLocalFromCloudWithRetry } = await import('@/services/reverseMigrationService');
               const cloudResult = await hasCloudData();
               if (cloudResult.checkFailed) {
                 logger.warn('[page.tsx] Background cloud check failed:', cloudResult.error);
@@ -1029,7 +1030,7 @@ export default function Home() {
               }
 
               logger.info('[page.tsx] Background cloud check: cloud has data, starting hydration...');
-              const hydrationResult = await hydrateLocalFromCloud(userId);
+              const hydrationResult = await hydrateLocalFromCloudWithRetry(userId);
 
               if (hydrationResult.success) {
                 const totalImported = hydrationResult.counts.games +
@@ -1125,7 +1126,7 @@ export default function Home() {
           logger.info('[page.tsx] No local data, checking if cloud has data...');
         }
         {
-          const { hasCloudData, hydrateLocalFromCloud } = await import('@/services/reverseMigrationService');
+          const { hasCloudData, hydrateLocalFromCloudWithRetry, isAuthNotReadyError } = await import('@/services/reverseMigrationService');
           const cloudResult = await hasCloudData();
           if (cloudResult.checkFailed) {
             // Cloud check failed - check if it's a transient error that should retry
@@ -1168,7 +1169,7 @@ export default function Home() {
             // cloud data but empty local device. We must download cloud data
             // to local storage first, then refetch queries to update UI.
             logger.info('[page.tsx] Cloud has data, hydrating local storage from cloud...');
-            const hydrationResult = await hydrateLocalFromCloud(userId);
+            const hydrationResult = await hydrateLocalFromCloudWithRetry(userId);
 
             if (hydrationResult.success) {
               logger.info('[page.tsx] Hydration successful, refreshing queries', {
@@ -1176,6 +1177,9 @@ export default function Home() {
               });
               await queryClient.refetchQueries();
               setRefreshTrigger(prev => prev + 1);
+              // Worked, so a later failure in this same tab still gets its one
+              // recovery reload rather than inheriting a spent attempt.
+              clearReloadOnce('cloudHydration');
               logger.info('[page.tsx] Setting migration completed flag after successful hydration', {
                 userId: userId?.slice(0, 8) + '...',
               });
@@ -1190,9 +1194,7 @@ export default function Home() {
               setPostLoginCheckComplete(true);
             } else {
               // Check if failure was due to auth
-              const hasAuthError = hydrationResult.errors?.some(err =>
-                err.includes('Not authenticated') || err.includes('auth') || err.includes('sign in')
-              );
+              const hasAuthError = isAuthNotReadyError(hydrationResult.errors);
 
               if (hasAuthError) {
                 // Auth not ready - allow retry
@@ -1201,9 +1203,45 @@ export default function Home() {
                 return;
               }
 
-              logger.error('[page.tsx] Hydration failed', { errors: hydrationResult.errors });
+              // Every retry is spent by now, so this is worth a real report: the
+              // reason lives only in `errors`, which is exactly what was missing
+              // the last time this had to be diagnosed from a screenshot.
+              logger.error('[page.tsx] Hydration failed after retries', { errors: hydrationResult.errors });
+              Sentry.captureMessage('Cloud hydration failed after retries', {
+                level: 'error',
+                extra: { errors: hydrationResult.errors, userId: userId?.slice(0, 8) },
+              });
+
+              // THE RETRIES CANNOT WIN THIS ONE. Observed on a first sign-in:
+              // every attempt fails and closing the app fixes it, which means
+              // the broken thing is the page rather than the call - so running
+              // the call again in the same page was never going to help. Do
+              // the reload the coach would otherwise do by hand.
+              //
+              // Deliberately BEFORE setMigrationCompleted: leaving the flag
+              // unset means the fresh page runs this same blocking path again
+              // and has the data in hand before any UI appears, rather than
+              // letting the user in on an empty local store and filling it
+              // silently behind them.
+              if (claimReloadAttempt('cloudHydration')) {
+                reloadApp();
+                return;
+              }
+              // On a Vercel preview, put the actual reason on screen. This
+              // failure only reproduces on a device - a phone signing in on a
+              // fresh origin - where no console is reachable, so the reason
+              // has so far only ever been visible in a screenshot that does
+              // not contain it. Previews only: production keeps the sanitised
+              // message, since this text is raw internals.
+              const isPreviewBuild =
+                typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app');
               showToast(
-                t('page.failedToLoadCloudData', 'Failed to load your cloud data. Please try refreshing.'),
+                [
+                  t('page.failedToLoadCloudData', 'Your cloud data did not finish loading. Nothing has been lost - it will try again automatically.'),
+                  isPreviewBuild ? `[preview] ${hydrationResult.errors?.join(' | ') || 'no error detail'}` : '',
+                ]
+                  .filter(Boolean)
+                  .join(' '),
                 'error'
               );
               setMigrationCompleted(userId);
@@ -1356,8 +1394,8 @@ export default function Home() {
     // Hydration pulls cloud → local so local has all 86 games
     if (userId) {
       logger.info('[page.tsx] POST-MIGRATION HYDRATION: Starting cloud→local pull', { userId });
-      const { hydrateLocalFromCloud } = await import('@/services/reverseMigrationService');
-      const hydrationResult = await hydrateLocalFromCloud(userId);
+      const { hydrateLocalFromCloudWithRetry } = await import('@/services/reverseMigrationService');
+      const hydrationResult = await hydrateLocalFromCloudWithRetry(userId);
       if (hydrationResult.success) {
         logger.info('[page.tsx] POST-MIGRATION HYDRATION: Success', {
           imported: hydrationResult.counts,
