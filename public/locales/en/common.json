@@ -1685,7 +1685,20 @@
       "orange": "Orange",
       "purple": "Purple",
       "sky": "Light blue",
-      "maroon": "Maroon"
+      "maroon": "Maroon",
+      "pink": "Pink",
+      "amber": "Amber",
+      "lime": "Lime",
+      "forest": "Forest green",
+      "teal": "Teal",
+      "cyan": "Cyan",
+      "navy": "Navy",
+      "indigo": "Indigo",
+      "violet": "Violet",
+      "magenta": "Magenta",
+      "silver": "Silver",
+      "grey": "Grey",
+      "brown": "Brown"
     },
     "kitColorCustom": "Custom colour"
   },
