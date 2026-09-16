@@ -1017,7 +1017,7 @@ export default function Home() {
           // Run cloud check + hydration entirely in background (fire and forget)
           (async () => {
             try {
-              const { hasCloudData, hydrateLocalFromCloud } = await import('@/services/reverseMigrationService');
+              const { hasCloudData, hydrateLocalFromCloudWithRetry } = await import('@/services/reverseMigrationService');
               const cloudResult = await hasCloudData();
               if (cloudResult.checkFailed) {
                 logger.warn('[page.tsx] Background cloud check failed:', cloudResult.error);
@@ -1029,7 +1029,7 @@ export default function Home() {
               }
 
               logger.info('[page.tsx] Background cloud check: cloud has data, starting hydration...');
-              const hydrationResult = await hydrateLocalFromCloud(userId);
+              const hydrationResult = await hydrateLocalFromCloudWithRetry(userId);
 
               if (hydrationResult.success) {
                 const totalImported = hydrationResult.counts.games +
@@ -1125,7 +1125,7 @@ export default function Home() {
           logger.info('[page.tsx] No local data, checking if cloud has data...');
         }
         {
-          const { hasCloudData, hydrateLocalFromCloud } = await import('@/services/reverseMigrationService');
+          const { hasCloudData, hydrateLocalFromCloudWithRetry, isAuthNotReadyError } = await import('@/services/reverseMigrationService');
           const cloudResult = await hasCloudData();
           if (cloudResult.checkFailed) {
             // Cloud check failed - check if it's a transient error that should retry
@@ -1168,7 +1168,7 @@ export default function Home() {
             // cloud data but empty local device. We must download cloud data
             // to local storage first, then refetch queries to update UI.
             logger.info('[page.tsx] Cloud has data, hydrating local storage from cloud...');
-            const hydrationResult = await hydrateLocalFromCloud(userId);
+            const hydrationResult = await hydrateLocalFromCloudWithRetry(userId);
 
             if (hydrationResult.success) {
               logger.info('[page.tsx] Hydration successful, refreshing queries', {
@@ -1190,9 +1190,7 @@ export default function Home() {
               setPostLoginCheckComplete(true);
             } else {
               // Check if failure was due to auth
-              const hasAuthError = hydrationResult.errors?.some(err =>
-                err.includes('Not authenticated') || err.includes('auth') || err.includes('sign in')
-              );
+              const hasAuthError = isAuthNotReadyError(hydrationResult.errors);
 
               if (hasAuthError) {
                 // Auth not ready - allow retry
@@ -1201,9 +1199,16 @@ export default function Home() {
                 return;
               }
 
-              logger.error('[page.tsx] Hydration failed', { errors: hydrationResult.errors });
+              // Every retry is spent by now, so this is worth a real report: the
+              // reason lives only in `errors`, which is exactly what was missing
+              // the last time this had to be diagnosed from a screenshot.
+              logger.error('[page.tsx] Hydration failed after retries', { errors: hydrationResult.errors });
+              Sentry.captureMessage('Cloud hydration failed after retries', {
+                level: 'error',
+                extra: { errors: hydrationResult.errors, userId: userId?.slice(0, 8) },
+              });
               showToast(
-                t('page.failedToLoadCloudData', 'Failed to load your cloud data. Please try refreshing.'),
+                t('page.failedToLoadCloudData', 'Your cloud data did not finish loading. Nothing has been lost - it will try again automatically.'),
                 'error'
               );
               setMigrationCompleted(userId);
@@ -1356,8 +1361,8 @@ export default function Home() {
     // Hydration pulls cloud → local so local has all 86 games
     if (userId) {
       logger.info('[page.tsx] POST-MIGRATION HYDRATION: Starting cloud→local pull', { userId });
-      const { hydrateLocalFromCloud } = await import('@/services/reverseMigrationService');
-      const hydrationResult = await hydrateLocalFromCloud(userId);
+      const { hydrateLocalFromCloudWithRetry } = await import('@/services/reverseMigrationService');
+      const hydrationResult = await hydrateLocalFromCloudWithRetry(userId);
       if (hydrationResult.success) {
         logger.info('[page.tsx] POST-MIGRATION HYDRATION: Success', {
           imported: hydrationResult.counts,

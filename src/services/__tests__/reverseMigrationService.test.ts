@@ -12,6 +12,8 @@ import {
   migrateCloudToLocal,
   hasCloudData,
   isReverseMigrationRunning,
+  hydrateLocalFromCloudWithRetry,
+  isAuthNotReadyError,
   type ReverseMigrationProgress,
 } from '../reverseMigrationService';
 import { LocalDataStore } from '@/datastore/LocalDataStore';
@@ -178,15 +180,13 @@ describe('reverseMigrationService', () => {
       getPlayerAdjustments: jest.fn().mockResolvedValue([]),
       getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
       getWarmupPlan: jest.fn().mockResolvedValue(null),
-    getPlaytimePlans: jest.fn().mockResolvedValue({}),
-    getPlaytimePlanLinks: jest.fn().mockResolvedValue({}),
-    getPlaytimeGameSubs: jest.fn().mockResolvedValue([]),
-    getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
-    restorePlaytimePlans: jest.fn().mockResolvedValue(0),
-    restorePlaytimePlanLinks: jest.fn().mockResolvedValue(0),
-    restorePlaytimeGameSubs: jest.fn().mockResolvedValue(0),
+      getPlaytimePlans: jest.fn().mockResolvedValue({}),
+      getPlaytimePlanLinks: jest.fn().mockResolvedValue({}),
+      getPlaytimeGameSubs: jest.fn().mockResolvedValue([]),
+      getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
       getSettings: jest.fn().mockResolvedValue(null),
       clearAllUserData: jest.fn().mockResolvedValue(undefined),
+      close: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<SupabaseDataStore>;
 
     mockLocalDataStore = {
@@ -211,6 +211,13 @@ describe('reverseMigrationService', () => {
       saveGame: jest.fn().mockResolvedValue(mockGame),
       saveWarmupPlan: jest.fn().mockResolvedValue(undefined),
       saveSettings: jest.fn().mockResolvedValue(undefined),
+      // Restores are LocalDataStore-only - they had been declared on the cloud
+      // double, which does not have them, so hydration blew up on the first
+      // call and every attempt "failed" for a reason nothing in the app shares.
+      restorePlaytimePlans: jest.fn().mockResolvedValue(0),
+      restorePlaytimePlanLinks: jest.fn().mockResolvedValue(0),
+      restorePlaytimeGameSubs: jest.fn().mockResolvedValue(0),
+      close: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<LocalDataStore>;
 
     // Setup constructor mocks
@@ -633,5 +640,97 @@ describe('reverseMigrationService', () => {
       expect(isReverseMigrationRunning()).toBe(false);
     });
   });
+
+  /**
+   * Hydration retries.
+   *
+   * @critical - this is the new-device path. Local is empty and everything the
+   * coach owns has to come down from the cloud, so a single transient failure
+   * here shows them an app with none of their games in it.
+   *
+   * Real timers on purpose: the delays are short, and faking them buys a second
+   * of runtime at the cost of a subtler test.
+   */
+  describe('hydrateLocalFromCloudWithRetry', () => {
+    it('recovers when the first attempt fails and the next succeeds', async () => {
+      const players = mockSupabaseDataStore.getPlayers as jest.Mock;
+      players
+        .mockRejectedValueOnce(new Error('network blip'))
+        .mockResolvedValue([mockPlayer]);
+
+      const result = await hydrateLocalFromCloudWithRetry('test-user-id');
+
+      expect(result.success).toBe(true);
+      expect(players).toHaveBeenCalledTimes(2);
+    });
+
+    /** Without this the retry would be pointless - it would report the failure anyway. */
+    it('reports success, not the failure it recovered from', async () => {
+      (mockSupabaseDataStore.getPlayers as jest.Mock)
+        .mockRejectedValueOnce(new Error('network blip'))
+        .mockResolvedValue([mockPlayer]);
+
+      const result = await hydrateLocalFromCloudWithRetry('test-user-id');
+
+      expect(result.errors).toEqual([]);
+    });
+
+    it('gives up after a fixed number of attempts rather than looping', async () => {
+      const players = mockSupabaseDataStore.getPlayers as jest.Mock;
+      players.mockRejectedValue(new Error('still broken'));
+
+      const result = await hydrateLocalFromCloudWithRetry('test-user-id');
+
+      expect(result.success).toBe(false);
+      expect(players).toHaveBeenCalledTimes(3);
+    });
+
+    /**
+     * Auth-not-ready is the Supabase session still loading, not a fault. The
+     * caller stands down and tries again once auth settles, so spending the
+     * retries here would only delay that.
+     */
+    it('does not retry while auth is simply not ready yet', async () => {
+      mockSupabaseClient.auth.getSession.mockResolvedValueOnce({
+        data: { session: null },
+        error: null,
+      });
+
+      const result = await hydrateLocalFromCloudWithRetry('test-user-id');
+
+      expect(result.success).toBe(false);
+      expect(isAuthNotReadyError(result.errors)).toBe(true);
+      expect(mockSupabaseClient.auth.getSession).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('isAuthNotReadyError', () => {
+    it.each([
+      ['No active session. Please sign in again.'],
+      ['Session error: Not authenticated'],
+      ['auth token expired'],
+    ])('treats %s as auth not being ready', (message) => {
+      expect(isAuthNotReadyError([message])).toBe(true);
+    });
+
+    it.each([
+      ['Failed to hydrate players: network blip'],
+      ['Hydration failed: Unknown error'],
+    ])('treats %s as a real failure worth retrying', (message) => {
+      expect(isAuthNotReadyError([message])).toBe(false);
+    });
+
+    it('is false when there is nothing wrong at all', () => {
+      expect(isAuthNotReadyError([])).toBe(false);
+      expect(isAuthNotReadyError(undefined)).toBe(false);
+    });
+
+    /** hasCloudData reports a single string; hydration reports an array. */
+    it('accepts either shape its two callers hand it', () => {
+      expect(isAuthNotReadyError('Not authenticated')).toBe(true);
+      expect(isAuthNotReadyError(['Not authenticated'])).toBe(true);
+    });
+  });
+
 });
 
