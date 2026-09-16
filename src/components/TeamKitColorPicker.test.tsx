@@ -1,8 +1,8 @@
 /**
  * @jest-environment jsdom
  * @critical - a team's colour is the one piece of a team that is purely the
- * coach's own. Losing the ability to clear it, or storing a value the swatches
- * cannot show back, strands them with a choice they cannot undo.
+ * coach's own. Losing the ability to clear it, or failing to show back a
+ * colour already saved, strands them with a choice they cannot undo.
  */
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -38,14 +38,20 @@ describe('TeamKitColorPicker', () => {
 
   it('marks the stored colour as the checked one', () => {
     render(<TeamKitColorPicker value={TEAM_KIT_COLORS[2].hex} onChange={jest.fn()} />);
-    const checked = screen.getAllByRole('radio').filter((r) => r.getAttribute('aria-checked') === 'true');
+    const checked = screen
+      .getAllByRole('radio')
+      .filter((r) => r.getAttribute('aria-checked') === 'true');
     expect(checked).toHaveLength(1);
   });
 
   /** Hex casing varies by where it was written; the swatch must still match. */
   it('recognises a stored colour whatever its casing', () => {
-    render(<TeamKitColorPicker value={TEAM_KIT_COLORS[1].hex.toLowerCase()} onChange={jest.fn()} />);
-    const checked = screen.getAllByRole('radio').filter((r) => r.getAttribute('aria-checked') === 'true');
+    render(
+      <TeamKitColorPicker value={TEAM_KIT_COLORS[1].hex.toLowerCase()} onChange={jest.fn()} />,
+    );
+    const checked = screen
+      .getAllByRole('radio')
+      .filter((r) => r.getAttribute('aria-checked') === 'true');
     expect(checked).toHaveLength(1);
     expect(screen.getByLabelText('No colour')).toHaveAttribute('aria-checked', 'false');
   });
@@ -62,21 +68,54 @@ describe('TeamKitColorPicker', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  /** A club with an odd strip should not be told their colour does not exist. */
-  it('accepts a colour outside the preset set', () => {
-    const onChange = jest.fn();
-    render(<TeamKitColorPicker value={undefined} onChange={onChange} />);
-    fireEvent.change(screen.getByLabelText('Custom colour'), { target: { value: '#123456' } });
-    expect(onChange).toHaveBeenCalledWith('#123456'.toUpperCase());
+  /**
+   * The native colour input is gone - it handed the coach the OS dialog in the
+   * middle of the app. Nothing here may open one.
+   */
+  it('opens no operating-system colour dialog', () => {
+    const { container } = render(<TeamKitColorPicker value={undefined} onChange={jest.fn()} />);
+    expect(container.querySelector('input[type="color"]')).toBeNull();
   });
 
-  /** A stored custom colour must read back as chosen, not as "none". */
-  it('marks a custom colour as the current one', () => {
-    render(<TeamKitColorPicker value="#123456" onChange={jest.fn()} />);
-    expect(screen.getByLabelText('No colour')).toHaveAttribute('aria-checked', 'false');
-    const presetsChecked = screen
-      .getAllByRole('radio')
-      .filter((r) => r.getAttribute('aria-checked') === 'true');
-    expect(presetsChecked).toHaveLength(0);
+  describe('a colour saved before the grid existed', () => {
+    const CUSTOM = '#123456';
+
+    /**
+     * Without this the value would sit in the database while the UI showed
+     * "no colour chosen", and one careless tap would clear it for real.
+     */
+    it('still shows it, and shows it as chosen', () => {
+      render(<TeamKitColorPicker value={CUSTOM} onChange={jest.fn()} />);
+      const legacy = screen.getByTestId('kit-colour-legacy');
+      expect(legacy).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByLabelText('No colour')).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('does not claim any preset is the chosen one', () => {
+      render(<TeamKitColorPicker value={CUSTOM} onChange={jest.fn()} />);
+      const checked = screen
+        .getAllByRole('radio')
+        .filter((r) => r.getAttribute('aria-checked') === 'true');
+      expect(checked).toHaveLength(1);
+      expect(checked[0]).toHaveAttribute('data-testid', 'kit-colour-legacy');
+    });
+
+    /** It is a curated set; a one-off colour must not join it. */
+    it('is absent when the stored colour is a preset', () => {
+      render(<TeamKitColorPicker value={TEAM_KIT_COLORS[0].hex} onChange={jest.fn()} />);
+      expect(screen.queryByTestId('kit-colour-legacy')).not.toBeInTheDocument();
+    });
+  });
+
+  /** Four full rows of six: the layout the widened palette exists to fill. */
+  it('offers a palette that fills the grid exactly', () => {
+    expect((TEAM_KIT_COLORS.length + 1) % 6).toBe(0);
+  });
+
+  it('has no duplicate colours', () => {
+    const hexes = TEAM_KIT_COLORS.map((c) => c.hex.toLowerCase());
+    expect(new Set(hexes).size).toBe(hexes.length);
+    const ids = TEAM_KIT_COLORS.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
