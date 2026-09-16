@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import fs from 'fs';
 import path from 'path';
 import SetupWizard, { isSetupWizardDone } from '../SetupWizard';
-import { getStoredSetupFormat, useSetupWizardActive } from '../setupWizardActive';
+import { getStoredSetupFormat, getStoredSetupAgeGroup, useSetupWizardActive } from '../setupWizardActive';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -361,14 +361,74 @@ describe('getStoredSetupFormat (review #742)', () => {
     expect(getStoredSetupFormat(undefined)).toBeNull();
   });
 
+  /**
+   * Swap the function and put the original BACK, rather than spyOn +
+   * mockRestore. The suite-wide localStorage is itself a jest.fn with an
+   * implementation (setupTests.mjs); spying on a jest.fn and then restoring it
+   * leaves a bare mock with NO implementation, so getItem returned undefined
+   * for every test after this one in the file. That went unnoticed until a
+   * later test actually read a value back.
+   */
   it('survives storage failure', () => {
-    const spy = jest.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
+    const original = window.localStorage.getItem;
+    window.localStorage.getItem = jest.fn(() => {
       throw new Error('blocked');
     });
     try {
       expect(getStoredSetupFormat('user-1')).toBeNull();
     } finally {
-      spy.mockRestore();
+      window.localStorage.getItem = original;
     }
+  });
+
+  /**
+   * The point of asking is that the answer REACHES a game. Writing it onto the
+   * team alone would change nothing a coach can see: nothing reads
+   * teams.ageGroup - preferredRulesContext derives from games, and
+   * NewGameSetupModal prefills only from a season or tournament.
+   * @critical
+   */
+  describe('age group', () => {
+    const pickAge = (value: string) =>
+      fireEvent.change(screen.getByTestId('wizard-age-group'), { target: { value } });
+
+    it('stores it per user so new games can default to it', async () => {
+      const { onComplete } = renderWizard();
+      pickAge('U10');
+      toStepTwo('FC Honka P10');
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await waitFor(() => expect(onComplete).toHaveBeenCalled());
+      expect(getStoredSetupAgeGroup('user-1')).toBe('U10');
+    });
+
+    it('puts it on the team as well', async () => {
+      const { onComplete } = renderWizard();
+      pickAge('U10');
+      toStepTwo('FC Honka P10');
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await waitFor(() => expect(onComplete).toHaveBeenCalled());
+      expect(mockAddTeam).toHaveBeenCalledWith(
+        { name: 'FC Honka P10', ageGroup: 'U10' },
+        'user-1',
+      );
+    });
+
+    /** Optional means optional: skipping must leave today's behaviour intact. */
+    it('sends no age group when the coach skips it', async () => {
+      const { onComplete } = renderWizard();
+      toStepTwo('FC Honka P12');
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await waitFor(() => expect(onComplete).toHaveBeenCalled());
+      expect(mockAddTeam).toHaveBeenCalledWith({ name: 'FC Honka P12' }, 'user-1');
+      expect(getStoredSetupAgeGroup('user-1')).toBeNull();
+    });
+
+    it('offers every age group the rest of the app knows', () => {
+      renderWizard();
+      const options = screen.getByTestId('wizard-age-group').querySelectorAll('option');
+      // 15 age groups (U7-U21) plus the "not set" entry that makes it optional.
+      expect(options).toHaveLength(16);
+      expect(options[0]).toHaveValue('');
+    });
   });
 });

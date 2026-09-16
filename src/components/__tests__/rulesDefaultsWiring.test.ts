@@ -27,7 +27,10 @@ const squashed = host.replace(/\s+/g, ' ');
 
 describe('rules defaults wiring (structural)', () => {
   it('derives the context from the coach’s saved games', () => {
-    expect(squashed).toContain('preferredRulesContext(loadGame.savedGames)');
+    // Teams are the second argument, used only when no game names an age
+    // group - a coach who has set their teams up but not played yet used to
+    // get a generic Rules screen.
+    expect(squashed).toContain('preferredRulesContext(loadGame.savedGames, teams)');
   });
 
   it('hands both derived values to the rules screen', () => {

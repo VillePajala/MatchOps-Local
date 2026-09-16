@@ -163,8 +163,8 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
    * what was available to build rather than what anyone plays.
    */
   const rulesContext = React.useMemo(
-    () => preferredRulesContext(loadGame.savedGames),
-    [loadGame.savedGames],
+    () => preferredRulesContext(loadGame.savedGames, teams),
+    [loadGame.savedGames, teams],
   );
   const clubStats = useClubStatsController();
   const newGameSetup = useNewGameSetupController({

@@ -24,7 +24,7 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
-import { getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
+import { getStoredSetupAgeGroup, getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
 import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
@@ -198,6 +198,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // and it is only a default, one tap away from any other shape
   // (review #742 issue 3; owner can veto).
   const onboardingUserId = useOnboardingUserId();
+  // Read through a ref inside the reset effect rather than adding it to that
+  // effect's deps: the id settles once when auth resolves, and if the modal
+  // happened to be open at that moment a dependency would reset the form
+  // under the coach mid-edit.
+  const onboardingUserIdRef = useRef(onboardingUserId);
+  onboardingUserIdRef.current = onboardingUserId;
   const preferredFormationSize =
     getStoredSetupFormat(onboardingUserId) ?? getRecommendedFieldSize(selectedPlayerIds.length);
 
@@ -288,7 +294,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     }
     setSelectedPersonnelIds([]);
     setActiveTab('none');
-    setAgeGroup('');
+    // The coach's own Ikäluokka answer from the setup wizard, if they gave
+    // one. A DEFAULT only: picking a season or tournament overwrites it below
+    // (applySeasonSettings / the tournament branch), because an explicit
+    // competition setting is a statement about this fixture while this is a
+    // guess about the coach. Without this the wizard's answer would sit in
+    // localStorage unread and change nothing a coach can see.
+    setAgeGroup(getStoredSetupAgeGroup(onboardingUserIdRef.current) ?? '');
     setTournamentLevel('');
     setLeagueId('');
     setCustomLeagueName('');

@@ -4,6 +4,15 @@
     {
       "date": "2026-09-16",
       "en": [
+        "The setup wizard now asks for your age group, and actually uses the answer: it becomes the default for new games and opens the Rules screen on your own age group instead of a generic one. Skipping it is fine and changes nothing. A league or tournament setting still wins."
+      ],
+      "fi": [
+        "Käyttöönoton opastus kysyy nyt ikäluokkaa ja myös käyttää vastausta: siitä tulee uusien otteluiden oletus, ja Säännöt-näkymä avautuu oman ikäluokkasi kohdalta yleisen sijaan. Kysymyksen voi ohittaa, jolloin mikään ei muutu. Sarjan tai turnauksen oma asetus menee silti edelle."
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "en": [
         "The match clock no longer slides sideways as it runs. The app's typeface draws 1 much narrower than 8, so a centred clock shifted every time a digit changed; each digit now sits in a box of the same width."
       ],
       "fi": [

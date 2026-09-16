@@ -209,6 +209,9 @@
     }
   },
   "setupWizard": {
+    "ageGroupLabel": "Age group (optional)",
+    "ageGroupNone": "Not set",
+    "ageGroupHint": "Used to show the rules and match format for your age group, and as the default for new games.",
     "add": "Add",
     "back": "Back",
     "error": "Saving failed - please try again.",
