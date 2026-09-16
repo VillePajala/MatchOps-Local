@@ -1,4 +1,4 @@
-import { render, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import ServiceWorkerRegistration from '../ServiceWorkerRegistration';
 
 // Mock logger
@@ -275,5 +275,115 @@ describe('ServiceWorkerRegistration', () => {
 
     // Still should be 2 (not 3) because interval was cleared
     expect(mockRegistration.update).toHaveBeenCalledTimes(2);
+  });
+
+  /**
+   * Reported from a real phone: "maybe 1 out of 10 times the pressing of
+   * update button doesnt do anything. The prompt stays there and the reload
+   * prompt never arrives."
+   *
+   * The old handler was `if (waitingWorker) { ... }` with no else, so every
+   * path where the worker was missing or stale ended in silence.
+   * @critical
+   */
+  describe('the Update button never does nothing', () => {
+    const waitingWorker = () => ({ state: 'installed', postMessage: jest.fn() });
+
+    /** Show the banner, then hand back its onInstall. */
+    const bannerWithUpdate = async (worker: unknown) => {
+      (mockRegistration as { waiting: ServiceWorker | null }).waiting = worker as ServiceWorker;
+      render(<ServiceWorkerRegistration />);
+      await waitFor(() => expect(screen.getByTestId('update-banner')).toBeInTheDocument());
+      return () => mockUpdateBannerProps.onInstall?.();
+    };
+
+    it('tells the waiting worker to activate', async () => {
+      const worker = waitingWorker();
+      const install = await bannerWithUpdate(worker);
+      await act(async () => {
+        install();
+      });
+      expect(worker.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+    });
+
+    /**
+     * The reported case. The banner is up, the worker has gone, and the tap
+     * used to be swallowed - now it offers the reload, which applies the
+     * update regardless.
+     */
+    it('offers the reload when the worker has gone by the time it is tapped', async () => {
+      const worker = waitingWorker();
+      const install = await bannerWithUpdate(worker);
+      // Between banner and tap the browser discarded it - another tab
+      // activated it, or a newer build installed. A discarded worker reports
+      // 'redundant', which is what makes this faithful rather than just
+      // nulling the registration and leaving the captured object looking fine.
+      worker.state = 'redundant';
+      (mockRegistration as { waiting: ServiceWorker | null }).waiting = null;
+      (navigator.serviceWorker.getRegistration as jest.Mock).mockResolvedValue({
+        ...mockRegistration,
+        waiting: null,
+      });
+      await act(async () => {
+        install();
+      });
+      await waitFor(() => expect(mockUpdateBannerProps.phase).toBe('ready'));
+    });
+
+    /** It re-reads at tap time, so a worker that appeared later is still used. */
+    it('uses the worker that exists now, not the one captured earlier', async () => {
+      const stale = waitingWorker();
+      const fresh = waitingWorker();
+      const install = await bannerWithUpdate(stale);
+      (navigator.serviceWorker.getRegistration as jest.Mock).mockResolvedValue({
+        ...mockRegistration,
+        waiting: fresh as unknown as ServiceWorker,
+      });
+      await act(async () => {
+        install();
+      });
+      expect(fresh.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+      expect(stale.postMessage).not.toHaveBeenCalled();
+    });
+
+    /**
+     * controllerchange may never fire - the new worker can already control the
+     * page. Waiting forever is what made the reload prompt "never arrive".
+     */
+    it('stops waiting for the controller and offers the reload anyway', async () => {
+      jest.useFakeTimers();
+      try {
+        const worker = waitingWorker();
+        (mockRegistration as { waiting: ServiceWorker | null }).waiting = worker as unknown as ServiceWorker;
+        render(<ServiceWorkerRegistration />);
+        await act(async () => {
+          await Promise.resolve();
+        });
+        await act(async () => {
+          mockUpdateBannerProps.onInstall?.();
+          await Promise.resolve();
+        });
+        expect(mockUpdateBannerProps.phase).toBe('installing');
+        await act(async () => {
+          jest.advanceTimersByTime(3000);
+        });
+        expect(mockUpdateBannerProps.phase).toBe('ready');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    /** A failed registration lookup must not strand the coach either. */
+    it('offers the reload when the registration cannot be read', async () => {
+      const install = await bannerWithUpdate(waitingWorker());
+      (navigator.serviceWorker.getRegistration as jest.Mock).mockRejectedValue(
+        new Error('no registration'),
+      );
+      (mockRegistration as { waiting: ServiceWorker | null }).waiting = null;
+      await act(async () => {
+        install();
+      });
+      await waitFor(() => expect(mockUpdateBannerProps.phase).not.toBe('available'));
+    });
   });
 });
