@@ -9,7 +9,8 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import { addPlayer } from '@/utils/masterRosterManager';
 import { addTeam, setTeamRoster } from '@/utils/teams';
-import { setSetupWizardActive, storeSetupFormat } from './setupWizardActive';
+import { AGE_GROUPS } from '@/config/gameOptions';
+import { setSetupWizardActive, storeSetupFormat, storeSetupAgeGroup } from './setupWizardActive';
 import type { Player, Team, TeamPlayer } from '@/types';
 import logger from '@/utils/logger';
 
@@ -70,6 +71,11 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const [step, setStep] = useState<1 | 2>(1);
   const [teamName, setTeamName] = useState('');
   const [format, setFormat] = useState<WizardFormat>('8v8');
+  /**
+   * Optional, like the format. Empty means the coach skipped it and gets
+   * today's behaviour - it must never become a gate on creating a team.
+   */
+  const [ageGroup, setAgeGroup] = useState('');
   const [names, setNames] = useState<string[]>([]);
   const [draft, setDraft] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -147,7 +153,12 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       }
 
       if (!createdTeamRef.current) {
-        createdTeamRef.current = await addTeam({ name: teamName.trim() }, userId ?? undefined);
+        createdTeamRef.current = await addTeam(
+          // ageGroup omitted rather than sent empty: the store validates it,
+          // and "" is not a valid age group, it is the absence of one.
+          ageGroup ? { name: teamName.trim(), ageGroup } : { name: teamName.trim() },
+          userId ?? undefined,
+        );
       }
 
       if (createdPlayersRef.current.length > 0) {
@@ -165,6 +176,14 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       // The format choice is a UI default hint for later steps (game size,
       // formations) - a per-user local preference, not entity data.
       storeSetupFormat(userId, format);
+      // The half that actually delivers. Writing the age group onto the TEAM
+      // alone changes nothing a coach can see - nothing reads teams.ageGroup:
+      // preferredRulesContext derives the Rules default from games, and
+      // NewGameSetupModal prefills only from a season or tournament. Stored
+      // per user the same way the format is, it becomes the default age group
+      // on the next new game, which is what makes the Rules screen and the
+      // formats table specific instead of generic.
+      if (ageGroup) storeSetupAgeGroup(userId, ageGroup);
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: [...queryKeys.masterRoster, userId] }),
@@ -184,7 +203,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       showToast(t('setupWizard.error', 'Saving failed - please try again.'), 'error');
       setIsSaving(false);
     }
-  }, [draft, names, teamName, format, userId, queryClient, showToast, t, finish]);
+  }, [draft, names, teamName, format, ageGroup, userId, queryClient, showToast, t, finish]);
 
   const skipLabel = t('setupWizard.skip', "Skip, I'll do this later");
 
@@ -315,6 +334,39 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 </button>
               ))}
             </div>
+
+            {/* A SELECT, not a chip row. Fifteen values (U7-U21) do not fit one
+                row, and a scrolling row hides most of them behind a swipe -
+                which is exactly how the opponent chips buried their own form.
+                A select also matches how new-game setup asks the same
+                question, and its blank first option says "optional" more
+                plainly than an unpressed chip can. */}
+            <label
+              htmlFor="wizard-age-group"
+              className="block text-sm font-medium text-slate-300 text-center mt-6 mb-2"
+            >
+              {t('setupWizard.ageGroupLabel', 'Age group (optional)')}
+            </label>
+            <select
+              id="wizard-age-group"
+              data-testid="wizard-age-group"
+              value={ageGroup}
+              onChange={(e) => setAgeGroup(e.target.value)}
+              className="w-full h-12 px-4 rounded-md bg-slate-800 border border-slate-700 text-base text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="">{t('setupWizard.ageGroupNone', 'Not set')}</option>
+              {AGE_GROUPS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-400 text-center mt-2">
+              {t(
+                'setupWizard.ageGroupHint',
+                'Used to show the rules and match format for your age group, and as the default for new games.',
+              )}
+            </p>
 
             <button
               type="button"
