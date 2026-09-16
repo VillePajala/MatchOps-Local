@@ -15,8 +15,10 @@ import type { HomeSummary, HomeResumeGame, HomeRecentGame } from '@/utils/homeSu
  * The resume card's gradient at that repetition was far too loud.
  *
  * Colour at the left, fading into the page's own slate at the right - the
- * direction the resume card and the season card already run, so every card on
- * Home is lit from the same side.
+ * direction the resume card already runs, so every card on Home is lit from
+ * the same side. The season card was the last holdout, on a gradient that
+ * differed from this one only in the slate end's alpha; it is on this surface
+ * now, so Home has exactly one card surface and one hero.
  *
  * WHY 45 AND NOT LOWER. Composited over the slate-900 page, the left end sits
  * at rgb(30,33,81) against a rgb(15,23,42) background and the right end at
@@ -257,7 +259,7 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
     <button
       type="button"
       onClick={onOpen}
-      className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-indigo-900/70 to-slate-800/70 border border-indigo-700/40 hover:from-indigo-900/90 hover:to-slate-800/90 transition-all"
+      className={`w-full text-left p-3.5 rounded-xl border transition-all ${HOME_CARD}`}
     >
       <div className="text-xs font-semibold text-indigo-300/80">
         {t('startScreen.dashClubSeason', 'This season')}

@@ -90,8 +90,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const [searchText, setSearchText] = useState<string>('');
-  const [filterType, setFilterType] = useState<'season' | 'tournament' | 'team' | null>(null);
-  const [filterId, setFilterId] = useState<string | null>(null);
   const [showUnplayedOnly, setShowUnplayedOnly] = useState<boolean>(false);
   /** Normalised opponent key, so every spelling of one team is one choice. */
   const [opponentFilter, setOpponentFilter] = useState<string>('all');
@@ -205,31 +203,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       );
     });
 
-    const filteredByBadge = filteredBySearch.filter(id => {
-      if (!filterType || !filterId) return true;
-      const gameData = savedGames[id];
-      if (!gameData) return false;
-
-      let match = false;
-      if (filterType === 'season') {
-        match = gameData.seasonId === filterId;
-      }
-      if (filterType === 'tournament') {
-        match = gameData.tournamentId === filterId;
-      }
-      if (filterType === 'team') {
-        // Match games that have the selected team ID, or handle legacy games
-        if (filterId === 'legacy') {
-          match = !gameData.teamId; // Legacy games have no teamId
-        } else {
-          match = gameData.teamId === filterId;
-        }
-      }
-
-      return match;
-    });
-
-    const filteredByOpponent = filteredByBadge.filter(id => {
+    const filteredByOpponent = filteredBySearch.filter(id => {
       if (opponentFilter === 'all') return true;
       return normalizeOpponentName(savedGames[id]?.opponentName) === opponentFilter;
     });
@@ -279,7 +253,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     });
 
     return gamesWithSortKeys.map(g => g.id);
-  }, [savedGames, searchText, filterType, filterId, showUnplayedOnly, opponentFilter, entityMaps]);
+  }, [savedGames, searchText, showUnplayedOnly, opponentFilter, entityMaps]);
 
   const handleDeleteClick = (gameId: string, gameName: string) => {
     setGameToDelete({ id: gameId, name: gameName });
@@ -296,13 +270,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newSearchText = e.target.value;
-    setSearchText(newSearchText);
-    // If search text is cleared, also clear badge filter
-    if (!newSearchText) {
-      setFilterType(null);
-      setFilterId(null);
-    }
+    setSearchText(e.target.value);
   };
 
   if (!isOpen) return null;
@@ -328,7 +296,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       </div>
     );
   } else if (filteredGameIds.length === 0) {
-    const hasFilters = searchText || (filterType && filterId) || opponentFilter !== 'all';
+    const hasFilters = searchText || opponentFilter !== 'all';
     mainContent = (
       <div className="flex flex-col items-center justify-center py-16 px-4">
         {/* Soccer ball illustration */}
