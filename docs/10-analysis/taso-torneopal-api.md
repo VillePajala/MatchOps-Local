@@ -1,5 +1,9 @@
 # Taso / Torneopal API: what exists (investigated 2026-09-08)
 
+**Extended 2026-09-16 with myClub (section 7).** The two systems bracket the same
+coach workflow, and they turned out to have the same shape, so they belong in one
+document.
+
 Read before any Taso integration work. Companion to UNIFIED-ROADMAP.md, "Palloliitto Taso
 integration". Every claim below comes from a public source listed at the end; where the
 source is thin it says so.
@@ -184,3 +188,107 @@ without importing PalloIDs.
 - mplattu/torneopal-info, https://github.com/mplattu/torneopal-info
 - jsvirtane/tulospalvelu-mcp, https://github.com/jsvirtane/tulospalvelu-mcp
 - LePa toimihenkilo-opas: TASO-jarjestelman kayttaminen (PDF), https://bin.yhdistysavain.fi/1592044/00K3wwro4WiauGVXIeFV0YS0Jj/Toimihenkil%C3%B6opas-TASOn%20k%C3%A4ytt%C3%A4minen.pdf
+
+
+---
+
+## 7. myClub (investigated 2026-09-16)
+
+Added because the owner described the real flow, which is three systems, not two:
+check **myClub** for who is coming -> create the game in **MatchOps** -> enter the
+lineup in **Taso** before, the result and scorers after -> mark who actually
+participated back in **myClub**. MatchOps sits in the middle of that and is the only
+one of the three the coach can change.
+
+### 7.1 Two products, and only one of them is a web page
+
+- **myClub web** is a **per-club subdomain**: `https://<club>.myclub.fi`. Verified
+  resolving: `hjk.`, `hpm.`, `ljk.`. There is no single club-agnostic app URL.
+  A central identity login exists at `https://id.myclub.fi/flow/login` (verified 200),
+  which is the only URL we can hardcode for everybody.
+- **myClub Coach** is a **native iOS/Android app**, not a web page. Android package
+  `fi.myclub.coach` (Play listing verified 200). It is where attendance is actually
+  marked - by tap or by scanning the member card - and the marks flow into the
+  training diary and club statistics. Requires toimihenkilo rights.
+  `https://www.myclub.fi/install-coach` redirects to the docs article, not the store,
+  so it is not a useful link target.
+
+This is the one structural difference from Taso: **Taso is one URL for everyone,
+myClub is a different URL per club plus an app that has no URL at all.**
+
+### 7.2 The API, and it has the same shape as Taso's
+
+OpenAPI spec at `https://taikala.github.io/myclub-api-docs/fi`. Base URL
+`https://{own-domain}.myclub.fi/api` - the per-club subdomain again. 62 paths.
+
+**Reads what we want:**
+
+- `GET /events?include_participants=true` - the events with who is coming. This is
+  exactly the screen the coach checks before a game.
+- `GET /members`, `GET /members/search`, `GET /groups/{id}/memberships` - the roster.
+- `GET /venues`, `GET /rosters`, `GET /event_categories`, `GET /groups`.
+
+**Writes - but not the write that matters.** `POST /events` and `PUT /events/{id}`
+exist. The writable payload (`event-core`) is: `allow_comments`, `course_id`,
+`description`, `description_html`, `starts_at`, `ends_at`, `event_category_id`,
+`group_id`, `max_participations`, `name`, `participants_public`, `queue_enabled`,
+`registration`, `registration_opens_at`, `registration_closes_at`,
+`send_confirmation`, `venue_id`, `visibility`.
+
+**No participation or attendance field anywhere in it.** There is no
+`/participations` path and no `/events/{id}/participants`. All 62 paths were checked.
+
+So attendance is readable and not writable - the same asymmetry as Taso, arrived at
+independently:
+
+| | Read | Write |
+|---|---|---|
+| myClub attendance | yes | **no** |
+| Taso lineup / result / scorers | yes | **no** |
+
+**The consequence for MatchOps is the whole story:** the app can *pull* from both and
+*push* to neither. Every hand-off out of MatchOps stays a person typing, and no change
+of app format (native, Capacitor, anything) alters that, because the wall is on their
+servers.
+
+### 7.3 Key, cost and terms - and the one way myClub is easier than Taso
+
+- The key is **per member**: log in as the account it belongs to, user menu ->
+  "Rajapinta-avain" -> Nayta. Enabled under Settings -> Add-ons, which is a club
+  administrator.
+- **Paid add-on**, and explicitly outside free support: *"koska kyseessa on
+  asiantuntijatason ohjelmistokehitysrajapinta ... ei ohjelmistorajapinnan kaytto
+  kuulu maksuttoman tuotetuen piiriin"*.
+- The docs warn *"Ala koskaan laheta rajapinta-avainta sahkopostitse tai jaa sita
+  muille"* but state **no server-side-only rule**. That is the difference from
+  Torneopal, whose terms explicitly forbid embedding the key in an application. A
+  per-member key that the coach holds and never shares is the BYOK shape Kirjuri
+  already uses - so myClub, unlike Taso, does not on its face require us to run a
+  backend.
+- **There is no test environment** (*"Jarjestelmassa ei ole tarjottavana
+  testiymparistoa"*). Any development runs against a real club's live data.
+
+### 7.4 The one blocker to settle before planning any pull: CORS
+
+An unauthenticated preflight on 2026-09-16 -
+`OPTIONS https://<club>.myclub.fi/api/events` with `Origin` and
+`Access-Control-Request-Method: GET`, tried against two clubs - returned **403 from
+`awselb/2.0` with no `access-control-allow-origin` header**.
+
+Suggestive, not conclusive: the clubs tested may not have the add-on at all, and a
+WAF may simply refuse OPTIONS. But if there is no CORS, a browser cannot call this
+API no matter who holds the key, and the BYOK advantage in 7.3 evaporates - the
+feature would need a Supabase Edge Function proxy and would become cloud-mode only.
+
+**The spike is one request:** with a real key, does a `GET` from a browser origin come
+back with CORS headers? That single answer decides whether a myClub pull is a
+client-side feature or a backend feature.
+
+### 7.5 Sources
+
+- myClub API docs, https://taikala.github.io/myclub-api-docs/fi
+- myClub: sovellusrajapinta, https://docs.myclub.fi/article/1432-sovellusrajapinta
+- myClub: toimihenkiloiden mobiilisovellus, https://docs.myclub.fi/article/1161-mobiilisovellus
+- myClub: API-rajapinta / jarjestelmaintegraatiot, https://www.myclub.fi/uutiset/api-rajapinta-jarjestelmaintegraatiot/
+- myClub: lasnaoloseuranta, https://www.myclub.fi/ominaisuudet/lasnaoloseuranta/
+- myClub Coach on Google Play, https://play.google.com/store/apps/details?id=fi.myclub.coach
