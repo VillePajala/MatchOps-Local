@@ -699,13 +699,7 @@ async function performReverseMigration(
         logger.warn('[ReverseMigrationService] Error closing cloudStore:', e);
       }
     }
-    if (localStore) {
-      try {
-        await localStore.close();
-      } catch (e) {
-        logger.warn('[ReverseMigrationService] Error closing localStore:', e);
-      }
-    }
+    // Not closed, for the reason given in hydrateLocalFromCloud's cleanup.
   }
 }
 
@@ -1954,11 +1948,23 @@ export async function hydrateLocalFromCloud(
     } catch (e) {
       logger.warn('[ReverseMigrationService] Error closing cloudStore during hydration:', e);
     }
-    try {
-      if (localStore) await localStore.close();
-    } catch (e) {
-      logger.warn('[ReverseMigrationService] Error closing localStore during hydration:', e);
-    }
+    // DELIBERATELY NOT closing localStore. `LocalDataStore.close()` calls
+    // `closeUserStorageAdapter(userId)`, which closes the PROCESS-WIDE cached
+    // IndexedDB adapter for that user - not just this instance's handle. That
+    // is right for the factory, which closes the store on sign-out or a user
+    // switch, and `closeUserStorageAdapter` says so about itself: "safe
+    // because close() is called on sign-out and get() is called on sign-in -
+    // these never overlap in a single-user PWA."
+    //
+    // A transient store created mid-session breaks that assumption. Closing it
+    // pulled the connection out from under the app's own DataStore, which went
+    // on holding a closed adapter for the rest of the page's life - every read
+    // failing, the coach shown first-run onboarding over their own account,
+    // and nothing fixing it short of reopening the app. The retries could not
+    // win because each attempt re-broke it on the way out.
+    //
+    // The adapter is cached and shared by design and the factory owns its
+    // lifecycle, so the correct cleanup here is none at all.
   }
 }
 

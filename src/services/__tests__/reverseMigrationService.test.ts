@@ -704,6 +704,40 @@ describe('reverseMigrationService', () => {
     });
   });
 
+  /**
+   * @critical - regression guard for the bug that made a first sign-in show
+   * first-run onboarding over the coach's own account until the app was
+   * reopened.
+   */
+  describe('the shared IndexedDB adapter', () => {
+    /**
+     * LocalDataStore.close() closes the process-wide cached adapter for the
+     * user, not just this instance's handle. A transient store closing it
+     * mid-session leaves the app's own DataStore holding a closed connection
+     * for the rest of the page's life.
+     */
+    it('survives hydration - a transient store must not close it', async () => {
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+
+      expect(mockLocalDataStore.close).not.toHaveBeenCalled();
+    });
+
+    it('survives a hydration that fails, too', async () => {
+      (mockSupabaseDataStore.getPlayers as jest.Mock).mockRejectedValue(new Error('still broken'));
+
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+
+      expect(mockLocalDataStore.close).not.toHaveBeenCalled();
+    });
+
+    /** The cloud store is safe to close - its client is a singleton it leaves alone. */
+    it('is unrelated to the cloud store, which is still closed', async () => {
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+
+      expect(mockSupabaseDataStore.close).toHaveBeenCalled();
+    });
+  });
+
   describe('isAuthNotReadyError', () => {
     it.each([
       ['No active session. Please sign in again.'],
