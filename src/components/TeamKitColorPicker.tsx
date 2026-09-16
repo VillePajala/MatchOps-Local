@@ -2,27 +2,33 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiOutlineXMark, HiOutlineSwatch } from 'react-icons/hi2';
+import { HiOutlineXMark } from 'react-icons/hi2';
 import { TEAM_KIT_COLORS } from '@/config/palette';
 import { labelStyle } from '@/styles/modalStyles';
 
 /**
  * Pick a team's kit colour.
  *
- * A ROW OF SWATCHES, not an `<input type="color">`. Football kits come from a
- * small conventional range, the OS colour input is a poor experience on a
- * phone, and a freeform hex lets a coach pick something that disappears
- * against slate. The fixed set in TEAM_KIT_COLORS is checked to read on the
- * app's dark surfaces.
+ * A GRID OF SWATCHES, and nothing else. There used to be an
+ * `<input type="color">` here as an escape hatch for a club with an odd
+ * strip. On a phone that input hands the coach the operating system's colour
+ * dialog - a system panel in the middle of a dark, carefully styled app - and
+ * it looked exactly as out of place as that sounds. The fix was not to dress
+ * it better but to make it unnecessary: TEAM_KIT_COLORS now carries
+ * twenty-three colours, which covers the range football kits actually come in.
+ *
+ * Every swatch is checked to read on the app's dark surfaces, which a freeform
+ * hex never was - a coach could pick something that vanished against slate.
  *
  * Clearing is a first-class choice, not the absence of one: most teams will
- * never set a colour, and a control you cannot undo is a trap.
+ * never set a colour, and a control you cannot undo is a trap. It takes the
+ * last cell of the grid, so the four rows are exactly full.
  *
- * CUSTOM is the escape hatch, not the default. The presets cover the kits a
- * Finnish junior club actually plays in and guarantee the colour survives on
- * a dark surface; but a club with a genuinely odd strip should not be told
- * their colour does not exist, so a swatch opens the native picker. It sits
- * last because a curated choice should be the easy one.
+ * A COLOUR SAVED BEFORE THIS still shows. Dropping the custom input would
+ * otherwise have made any hex outside the list read as "no colour chosen"
+ * while the value sat in the database unchanged - the team would look unset
+ * and one careless tap would have cleared it for real. Such a colour is
+ * appended as its own swatch instead, selected, so nothing saved is lost.
  *
  * @module TeamKitColorPicker
  * @category Components
@@ -34,6 +40,14 @@ export interface TeamKitColorPickerProps {
   disabled?: boolean;
 }
 
+/** One circle. Identical geometry for every cell so the grid cannot jitter. */
+const swatchBase =
+  'w-9 h-9 rounded-full transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50';
+// The ring marks the choice, not a border: a border would change the swatch's
+// size and make the grid shift as you tap along it.
+const selectedRing = 'ring-2 ring-white ring-offset-2 ring-offset-slate-800';
+const restingRing = 'ring-1 ring-white/20';
+
 export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
   value,
   onChange,
@@ -41,60 +55,57 @@ export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
 }) => {
   const { t } = useTranslation();
   const label = t('unifiedTeamModal.kitColorLabel', 'Kit colour');
-  // A stored colour that is not one of the presets came from the custom picker.
-  const isCustom =
-    !!value && !TEAM_KIT_COLORS.some((c) => c.hex.toLowerCase() === value.toLowerCase());
+  const current = (value ?? '').toLowerCase();
+  const isPreset = TEAM_KIT_COLORS.some((c) => c.hex.toLowerCase() === current);
+  // A colour chosen with the old custom picker. Shown so it is not silently
+  // lost; not added to the presets, which stay a curated set.
+  const legacyCustom = value && !isPreset ? value : null;
 
   return (
     <div>
       <span className={labelStyle} id="kit-colour-label">
         {label}
       </span>
+      {/* Six across, so twenty-three colours plus the clear button are exactly
+          four rows with no ragged last line. */}
       <div
         role="radiogroup"
         aria-labelledby="kit-colour-label"
-        className="flex flex-wrap items-center gap-2"
+        className="grid grid-cols-6 gap-2 justify-items-center max-w-xs"
       >
         {TEAM_KIT_COLORS.map((c) => {
-          const selected = (value ?? '').toLowerCase() === c.hex.toLowerCase();
+          const selected = current === c.hex.toLowerCase();
           return (
             <button
               key={c.id}
               type="button"
               role="radio"
               aria-checked={selected}
-              aria-label={t(`unifiedTeamModal.kitColor.${c.id}` as 'unifiedTeamModal.kitColorLabel', c.id)}
+              aria-label={t(
+                `unifiedTeamModal.kitColor.${c.id}` as 'unifiedTeamModal.kitColorLabel',
+                c.id,
+              )}
               disabled={disabled}
               onClick={() => onChange(c.hex)}
-              // The ring, not a border, marks the choice: a border would change
-              // the swatch's size and make the row jump as you tap along it.
-              className={`w-9 h-9 rounded-full transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50 ${
-                selected ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800' : 'ring-1 ring-white/20'
-              }`}
+              className={`${swatchBase} ${selected ? selectedRing : restingRing}`}
               style={{ backgroundColor: c.hex }}
             />
           );
         })}
-        {/* Custom. Rendered as a label wrapping a visually-hidden colour input
-            so the swatch keeps the size and ring of its neighbours - styling
-            <input type="color"> directly is unreliable across browsers. */}
-        <label
-          className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-shadow focus-within:ring-2 focus-within:ring-indigo-400 ${
-            isCustom ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800' : 'ring-1 ring-white/20'
-          } ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
-          style={isCustom ? { backgroundColor: value } : undefined}
-          title={t('unifiedTeamModal.kitColorCustom', 'Custom colour')}
-        >
-          {!isCustom && <HiOutlineSwatch className="w-5 h-5 text-slate-300" />}
-          <input
-            type="color"
-            className="sr-only"
-            disabled={disabled}
+
+        {legacyCustom && (
+          <button
+            type="button"
+            role="radio"
+            aria-checked
             aria-label={t('unifiedTeamModal.kitColorCustom', 'Custom colour')}
-            value={value ?? '#7E22CE'}
-            onChange={(e) => onChange(e.target.value.toUpperCase())}
+            disabled={disabled}
+            data-testid="kit-colour-legacy"
+            onClick={() => onChange(legacyCustom)}
+            className={`${swatchBase} ${selectedRing}`}
+            style={{ backgroundColor: legacyCustom }}
           />
-        </label>
+        )}
 
         <button
           type="button"
@@ -103,8 +114,8 @@ export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
           aria-label={t('unifiedTeamModal.kitColorNone', 'No colour')}
           disabled={disabled}
           onClick={() => onChange(undefined)}
-          className={`w-9 h-9 rounded-full flex items-center justify-center text-slate-400 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50 ${
-            !value ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800' : 'ring-1 ring-white/20'
+          className={`${swatchBase} flex items-center justify-center text-slate-400 ${
+            !value ? selectedRing : restingRing
           }`}
         >
           <HiOutlineXMark className="w-5 h-5" />

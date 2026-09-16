@@ -13,6 +13,24 @@
     {
       "date": "2026-09-16",
       "en": [
+        "The clock in the bottom bar and the score chip above the pitch no longer shift width as the numbers change, so the buttons beside them stop nudging sideways every second."
+      ],
+      "fi": [
+        "Alapalkin kello ja kentän yläpuolinen tuloslaatta eivät enää muuta leveyttään numeroiden vaihtuessa, joten viereiset painikkeet eivät enää nytkähdä sivuun sekunnin välein."
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "en": [
+        "Choosing a team's kit colour no longer opens your phone's own colour dialog. There is a grid of 23 colours in the app instead, all checked to stay visible against the dark background. A colour you picked earlier with the old tool is still shown and still selected."
+      ],
+      "fi": [
+        "Joukkueen peliasun värin valinta ei enää avaa puhelimen omaa väri-ikkunaa. Tilalla on sovelluksen oma 23 värin ruudukko, jonka kaikki värit erottuvat tummalta taustalta. Aiemmin vanhalla työkalulla valittu väri näkyy edelleen ja pysyy valittuna."
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "en": [
         "Numbers that are meant to be read at a glance are now set larger than the words beside them: the three statistics tiles, the match score, the season record and the planned minutes per player. Everything else is unchanged, including tables, where you look for the name first."
       ],
       "fi": [
