@@ -468,7 +468,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                         type="button"
                         onClick={handleLogOpponentGoalClick}
                         className="w-full px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm"
-                        title={t('goalLogModal.logOpponentGoalTooltip', 'Record a goal for the opponent at the current game time') ?? undefined}
+                        title={t('goalLogModal.logOpponentGoalTooltip', 'Record a goal for the opponent at the current time') ?? undefined}
                       >
                         {t('goalLogModal.logOpponentGoalButtonShort', 'Opponent +1')}
                       </button>

@@ -124,7 +124,7 @@ export function GoalEventList({
                       onChange={(e) => onEditGoalScorerChange(e.target.value)}
                       className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1.5 text-sm"
                     >
-                      <option value="">{t('common.select', 'Select...')}</option>
+                      <option value="">{t('common.select', 'Select')}</option>
                       {availablePlayers.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
@@ -161,7 +161,7 @@ export function GoalEventList({
                     onClick={onSaveEditGoal}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors border border-indigo-400/30"
                   >
-                    {t('common.save', 'Save Changes')}
+                    {t('common.save', 'Save')}
                   </button>
                 </div>
               </div>

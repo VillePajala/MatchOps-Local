@@ -67,7 +67,7 @@ describe('RuleViewerModal', () => {
   it('opens at the page it was asked for', async () => {
     render(<RuleViewerModal {...props} isOpen />);
     await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));
-    expect(screen.getByText(/Sivu 65/)).toBeInTheDocument();
+    expect(screen.getByText(/Page 65/)).toBeInTheDocument();
   });
 
   /**
@@ -111,7 +111,7 @@ describe('RuleViewerModal', () => {
     getDocument.mockReturnValue({ promise: Promise.reject(new Error('network down')) });
     render(<RuleViewerModal {...props} isOpen />);
     await waitFor(() => expect(screen.getByText(/Check your connection|Tarkista verkkoyhteys/)).toBeInTheDocument());
-    expect(screen.getAllByText(/Open in browser|Avaa selaimessa/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Open in browser/).length).toBeGreaterThan(0);
   });
 
   it('does not treat a cancelled render as an error', async () => {
@@ -234,7 +234,7 @@ describe('RuleViewerModal', () => {
     fireEvent.click(screen.getByTestId('rule-viewer-next'));
     await waitFor(() => expect(getPage).toHaveBeenCalledWith(66));
 
-    fireEvent.click(screen.getAllByText(/Avaa selaimessa|Open in browser/)[0]);
+    fireEvent.click(screen.getAllByText(/Open in browser/)[0]);
     expect(window.open).toHaveBeenCalledWith(
       expect.stringContaining('#page=66'),
       '_blank',
@@ -250,6 +250,6 @@ describe('RuleViewerModal', () => {
 
     rerender(<RuleViewerModal {...props} isOpen={false} />);
     rerender(<RuleViewerModal {...props} isOpen />);
-    await waitFor(() => expect(screen.getByText(/Sivu 65/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Page 65/)).toBeInTheDocument());
   });
 });

@@ -64,7 +64,7 @@ export function PlayerStatsTable({
               onClick={() => onSort('name')}
               className="w-full flex items-center hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
-              {t('common.player', 'Pelaaja')} {getSortIcon('name')}
+              {t('common.player', 'Player')} {getSortIcon('name')}
             </button>
           </th>
           <th
@@ -88,7 +88,7 @@ export function PlayerStatsTable({
               onClick={() => onSort('goals')}
               className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
-              {t('common.goalsShort', 'M')} {getSortIcon('goals')}
+              {t('common.goalsShort', 'G')} {getSortIcon('goals')}
             </button>
           </th>
           <th
@@ -100,7 +100,7 @@ export function PlayerStatsTable({
               onClick={() => onSort('assists')}
               className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
-              {t('common.assistsShort', 'S')} {getSortIcon('assists')}
+              {t('common.assistsShort', 'A')} {getSortIcon('assists')}
             </button>
           </th>
           <th
@@ -124,7 +124,7 @@ export function PlayerStatsTable({
               onClick={() => onSort('avgPoints')}
               className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
-              {t('common.avgPointsShort', 'KA')} {getSortIcon('avgPoints')}
+              {t('common.avgPointsShort', 'Avg')} {getSortIcon('avgPoints')}
             </button>
           </th>
         </tr>
@@ -158,7 +158,7 @@ export function PlayerStatsTable({
         ) : (
           <tr>
             <td colSpan={6} className="py-4 text-center text-slate-400">
-              {t('common.noPlayersMatchFilter', 'Ei pelaajia hakusuodattimella')}
+              {t('common.noPlayersMatchFilter', 'No Players Match Filter')}
             </td>
           </tr>
         )}

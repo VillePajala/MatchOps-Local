@@ -217,7 +217,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
   // Date formatting helper
   const formatDisplayDate = useCallback((isoDate: string): string => {
-    if (!isoDate) return t('common.notSet', 'Ei asetettu');
+    if (!isoDate) return t('common.notSet', 'Not Set');
     try {
       const date = new Date(isoDate);
       if (isNaN(date.getTime())) {
@@ -905,8 +905,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const getTabTitle = () => {
     switch (activeTab) {
       case 'season': return t('gameStatsModal.titleSeason', 'League Stats');
-      case 'tournament': return t('gameStatsModal.titleTournament', 'Turnaustilastot');
-      case 'overall': return t('gameStatsModal.titleOverall', 'Kokonaisstilastot');
+      case 'tournament': return t('gameStatsModal.titleTournament', 'Tournament Stats');
+      case 'overall': return t('gameStatsModal.titleOverall', 'Overall Stats');
       case 'player': {
         const selectedTeamName = selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy'
           ? teams.find(team => team.id === selectedTeamIdFilter)?.name
@@ -964,7 +964,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // same component with the same handler it had before; only the frame moved.
   const playerStatsCard = (
     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
+      <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Stats')}</h3>
       {noGamesInContext ? (
         <div className="text-center text-slate-400 py-8">
           <div className="text-lg font-semibold mb-2">
@@ -987,7 +987,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               type="text"
               value={filterText}
               onChange={handleFilterChange}
-              placeholder={t('common.filterByName', 'Filter by name...')}
+              placeholder={t('common.filterByName', 'Filter By Name')}
               className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 [&:-webkit-autofill]:bg-slate-800 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#1e293b_inset]"
             />
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1192,7 +1192,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
             <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameStatsModal.wrapUpAssessments', 'Player assessments')}</h3>
             <p className="text-sm text-slate-400 mb-4">
-              {t('loadGameModal.assessmentsProgress', '{{done}}/{{total}} assessed', {
+              {t('loadGameModal.assessmentsProgress', '{{done}}/{{total}} assessments', {
                 done: currentGameCompleteness.assessments.done,
                 total: currentGameCompleteness.assessments.total,
               })}
@@ -1564,11 +1564,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                                 </span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-                                <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
+                                <span className="text-slate-300">{t('common.winPercentage', 'Win Percentage')}</span>
                                 <span className="text-amber-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-                                <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
+                                <span className="text-slate-300">{t('common.goalDifference', 'Goal Difference')}</span>
                                 <span
                                   className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
                                 >
@@ -1655,7 +1655,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           isOpen={goalEditorHook.showDeleteConfirm}
           title={t('gameStatsModal.confirmDeleteEventTitle', 'Delete Event')}
           message={t('gameStatsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.')}
-          warningMessage={t('gameStatsModal.deleteWarning', 'This action is permanent and cannot be reversed.')}
+          warningMessage={t('gameStatsModal.deleteWarning', 'This action is permanent.')}
           onConfirm={goalEditorHook.confirmDeleteEvent}
           onCancel={() => goalEditorHook.setShowDeleteConfirm(false)}
           confirmLabel={t('common.delete', 'Delete')}

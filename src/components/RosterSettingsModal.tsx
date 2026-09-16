@@ -207,7 +207,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
           {/* Modal-chrome slimming: X-header replaces the header + the
               close-only footer; the Add Player button collapses on scroll. */}
           <CollapsibleModalHeader
-            title={t('rosterSettingsModal.title', 'Manage Roster')}
+            title={t('rosterSettingsModal.title', 'All Players')}
             onClose={onClose}
             closeLabel={t('common.doneButton', 'Done')}
             collapse={headerCollapse}

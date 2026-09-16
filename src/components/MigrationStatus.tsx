@@ -162,7 +162,7 @@ function MigrationStatusComponent() {
                     : 'text-green-400 hover:text-green-300 hover:bg-green-800/50'}
                 `}
                 onClick={memoizedDismissNotification}
-                aria-label={t('migrationStatus.dismissNotification', 'Dismiss {{type}} notification', { type: notificationType })}
+                aria-label={t('migrationStatus.dismissNotification', 'Dismiss notification', { type: notificationType })}
               >
                 <span className="sr-only">{t('migrationStatus.dismissNotification', 'Dismiss notification')}</span>
                 <HiOutlineXMark className="h-5 w-5" aria-hidden="true" />

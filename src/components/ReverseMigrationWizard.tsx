@@ -576,8 +576,8 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
               </p>
               {dataSummary && (
                 <ul className="text-sm text-amber-300 space-y-1">
-                  <li>&bull; {dataSummary.players} {t('migration.summary.players', 'players')}</li>
-                  <li>&bull; {dataSummary.games} {t('migration.summary.games', 'games')}</li>
+                  <li>&bull; {dataSummary.players} {t('migration.summary.players', 'Players')}</li>
+                  <li>&bull; {dataSummary.games} {t('migration.summary.games', 'Games')}</li>
                   <li>&bull; {t('reverseMigration.confirm.allData', 'All associated data')}</li>
                 </ul>
               )}
@@ -709,7 +709,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
             <div className="text-center mb-6">
               <HiOutlineXMark className="h-12 w-12 text-red-400 mx-auto mb-3" />
               <h3 className="text-lg font-semibold text-slate-100 mb-2">
-                {t('reverseMigration.error.title', 'Download Failed')}
+                {t('reverseMigration.error.title', 'Migration Failed')}
               </h3>
             </div>
 
@@ -734,7 +734,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
               </button>
               {retryCount >= MAX_RETRIES ? (
                 <p className="text-sm text-slate-400 py-2">
-                  {t('reverseMigration.error.maxRetries', 'Maximum retries reached. Please try again later or contact support.')}
+                  {t('reverseMigration.error.maxRetries', 'Maximum retries reached. Please try again later.')}
                 </p>
               ) : (
                 <button

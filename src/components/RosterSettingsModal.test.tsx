@@ -88,7 +88,7 @@ describe('<RosterSettingsModal />', () => {
         <RosterSettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    expect(screen.getByText('Manage Roster')).toBeInTheDocument();
+    expect(screen.getByText('All Players')).toBeInTheDocument();
     expect(screen.getByText('Player One')).toBeInTheDocument();
     expect(screen.getByText('Player Two')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Add Player/i })).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('<RosterSettingsModal />', () => {
         <RosterSettingsModal {...defaultProps} isOpen={false} />
       </TestWrapper>
     );
-    expect(screen.queryByText('Manage Roster')).not.toBeInTheDocument();
+    expect(screen.queryByText('All Players')).not.toBeInTheDocument();
   });
 
   test('calls onClose when Done button is clicked', () => {
