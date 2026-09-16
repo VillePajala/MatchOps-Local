@@ -27,6 +27,7 @@ import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGame
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { disableCloudMode, clearCloudAccountInfo, updateCloudAccountInfo } from '@/config/backendConfig';
 import logger from '@/utils/logger';
+import { AGE_GROUPS } from '@/config/gameOptions';
 import * as Sentry from '@sentry/nextjs';
 
 // =============================================================================
@@ -1512,6 +1513,38 @@ export interface HydrationResult {
 }
 
 /**
+ * Strip an age group the app no longer recognises, keeping the record.
+ *
+ * RESTORING IS NOT THE SAME AS CREATING. `AGE_GROUPS` is U7-U21, and write
+ * validation rejects anything else - which is right for a coach filling in a
+ * form, and wrong for data the cloud already holds. Seasons and games written
+ * by an older build (or by a Finnish label like "P10") were being thrown out
+ * whole on the way down, one bad string costing an entire game.
+ *
+ * So the unrecognised value is dropped and the record kept. The age group is a
+ * label; the match is the thing the coach cannot get back. `RulesDirectoryModal`
+ * already takes this line, falling back to '' rather than trusting a stored
+ * value blindly.
+ *
+ * Logged rather than silent: it is still a small loss, and a run that quietly
+ * edits data on the way in should say so.
+ */
+function withRestorableAgeGroup<T extends { ageGroup?: string; name?: string }>(
+  entity: T,
+  what: string,
+): T {
+  if (!entity.ageGroup || (AGE_GROUPS as readonly string[]).includes(entity.ageGroup)) {
+    return entity;
+  }
+  logger.warn('[ReverseMigrationService] Dropping unrecognised age group on restore', {
+    what,
+    name: entity.name,
+    ageGroup: entity.ageGroup,
+  });
+  return { ...entity, ageGroup: undefined };
+}
+
+/**
  * Hydrate local storage from cloud data.
  *
  * This is used when a user signs in to cloud mode but has no local data.
@@ -1723,7 +1756,7 @@ export async function hydrateLocalFromCloud(
       try {
         const existingTeam = existingTeamMap.get(team.id);
         if (shouldWriteBasedOnTimestamp(team.updatedAt, existingTeam?.updatedAt)) {
-          await localStore.upsertTeam(team);
+          await localStore.upsertTeam(withRestorableAgeGroup(team, 'team'));
           counts.teams++;
         } else {
           skipped.teams++;
@@ -1761,7 +1794,7 @@ export async function hydrateLocalFromCloud(
       try {
         const existingSeason = existingSeasonMap.get(season.id);
         if (shouldWriteBasedOnTimestamp(season.updatedAt, existingSeason?.updatedAt)) {
-          await localStore.upsertSeason(season);
+          await localStore.upsertSeason(withRestorableAgeGroup(season, 'season'));
           counts.seasons++;
         } else {
           skipped.seasons++;
@@ -1786,7 +1819,7 @@ export async function hydrateLocalFromCloud(
       try {
         const existingTournament = existingTournamentMap.get(tournament.id);
         if (shouldWriteBasedOnTimestamp(tournament.updatedAt, existingTournament?.updatedAt)) {
-          await localStore.upsertTournament(tournament);
+          await localStore.upsertTournament(withRestorableAgeGroup(tournament, 'tournament'));
           counts.tournaments++;
         } else {
           skipped.tournaments++;
@@ -1846,7 +1879,7 @@ export async function hydrateLocalFromCloud(
       try {
         const existingGame = existingGames[gameId];
         if (shouldWriteBasedOnTimestamp(game.updatedAt, existingGame?.updatedAt)) {
-          await localStore.saveGame(gameId, game);
+          await localStore.saveGame(gameId, withRestorableAgeGroup(game, 'game'));
           counts.games++;
         } else {
           skipped.games++;
