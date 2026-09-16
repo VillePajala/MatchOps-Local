@@ -22,13 +22,7 @@ import {
   HiOutlineScale,
   HiOutlineBookOpen,
 } from 'react-icons/hi2';
-import { isAndroid } from '@/utils/platform';
-import {
-  TASO_URL,
-  MYCLUB_URL,
-  MYCLUB_COACH_STORE_URL,
-  MYCLUB_INTENT_URL,
-} from '@/config/externalLinks';
+import { TASO_URL, MYCLUB_URL, MYCLUB_COACH_STORE_URL } from '@/config/externalLinks';
 import FormationPicker from './FormationPicker';
 import SteadyDigits from '@/components/SteadyDigits';
 import { useTranslation } from 'react-i18next';
@@ -689,13 +683,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               target="_blank"
               rel="noopener noreferrer"
               className={EXTERNAL_LINK_ROW}
-              onClick={(e) => {
-                if (isAndroid()) {
-                  e.preventDefault();
-                  window.location.href = MYCLUB_INTENT_URL;
-                }
-                wrapImmediate(() => {})();
-              }}
+              onClick={wrapImmediate(() => {})}
             >
               <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />
               {t('controlBar.myClubLink', 'myClub')}
