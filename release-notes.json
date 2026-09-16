@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-16",
+      "en": [
+        "The player statistics table had unreadable column headings in English - \"Goals Short\", \"Assists Short\" and the like, instead of G, A, Pts and Avg. They now read as the abbreviations they were meant to be."
+      ],
+      "fi": [
+        "Pelaajatilastojen taulukossa oli englanniksi lukukelvottomat sarakeotsikot - \"Goals Short\", \"Assists Short\" ja vastaavat - oikeiden lyhenteiden sijaan. Ne näkyvät nyt oikein. Suomenkieliset otsikot olivat jo kunnossa."
+      ]
+    },
+    {
       "date": "2026-09-15",
       "en": [
         "Statistics now show your record against each team: games, wins-draws-losses, goals and goal difference, for whatever the view is filtered to. Every spelling of a team counts as that one team.",
