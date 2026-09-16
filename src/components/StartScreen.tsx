@@ -33,6 +33,7 @@ import {
   TASO_URL,
   MYCLUB_URL,
   MYCLUB_COACH_STORE_URL,
+  MYCLUB_INTENT_URL,
   MYCLUB_COACH_INTENT_URL,
 } from '@/config/externalLinks';
 
@@ -129,15 +130,16 @@ const HomeLinkRow: React.FC<{
 );
 
 /**
- * Sends the tap to the installed myClub Coach app when there is one.
+ * Sends the tap to an installed Android app instead of the browser.
  *
- * Shared by both rows that offer it. Falls through to the href (the store page)
- * on anything that cannot honour an Android intent.
+ * Both myClub apps claim their web URLs, so both rows use this. Falls through
+ * to the href on anything that cannot honour an Android intent, and the intent
+ * itself carries a fallback for the app simply not being installed.
  */
-const openMyClubCoach: React.MouseEventHandler<HTMLAnchorElement> = (e) => {
+const openInApp = (intentUrl: string): React.MouseEventHandler<HTMLAnchorElement> => (e) => {
   if (!isAndroid()) return;
   e.preventDefault();
-  window.location.href = MYCLUB_COACH_INTENT_URL;
+  window.location.href = intentUrl;
 };
 
 /**
@@ -925,12 +927,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       icon={HiOutlineCalendarDays}
                       label={t('startScreen.myClubLink', 'myClub - events & attendance')}
                       href={MYCLUB_URL}
+                      onClick={openInApp(MYCLUB_INTENT_URL)}
                     />
                     <HomeLinkRow
                       icon={HiOutlineIdentification}
                       label={t('startScreen.myClubCoachLink', 'myClub Coach - mark attendance')}
                       href={MYCLUB_COACH_STORE_URL}
-                      onClick={openMyClubCoach}
+                      onClick={openInApp(MYCLUB_COACH_INTENT_URL)}
                     />
                   </HomeGroup>
                 )}
