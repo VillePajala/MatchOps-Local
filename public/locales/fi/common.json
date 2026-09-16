@@ -620,10 +620,10 @@
       "title": "Ammattilaisvinkit",
       "tip1": "Kaksoisnapauta pelaajia kentällä poistaaksesi ne nopeasti",
       "tip2": "Ottelun valikko (hampurilainen) sisältää ottelupäivän toiminnot — seura, kilpailut ja tilastot löytyvät etusivun välilehdiltä",
-      "tip3": "Pelit tallentuvat automaattisesti selaimen muistiin - tiliä ei tarvita"
+      "tip3": "Pelit tallentuvat laitteellesi sitä mukaa, ja synkronoituvat tilillesi kun olet kirjautuneena"
     },
     "controlBar": {
-      "assessPlayers": "Pelin päätyttyä Viimeistele ottelu kokoaa maalit, muistiinpanot, pelipaikat, otteluraportin ja pelaaja-arviot yhteen näkymään."
+      "assessPlayers": "Pelin päätyttyä Viimeistele ottelu kokoaa maalit, muistiinpanot, pelipaikat ja otteluraportin yhteen näkymään."
     }
   },
   "warmup": {
@@ -3631,12 +3631,13 @@
     "homeTitle": "Etusivu — seurasi keskus",
     "homeIntro": "Etusivulla on neljä välilehteä ja ratas-valikko. Kaikki seuraasi liittyvä on täällä; ottelu avautuu omalle kentälleen.",
     "homeGamesTab": "Pelit: aloitusnäkymä, jossa sarjan yhteenveto ja viimeisimmät pelit — aloita uusi ottelu, jatka keskeneräistä, avaa tallennetut pelit ja ottelusuunnittelu.",
-    "homeTeamTab": "Seura: pelaajat, joukkueet, taustahenkilöt, lämmittely ja valmennusmateriaalit.",
+    "homeTeamTab": "Seura: pelaajat, joukkueet, taustahenkilöt, lämmittelysuunnitelma, ikäluokkasi säännöt ja valmennusmateriaalit.",
     "homeCompetitionsTab": "Kilpailut: luo sarjat ja turnaukset pelien ryhmittelyyn.",
     "homeStatsTab": "Tilastot: sarja-, turnaus-, kokonais- ja pelaajatilastot (käytettävissä, kun olet pelannut pelin).",
-    "homeGear": "Ratas-kuvake (vasen yläkulma): kotinäkymän vaihto (yhteenveto tai yksinkertaistettu), asetukset, varmuuskopiot, tili ja tämä opas.",
+    "homeGear": "Ratas-kuvake (vasen yläkulma): kotinäkymän vaihto (yhteenveto tai yksinkertaistettu), asetukset, varmuuskopiot, tili, käyttöönoton tarkistuslista, aloitusopas ja tämä opas.",
     "matchMenuTitle": "Ottelun valikko",
-    "matchMenuNote": "Ottelun aikana valikko sisältää ottelupäivän toiminnot:"
+    "matchMenuNote": "Ottelun aikana valikko sisältää ottelupäivän toiminnot:",
+    "opponentNames": "Vastustajien nimet: kun kirjoitat joukkueen, jota vastaan olet jo pelannut, kenttä asettuu aiemmin käyttämääsi kirjoitusasuun, jotta sama joukkue pysyy tilastoissa yhtenä joukkueena. Jos vanha kirjoitusasu on väärä, valitse \"käytä minun kirjoitusasuani\", niin se korjataan myös kaikkiin aiempiin otteluihin."
   },
   "aiSettings": {
     "title": "Äänimuistiinpanot ja tekoäly",

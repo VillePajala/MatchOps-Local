@@ -69,10 +69,14 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <div className={sectionBox}>
               <ul className={list}>
                 <li>{t('appGuide.homeGamesTab', 'Games: your landing view with a summary of your league and recent games — start a new match, continue where you left off, open saved games and the match planner.')}</li>
-                <li>{t('appGuide.homeTeamTab', 'Club: your players, teams, staff, warmup and coaching materials.')}</li>
+                <li>{t('appGuide.homeTeamTab', 'Club: your players, teams, staff, the warmup plan, the rules for your age group and coaching materials.')}</li>
                 <li>{t('appGuide.homeCompetitionsTab', 'Competitions: set up leagues and tournaments to group your games.')}</li>
                 <li>{t('appGuide.homeStatsTab', 'Stats: league, tournament, overall and player statistics (available once you\'ve played a game).')}</li>
-                <li>{t('appGuide.homeGear', 'The gear icon (top-left): the home view toggle (summary or simplified), settings, backups, your account, and this guide.')}</li>
+                <li>{t('appGuide.homeGear', 'The gear icon (top-left): the home view toggle (summary or simplified), settings, backups, your account, the setup checklist, the getting-started guide and this one.')}</li>
+                {/* The one behaviour in the app that changes what a coach
+                    typed. Unexplained it looks like a bug, so it is explained
+                    here rather than left to be discovered. */}
+                <li>{t('appGuide.opponentNames', 'Opponent names: type a team you have played before and the field settles on the spelling you already used, so one team stays one team in your statistics. If that earlier spelling is the wrong one, choose "use mine instead" and it is corrected in every past game too.')}</li>
               </ul>
             </div>
           </section>
@@ -164,7 +168,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <div className={sectionBox}>
               <ul className={list}>
                 <li>{t('firstGameGuide.gameSettingsTip', 'Edit match details')}</li>
-                <li>{t('firstGameGuide.assessPlayersTip', 'Assess players and view match stats')}</li>
+                <li>{t('firstGameGuide.assessPlayersTip', 'Finish the game: match report, positions played and stats')}</li>
                 <li>{t('firstGameGuide.backHomeTip', 'Return to the Home screen (Koti) — the phone back button does the same')}</li>
               </ul>
             </div>
