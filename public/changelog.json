@@ -1,12 +1,12 @@
 {
-  "version": "01b07614",
-  "date": "2026-09-13",
+  "version": "1e2d5bc5",
+  "date": "2026-09-16",
   "notes": {
     "en": [
-      "The match field now shows the rest of your plan. A sub who is planned to come on at a second position later appears there as a faint dashed marker with their name, so you can see at a glance who else belongs where. It is a reminder only - nothing is tracked, and the marker disappears as soon as someone is standing there."
+      "Internal tidy-up with no visible change: the English wording written in the code now matches the English the app actually shows. Some of it had drifted so far that Finnish text was sitting where an English default belonged."
     ],
     "fi": [
-      "Ottelunäkymä näyttää nyt suunnitelman loputkin. Vaihtopelaaja, jonka on suunniteltu tulevan myöhemmin toiselle pelipaikalle, näkyy siinä paikassa haaleana katkoviivaympyränä nimineen, joten näet yhdellä silmäyksellä ketkä muut kuuluvat mihinkin. Kyse on vain muistutuksesta - mitään ei seurata, ja merkki katoaa heti kun paikalla seisoo pelaaja."
+      "Sisäinen siivous ilman näkyvää muutosta: koodiin kirjoitettu englanninkielinen teksti vastaa nyt sitä englantia, jota sovellus oikeasti näyttää. Osa oli eriytynyt niin pahasti, että englanninkielisen oletuksen paikalla oli suomenkielistä tekstiä."
     ]
   }
 }

@@ -4,6 +4,15 @@
     {
       "date": "2026-09-16",
       "en": [
+        "When you create a game and the formation does not match what your age group officially plays, the app now says so under the formation picker. It never changes your choice - a series can differ from the national default. Football's new formats start in season 2027, so until then nothing is said about football."
+      ],
+      "fi": [
+        "Kun luot ottelun ja pelimuoto ei vastaa sitä, mitä ikäluokkasi virallisesti pelaa, sovellus kertoo siitä pelimuotovalinnan alla. Valintaasi ei muuteta - sarja voi poiketa valtakunnallisesta oletuksesta. Jalkapallon uudet pelimuodot alkavat kaudella 2027, joten siihen asti jalkapallosta ei sanota mitään."
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "en": [
         "Internal tidy-up with no visible change: the English wording written in the code now matches the English the app actually shows. Some of it had drifted so far that Finnish text was sitting where an English default belonged."
       ],
       "fi": [

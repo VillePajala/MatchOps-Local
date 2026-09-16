@@ -24,6 +24,7 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
+import { officialFieldSize } from '@/config/officialFieldSize';
 import { getStoredSetupAgeGroup, getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
 import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
@@ -204,8 +205,34 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // under the coach mid-edit.
   const onboardingUserIdRef = useRef(onboardingUserId);
   onboardingUserIdRef.current = onboardingUserId;
+  /**
+   * The official format for this age group, when there is one worth naming.
+   *
+   * Only appears once the coach has given an age group AND the chosen
+   * formation disagrees with it - a hint that restates what you already picked
+   * is noise. It never blocks or changes the choice: a series may deviate from
+   * the national default, and the coach is the one who knows.
+   *
+   * Dated by the GAME, not by today, so a fixture scheduled into next season
+   * gets next season's answer. Football's new formats do not start until
+   * season 2027, and until then this says nothing for football rather than
+   * claiming a U10 team should be playing 5v5 when their league still says
+   * 8v8 (see config/officialFieldSize).
+   */
   const preferredFormationSize =
     getStoredSetupFormat(onboardingUserId) ?? getRecommendedFieldSize(selectedPlayerIds.length);
+
+  /**
+   * The official format, only when it disagrees with what is selected.
+   * null = nothing to say: no age group, no table in force yet, or they match.
+   */
+  const formatMismatch = useMemo(() => {
+    const official = officialFieldSize(ageGroup, gameType, gameDate);
+    if (!official) return null;
+    const chosen = formationPresetId ? getPresetById(formationPresetId)?.fieldSize : undefined;
+    const effective = chosen ?? preferredFormationSize;
+    return effective === official.fieldSize ? null : official;
+  }, [ageGroup, gameType, gameDate, formationPresetId, preferredFormationSize]);
 
   // Playing-Time Planner prefill (Phase 2): pick a saved plan + one of its games to
   // pre-load the planned lineup. Payload rides onStart; missing-count drives a hint.
@@ -1456,6 +1483,18 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     </optgroup>
                   ))}
                 </select>
+                {formatMismatch && (
+                  <p
+                    className="mt-1.5 text-xs text-amber-200/90"
+                    data-testid="format-nudge"
+                  >
+                    {t(
+                      'newGameSetupModal.formatNudge',
+                      '{{ageGroup}} officially plays {{official}}. You can still choose another - a series may differ.',
+                      { ageGroup, official: formatMismatch.fieldSize },
+                    )}
+                  </p>
+                )}
               </div>
 
               {/* Gender (Boys/Girls) */}

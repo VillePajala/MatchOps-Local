@@ -2057,4 +2057,82 @@ describe('NewGameSetupModal', () => {
       });
     });
   });
+
+  /**
+   * Tells a coach what their age group officially plays, when the chosen
+   * formation disagrees. It never blocks the choice - a series may deviate
+   * from the national default and the coach is the one who knows.
+   * @critical
+   */
+  describe('official format nudge', () => {
+    const openWith = async (props: Record<string, unknown>) => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} {...props} />
+        </ToastProvider>,
+      );
+      await waitFor(() =>
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument(),
+      );
+    };
+    const setAge = async (age: string) => {
+      await act(async () => {
+        fireEvent.change(document.querySelector('#ageGroupSelect') as HTMLSelectElement, {
+          target: { value: age },
+        });
+      });
+    };
+    const setFormation = async (id: string) => {
+      await act(async () => {
+        fireEvent.change(document.querySelector('#formationSelect') as HTMLSelectElement, {
+          target: { value: id },
+        });
+      });
+    };
+
+    /**
+     * THE ONE THAT MATTERS MOST. Football's new formats start in season 2027.
+     * Today a Finnish U10 team still plays 8v8, so saying "U10 plays 5v5" now
+     * would tell a coach their own league is wrong.
+     */
+    it('says nothing about football before season 2027', async () => {
+      await openWith({});
+      await setAge('U10');
+      await setFormation('5v5-2-2');
+      expect(screen.queryByTestId('format-nudge')).not.toBeInTheDocument();
+    });
+
+    /** Futsal's formats are already in force, so futsal answers today. */
+    it('flags a futsal format that disagrees with the age group', async () => {
+      await openWith({});
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Futsal/i }));
+      });
+      await setAge('U10');
+      await setFormation('5v5-2-2'); // U10 futsal is officially 4v4
+      // Presence only: this suite's i18n mock does not interpolate, so the
+      // rendered string is the raw template. WHICH format it names is covered
+      // directly in config/officialFieldSize.test.ts.
+      await waitFor(() => expect(screen.getByTestId('format-nudge')).toBeInTheDocument());
+    });
+
+    /** A hint that restates what you already picked is noise. */
+    it('stays quiet when the choice already matches', async () => {
+      await openWith({});
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Futsal/i }));
+      });
+      await setAge('U10');
+      await setFormation('4v4-2-1');
+      await waitFor(() =>
+        expect(screen.queryByTestId('format-nudge')).not.toBeInTheDocument(),
+      );
+    });
+
+    it('says nothing without an age group', async () => {
+      await openWith({});
+      await setFormation('5v5-2-2');
+      expect(screen.queryByTestId('format-nudge')).not.toBeInTheDocument();
+    });
+  });
 });
