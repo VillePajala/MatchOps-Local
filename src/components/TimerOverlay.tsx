@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'; // Import translation hook
 import { IntervalLog, SubAlertLevel } from '@/types'; // Import types
 import type { PlannedSubPrompt } from '@/hooks/usePlannedSubPrompts';
 import { formatTime } from '@/utils/time';
+import SteadyDigits from '@/components/SteadyDigits';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
@@ -324,9 +325,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
       
         {/* Timer Display */}
         <div className="mb-2">
-          <span className={`text-9xl sm:text-[10rem] font-bold tabular-nums ${textColor}`}>
+          {/* SteadyDigits, not tabular-nums: Rajdhani has no tnum feature, so
+              the class was inert and this clock slid sideways by up to ~60px
+              as digits ticked over. See SteadyDigits for the measurements. */}
+          <SteadyDigits className={`text-9xl sm:text-[10rem] font-bold ${textColor}`}>
             {formatTime(timeElapsedInSeconds)}
-          </span>
+          </SteadyDigits>
         </div>
 
         {/* Time Since Last Substitution + Period pill + Game specs */}
@@ -334,7 +338,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           {gameStatus !== 'notStarted' && (
             <span className="text-sm font-medium text-slate-400">
               {t('timerOverlay.timeSinceLastSubCombined', 'Last sub:')}{' '}
-              <span className="tabular-nums text-slate-300 font-semibold">{formatTime(timeSinceLastSub)}</span>
+              <SteadyDigits className="text-slate-300 font-semibold">{formatTime(timeSinceLastSub)}</SteadyDigits>
             </span>
           )}
           {periodPillLabel && (
