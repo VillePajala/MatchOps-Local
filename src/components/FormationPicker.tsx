@@ -78,7 +78,7 @@ const MenuContent: React.FC<{
       <div className={headerClass}>
         <div className="text-center">
           <h2 className={titleClass}>
-            {t('formations.title', 'Place players on field')}
+            {t('formations.title', 'Formations')}
           </h2>
           <p className={subtitleClass}>
             {t('formations.playerCount', '{{count}} players selected', { count: selectedPlayerCount })}

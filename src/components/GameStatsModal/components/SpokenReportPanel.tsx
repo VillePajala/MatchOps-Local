@@ -314,7 +314,7 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
             )
           : t(
               'spokenReport.introNoProvider',
-              'Dictate your account of the match. Without an AI provider connected it stays as a recording in your voice notes, ready to write out later.',
+              'Dictate your account of the match. It stays as a recording in your voice notes, ready to write out later.',
             )}
       </p>
       {ai.connected && (

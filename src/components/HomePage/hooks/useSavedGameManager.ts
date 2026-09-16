@@ -290,7 +290,7 @@ export function useSavedGameManager({
 
         if (!deletedGameId) {
           setGameDeleteError(
-            t('loadGameModal.errors.deleteFailedNotFound', 'Error deleting game: {gameId}.', { gameId }),
+            t('loadGameModal.errors.deleteFailedNotFound', 'Error deleting game: {gameId}. Game not found or ID was invalid.', { gameId }),
           );
           return;
         }

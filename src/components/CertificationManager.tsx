@@ -133,7 +133,7 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
           onClick={() => setIsAdding(true)}
           disabled={!hasAvailableCertifications}
           className="px-3 py-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-slate-400/30"
-          aria-label={t('personnelDetailsModal.addCertification', 'Add certification')}
+          aria-label={t('personnelDetailsModal.addCertification', 'Add Certification')}
         >
           + {t('personnelDetailsModal.addCertification', 'Add Certification')}
         </button>

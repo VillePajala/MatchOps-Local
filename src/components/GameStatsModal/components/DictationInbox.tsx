@@ -375,7 +375,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
         )
       ) : (
         <p className="text-sm text-slate-400 mb-3" data-testid="dictation-transcribe-hint">
-          {t('dictation.transcribeHint', 'Connect your own AI provider in Settings to transcribe clips automatically.')}
+          {t('dictation.transcribeHint', 'The recordings are kept here so you can write them out when you have a moment.')}
         </p>
       )}
       <details className="mb-3 rounded-md bg-slate-800/60 border border-slate-700/60 px-3 py-2">

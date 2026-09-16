@@ -213,7 +213,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
 
     setIsSyncing(true);
     setStep('syncing');
-    setProgress({ stage: 'preparing', progress: 0, message: t('migration.preparing', 'Preparing...') });
+    setProgress({ stage: 'preparing', progress: 0, message: t('migration.preparing', 'Preparing migration...') });
     setErrorMessage(null);
 
     try {
@@ -263,12 +263,12 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
     const translationMap: Record<string, string> = {
       'players': t('migration.summary.players', 'Players'),
       'teams': t('migration.summary.teams', 'Teams'),
-      'teamRosters': t('migration.summary.teamRosters', 'Team Rosters'),
+      'teamRosters': t('migration.summary.teamRosters', 'Team Roster Assignments'),
       'seasons': t('migration.summary.seasons', 'Leagues'),
       'tournaments': t('migration.summary.tournaments', 'Tournaments'),
       'games': t('migration.summary.games', 'Games'),
       'personnel': t('migration.summary.personnel', 'Personnel'),
-      'warmupPlan': t('migration.summary.warmupPlan', 'Warmup Plans'),
+      'warmupPlan': t('migration.summary.warmupPlan', 'Warmup Plan'),
       'settings': t('migration.summary.settings', 'Settings'),
     };
     // Handle "games (3/78)" format — extract base name and preserve count suffix
@@ -309,7 +309,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
     if (items.length === 0) {
       return (
         <p className="text-slate-400 text-sm text-center">
-          {t('migration.noData', 'No data to sync')}
+          {t('migration.noData', 'No data found to migrate.')}
         </p>
       );
     }
@@ -353,7 +353,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           <p className="text-slate-300">{message ? translateMessage(message) : ''}</p>
           {currentEntity && (
             <p className="text-sm text-slate-500 mt-1">
-              {t('migration.progress.entity', 'Syncing {{entity}}...', { entity: translateEntity(currentEntity) })}
+              {t('migration.progress.entity', 'Migrating {{entity}}...', { entity: translateEntity(currentEntity) })}
             </p>
           )}
         </div>
@@ -370,7 +370,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
             <div className="flex flex-col items-center justify-center py-8">
               <HiOutlineArrowPath className="h-8 w-8 text-sky-400 animate-spin mb-3" />
               <p className="text-slate-300">
-                {t('migration.loadingData', 'Loading data...')}
+                {t('migration.loadingData', 'Loading data summary...')}
               </p>
             </div>
           );
@@ -442,10 +442,10 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           <div className="text-center py-4">
             <HiOutlineCheckCircle className="h-12 w-12 text-green-400 mx-auto mb-3" />
             <p className="text-lg font-medium text-green-400 mb-2">
-              {t('migration.success', 'Sync complete!')}
+              {t('migration.success', 'Migration complete!')}
             </p>
             <p className="text-slate-300">
-              {t('migration.successDescription', 'Your data is now backed up to the cloud.')}
+              {t('migration.successDescription', 'Your data is now synced to the cloud.')}
             </p>
           </div>
         );
@@ -455,7 +455,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           <div className="text-center py-4">
             <HiOutlineExclamationTriangle className="h-12 w-12 text-red-400 mx-auto mb-3" />
             <p className="text-lg font-medium text-red-400 mb-2">
-              {t('migration.failed', 'Sync Failed')}
+              {t('migration.failed', 'Migration Failed')}
             </p>
             <p className="text-slate-300 mb-3">
               {errorMessage || t('migration.errorGeneric', 'Something went wrong. Please try again.')}
@@ -589,7 +589,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         {/* Header */}
         <div className={wizardHeaderStyle}>
           <h2 id={titleId} className={wizardTitleStyle}>
-            {t('migration.title', 'Sync to Cloud')}
+            {t('migration.title', 'Migrate to Cloud')}
           </h2>
           {step !== 'syncing' && (
             <button

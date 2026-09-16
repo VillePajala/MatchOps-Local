@@ -909,7 +909,7 @@ export default function Home() {
             // Show error toast
             logger.error('[page.tsx] Legacy migration failed', { error: result.error });
             showToast(
-              t('page.legacyMigrationFailed', 'Could not migrate your data. Please contact support if this persists.'),
+              t('page.legacyMigrationFailed', 'Could not migrate your data. Please try again later.'),
               'error'
             );
             // Reset ref to allow retry on next effect run (respect cancelled flag)
