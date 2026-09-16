@@ -54,7 +54,7 @@ describe('ShootoutModal', () => {
     fireEvent.click(missedButtons[1]); // opponent kick missed → still 1-0
 
     expect(screen.getByText('1 - 0')).toBeInTheDocument();
-    expect(screen.getByText('You win the shootout')).toBeInTheDocument();
+    expect(screen.getByText('Shootout won')).toBeInTheDocument();
   });
 
   it('shows tied state when level', () => {
@@ -82,7 +82,7 @@ describe('ShootoutModal', () => {
     renderModal();
     fireEvent.click(screen.getAllByRole('button', { name: 'Scored' })[0]);
     expect(screen.getByText('1 - 0')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Remove kick' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove shot' }));
     expect(screen.getByText('0 - 0')).toBeInTheDocument();
   });
 });

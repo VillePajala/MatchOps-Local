@@ -104,7 +104,7 @@ describe('MigrationWizard', () => {
     render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     // Should show loading initially
-    expect(screen.getByText('Loading data...')).toBeInTheDocument();
+    expect(screen.getByText('Loading data summary...')).toBeInTheDocument();
 
     // Resolve the promise
     await act(async () => {
@@ -195,7 +195,7 @@ describe('MigrationWizard', () => {
 
     // Should show preparing message
     await waitFor(() => {
-      expect(screen.getByText('Preparing...')).toBeInTheDocument();
+      expect(screen.getByText('Preparing migration...')).toBeInTheDocument();
     });
 
     // Close button should not be visible during sync
@@ -221,7 +221,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync complete!')).toBeInTheDocument();
+      expect(screen.getByText('Migration complete!')).toBeInTheDocument();
     });
 
     // Should show Done button
@@ -258,7 +258,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync complete!')).toBeInTheDocument();
+      expect(screen.getByText('Migration complete!')).toBeInTheDocument();
     });
 
     // Click close button in complete step
@@ -293,7 +293,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     // Should show sanitized error message (not raw error from service)
@@ -325,7 +325,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     // Click Retry - goes back to preview
@@ -344,7 +344,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync complete!')).toBeInTheDocument();
+      expect(screen.getByText('Migration complete!')).toBeInTheDocument();
     });
   });
 
@@ -366,7 +366,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     await act(async () => {
@@ -393,7 +393,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     // Should show sanitized message, not raw error
@@ -414,7 +414,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     // Should show sanitized message
@@ -434,7 +434,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     // Should show sanitized message
@@ -454,7 +454,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     // Should show sanitized message
@@ -474,7 +474,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     // Should show generic sanitized message
@@ -494,7 +494,7 @@ describe('MigrationWizard', () => {
 
     // Should show error state after loading fails
     await waitFor(() => {
-      expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
+      expect(screen.queryByText('Loading data summary...')).not.toBeInTheDocument();
     });
 
     // Should show error message
@@ -536,7 +536,7 @@ describe('MigrationWizard', () => {
   // Empty Data Tests
   // ============================================================================
 
-  it('shows "No data to sync" when local data is empty', async () => {
+  it('shows "No data found to migrate." when local data is empty', async () => {
     (getLocalDataSummary as jest.Mock).mockResolvedValue({
       players: 0,
       teams: 0,
@@ -553,7 +553,7 @@ describe('MigrationWizard', () => {
     render(<MigrationWizard onComplete={mockOnComplete} onSkip={mockOnSkip} onDiscard={mockOnDiscard} />);
 
     await waitFor(() => {
-      expect(screen.getByText('No data to sync')).toBeInTheDocument();
+      expect(screen.getByText('No data found to migrate.')).toBeInTheDocument();
     });
   });
 
@@ -616,7 +616,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync complete!')).toBeInTheDocument();
+      expect(screen.getByText('Migration complete!')).toBeInTheDocument();
     });
   });
 
@@ -636,7 +636,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     expect(screen.getByText('Request timed out. Please try again with a stable connection.')).toBeInTheDocument();
@@ -654,7 +654,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     expect(screen.getByText('Permission error. Please try signing out and back in.')).toBeInTheDocument();
@@ -672,7 +672,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     expect(screen.getByText('Data validation failed. Please check your data and try again.')).toBeInTheDocument();
@@ -696,7 +696,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     // Should show sanitized message (matches 'policy' pattern)
@@ -809,7 +809,7 @@ describe('MigrationWizard', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Sync Failed')).toBeInTheDocument();
+      expect(screen.getByText('Migration Failed')).toBeInTheDocument();
     });
 
     // Retry

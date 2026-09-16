@@ -271,7 +271,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
           titleId={modalTitleId}
           title={mode === 'create'
                 ? t('tournamentDetailsModal.createTitle', 'Create Tournament')
-                : tournament?.name || t('tournamentDetailsModal.editTitle', 'Tournament Details')}
+                : tournament?.name || t('tournamentDetailsModal.editTitle', 'Edit Tournament')}
           onClose={handleCancel}
           closeLabel={t('common.cancel', 'Cancel')}
         />
@@ -524,7 +524,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                   value={awardedPlayerId || ''}
                   onChange={(e) => setAwardedPlayerId(e.target.value || undefined)}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
-                  aria-label={t('tournaments.selectAwardWinner', 'Select Player of Tournament')}
+                  aria-label={t('tournaments.selectAwardWinner', '-- Select Player of Tournament --')}
                 >
                   <option value="">{t('tournaments.selectAwardWinner', '-- Select Player of Tournament --')}</option>
                   {masterRoster.map(player => (

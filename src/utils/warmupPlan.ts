@@ -90,7 +90,7 @@ export const createDefaultWarmupPlan = (t: TFunction): WarmupPlan => {
     createSection(
       t('warmup.section1Title', '1. 30 min / Gathering'),
       [
-        t('warmup.section1Goal', ''),
+        t('warmup.section1Goal', 'Goal: Create a positive atmosphere and review the day\'s agenda.'),
         '',
         arrayToText('warmup.section1Points'),
       ].filter(Boolean).join('\n')
@@ -98,7 +98,7 @@ export const createDefaultWarmupPlan = (t: TFunction): WarmupPlan => {
     createSection(
       t('warmup.section2Title', '2. 20 min / Warm-up'),
       [
-        t('warmup.section2Goal', ''),
+        t('warmup.section2Goal', 'Goal: Raise body temperature, tune minds for the game.'),
         '',
         arrayToText('warmup.section2Activities'),
       ].filter(Boolean).join('\n')
@@ -106,30 +106,30 @@ export const createDefaultWarmupPlan = (t: TFunction): WarmupPlan => {
     createSection(
       t('warmup.section3Title', '3. 10 min / Ball Work'),
       [
-        t('warmup.section3Goal', ''),
+        t('warmup.section3Goal', 'Goal: Activate ball touch and prepare for the game.'),
         '',
         t('warmup.section3PairWork', 'Partner + Ball:'),
         arrayToText('warmup.section3PairWorkPoints'),
       ].filter(Boolean).join('\n')
     ),
     createSection(
-      t('warmup.section3GoalieWarmup', 'Goalkeeper Warm-up'),
+      t('warmup.section3GoalieWarmup', 'Goalkeeper Warm-up (Assistant coach can help):'),
       arrayToText('warmup.section3GoalieWarmupPoints')
     ),
     createSection(
-      t('warmup.section3CombinedGoalieWarmup', 'Combined GK warm-up'),
+      t('warmup.section3CombinedGoalieWarmup', 'Combined GK warm-up (if space allows):'),
       arrayToText('warmup.section3CombinedGoalieWarmupPoints')
     ),
     createSection(
       t('warmup.section4Title', '4. 2 min / Bench Area'),
       [
-        t('warmup.section4Goal', ''),
+        t('warmup.section4Goal', 'Goal: Final preparations before the game.'),
         '',
         arrayToText('warmup.section4Points'),
       ].filter(Boolean).join('\n')
     ),
     createSection(
-      t('warmup.duringGameTitle', 'During the Game'),
+      t('warmup.duringGameTitle', 'During the Game:'),
       arrayToText('warmup.duringGamePoints')
     ),
   ];

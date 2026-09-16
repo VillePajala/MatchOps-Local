@@ -141,7 +141,7 @@ export default function CloudSyncSection({
   const executeEnableCloud = useCallback(() => {
     if (!cloudAvailable) {
       showToast(
-        t('cloudSync.notConfigured', 'Cloud sync is not configured. Contact support for access.'),
+        t('cloudSync.notConfigured', 'Cloud sync is not configured. Please try again later.'),
         'error'
       );
       return;

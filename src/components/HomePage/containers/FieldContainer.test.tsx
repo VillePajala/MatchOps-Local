@@ -234,7 +234,7 @@ describe('FieldContainer', () => {
     };
     render(<FieldContainer {...props} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /create your first match/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Create Match/i }));
     expect(props.onOpenNewGameSetup).toHaveBeenCalledTimes(1);
   });
 
@@ -246,14 +246,14 @@ describe('FieldContainer', () => {
     render(<FieldContainer {...props} />);
 
     // Overlay should be visible
-    expect(screen.getByText(/Ready to track your first game/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ready to create your first match/i)).toBeInTheDocument();
 
     // Click dismiss button
     fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
 
     // Overlay should be gone. The on-field "Create Game" pill was removed - a new
     // game is started from the hamburger menu instead.
-    expect(screen.queryByText(/Ready to track your first game/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ready to create your first match/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Create Game/i)).not.toBeInTheDocument();
   });
 

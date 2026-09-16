@@ -582,7 +582,7 @@ export function FieldContainer({
                   <h3 className="text-2xl font-bold text-indigo-300 mb-2">
                     {availablePlayers.length === 0
                       ? t('firstGame.titleNoPlayers', 'Ready to get started?')
-                      : t('firstGame.title', 'Ready to track your first game?')}
+                      : t('firstGame.title', 'Ready to create your first match!')}
                   </h3>
                   <p className="text-slate-300 text-sm leading-relaxed mb-6">
                     {availablePlayers.length === 0
@@ -610,7 +610,7 @@ export function FieldContainer({
                     onClick={() => onOpenNewGameSetup?.()}
                     className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
                   >
-                    {t('firstGame.createGame', 'Create Your First Match')}
+                    {t('firstGame.createGame', 'Create Match')}
                   </button>
                 )}
               </div>

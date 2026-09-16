@@ -395,7 +395,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               // Default error handler for mutations without explicit error handling
               logger.error('[GameSettingsModal] Game details mutation failed:', error);
               if (isMountedRef.current) {
-                setError(t('gameSettingsModal.errors.updateFailed', 'Failed to save changes'));
+                setError(t('gameSettingsModal.errors.updateFailed', 'Failed to update event. Please try again.'));
               }
             }
           },
@@ -1399,7 +1399,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         the game info from disagreeing about who led. */}
                     {captainIdLocal && !selectedPlayerIds.includes(captainIdLocal) && (
                       <option value={captainIdLocal}>
-                        {`${availablePlayers.find(p => p.id === captainIdLocal)?.name ?? t('gameSettingsModal.unknownPlayer', 'Unknown player')} (${t('gameSettingsModal.captainNotInSquad', 'not in the squad')})`}
+                        {`${availablePlayers.find(p => p.id === captainIdLocal)?.name ?? t('gameSettingsModal.unknownPlayer', 'Unknown Player')} (${t('gameSettingsModal.captainNotInSquad', 'not in the squad')})`}
                       </option>
                     )}
                   </select>
@@ -1445,7 +1445,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               {/* Game Type Tabs */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  {t('gameSettingsModal.gameTypeLabel', 'Game Type')}
+                  {t('gameSettingsModal.gameTypeLabel', 'Link to Competition')}
                 </label>
                 <div className="flex gap-2">
                 <button
@@ -1968,7 +1968,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             {/* CARD 3: Pelin asetukset (Game Configuration) */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
-                {t('gameSettingsModal.gameConfigLabel', 'Pelin asetukset')}
+                {t('gameSettingsModal.gameConfigLabel', 'Game Configuration')}
               </h3>
 
               {/* Number of Periods */}

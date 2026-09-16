@@ -301,6 +301,6 @@ export const exportPlayerStatsExcel = async (
   } catch (error) {
     const { default: logger } = await import('@/utils/logger');
     logger.error('[exportPlayerStatsExcel] Export failed:', error);
-    showToast(t('export.exportPlayerFailed', 'Failed to export player stats.'), 'error');
+    showToast(t('export.exportPlayerFailed', 'Failed to export player stats. Please try again.'), 'error');
   }
 };

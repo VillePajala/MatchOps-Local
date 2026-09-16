@@ -429,7 +429,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     if (existingTeam) {
       setDuplicateError(
         t('teamManager.duplicateNameError',
-          'A team with this name and context already exists. Change the name or select different context.',
+          'A team named "{{name}}" already exists. Please choose a different name.',
           { name: existingTeam.name }
         )
       );
@@ -495,7 +495,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         if ((error as { name: string }).name === 'AlreadyExistsError') {
           setDuplicateError(
             t('teamManager.duplicateNameError',
-              'A team with this name and context already exists. Change the name or select different context.')
+              'A team named "{{name}}" already exists. Please choose a different name.')
           );
         } else if (error instanceof Error && error.message.includes('Lock acquisition timeout')) {
           // Device was busy — the team may have been created. Show toast and close.

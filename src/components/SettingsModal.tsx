@@ -328,7 +328,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       setShowRestoreConfirm(true);
     } catch (error) {
       logger.error('[SettingsModal] Failed to load restore point:', error);
-      showToast(t('fullBackup.restoreError', 'An error occurred while restoring the backup.'), 'error');
+      showToast(t('fullBackup.restoreError', 'Error importing backup: {{error}}'), 'error');
     }
   };
 
@@ -356,10 +356,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         // migration wizard after import via the page.tsx migration check
         setShowRestoreConfirm(true);
       } else {
-        showToast(t('settingsModal.importReadError', 'Error reading file content.'), 'error');
+        showToast(t('settingsModal.importReadError', 'Error reading backup file content.'), 'error');
       }
     };
-    reader.onerror = () => showToast(t('settingsModal.importReadError', 'Error reading file content.'), 'error');
+    reader.onerror = () => showToast(t('settingsModal.importReadError', 'Error reading backup file content.'), 'error');
     reader.readAsText(file);
     event.target.value = '';
   };
@@ -395,7 +395,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         }
       } catch (error) {
         logger.error('[SettingsModal] Restore backup failed:', error);
-        showToast(t('fullBackup.restoreError', 'An error occurred while restoring the backup.'), 'error');
+        showToast(t('fullBackup.restoreError', 'Error importing backup: {{error}}'), 'error');
       } finally {
         // End loading state
         setIsRestoring(false);
@@ -459,7 +459,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       const result = await deleteAccount();
 
       if (result.error) {
-        showToast(t('settingsModal.deleteAccountFailed', 'Failed to delete account: ') + result.error, 'error');
+        showToast(t('settingsModal.deleteAccountFailed', 'Failed to delete account') + result.error, 'error');
         logger.error('[SettingsModal] Delete account failed:', result.error);
       } else {
         logger.info('[SettingsModal] Account deleted successfully');
@@ -615,7 +615,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'App Settings')}>
+    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'Settings')}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full`}>
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
@@ -626,7 +626,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Chrome slimming: X-header + collapsing tab strip; close-only
               footer removed. */}
           <CollapsibleModalHeader
-            title={t('settingsModal.title', 'App Settings')}
+            title={t('settingsModal.title', 'Settings')}
             onClose={onClose}
             closeLabel={t('settingsModal.doneButton', 'Done')}
             collapse={headerCollapse}
@@ -895,7 +895,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div className={`flex items-start gap-3 p-3 bg-slate-800/50 rounded-md${authMode !== 'cloud' ? ' opacity-50' : ''}`}>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-slate-200">
-                      {t('settingsModal.gdpr.downloadTitle', 'Download Cloud Data')}
+                      {t('settingsModal.gdpr.downloadTitle', 'Download Your Data')}
                     </p>
                     <p className="text-sm text-slate-400">
                       {authMode === 'cloud'
@@ -1212,7 +1212,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             used: formatBytes(storageEstimate.usage),
                             quota: formatBytes(storageEstimate.quota),
                           })
-                        : t('settingsModal.storageUsageUnavailable', 'Unavailable')}
+                        : t('settingsModal.storageUsageUnavailable', 'Storage usage information unavailable.')}
                     </p>
                   </div>
                   {storageEstimate && (
@@ -1322,7 +1322,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       <ConfirmationModal
         isOpen={showRestoreConfirm}
         title={t('fullBackup.confirmRestoreTitle', 'Restore from Backup?')}
-        message={t('fullBackup.confirmRestore', 'Are you sure you want to restore from this backup? All current data will be replaced with the backup data.')}
+        message={t('fullBackup.confirmRestore', 'Restore from backup? This will replace all data.')}
         warningMessage={t('fullBackup.confirmRestoreWarning', 'This action cannot be undone. Make sure you have a current backup before proceeding.')}
         onConfirm={handleRestoreConfirmed}
         onCancel={() => {
