@@ -8,143 +8,191 @@
 > The desktop app is not the phone app made wider. It is the same components,
 > **permanently arranged**. A modal is an apology for a small screen — it covers
 > what you were looking at because there is nowhere else to put it. On a laptop
-> there is somewhere else to put it, so on desktop **MatchOps has no modals**.
+> there is somewhere else, so on desktop **MatchOps has no modals**.
+
+Everything below is measured from this repo on 2026-09-16. Where a number
+appears, it was counted, not estimated.
 
 ---
 
 ## 1. Learn from the last attempt
 
-There is an abandoned branch at tag `archive/desktop-responsive-modals`. Its
-final commit says what it was doing:
+Tag `archive/desktop-responsive-modals`. Its final commit says what it did:
 
 > *"Add `renderMode` prop to GameSettingsModal enabling inline panel rendering
 > in the desktop side panel… Also apply 2-column desktop layouts to
 > SeasonDetailsModal and TournamentDetailsModal."*
 
-That is the expensive route, and it fails for a structural reason rather than a
-technical one: **it forks every modal into two designs that both have to be
-maintained forever.** Twenty-eight modals, each with a phone form and a desktop
-form, is fifty-six surfaces. The next feature has to be built twice, and the two
-drift — which is the same failure mode as the 147 translation fallbacks that had
-quietly diverged from what the app displayed.
+It fails structurally, not technically: **it forks every modal into two designs
+that both have to be maintained.** 28 modals becomes 56 surfaces; the next
+feature is built twice and the two drift. That is not hypothetical here — 147
+translation fallbacks had silently diverged from what the app actually displayed
+(#843), for exactly the reason that two copies of one truth always diverge.
 
-Issue #360 then proposed the opposite extreme: constrain everything to a
-phone-width column and put a gradient on the flanks. That is cheap and honest,
-and it buys nothing. It makes the app *not look broken* on a laptop. It does not
-make a single task easier.
+Issue #360 then proposed the opposite: a phone-width column with a gradient on
+the flanks. Cheap, honest, and it buys nothing. It stops the app *looking
+broken* without making one task easier.
 
-**This plan is a third option:** one set of components, rendered either as a
-sheet (phone) or as a panel (desktop), arranged into workspaces. No forked
-designs, and the space is actually used.
+**This is a third route**, and its viability rests on findings §3–§5.
 
 ---
 
 ## 2. What is genuinely hard on the phone
 
-Not a wish list — these are the things the code itself shows are hard, with the
-evidence.
-
-| Hard on a phone | Evidence in this repo |
+| Hard on a phone | Measured evidence |
 |---|---|
-| **Holding two numbers side by side** | The Playing-Time Planner has three views (games / balance / lineup) that are *tabs*. You change a lineup, switch tab, and find out what it did. |
-| **Long forms** | `GameSettingsModal` is **2,228 lines** with three sections (Teams & Roster, Game Details, Game Configuration). On a phone it is a full-screen takeover you scroll and dismiss before you can see the pitch again. |
-| **Seeing more than a handful of rows** | Prod has **214 games** and **159 distinct opponent strings**. A phone list shows six. |
+| **Comparison** | The Playing-Time Planner's three views (games / balance / lineup) are *tabs*. Change a lineup, switch tab, discover what it did. |
+| **Long forms** | `GameSettingsModal` = **2,228 lines**, three sections. A full-screen takeover you must dismiss to see the pitch again. |
+| **Many rows** | Prod: **214 games**, **159 distinct opponent strings**. A phone list shows six. |
 | **Precise pointing** | The known `relX 0.96` sideline-clipping bug exists because the edge of a small pitch is hard to hit with a thumb. |
-| **Typing** | Voice notes (Kirjuri) exist *because* typing a match report on a touchline phone is not realistic. The notes still have to be written out somewhere. |
-| **Cross-referencing while editing** | The owner's own description: pitch **and** roster stats **and** game settings, open together. Currently three separate takeovers. |
-| **Bulk selection** | Selecting a squad of 11 from 18, assigning positions, editing a roster — all one-at-a-time today. |
+| **Typing** | Voice notes exist *because* typing a report on a touchline phone is not realistic. They still have to be written out somewhere. |
+| **Cross-referencing while editing** | Pitch + roster stats + match settings together. Three takeovers today. |
 
 The through-line: **the phone is excellent at capture and poor at comparison.**
-Every genuine desktop win is a comparison the phone forces you to hold in your
-head.
 
 ---
 
-## 3. The architecture already supports this
+## 3. Finding: the codebase contains two opposite data patterns
 
-This is the part that makes the plan cheap, and it was not designed for desktop —
-it just happens to fit.
+| Modal | Props | Why |
+|---|---|---|
+| `GameSettingsModal` | **68** | Prop-drilled |
+| `NewGameSetupModal` | **49** | Prop-drilled |
+| `GameStatsModal` | **45** | Prop-drilled |
+| `LoadGameModal` | 19 | Prop-drilled |
+| **`PlaytimePlannerModal`** | **7** | **Loads its own data** |
 
-**`ModalProvider` already owns every open/closed flag centrally.** Eighteen
-`isXOpen` booleans, plus `selectedPlayerForStats`, `plannerTarget`,
-`clubStatsInitialTab`, `competitionManagerKind`. The desktop shell does not need
-new state to know what should be visible — **it reads the same provider and
-renders panels instead of modals.**
+`useGameOrchestration` is a **2,644-line** hook that assembles two bundles
+(`gameContainerProps`, `modalManagerProps`); `HomePage` is a 101-line
+composition root that renders them. `ModalManager` receives three bags:
+**8 state + 17 data + 56 handlers.**
 
-**Modals are already hosted in two places, not scattered.**
+**Why this matters for panels, and why it is *not* the blocker I first assumed:**
+a docked panel needs its data live and continuously, not at open-time. The bags
+already are live — they are recomputed every render. So data reaching four
+simultaneous panels is **already solved**; the shell distributes the same bags.
 
-- `ClubModalsHost` — club scope, rendered on both screens: TrainingResources,
-  RulesDirectory, Settings, Instructions, SeasonTournament, Personnel, Roster,
-  TeamManager, LoadGame, NewGameSetup, PlaytimePlanner, GameStats (aggregate).
-- `ModalManager` — match scope: GameSettings, GameStats (current), GoalLog,
-  PlayerAssessment, Confirmation.
-
-Two files decide what is on screen. A desktop shell replaces **two hosts**, not
-twenty-eight call sites.
-
-**The match screen is already decomposed.** `GameContainer` renders
-`ControlBar`, `FieldContainer`, `GameInfoBar`, `PlayerBar` as separate
-components. Those are panels already; they are simply stacked rather than
-docked.
-
-**`selectedPlayerForStats` is a prototype of the inspector.** The pattern is
-half-invented already: something is selected, and a surface elsewhere shows it.
-
-**What does not exist:** any `useMediaQuery`/breakpoint hook, and responsive
-styling is thin (60 `sm:`, 37 `md:`, 13 `lg:` across all components). There is
-no desktop layout to unpick — which is a benefit, not a gap.
+**What it does mean:** the planner's pattern (self-loading, 7 props) is the one
+that scales to workspaces, and the prop-drilled pattern is the one that makes
+every new panel a 60-prop threading exercise. That is a direction for new work,
+not a prerequisite. **Do not refactor 2,644 lines before starting.**
 
 ---
 
-## 4. The three primitives
+## 4. Finding: the seam is two symbols, not twenty-eight files
 
-Everything below is built from exactly three ideas. If these are right the
-workspaces are arrangement; if they are wrong every workspace inherits it.
+This is what makes the plan cheap, and it is a direct dividend of yesterday's
+`modalStyles` consolidation (#826).
 
-### 4.1 `Surface` — one component, two presentations
+```
+MODAL_BACKDROP          used by 23 of 28 modals
+CollapsibleModalHeader  used by 23 of 28 modals
+modalContainerStyle     used by 6
+ModalContainer          used by 2
+```
 
-Every current modal becomes a **surface**: its content, with no opinion about
-its frame. A surface renders inside either:
+**23 of 28 modals build their shell from the same two symbols.** A `Panel` is
+those two symbols resolving differently. Put a `FrameContext` above them and
+23 modals become panels **without individual edits** — the exact opposite of
+`renderMode` on each.
 
-- `<Sheet>` — the existing full-screen modal chrome. **Phone, unchanged.**
-- `<Panel>` — a docked region with a header and its own scroll. **Desktop.**
+The 8 that do *not* share the chrome are:
 
-The critical rule, and the whole reason the last attempt failed:
+> BackupRestoreResults · CloudAuth · Confirmation · ImportResults ·
+> PendingSyncWarning · PlaytimePlanner · ReConsent · UpgradePrompt
 
-> **A surface has ONE layout.** It is a single column that works at 320px and at
-> 480px. It does not get a two-column desktop variant. Desktop gains come from
-> having *several surfaces open at once*, never from re-laying-out one surface.
+Which is almost precisely the list that **should stay modal anyway** —
+confirmations, auth, one-shot result reports — plus the planner, which becomes a
+workspace. **The split has already happened; nobody noticed.**
 
-`GameSettingsModal`'s three sections stay stacked in a 320px-wide panel. That is
-fine — the win is that the pitch is still visible beside it.
+---
 
-### 4.2 `Selection` — app-wide, one thing at a time
+## 5. Finding: four assumptions of exclusivity, and they are the real work
 
-A single piece of global state:
+Every modal today assumes it is the only thing on screen. Four mechanisms
+encode that, and all four break when four panels are open:
+
+| Mechanism | Files | Breaks how |
+|---|---|---|
+| `useFocusTrap` | **14** | Four traps fight; focus cannot leave the first |
+| `useEscapeToClose` | **17** | Escape becomes ambiguous — which panel closes? |
+| `useModalHardwareBack` / `SubLevel` | **22** | Back pops a stack that is no longer a stack |
+| `aria-modal` (via `ModalContainer`) | all dialog-labelled | Four `aria-modal` regions is invalid; a screen reader is told the rest of the page is inert |
+
+**This is the actual engineering**, and my first pass of this plan did not
+mention any of it. The fix is one idea rather than four:
+
+```ts
+type Frame = 'sheet' | 'panel';
+```
+
+- **`sheet`** — today's behaviour exactly. Traps focus, owns Escape, pushes a
+  back entry, stamps `aria-modal`.
+- **`panel`** — none of those. It is a labelled `region`, focus flows through it
+  in DOM order, Escape belongs to the workspace, back navigates workspaces.
+
+Each of the four hooks takes the frame into account and no-ops in `panel` mode.
+Four small changes in four shared hooks, not twenty-eight in components.
+
+---
+
+## 6. Finding: the desktop-only capabilities the app has *zero* of
+
+Panels are the obvious win. These are the ones that are impossible on a phone
+and currently impossible here too — measured:
+
+| Capability | Today | Why it matters |
+|---|---|---|
+| **Keyboard** | **0** arrow-key handlers app-wide | Arrow-nudging a disc gives pixel precision — and **directly fixes the known `relX 0.96` sideline bug**, which exists because thumbs cannot hit an edge |
+| **Multi-select** | **0** uses of `shiftKey` / `ctrlKey` / `metaKey` anywhere | Selecting a squad of 11 from 18 is 11 taps. Shift-click makes it two |
+| **Drag between surfaces** | Only `PlayerDisk` is draggable | Roster → pitch, player → period. The planner's whole job |
+| **Pointer precision** | Pitch is `onMouseDown/Move/Up` only | No hover affordances, no cursor states, no right-click |
+
+The keyboard line is the strongest argument in this document: it is an
+**accessibility gap and a bug fix and a desktop feature at once**, and it costs
+almost nothing next to a workspace shell.
+
+---
+
+## 7. The three primitives
+
+### 7.1 `Surface` — one component, two frames
+
+Every modal becomes a surface: its content, with no opinion about its frame.
+Rendered inside `<Sheet>` (phone, unchanged) or `<Panel>` (desktop), decided by
+`FrameContext` (§5).
+
+> **A surface has ONE layout.** One column that works at 320px and 480px. It
+> never gains a two-column desktop variant. Desktop gains come from *several
+> surfaces open at once*, never from re-laying-out one.
+
+That rule is the whole difference from the archive, and it wants a **test**, not
+a convention — a lint or unit check that no surface file contains `lg:grid-cols`
+or a `renderMode`-shaped prop.
+
+### 7.2 `Selection` — app-wide, one thing
 
 ```ts
 type Selection =
-  | { kind: 'player';   id: string }
-  | { kind: 'game';     id: string }
-  | { kind: 'goal';     gameId: string; index: number }
-  | { kind: 'team';     id: string }
-  | { kind: 'season' | 'tournament'; id: string }
+  | { kind: 'player'; id: string }
+  | { kind: 'game';   id: string }
+  | { kind: 'goal';   gameId: string; index: number }
+  | { kind: 'team' | 'season' | 'tournament'; id: string }
   | null;
 ```
 
-Set by clicking **anything, anywhere** — a disc on the pitch, a row in a list, a
-goal in the log. The inspector panel renders whatever it points at.
+Set by clicking anything anywhere. An inspector panel renders whatever it points
+at, which retires `PlayerDetails`, `PlayerAssessment`, `SeasonDetails`,
+`TournamentDetails`, `UnifiedTeam` and the goal editor as *things you open*.
 
-This is what deletes a whole category of modal. `PlayerDetailsModal`,
-`PlayerAssessmentModal`, `GoalLogModal`'s editor, `SeasonDetailsModal`,
-`TournamentDetailsModal`, `UnifiedTeamModal` all stop being *things you open*
-and become *what the inspector is currently showing*.
+`ModalProvider` already carries `selectedPlayerForStats` — the pattern is
+half-invented. **Step 2 must replace it, not sit beside it**, or there are two
+sources of truth about what is selected.
 
-It also pays on the phone: the inspector is a surface, so on a phone it is the
-sheet those modals already are. **One component, both platforms** — the opposite
-of the archived attempt.
+Because a surface is frame-agnostic, the inspector is the same component the
+phone shows as a sheet. One implementation, both platforms.
 
-### 4.3 `Workspace` — a named set of open panels
+### 7.3 `Workspace` — a named set of open panels
 
 ```ts
 interface Workspace {
@@ -153,191 +201,160 @@ interface Workspace {
 }
 ```
 
-A workspace is *not* a screen. It is a declaration of which surfaces are already
-open and where. Switching workspace changes the furniture; **the centre often
-does not change at all** — the pitch stays put between Build, Match and Finish.
+Not a screen — a declaration of what is already open. **The centre often does
+not change between workspaces**: the pitch stays put across Build, Match and
+Finish. The furniture moves.
 
 ---
 
-## 5. The workspaces
+## 8. The workspaces
 
-### 5.1 Build — Thursday evening, setting up Saturday
+### 8.1 Build — Thursday evening
 
-| Region | Surface | Today |
-|---|---|---|
-| Left | Roster **with season minutes** | `RosterSettingsModal` + planner fairness |
-| Centre | Pitch, as a workbench | `FieldContainer` |
-| Right | Match details, all three sections | `GameSettingsModal` |
-| Dock | All four periods at once | `PlaytimePlannerModal` lineup view |
+Left: roster **with season minutes**. Centre: pitch as workbench. Right:
+`GameSettingsModal`'s three sections, docked. Dock: **all four periods at once**.
 
-The move that only works here: drag a player onto the pitch and **three things
-move at once** — the bench list, his minutes bar on the left, and the projected
-"+10'" on the right. On a phone those are three screens, so the connection has
-to be held in your head, and in practice it is not: the same two children sit
-out again.
+Drag a player on and three things move together — bench list, his minutes bar,
+the projected `+10'`. On a phone those are three screens, so the connection is
+held in the head, and in practice it is not: the same two children sit out again.
 
-**Needs one genuinely new thing: availability.** There is no "who is coming"
-field anywhere in the data model. It is the single most useful item on this
-screen and it is a feature, not a layout.
+**Needs one new thing: availability.** There is no "who is coming" field in the
+data model. Most useful item on the screen; a feature, not a layout.
 
-### 5.2 Match — only where a laptop is courtside
+### 8.2 Match — gated on a question
 
-Pitch centre, squad + live minutes left, timer pinned top, event log right.
-Nothing is ever covered; imbalance is visible **while it can still be fixed**.
+Pitch centre, squad + live minutes left, timer pinned, event log right. Nothing
+is covered; imbalance is visible **while it can still be fixed**.
 
-**Gated on a question only the owner can answer:** is a laptop ever actually at
-the side of the pitch? Plausible in a futsal hall, not in February rain. If the
-answer is "futsal, sometimes", build it and say so. If not, skip it — it is the
-one workspace that could be lovely and unopened.
+**Only build it if a laptop is genuinely courtside.** Plausible in a futsal hall,
+not in February rain. This is a question about how coaches work, and the owner
+is the one who knows.
 
-### 5.3 Finish — Sunday morning
+### 8.3 Finish — Sunday morning
 
-| Region | Surface | Today |
-|---|---|---|
-| Left | The completeness checklist as a worklist | `GameWrapUpCard` |
-| Centre | Pitch showing where people actually played | `FieldContainer` (read-only) |
-| Right | Goal log, editable in place | `GoalLogModal` |
-| Far right | **What this match changed** | *new* |
+Left: the completeness checklist as a worklist. Centre: pitch showing where
+people actually played. Right: goal log, editable in place. Far right: **what
+this match changed**.
 
-The checklist is **not invented for this plan** — `gameCompleteness.ts` already
-computes those seven items (squad selected, goals logged, scorers named, match
-report, positions played, voice notes to review, competition & team). On a phone
-it is a card you scroll past and each fix is a separate modal.
+`gameCompleteness.ts` **already computes** those seven items (squad, goals,
+scorers, report, positions, voice notes, competition). On a phone it is a card
+you scroll past.
 
-The far-right panel is the only new idea, and it is the argument for the whole
-project: season record, head-to-head against this opponent, the minutes ledger —
-and a button that **pushes the finding into next Thursday's lineup**. Sunday's
-review becomes Thursday's prep without anyone having to remember.
+The far-right panel is the only new idea and it is the argument for the project:
+season record, head-to-head, the minutes ledger — and a button that pushes the
+finding into **next Thursday's lineup**. The loop closes without anyone
+remembering.
 
-### 5.4 Club — roster, teams, personnel
+### 8.4 Club — roster, teams, personnel
 
-List left, inspector right, membership below. The least exciting and the most
-used. Editing eight players becomes eight clicks instead of eight
-open-edit-close cycles.
+List, inspector, membership. Least glamorous, most used. **This is where
+multi-select earns its place**: editing eight players becomes one selection.
 
-### 5.5 Season — May, and whenever someone asks
+### 8.5 Season — May, and whenever someone asks
 
 Record, per-opponent table, player table, match log, **and the fairness spread**
-on one page. Everything exists except that last number — *"349 minutes between
-most and least played, about 15 per game"* — which is the one a parent actually
-asks about and which no screen says today.
+— *"349 minutes between most and least played, ~15 per game"* — which no screen
+says today and which is the number a parent actually asks about.
 
-This is also the desktop face of match-ops.com, which matters while go-to-market
-is running.
+Also the desktop face of match-ops.com while go-to-market runs.
 
 ---
 
-## 6. What every modal becomes
+## 9. What every modal becomes
 
-| Modal | Becomes | Note |
-|---|---|---|
-| GameSettings (2228) | Panel · Build, Finish | Three sections, one column, docked |
-| PlaytimePlanner (2790) | Workspace (Build dock) | Its tabs become regions |
-| NewGameSetup (1765) | **Mostly disappears** | It is Build. Its fields are the Match details panel |
-| GameStats (1686) | Workspace (Season) + panel (Finish) | Its tabs become regions |
-| LoadGame (728) | Panel · any workspace | A list; the inspector shows the game |
-| GoalLog (691) | Panel · Finish, Match | |
-| TeamManager (684) | Panel · Club | |
-| RosterSettings (359) | Panel · Club, Build | |
-| PersonnelManager (416) | Panel · Club | |
-| SeasonTournamentManagement (533) | Panel · Club | |
-| SeasonDetails (674) | **Inspector** | |
-| TournamentDetails (571) | **Inspector** | |
-| UnifiedTeam (945) | **Inspector** | |
-| PlayerDetails (236) | **Inspector** | |
-| PlayerAssessment (252) | **Inspector** | Flag-hidden today |
-| Shootout (283) | Sheet on both | Short, modal, genuinely interruptive |
-| Settings (1369) | Sheet on both | Rare, app-scope, correctly a takeover |
-| CloudAuth (664) | Sheet on both | |
-| Confirmation / UpgradePrompt / PendingSync | Sheet on both | Interruptions are *supposed* to interrupt |
-| Instructions / RulesDirectory / TrainingResources / RuleViewer | Panel · own workspace or sheet | Reference material reads well beside work |
-| OpponentNameSweep (260) | Panel · Club | |
-| ImportResults / BackupRestoreResults / Recap | Sheet on both | Result reports, inherently one-shot |
+| Modal | Becomes |
+|---|---|
+| GameSettings · GoalLog · LoadGame · RosterSettings · TeamManager · PersonnelManager · SeasonTournamentManagement · OpponentNameSweep · RulesDirectory · TrainingResources · Instructions · RuleViewer | **Panel** |
+| SeasonDetails · TournamentDetails · UnifiedTeam · PlayerDetails · PlayerAssessment | **Inspector** |
+| PlaytimePlanner · GameStats | **Workspace** (their tabs become regions) |
+| NewGameSetup | **Mostly disappears** — it *is* Build |
+| Confirmation · CloudAuth · Settings · UpgradePrompt · ReConsent · PendingSync · ImportResults · BackupRestoreResults · Recap · Shootout | **Stay modal** — interruptions should interrupt |
 
-**Roughly six modals stay modal**, and they are the ones that *should* interrupt:
-confirmations, auth, settings, one-shot results. Everything else is a panel or
-the inspector.
+Ten stay modal. **Eight of those ten are already the ones that do not share the
+modal chrome** (§4) — the codebase had already sorted them.
 
 ---
 
-## 7. Build order
+## 10. Build order
 
-Each step ships on its own and is useful before the next exists. No big bang —
-that is the explicit lesson from both the planner and desktop archives.
+Each step ships alone and is useful before the next exists. No big bang — the
+explicit lesson from both the planner and desktop archives.
 
-**Step 0 — The spike (one afternoon, decides everything).**
-Put one max-width wrapper with a `transform` on the app and open three modals.
-`transform` creates a containing block for `position: fixed` descendants, which
-is how all 15 fixed-position files get constrained for free — but the app uses
+**Step 0 — The spike. One afternoon. Decides everything.**
+One max-width wrapper with a `transform`, then open three modals. `transform`
+creates a containing block for `position: fixed` descendants, which is how the
+fixed-position surfaces get constrained for free — but the app uses
 `backdrop-blur` in **22 files**, and `backdrop-filter` inside a transformed
-ancestor is a known cross-browser trouble spot. **If the blur breaks, the whole
-cheap path is gone and this plan needs rewriting.** Find out first.
+ancestor is a known cross-browser trouble spot. **If the blur breaks, the cheap
+path is gone and this document needs rewriting. Do not plan past it.**
 
-**Step 1 — `Surface` + `Panel` + `Sheet`.** No visual change on phone. Convert
-*one* modal (`RosterSettingsModal`, 359 lines, self-contained) to prove a single
-component renders in both frames.
+**Step 1 — `FrameContext` + the four hooks.** Teach `useFocusTrap`,
+`useEscapeToClose`, `useModalHardwareBack` and the `aria-modal` stamp to no-op in
+`panel` mode. **Zero visual change** — everything is still a sheet. This is the
+step that makes everything else possible and it touches four shared files.
 
-**Step 2 — `Selection` + the inspector.** The keystone. Do it with two kinds
-(`player`, `game`) only, and make the phone use the inspector surface as its
-sheet, so the pattern is proved on both platforms before it spreads.
+**Step 2 — `Panel` + prove it on one surface.** Give `MODAL_BACKDROP` and
+`CollapsibleModalHeader` a panel presentation. Convert `RosterSettingsModal`
+(359 lines, 12 props, self-contained) and show one component in both frames.
 
-**Step 3 — Workspace shell.** The five-tab top bar, the region grid, and a
-breakpoint hook. Below the breakpoint it renders exactly today's app.
+**Step 3 — `Selection` + inspector.** Two kinds only (`player`, `game`).
+**Replace** `selectedPlayerForStats`. Make the phone render the inspector as its
+sheet, proving the pattern on both platforms before it spreads.
 
-**Step 4 — Season workspace.** Cheapest, everything exists, immediately
-showable, doubles as a marketing surface. Ship it and see whether dense reads as
-powerful or as intimidating **before** committing to the rest.
+**Step 4 — Workspace shell + breakpoint.** Below the breakpoint, today's app
+exactly.
 
-**Step 5 — Finish workspace.** Highest value per unit of work; the checklist and
-goal log already exist. This is where the loop closes.
+**Step 5 — Season workspace.** Cheapest, everything exists, immediately
+showable, doubles as a marketing surface. **Ship it and find out whether dense
+reads as powerful or as intimidating — before committing to the rest.**
 
-**Step 6 — Build workspace.** Needs **availability** first, which is its own
-feature with its own design question.
+**Step 6 — Keyboard.** Arrow-nudge on the pitch, tab order through the squad,
+Escape owned by the workspace. Fixes `relX 0.96`. Cheap, and it is the step that
+makes the app feel native on a laptop rather than resized.
 
-**Step 7 — Club workspace.** Most used, most work, least glamorous.
+**Step 7 — Finish workspace.** Highest value per unit of work; checklist and
+goal log exist. The loop closes here.
 
-**Step 8 — Match workspace.** Only if Step 0 of the owner's own judgement says a
-laptop is ever courtside.
+**Step 8 — Build workspace.** Needs **availability** first.
+
+**Step 9 — Club workspace + multi-select.**
+
+**Step 10 — Match workspace.** Only if the §8.2 question says yes.
 
 ---
 
-## 8. What could kill this
+## 11. What could kill this
 
-- **The `backdrop-blur` interaction.** Step 0 exists solely to find out. Do not
-  plan past it.
+- **The `backdrop-blur` interaction.** Step 0 exists solely to find out.
 - **Density reading as intimidation.** The phone app is liked partly *because* it
-  shows one thing at a time. "Everything open at once" is how professional tools
-  work and also how they frighten people. Step 4 is deliberately first so this is
-  tested on a cheap surface rather than discovered at Step 7.
-- **Surfaces quietly growing desktop variants.** The moment one surface gets a
-  two-column desktop layout, the fork is back and the archive repeats itself.
-  This wants a test, not a convention.
-- **Selection becoming a second source of truth.** If `Selection` and the
-  existing `selectedPlayerForStats` both exist, they will disagree. Step 2 must
-  *replace* it, not sit beside it.
-- **Scope gravity.** Every workspace will suggest a feature. Availability is
-  already one. Ship the arrangement first; features after.
+  shows one thing. Step 5 is first so this is tested cheaply.
+- **A surface growing a desktop variant.** The moment one does, the archive
+  repeats. Needs a test, not a convention.
+- **Two selection states.** If `Selection` and `selectedPlayerForStats` coexist
+  they will disagree.
+- **Refactor gravity.** `useGameOrchestration` is 2,644 lines and will look like
+  it must be split first. **It must not.** §3 shows the bags already work.
+- **Scope gravity.** Every workspace suggests a feature. Availability is already
+  one. Ship arrangement first.
 
 ---
 
-## 9. What NOT to do
+## 12. What NOT to do
 
+- **Do not port `renderMode`.** The archived mistake, by name.
+- **Do not touch the phone layout.** Saturday works.
 - **Do not build a desktop navigation concept.** The five workspaces *are* the
-  navigation. Adding a sidebar of screens on top of them is how this becomes an
-  admin console.
-- **Do not touch the phone layout.** Saturday already works. Every step here is
-  additive above a breakpoint.
-- **Do not port `renderMode`.** That is the archived mistake, by name.
-- **Do not start with the Match workspace** because it is the most fun to design.
-  It is the one whose premise is least certain.
+  navigation.
+- **Do not start with Match** because it is the most fun to design. Its premise
+  is the least certain.
+- **Do not refactor the orchestration hook first.**
 
 ---
 
-## 10. Open questions for the owner
+## 13. Open questions for the owner
 
-1. **Is a laptop ever actually at a game?** Decides whether 5.2 is built at all.
-2. **Availability** — is "who is coming" worth a data-model addition, or is a
-   coach's head good enough? It is the difference between Build being useful and
-   being decorative.
-3. **How dense is too dense?** Step 4 is the cheap test, but the answer is a
-   taste judgement and it is the owner's.
+1. **Is a laptop ever actually at a game?** Decides whether §8.2 is built at all.
+2. **Availability** — worth a data-model addition, or is a coach's head enough?
+   The difference between Build being useful and decorative.
+3. **How dense is too dense?** Step 5 is the cheap test; the answer is taste and
+   it is the owner's.
