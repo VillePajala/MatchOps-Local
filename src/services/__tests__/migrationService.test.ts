@@ -689,4 +689,63 @@ describe('migrationService', () => {
       expect(stages).toContain('clearing');
     });
   });
+
+  /**
+   * @critical - regression guard for the same defect fixed in
+   * reverseMigrationService. LocalDataStore.close() closes the process-wide
+   * cached adapter for the user, or clears the global cache when built without
+   * a userId. A transient store closing it mid-session leaves the app's own
+   * DataStore reading through a closed connection until the page reloads -
+   * which showed up as an app with none of the coach's data in it.
+   */
+  describe('the shared IndexedDB adapter', () => {
+    /**
+     * The worst of the three: a READ-ONLY check that runs on every sign-in
+     * (page.tsx), from CloudSyncSection and from clearLocalData. It was never
+     * even writing.
+     */
+    it('is not closed by hasLocalDataToMigrate', async () => {
+      const mockLocal = createMockLocalStore();
+      mockLocal.getPlayers.mockResolvedValue([mockPlayer]);
+      mockLocal.getGames.mockResolvedValue({});
+
+      await hasLocalDataToMigrate();
+
+      expect(mockLocal.close).not.toHaveBeenCalled();
+    });
+
+    it('is not closed when that check finds nothing', async () => {
+      const mockLocal = createMockLocalStore();
+      mockLocal.getPlayers.mockResolvedValue([]);
+      mockLocal.getGames.mockResolvedValue({});
+
+      await hasLocalDataToMigrate();
+
+      expect(mockLocal.close).not.toHaveBeenCalled();
+    });
+
+    /** Nor when it fails - the finally block was the whole problem. */
+    it('is not closed when that check throws', async () => {
+      const mockLocal = createMockLocalStore();
+      mockLocal.getPlayers.mockRejectedValue(new Error('storage unavailable'));
+
+      await hasLocalDataToMigrate();
+
+      expect(mockLocal.close).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Built without a userId, so close() took the other branch entirely:
+     * clearAdapterCacheWithCleanup(), which closes and clears the GLOBAL
+     * adapter cache that local-mode users run on.
+     */
+    it('is not closed by getLocalDataSummary', async () => {
+      const mockLocal = createMockLocalStore();
+
+      await getLocalDataSummary();
+
+      expect(mockLocal.close).not.toHaveBeenCalled();
+    });
+  });
+
 });
