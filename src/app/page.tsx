@@ -1207,8 +1207,21 @@ export default function Home() {
                 level: 'error',
                 extra: { errors: hydrationResult.errors, userId: userId?.slice(0, 8) },
               });
+              // On a Vercel preview, put the actual reason on screen. This
+              // failure only reproduces on a device - a phone signing in on a
+              // fresh origin - where no console is reachable, so the reason
+              // has so far only ever been visible in a screenshot that does
+              // not contain it. Previews only: production keeps the sanitised
+              // message, since this text is raw internals.
+              const isPreviewBuild =
+                typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app');
               showToast(
-                t('page.failedToLoadCloudData', 'Your cloud data did not finish loading. Nothing has been lost - it will try again automatically.'),
+                [
+                  t('page.failedToLoadCloudData', 'Your cloud data did not finish loading. Nothing has been lost - it will try again automatically.'),
+                  isPreviewBuild ? `[preview] ${hydrationResult.errors?.join(' | ') || 'no error detail'}` : '',
+                ]
+                  .filter(Boolean)
+                  .join(' '),
                 'error'
               );
               setMigrationCompleted(userId);
