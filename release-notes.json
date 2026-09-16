@@ -4,6 +4,15 @@
     {
       "date": "2026-09-16",
       "en": [
+        "Fixed a problem that could make the app look empty right after signing in on a new phone. Your games and players were always safe in the cloud, but the app could lose its connection to its own storage and show the first-time setup instead. It no longer does that, and if loading ever does not finish, the app now retries and refreshes itself rather than leaving you stuck."
+      ],
+      "fi": [
+        "Korjattu ongelma, joka saattoi saada sovelluksen näyttämään tyhjältä heti uudelle puhelimelle kirjautumisen jälkeen. Ottelusi ja pelaajasi olivat aina tallessa pilvessä, mutta sovellus saattoi menettää yhteyden omaan tallennustilaansa ja näyttää käyttöönoton alkuvaiheet. Näin ei enää käy, ja jos lataus jää kesken, sovellus yrittää uudelleen ja päivittää itsensä sen sijaan että jättäisi sinut jumiin."
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "en": [
         "When you create a game and the formation does not match what your age group officially plays, the app now says so under the formation picker. It never changes your choice - a series can differ from the national default. Football's new formats start in season 2027, so until then nothing is said about football."
       ],
       "fi": [
