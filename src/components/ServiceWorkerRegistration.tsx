@@ -162,13 +162,80 @@ export default function ServiceWorkerRegistration() {
     };
   }, []);
 
-  const handleInstall = () => {
-    if (waitingWorker) {
-      logger.log('[PWA] Posting message to waiting worker to skip waiting.');
-      setUpdatePhase('installing');
-      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-      // Don't close banner - wait for controllerchange to transition to 'ready' phase
+  /**
+   * How long to wait for `controllerchange` before offering the reload anyway.
+   *
+   * Reloading is safe whatever state the worker is in - the new version is
+   * already downloaded and a reload picks it up - so a timeout that lands
+   * early costs nothing, while no timeout at all strands the coach on a
+   * spinner for as long as they are willing to look at it.
+   */
+  const CONTROLLER_CHANGE_TIMEOUT_MS = 3000;
+
+  /**
+   * Take the update.
+   *
+   * THIS USED TO DO NOTHING ABOUT ONE TIME IN TEN (owner, 2026-09-16: "the
+   * prompt stays there and the reload prompt never arrives"). It was
+   * `if (waitingWorker) { ... }` with no else, and three separate things could
+   * leave that branch unreachable or ineffective:
+   *
+   * 1. `waitingWorker` was null. The banner's visibility is `showUpdateBanner`,
+   *    tracked separately, so the banner could be on screen with no worker
+   *    behind it - and the tap did literally nothing, silently.
+   * 2. The reference was STALE. It is captured when the banner appears, which
+   *    can be many minutes before the tap; if the browser discarded or
+   *    replaced that worker (another tab activated it, or a newer build
+   *    installed) the postMessage went nowhere, the phase moved to
+   *    'installing', and controllerchange never came.
+   * 3. controllerchange never fires at all when the new worker already
+   *    controls the page.
+   *
+   * The fix rests on one fact: A RELOAD ALWAYS WORKS. The new version is
+   * already on the device, so reloading applies it regardless of what the
+   * worker is doing. Every uncertain path therefore ends at the reload button
+   * rather than at nothing.
+   */
+  const handleInstall = async () => {
+    setUpdatePhase('installing');
+
+    // Re-resolve at TAP time. The captured reference may be minutes old.
+    let worker: ServiceWorker | null = null;
+    let lookedUp = false;
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      worker = registration?.waiting ?? null;
+      lookedUp = true;
+    } catch (e) {
+      logger.warn('[PWA] Could not re-read the registration:', e);
     }
+    // The captured reference is a fallback for a FAILED lookup only. If the
+    // lookup succeeded and found no waiting worker, that is the browser saying
+    // there is none - trusting a stale object over that is how the tap ends up
+    // posting into the void and waiting forever.
+    if (!lookedUp && waitingWorker?.state === 'installed') worker = waitingWorker;
+
+    if (!worker) {
+      // Nothing to activate: either it already activated, or the reference is
+      // gone. Offer the reload rather than leaving the coach tapping a dead
+      // button - this is the case that produced the original report.
+      logger.log('[PWA] No waiting worker at tap time - offering reload directly.');
+      setUpdatePhase('ready');
+      return;
+    }
+
+    logger.log('[PWA] Posting message to waiting worker to skip waiting.');
+    worker.postMessage({ type: 'SKIP_WAITING' });
+
+    // Safety net for cases 2 and 3: if the controller never changes, the
+    // reload still applies the update, so stop waiting and say so.
+    window.setTimeout(() => {
+      setUpdatePhase((phase) => {
+        if (phase !== 'installing') return phase;
+        logger.log('[PWA] No controllerchange in time - offering reload anyway.');
+        return 'ready';
+      });
+    }, CONTROLLER_CHANGE_TIMEOUT_MS);
   };
 
   const handleReload = async () => {
