@@ -13,6 +13,15 @@
     {
       "date": "2026-09-16",
       "en": [
+        "The How it works guide has been brought up to date: it no longer says no account is needed (the Play Store version requires one), no longer promises player assessments in the finish-game view, and now mentions the Rules screen, the setup checklist and how opponent names settle on the spelling you already use."
+      ],
+      "fi": [
+        "Näin se toimii -opas on päivitetty: se ei enää väitä, ettei tiliä tarvita (Play-versio vaatii sen), ei enää lupaa pelaaja-arvioita ottelun viimeistelynäkymässä, ja kertoo nyt Säännöt-näkymästä, käyttöönoton tarkistuslistasta sekä siitä, miten vastustajan nimi asettuu aiemmin käyttämääsi kirjoitusasuun."
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "en": [
         "The player statistics table had unreadable column headings in English - \"Goals Short\", \"Assists Short\" and the like, instead of G, A, Pts and Avg. They now read as the abbreviations they were meant to be."
       ],
       "fi": [
