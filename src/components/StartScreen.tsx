@@ -29,6 +29,12 @@ import {
   HiOutlineFolderOpen,
   HiOutlineClipboard,
 } from 'react-icons/hi2';
+import {
+  TASO_URL,
+  MYCLUB_URL,
+  MYCLUB_COACH_STORE_URL,
+  MYCLUB_COACH_INTENT_URL,
+} from '@/config/externalLinks';
 
 /**
  * Rows are LIST ITEMS inside a group, not cards.
@@ -102,14 +108,37 @@ const HomeRow: React.FC<{
   </button>
 );
 
-/** Same row, for a destination outside the app. The corner icon is honest. */
-const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; href: string }> = ({ icon: Icon, label, href }) => (
-  <a href={href} target="_blank" rel="noopener noreferrer" className={`${ROW_BASE} ${ROW_ON}`}>
+/**
+ * Same row, for a destination outside the app. The corner icon is honest.
+ *
+ * `onClick` exists for the one destination that is an app rather than a page
+ * (myClub Coach): the href stays a real URL so the row works everywhere and
+ * survives hydration, and the handler redirects only where it can do better.
+ */
+const HomeLinkRow: React.FC<{
+  icon: RowIcon;
+  label: string;
+  href: string;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
+}> = ({ icon: Icon, label, href, onClick }) => (
+  <a href={href} target="_blank" rel="noopener noreferrer" onClick={onClick} className={`${ROW_BASE} ${ROW_ON}`}>
     <Icon className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
     <span className="text-sm font-semibold text-white flex-1 min-w-0 truncate">{label}</span>
     <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500 flex-shrink-0" aria-hidden="true" />
   </a>
 );
+
+/**
+ * Sends the tap to the installed myClub Coach app when there is one.
+ *
+ * Shared by both rows that offer it. Falls through to the href (the store page)
+ * on anything that cannot honour an Android intent.
+ */
+const openMyClubCoach: React.MouseEventHandler<HTMLAnchorElement> = (e) => {
+  if (!isAndroid()) return;
+  e.preventDefault();
+  window.location.href = MYCLUB_COACH_INTENT_URL;
+};
 
 /**
  * Half-width tile. Icon above the label, centred - deliberately a different
@@ -885,7 +914,23 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     <HomeLinkRow
                       icon={HiOutlineRectangleStack}
                       label={t('startScreen.tasoLink', 'Taso - lineups & results')}
-                      href="https://taso.palloliitto.fi"
+                      href={TASO_URL}
+                    />
+                    {/* myClub sits either side of the match the way Taso does:
+                        who is coming beforehand, who actually came afterwards.
+                        Neither can be written to from here (see
+                        docs/10-analysis/taso-torneopal-api.md), so a link to
+                        the place the coach has to go is the honest offer. */}
+                    <HomeLinkRow
+                      icon={HiOutlineCalendarDays}
+                      label={t('startScreen.myClubLink', 'myClub - events & attendance')}
+                      href={MYCLUB_URL}
+                    />
+                    <HomeLinkRow
+                      icon={HiOutlineIdentification}
+                      label={t('startScreen.myClubCoachLink', 'myClub Coach - mark attendance')}
+                      href={MYCLUB_COACH_STORE_URL}
+                      onClick={openMyClubCoach}
                     />
                   </HomeGroup>
                 )}

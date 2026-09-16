@@ -494,6 +494,10 @@ describe('Translation File Validation', () => {
       // -5: startScreen footer keys orphaned by the gear bucket (usingLocal
       //     Storage/signedInAs/existingSubscriber/newToCloud/getAndroidApp)
       // +1: startScreen.tasoLink (Taso promoted to the games tab - game-day tool)
+      // +4: myClub links beside Taso - startScreen.myClubLink/myClubCoachLink
+      //     and controlBar.myClubLink/myClubCoachLink. The three systems either
+      //     side of a match; neither myClub nor Taso can be written to from the
+      //     app, so a link is the whole of what it can offer.
       // +9: planner rotations & swaps (subs.inGameGroup, lineup.swapAction,
       //     swapSheet.title/hint/who/withLabel/noTargets, swap.done,
       //     conflicts.row) - any-player subs + whole-game player swap
@@ -675,7 +679,7 @@ describe('Translation File Validation', () => {
       // -1 startScreen.dashRecent: the recent-games strip is introduced by the
       //     halfway-line rule alone now. The word restated what the rule
       //     already said. Lands at 3266.
-      expect(enKeys.length).toBe(3308);
+      expect(enKeys.length).toBe(3312);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -747,6 +751,7 @@ describe('Translation File Validation', () => {
       // +5: gear bucket keys (see the en note above)
       // -5: orphaned footer keys pruned (see the en note above)
       // +1: startScreen.tasoLink (see the en note above)
+      // +4: myClub links beside Taso (see the en note above)
       // +9: planner rotations & swaps (subs.inGameGroup, lineup.swapAction,
       //     swapSheet.title/hint/who/withLabel/noTargets, swap.done,
       //     conflicts.row) - any-player subs + whole-game player swap
@@ -863,7 +868,7 @@ describe('Translation File Validation', () => {
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3308);
+      expect(fiKeys.length).toBe(3312);
     });
   });
 });
