@@ -71,12 +71,27 @@ function androidAppLink(httpsUrl: string, androidPackage: string, fallbackUrl: s
 /** Opens the myClub member app on the sign-in screen; falls back to the web. */
 export const MYCLUB_INTENT_URL = androidAppLink(MYCLUB_URL, 'fi.myclub.member', MYCLUB_URL);
 
-/** Opens myClub Coach; falls back to installing it, since it has no web twin. */
-export const MYCLUB_COACH_INTENT_URL = androidAppLink(
-  'https://www.myclub.fi/',
-  'fi.myclub.coach',
-  MYCLUB_COACH_STORE_URL,
-);
+/*
+ * THERE IS NO DEEP LINK FOR myClub COACH, and this is settled rather than
+ * assumed. On a device with both apps installed, Android's "Aseta oletukseksi"
+ * screen shows the member app claiming `*.myclub.fi` and `www.myclub.fi`,
+ * while Coach's supported-addresses list is EMPTY - the row is greyed out
+ * entirely. Coach declares no web addresses, so no https URL and therefore no
+ * intent built from one can ever resolve to it.
+ *
+ * That is why the first attempt "fell back to the Play page even though the
+ * app was installed": there was nothing to fall back FROM. Chrome also refuses
+ * to launch an app by package alone (a MAIN/LAUNCHER intent from the web is
+ * blocked by design), so there is no other route either.
+ *
+ * The store page therefore stays the destination. Someone who has Coach
+ * installed sees "Avaa" on it, which is one extra tap and the best available.
+ * Do not add an intent here again without new evidence from that screen.
+ *
+ * Note this is not what `assetlinks.json` implies - myclub.fi grants
+ * `handle_all_urls` to `fi.myclub.coach` - so the served statement file and
+ * the shipped manifest disagree. The phone is the authority.
+ */
 
 /*
  * Callers use these ONLY behind `isAndroid()` from `@/utils/platform`, and only

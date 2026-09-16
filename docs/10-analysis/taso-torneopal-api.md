@@ -284,7 +284,36 @@ feature would need a Supabase Edge Function proxy and would become cloud-mode on
 back with CORS headers? That single answer decides whether a myClub pull is a
 client-side feature or a backend feature.
 
-### 7.5 Sources
+### 7.5 Opening the apps from a link: what is actually possible
+
+Settled on a device with both apps installed (Android "Aseta oletukseksi" ->
+"Tuetut verkko-osoitteet", 2026-09-16). This is the authority, not the served
+statement file:
+
+| App | Claims | Openable from a link? |
+|---|---|---|
+| **myClub** (`fi.myclub.member`) | `*.myclub.fi`, `www.myclub.fi` | **Yes** - `id.myclub.fi` is covered by the wildcard |
+| **myClub Coach** (`fi.myclub.coach`) | **nothing** - the list is empty and greyed out | **No** |
+
+**Coach declares no web addresses at all**, so no https URL, and therefore no
+intent built from one, can ever resolve to it. That is why the first attempt
+appeared to "fall back to the Play page even though the app was installed":
+there was nothing to fall back from. Chrome additionally refuses to launch an
+app by package alone - a MAIN/LAUNCHER intent from the web is blocked by design
+- so there is no other route in.
+
+**Note the contradiction:** `myclub.fi/.well-known/assetlinks.json` grants
+`handle_all_urls` to `fi.myclub.coach` (section 7.1), but the shipped manifest
+evidently declares no matching intent filters. The statement file and the app
+disagree, and the phone wins. Anyone reading assetlinks.json alone would
+conclude Coach is deep-linkable; it is not.
+
+**Consequence for the app:** the myClub row can and should open the member app;
+the Coach row can only offer its store page, where an installed app shows
+"Avaa". Do not re-add an intent for Coach without new evidence from that
+screen.
+
+### 7.6 Sources
 
 - myClub API docs, https://taikala.github.io/myclub-api-docs/fi
 - myClub: sovellusrajapinta, https://docs.myclub.fi/article/1432-sovellusrajapinta

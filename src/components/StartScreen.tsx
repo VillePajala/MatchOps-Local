@@ -34,7 +34,6 @@ import {
   MYCLUB_URL,
   MYCLUB_COACH_STORE_URL,
   MYCLUB_INTENT_URL,
-  MYCLUB_COACH_INTENT_URL,
 } from '@/config/externalLinks';
 
 /**
@@ -933,7 +932,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       icon={HiOutlineIdentification}
                       label={t('startScreen.myClubCoachLink', 'myClub Coach - mark attendance')}
                       href={MYCLUB_COACH_STORE_URL}
-                      onClick={openInApp(MYCLUB_COACH_INTENT_URL)}
                     />
                   </HomeGroup>
                 )}
