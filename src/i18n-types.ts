@@ -75,6 +75,7 @@ export type TranslationKey =
   | 'appGuide.homeTitle'
   | 'appGuide.matchMenuNote'
   | 'appGuide.matchMenuTitle'
+  | 'appGuide.opponentNames'
   | 'assessmentMetricDescriptions.ball_control'
   | 'assessmentMetricDescriptions.courage'
   | 'assessmentMetricDescriptions.creativity'

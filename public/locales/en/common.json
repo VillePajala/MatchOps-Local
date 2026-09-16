@@ -748,10 +748,10 @@
       "title": "Pro Tips",
       "tip1": "Double-tap players on the field to remove them quickly",
       "tip2": "The match menu (hamburger) holds match-day actions — your club, competitions and stats live on the Home tabs",
-      "tip3": "Games auto-save to browser storage - no account needed"
+      "tip3": "Games save to your device as you go, and sync to your account when you are signed in"
     },
     "controlBar": {
-      "assessPlayers": "After the final whistle, Finish this game gathers goals, notes, positions, the match report and player assessments in one view."
+      "assessPlayers": "After the final whistle, Finish this game gathers goals, notes, positions and the match report in one view."
     }
   },
   "warmup": {
@@ -3631,12 +3631,13 @@
     "homeTitle": "Home — your club hub",
     "homeIntro": "The Home screen has four tabs plus the gear menu. Everything about your club lives here; a match opens on its own field.",
     "homeGamesTab": "Games: your landing view with a summary of your league and recent games — start a new match, continue where you left off, open saved games and the match planner.",
-    "homeTeamTab": "Club: your players, teams, staff, warmup and coaching materials.",
+    "homeTeamTab": "Club: your players, teams, staff, the warmup plan, the rules for your age group and coaching materials.",
     "homeCompetitionsTab": "Competitions: set up leagues and tournaments to group your games.",
     "homeStatsTab": "Stats: league, tournament, overall and player statistics (available once you've played a game).",
-    "homeGear": "The gear icon (top-left): the home view toggle (summary or simplified), settings, backups, your account, and this guide.",
+    "homeGear": "The gear icon (top-left): the home view toggle (summary or simplified), settings, backups, your account, the setup checklist, the getting-started guide and this one.",
     "matchMenuTitle": "The match menu",
-    "matchMenuNote": "While in a match, the menu holds match-day actions:"
+    "matchMenuNote": "While in a match, the menu holds match-day actions:",
+    "opponentNames": "Opponent names: type a team you have played before and the field settles on the spelling you already used, so one team stays one team in your statistics. If that earlier spelling is the wrong one, choose \"use mine instead\" and it is corrected in every past game too."
   },
   "aiSettings": {
     "title": "Voice notes and AI",
