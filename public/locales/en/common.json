@@ -1011,6 +1011,7 @@
     }
   },
   "newGameSetupModal": {
+    "formatNudge": "{{ageGroup}} officially plays {{official}}. You can still choose another - a series may differ.",
     "formationLabel": "Formation",
     "title": "Create New Match",
     "repeatLastGame": "Repeat last game",
