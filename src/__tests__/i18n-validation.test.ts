@@ -210,6 +210,31 @@ describe('Translation File Validation', () => {
       }
     });
 
+    /**
+     * The placeholder shape that shipped: a key named *Short whose value is the
+     * long name with the word "Short" appended, so the player stats table
+     * showed English columns reading "Goals Short", "Assists Short", "Total
+     * Score Short" and "Avg Points Short" for as long as they had existed.
+     * They passed every other check here - not empty, not TODO, present in both
+     * languages - because the only thing wrong with them was that nobody had
+     * written the abbreviation.
+     * @critical
+     */
+    it('every *Short key is an actual abbreviation', () => {
+      const restatesItself = (bundle: unknown, key: string) => {
+        const value = getValueAtPath(bundle as never, key);
+        return typeof value === 'string' && /\bShort\b/.test(value);
+      };
+      const notAbbreviated = [...new Set([...enKeys, ...fiKeys])].filter(
+        (k) => k.endsWith('Short') && (restatesItself(en, k) || restatesItself(fi, k)),
+      );
+      if (notAbbreviated.length > 0) {
+        failWith(
+          `These *Short keys still restate their own name: ${notAbbreviated.join(', ')}`,
+        );
+      }
+    });
+
     it('no TODO/FIXME/TRANSLATE placeholders in EN', () => {
       // Case-SENSITIVE on purpose. A placeholder shouts: "TODO", "TRANSLATE".
       // Matching case-insensitively also caught the ordinary English words, so

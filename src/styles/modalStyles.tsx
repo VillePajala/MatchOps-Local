@@ -49,22 +49,6 @@ export const ModalBackgroundEffects: React.FC = () => (
 // Pitch markings
 // ============================================================================
 
-/**
- * Separation, drawn the way the pitch draws it.
- *
- * The field marks itself out in white paint at low opacity on grass, and that
- * is the app's one genuinely distinctive graphic language. Everywhere else was
- * separating things with grey hairlines - border-slate-700/50 and eight near
- * variants - which is the same device every dark dashboard uses.
- *
- * White at low alpha reads as a line ON a surface rather than a seam BETWEEN
- * two greys, which is both cleaner against the slate and the same idea as a
- * touchline. Use these for DIVIDERS - separation between items in one
- * container. Container outlines stay grey: a box edge is not a pitch marking,
- * and making everything a line would be the decoration this replaces.
- */
-export const pitchDivide = "divide-white/10";
-export const pitchLine = "border-white/10";
 
 // ============================================================================
 // Typography Styles
