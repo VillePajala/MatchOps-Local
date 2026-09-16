@@ -22,7 +22,7 @@ import {
   HiOutlineScale,
   HiOutlineBookOpen,
 } from 'react-icons/hi2';
-import { TASO_URL, MYCLUB_URL, MYCLUB_COACH_STORE_URL } from '@/config/externalLinks';
+import { TASO_URL } from '@/config/externalLinks';
 import FormationPicker from './FormationPicker';
 import SteadyDigits from '@/components/SteadyDigits';
 import { useTranslation } from 'react-i18next';
@@ -649,11 +649,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             )}
           </div>
 
-          {/* The three systems either side of a match: Taso for lineups and
-              results, myClub for who is coming, myClub Coach for who came.
-              None of them can be written to from here - see
-              docs/10-analysis/taso-torneopal-api.md - so a link to the place
-              the coach has to go is the whole of what the app can offer. */}
+          {/* Taso: game-day workflow tool (lineups before, results after). */}
           <div className="mb-4">
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {t('controlBar.menu.resources', 'Resources')}
@@ -677,28 +673,6 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             >
               <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />
               {t('controlBar.tasoLink', 'Taso')}
-            </a>
-            <a
-              href={MYCLUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={EXTERNAL_LINK_ROW}
-              onClick={wrapImmediate(() => {})}
-            >
-              <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />
-              {t('controlBar.myClubLink', 'myClub')}
-            </a>
-            {/* myClub Coach is a native app, so the href (its store page) is
-                only the fallback - on Android the tap goes to the app itself. */}
-            <a
-              href={MYCLUB_COACH_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={EXTERNAL_LINK_ROW}
-              onClick={wrapImmediate(() => {})}
-            >
-              <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />
-              {t('controlBar.myClubCoachLink', 'myClub Coach')}
             </a>
           </div>
 

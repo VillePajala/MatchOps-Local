@@ -337,6 +337,12 @@ same statement-file-versus-manifest disagreement as Coach, on a larger scale:
 **Settled: no myClub URL opens the myClub app.** Use plain links and stop
 looking.
 
+**And the links themselves were then removed (owner, 2026-09-17).** Opening the
+apps was the whole point: a row that lands the coach in a browser is slower
+than the app's own icon on their home screen. With deep linking impossible, the
+rows cost a tap and returned nothing, so they came out. Taso stays, because
+Taso has no app and the browser genuinely IS the destination.
+
 **What the test did establish** is worth keeping. After signing in, a coach
 lands on `https://<club>.myclub.fi/flow/` - the club dashboard, with attendance
 and events on it. The central login we can hardcode is two steps short of that.
