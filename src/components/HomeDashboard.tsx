@@ -1,8 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { MdDirectionsCar } from 'react-icons/md';
-import { useState } from 'react';
 import type { TFunction } from 'i18next';
 import type { HomeSummary, HomeResumeGame, HomeRecentGame, HomeUpcomingGame } from '@/utils/homeSummary';
 
@@ -275,18 +274,22 @@ export function HomeDashboard({
   /**
    * Which strip the coach is looking at.
    *
-   * Defaults to the fixtures when any exist, because a coach who has booked
+   * ONLY THE COACH'S EXPLICIT CHOICE IS STORED - null until they tap the
+   * toggle. The default is derived from what exists right now, so booking the
+   * season's first fixture without leaving Home switches the strip to it.
+   * Storing the resolved default instead froze it at mount: a coach who opened
+   * Home with no fixtures stayed on Tulukset even after creating one.
+   *
+   * Fixtures win the default when any exist, because a coach who has booked
    * matches is usually asking "what is next" rather than "how did we do". The
    * toggle only renders when BOTH exist - one kind of match is not a choice.
    */
-  const [strip, setStrip] = useState<'upcoming' | 'recent'>(
-    summary.upcomingList.length > 0 ? 'upcoming' : 'recent',
-  );
+  const [chosenStrip, setStrip] = useState<'upcoming' | 'recent' | null>(null);
 
   const hasBoth = summary.upcomingList.length > 0 && summary.recent.length > 0;
   const showing = summary.upcomingList.length === 0 ? 'recent'
     : summary.recent.length === 0 ? 'upcoming'
-      : strip;
+      : chosenStrip ?? 'upcoming';
 
   // The accent has a job only while the top card is showing something ELSE.
   // With the resume card up there, the match it would point at is already the

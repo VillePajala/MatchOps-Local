@@ -158,3 +158,35 @@ describe('the strip', () => {
     expect(upcomingTab.getAttribute('aria-selected')).toBe('true');
   });
 });
+
+describe('which strip the toggle opens on', () => {
+  const twoFixtures = [fixture({ id: 'a' }), fixture({ id: 'b', opponent: 'KuPS' })];
+
+  it('opens on the fixtures when any are booked', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture(), upcomingList: twoFixtures, recent: [recent('r1', 'FC Espoo')] })} t={t} />);
+
+    expect(screen.getByText('KuPS')).toBeInTheDocument();
+    expect(screen.queryByText('FC Espoo')).toBeNull();
+  });
+
+  /**
+   * The default has to be DERIVED, not stored at mount. Booking the season's
+   * first fixture without leaving Home used to leave the coach on Tulokset,
+   * because the initial value had been frozen when no fixtures existed.
+   */
+  it('switches to the fixtures when the first one is booked mid-session', () => {
+    const { rerender } = render(
+      <HomeDashboard summary={base({ recent: [recent('r1', 'FC Espoo')] })} t={t} />,
+    );
+    expect(screen.getByText('FC Espoo')).toBeInTheDocument();
+
+    rerender(
+      <HomeDashboard
+        summary={base({ upcoming: fixture(), upcomingList: twoFixtures, recent: [recent('r1', 'FC Espoo')] })}
+        t={t}
+      />,
+    );
+
+    expect(screen.getByText('KuPS')).toBeInTheDocument();
+  });
+});

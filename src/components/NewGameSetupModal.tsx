@@ -10,6 +10,7 @@ import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/t
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import { getPlans } from '@/utils/playtimePlanner/storage';
+import { todayIso } from '@/utils/todayIso';
 import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
@@ -137,7 +138,7 @@ interface NewGameSetupModalProps {
  * concludes it has been played.
  */
 function laterOfTodayAnd(startDate: string | undefined): string {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayIso();
   return startDate && startDate > today ? startDate : today;
 }
 
@@ -166,7 +167,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const { showToast } = useToast();
   const [homeTeamName, setHomeTeamName] = useState('');
   const [opponentName, setOpponentName] = useState('');
-  const [gameDate, setGameDate] = useState(new Date().toISOString().split('T')[0]);
+  const [gameDate, setGameDate] = useState(todayIso());
   const [gameLocation, setGameLocation] = useState('');
   const [fieldNumber, setFieldNumber] = useState('');
   const [locationLat, setLocationLat] = useState<number | undefined>(undefined);
@@ -230,11 +231,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
    * there is no setState in an effect to cascade renders.
    */
   const [isPlayedOverride, setIsPlayedOverride] = useState<boolean | null>(null);
-  const todayIso = new Date().toISOString().split('T')[0];
-  const isPlayed = isPlayedOverride ?? !(gameDate > todayIso);
+  const today = todayIso();
+  const isPlayed = isPlayedOverride ?? !(gameDate > today);
   const setIsPlayed = (next: boolean | ((v: boolean) => boolean)) =>
     setIsPlayedOverride((prev) => {
-      const current = prev ?? !(gameDate > todayIso);
+      const current = prev ?? !(gameDate > today);
       return typeof next === 'function' ? next(current) : next;
     });
   const [isFriendly, setIsFriendly] = useState<boolean>(false);
@@ -369,7 +370,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // Memoize reset function
   const resetForm = useCallback(() => {
     setOpponentName('');
-    setGameDate(new Date().toISOString().split('T')[0]);
+    setGameDate(todayIso());
     setGameLocation('');
     setGameHour('');
     setGameMinute('');
