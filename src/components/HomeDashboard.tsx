@@ -124,7 +124,13 @@ function NextMatchCard({
       : game.daysAway === 1
         ? t('startScreen.dashTomorrow', 'Tomorrow')
         : t('startScreen.dashInDays', '{{count}} d', { count: game.daysAway });
-  const where = [game.venue, game.fieldNumber].filter(Boolean).join(' · ');
+  // Only the first comma-separated part of the venue. Newly picked locations
+  // already store just "venue, town", but games saved before that kept the
+  // whole disambiguation string - and a card that truncates mid-word tells the
+  // coach less than a short name does. The town is not worth the ellipsis on
+  // your own fixture.
+  const venueName = game.venue?.split(',')[0]?.trim();
+  const where = [venueName, game.fieldNumber].filter(Boolean).join(' · ');
 
   return (
     <div className="flex items-stretch rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden">
@@ -167,7 +173,7 @@ function UpcomingCard({ game, onOpen, t }: { game: HomeUpcomingGame; onOpen?: (i
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className="flex-1 min-w-[88px] text-left px-2.5 py-2 rounded-xl bg-gradient-to-r from-indigo-900/45 to-slate-800/80 border border-indigo-800/35 hover:from-indigo-800/50 hover:to-slate-800 transition-all"
+      className="flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl border transition-all bg-gradient-to-r from-indigo-900/45 to-slate-800/80 border-indigo-800/35 hover:from-indigo-800/50 hover:to-slate-800"
     >
       <span className="block text-[11px] font-semibold text-white truncate">
         {game.opponent || t('startScreen.dashResumeGame', 'Game')}

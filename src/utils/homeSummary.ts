@@ -321,7 +321,11 @@ export function buildHomeSummary(
     }));
 
   const upcoming = upcomingAll[0] ?? null;
-  const upcomingList = upcomingAll;
+  // The strip shows what comes AFTER the card, not including it. Repeating the
+  // carded fixture directly beneath itself is the same duplication the accent
+  // rule exists to avoid - and with only one fixture booked it means no strip
+  // and no toggle at all, because there is nothing further ahead to show.
+  const upcomingList = upcomingAll.slice(1);
 
   return { resume, vuosi, recent, upcoming, upcomingList, counts, countsReady, topScorer };
 }
