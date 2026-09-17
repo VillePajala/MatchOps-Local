@@ -4,6 +4,15 @@
     {
       "date": "2026-09-17",
       "en": [
+        "The car button now opens turn-by-turn directions straight to the venue, and only appears when the match is pinned to a real place. Before, a match whose location was typed by hand could offer directions to something vague like a district name - a button that promised navigation and delivered a search."
+      ],
+      "fi": [
+        "Autopainike avaa nyt ajo-ohjeet suoraan paikalle, ja näkyy vain kun ottelu on kiinnitetty oikeaan sijaintiin. Aiemmin käsin kirjoitetulla sijainnilla painike saattoi tarjota ajo-ohjeita johonkin epämääräiseen, kuten alueen nimeen - painike lupasi navigoinnin mutta antoi haun."
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "en": [
         "When a match has a pinned location, a car button now appears on the game card on the front page and in the match menu - one tap and the directions open, so you can set off without hunting for the address. It only appears when the match actually has a location."
       ],
       "fi": [

@@ -3,7 +3,7 @@
  * match they are about to be late for. Sending them to the wrong place, or to
  * a search that cannot resolve, is worse than showing no link at all.
  */
-import { mapsSearchUrl, TASO_URL } from '../externalLinks';
+import { mapsSearchUrl, mapsDirectionsUrl, TASO_URL } from '../externalLinks';
 
 describe('mapsSearchUrl', () => {
   it('searches Maps for a venue name', () => {
@@ -88,6 +88,46 @@ describe('mapsSearchUrl with coordinates', () => {
     // 0 is falsy, and a naive truthiness check would silently drop it.
     expect(mapsSearchUrl('somewhere', 0, 0)).toBe(
       'https://www.google.com/maps/search/?api=1&query=0,0',
+    );
+  });
+});
+
+describe('mapsDirectionsUrl', () => {
+  it('routes to an exact position', () => {
+    expect(mapsDirectionsUrl(61.0583, 28.1887)).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=61.0583,28.1887',
+    );
+  });
+
+  /**
+   * THE WHOLE REASON THIS EXISTS. mapsSearchUrl would fall back to searching
+   * the venue's name, so a match at "Itainen alue" would put a car button on
+   * the front page that opens a search for a region. A navigation control that
+   * cannot navigate is worse than no control, so this returns null and the
+   * button never renders.
+   */
+  it.each([
+    [undefined, undefined],
+    [61.0583, undefined],
+    [undefined, 28.1887],
+  ])('refuses to route without both coordinates (%p, %p)', (lat, lng) => {
+    expect(mapsDirectionsUrl(lat, lng)).toBeNull();
+  });
+
+  it('never falls back to a name, however good the name looks', () => {
+    // No name is even accepted - the signature cannot express one.
+    expect(mapsDirectionsUrl(undefined, undefined)).toBeNull();
+  });
+
+  it('asks for directions, not a dropped pin', () => {
+    // /dir/ opens Maps already routing; /search/ would need another tap.
+    expect(mapsDirectionsUrl(1, 2)).toContain('/maps/dir/');
+    expect(mapsDirectionsUrl(1, 2)).not.toContain('/maps/search/');
+  });
+
+  it('accepts the equator and prime meridian, which are falsy', () => {
+    expect(mapsDirectionsUrl(0, 0)).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=0,0',
     );
   });
 });

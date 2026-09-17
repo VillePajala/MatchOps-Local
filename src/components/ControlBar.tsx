@@ -22,7 +22,7 @@ import {
   HiOutlineScale,
   HiOutlineBookOpen,
 } from 'react-icons/hi2';
-import { TASO_URL, mapsSearchUrl } from '@/config/externalLinks';
+import { TASO_URL, mapsDirectionsUrl } from '@/config/externalLinks';
 import { MdDirectionsCar } from 'react-icons/md';
 import FormationPicker from './FormationPicker';
 import SteadyDigits from '@/components/SteadyDigits';
@@ -122,8 +122,7 @@ interface ControlBarProps {
   /** App settings (where the AI provider key lives), without going via Home. */
   onOpenAppSettings?: () => void;
   onGoToStartScreen?: () => void;
-  /** The current match's venue, for the directions row. */
-  gameLocation?: string;
+  /** The current match's pinned position, for the directions row. */
   locationLat?: number;
   locationLng?: number;
 }
@@ -168,12 +167,13 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onOpenRules,
   onOpenAppSettings,
   onGoToStartScreen,
-  gameLocation,
   locationLat,
   locationLng,
 }) => {
   const { t } = useTranslation();
-  const venueMapUrl = mapsSearchUrl(gameLocation, locationLat, locationLng);
+  // Directions, not a search: see mapsDirectionsUrl. A typed-only location
+  // yields null and the row disappears.
+  const venueMapUrl = mapsDirectionsUrl(locationLat, locationLng);
   const [isFieldToolsOpen, setIsFieldToolsOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
