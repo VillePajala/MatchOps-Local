@@ -103,6 +103,8 @@ export interface GameSettingsModalProps {
   locationLat?: number;
   locationLng?: number;
   onFieldNumberChange: (value: string) => void;
+  /** Keeps the live session's pin in step with the saved game's. */
+  onLocationCoordsChange: (coords: { lat?: number; lng?: number }) => void;
   onGameTimeChange: (time: string) => void;
   onAgeGroupChange: (age: string) => void;
   onTournamentLevelChange: (level: string) => void;
@@ -197,6 +199,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   locationLat,
   locationLng,
   onFieldNumberChange,
+  onLocationCoordsChange,
   onGameTimeChange,
   onAgeGroupChange,
   onTournamentLevelChange,
@@ -1917,6 +1920,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     hasCoordinates={locationLat !== undefined}
                     onChange={(venue) => {
                         onGameLocationChange(venue.name);
+                        // Without this the session keeps the OLD position: the
+                        // name would update, the saved game would gain the new
+                        // coordinates, and the pin beside it would still point
+                        // at the previous venue until a reload.
+                        onLocationCoordsChange({ lat: venue.latitude, lng: venue.longitude });
                         // Coordinates ride along with the name so the pin and the
                         // words can never disagree on a saved game.
                         mutateGameDetails(
