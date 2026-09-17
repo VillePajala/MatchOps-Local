@@ -4,6 +4,15 @@
     {
       "date": "2026-09-17",
       "en": [
+        "Internal notes only, nothing visible in the app: old feature ideas scattered through the documentation were collected in one place, with a note on which of them have since been built."
+      ],
+      "fi": [
+        "Vain sisäisiä muistiinpanoja, sovelluksessa ei näy mitään uutta: dokumentaatioon hajautuneet vanhat ominaisuusideat koottiin yhteen paikkaan, ja merkittiin mitkä niistä on jo toteutettu."
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "en": [
         "Internal notes only, nothing visible in the app: a possible myClub integration was investigated and decided against."
       ],
       "fi": [
