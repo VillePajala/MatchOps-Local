@@ -135,6 +135,20 @@ export function PrivacyPolicyClient() {
                 {t('privacyPolicy.thirdPartyServices.vercelLink')}
               </a>
             </p>
+            {/* Reached only when the coach uses the location field or the map
+                picker, which is why both descriptions say "when used". */}
+            <p>
+              <strong>{t('privacyPolicy.thirdPartyServices.photon')}</strong> - {t('privacyPolicy.thirdPartyServices.photonDesc')}{' '}
+              <a href="https://www.komoot.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+                {t('privacyPolicy.thirdPartyServices.photonLink')}
+              </a>
+            </p>
+            <p>
+              <strong>{t('privacyPolicy.thirdPartyServices.osm')}</strong> - {t('privacyPolicy.thirdPartyServices.osmDesc')}{' '}
+              <a href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+                {t('privacyPolicy.thirdPartyServices.osmLink')}
+              </a>
+            </p>
           </div>
         </section>
 

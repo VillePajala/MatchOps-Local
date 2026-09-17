@@ -54,11 +54,31 @@ beforeEach(() => {
   mockGuess.mockReset().mockResolvedValue(null);
 });
 
-const setup = async (props: Partial<React.ComponentProps<typeof VenueInput>> = {}) => {
-  const onChange = jest.fn();
-  render(
-    <VenueInput id="loc" value="Mitta-Keittiöt Areena" onChange={onChange} {...props} />,
+/**
+ * A controlled host, because VenueInput is a controlled field: without feeding
+ * the new value back, typing changes nothing and the search never re-runs -
+ * which would make a regression test for exactly that pass vacuously.
+ */
+type HostProps = { onChange: jest.Mock } & Omit<Partial<React.ComponentProps<typeof VenueInput>>, 'onChange' | 'value' | 'id'>;
+
+const Host = ({ onChange, ...props }: HostProps) => {
+  const [value, setValue] = React.useState('Mitta-Keittiöt Areena');
+  return (
+    <VenueInput
+      id="loc"
+      value={value}
+      onChange={(venue) => {
+        onChange(venue);
+        setValue(venue.name);
+      }}
+      {...props}
+    />
   );
+};
+
+const setup = async (props: Omit<HostProps, 'onChange'> = {}) => {
+  const onChange = jest.fn();
+  render(<Host onChange={onChange} {...props} />);
   // Let the debounced search run and come back empty.
   await act(async () => { await new Promise((r) => setTimeout(r, 350)); });
   return { onChange };
@@ -98,6 +118,26 @@ describe('choosing on the map', () => {
     });
   });
 
+  /**
+   * REGRESSION. The pick re-emits the name the field already holds, so `value`
+   * never changes and the "just picked" guard is never consumed. Arming it here
+   * left it armed, and the coach's next keystroke was silently swallowed.
+   */
+  it('still searches on the next keystroke after a map pick', async () => {
+    const { onChange } = await setup();
+
+    await userEvent.click(screen.getByRole('button', { name: /Choose on map/ }));
+    await waitFor(() => expect(screen.getByTestId('map-picker')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'pin' }));
+    void onChange;
+
+    mockSearch.mockClear();
+    await userEvent.type(screen.getByRole('combobox'), 'x');
+    await act(async () => { await new Promise((r) => setTimeout(r, 350)); });
+
+    expect(mockSearch).toHaveBeenCalled();
+  });
+
   it('shows the coach what they are pinning', async () => {
     await setup();
 
@@ -131,7 +171,7 @@ describe('choosing on the map', () => {
       await waitFor(() =>
         expect(screen.getByTestId('picker-center')).toHaveTextContent('61.87,28.88'),
       );
-      expect(mockGuess).toHaveBeenCalledWith('Mitta-Keittiöt Areena');
+      expect(mockGuess).toHaveBeenCalledWith('Mitta-Keittiöt Areena', expect.anything());
       // A guessed town must open at town zoom, or the coach lands on one
       // arbitrary street with no way to tell which.
       expect(screen.getByTestId('picker-approx')).toHaveTextContent('true');

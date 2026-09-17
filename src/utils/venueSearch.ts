@@ -184,6 +184,32 @@ export async function guessRegionFor(
   const q = query.trim();
   if (!q) return null;
 
+  // Up to three sequential lookups, each waiting on a free public service, and
+  // a button reading "Opening map..." the whole time. On a bad connection at a
+  // pitch that is an unbounded wait for something we were only guessing at, so
+  // the whole sequence gets one deadline: past it the map simply opens zoomed
+  // out, which is a worse starting point but an immediate one.
+  const deadline = new AbortController();
+  const timer = setTimeout(() => deadline.abort(), GUESS_BUDGET_MS);
+  const onOuterAbort = () => deadline.abort();
+  signal?.addEventListener('abort', onOuterAbort);
+
+  try {
+    return await guessWithin(q, deadline.signal);
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', onOuterAbort);
+  }
+}
+
+/** How long the region guess may take in total before the map opens anyway. */
+const GUESS_BUDGET_MS = 4000;
+
+async function guessWithin(
+  q: string,
+  signal: AbortSignal,
+): Promise<VenueSuggestion | null> {
+
   const candidates: string[] = [];
 
   // "Venue, Town" is the commonest shape a coach types, so what follows the
@@ -200,7 +226,7 @@ export async function guessRegionFor(
   }
 
   for (const candidate of candidates) {
-    if (signal?.aborted) return null;
+    if (signal.aborted) return null;
     const [hit] = await searchVenues(candidate, signal);
     if (hit) return hit;
   }

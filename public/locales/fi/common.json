@@ -2469,7 +2469,7 @@
       "title": "Tiedot, joita EMME kerää",
       "items": {
         "gameContent": "Pelisisältöä, tuloksia tai tilastoja (tallennettu vain paikallisesti tai yksityiselle pilvitilillesi)",
-        "location": "Sijaintitietoja",
+        "location": "Sijaintitiedot. Mitään tietoa siitä missä sinä tai laitteesi olette ei lähetetä meille eikä tallenneta meille. Paikkahaku ja kartalta valinta ottavat yhteyttä karttapalveluihin puolestasi silloin kun käytät niitä (katso Kolmannen osapuolen palvelut), ja \"Oma sijainti\" -painike lukee laitteesi sijainnin vain laitteellasi kartan keskittämiseen.",
         "photos": "Valokuvia tai mediaa",
         "deviceIds": "Laitetunnisteita seurantaa tai mainontaa varten",
         "playerNames": "Pelaajien nimiä tai henkilötietoja (ne tallentaa paikallisesti sinä, tai yksityiselle pilvitilillesi)"
@@ -2490,7 +2490,13 @@
       "googlePlayLink": "Googlen tietosuojakäytäntö",
       "sentryLink": "Sentryn tietosuojakäytäntö",
       "supabaseLink": "Supabasen tietosuojakäytäntö",
-      "vercelLink": "Vercelin tietosuojakäytäntö"
+      "vercelLink": "Vercelin tietosuojakäytäntö",
+      "photon": "Photon (Komoot)",
+      "photonDesc": "Paikkahaku ottelun sijaintikentässä, kun sitä käytetään (EU, Saksa).",
+      "photonLink": "Komootin tietosuojakäytäntö",
+      "osm": "OpenStreetMap",
+      "osmDesc": "Karttaruudut kartalta valintaan, kun sitä käytetään (EU, Iso-Britannia).",
+      "osmLink": "OSMF:n tietosuojakäytäntö"
     },
     "yourRights": {
       "title": "Oikeutesi (GDPR)",
@@ -3884,6 +3890,7 @@
     "myLocation": "Oma sijainti",
     "locating": "Haetaan sijaintia...",
     "locationFailed": "Sijaintia ei saatu. Etsi paikka kartalta.",
-    "confirm": "Kiinnitä tähän"
+    "confirm": "Kiinnitä tähän",
+    "loading": "Ladataan karttaa..."
   }
 }

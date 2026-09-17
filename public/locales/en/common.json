@@ -2469,7 +2469,7 @@
       "title": "Data We Do NOT Collect",
       "items": {
         "gameContent": "Game content, scores, or statistics (stored locally only, or in your private cloud account)",
-        "location": "Location data",
+        "location": "Location data. Nothing about where you or your device are is sent to us or stored by us. The venue search and the map picker do reach map providers on your behalf when you use them (see Third-Party Services), and the \"My location\" button reads your device position only on your device, to centre the map.",
         "photos": "Photos or media",
         "deviceIds": "Device identifiers for tracking or advertising",
         "playerNames": "Player names or personal details (these are stored locally by you, or in your private cloud account)"
@@ -2490,7 +2490,13 @@
       "googlePlayLink": "Google's Privacy Policy",
       "sentryLink": "Sentry's Privacy Policy",
       "supabaseLink": "Supabase's Privacy Policy",
-      "vercelLink": "Vercel's Privacy Policy"
+      "vercelLink": "Vercel's Privacy Policy",
+      "photon": "Photon (Komoot)",
+      "photonDesc": "Venue search in the match location field, when used (EU, Germany).",
+      "photonLink": "Komoot Privacy Policy",
+      "osm": "OpenStreetMap",
+      "osmDesc": "Map tiles for the venue map picker, when used (EU, United Kingdom).",
+      "osmLink": "OSMF Privacy Policy"
     },
     "yourRights": {
       "title": "Your Rights (GDPR)",
@@ -3884,6 +3890,7 @@
     "myLocation": "My location",
     "locating": "Locating...",
     "locationFailed": "Could not get your location. Find the place on the map instead.",
-    "confirm": "Pin here"
+    "confirm": "Pin here",
+    "loading": "Loading map..."
   }
 }

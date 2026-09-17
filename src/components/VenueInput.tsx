@@ -91,6 +91,7 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   // Set while a pick is being applied, so the resulting value change does not
   // immediately fire another search for the name we just inserted.
   const justPickedRef = useRef(false);
+  const openMapAbortRef = useRef<AbortController | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Derived, not stored: the list is only ever shown for the value on screen
@@ -193,13 +194,30 @@ export const VenueInput: React.FC<VenueInputProps> = ({
       setIsMapOpen(true);
       return;
     }
+
+    // The lookup outlives the tap that started it, and the coach can close the
+    // whole modal while it is in flight - so it is abortable, and nothing is
+    // set once it has been. Same pattern as the typing search above.
+    const controller = new AbortController();
+    openMapAbortRef.current?.abort();
+    openMapAbortRef.current = controller;
+
     setIsResolvingMap(true);
-    const guess = await guessRegionFor(value);
+    const guess = await guessRegionFor(value, controller.signal);
+    if (controller.signal.aborted) return;
+
     setIsResolvingMap(false);
     setMapCenter(guess ? { latitude: guess.latitude, longitude: guess.longitude } : null);
     setMapCenterIsGuess(guess !== null);
     setIsMapOpen(true);
   }, [latitude, longitude, value]);
+
+  // Unmounting mid-lookup must not land a setState on a dead component.
+  useEffect(() => () => openMapAbortRef.current?.abort(), []);
+
+  // Stable, so the picker's Escape listener is not torn down and re-attached
+  // on every re-render of this field while the map is open.
+  const closeMap = useCallback(() => setIsMapOpen(false), []);
 
   /**
    * THE NAME IS THE COACH'S, THE COORDINATES ARE THE MAP'S. This is the whole
@@ -208,7 +226,11 @@ export const VenueInput: React.FC<VenueInputProps> = ({
    */
   const pickFromMap = useCallback(
     (coords: { latitude: number; longitude: number }) => {
-      justPickedRef.current = true;
+      // Deliberately NOT setting justPickedRef here. That flag exists to stop
+      // the search effect re-firing for a name we just inserted - but this path
+      // re-emits the name the field ALREADY holds, so `value` does not change
+      // and the effect never runs to clear it. Setting it would leave it armed
+      // and swallow the coach's next real keystroke instead.
       setIsMapOpen(false);
       setSearchedFor(null);
       setSuggestions([]);
@@ -320,7 +342,7 @@ export const VenueInput: React.FC<VenueInputProps> = ({
           initialCenter={mapCenter}
           centerIsApproximate={mapCenterIsGuess}
           venueName={value}
-          onCancel={() => setIsMapOpen(false)}
+          onCancel={closeMap}
           onPick={pickFromMap}
         />
       ) : null}

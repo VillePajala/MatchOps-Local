@@ -77,6 +77,9 @@ export const VenueMapPicker: React.FC<VenueMapPickerProps> = ({
   const mapRef = useRef<LeafletMap | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locateError, setLocateError] = useState(false);
+  // Leaflet arrives over the network. Until it does there is no centre to read,
+  // and a confirm button that silently does nothing reads as a broken app.
+  const [isMapReady, setIsMapReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +111,7 @@ export const VenueMapPicker: React.FC<VenueMapPickerProps> = ({
       }).addTo(map);
 
       mapRef.current = map;
+      setIsMapReady(true);
       // The map is measured on creation, but it is created inside a modal that
       // may still be sizing. Without this the tiles lay out against a zero box
       // and the map renders as a grey stripe.
@@ -118,6 +122,7 @@ export const VenueMapPicker: React.FC<VenueMapPickerProps> = ({
       cancelled = true;
       map?.remove();
       mapRef.current = null;
+      setIsMapReady(false);
     };
   }, [initialCenter, centerIsApproximate]);
 
@@ -226,10 +231,20 @@ export const VenueMapPicker: React.FC<VenueMapPickerProps> = ({
             </svg>
           </div>
 
-          {/* OSM's tile policy requires this to be visible, so it is not a
-              collapsible control. */}
-          <div className="pointer-events-none absolute bottom-0 left-0 z-[400] bg-slate-900/75 px-1.5 py-0.5 text-[10px] text-slate-300">
-            © OpenStreetMap
+          {/* OSM's tile policy asks for this exact credit, as a LINK to their
+              copyright page - so it is neither collapsed behind a control nor
+              flattened to plain text. The CSP grant in next.config.ts is
+              justified by that policy, which makes getting this right part of
+              the justification rather than decoration. */}
+          <div className="absolute bottom-0 left-0 z-[400] bg-slate-900/75 px-1.5 py-0.5 text-[10px] text-slate-300">
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-slate-100"
+            >
+              © OpenStreetMap contributors
+            </a>
           </div>
         </div>
 
@@ -243,7 +258,7 @@ export const VenueMapPicker: React.FC<VenueMapPickerProps> = ({
           <button
             type="button"
             onClick={locate}
-            disabled={isLocating}
+            disabled={isLocating || !isMapReady}
             className="inline-flex items-center justify-center gap-1.5 rounded-md bg-slate-700 px-3 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600 disabled:opacity-60"
           >
             <MdMyLocation className="h-4 w-4" />
@@ -254,9 +269,12 @@ export const VenueMapPicker: React.FC<VenueMapPickerProps> = ({
           <button
             type="button"
             onClick={confirm}
-            className="flex-1 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+            disabled={!isMapReady}
+            className="flex-1 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {t('venueMapPicker.confirm', 'Pin here')}
+            {isMapReady
+              ? t('venueMapPicker.confirm', 'Pin here')
+              : t('venueMapPicker.loading', 'Loading map...')}
           </button>
         </div>
       </div>
