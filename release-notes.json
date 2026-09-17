@@ -4,6 +4,15 @@
     {
       "date": "2026-09-17",
       "en": [
+        "Behind-the-scenes tidy-up with no visible change: internal planning notes and research were brought up to date, and one external link was moved to a shared place in the code."
+      ],
+      "fi": [
+        "Taustasiivous ilman näkyvää muutosta: sisäiset suunnitelmat ja taustatyö päivitettiin ajan tasalle, ja yksi ulkoinen linkki siirrettiin koodissa yhteiseen paikkaan."
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "en": [
         "Behind-the-scenes fix, following on from the last one: a few routine checks the app runs at sign-in could close its own connection to your stored data, which left the app showing nothing until it was reopened. Those checks now leave the connection alone."
       ],
       "fi": [
