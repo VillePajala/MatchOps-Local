@@ -1,6 +1,7 @@
 import { GameEvent, SubAlertLevel, GameType, Gender, IntervalLog, ShootoutKick } from '@/types';
 import type { AiMeta } from '@/types/game';
 import logger from '@/utils/logger';
+import { todayIso } from '@/utils/todayIso';
 
 // --- State Definition ---
 export interface GameSessionState {
@@ -63,7 +64,7 @@ export interface GameSessionState {
 export const initialGameSessionStatePlaceholder: GameSessionState = {
   teamName: "My Team",
   opponentName: "Opponent",
-  gameDate: new Date().toISOString().split('T')[0],
+  gameDate: todayIso(),
   homeScore: 0,
   awayScore: 0,
   gameNotes: '',

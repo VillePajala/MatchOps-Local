@@ -507,6 +507,12 @@ describe('Translation File Validation', () => {
       //     where the coach already is rather than buried in the match report.
       // +1: venueInput.searching - Photon can take a second or more, and a field
       //     that looks inert gets typed over, cancelling the request being waited on.
+      // +5: the next-match slot - dashNextMatch/dashToday/dashTomorrow/dashInDays
+      //     for the fixture card's countdown, and dashUpcoming for the strip
+      //     toggle. A fixture created days ahead had been stored and shown nowhere.
+      // +1: venueInput.noMatches - a silent empty result reads as a broken field.
+      //     OSM knows venues by their real names, not their sponsors, so "no
+      //     matches" is a normal answer that has to be said out loud.
       // +9: planner rotations & swaps (subs.inGameGroup, lineup.swapAction,
       //     swapSheet.title/hint/who/withLabel/noTargets, swap.done,
       //     conflicts.row) - any-player subs + whole-game player swap
@@ -688,7 +694,7 @@ describe('Translation File Validation', () => {
       // -1 startScreen.dashRecent: the recent-games strip is introduced by the
       //     halfway-line rule alone now. The word restated what the rule
       //     already said. Lands at 3266.
-      expect(enKeys.length).toBe(3318);
+      expect(enKeys.length).toBe(3324);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -877,7 +883,7 @@ describe('Translation File Validation', () => {
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3318);
+      expect(fiKeys.length).toBe(3324);
     });
   });
 });

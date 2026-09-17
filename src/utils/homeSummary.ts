@@ -15,6 +15,35 @@ import { getClubSeasonForDate } from './clubSeason';
 import { resolveGameResult, type GameResult } from './gameResult';
 import { computeTeamRecord, type TeamRecord } from './teamRecord';
 
+/**
+ * Whole days from one ISO date to another, floored at zero.
+ *
+ * Built from the date parts rather than from timestamps: a match is "tomorrow"
+ * because of the calendar, not because of 24 hours, and Finland changes clocks
+ * twice a season. Parsed as UTC so the arithmetic cannot be nudged across a day
+ * boundary by the device's own zone.
+ */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * A date the fixture logic can compare and count with.
+ *
+ * Dates are compared as STRINGS here, which is exact for ISO and nonsense for
+ * anything else: "not-a-date" sorts after "2026-09-17", so a corrupt value
+ * would otherwise surface as a fixture happening today. Shape-checking first
+ * keeps a bad row invisible rather than inventing a match from it.
+ */
+function isUsableDate(value: string | undefined): value is string {
+  return !!value && ISO_DATE.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+}
+
+function daysBetween(fromIso: string, toIso: string): number {
+  const from = Date.parse(`${fromIso}T00:00:00Z`);
+  const to = Date.parse(`${toIso}T00:00:00Z`);
+  if (Number.isNaN(from) || Number.isNaN(to)) return 0;
+  return Math.max(0, Math.round((to - from) / 86400000));
+}
+
 export interface HomeRecentGame {
   id: string;
   opponent: string;
@@ -23,6 +52,31 @@ export interface HomeRecentGame {
   result: GameResult;
   date: string;
   isFriendly: boolean;
+}
+
+/**
+ * A match that has not been played yet, nearest first.
+ *
+ * WHY THIS EXISTS AT ALL. A coach creates the fixture days ahead, and until now
+ * the app stored it and showed it NOWHERE: the recent strip filters unplayed
+ * games out (correctly - it is history), and nothing else looked for them. The
+ * data was already being entered and already being ignored.
+ */
+export interface HomeUpcomingGame {
+  id: string;
+  opponent: string;
+  /** ISO date, so the caller can format it in the coach's language. */
+  date: string;
+  time?: string;
+  venue?: string;
+  fieldNumber?: string;
+  /**
+   * Turn-by-turn directions, or null when the venue was only typed.
+   * Coordinates only - see mapsDirectionsUrl for why a name will not do.
+   */
+  mapsUrl: string | null;
+  /** Whole days from today: 0 = today, 1 = tomorrow. Drives the countdown. */
+  daysAway: number;
 }
 
 export interface HomeVuosi extends TeamRecord {
@@ -71,6 +125,10 @@ export interface HomeSummary {
   vuosi: HomeVuosi | null;
   /** Most recent played games, newest first. */
   recent: HomeRecentGame[];
+  /** The next unplayed fixture, nearest first - null when none is booked. */
+  upcoming: HomeUpcomingGame | null;
+  /** The fixtures after it, for the Tulevat strip. Empty when none. */
+  upcomingList: HomeUpcomingGame[];
   /** Entity counts (0 when the source collection wasn't provided). */
   counts: HomeCounts;
   /** True once the entity data has been supplied (the enriched build), so the
@@ -233,5 +291,41 @@ export function buildHomeSummary(
   // presence of `roster` marks the counts as loaded (vs the fast Pelit build).
   const countsReady = opts.roster !== undefined;
 
-  return { resume, vuosi, recent, counts, countsReady, topScorer };
+  // --- Upcoming fixtures ---
+  //
+  // The mirror image of the recent strip: unplayed, dated today or later,
+  // nearest first. Scoped the same way, for the same reason - another team's
+  // fixture under this team's heading is the same confusion.
+  //
+  // `>= opts.today` deliberately includes TODAY. A match this afternoon is the
+  // most upcoming thing there is, and dropping it at midnight would blank the
+  // card on the one morning it matters most.
+  const upcomingAll: HomeUpcomingGame[] = Object.entries(all)
+    .filter(([, g]) => {
+      if (!g || g.isPlayed !== false || !isUsableDate(g.gameDate)) return false;
+      if (g.gameDate < opts.today) return false;
+      if (!scoped) return true;
+      return scoped === 'legacy' ? !(g.teamId ?? '') : g.teamId === scoped;
+    })
+    .sort((a, b) => (a[1].gameDate || '').localeCompare(b[1].gameDate || ''))
+    .slice(0, recentLimit)
+    .map(([id, g]) => ({
+      id,
+      opponent: g.opponentName || '',
+      date: g.gameDate || '',
+      time: g.gameTime || undefined,
+      venue: g.gameLocation || undefined,
+      fieldNumber: g.fieldNumber || undefined,
+      mapsUrl: mapsDirectionsUrl(g.locationLat, g.locationLng),
+      daysAway: daysBetween(opts.today, g.gameDate || ''),
+    }));
+
+  const upcoming = upcomingAll[0] ?? null;
+  // The strip shows what comes AFTER the card, not including it. Repeating the
+  // carded fixture directly beneath itself is the same duplication the accent
+  // rule exists to avoid - and with only one fixture booked it means no strip
+  // and no toggle at all, because there is nothing further ahead to show.
+  const upcomingList = upcomingAll.slice(1);
+
+  return { resume, vuosi, recent, upcoming, upcomingList, counts, countsReady, topScorer };
 }

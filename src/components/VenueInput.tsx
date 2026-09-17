@@ -65,6 +65,9 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   // Without a sign that anything is happening, the field looks broken and the
   // coach keeps typing - which cancels the request they were waiting for.
   const [isSearching, setIsSearching] = useState(false);
+  // The query the last completed search was FOR, so "nothing found" can be
+  // shown for that exact text and not linger over the next keystroke.
+  const [searchedFor, setSearchedFor] = useState<string | null>(null);
   // Set while a pick is being applied, so the resulting value change does not
   // immediately fire another search for the name we just inserted.
   const justPickedRef = useRef(false);
@@ -74,6 +77,22 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   // right now, so suggestions left over from a longer query cannot reappear
   // when the coach deletes back to two letters.
   const showSuggestions = isOpen && suggestions.length > 0 && value.trim().length >= MIN_QUERY;
+
+  /**
+   * "Nothing found", shown only for the text actually searched.
+   *
+   * A SILENT EMPTY RESULT READS AS A BROKEN FIELD. OpenStreetMap knows venues
+   * by their real names, not their sponsors: "Mitta-Keittiöt Areena" returns
+   * nothing while "jäähalli Savonlinna" finds the same building. Without a
+   * word on screen the coach cannot tell that apart from a failed lookup, and
+   * the useful advice - try the plain name, or just type it - never arrives.
+   */
+  const foundNothing =
+    !isSearching &&
+    searchedFor !== null &&
+    searchedFor === value.trim() &&
+    suggestions.length === 0 &&
+    value.trim().length >= MIN_QUERY;
 
   useEffect(() => {
     if (justPickedRef.current) {
@@ -96,6 +115,7 @@ export const VenueInput: React.FC<VenueInputProps> = ({
         setSuggestions(results);
         setActiveIndex(-1);
         setIsOpen(results.length > 0);
+        setSearchedFor(query);
       } finally {
         // Not in the aborted branch alone: a superseded request must also stop
         // the spinner, or it spins forever on the last keystroke of a word.
@@ -127,6 +147,7 @@ export const VenueInput: React.FC<VenueInputProps> = ({
     (suggestion: VenueSuggestion) => {
       justPickedRef.current = true;
       setIsSearching(false);
+      setSearchedFor(null);
       setIsOpen(false);
       setSuggestions([]);
       setActiveIndex(-1);
@@ -203,6 +224,22 @@ export const VenueInput: React.FC<VenueInputProps> = ({
           />
         ) : null}
       </div>
+
+      {foundNothing ? (
+        <p
+          // It arrives after an async search, so without a live region a screen
+          // reader never learns the list came back empty - the field just stays
+          // silent, which is the very confusion this message exists to end.
+          role="status"
+          aria-live="polite"
+          className="mt-1 text-xs text-slate-400"
+        >
+          {t(
+            'venueInput.noMatches',
+            'No places found. Try the venue\'s plain name, or just type it - the location is saved either way.',
+          )}
+        </p>
+      ) : null}
 
       {showSuggestions ? (
         <ul
