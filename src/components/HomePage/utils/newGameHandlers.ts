@@ -47,6 +47,8 @@ export interface StartNewGameRequest {
   opponentName: string;
   gameDate: string;
   gameLocation: string;
+  /** Which pitch at the venue; kept apart from the venue so a map can find it. */
+  fieldNumber: string;
   gameTime: string;
   seasonId: string | null;
   tournamentId: string | null;
@@ -95,6 +97,7 @@ export async function buildAndPersistNewGame(
     opponentName,
     gameDate,
     gameLocation,
+    fieldNumber,
     gameTime,
     seasonId,
     tournamentId,
@@ -236,6 +239,7 @@ export async function buildAndPersistNewGame(
     opponentName,
     gameDate,
     gameLocation,
+    fieldNumber,
     gameTime,
     seasonId: seasonId || '',
     tournamentId: tournamentId || '',

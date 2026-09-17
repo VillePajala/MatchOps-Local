@@ -5,6 +5,8 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { HiOutlineMapPin } from 'react-icons/hi2';
+import { mapsSearchUrl } from '@/config/externalLinks';
 
 interface GameInfoCardProps {
   homeTeamName: string;
@@ -14,6 +16,8 @@ interface GameInfoCardProps {
   formattedDate: string;
   gameTime?: string;
   gameLocation?: string;
+  /** Which pitch at the venue. Shown beside it, never sent to the map. */
+  fieldNumber?: string;
   numPeriods?: number;
   periodDurationMinutes?: number;
   wentToOvertime?: boolean;
@@ -32,6 +36,7 @@ export function GameInfoCard({
   formattedDate,
   gameTime,
   gameLocation,
+  fieldNumber,
   numPeriods,
   periodDurationMinutes,
   wentToOvertime,
@@ -40,6 +45,7 @@ export function GameInfoCard({
   shootoutScore,
 }: GameInfoCardProps) {
   const { t } = useTranslation();
+  const mapsUrl = mapsSearchUrl(gameLocation);
 
   return (
     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
@@ -83,8 +89,27 @@ export function GameInfoCard({
           </div>
           <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
             <label className="block text-xs text-slate-400">{t('common.location')}</label>
+            {/* The venue links to a map; the pitch never does. "TN 2" is what
+                stops a map finding the place, which is why it sits apart. */}
             <span className="font-medium text-slate-200">
-              {gameLocation || t('common.notSet')}
+              {mapsUrl ? (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200 hover:underline"
+                  title={t('gameStatsModal.openInMaps', 'Open in Maps')}
+                >
+                  {gameLocation}
+                  <HiOutlineMapPin className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                  <span className="sr-only">{t('gameStatsModal.openInMaps', 'Open in Maps')}</span>
+                </a>
+              ) : (
+                gameLocation || t('common.notSet')
+              )}
+              {fieldNumber ? (
+                <span className="text-slate-400"> · {fieldNumber}</span>
+              ) : null}
             </span>
           </div>
           <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
