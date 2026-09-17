@@ -3866,6 +3866,7 @@
     "appliedListsOnly": "Nimetty sarjan joukkuelistassa."
   },
   "venueInput": {
-    "pinned": "Kiinnitetty karttasijaintiin"
+    "pinned": "Kiinnitetty karttasijaintiin",
+    "searching": "Haetaan paikkoja"
   }
 }

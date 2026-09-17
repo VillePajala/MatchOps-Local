@@ -61,6 +61,10 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   const [suggestions, setSuggestions] = useState<VenueSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  // Photon is a free public service and can take a second or more to answer.
+  // Without a sign that anything is happening, the field looks broken and the
+  // coach keeps typing - which cancels the request they were waiting for.
+  const [isSearching, setIsSearching] = useState(false);
   // Set while a pick is being applied, so the resulting value change does not
   // immediately fire another search for the name we just inserted.
   const justPickedRef = useRef(false);
@@ -85,11 +89,18 @@ export const VenueInput: React.FC<VenueInputProps> = ({
 
     const controller = new AbortController();
     const timer = setTimeout(async () => {
-      const results = await searchVenues(query, controller.signal);
-      if (controller.signal.aborted) return;
-      setSuggestions(results);
-      setActiveIndex(-1);
-      setIsOpen(results.length > 0);
+      setIsSearching(true);
+      try {
+        const results = await searchVenues(query, controller.signal);
+        if (controller.signal.aborted) return;
+        setSuggestions(results);
+        setActiveIndex(-1);
+        setIsOpen(results.length > 0);
+      } finally {
+        // Not in the aborted branch alone: a superseded request must also stop
+        // the spinner, or it spins forever on the last keystroke of a word.
+        if (!controller.signal.aborted) setIsSearching(false);
+      }
     }, DEBOUNCE_MS);
 
     return () => {
@@ -115,6 +126,7 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   const pick = useCallback(
     (suggestion: VenueSuggestion) => {
       justPickedRef.current = true;
+      setIsSearching(false);
       setIsOpen(false);
       setSuggestions([]);
       setActiveIndex(-1);
@@ -174,7 +186,17 @@ export const VenueInput: React.FC<VenueInputProps> = ({
         />
         {/* The pin is the only signal that this location is pinned to a real
             place rather than a string, so it earns its space. */}
-        {hasCoordinates && !showSuggestions ? (
+        {/* One slot, three states: searching beats pinned, because the
+            spinner answers the question the coach is asking right now. */}
+        {isSearching ? (
+          <span
+            role="status"
+            aria-label={t('venueInput.searching', 'Searching for places')}
+            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2"
+          >
+            <span className="block w-4 h-4 rounded-full border-2 border-slate-500 border-t-indigo-300 animate-spin" />
+          </span>
+        ) : hasCoordinates && !showSuggestions ? (
           <HiOutlineMapPin
             className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-300"
             aria-label={t('venueInput.pinned', 'Pinned to a map location')}
