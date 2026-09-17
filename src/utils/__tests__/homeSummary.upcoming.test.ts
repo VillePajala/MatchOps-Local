@@ -45,7 +45,19 @@ describe('upcoming fixtures', () => {
     });
 
     expect(s.upcoming?.opponent).toBe('Purppura');
-    expect(s.upcomingList.map((u) => u.opponent)).toEqual(['Purppura', 'Saimaa', 'Imatra']);
+    // The strip shows what comes AFTER the card, never the carded match itself.
+    expect(s.upcomingList.map((u) => u.opponent)).toEqual(['Saimaa', 'Imatra']);
+  });
+
+  /**
+   * With one fixture booked there is nothing further ahead, so the strip is
+   * empty and the toggle never appears - the card already says everything.
+   */
+  it('leaves the strip empty when the only fixture is the carded one', () => {
+    const s = summary({ only: g({ isPlayed: false, gameDate: '2026-09-20' }) });
+
+    expect(s.upcoming).not.toBeNull();
+    expect(s.upcomingList).toEqual([]);
   });
 
   it('ignores a fixture whose date has passed', () => {
@@ -75,7 +87,8 @@ describe('upcoming fixtures', () => {
     });
 
     expect(s.recent.map((r) => r.id)).toEqual(['past']);
-    expect(s.upcomingList.map((u) => u.id)).toEqual(['future']);
+    expect(s.upcoming?.id).toBe('future');
+    expect(s.upcomingList).toEqual([]);
   });
 
   describe('the car button', () => {

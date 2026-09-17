@@ -105,6 +105,35 @@ describe('the accent', () => {
   });
 });
 
+describe('the venue on the card', () => {
+  /**
+   * Games saved before the label was shortened kept the whole disambiguation
+   * string, which truncated mid-word on the card - the owner's read
+   * "Savitaipale Areena, Jonni Myyrän tie 3, Savitai…".
+   */
+  it('shows the venue without its stored address tail', () => {
+    render(<HomeDashboard summary={base({
+      upcoming: fixture({ venue: 'Savitaipale Areena, Jonni Myyrän tie 3, Savitaipale', fieldNumber: undefined }),
+    })} t={t} />);
+
+    expect(screen.getByText('Savitaipale Areena')).toBeInTheDocument();
+  });
+
+  it('keeps the pitch beside it', () => {
+    render(<HomeDashboard summary={base({
+      upcoming: fixture({ venue: 'Kimpisen kenttä, Lappeenranta', fieldNumber: 'TN 2' }),
+    })} t={t} />);
+
+    expect(screen.getByText('Kimpisen kenttä · TN 2')).toBeInTheDocument();
+  });
+
+  it('says nothing when there is no venue at all', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture({ venue: undefined, fieldNumber: undefined }) })} t={t} />);
+
+    expect(screen.getByText('Purppura')).toBeInTheDocument();
+  });
+});
+
 describe('the strip', () => {
   it('offers the toggle only when there are both kinds', () => {
     const { rerender } = render(<HomeDashboard summary={base({ recent: [recent('a', 'HJK')] })} t={t} />);
