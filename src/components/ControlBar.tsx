@@ -123,7 +123,7 @@ interface ControlBarProps {
   onGoToStartScreen?: () => void;
 }
 
-/** The three external-destination rows in Resources share one shape. */
+/** Shape of a row that leaves the app. Taso is currently the only one. */
 const EXTERNAL_LINK_ROW =
   'w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors';
 
