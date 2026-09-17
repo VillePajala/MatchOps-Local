@@ -8,6 +8,8 @@ import {
   getLastOffDeviceBackupTime,
   getBackupReminderDismissedTime,
   setBackupReminderDismissed,
+  getDataFirstSeenTime,
+  markDataFirstSeen,
 } from "@/utils/appSettings";
 import { exportFullBackup } from "@/utils/fullBackup";
 import logger from "@/utils/logger";
@@ -20,6 +22,21 @@ import logger from "@/utils/logger";
  * fresh timestamp and hides the banner); "Dismiss" snoozes for another 30 days.
  */
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * How long data must have lived on this device before the reminder may appear.
+ *
+ * WITHOUT THIS THE BANNER FIRED ON DAY ONE. "Never backed up" is
+ * indistinguishable from "installed this morning", and on a new device signing
+ * in to existing cloud data it becomes true the instant hydration lands - so a
+ * coach met a warning about unprotected data at the same moment as the
+ * first-run prompts, about games they had not yet touched.
+ *
+ * Three days is deliberately short of the thirty-day cadence: the point is not
+ * to delay the reminder, it is to stop it arriving before the app has been
+ * used at all.
+ */
+const GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000;
 
 interface BackupReminderBannerProps {
   /** Whether the user has any saved games worth backing up. */
@@ -40,6 +57,16 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
       return;
     }
     try {
+      // Stamped once, the first time this device holds anything. Doing it here
+      // rather than at install time means a coach who signs in months later
+      // still gets a grace period measured from THEIR data arriving.
+      await markDataFirstSeen();
+      const firstSeen = await getDataFirstSeenTime();
+      if (firstSeen && Date.now() - firstSeen < GRACE_PERIOD_MS) {
+        setVisible(false);
+        return;
+      }
+
       const dismissed = await getBackupReminderDismissedTime();
       if (dismissed && Date.now() - dismissed < THIRTY_DAYS_MS) {
         setVisible(false);

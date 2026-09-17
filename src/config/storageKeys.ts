@@ -46,3 +46,11 @@ export const INSTALL_PROMPT_DISMISSED_KEY = 'installPromptDismissed';
 export const LAST_OFF_DEVICE_BACKUP_KEY = 'lastOffDeviceBackupAt';
 // Timestamp (ms) the backup reminder was last dismissed (snooze the banner).
 export const BACKUP_REMINDER_DISMISSED_KEY = 'backupReminderDismissedAt';
+/**
+ * When this device first held data worth backing up.
+ *
+ * The reminder's clock starts here rather than at "never backed up", which on a
+ * fresh install is true the instant cloud data lands and made the app ask for a
+ * backup on a device minutes old.
+ */
+export const DATA_FIRST_SEEN_KEY = 'dataFirstSeenAt';
