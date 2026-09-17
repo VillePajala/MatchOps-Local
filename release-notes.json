@@ -4,6 +4,15 @@
     {
       "date": "2026-09-17",
       "en": [
+        "Internal notes only, nothing visible in the app: a possible myClub integration was investigated and decided against."
+      ],
+      "fi": [
+        "Vain sisäisiä muistiinpanoja, sovelluksessa ei näy mitään uutta: mahdollinen myClub-integraatio selvitettiin ja siitä päätettiin luopua."
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "en": [
         "Behind-the-scenes tidy-up with no visible change: internal planning notes and research were brought up to date, and one external link was moved to a shared place in the code."
       ],
       "fi": [
