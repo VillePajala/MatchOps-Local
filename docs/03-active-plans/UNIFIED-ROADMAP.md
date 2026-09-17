@@ -235,6 +235,98 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 
 ---
 
+## 📍 What match locations unlock (recorded 2026-09-17, after #851)
+
+Every match can now carry **coordinates**, not just a name (migration 048). The link was
+the visible part; this is the part that compounds. A string can only be displayed. A
+position can be measured, compared and grouped - which is why this was worth a migration
+rather than a link, and the reason to keep picking venues rather than typing them.
+
+**None of this is scheduled.** It is written down so nobody has to re-derive what the
+data is for.
+
+### The one the owner asked for: when to leave
+
+- [ ] **Departure time**, and the owner's correction is what makes it correct:
+  `kickoff - arrivalBuffer - travelTime`. **You must BE at the ground a fixed time
+  before kick-off**, so this cannot be computed from kick-off directly. The buffer is a
+  real quantity - warm-up, lineup, changing - and belongs in settings, probably around
+  45 minutes by default, with the warm-up plan's own length as a candidate input.
+  Omitting it produces a departure time that is confidently and uselessly late.
+- [ ] **Travel time without a routing API, which is the hard half.** Verified
+  2026-09-17: the OSRM demo server is *"not intended for production use"*, capped at one
+  request per second, and access *"shall be withdrawn at any time and without giving a
+  reason"*; the Valhalla/FOSSGIS demo carries the same fair-use terms. **A shipped
+  product cannot lean on either.** Three routes that need no API at all:
+  1. **Straight-line distance** - haversine between two coordinate pairs. Free, offline,
+     exact, and honest as long as it is labelled as the crow flies.
+  2. **An estimate** - straight-line x a detour factor / an assumed speed. Keyless and
+     offline; must read as an estimate and never as a promise.
+  3. **Learn it from the coach** - the best fit here. Confirm the real travel time to a
+     venue once, and every later match there uses a figure that came from actually
+     driving it. No API ever, and it improves with use instead of decaying.
+
+### Because a position groups where a string does not
+
+- [ ] **Venue identity.** The opponent-name work exists because strings do not group -
+  "IPS", "Ips" and "IPS/Sininen" are one club. Coordinates group perfectly: two coaches
+  spelling a pitch differently still land on the same point. This is the natural join key
+  if club-wide data is ever combined, and it is the migration path the sweep tool's own
+  notes ask for ("ids become correct exactly when an external authority exists").
+- [ ] **Head-to-head by venue**, not only by opponent. "We have never won at Kisapuisto."
+
+### Because distance is a number
+
+- [ ] **Home advantage that means something.** Not the `homeOrAway` flag, which is an
+  administrative label, but distance actually travelled. "One win in six beyond 60km,
+  five in seven within 20km" is a real finding about a youth team - and it is probably
+  about tired children in a car rather than about football.
+- [ ] **Travel load per player.** Appearances are already tracked; distance turns them
+  into kilometres. Which child is doing 800km a season matters for the load-management
+  idea already sitting in `future-vision.md`, and matters more for the families driving.
+- [ ] **Fixture sanity check.** Two matches ninety minutes apart at venues 120km apart is
+  a mistake worth catching the week before rather than on the day.
+- [ ] **A season map.** Every venue played, as one picture. Cheap, and the kind of thing
+  a coach shows parents in November.
+
+### And weather stops being useless
+
+- [ ] **Weather on the match.** The idea has sat in `future-vision.md` for months and was
+  worthless without a location, because a forecast for "Keskuskentta" is a forecast for
+  nowhere. Open-Meteo takes coordinates, needs **no API key**, and allows 10,000 calls a
+  day free. ⚠️ **Settle one thing first:** the free tier is stated as **"for
+  non-commercial use"** with no uptime guarantee, and MatchOps is free to users but is a
+  distributed product. Ask them, or take the paid licence. Do NOT quietly assume the free
+  tier covers it - that is precisely the shape of the myClub cost mistake.
+
+---
+
+## 🚗 Next-match panel (owner asked 2026-09-17)
+
+- [ ] **One panel on the games tab for the match that is coming**, so this does not get
+  buried. Contents, in the owner's words: a **car icon that launches Maps directly**, the
+  **distance and expected travel time**, and the **expected weather, shown visually**.
+
+  **Feasibility, checked rather than assumed:**
+
+  | Part | Possible now? | What it costs |
+  |---|---|---|
+  | Next upcoming match | yes | nothing - games carry date and time |
+  | Car icon -> Maps | yes | nothing - coordinates stored, link already built |
+  | **Straight-line distance** | yes | nothing: haversine, offline, no API |
+  | **Driving time** | **not from any free public server** | see the three keyless routes above |
+  | **Weather** | yes | one `connect-src` entry, once the licence question is settled |
+
+  - **So the panel is buildable today minus one cell.** Distance is free and exact;
+    driving time is the only part with no honest free source, and the learn-from-the-
+    coach route removes that dependency permanently rather than deferring it.
+  - **It needs a home position to measure from.** Distance is between two points and the
+    app stores one. The club's own ground is the obvious anchor - picked once in
+    settings, through the same venue lookup - and it is a prerequisite for distance,
+    travel time and every load statistic above.
+
+---
+
 ## 🔍 Ideas to explore - surfaced from a documentation sweep (2026-09-17)
 
 The owner asked what development ideas were buried in 109,000 lines of docs. These are

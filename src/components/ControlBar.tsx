@@ -22,7 +22,8 @@ import {
   HiOutlineScale,
   HiOutlineBookOpen,
 } from 'react-icons/hi2';
-import { TASO_URL } from '@/config/externalLinks';
+import { TASO_URL, mapsSearchUrl } from '@/config/externalLinks';
+import { MdDirectionsCar } from 'react-icons/md';
 import FormationPicker from './FormationPicker';
 import SteadyDigits from '@/components/SteadyDigits';
 import { useTranslation } from 'react-i18next';
@@ -121,6 +122,10 @@ interface ControlBarProps {
   /** App settings (where the AI provider key lives), without going via Home. */
   onOpenAppSettings?: () => void;
   onGoToStartScreen?: () => void;
+  /** The current match's venue, for the directions row. */
+  gameLocation?: string;
+  locationLat?: number;
+  locationLng?: number;
 }
 
 /** Shape of a row that leaves the app. Taso is currently the only one. */
@@ -163,8 +168,12 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onOpenRules,
   onOpenAppSettings,
   onGoToStartScreen,
+  gameLocation,
+  locationLat,
+  locationLng,
 }) => {
   const { t } = useTranslation();
+  const venueMapUrl = mapsSearchUrl(gameLocation, locationLat, locationLng);
   const [isFieldToolsOpen, setIsFieldToolsOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
@@ -664,6 +673,21 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
                 <HiOutlineScale className="w-5 h-5 mr-2" />{t('controlBar.rulesDirectory', 'Rules')}
               </button>
             )}
+            {/* Directions, when this match has a pinned venue. Sits with the
+                other game-day destinations rather than under settings: it is
+                used on the way OUT of the door, not while configuring. */}
+            {venueMapUrl ? (
+              <a
+                href={venueMapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={EXTERNAL_LINK_ROW}
+                onClick={wrapImmediate(() => {})}
+              >
+                <MdDirectionsCar className="w-5 h-5 mr-2" />
+                {t('controlBar.driveToVenue', 'Directions to the venue')}
+              </a>
+            ) : null}
             <a
               href={TASO_URL}
               target="_blank"
