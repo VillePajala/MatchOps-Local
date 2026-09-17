@@ -256,9 +256,13 @@ servers.
 - The key is **per member**: log in as the account it belongs to, user menu ->
   "Rajapinta-avain" -> Nayta. Enabled under Settings -> Add-ons, which is a club
   administrator.
-- **Paid add-on**, and explicitly outside free support: *"koska kyseessa on
+- **It costs 10 EUR per key per month** (myclub.fi/hinnoittelu, checked
+  2026-09-17). A `lisapalvelu` in no plan - the same price on both Hopea and
+  Kulta. Separately it is outside free support: *"koska kyseessa on
   asiantuntijatason ohjelmistokehitysrajapinta ... ei ohjelmistorajapinnan kaytto
-  kuulu maksuttoman tuotetuen piiriin"*.
+  kuulu maksuttoman tuotetuen piiriin"* - note that this quote is about SUPPORT,
+  not price; an earlier draft of this section cited it as evidence of cost,
+  which it is not. The price is on the pricing page.
 - The docs warn *"Ala koskaan laheta rajapinta-avainta sahkopostitse tai jaa sita
   muille"* but state **no server-side-only rule**. That is the difference from
   Torneopal, whose terms explicitly forbid embedding the key in an application. A
@@ -268,7 +272,39 @@ servers.
 - **There is no test environment** (*"Jarjestelmassa ei ole tarjottavana
   testiymparistoa"*). Any development runs against a real club's live data.
 
-### 7.4 The one blocker to settle before planning any pull: CORS
+### 7.4 Verdict on a games pull: do not build it
+
+Settled 2026-09-17, and it is settled by the project's own precedent rather
+than by anything new.
+
+**The numbers.** A club pays **10 EUR/month, indefinitely**, so that a coach
+stops retyping a date, a venue and a squad at game creation. Call it a minute a
+match and twenty-five matches a season: **120 EUR a year to save under half an
+hour.** That arithmetic does not survive being written down.
+
+**The distribution problem is worse than the price.** The key is per club and
+issued by a club administrator who must first buy the add-on. So the feature
+can never simply work for a new user - every coach who wanted it would have to
+persuade their club to take on a monthly cost for one person's convenience.
+There is no version of this that ships to everyone.
+
+**And this decision has already been made here, about Taso, on 2026-09-08:**
+
+> *"Read-only sync: not worth doing. The point of a Taso integration was one
+> ecosystem in which the coach stops using several platforms. Fixtures-in does
+> not achieve that; results and lineups still get typed into Taso by hand. It
+> also needs a backend and a club key for a minor convenience."*
+
+The myClub pull is that same shape - club key, minor convenience, probably a
+backend - with a monthly invoice attached. It was scoped on 2026-09-16 without
+weighing it against this decision, which was an oversight.
+
+**What would change the answer:** a write interface, from either system. The
+whole value was never fixtures-in; it was the coach entering a match once
+instead of three times. Reading more of what they already have does not move
+that, and only writing does.
+
+### 7.5 The blocker that would have to be settled first, if it ever is: CORS
 
 An unauthenticated preflight on 2026-09-16 -
 `OPTIONS https://<club>.myclub.fi/api/events` with `Origin` and
@@ -284,7 +320,7 @@ feature would need a Supabase Edge Function proxy and would become cloud-mode on
 back with CORS headers? That single answer decides whether a myClub pull is a
 client-side feature or a backend feature.
 
-### 7.5 Opening the apps from a link: what is actually possible
+### 7.6 Opening the apps from a link: what is actually possible
 
 Settled on a device with both apps installed (Android "Aseta oletukseksi" ->
 "Tuetut verkko-osoitteet", 2026-09-16). This is the authority, not the served
@@ -349,7 +385,7 @@ and events on it. The central login we can hardcode is two steps short of that.
 So the club-subdomain setting still earns its place, but for landing the coach
 where they work rather than for opening anything.
 
-### 7.6 Sources
+### 7.7 Sources
 
 - myClub API docs, https://taikala.github.io/myclub-api-docs/fi
 - myClub: sovellusrajapinta, https://docs.myclub.fi/article/1432-sovellusrajapinta
