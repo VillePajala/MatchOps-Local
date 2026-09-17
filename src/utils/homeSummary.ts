@@ -8,6 +8,7 @@
  * and the coach's configured season window - never one of the coach's Kaudet.
  */
 import type { SavedGamesCollection, AppState, Player } from '@/types';
+import { mapsSearchUrl } from '@/config/externalLinks';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { filterGameIds } from '@/components/GameStatsModal/utils/gameFilters';
 import { getClubSeasonForDate } from './clubSeason';
@@ -37,6 +38,14 @@ export interface HomeResumeGame {
   homeOrAway: 'home' | 'away';
   /** false while a match is still in progress (drives a "kesken" hint). */
   isPlayed: boolean;
+  /**
+   * A map link for the venue, when the match has one.
+   *
+   * Computed here rather than in the card so Home does not have to know how a
+   * location becomes a URL - and null when there is no location at all, which
+   * is what hides the shortcut instead of offering a dead button.
+   */
+  mapsUrl: string | null;
   currentPeriod?: number;
   timeElapsedSeconds?: number;
 }
@@ -137,6 +146,7 @@ export function buildHomeSummary(
       theirScore: c.homeOrAway === 'home' ? c.awayScore : c.homeScore,
       homeOrAway: c.homeOrAway,
       isPlayed: c.isPlayed !== false,
+      mapsUrl: mapsSearchUrl(c.gameLocation, c.locationLat, c.locationLng),
       currentPeriod: c.currentPeriod,
       timeElapsedSeconds: c.timeElapsedInSeconds,
     };

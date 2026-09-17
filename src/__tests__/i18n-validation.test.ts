@@ -502,6 +502,9 @@ describe('Translation File Validation', () => {
       //     being typed, which is the only moment it is cheap to correct.
       // +1: venueInput.pinned - the pin that says this location is a real place
       //     with coordinates rather than a string a map has to guess at.
+      // +2: startScreen/controlBar.driveToVenue - the directions shortcut on the
+      //     front page and in the match menu, so a pinned venue is one tap from
+      //     where the coach already is rather than buried in the match report.
       // +9: planner rotations & swaps (subs.inGameGroup, lineup.swapAction,
       //     swapSheet.title/hint/who/withLabel/noTargets, swap.done,
       //     conflicts.row) - any-player subs + whole-game player swap
@@ -683,7 +686,7 @@ describe('Translation File Validation', () => {
       // -1 startScreen.dashRecent: the recent-games strip is introduced by the
       //     halfway-line rule alone now. The word restated what the rule
       //     already said. Lands at 3266.
-      expect(enKeys.length).toBe(3315);
+      expect(enKeys.length).toBe(3317);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -872,7 +875,7 @@ describe('Translation File Validation', () => {
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3315);
+      expect(fiKeys.length).toBe(3317);
     });
   });
 });

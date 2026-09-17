@@ -362,7 +362,8 @@
     "openTimer": "Avaa ajastin",
     "toggleTacticsBoardShow": "Taktiikkataulu",
     "formationMenu": "Muodostelmavalikko",
-    "thisGamePlan": "Tämän ottelun suunnitelma"
+    "thisGamePlan": "Tämän ottelun suunnitelma",
+    "driveToVenue": "Ajo-ohjeet paikalle"
   },
   "tooltips": {
     "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
@@ -1214,7 +1215,8 @@
     "dashSeasonsCount_one": "{{count}} sarja",
     "dashSeasonsCount_other": "{{count}} sarjaa",
     "dashTournamentsCount_one": "{{count}} turnaus",
-    "dashTournamentsCount_other": "{{count}} turnausta"
+    "dashTournamentsCount_other": "{{count}} turnausta",
+    "driveToVenue": "Ajo-ohjeet paikalle"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",

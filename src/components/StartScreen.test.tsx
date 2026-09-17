@@ -826,7 +826,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
 
 describe('Home dashboard view (opt-in)', () => {
   const summary = {
-    resume: { id: 'g1', opponent: 'FC Inter', ourScore: 2, theirScore: 1, homeOrAway: 'home' as const, isPlayed: false },
+    resume: { id: 'g1', opponent: 'FC Inter', ourScore: 2, theirScore: 1, homeOrAway: 'home' as const, isPlayed: false, mapsUrl: null },
     vuosi: { label: '24/25', gamesPlayed: 8, wins: 5, ties: 2, losses: 1, goalsFor: 18, goalsAgainst: 9, goalDifference: 9 },
     recent: [
       { id: 'g2', opponent: 'HJK', ourScore: 3, theirScore: 1, result: 'W' as const, date: '2024-07-10', isFriendly: false },
