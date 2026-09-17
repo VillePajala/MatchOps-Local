@@ -30,6 +30,14 @@ afterEach(() => {
 const renderInput = (value: string) =>
   render(<VenueInput id="loc" value={value} onChange={jest.fn()} />);
 
+/**
+ * The spinner, named rather than guessed at. Both the spinner and the "nothing
+ * found" message are live regions - they have to be, or a screen reader learns
+ * about neither - so role alone matches both and would let a spinner assertion
+ * pass on the wrong element.
+ */
+const spinner = () => screen.queryByRole('status', { name: /searching/i });
+
 describe('search feedback', () => {
   it('shows a spinner while the lookup is in flight', async () => {
     let release!: (v: unknown[]) => void;
@@ -38,10 +46,10 @@ describe('search feedback', () => {
     renderInput('Kimpisen');
     await act(async () => { jest.advanceTimersByTime(400); });
 
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(spinner()).toBeInTheDocument();
 
     await act(async () => { release([]); });
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(spinner()).toBeNull();
   });
 
   /** A field that stays spinning is as misleading as one that never spins. */
@@ -51,7 +59,7 @@ describe('search feedback', () => {
     renderInput('Kimpisen');
     await act(async () => { jest.advanceTimersByTime(400); });
 
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(spinner()).toBeNull();
   });
 
   it('stops spinning when results arrive', async () => {
@@ -62,8 +70,42 @@ describe('search feedback', () => {
     renderInput('Kimpisen');
     await act(async () => { jest.advanceTimersByTime(400); });
 
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(spinner()).toBeNull();
     expect(screen.getByRole('listbox')).toBeInTheDocument();
+  });
+
+  /**
+   * The owner searched a sponsor name ("Mitta-Keittiöt Areena") that OSM does
+   * not carry. Silence made that look like a failure rather than an answer.
+   */
+  it('says so when nothing is found', async () => {
+    mockSearch.mockResolvedValue([]);
+
+    renderInput('Mitta-Keittiöt Areena');
+    await act(async () => { jest.advanceTimersByTime(400); });
+
+    expect(screen.getByText(/No places found/)).toBeInTheDocument();
+  });
+
+  it('says nothing about emptiness while still searching', async () => {
+    mockSearch.mockReturnValue(new Promise(() => {}));
+
+    renderInput('Mitta-Keittiöt Areena');
+    await act(async () => { jest.advanceTimersByTime(400); });
+
+    expect(screen.queryByText(/No places found/)).toBeNull();
+    expect(spinner()).toBeInTheDocument();
+  });
+
+  it('does not claim emptiness once results exist', async () => {
+    mockSearch.mockResolvedValue([
+      { key: 'k', name: 'Jäähalli Monrepos', context: 'Savonlinna', latitude: 61, longitude: 28 },
+    ]);
+
+    renderInput('jäähalli Savonlinna');
+    await act(async () => { jest.advanceTimersByTime(400); });
+
+    expect(screen.queryByText(/No places found/)).toBeNull();
   });
 
   /** Too short to search means nothing should appear to be happening. */
@@ -71,7 +113,8 @@ describe('search feedback', () => {
     renderInput('Ki');
     await act(async () => { jest.advanceTimersByTime(400); });
 
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(spinner()).toBeNull();
+    expect(screen.queryByText(/No places found/)).toBeNull();
     expect(mockSearch).not.toHaveBeenCalled();
   });
 });

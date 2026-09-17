@@ -304,6 +304,38 @@ whole value was never fixtures-in; it was the coach entering a match once
 instead of three times. Reading more of what they already have does not move
 that, and only writing does.
 
+### 7.4b Coverage: what OpenStreetMap does not know (measured 2026-09-17)
+
+Recorded because it is the one real cost of choosing Photon/OSM over Google
+Places for the venue lookup, and it is better written down than rediscovered.
+
+**OSM carries a venue's REAL name, not its sponsor's.** Measured against the
+live API:
+
+| Searched | Result |
+|---|---|
+| `Mitta-Keittiöt Areena` | nothing |
+| `jäähalli Savonlinna` | Jäähalli Monrepos, Talvisalon jäähalli |
+
+Same building. Finnish sports venues are routinely renamed after a sponsor every
+few years, and OSM keeps the durable name while Google indexes the commercial
+one. So a coach searching the name on the shirt finds nothing.
+
+**Two consolations, and they are real:**
+
+- The typed name is still saved; it simply gets no pin. Nothing is blocked.
+- The OSM name is arguably the better identity for data: a sponsor name changes
+  and would fragment grouping across seasons, which is the same argument that
+  made picking adopt the official name in the first place.
+
+**What it would take to fix:** Google Places, which means a Google Cloud project
+with billing enabled. The free tier would cover the volume (10,000 autocomplete
+events a month against a coach's handful), so this is a decision about wanting a
+billing account, not about money. See §7.3 for the same trade on the myClub key.
+
+**Mitigation shipped instead:** a search that finds nothing now says so, and
+suggests the plain name. Silence read as a broken field.
+
 ### 7.5 The blocker that would have to be settled first, if it ever is: CORS
 
 An unauthenticated preflight on 2026-09-16 -

@@ -4,6 +4,23 @@
     {
       "date": "2026-09-17",
       "en": [
+        "Two tidies on the new card: the upcoming/recent switch no longer takes up more room than the heading it replaced, so nothing below it moves down; and a picked location is saved as the venue and town rather than the full street and region, so it fits on the card instead of being cut off.",
+        "Fixed the reason your season record was full of draws you never played: choosing a season set the match date to the SEASON'S start date - August - so every match you created for it was dated in the past, counted as already played, and a 0-0 scoreline counts as a draw. A competition's start date is now only used when the competition has not started yet; otherwise today is used.",
+        "If the location search finds nothing, it now says so and suggests trying the venue's plain name. The map data knows venues by their real names rather than their sponsors, so \"Mitta-Keittiöt Areena\" finds nothing while \"jäähalli Savonlinna\" finds the same building - and either way, a name you type yourself is still saved.",
+        "Two fixes found while testing this. A match you create for a future date is now marked \"not played yet\" automatically - before, it was marked played with a 0-0 score, and a 0-0 counts as a draw, so every fixture booked in advance was quietly inflating your season record with draws that never happened. And the location search now keeps street numbers, so \"Mannerheimintie 10\" finds the address instead of showing you the whole street.",
+        "Matches you create in advance now appear on the front page. The card at the top shows your next fixture - how many days away, kick-off, the venue and pitch, and a car button straight to directions when the venue is pinned. When nothing is booked the card goes back to your last match, as before. The strip below can switch between upcoming fixtures and recent results, and while the next match holds the top spot your last-opened match is highlighted so you can carry on writing it up."
+      ],
+      "fi": [
+        "Kaksi siistimistä uuteen korttiin: tulevat/viimeisimmät-valinta ei vie enää enempää tilaa kuin otsikko jonka se korvasi, joten mikään sen alla ei siirry alaspäin; ja valittu sijainti tallentuu paikan ja kunnan tarkkuudella koko katuosoitteen ja maakunnan sijaan, joten se mahtuu korttiin eikä katkea.",
+        "Korjattu syy siihen, miksi kausitilastosi oli täynnä tasapelejä joita et pelannut: kauden valinta asetti ottelun päivämääräksi KAUDEN alkamispäivän - elokuun - joten jokainen sille luotu ottelu päivättiin menneisyyteen, laskettiin pelatuksi, ja 0-0 lasketaan tasapeliksi. Kilpailun alkamispäivää käytetään nyt vain jos kilpailu ei ole vielä alkanut, muuten käytetään tätä päivää.",
+        "Jos sijaintihaku ei löydä mitään, se kertoo sen nyt ja ehdottaa paikan tavallista nimeä. Karttadata tuntee paikat niiden oikeilla nimillä eikä sponsorin mukaan, joten \"Mitta-Keittiöt Areena\" ei löydä mitään mutta \"jäähalli Savonlinna\" löytää saman rakennuksen - ja itse kirjoitettu nimi tallentuu joka tapauksessa.",
+        "Kaksi korjausta, jotka löytyivät tätä testattaessa. Tulevalle päivälle luotu ottelu merkitään nyt automaattisesti \"ei vielä pelattu\" - aiemmin se merkittiin pelatuksi tuloksella 0-0, ja 0-0 lasketaan tasapeliksi, joten jokainen etukäteen sovittu ottelu kasvatti hiljaa kausitilastoasi tasapeleillä joita ei koskaan pelattu. Ja sijaintihaku säilyttää nyt katunumerot, joten \"Mannerheimintie 10\" löytää osoitteen koko kadun sijaan.",
+        "Etukäteen luodut ottelut näkyvät nyt etusivulla. Ylin kortti näyttää seuraavan ottelusi - kuinka monen päivän päästä, alkamisajan, paikan ja kentän sekä autopainikkeen suoraan ajo-ohjeisiin, kun sijainti on kiinnitetty. Kun mitään ei ole sovittu, kortti näyttää taas viimeisimmän ottelusi kuten ennenkin. Alla olevaa rikiä voi vaihtaa tulevien ja viimeisimpien otteluiden välillä, ja kun seuraava ottelu on ylimmänä, viimeksi avaamasi ottelu on korostettu jotta voit jatkaa sen kirjaamista."
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "en": [
         "The location field now shows a spinner while it looks up places, so you can see it is working instead of wondering whether it is broken."
       ],
       "fi": [

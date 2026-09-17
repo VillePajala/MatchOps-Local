@@ -10,6 +10,7 @@ import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/t
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import { getPlans } from '@/utils/playtimePlanner/storage';
+import { todayIso } from '@/utils/todayIso';
 import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
@@ -127,6 +128,20 @@ interface NewGameSetupModalProps {
   savedGames?: SavedGamesCollection;
 }
 
+/**
+ * A sensible match date from a competition's start date.
+ *
+ * Returns the start date only when it is still ahead of us; otherwise today.
+ * A competition that began in August says nothing about when the match a coach
+ * is creating now will be played, and dating it to August is worse than a
+ * neutral guess: it lands the match in the past, where the app reasonably
+ * concludes it has been played.
+ */
+function laterOfTodayAnd(startDate: string | undefined): string {
+  const today = todayIso();
+  return startDate && startDate > today ? startDate : today;
+}
+
 const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   isOpen,
   initialPlayerSelection,
@@ -152,7 +167,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const { showToast } = useToast();
   const [homeTeamName, setHomeTeamName] = useState('');
   const [opponentName, setOpponentName] = useState('');
-  const [gameDate, setGameDate] = useState(new Date().toISOString().split('T')[0]);
+  const [gameDate, setGameDate] = useState(todayIso());
   const [gameLocation, setGameLocation] = useState('');
   const [fieldNumber, setFieldNumber] = useState('');
   const [locationLat, setLocationLat] = useState<number | undefined>(undefined);
@@ -201,7 +216,28 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   // <<< Step 4a: State for Home/Away >>>
   const [localHomeOrAway, setLocalHomeOrAway] = useState<'home' | 'away'>('home');
-  const [isPlayed, setIsPlayed] = useState<boolean>(true);
+  /**
+   * "Not played yet", derived from the DATE unless the coach says otherwise.
+   *
+   * IT USED TO DEFAULT TO PLAYED, AND THAT CORRUPTED THE SEASON RECORD. A coach
+   * who creates Saturday's fixture on Wednesday got a match marked played with
+   * a 0-0 scoreline - and resolveGameResult reads 0-0 as a DRAW, so every
+   * fixture booked in advance counted as a draw until it was played. A record
+   * reading "14 peliä · 4-10-0" was mostly matches that had not happened.
+   *
+   * A match in the future cannot have been played, so the date already knows
+   * the answer. Derived rather than stored so that an explicit toggle still
+   * wins and changing the date afterwards still updates the default - and so
+   * there is no setState in an effect to cascade renders.
+   */
+  const [isPlayedOverride, setIsPlayedOverride] = useState<boolean | null>(null);
+  const today = todayIso();
+  const isPlayed = isPlayedOverride ?? !(gameDate > today);
+  const setIsPlayed = (next: boolean | ((v: boolean) => boolean)) =>
+    setIsPlayedOverride((prev) => {
+      const current = prev ?? !(gameDate > today);
+      return typeof next === 'function' ? next(current) : next;
+    });
   const [isFriendly, setIsFriendly] = useState<boolean>(false);
 
   // Game type state - defaults to 'soccer', can be prefilled from season/tournament
@@ -334,7 +370,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // Memoize reset function
   const resetForm = useCallback(() => {
     setOpponentName('');
-    setGameDate(new Date().toISOString().split('T')[0]);
+    setGameDate(todayIso());
     setGameLocation('');
     setGameHour('');
     setGameMinute('');
@@ -687,7 +723,19 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setLocalNumPeriods((s.periodCount as 1 | 2) || 2);
         setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
       }
-      setGameDate(s.startDate || new Date().toISOString().split('T')[0]);
+      // THE COMPETITION'S START DATE IS NOT THE MATCH'S DATE, and treating it
+      // as one is what produced a season record full of draws nobody played.
+      // A Kausi runs from August; picking it dated every match created for it
+      // to mid-August, in the past - so "not played yet" derived to played, a
+      // 0-0 scoreline resolved to a DRAW, and a booked fixture joined the
+      // record as a result. The owner's Home read "14 peliä, 4-10-0" almost
+      // entirely from matches that had not happened.
+      //
+      // A tournament is the one case where the start date is a plausible guess
+      // at the match date, since its games fall inside a few days - but only
+      // when it has not started. In the past it is the same trap, so today
+      // wins whenever the competition already began.
+      setGameDate(laterOfTodayAnd(s.startDate));
       setActiveTab('season');
       // Apply league from season as default (clear custom name if not "muu")
       //
@@ -870,7 +918,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setLocalNumPeriods((tournament.periodCount as 1 | 2) || 2);
         setLocalPeriodDurationString(tournament.periodDuration ? String(tournament.periodDuration) : '15');
       }
-      setGameDate(tournament.startDate || new Date().toISOString().split('T')[0]);
+      // Same rule as the season branch above - see the note there.
+      setGameDate(laterOfTodayAnd(tournament.startDate));
       setActiveTab('tournament');
       // Prefill game type from tournament (defaults to 'soccer' if not set)
       setGameType(tournament.gameType || 'soccer');

@@ -32,6 +32,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
+import { todayIso } from '@/utils/todayIso';
 import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId, buildHomeTeamScopeOptions } from '@/utils/homeTeamScope';
 import type { HomeTeamScopeOption } from '@/utils/homeTeamScope';
 import type { Season, Team, Tournament } from '@/types';
@@ -426,7 +427,7 @@ export default function Home() {
       // top scorer are enriched a beat later from the fire-and-forget entity
       // fetch below. Recomputed on every Home re-entry via the checkAppState re-run.
       let homeSettings: Awaited<ReturnType<typeof getAppSettings>> | null = null;
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayIso();
       try {
         homeSettings = await getAppSettings(userId);
         // Dashboard is the default; only an explicit 'simple' preference opts out.
