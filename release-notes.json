@@ -4,6 +4,15 @@
     {
       "date": "2026-09-17",
       "en": [
+        "When a match has a pinned location, a car button now appears on the game card on the front page and in the match menu - one tap and the directions open, so you can set off without hunting for the address. It only appears when the match actually has a location."
+      ],
+      "fi": [
+        "Kun ottelulle on kiinnitetty sijainti, pelikortissa etusivulla ja ottelun valikossa näkyy nyt autopainike - yksi napautus avaa ajo-ohjeet, joten pääset matkaan ilman osoitteen etsimistä. Painike näkyy vain, jos ottelulla on sijainti."
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "en": [
         "Internal notes only, nothing visible in the app: old feature ideas scattered through the documentation were collected in one place, with a note on which of them have since been built."
       ],
       "fi": [

@@ -362,7 +362,8 @@
     "openTimer": "Open Timer",
     "toggleTacticsBoardShow": "Tactics Board",
     "formationMenu": "Formation menu",
-    "thisGamePlan": "This game's plan"
+    "thisGamePlan": "This game's plan",
+    "driveToVenue": "Directions to the venue"
   },
   "tooltips": {
     "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
@@ -1356,7 +1357,8 @@
     "dashSeasonsCount_one": "{{count}} league",
     "dashSeasonsCount_other": "{{count}} leagues",
     "dashTournamentsCount_one": "{{count}} tournament",
-    "dashTournamentsCount_other": "{{count}} tournaments"
+    "dashTournamentsCount_other": "{{count}} tournaments",
+    "driveToVenue": "Directions to the venue"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

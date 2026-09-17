@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { MdDirectionsCar } from 'react-icons/md';
 import type { TFunction } from 'i18next';
 import type { HomeSummary, HomeResumeGame, HomeRecentGame } from '@/utils/homeSummary';
 
@@ -39,12 +40,26 @@ const scoreColour: Record<'W' | 'D' | 'L', string> = {
 
 const fmtElapsed = (s: number): string => `${Math.floor(s / 60)}:${String(Math.abs(s % 60)).padStart(2, '0')}`;
 
+/**
+ * The match in progress, and - when it has a pinned venue - a way to drive to it.
+ *
+ * THE DIRECTIONS BUTTON IS A SIBLING, not a child. This card is a <button>, and
+ * a link inside a button is invalid HTML that browsers resolve unpredictably.
+ * So the card became a row: the resume action keeps the whole surface it had,
+ * and the directions link is its own tap target beside it.
+ *
+ * It appears ONLY when the match has a location. An empty seat here would be a
+ * dead control on the busiest surface in the app, and the point of putting it
+ * on the front page is that a coach can press it on the way out of the door
+ * rather than digging three screens down for it.
+ */
 function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?: () => void; t: TFunction }) {
   return (
+    <div className="flex items-stretch rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden">
     <button
       type="button"
       onClick={onResume}
-      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md hover:from-indigo-900 hover:to-slate-800 transition-all"
+      className="flex-1 min-w-0 text-left px-3.5 py-2.5 hover:bg-indigo-900/40 transition-all"
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-base font-extrabold truncate">{resume.opponent || t('startScreen.dashResumeGame', 'Game')}</span>
@@ -69,6 +84,19 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
         <span className="bg-amber-500 text-slate-900 rounded-full px-3 py-1 font-extrabold">{t('startScreen.resumeCard', 'Continue')} →</span>
       </div>
     </button>
+    {resume.mapsUrl ? (
+      <a
+        href={resume.mapsUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={t('startScreen.driveToVenue', 'Directions to the venue')}
+        title={t('startScreen.driveToVenue', 'Directions to the venue')}
+        className="flex items-center justify-center px-4 border-l border-indigo-500/40 text-indigo-100 hover:bg-indigo-900/60 transition-colors"
+      >
+        <MdDirectionsCar className="w-6 h-6" aria-hidden="true" />
+      </a>
+    ) : null}
+    </div>
   );
 }
 
