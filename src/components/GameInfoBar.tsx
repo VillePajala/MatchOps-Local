@@ -100,6 +100,14 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
 
   const leftTeamName = homeOrAway === 'home' ? teamName : opponentName;
   const rightTeamName = homeOrAway === 'home' ? opponentName : teamName;
+  // THE KIT COLOUR BELONGS TO THE TEAM, NOT TO A SIDE OF THE BAR. The sides
+  // swap with homeOrAway, and the underline used to be nailed to the left span
+  // - so in an away game the coach's own colours were drawn under the
+  // OPPONENT'S name. Derive both from the same condition so they cannot drift
+  // apart again.
+  const ownTeamStyle = teamColor ? { boxShadow: `inset 0 -3px 0 0 ${teamColor}` } : undefined;
+  const leftTeamStyle = homeOrAway === 'home' ? ownTeamStyle : undefined;
+  const rightTeamStyle = homeOrAway === 'home' ? undefined : ownTeamStyle;
   const leftScore = homeScore;
   const rightScore = awayScore;
 
@@ -136,7 +144,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
               // background: it has to sit beside an editable name without
               // competing with it, and a rule under the word reads as "these
               // are their colours" the way a scarf does.
-              style={teamColor ? { boxShadow: `inset 0 -3px 0 0 ${teamColor}` } : undefined}
+              style={leftTeamStyle}
             >
               {leftTeamName}
             </span>
@@ -180,6 +188,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
               onTouchEnd={() => handleTap('right')}
               onDoubleClick={() => handleStartEdit('right')}
               title={rightTeamName}
+              style={rightTeamStyle}
             >
               {rightTeamName}
             </span>

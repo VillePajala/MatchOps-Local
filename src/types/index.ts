@@ -281,6 +281,7 @@ export interface UpdateGameDetailsMutationMeta {
     seasonId?: string;
     tournamentId?: string;
     gameLocation?: string;
+    fieldNumber?: string;
     ageGroup?: string;
     tournamentLevel?: string;
     selectedPlayerIds?: string[];
