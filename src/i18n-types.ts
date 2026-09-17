@@ -3229,6 +3229,7 @@ export type TranslationKey =
   | 'updateBanner.readyTitle'
   | 'updateBanner.reloadButton'
   | 'updateBanner.title'
+  | 'venueInput.noMatches'
   | 'venueInput.pinned'
   | 'venueInput.searching'
   | 'voiceNotesInfo.ai1'

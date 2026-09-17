@@ -66,12 +66,47 @@ describe('search feedback', () => {
     expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
+  /**
+   * The owner searched a sponsor name ("Mitta-Keittiöt Areena") that OSM does
+   * not carry. Silence made that look like a failure rather than an answer.
+   */
+  it('says so when nothing is found', async () => {
+    mockSearch.mockResolvedValue([]);
+
+    renderInput('Mitta-Keittiöt Areena');
+    await act(async () => { jest.advanceTimersByTime(400); });
+
+    expect(screen.getByText(/No places found/)).toBeInTheDocument();
+  });
+
+  it('says nothing about emptiness while still searching', async () => {
+    mockSearch.mockReturnValue(new Promise(() => {}));
+
+    renderInput('Mitta-Keittiöt Areena');
+    await act(async () => { jest.advanceTimersByTime(400); });
+
+    expect(screen.queryByText(/No places found/)).toBeNull();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
+  it('does not claim emptiness once results exist', async () => {
+    mockSearch.mockResolvedValue([
+      { key: 'k', name: 'Jäähalli Monrepos', context: 'Savonlinna', latitude: 61, longitude: 28 },
+    ]);
+
+    renderInput('jäähalli Savonlinna');
+    await act(async () => { jest.advanceTimersByTime(400); });
+
+    expect(screen.queryByText(/No places found/)).toBeNull();
+  });
+
   /** Too short to search means nothing should appear to be happening. */
   it('does not spin for a query too short to search', async () => {
     renderInput('Ki');
     await act(async () => { jest.advanceTimersByTime(400); });
 
     expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByText(/No places found/)).toBeNull();
     expect(mockSearch).not.toHaveBeenCalled();
   });
 });

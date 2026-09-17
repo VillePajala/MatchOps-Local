@@ -3872,6 +3872,7 @@
   },
   "venueInput": {
     "pinned": "Kiinnitetty karttasijaintiin",
-    "searching": "Haetaan paikkoja"
+    "searching": "Haetaan paikkoja",
+    "noMatches": "Paikkoja ei löytynyt. Kokeile paikan tavallista nimeä tai kirjoita se itse - sijainti tallentuu kumminkin."
   }
 }
