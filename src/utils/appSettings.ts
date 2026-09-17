@@ -13,6 +13,7 @@ import {
   INSTALL_PROMPT_DISMISSED_KEY,
   LAST_OFF_DEVICE_BACKUP_KEY,
   BACKUP_REMINDER_DISMISSED_KEY,
+  DATA_FIRST_SEEN_KEY,
 } from '@/config/storageKeys';
 import {
   getStorageItem,
@@ -327,6 +328,41 @@ export const markOffDeviceBackupNow = async (): Promise<void> => {
     await setStorageItem(LAST_OFF_DEVICE_BACKUP_KEY, Date.now().toString());
   } catch (error) {
     logger.debug('Failed to record off-device backup time (non-critical)', { error });
+  }
+};
+
+/**
+ * When this device first held data worth backing up, recorded once.
+ *
+ * WHY THE REMINDER NEEDS THIS. "Never backed up" is indistinguishable from
+ * "installed five minutes ago", and on a new device - or a new install signing
+ * in to existing cloud data - it is true the moment hydration lands. The banner
+ * therefore fired immediately, alongside the first-run prompts, asking a coach
+ * to protect data they had not yet done anything with.
+ *
+ * Anchoring to first-seen makes the reminder mean "your data has been
+ * unprotected for a while", which is the thing actually worth saying.
+ */
+export const getDataFirstSeenTime = async (): Promise<number | null> => {
+  try {
+    const value = await getStorageItem(DATA_FIRST_SEEN_KEY);
+    if (!value) return null;
+    const timestamp = Number(value);
+    return isNaN(timestamp) ? null : timestamp;
+  } catch (error) {
+    logger.debug('Failed to get data-first-seen time (non-critical)', { error });
+    return null;
+  }
+};
+
+/** Stamp first-seen the first time we notice data here; later calls do nothing. */
+export const markDataFirstSeen = async (): Promise<void> => {
+  try {
+    const existing = await getStorageItem(DATA_FIRST_SEEN_KEY);
+    if (existing) return;
+    await setStorageItem(DATA_FIRST_SEEN_KEY, Date.now().toString());
+  } catch (error) {
+    logger.debug('Failed to record data-first-seen time (non-critical)', { error });
   }
 };
 
