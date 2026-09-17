@@ -99,6 +99,8 @@ const createProps = (): ModalManagerProps => ({
     updateGameDetailsMutation: createMutation(),
   },
   handlers: {
+    fieldNumberChange: noop,
+    locationCoordsChange: noop,
     toggleGoalLogModal: noop,
     addGoalEvent: noop,
     logOpponentGoal: noop,

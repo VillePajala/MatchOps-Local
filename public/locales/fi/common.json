@@ -525,7 +525,8 @@
     "startNew": "Aloita uusi",
     "continue": "Jatka",
     "futsal": "Futsal",
-    "all": "Kaikki"
+    "all": "Kaikki",
+    "checkOnMap": "Tarkista kartalta"
   },
   "backupRestore": {
     "resultsTitle": "Varmuuskopion palautus valmis",
@@ -932,7 +933,8 @@
     "notesRemaining": "{{remaining}} merkkiä jäljellä",
     "filters": "Suodattimet",
     "filtersApply": "Käytä",
-    "filtersClear": "Tyhjennä"
+    "filtersClear": "Tyhjennä",
+    "openInMaps": "Avaa kartalla"
   },
   "status": {
     "loadingGameData": "Ladataan pelitietoja..."
@@ -1062,7 +1064,7 @@
     "noPlayersSelected": "Valitse vähintään yksi pelaaja.",
     "gameDateLabel": "Pelin päivämäärä",
     "gameLocationLabel": "Sijainti (valinnainen)",
-    "locationPlaceholder": "esim. Keskuspuisto kenttä 2",
+    "locationPlaceholder": "esim. Kimpisen kenttä",
     "ageGroupLabel": "Ikäluokka (valinnainen)",
     "gameTimeLabel": "Aika (valinnainen)",
     "hourPlaceholder": "HH",
@@ -1116,7 +1118,9 @@
     "keepSpelling": "Käytä kaikkialla muotoa ”{{typed}}”",
     "keepSpellingWorking": "Vaihdetaan…",
     "keepSpellingFailed": "Kirjoitusasun vaihto ei onnistunut. Yritä uudelleen.",
-    "opponentAddFailed": "Joukkuetta ei voitu lisätä sarjaan."
+    "opponentAddFailed": "Joukkuetta ei voitu lisätä sarjaan.",
+    "fieldNumberLabel": "Kenttä (valinnainen)",
+    "fieldNumberPlaceholder": "esim. TN 2"
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Oivalla",
@@ -1712,7 +1716,7 @@
     "hourPlaceholder": "HH",
     "minutePlaceholder": "MM",
     "locationLabel": "Sijainti (valinnainen)",
-    "locationPlaceholder": "esim. Keskuspuisto kenttä 2",
+    "locationPlaceholder": "esim. Kimpisen kenttä",
     "ageGroupLabel": "Ikäluokka (valinnainen)",
     "homeOrAwayLabel": "Koti / Vieras",
     "home": "Koti",
@@ -1787,7 +1791,9 @@
     "addToClubRoster": "Lisää uusi pelaaja",
     "addToClubRosterPlaceholder": "Uuden pelaajan nimi",
     "addToClubRosterNickname": "Kutsumanimi (näkyy kiekossa)",
-    "addToClubRosterFailed": "Pelaajan lisääminen epäonnistui. Yritä uudelleen."
+    "addToClubRosterFailed": "Pelaajan lisääminen epäonnistui. Yritä uudelleen.",
+    "fieldNumberLabel": "Kenttä (valinnainen)",
+    "fieldNumberPlaceholder": "esim. TN 2"
   },
   "gameStats": {
     "personnelSectionTitle": "Ottelun taustahenkilöt",
@@ -3856,5 +3862,8 @@
     "failed": "Nimeäminen ei onnistunut. Yritä uudelleen.",
     "openLabel": "Tarkista joukkuenimet",
     "appliedListsOnly": "Nimetty sarjan joukkuelistassa."
+  },
+  "venueInput": {
+    "pinned": "Kiinnitetty karttasijaintiin"
   }
 }

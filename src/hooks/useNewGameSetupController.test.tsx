@@ -71,7 +71,7 @@ const roster: Player[] = [
 const startArgs = (): Parameters<
   ReturnType<typeof useNewGameSetupController>['handleStartNewGameWithSetup']
 > => [
-  ['p1'], 'Home', 'Away', '2026-07-15', 'Arena', '18:00',
+  ['p1'], 'Home', 'Away', '2026-07-15', 'Arena', 'TN 2', undefined, undefined, '18:00',
   null, null, 2, 25, 'home', 1, 'U12', '', null, true, null,
   roster, [], '', '', 'soccer', undefined, undefined,
 ];
@@ -140,7 +140,10 @@ describe('useNewGameSetupController (L.3b level crossing)', () => {
     } as unknown as Awaited<ReturnType<typeof getSavedGames>>);
     const { result } = await renderController();
     const args = startArgs();
-    args[6] = 'season-1'; // seasonId - limits apply per competition
+    // Index 9: after the venue come the pitch (047) and the two coordinate
+    // arguments (048), so seasonId has shifted three places from where a
+    // reader of the original signature would expect it.
+    args[9] = 'season-1'; // seasonId - limits apply per competition
     await act(async () => {
       await result.current.handleStartNewGameWithSetup(...args);
     });
