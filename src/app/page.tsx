@@ -302,7 +302,26 @@ export default function Home() {
   // Deep-review fix: first-time mode only when TRULY empty - a coach with a
   // roster but no saved game (or who deleted them) must still reach the
   // Joukkue/Kaudet/Tilastot tabs; the || form locked them out of Home.
-  const isFirstTimeUser = !hasPlayers && !hasSavedGames;
+  /**
+   * True while the coach's cloud data is still on its way down.
+   *
+   * WHY FIRST-TIME DETECTION NEEDS IT. `isFirstTimeUser` is derived from LOCAL
+   * data, and on a new device local is empty until hydration finishes - so a
+   * coach with two hundred games was being greeted as a brand-new user, shown
+   * "Welcome! Start by adding your players", and offered the getting-started
+   * tour, over their own season arriving in the background.
+   *
+   * The background hydration path marks the post-login check complete
+   * IMMEDIATELY and by design, so that nobody waits on a network call; its own
+   * comment predicted this ("user briefly sees empty state before data loads.
+   * But this is rare"). On a new device it is not rare, it is certain. This is
+   * the signal that was missing to tell "empty" from "not arrived yet".
+   */
+  const [isHydratingFromCloud, setIsHydratingFromCloud] = useState(false);
+
+  // Empty is not the same as not-yet-arrived: a coach is only "first time" once
+  // we know there is nothing still coming.
+  const isFirstTimeUser = !hasPlayers && !hasSavedGames && !isHydratingFromCloud;
 
   /**
    * Re-derive the team scope and the dashboard from a fresh read.
@@ -1030,6 +1049,8 @@ export default function Home() {
               }
 
               logger.info('[page.tsx] Background cloud check: cloud has data, starting hydration...');
+              // Tell the UI that "no local data" means "not yet", not "new coach".
+              setIsHydratingFromCloud(true);
               const hydrationResult = await hydrateLocalFromCloudWithRetry(userId);
 
               if (hydrationResult.success) {
@@ -1062,6 +1083,10 @@ export default function Home() {
               }
             } catch (err) {
               logger.error('[page.tsx] Background cloud sync exception:', err);
+            } finally {
+              // Lowered however hydration ended. Leaving it raised on failure
+              // would hide onboarding from a coach who genuinely has nothing.
+              setIsHydratingFromCloud(false);
             }
           })();
 

@@ -4,6 +4,15 @@
     {
       "date": "2026-09-17",
       "en": [
+        "Two things that made a freshly installed app treat you like a stranger. The backup reminder no longer appears in your first days - it now waits until your data has actually been on the device for a while, instead of arriving minutes after signing in. And the welcome message and getting-started guide no longer show up while your games are still downloading from the cloud: an empty app is no longer mistaken for a new one."
+      ],
+      "fi": [
+        "Kaksi asiaa, joiden takia juuri asennettu sovellus kohteli sinua tuntemattomana. Varmuuskopiomuistutus ei enää ilmesty ensimmäisinä päivinä - se odottaa nyt, että tiedot ovat oikeasti olleet laitteella jonkin aikaa, eikä tule minuutteja kirjautumisen jälkeen. Eivätkä tervetuloviesti ja aloitusopas enää näy silloin, kun ottelusi vasta latautuvat pilvestä: tyhjää sovellusta ei enää luulla uudeksi."
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "en": [
         "The car button now opens turn-by-turn directions straight to the venue, and only appears when the match is pinned to a real place. Before, a match whose location was typed by hand could offer directions to something vague like a district name - a button that promised navigation and delivered a search."
       ],
       "fi": [
