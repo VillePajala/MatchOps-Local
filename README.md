@@ -11,7 +11,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Cloud_Backend-3ECF8E.svg)](https://supabase.com/)
-[![Tests](https://img.shields.io/badge/tests-4500+-green.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-6615+-green.svg)](#testing)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5a0fc8.svg)](https://web.dev/progressive-web-apps/)
 [![Privacy](https://img.shields.io/badge/Privacy-No_Tracking-green.svg)](#)
 
@@ -29,41 +29,50 @@ MatchOps-Local is built for coaches who need privacy, offline reliability, and s
 
 ## Features
 
-### Plan
-- Master player pool shared across teams
-- Multiple team rosters with drag-and-drop assignment
-- Seasons and tournaments with Finnish league presets
-- Personnel management (coaches, physios, managers) per game
-- Formation presets (4-4-2, 4-3-3, 3-5-2, etc.)
-- Bilingual UI: English and Finnish
+Grouped the way a coach meets them: before the match, during it, and after.
 
-### Track
+### Before the match
+- Master player pool shared across teams, with multiple team rosters
+- Seasons, tournaments and tournament series, with 34 Finnish league presets
+- **Playing-Time Planner** — plan rotations and minutes across a run of games, with balance and lineup views
+- **Guided setup** — a one-minute first-run wizard (team, game format, age group) plus an in-app tour
+- **Rules & formats directory** — official playing formats by age group, with a nudge at game creation when the chosen formation disagrees with the age group's official format
+- Personnel (coaches, physios, managers) assigned per game
+- Formation presets (4-4-2, 4-3-3, 3-5-2 and more) and a warm-up plan
+- Bilingual throughout: English and Finnish
+
+### During the match
 - Interactive soccer/futsal field with player drag-and-drop
-- Live game timer with configurable periods and sub-intervals
-- Substitution alerts with interval tracking and history
+- Match clock with configurable periods and sub-intervals, plus substitution alerts
 - Event logging: goals, assists, opponent events, notes
-- Tactics board with drawings, discs, and ball placement
-- Full undo/redo for all field and game actions
-- Wake-lock to keep screen on during matches
+- **Overtime and penalty shootouts**
+- **Per-game captain** — captaincy rotates in youth football, so it belongs to the match, not the team
+- Tactics board with drawings, discs and ball placement
+- Full undo/redo, and a wake-lock so the screen stays on
+- **Voice notes** (experimental) — dictate observations mid-match and write them up afterwards
 
-### Assess
-- Per-player appearance, goal, assist, and playtime stats
-- Structured player assessments with 10 weighted criteria
-- Filter stats by season, tournament, team, or date range
+### After the match
+- **Finish-game checklist** — what is still missing from the record, with a route to each part
+- **Positions played** per player, cloud-synced and sport-aware
+- Per-player appearance, goal, assist and playtime stats, filterable by season, tournament, team or date range
+- **Player summary (Pelaajakooste)** and a shareable game recap
+- **Taso match report** — the squad, result and every goal laid out in the order Palloliitto's electronic match report asks for them, so filing it is copying rather than recall
 - Excel export via SheetJS
+- Structured player assessments — **off by default** since 2026-09-09: rating children after every match proved to be the wrong form, and the feature stays available for anyone who wants it rather than being pushed at everyone
 
-### Sync & Auth
+### Sync & accounts
 - Optional Supabase cloud backend for cross-device access
-- Local-first sync: work offline, changes sync when online
-- SyncQueue with persistent IndexedDB storage, retry with backoff
+- Local-first sync: work offline, changes sync when the connection returns
+- SyncQueue persisted in IndexedDB, with retry and backoff
 - Bidirectional migration: local-to-cloud and cloud-to-local
-- Email/password sign-up/sign-in
-- Account deletion with full data removal (GDPR compliant)
+- Email/password sign-up and sign-in
+- Account deletion with full data removal, on device and in the cloud (GDPR)
 - Re-consent flow for updated terms and privacy policy
 
-### Data Management
-- Full backup/restore (JSON export/import)
+### Data management
+- Full backup and restore (JSON export/import), plus automatic restore points
 - Individual game import/export
+- **Opponent name normalisation** — one opponent spelled three ways still counts as one, with a sweep tool for the rest
 - Automatic IndexedDB migration from legacy localStorage
 - Orphan detection and repair during cloud sync
 
@@ -73,7 +82,7 @@ MatchOps-Local is built for coaches who need privacy, offline reliability, and s
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 16.0.10, App Router |
+| Framework | Next.js 16.3, App Router |
 | UI | React 19.2, TypeScript 5, Tailwind CSS 4 |
 | State | React Query 5, useReducer, useState |
 | Local Storage | IndexedDB via custom adapter (`src/utils/storage.ts`) |
@@ -103,7 +112,7 @@ src/
 │   ├── SupabaseDataStore   #   Supabase PostgreSQL (cloud)
 │   ├── SyncedDataStore     #   Local-first wrapper (local + cloud sync)
 │   └── factory             #   Mode-aware singleton factory
-├── hooks/                  # 35+ custom hooks
+├── hooks/                  # 50 custom hooks
 ├── interfaces/             # DataStore, AuthService contracts
 ├── sync/                   # Background sync engine
 │   ├── SyncQueue           #   Persistent operation queue (IndexedDB)
@@ -118,7 +127,7 @@ supabase/
 │   ├── verify-subscription #   Play Store billing verification
 │   ├── delete-account      #   GDPR account + data deletion
 │   └── _shared/            #   Shared utilities (CORS)
-└── migrations/             # 25 PostgreSQL migrations with RLS
+└── migrations/             # 47 PostgreSQL migrations with RLS
 ```
 
 ### Data Flow
@@ -198,7 +207,7 @@ Local mode requires no environment variables at all.
 
 ### Testing
 
-4,500+ tests across 220+ suites. Configuration in `jest.config.js`:
+6,600+ tests across 346 suites. Configuration in `jest.config.js`:
 
 - `detectOpenHandles: true` — catches resource leaks
 - `testTimeout: 30000` — 30s default
@@ -210,9 +219,13 @@ Test fixtures in `tests/fixtures/` provide deterministic mock data for players, 
 
 GitHub Actions workflows (`.github/workflows/`):
 
-- **test-guards.yml**: Runs on PRs — type-check, lint, critical, smoke, a11y, performance, build
-- **ci.yml**: Full CI pipeline
-- **full-test-suite.yml**: Complete test suite
+- **test-guards.yml** — runs on PRs: type-check, lint, critical, smoke, a11y, performance, build
+- **ci.yml** — full CI pipeline
+- **full-test-suite.yml** — complete test suite
+- **claude-code-review.yml** — automated review on every PR
+- **release-notes-guard.yml** — **blocks any PR to master that does not add a new top entry to `release-notes.json`**. Every merge ships a build, so every PR needs a user-facing note in EN and FI. No exceptions, no skip label
+- **check-rule-links.yml** — verifies the external rule links still resolve
+- **update-test-badge.yml** — recounts tests on master and updates the badge above
 
 Deployment via Vercel (auto-deploy on push to master).
 

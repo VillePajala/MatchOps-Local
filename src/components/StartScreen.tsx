@@ -29,6 +29,7 @@ import {
   HiOutlineFolderOpen,
   HiOutlineClipboard,
 } from 'react-icons/hi2';
+import { TASO_URL } from '@/config/externalLinks';
 
 /**
  * Rows are LIST ITEMS inside a group, not cards.
@@ -885,7 +886,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     <HomeLinkRow
                       icon={HiOutlineRectangleStack}
                       label={t('startScreen.tasoLink', 'Taso - lineups & results')}
-                      href="https://taso.palloliitto.fi"
+                      href={TASO_URL}
                     />
                   </HomeGroup>
                 )}
