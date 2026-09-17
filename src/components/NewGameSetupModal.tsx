@@ -30,6 +30,7 @@ import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { HiOutlineMapPin } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
+import VenueInput from '@/components/VenueInput';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -44,6 +45,8 @@ interface NewGameSetupModalProps {
     gameDate: string,
     gameLocation: string,
     fieldNumber: string,
+    locationLat: number | undefined,
+    locationLng: number | undefined,
     gameTime: string,
     seasonId: string | null,
     tournamentId: string | null,
@@ -152,7 +155,24 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [gameDate, setGameDate] = useState(new Date().toISOString().split('T')[0]);
   const [gameLocation, setGameLocation] = useState('');
   const [fieldNumber, setFieldNumber] = useState('');
-  const locationMapUrl = mapsSearchUrl(gameLocation);
+  const [locationLat, setLocationLat] = useState<number | undefined>(undefined);
+  const [locationLng, setLocationLng] = useState<number | undefined>(undefined);
+  const locationMapUrl = mapsSearchUrl(gameLocation, locationLat, locationLng);
+
+  /**
+   * Typing clears the coordinates; picking sets them.
+   *
+   * A pin that no longer matches the words beside it is worse than no pin,
+   * because nothing on screen reveals the disagreement.
+   */
+  const handleVenueChange = useCallback(
+    (venue: { name: string; latitude?: number; longitude?: number }) => {
+      setGameLocation(venue.name);
+      setLocationLat(venue.latitude);
+      setLocationLng(venue.longitude);
+    },
+    [],
+  );
   const [gameHour, setGameHour] = useState<string>('');
   const [gameMinute, setGameMinute] = useState<string>('');
   const [ageGroup, setAgeGroup] = useState('');
@@ -293,6 +313,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setPrefillMissingCount(0);
     setOpponentName(lastGame.opponentName ?? '');
     setGameLocation(lastGame.gameLocation ?? '');
+    // The pin belongs to the venue, so it travels with it.
+    setLocationLat(lastGame.locationLat);
+    setLocationLng(lastGame.locationLng);
     // The pitch is deliberately NOT carried over. Repeating a game is about
     // not retyping the opponent and the venue; the pitch is the one part that
     // commonly differs between two matches at the same place, so an empty box
@@ -650,6 +673,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // a given match lands on - and before the split, a competition whose
       // location read "Kimpisen kentta TN 2" handed TN 2 to every game in it.
       setFieldNumber('');
+      // The competition names a venue but does not know where it is, so any pin
+      // from a previously picked location would now point at the wrong place.
+      setLocationLat(undefined);
+      setLocationLng(undefined);
       setAgeGroup(s.ageGroup || '');
       // With a plan prefill active, the match format belongs to the PLAN: the
       // planned subs carry absolute times (e.g. half-time of 2x12), so letting
@@ -818,6 +845,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // a given match lands on - and before the split, a competition whose
       // location read "Kimpisen kentta TN 2" handed TN 2 to every game in it.
       setFieldNumber('');
+      // The competition names a venue but does not know where it is, so any pin
+      // from a previously picked location would now point at the wrong place.
+      setLocationLat(undefined);
+      setLocationLng(undefined);
       setAgeGroup(tournament.ageGroup || '');
       // UX decision: Pre-select first valid series when tournament is selected.
       // Rationale: Most tournaments have a single series (e.g., "Kilpa"), so auto-selecting
@@ -934,6 +965,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       gameDate,
       gameLocation.trim(),
       fieldNumber.trim(),
+      locationLat,
+      locationLng,
       gameTime,
       selectedSeasonId,
       selectedTournamentId,
@@ -1583,15 +1616,14 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         <label htmlFor="gameLocationInput" className="block text-sm font-medium text-slate-300 mb-1">
                           {t('newGameSetupModal.gameLocationLabel', 'Location (Optional)')}
                         </label>
-                        <input
-                          type="text"
+                        <VenueInput
                           id="gameLocationInput"
                           value={gameLocation}
-                          onChange={(e) => setGameLocation(e.target.value)}
+                          hasCoordinates={locationLat !== undefined}
+                          onChange={handleVenueChange}
                           onKeyDown={handleKeyDown}
                           placeholder={t('newGameSetupModal.locationPlaceholder', 'e.g., Central Park')}
                           className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-
                         />
                         {/* Confirm the venue resolves BEFORE the drive, which is
                             the only moment it can still be corrected cheaply. */}

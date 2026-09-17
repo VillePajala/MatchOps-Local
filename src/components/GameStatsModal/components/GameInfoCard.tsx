@@ -18,6 +18,9 @@ interface GameInfoCardProps {
   gameLocation?: string;
   /** Which pitch at the venue. Shown beside it, never sent to the map. */
   fieldNumber?: string;
+  /** Present when the venue was picked, which makes the link exact. */
+  locationLat?: number;
+  locationLng?: number;
   numPeriods?: number;
   periodDurationMinutes?: number;
   wentToOvertime?: boolean;
@@ -37,6 +40,8 @@ export function GameInfoCard({
   gameTime,
   gameLocation,
   fieldNumber,
+  locationLat,
+  locationLng,
   numPeriods,
   periodDurationMinutes,
   wentToOvertime,
@@ -45,7 +50,7 @@ export function GameInfoCard({
   shootoutScore,
 }: GameInfoCardProps) {
   const { t } = useTranslation();
-  const mapsUrl = mapsSearchUrl(gameLocation);
+  const mapsUrl = mapsSearchUrl(gameLocation, locationLat, locationLng);
 
   return (
     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">

@@ -59,6 +59,39 @@ describe('mapsSearchUrl', () => {
   });
 });
 
+describe('mapsSearchUrl with coordinates', () => {
+  /** The whole reason the lookup stores a position: nothing left to search. */
+  it('uses the exact position instead of searching for the name', () => {
+    expect(mapsSearchUrl('Kimpisen kenttä', 61.0583, 28.1887)).toBe(
+      'https://www.google.com/maps/search/?api=1&query=61.0583,28.1887',
+    );
+  });
+
+  it('prefers coordinates even when the name would also resolve', () => {
+    const url = mapsSearchUrl('Helsinki', 61.0583, 28.1887);
+    expect(url).not.toContain('Helsinki');
+  });
+
+  it('pins a venue that has coordinates but no name at all', () => {
+    expect(mapsSearchUrl('', 61.0583, 28.1887)).toContain('61.0583,28.1887');
+  });
+
+  /** Half a pair is not a position; fall back rather than invent one. */
+  it.each([
+    [61.0583, undefined],
+    [undefined, 28.1887],
+  ])('falls back to searching the name given only one of (%p, %p)', (lat, lng) => {
+    expect(mapsSearchUrl('Kisapuisto', lat, lng)).toContain('query=Kisapuisto');
+  });
+
+  it('accepts a position at the equator and prime meridian', () => {
+    // 0 is falsy, and a naive truthiness check would silently drop it.
+    expect(mapsSearchUrl('somewhere', 0, 0)).toBe(
+      'https://www.google.com/maps/search/?api=1&query=0,0',
+    );
+  });
+});
+
 describe('TASO_URL', () => {
   it('is the address the Taso rows point at', () => {
     expect(TASO_URL).toBe('https://taso.palloliitto.fi');

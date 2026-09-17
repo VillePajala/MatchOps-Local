@@ -500,6 +500,8 @@ describe('Translation File Validation', () => {
       //     had to stop carrying "TN 2" before a map could find it.
       // +1: common.checkOnMap - the same link offered while the venue is still
       //     being typed, which is the only moment it is cheap to correct.
+      // +1: venueInput.pinned - the pin that says this location is a real place
+      //     with coordinates rather than a string a map has to guess at.
       // +9: planner rotations & swaps (subs.inGameGroup, lineup.swapAction,
       //     swapSheet.title/hint/who/withLabel/noTargets, swap.done,
       //     conflicts.row) - any-player subs + whole-game player swap
@@ -681,7 +683,7 @@ describe('Translation File Validation', () => {
       // -1 startScreen.dashRecent: the recent-games strip is introduced by the
       //     halfway-line rule alone now. The word restated what the rule
       //     already said. Lands at 3266.
-      expect(enKeys.length).toBe(3314);
+      expect(enKeys.length).toBe(3315);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -870,7 +872,7 @@ describe('Translation File Validation', () => {
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3314);
+      expect(fiKeys.length).toBe(3315);
     });
   });
 });

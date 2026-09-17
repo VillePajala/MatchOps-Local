@@ -3862,5 +3862,8 @@
     "failed": "Could not rename. Please try again.",
     "openLabel": "Check team names",
     "appliedListsOnly": "Renamed in the competition list."
+  },
+  "venueInput": {
+    "pinned": "Pinned to a map location"
   }
 }
