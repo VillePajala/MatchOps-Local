@@ -525,7 +525,8 @@
     "startNew": "Aloita uusi",
     "continue": "Jatka",
     "futsal": "Futsal",
-    "all": "Kaikki"
+    "all": "Kaikki",
+    "checkOnMap": "Tarkista kartalta"
   },
   "backupRestore": {
     "resultsTitle": "Varmuuskopion palautus valmis",

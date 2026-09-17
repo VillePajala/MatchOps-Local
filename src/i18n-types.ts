@@ -375,6 +375,7 @@ export type TranslationKey =
   | 'common.cancel'
   | 'common.cancelButton'
   | 'common.cannotUndo'
+  | 'common.checkOnMap'
   | 'common.clear'
   | 'common.close'
   | 'common.closeMenu'

@@ -28,6 +28,8 @@ import { officialFieldSize } from '@/config/officialFieldSize';
 import { getStoredSetupAgeGroup, getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
 import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { HiOutlineMapPin } from 'react-icons/hi2';
+import { mapsSearchUrl } from '@/config/externalLinks';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -150,6 +152,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [gameDate, setGameDate] = useState(new Date().toISOString().split('T')[0]);
   const [gameLocation, setGameLocation] = useState('');
   const [fieldNumber, setFieldNumber] = useState('');
+  const locationMapUrl = mapsSearchUrl(gameLocation);
   const [gameHour, setGameHour] = useState<string>('');
   const [gameMinute, setGameMinute] = useState<string>('');
   const [ageGroup, setAgeGroup] = useState('');
@@ -290,9 +293,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setPrefillMissingCount(0);
     setOpponentName(lastGame.opponentName ?? '');
     setGameLocation(lastGame.gameLocation ?? '');
-    // The pitch is deliberately NOT carried over. The venue repeats week to
-    // week; which pitch you got does not, and inheriting last week's number
-    // gives a confidently wrong answer rather than an empty box.
+    // The pitch is deliberately NOT carried over. Repeating a game is about
+    // not retyping the opponent and the venue; the pitch is the one part that
+    // commonly differs between two matches at the same place, so an empty box
+    // beats a stale number.
     setFieldNumber('');
     setLocalPeriodDurationString(lastGame.periodDurationMinutes ? String(lastGame.periodDurationMinutes) : '15');
     setLocalNumPeriods(lastGame.numberOfPeriods === 1 ? 1 : 2);
@@ -641,6 +645,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     const s = seasons.find(se => se.id === seasonId);
     if (s) {
       setGameLocation(s.location || '');
+      // The competition sets the VENUE, so the pitch that belonged to the
+      // previous venue must go. A season or tournament cannot know which pitch
+      // a given match lands on - and before the split, a competition whose
+      // location read "Kimpisen kentta TN 2" handed TN 2 to every game in it.
+      setFieldNumber('');
       setAgeGroup(s.ageGroup || '');
       // With a plan prefill active, the match format belongs to the PLAN: the
       // planned subs carry absolute times (e.g. half-time of 2x12), so letting
@@ -804,6 +813,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // Clear previous series selection before applying new tournament settings
       setSelectedTournamentSeriesId(null);
       setGameLocation(tournament.location || '');
+      // The competition sets the VENUE, so the pitch that belonged to the
+      // previous venue must go. A season or tournament cannot know which pitch
+      // a given match lands on - and before the split, a competition whose
+      // location read "Kimpisen kentta TN 2" handed TN 2 to every game in it.
+      setFieldNumber('');
       setAgeGroup(tournament.ageGroup || '');
       // UX decision: Pre-select first valid series when tournament is selected.
       // Rationale: Most tournaments have a single series (e.g., "Kilpa"), so auto-selecting
@@ -1579,6 +1593,19 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
 
                         />
+                        {/* Confirm the venue resolves BEFORE the drive, which is
+                            the only moment it can still be corrected cheaply. */}
+                        {locationMapUrl ? (
+                          <a
+                            href={locationMapUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-flex items-center gap-1 text-xs text-indigo-300 hover:text-indigo-200 hover:underline"
+                          >
+                            <HiOutlineMapPin className="w-3.5 h-3.5" aria-hidden="true" />
+                            {t('common.checkOnMap', 'Check on map')}
+                          </a>
+                        ) : null}
                       </div>
 
                       {/* Pitch. Its own field because the venue above is what a
