@@ -831,6 +831,8 @@ describe('Home dashboard view (opt-in)', () => {
     recent: [
       { id: 'g2', opponent: 'HJK', ourScore: 3, theirScore: 1, result: 'W' as const, date: '2024-07-10', isFriendly: false },
     ],
+    upcoming: null,
+    upcomingList: [],
     counts: { players: 18, teams: 3, personnel: 2, seasons: 3, tournaments: 2 },
     countsReady: true,
     topScorer: { name: 'Aho', goals: 6 },

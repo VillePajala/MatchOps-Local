@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { MdDirectionsCar } from 'react-icons/md';
+import { useState } from 'react';
 import type { TFunction } from 'i18next';
-import type { HomeSummary, HomeResumeGame, HomeRecentGame } from '@/utils/homeSummary';
+import type { HomeSummary, HomeResumeGame, HomeRecentGame, HomeUpcomingGame } from '@/utils/homeSummary';
 
 /**
  * The Home card surface: recent games, the Pelaajat and Joukkueet tiles, the
@@ -100,6 +101,83 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
   );
 }
 
+/**
+ * The fixture ahead of you, and a way to drive to it.
+ *
+ * TAKES THE TOP SLOT FROM THE RESUME CARD, because it is the one with a
+ * deadline: on a Wednesday the match you are thinking about is Saturday's, not
+ * the one you finished last weekend. The resume card is not deleted - it takes
+ * the slot back on any day no fixture is booked.
+ *
+ * The countdown leads because it is what a coach scans for. "3 pv" answers the
+ * question faster than a date does, and turns into "Huomenna" and "Tänään" as
+ * it closes.
+ */
+function NextMatchCard({
+  game,
+  onOpen,
+  t,
+}: { game: HomeUpcomingGame; onOpen?: (id: string) => void; t: TFunction }) {
+  const countdown =
+    game.daysAway === 0
+      ? t('startScreen.dashToday', 'Today')
+      : game.daysAway === 1
+        ? t('startScreen.dashTomorrow', 'Tomorrow')
+        : t('startScreen.dashInDays', '{{count}} d', { count: game.daysAway });
+  const where = [game.venue, game.fieldNumber].filter(Boolean).join(' · ');
+
+  return (
+    <div className="flex items-stretch rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden">
+      <button
+        type="button"
+        onClick={() => onOpen?.(game.id)}
+        className="flex-1 min-w-0 text-left px-3.5 py-2.5 hover:bg-indigo-900/40 transition-all"
+      >
+        <div className="text-[10px] font-extrabold tracking-[0.14em] uppercase text-indigo-200 mb-0.5">
+          {t('startScreen.dashNextMatch', 'Next match')} · {countdown}
+        </div>
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-base font-extrabold truncate">
+            {game.opponent || t('startScreen.dashResumeGame', 'Game')}
+          </span>
+          {game.time && <span className="text-[15px] font-bold leading-none">{game.time}</span>}
+        </div>
+        {where && <div className="text-[11.5px] text-indigo-200 truncate mt-0.5">{where}</div>}
+      </button>
+      {/* Only ever shown for a PINNED venue - see mapsDirectionsUrl. */}
+      {game.mapsUrl ? (
+        <a
+          href={game.mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t('startScreen.driveToVenue', 'Directions to the venue')}
+          title={t('startScreen.driveToVenue', 'Directions to the venue')}
+          className="flex items-center justify-center px-4 border-l border-indigo-500/40 text-indigo-100 hover:bg-indigo-900/60 transition-colors"
+        >
+          <MdDirectionsCar className="w-6 h-6" aria-hidden="true" />
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
+/** One fixture in the Tulevat strip: when it is, not how it went. */
+function UpcomingCard({ game, onOpen, t }: { game: HomeUpcomingGame; onOpen?: (id: string) => void; t: TFunction }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen?.(game.id)}
+      className="flex-1 min-w-[88px] text-left px-2.5 py-2 rounded-xl bg-gradient-to-r from-indigo-900/45 to-slate-800/80 border border-indigo-800/35 hover:from-indigo-800/50 hover:to-slate-800 transition-all"
+    >
+      <span className="block text-[11px] font-semibold text-white truncate">
+        {game.opponent || t('startScreen.dashResumeGame', 'Game')}
+      </span>
+      <span className="block text-xs font-bold text-indigo-200">{game.time || '–'}</span>
+      <span className="block text-[9.5px] text-slate-500">{game.date.slice(5).replace('-', '.')}.</span>
+    </button>
+  );
+}
+
 function VuosiBar({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi']>; onOpen?: () => void; t: TFunction }) {
   return (
     <button
@@ -142,16 +220,30 @@ function VuosiBar({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi'
   );
 }
 
-function RecentCard({ game, onOpen }: { game: HomeRecentGame; onOpen?: (id: string) => void }) {
+/**
+ * `accented` marks the match the coach last had open - wayfinding, not status.
+ *
+ * Suppressed by the caller when the card ABOVE is already showing that same
+ * match: the accent's whole job is "your last match is down here", and there is
+ * nothing to point at when it is the first thing on the screen. Leaving it on
+ * would be the app saying one sentence twice in a single glance.
+ */
+function RecentCard({ game, onOpen, accented }: { game: HomeRecentGame; onOpen?: (id: string) => void; accented?: boolean }) {
   return (
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className={`flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl border transition-all ${HOME_CARD}`}
+      className={`flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl border transition-all ${
+        accented
+          ? 'bg-gradient-to-r from-amber-900/40 to-slate-800/85 border-amber-500/70 shadow-[0_0_16px_rgba(245,158,11,0.14)]'
+          : HOME_CARD
+      }`}
     >
       <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
       <div className={`text-sm font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
       <div className="text-xs text-slate-400 tabular-nums">{game.date?.slice(5).replace('-', '.')}</div>
+      {/* A rule as well as a hue: the accent must not rest on colour alone. */}
+      {accented && <div className="mt-1 h-0.5 rounded bg-amber-500" aria-hidden="true" />}
     </button>
   );
 }
@@ -174,17 +266,65 @@ export function HomeDashboard({
   onOpenGame?: (id: string) => void;
   t: TFunction;
 }) {
+  /**
+   * Which strip the coach is looking at.
+   *
+   * Defaults to the fixtures when any exist, because a coach who has booked
+   * matches is usually asking "what is next" rather than "how did we do". The
+   * toggle only renders when BOTH exist - one kind of match is not a choice.
+   */
+  const [strip, setStrip] = useState<'upcoming' | 'recent'>(
+    summary.upcomingList.length > 0 ? 'upcoming' : 'recent',
+  );
+
+  const hasBoth = summary.upcomingList.length > 0 && summary.recent.length > 0;
+  const showing = summary.upcomingList.length === 0 ? 'recent'
+    : summary.recent.length === 0 ? 'upcoming'
+      : strip;
+
+  // The accent has a job only while the top card is showing something ELSE.
+  // With the resume card up there, the match it would point at is already the
+  // first thing on the screen.
+  const accentId = summary.upcoming ? summary.resume?.id : undefined;
+
   return (
     <>
-      {summary.resume && <ResumeCard resume={summary.resume} onResume={onResume} t={t} />}
+      {summary.upcoming
+        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} t={t} />
+        : summary.resume && <ResumeCard resume={summary.resume} onResume={onResume} t={t} />}
       {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
-      {summary.recent.length > 0 && (
+      {(summary.recent.length > 0 || summary.upcomingList.length > 0) && (
         /* Label and strip are one block: the heading's margin is spacing
            INSIDE it, not a gap between blocks, so the Home stack's own gap is
            still the only thing separating this from what follows. */
         <div>
-          <div className="text-xs font-semibold text-slate-400 px-1 mb-1.5">
-            {t('startScreen.dashRecent', 'Recent')}
+          <div className="flex items-center gap-2 px-1 mb-1.5">
+            {hasBoth ? (
+              <div className="flex gap-0.5 rounded-lg bg-slate-800/80 p-0.5" role="tablist">
+                {(['upcoming', 'recent'] as const).map((which) => (
+                  <button
+                    key={which}
+                    type="button"
+                    role="tab"
+                    aria-selected={showing === which}
+                    onClick={() => setStrip(which)}
+                    className={`text-[10px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
+                      showing === which ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {which === 'upcoming'
+                      ? t('startScreen.dashUpcoming', 'Upcoming')
+                      : t('startScreen.dashRecent', 'Recent')}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs font-semibold text-slate-400">
+                {showing === 'upcoming'
+                  ? t('startScreen.dashUpcoming', 'Upcoming')
+                  : t('startScreen.dashRecent', 'Recent')}
+              </div>
+            )}
           </div>
           {/* The strip scrolls, and the card at the edge used to be cut clean
               through its own border - which reads as a rendering fault, not as
@@ -192,11 +332,20 @@ export function HomeDashboard({
               pointer-events-none so it never eats a tap on the card beneath. */}
           <div className="relative">
             <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
-              {summary.recent.map((game) => (
-                <RecentCard key={game.id} game={game} onOpen={onOpenGame} />
-              ))}
+              {showing === 'upcoming'
+                ? summary.upcomingList.map((game) => (
+                    <UpcomingCard key={game.id} game={game} onOpen={onOpenGame} t={t} />
+                  ))
+                : summary.recent.map((game) => (
+                    <RecentCard
+                      key={game.id}
+                      game={game}
+                      onOpen={onOpenGame}
+                      accented={!!accentId && game.id === accentId}
+                    />
+                  ))}
             </div>
-            {summary.recent.length > 2 && (
+            {(showing === 'upcoming' ? summary.upcomingList.length : summary.recent.length) > 2 && (
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-slate-900 to-transparent"

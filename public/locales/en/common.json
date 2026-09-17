@@ -1358,7 +1358,12 @@
     "dashSeasonsCount_other": "{{count}} leagues",
     "dashTournamentsCount_one": "{{count}} tournament",
     "dashTournamentsCount_other": "{{count}} tournaments",
-    "driveToVenue": "Directions to the venue"
+    "driveToVenue": "Directions to the venue",
+    "dashNextMatch": "Next match",
+    "dashToday": "Today",
+    "dashTomorrow": "Tomorrow",
+    "dashInDays": "{{count}} d",
+    "dashUpcoming": "Upcoming"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
