@@ -127,6 +127,20 @@ interface NewGameSetupModalProps {
   savedGames?: SavedGamesCollection;
 }
 
+/**
+ * A sensible match date from a competition's start date.
+ *
+ * Returns the start date only when it is still ahead of us; otherwise today.
+ * A competition that began in August says nothing about when the match a coach
+ * is creating now will be played, and dating it to August is worse than a
+ * neutral guess: it lands the match in the past, where the app reasonably
+ * concludes it has been played.
+ */
+function laterOfTodayAnd(startDate: string | undefined): string {
+  const today = new Date().toISOString().split('T')[0];
+  return startDate && startDate > today ? startDate : today;
+}
+
 const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   isOpen,
   initialPlayerSelection,
@@ -708,7 +722,19 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setLocalNumPeriods((s.periodCount as 1 | 2) || 2);
         setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
       }
-      setGameDate(s.startDate || new Date().toISOString().split('T')[0]);
+      // THE COMPETITION'S START DATE IS NOT THE MATCH'S DATE, and treating it
+      // as one is what produced a season record full of draws nobody played.
+      // A Kausi runs from August; picking it dated every match created for it
+      // to mid-August, in the past - so "not played yet" derived to played, a
+      // 0-0 scoreline resolved to a DRAW, and a booked fixture joined the
+      // record as a result. The owner's Home read "14 peliä, 4-10-0" almost
+      // entirely from matches that had not happened.
+      //
+      // A tournament is the one case where the start date is a plausible guess
+      // at the match date, since its games fall inside a few days - but only
+      // when it has not started. In the past it is the same trap, so today
+      // wins whenever the competition already began.
+      setGameDate(laterOfTodayAnd(s.startDate));
       setActiveTab('season');
       // Apply league from season as default (clear custom name if not "muu")
       //
@@ -891,7 +917,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setLocalNumPeriods((tournament.periodCount as 1 | 2) || 2);
         setLocalPeriodDurationString(tournament.periodDuration ? String(tournament.periodDuration) : '15');
       }
-      setGameDate(tournament.startDate || new Date().toISOString().split('T')[0]);
+      // Same rule as the season branch above - see the note there.
+      setGameDate(laterOfTodayAnd(tournament.startDate));
       setActiveTab('tournament');
       // Prefill game type from tournament (defaults to 'soccer' if not set)
       setGameType(tournament.gameType || 'soccer');
