@@ -195,9 +195,9 @@ export interface AppState {
    *
    * Deliberately NOT the pitch within it - that is `fieldNumber`. The two were
    * one string until 2026-09-17, which broke both jobs at once: a map cannot
-   * search "Kimpisen kentta TN 2", and because this field prefills from the
-   * previous game, last week's pitch number was carried into a match played on
-   * a different one.
+   * search "Kimpisen kentta TN 2", and a season or tournament fills this field
+   * from its own location, so a competition written that way handed the same
+   * pitch number to every match in it.
    */
   gameLocation?: string;
   /**

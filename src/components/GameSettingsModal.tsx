@@ -30,6 +30,8 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { HiOutlineMapPin } from 'react-icons/hi2';
+import { mapsSearchUrl } from '@/config/externalLinks';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -1923,6 +1925,19 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     autoCapitalize="words"
                     spellCheck="true"
                   />
+                  {/* Same check as game creation: confirm the venue resolves
+                      while it can still be corrected. */}
+                  {mapsSearchUrl(gameLocation) ? (
+                    <a
+                      href={mapsSearchUrl(gameLocation) as string}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex items-center gap-1 text-xs text-indigo-300 hover:text-indigo-200 hover:underline"
+                    >
+                      <HiOutlineMapPin className="w-3.5 h-3.5" aria-hidden="true" />
+                      {t('common.checkOnMap', 'Check on map')}
+                    </a>
+                  ) : null}
                 </div>
 
                 {/* Pitch. Kept out of the venue above so that value stays

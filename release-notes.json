@@ -4,10 +4,10 @@
     {
       "date": "2026-09-17",
       "en": [
-        "Tap a match's location to open it in Maps, so you can set off without retyping the address. The pitch now has its own box next to the location (\"TN 2\"), which is what makes the map link work - a map cannot find \"Kimpisen kentta TN 2\", only the venue. The pitch is also no longer carried over from your previous match, since it rarely stays the same. If you want an exact pin, paste a Maps link into the location and it will be used as-is."
+        "Tap a match's location to open it in Maps, so you can set off without retyping the address. The pitch now has its own box next to the location (\"TN 2\"), which is what makes the map link work - a map cannot find \"Kimpisen kentta TN 2\", only the venue. It also fixes something quieter: a season or tournament fills in the location for its games, so a competition saved with a pitch number in it gave that same pitch to every match. If you want an exact pin, paste a Maps link into the location and it will be used as-is. Also fixed: in an away match the team colour underline was drawn under the opponent's name instead of your own."
       ],
       "fi": [
-        "Napauta ottelun sijaintia niin se aukeaa kartalla, jolloin voit lähteä matkaan ilman osoitteen uudelleenkirjoittamista. Kentällä on nyt oma kenttänsä sijainnin vieressä (\"TN 2\"), ja juuri se saa karttalinkin toimimaan - kartta ei löydä \"Kimpisen kenttä TN 2\", vain paikan. Kenttänumeroa ei myöskään enää kopioida edellisestä ottelusta, koska se harvoin pysyy samana. Jos haluat täsmällisen sijainnin, liitä sijaintikenttään karttalinkki niin sitä käytetään sellaisenaan."
+        "Napauta ottelun sijaintia niin se aukeaa kartalla, jolloin voit lähteä matkaan ilman osoitteen uudelleenkirjoittamista. Kentällä on nyt oma kenttänsä sijainnin vieressä (\"TN 2\"), ja juuri se saa karttalinkin toimimaan - kartta ei löydä \"Kimpisen kenttä TN 2\", vain paikan. Samalla korjaantuu hiljaisempi ongelma: sarja tai turnaus täyttää otteluidensa sijainnin, joten kilpailuun tallennettu kenttänumero päätyi jokaiseen sen otteluun. Jos haluat täsmällisen sijainnin, liitä sijaintikenttään karttalinkki niin sitä käytetään sellaisenaan. Korjattu myös: vierasottelussa joukkueen väriviiva piirtyi vastustajan nimen alle oman nimesi sijaan."
       ]
     },
     {

@@ -8,12 +8,17 @@
 --   1. A map cannot search "Kimpisen kentta TN 2". The pitch number is
 --      meaningless to Google and turns an exact venue into a failed lookup -
 --      which is what blocked linking a match location to a map at all.
---   2. The location field PREFILLS from the previous game, so last week's
---      pitch number was silently carried into a match played on a different
---      one. A quietly wrong answer, which is worse than a missing one.
+--   2. A SEASON OR TOURNAMENT CARRIES A LOCATION, and selecting one fills the
+--      game's location from it (NewGameSetupModal, applySeasonSettings and the
+--      tournament branch). So a competition whose location read "Kimpisen
+--      kentta TN 2" handed TN 2 to EVERY game in it - a competition cannot
+--      know which pitch a given match lands on. That is the inheritance that
+--      actually made the mixed string wrong, and it was wrong once per season
+--      rather than once per game.
 --
--- So the pitch moves to its own column. The venue stays stable and reusable
--- and prefills as before; the pitch is per-game and never prefills.
+-- So the pitch moves to its own column. The venue is what a competition can
+-- sensibly own and what a map can search for; the pitch belongs to the single
+-- match and is inherited from nothing.
 --
 -- Two parts, the shape migrations 039 and 045 established:
 --   1. ADD COLUMN games.field_number text, nullable, no default. Existing rows

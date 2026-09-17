@@ -525,7 +525,8 @@
     "backButton": "Back",
     "next": "Next",
     "futsal": "Futsal",
-    "all": "All"
+    "all": "All",
+    "checkOnMap": "Check on map"
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
