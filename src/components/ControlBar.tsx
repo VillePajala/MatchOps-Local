@@ -22,6 +22,7 @@ import {
   HiOutlineScale,
   HiOutlineBookOpen,
 } from 'react-icons/hi2';
+import { TASO_URL } from '@/config/externalLinks';
 import FormationPicker from './FormationPicker';
 import SteadyDigits from '@/components/SteadyDigits';
 import { useTranslation } from 'react-i18next';
@@ -121,6 +122,10 @@ interface ControlBarProps {
   onOpenAppSettings?: () => void;
   onGoToStartScreen?: () => void;
 }
+
+/** The three external-destination rows in Resources share one shape. */
+const EXTERNAL_LINK_ROW =
+  'w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors';
 
 const ControlBar: React.FC<ControlBarProps> = React.memo(({
   timeElapsedInSeconds,
@@ -660,10 +665,10 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               </button>
             )}
             <a
-              href="https://taso.palloliitto.fi"
+              href={TASO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+              className={EXTERNAL_LINK_ROW}
               onClick={wrapImmediate(() => {})}
             >
               <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />
