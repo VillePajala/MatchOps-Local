@@ -60,3 +60,25 @@ export function mapsSearchUrl(
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trimmed)}`;
 }
+
+/**
+ * Turn-by-turn directions to an exact position.
+ *
+ * COORDINATES ONLY, AND THAT IS THE POINT. `mapsSearchUrl` will happily fall
+ * back to searching the venue's NAME, which is fine for "let me look this up"
+ * but dishonest on a car button: a match whose location reads "Itainen alue"
+ * would open a search for a region, and the coach would tap Drive on something
+ * that is not a place. A navigation control that cannot navigate is worse than
+ * no control, so this returns null and the button does not render.
+ *
+ * `dir` rather than `search`: this opens Maps already routing from wherever the
+ * coach is to the venue, which is the whole gesture - press it and go - instead
+ * of dropping a pin they then have to press Directions on themselves.
+ */
+export function mapsDirectionsUrl(
+  latitude: number | undefined,
+  longitude: number | undefined,
+): string | null {
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') return null;
+  return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+}
