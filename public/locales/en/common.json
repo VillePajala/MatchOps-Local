@@ -3872,6 +3872,7 @@
   },
   "venueInput": {
     "pinned": "Pinned to a map location",
-    "searching": "Searching for places"
+    "searching": "Searching for places",
+    "noMatches": "No places found. Try the venue's plain name, or just type it - the location is saved either way."
   }
 }
