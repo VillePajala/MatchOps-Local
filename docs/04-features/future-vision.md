@@ -1,5 +1,31 @@
 # Future Features (Dream Concepts)
 
+> ## ⚠️ Read this before building anything below (added 2026-09-17)
+>
+> This document was written before much of the app existed and has not been kept in
+> step with it. Everything below is still listed as a dream, but some of it shipped
+> and some of it has been overtaken. A sweep on 2026-09-17 checked every concept
+> against the code; the results live in **UNIFIED-ROADMAP.md, "Ideas to explore"**.
+> The three that matter most:
+>
+> **ALREADY BUILT** - do not build them twice. *Referee Quick Reference* is the Rules
+> Directory. *Formation Templates* is the formation presets. *Opponent Database /
+> Head-to-Head* is `utils/headToHead.ts`, a card in GameStats and an Excel sheet.
+> *Voice Moments* is Kirjuri.
+>
+> **SETTLED BY EXPERIENCE** - *Quick Post-Game Ratings* and *Comparative Ranking*.
+> This document's own Open Question #5 asks whether per-match rating is sustainable.
+> It is not: assessments went off by default on 2026-09-09 because nobody kept them
+> up. The question has an answer now.
+>
+> **CONTRADICTS A POSITION SINCE TAKEN** - the *Injury & Availability Tracker*. The
+> app's AI consent copy tells coaches "Never dictate health, injuries, family
+> matters." A tracker for children's injuries cannot be built without reopening that
+> decision, and it is ranked #2 here, so it will be reached for first.
+>
+> The ideas that remain genuinely open and small are listed in the roadmap rather
+> than re-derived from here.
+
 **Status**: Vision / Not Planned
 **Last Updated**: January 2026
 

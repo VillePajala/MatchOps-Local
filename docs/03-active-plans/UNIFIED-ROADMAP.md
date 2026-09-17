@@ -235,6 +235,98 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 
 ---
 
+## 🔍 Ideas to explore - surfaced from a documentation sweep (2026-09-17)
+
+The owner asked what development ideas were buried in 109,000 lines of docs. These are
+the findings, each checked against what the app actually does today rather than taken at
+face value. **Nothing here is scheduled.** The point is that these existed and were
+invisible.
+
+### The big one: a second app is already fully specified
+
+- [ ] **MatchOps Practice** - `docs/11-blueprint/` is a **20-file, 10,371-line build
+  blueprint** for a training-session planner: exercise library with a visual diagram
+  editor, station rotations, and a "Practice Card" (the whole session as one glanceable
+  grid for the field). Written explicitly for an AI agent to build, with data layer, sync
+  engine, and testing playbook included. **Last touched 2026-02-18, five commits, and
+  this roadmap has never mentioned it.** `docs/01-project/business-strategy.md` names a
+  three-product family - Local, Practice, and **MatchOps Analyzer** (multi-coach
+  aggregation, see ADR-003) - of which two were never started. Decide whether this is a
+  real intention or an artefact; either answer is fine, but it should not keep sitting
+  there unacknowledged.
+
+### Cross these off - `future-vision.md` still lists them as dreams and they SHIPPED
+
+- **Referee Quick Reference** -> the Rules Directory. **Formation Templates** -> formation
+  presets. **Head-to-Head** -> `utils/headToHead.ts`, a card in GameStats and an Excel
+  sheet. **Voice Moments (AI-assisted)** -> Kirjuri. A reader of that document today would
+  build at least one of these twice.
+
+### Do NOT build these - experience and policy have overtaken them
+
+- **Quick Post-Game Ratings / Comparative Ranking** (ranked #2 in the document's own build
+  order). Its own Open Question #5 asks *"Is post-game rating sustainable every game, or
+  just important games?"* - and the app answered empirically: assessments went **off by
+  default 2026-09-09** because rating children after every match was the wrong form and
+  nobody kept it up. The question was asked and is now settled.
+- **Injury & Availability Tracker** (ranked #2 on the other list). The app's own AI consent
+  copy now tells coaches *"Never dictate health, injuries, family matters."* A tracker for
+  children's injuries would contradict a privacy position already written into the
+  product. Availability without the health part might survive; the feature as described
+  does not.
+
+### Open, small, and consistent with what the app has become
+
+- [ ] **Player milestones** - "10th appearance", "first goal", "25 games". Every input
+  already exists (appearances, goals, captaincies, the Pelaajakooste). Low effort, and it
+  fits the develop-don't-rate stance that the ratings feature violated - which is the
+  reason to prefer it over the assessment ideas it sits next to.
+- [ ] **Weather on the game card** - Open-Meteo: **free, no key, no account, no club
+  administrator.** Worth noting after a night spent finding APIs that were paid
+  (myClub, 10 EUR/key/month), club-gated (Taso) or read-only (both): this is the rare
+  external integration that is simply available.
+- [ ] **Smart warmup timer** - the warmup plan exists; the phased timer with audio cues
+  does not. Fully offline, no new data.
+- [ ] **Halftime board** - a clean canvas for the halftime talk, separate from the live
+  tactics board that already holds current positions.
+- [ ] **Random picker** - who goes in goal. Trivial, and coaches genuinely do this.
+- [ ] **One-handed mode** - bottom-anchored controls and larger targets. Worth weighing
+  against the standing note that touch targets are still ~36px.
+
+### Bigger, unassessed
+
+- [ ] **Moment capture (tap-to-log)**, **interval snapshots**, **second-screen mode**, and
+  the **hub-and-spoke multi-coach model** (`future-vision.md`, ADR-003). All real ideas,
+  none assessed against the current app. The multi-coach one connects to the opponent-name
+  work already done: the normaliser is what would let several coaches' data merge.
+
+### Map links for match locations (owner asked 2026-09-17)
+
+- [ ] **Tap the location, open Google Maps** - like a Google Calendar event. **Assessed:
+  this is easy, and the reason is that it needs no Maps API at all.**
+  - **No key, no billing, no quota.** Google's documented universal URL -
+    `https://www.google.com/maps/search/?api=1&query=<urlencoded>` - is a plain link.
+    **And unlike myClub, Google Maps genuinely claims its own URLs as Android App Links**,
+    so on a phone the tap opens the Maps app rather than a browser tab. That is precisely
+    what failed for myClub, and it works here for free.
+  - **No data model change.** `gameLocation?: string` already exists on the game, is
+    already captured in `NewGameSetupModal` and `GameSettingsModal`, already prefills from
+    the previous game, and is already displayed in exactly one place -
+    `GameStatsModal/components/GameInfoCard.tsx:87`. The whole feature is a link beside
+    that value when it is non-empty.
+  - **The elegant version, which mirrors Google Calendar:** if the field already contains a
+    URL, link to it directly; otherwise build a search query from the text. Coaches paste
+    map links into calendar events all the time, so accepting either costs nothing and
+    makes the imprecise case fixable by the coach without any new field.
+  - **The honest limitation:** free text is imprecise. "Keskuskentta" alone could land
+    anywhere; "Kimpisen kentta Lappeenranta" will not. Real precision means geocoding,
+    which means the Maps Platform, which means a key and billing - **not worth it**, and
+    the paste-a-link escape hatch above covers the same ground for nothing.
+  - **Effort:** roughly half a day with tests and i18n. No migration, no key, no cost, no
+    dependency on anyone else's product.
+
+---
+
 ## 🔵 P4 — Big bets (need planning before any code)
 
 - [x] **Kirjuri — dictation capture + BYOK post-match AI** ✅ **MERGED TO MASTER 2026-09-08 (#791, `c89a972b`; prod migrations 041-044 applied and verified the same day). Experimental, not marketed: no AI shows in the match flow until a coach connects their own key.** *planned 2026-09-04, plan: `kirjuri-ai-plan.md`* — in-game press-hold (later earbud-tap, hands-free) voice notes stamped to the game clock; post-game inbox turns them into player/game notes; clips transcribed only through the coach's own connected AI provider (BYOK, client-direct, behind a versioned consent gate with dictation rules; Google Web Speech rejected, on-device not available for Finnish); then structured drafts of the match report, tidy/translate, and a read-back of one player's own notes, pseudonymized by default, everything coach-approved before save. **v1 = Phases 0-4, owner-tested 2026-09-08; season summaries (Phase 5) taken out and rethought under "Ecosystem" below.** Risk assessment lives in the plan. Replaces rating-based assessment with evidence and closes the AI Assistant "richer data collection" prerequisite. Build on `feat/kirjuri-ai` (sub-PRs into it; to master only when complete + owner-tested).
