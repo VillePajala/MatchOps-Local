@@ -89,6 +89,7 @@ const initialState: AppState = {
   ageGroup: '',
   tournamentLevel: '',
   gameLocation: '', // Initialize optional fields
+  fieldNumber: '',
   gameTime: '', // Initialize optional fields
   // Timer related state
   subIntervalMinutes: 5, // Add sub interval with default
@@ -1230,6 +1231,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         gender: gameData.gender,
         teamId: gameData.teamId,
         gameLocation: gameData.gameLocation,
+        fieldNumber: gameData.fieldNumber,
         gameTime: gameData.gameTime,
         demandFactor: gameData.demandFactor,
         gameEvents: gameData.gameEvents,
@@ -1374,6 +1376,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       gameType: gameData?.gameType ?? initialGameSessionData.gameType,
       gender: gameData?.gender ?? initialGameSessionData.gender,
       gameLocation: gameData?.gameLocation ?? initialGameSessionData.gameLocation,
+      fieldNumber: gameData?.fieldNumber ?? initialGameSessionData.fieldNumber,
       gameTime: gameData?.gameTime ?? initialGameSessionData.gameTime,
       demandFactor: gameData?.demandFactor ?? initialGameSessionData.demandFactor,
       subIntervalMinutes: gameData?.subIntervalMinutes ?? initialGameSessionData.subIntervalMinutes,
@@ -1852,6 +1855,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           tournamentLevel: gameSessionState.tournamentLevel,
           tournamentSeriesId: gameSessionState.tournamentSeriesId,
           gameLocation: gameSessionState.gameLocation,
+          fieldNumber: gameSessionState.fieldNumber,
           gameTime: gameSessionState.gameTime,
           demandFactor: gameSessionState.demandFactor,
           gamePersonnel: gameSessionState.gamePersonnel,
@@ -2263,6 +2267,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // Handlers for GameSettingsModal (delegate to session coordination)
   const handleGameLocationChange = sessionCoordination.handlers.setGameLocation;
+  const handleFieldNumberChange = sessionCoordination.handlers.setFieldNumber;
   const handleGameTimeChange = sessionCoordination.handlers.setGameTime;
   const handleAgeGroupChange = sessionCoordination.handlers.setAgeGroup;
   const handleTournamentLevelChange = sessionCoordination.handlers.setTournamentLevel;
@@ -2595,6 +2600,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleOpponentNameChange,
       handleGameDateChange,
       handleGameLocationChange,
+      handleFieldNumberChange,
       handleGameTimeChange,
       handleGameNotesChange,
       handlePlayerPositionsChange,

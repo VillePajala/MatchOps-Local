@@ -95,6 +95,7 @@ export interface ModalHandlers {
   handleOpponentNameChange: (name: string) => void;
   handleGameDateChange: (date: string) => void;
   handleGameLocationChange: (location: string) => void;
+  handleFieldNumberChange: (value: string) => void;
   handleGameTimeChange: (time: string) => void;
   handleGameNotesChange: (notes: string) => void;
   handlePlayerPositionsChange: (positions: Record<string, string[]>) => void;
@@ -204,6 +205,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleOpponentNameChange,
     handleGameDateChange,
     handleGameLocationChange,
+    handleFieldNumberChange,
     handleGameTimeChange,
     handleGameNotesChange,
     handlePlayerPositionsChange,
@@ -414,6 +416,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       opponentNameChange: handleOpponentNameChange,
       gameDateChange: handleGameDateChange,
       gameLocationChange: handleGameLocationChange,
+      fieldNumberChange: handleFieldNumberChange,
       gameTimeChange: handleGameTimeChange,
       gameNotesChange: handleGameNotesChange,
       playerPositionsChange: handlePlayerPositionsChange,

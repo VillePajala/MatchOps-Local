@@ -190,7 +190,21 @@ export interface AppState {
   ageGroup?: string;
   /** Difficulty weighting factor for demand-correction averages */
   demandFactor?: number;
+  /**
+   * WHERE the match is played, as a place a map can find: "Kimpisen kentta".
+   *
+   * Deliberately NOT the pitch within it - that is `fieldNumber`. The two were
+   * one string until 2026-09-17, which broke both jobs at once: a map cannot
+   * search "Kimpisen kentta TN 2", and because this field prefills from the
+   * previous game, last week's pitch number was carried into a match played on
+   * a different one.
+   */
   gameLocation?: string;
+  /**
+   * WHICH pitch at that venue: "TN 2", "Kentta 3". Per-game and volatile, so
+   * unlike the venue it is never prefilled from the last match.
+   */
+  fieldNumber?: string;
   gameTime?: string;
   subIntervalMinutes?: number;
   completedIntervalDurations?: IntervalLog[];

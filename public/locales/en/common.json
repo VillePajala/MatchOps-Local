@@ -681,7 +681,8 @@
     "notesRemaining": "{{remaining}} characters left",
     "filters": "Filters",
     "filtersApply": "Apply",
-    "filtersClear": "Clear"
+    "filtersClear": "Clear",
+    "openInMaps": "Open in Maps"
   },
   "importResults": {
     "title": "Import Results",
@@ -1047,7 +1048,7 @@
     "noPlayersSelected": "Please select at least one player.",
     "gameDateLabel": "Game Date",
     "gameLocationLabel": "Location (Optional)",
-    "locationPlaceholder": "e.g., Central Park Field 2",
+    "locationPlaceholder": "e.g., Central Park",
     "ageGroupLabel": "Age Group (Optional)",
     "gameTimeLabel": "Time (Optional)",
     "hourPlaceholder": "HH",
@@ -1104,7 +1105,9 @@
     "keepSpelling": "Use “{{typed}}” everywhere instead",
     "keepSpellingWorking": "Changing…",
     "keepSpellingFailed": "Could not change the spelling. Please try again.",
-    "opponentAddFailed": "Could not add the team to the league."
+    "opponentAddFailed": "Could not add the team to the league.",
+    "fieldNumberLabel": "Pitch (optional)",
+    "fieldNumberPlaceholder": "e.g., TN 2"
   },
   "gameSettingsModal": {
     "formationApply": "Place players in a formation…",
@@ -1165,7 +1168,7 @@
     "hourPlaceholder": "HH",
     "minutePlaceholder": "MM",
     "locationLabel": "Location (Optional)",
-    "locationPlaceholder": "e.g., Central Park Field 2",
+    "locationPlaceholder": "e.g., Central Park",
     "ageGroupLabel": "Age Group (Optional)",
     "homeOrAwayLabel": "Home / Away",
     "home": "Home",
@@ -1240,7 +1243,9 @@
     "addToClubRoster": "Add new player",
     "addToClubRosterPlaceholder": "New player name",
     "addToClubRosterNickname": "Nickname (shown on the disc)",
-    "addToClubRosterFailed": "Adding the player failed. Please try again."
+    "addToClubRosterFailed": "Adding the player failed. Please try again.",
+    "fieldNumberLabel": "Pitch (optional)",
+    "fieldNumberPlaceholder": "e.g., TN 2"
   },
   "errors": {
     "failedToSaveDrawingMode": "Failed to save drawing mode setting. Changes may not persist.",

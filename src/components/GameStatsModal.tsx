@@ -102,6 +102,7 @@ interface GameStatsModalProps {
   awayScore: number;
   homeOrAway: 'home' | 'away';
   gameLocation?: string;
+  fieldNumber?: string;
   gameTime?: string;
   numPeriods?: number;
   periodDurationMinutes?: number;
@@ -173,6 +174,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   awayScore,
   homeOrAway,
   gameLocation,
+  fieldNumber,
   gameTime,
   numPeriods,
   periodDurationMinutes,
@@ -1440,6 +1442,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     formattedDate={formatDisplayDate(gameDate)}
                     gameTime={gameTime}
                     gameLocation={gameLocation}
+                    fieldNumber={fieldNumber}
                     numPeriods={numPeriods}
                     periodDurationMinutes={periodDurationMinutes}
                     wentToOvertime={wentToOvertime}

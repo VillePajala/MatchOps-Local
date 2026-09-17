@@ -94,6 +94,9 @@ export interface GameSettingsModalProps {
   onOpponentNameChange: (name: string) => void;
   onGameDateChange: (date: string) => void;
   onGameLocationChange: (location: string) => void;
+  /** The pitch within the venue. Separate so the venue stays map-searchable. */
+  fieldNumber?: string;
+  onFieldNumberChange: (value: string) => void;
   onGameTimeChange: (time: string) => void;
   onAgeGroupChange: (age: string) => void;
   onTournamentLevelChange: (level: string) => void;
@@ -184,6 +187,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onOpponentNameChange,
   onGameDateChange,
   onGameLocationChange,
+  fieldNumber,
+  onFieldNumberChange,
   onGameTimeChange,
   onAgeGroupChange,
   onTournamentLevelChange,
@@ -1911,12 +1916,39 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                           { source: 'stateSync', expectedState: { gameLocation: value } }
                         );
                     }}
-                    placeholder={t('gameSettingsModal.locationPlaceholder', 'e.g., Central Park Field 2')}
+                    placeholder={t('gameSettingsModal.locationPlaceholder', 'e.g., Central Park')}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="words"
                     spellCheck="true"
+                  />
+                </div>
+
+                {/* Pitch. Kept out of the venue above so that value stays
+                    something a map can search for - see migration 047. */}
+                <div className="mb-4">
+                  <label htmlFor="fieldNumberInput" className="block text-sm font-medium text-slate-300 mb-1">
+                    {t('gameSettingsModal.fieldNumberLabel', 'Pitch (optional)')}
+                  </label>
+                  <input
+                    type="text"
+                    id="fieldNumberInput"
+                    name="fieldNumber"
+                    value={fieldNumber ?? ''}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        onFieldNumberChange(value);
+                        mutateGameDetails(
+                          { fieldNumber: value },
+                          { source: 'stateSync', expectedState: { fieldNumber: value } }
+                        );
+                    }}
+                    placeholder={t('gameSettingsModal.fieldNumberPlaceholder', 'e.g., TN 2')}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck="false"
                   />
                 </div>
 

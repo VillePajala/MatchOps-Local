@@ -126,6 +126,7 @@ const mockTournaments: Tournament[] = [
 ];
 
 const defaultProps: GameSettingsModalProps = {
+  onFieldNumberChange: jest.fn(),
   isOpen: true,
   onClose: mockOnClose,
   currentGameId: 'game123',

@@ -41,6 +41,7 @@ interface NewGameSetupModalProps {
     opponentName: string,
     gameDate: string,
     gameLocation: string,
+    fieldNumber: string,
     gameTime: string,
     seasonId: string | null,
     tournamentId: string | null,
@@ -148,6 +149,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [opponentName, setOpponentName] = useState('');
   const [gameDate, setGameDate] = useState(new Date().toISOString().split('T')[0]);
   const [gameLocation, setGameLocation] = useState('');
+  const [fieldNumber, setFieldNumber] = useState('');
   const [gameHour, setGameHour] = useState<string>('');
   const [gameMinute, setGameMinute] = useState<string>('');
   const [ageGroup, setAgeGroup] = useState('');
@@ -288,6 +290,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setPrefillMissingCount(0);
     setOpponentName(lastGame.opponentName ?? '');
     setGameLocation(lastGame.gameLocation ?? '');
+    // The pitch is deliberately NOT carried over. The venue repeats week to
+    // week; which pitch you got does not, and inheriting last week's number
+    // gives a confidently wrong answer rather than an empty box.
+    setFieldNumber('');
     setLocalPeriodDurationString(lastGame.periodDurationMinutes ? String(lastGame.periodDurationMinutes) : '15');
     setLocalNumPeriods(lastGame.numberOfPeriods === 1 ? 1 : 2);
     setLocalHomeOrAway(lastGame.homeOrAway === 'away' ? 'away' : 'home');
@@ -913,6 +919,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       trimmedOpponentName,
       gameDate,
       gameLocation.trim(),
+      fieldNumber.trim(),
       gameTime,
       selectedSeasonId,
       selectedTournamentId,
@@ -1568,9 +1575,27 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           value={gameLocation}
                           onChange={(e) => setGameLocation(e.target.value)}
                           onKeyDown={handleKeyDown}
-                          placeholder={t('newGameSetupModal.locationPlaceholder', 'e.g., Central Park Field 2')}
+                          placeholder={t('newGameSetupModal.locationPlaceholder', 'e.g., Central Park')}
                           className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
 
+                        />
+                      </div>
+
+                      {/* Pitch. Its own field because the venue above is what a
+                          map searches for, and "TN 2" is exactly what stops one
+                          finding it - see migration 047. */}
+                      <div className="mb-4">
+                        <label htmlFor="fieldNumberInput" className="block text-sm font-medium text-slate-300 mb-1">
+                          {t('newGameSetupModal.fieldNumberLabel', 'Pitch (optional)')}
+                        </label>
+                        <input
+                          type="text"
+                          id="fieldNumberInput"
+                          value={fieldNumber}
+                          onChange={(e) => setFieldNumber(e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          placeholder={t('newGameSetupModal.fieldNumberPlaceholder', 'e.g., TN 2')}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                         />
                       </div>
 
