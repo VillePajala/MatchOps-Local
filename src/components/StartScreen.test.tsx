@@ -773,6 +773,12 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(within(sheet).queryByRole('button', { name: 'Rules' })).not.toBeInTheDocument();
   });
 
+  /**
+   * The URL is asserted as a LITERAL, deliberately, and not as the TASO_URL
+   * constant it now comes from. Importing the constant would make both sides of
+   * the assertion move together, so a typo in it would still pass; spelling the
+   * address out means the test fails if the value ever changes by accident.
+   */
   it('the Taso link sits on the games front page (game-day workflow tool)', () => {
     render(<StartScreen {...shellProps()} />);
     const taso = screen.getByRole('link', { name: /Taso - lineups & results/ });

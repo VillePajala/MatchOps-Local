@@ -19,5 +19,3 @@
 
 /** Palloliitto's competition system: lineups before a match, result after. */
 export const TASO_URL = 'https://taso.palloliitto.fi';
-
-export default TASO_URL;
