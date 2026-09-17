@@ -3866,6 +3866,7 @@
     "appliedListsOnly": "Renamed in the competition list."
   },
   "venueInput": {
-    "pinned": "Pinned to a map location"
+    "pinned": "Pinned to a map location",
+    "searching": "Searching for places"
   }
 }

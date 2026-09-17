@@ -4,6 +4,15 @@
     {
       "date": "2026-09-17",
       "en": [
+        "The location field now shows a spinner while it looks up places, so you can see it is working instead of wondering whether it is broken."
+      ],
+      "fi": [
+        "Sijaintikenttä näyttää nyt hakukuvakkeen paikkoja etsiessään, joten näet sen toimivan sen sijaan että ihmettelisit onko se rikki."
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "en": [
         "Two things that made a freshly installed app treat you like a stranger. The backup reminder no longer appears in your first days - it now waits until your data has actually been on the device for a while, instead of arriving minutes after signing in. And the welcome message and getting-started guide no longer show up while your games are still downloading from the cloud: an empty app is no longer mistaken for a new one."
       ],
       "fi": [
