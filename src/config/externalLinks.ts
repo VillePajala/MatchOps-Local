@@ -10,7 +10,7 @@
  * that lands in a browser is slower than tapping the app's own icon, so they
  * only earned their place if they opened the apps, and neither app can be
  * opened from a URL. The evidence is in `docs/10-analysis/taso-torneopal-api.md`
- * section 7.5 - read it before adding them back, because `assetlinks.json`
+ * section 7.6 - read it before adding them back, because `assetlinks.json`
  * makes it look possible and it is not.
  *
  * @module externalLinks
