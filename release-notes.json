@@ -4,6 +4,15 @@
     {
       "date": "2026-09-17",
       "en": [
+        "Matches you create in advance now appear on the front page. The card at the top shows your next fixture - how many days away, kick-off, the venue and pitch, and a car button straight to directions when the venue is pinned. When nothing is booked the card goes back to your last match, as before. The strip below can switch between upcoming fixtures and recent results, and while the next match holds the top spot your last-opened match is highlighted so you can carry on writing it up."
+      ],
+      "fi": [
+        "Etukäteen luodut ottelut näkyvät nyt etusivulla. Ylin kortti näyttää seuraavan ottelusi - kuinka monen päivän päästä, alkamisajan, paikan ja kentän sekä autopainikkeen suoraan ajo-ohjeisiin, kun sijainti on kiinnitetty. Kun mitään ei ole sovittu, kortti näyttää taas viimeisimmän ottelusi kuten ennenkin. Alla olevaa rikiä voi vaihtaa tulevien ja viimeisimpien otteluiden välillä, ja kun seuraava ottelu on ylimmänä, viimeksi avaamasi ottelu on korostettu jotta voit jatkaa sen kirjaamista."
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "en": [
         "The location field now shows a spinner while it looks up places, so you can see it is working instead of wondering whether it is broken."
       ],
       "fi": [
