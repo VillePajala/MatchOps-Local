@@ -84,7 +84,16 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Required by Next.js - see note above
       "style-src 'self' 'unsafe-inline'", // Required for CSS-in-JS and Next.js styles
-      "img-src 'self'", // Strict: no data: or blob: URIs needed for images
+      // tile.openstreetmap.org serves the map tiles for the venue picker, which
+      // is how a coach pins a place OSM knows by a different name than the one
+      // on the shirt ("Mitta-Keittiöt Areena" finds nothing; the hall is on the
+      // map as a jäähalli). Tiles are plain images requested by {z}/{x}/{y} -
+      // the request says which square of the world is on screen and nothing
+      // about the coach, the match, or the players. OSM's tile policy permits
+      // this volume and requires the visible attribution the picker renders.
+      // The picker is the ONLY thing that loads a remote image; everything else
+      // in the app is still 'self'.
+      "img-src 'self' https://tile.openstreetmap.org",
       "font-src 'self'",
       // api.openai.com: the coach's OWN AI provider (Kirjuri BYOK) - called only
       // with the coach's key, only on an explicit action. Allow-listed per provider.

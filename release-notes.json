@@ -4,6 +4,15 @@
     {
       "date": "2026-09-17",
       "en": [
+        "When the location search finds nothing, you can now pick the spot on a map. Map data knows venues by their real names rather than their sponsors, so a name like \"Mitta-Keittiöt Areena\" is never found by typing - but you know exactly where it is. Tap \"Choose on map\", move the map so the pin sits on the venue, and pin it. The name you typed is kept exactly as you wrote it; only the position comes from the map, which is what the directions button needs. The map opens near the town you typed where it can work it out, and there is a \"My location\" button for when you are already at the pitch."
+      ],
+      "fi": [
+        "Kun sijaintihaku ei löydä mitään, voit nyt valita paikan kartalta. Karttadata tuntee paikat niiden oikeilla nimillä eikä sponsorin mukaan, joten esimerkiksi \"Mitta-Keittiöt Areena\" ei löydy kirjoittamalla - mutta sinä tiedät tarkalleen missä se on. Paina \"Valitse kartalta\", siirrä karttaa niin että nasta osuu paikan päälle ja kiinnitä se. Kirjoittamasi nimi säilyy juuri sellaisena kuin sen kirjoitit; vain sijainti tulee kartalta, ja juuri sitä ajo-ohjepainike tarvitsee. Kartta avautuu lähelle kirjoittamaasi kuntaa silloin kun se pystytään päättelemään, ja \"Oma sijainti\" -painike auttaa kun olet jo kentällä."
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "en": [
         "Two tidies on the new card: the upcoming/recent switch no longer takes up more room than the heading it replaced, so nothing below it moves down; and a picked location is saved as the venue and town rather than the full street and region, so it fits on the card instead of being cut off.",
         "Fixed the reason your season record was full of draws you never played: choosing a season set the match date to the SEASON'S start date - August - so every match you created for it was dated in the past, counted as already played, and a 0-0 scoreline counts as a draw. A competition's start date is now only used when the competition has not started yet; otherwise today is used.",
         "If the location search finds nothing, it now says so and suggests trying the venue's plain name. The map data knows venues by their real names rather than their sponsors, so \"Mitta-Keittiöt Areena\" finds nothing while \"jäähalli Savonlinna\" finds the same building - and either way, a name you type yourself is still saved.",

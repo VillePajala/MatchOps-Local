@@ -1669,6 +1669,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           id="gameLocationInput"
                           value={gameLocation}
                           hasCoordinates={locationLat !== undefined}
+                          latitude={locationLat}
+                          longitude={locationLng}
                           onChange={handleVenueChange}
                           onKeyDown={handleKeyDown}
                           placeholder={t('newGameSetupModal.locationPlaceholder', 'e.g., Central Park')}

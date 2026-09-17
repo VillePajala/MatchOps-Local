@@ -162,3 +162,47 @@ export function venueLabel(suggestion: VenueSuggestion): string {
   if (!town || name.includes(town)) return name;
   return `${name}, ${town}`;
 }
+
+/**
+ * A rough starting point for the map picker, from a query that found nothing.
+ *
+ * WHY BOTHER. Opening the picker on the whole country means pinching in from
+ * 1000km every time, on a phone, which is most of the work. But a query that
+ * finds no venue usually still CONTAINS a findable place: "Mitta-Keittiöt
+ * Areena, Savonlinna" fails as a whole and succeeds as "Savonlinna". So the
+ * tail of what the coach typed is tried, broadest part first, and the first
+ * hit puts the map in the right town - leaving them to pan a few streets
+ * instead of finding Finland.
+ *
+ * A guess, and treated as one: it only decides where the map OPENS. Returning
+ * null is perfectly fine and simply means the picker starts zoomed out.
+ */
+export async function guessRegionFor(
+  query: string,
+  signal?: AbortSignal,
+): Promise<VenueSuggestion | null> {
+  const q = query.trim();
+  if (!q) return null;
+
+  const candidates: string[] = [];
+
+  // "Venue, Town" is the commonest shape a coach types, so what follows the
+  // last comma is the best guess available.
+  const afterComma = q.split(',').pop()?.trim();
+  if (afterComma && afterComma !== q) candidates.push(afterComma);
+
+  // Otherwise the last word is usually the town, and the two last words cover
+  // names like "Savonlinnan keskuskenttä" where the town leads instead.
+  const words = q.split(/\s+/);
+  if (words.length > 1) {
+    candidates.push(words[words.length - 1]);
+    candidates.push(words.slice(0, 2).join(' '));
+  }
+
+  for (const candidate of candidates) {
+    if (signal?.aborted) return null;
+    const [hit] = await searchVenues(candidate, signal);
+    if (hit) return hit;
+  }
+  return null;
+}

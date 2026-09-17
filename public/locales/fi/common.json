@@ -3873,6 +3873,17 @@
   "venueInput": {
     "pinned": "Kiinnitetty karttasijaintiin",
     "searching": "Haetaan paikkoja",
-    "noMatches": "Paikkoja ei löytynyt. Kokeile paikan tavallista nimeä tai kirjoita se itse - sijainti tallentuu kumminkin."
+    "noMatches": "Paikkoja ei löytynyt. Kokeile paikan tavallista nimeä tai kirjoita se itse - sijainti tallentuu kumminkin.",
+    "chooseOnMap": "Valitse kartalta",
+    "openingMap": "Avataan karttaa..."
+  },
+  "venueMapPicker": {
+    "title": "Valitse kartalta",
+    "close": "Sulje",
+    "instructions": "Siirrä karttaa niin että nasta osuu paikan päälle.",
+    "myLocation": "Oma sijainti",
+    "locating": "Haetaan sijaintia...",
+    "locationFailed": "Sijaintia ei saatu. Etsi paikka kartalta.",
+    "confirm": "Kiinnitä tähän"
   }
 }

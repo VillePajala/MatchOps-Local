@@ -1918,6 +1918,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     id="gameLocationInput"
                     value={gameLocation}
                     hasCoordinates={locationLat !== undefined}
+                    latitude={locationLat}
+                    longitude={locationLng}
                     onChange={(venue) => {
                         onGameLocationChange(venue.name);
                         // Without this the session keeps the OLD position: the

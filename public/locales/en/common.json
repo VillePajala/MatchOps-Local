@@ -3873,6 +3873,17 @@
   "venueInput": {
     "pinned": "Pinned to a map location",
     "searching": "Searching for places",
-    "noMatches": "No places found. Try the venue's plain name, or just type it - the location is saved either way."
+    "noMatches": "No places found. Try the venue's plain name, or just type it - the location is saved either way.",
+    "chooseOnMap": "Choose on map",
+    "openingMap": "Opening map..."
+  },
+  "venueMapPicker": {
+    "title": "Choose on map",
+    "close": "Close",
+    "instructions": "Move the map so the pin sits on the venue.",
+    "myLocation": "My location",
+    "locating": "Locating...",
+    "locationFailed": "Could not get your location. Find the place on the map instead.",
+    "confirm": "Pin here"
   }
 }

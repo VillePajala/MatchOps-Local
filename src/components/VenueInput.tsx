@@ -1,9 +1,17 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineMapPin } from 'react-icons/hi2';
-import { searchVenues, venueLabel, type VenueSuggestion } from '@/utils/venueSearch';
+import { searchVenues, guessRegionFor, venueLabel, type VenueSuggestion } from '@/utils/venueSearch';
+
+/**
+ * Leaflet and its stylesheet are a real weight, and most coaches find their
+ * venue by typing and never open a map at all. Splitting the picker out keeps
+ * all of it off the first load and fetches it only on the tap that needs it.
+ */
+const VenueMapPicker = dynamic(() => import('@/components/VenueMapPicker'), { ssr: false });
 
 /**
  * The match location field: an ordinary text box that offers real venues.
@@ -37,6 +45,9 @@ export interface VenueInputProps {
   onChange: (venue: { name: string; latitude?: number; longitude?: number }) => void;
   /** True when the current value came from a pick, so the pin can be shown. */
   hasCoordinates?: boolean;
+  /** The pin already on this venue, if any - where the map picker opens. */
+  latitude?: number;
+  longitude?: number;
   placeholder?: string;
   className?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -53,6 +64,8 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   value,
   onChange,
   hasCoordinates,
+  latitude,
+  longitude,
   placeholder,
   className,
   onKeyDown,
@@ -68,6 +81,13 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   // The query the last completed search was FOR, so "nothing found" can be
   // shown for that exact text and not linger over the next keystroke.
   const [searchedFor, setSearchedFor] = useState<string | null>(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number } | null>(null);
+  // Whether mapCenter is the venue itself or only the town we guessed from the
+  // typed name - the picker zooms differently for each.
+  const [mapCenterIsGuess, setMapCenterIsGuess] = useState(false);
+  // Looking up where to open the map, so the button can say it is working.
+  const [isResolvingMap, setIsResolvingMap] = useState(false);
   // Set while a pick is being applied, so the resulting value change does not
   // immediately fire another search for the name we just inserted.
   const justPickedRef = useRef(false);
@@ -160,6 +180,43 @@ export const VenueInput: React.FC<VenueInputProps> = ({
     [onChange],
   );
 
+  /**
+   * Opening the picker resolves its starting point FIRST, rather than opening
+   * on Finland and jumping once a guess arrives. A map that moves under the
+   * coach while they are already panning is worse than a brief wait.
+   */
+  const openMap = useCallback(async () => {
+    setIsOpen(false);
+    if (typeof latitude === 'number' && typeof longitude === 'number') {
+      setMapCenter({ latitude, longitude });
+      setMapCenterIsGuess(false);
+      setIsMapOpen(true);
+      return;
+    }
+    setIsResolvingMap(true);
+    const guess = await guessRegionFor(value);
+    setIsResolvingMap(false);
+    setMapCenter(guess ? { latitude: guess.latitude, longitude: guess.longitude } : null);
+    setMapCenterIsGuess(guess !== null);
+    setIsMapOpen(true);
+  }, [latitude, longitude, value]);
+
+  /**
+   * THE NAME IS THE COACH'S, THE COORDINATES ARE THE MAP'S. This is the whole
+   * point of the picker: the sponsor name search cannot find is exactly the
+   * name they want on the card, so pinning keeps the typed text untouched.
+   */
+  const pickFromMap = useCallback(
+    (coords: { latitude: number; longitude: number }) => {
+      justPickedRef.current = true;
+      setIsMapOpen(false);
+      setSearchedFor(null);
+      setSuggestions([]);
+      onChange({ name: value, latitude: coords.latitude, longitude: coords.longitude });
+    },
+    [onChange, value],
+  );
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (showSuggestions) {
       if (e.key === 'ArrowDown') {
@@ -226,7 +283,7 @@ export const VenueInput: React.FC<VenueInputProps> = ({
       </div>
 
       {foundNothing ? (
-        <p
+        <div
           // It arrives after an async search, so without a live region a screen
           // reader never learns the list came back empty - the field just stays
           // silent, which is the very confusion this message exists to end.
@@ -234,11 +291,38 @@ export const VenueInput: React.FC<VenueInputProps> = ({
           aria-live="polite"
           className="mt-1 text-xs text-slate-400"
         >
-          {t(
-            'venueInput.noMatches',
-            'No places found. Try the venue\'s plain name, or just type it - the location is saved either way.',
-          )}
-        </p>
+          <p>
+            {t(
+              'venueInput.noMatches',
+              'No places found. Try the venue\'s plain name, or just type it - the location is saved either way.',
+            )}
+          </p>
+          {/* The escape hatch for a name OSM does not carry. Offered HERE
+              specifically, because "nothing found" is the moment the coach
+              learns typing will not get them a pin - and they still know
+              perfectly well where the place is. */}
+          <button
+            type="button"
+            onClick={openMap}
+            disabled={isResolvingMap}
+            className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-slate-700 px-2.5 py-1.5 text-xs font-medium text-slate-100 transition-colors hover:bg-slate-600 disabled:opacity-60"
+          >
+            <HiOutlineMapPin className="h-3.5 w-3.5" />
+            {isResolvingMap
+              ? t('venueInput.openingMap', 'Opening map...')
+              : t('venueInput.chooseOnMap', 'Choose on map')}
+          </button>
+        </div>
+      ) : null}
+
+      {isMapOpen ? (
+        <VenueMapPicker
+          initialCenter={mapCenter}
+          centerIsApproximate={mapCenterIsGuess}
+          venueName={value}
+          onCancel={() => setIsMapOpen(false)}
+          onPick={pickFromMap}
+        />
       ) : null}
 
       {showSuggestions ? (
