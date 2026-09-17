@@ -298,28 +298,35 @@ export function HomeDashboard({
            INSIDE it, not a gap between blocks, so the Home stack's own gap is
            still the only thing separating this from what follows. */
         <div>
-          <div className="flex items-center gap-2 px-1 mb-1.5">
+          {/* THE TOGGLE IS THE LABEL, not a control above it. As a segmented
+              pill it stood ~10px taller than the heading it replaced and
+              pushed every row below it down the screen - on a tab the owner
+              had already said was full. Two words at the heading's own size
+              cost nothing, so the capability stops having to justify itself. */}
+          <div className="flex items-center gap-2 px-1 mb-1.5 text-xs font-semibold">
             {hasBoth ? (
-              <div className="flex gap-0.5 rounded-lg bg-slate-800/80 p-0.5" role="tablist">
-                {(['upcoming', 'recent'] as const).map((which) => (
-                  <button
-                    key={which}
-                    type="button"
-                    role="tab"
-                    aria-selected={showing === which}
-                    onClick={() => setStrip(which)}
-                    className={`text-[10px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
-                      showing === which ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {which === 'upcoming'
-                      ? t('startScreen.dashUpcoming', 'Upcoming')
-                      : t('startScreen.dashRecent', 'Recent')}
-                  </button>
+              <div className="flex items-center gap-2" role="tablist">
+                {(['upcoming', 'recent'] as const).map((which, i) => (
+                  <React.Fragment key={which}>
+                    {i > 0 && <span className="text-slate-600" aria-hidden="true">·</span>}
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={showing === which}
+                      onClick={() => setStrip(which)}
+                      className={`transition-colors ${
+                        showing === which ? 'text-slate-100' : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      {which === 'upcoming'
+                        ? t('startScreen.dashUpcoming', 'Upcoming')
+                        : t('startScreen.dashRecent', 'Recent')}
+                    </button>
+                  </React.Fragment>
                 ))}
               </div>
             ) : (
-              <div className="text-xs font-semibold text-slate-400">
+              <div className="text-slate-400">
                 {showing === 'upcoming'
                   ? t('startScreen.dashUpcoming', 'Upcoming')
                   : t('startScreen.dashRecent', 'Recent')}

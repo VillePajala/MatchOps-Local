@@ -190,15 +190,47 @@ describe('house numbers', () => {
 });
 
 describe('venueLabel', () => {
-  it('reads as the venue, then where it is', () => {
-    expect(
-      venueLabel({ key: 'k', name: 'Kimpisen kenttä', context: 'Lappeenranta', latitude: 1, longitude: 2 }),
-    ).toBe('Kimpisen kenttä, Lappeenranta');
+  const sug = (over: Partial<Parameters<typeof venueLabel>[0]>) =>
+    venueLabel({ key: 'k', name: 'Kimpisen kenttä', context: '', town: null, latitude: 1, longitude: 2, ...over });
+
+  it('reads as the venue, then the town', () => {
+    expect(sug({ town: 'Lappeenranta' })).toBe('Kimpisen kenttä, Lappeenranta');
   });
 
-  it('is just the venue when there is no context to add', () => {
-    expect(venueLabel({ key: 'k', name: 'Kisapuisto', context: '', latitude: 1, longitude: 2 })).toBe(
-      'Kisapuisto',
-    );
+  it('is just the venue when the town is unknown', () => {
+    expect(sug({ name: 'Kisapuisto' })).toBe('Kisapuisto');
+  });
+
+  /**
+   * What gets stored is deliberately SHORTER than what was shown while
+   * picking. The owner's card read "Savitaipale Areena, Jonni Myyrän tie 3,
+   * Savitai…" - truncated, because the full disambiguation string was kept
+   * after it had finished disambiguating. The coordinates carry the precision
+   * from then on.
+   */
+  it('drops the street and region that only mattered while choosing', () => {
+    expect(sug({
+      name: 'Kimpisen kenttä',
+      context: 'Pohjolankatu 1, Lappeenranta, Etelä-Karjala',
+      town: 'Lappeenranta',
+    })).toBe('Kimpisen kenttä, Lappeenranta');
+  });
+
+  /** "Savitaipale Areena, Savitaipale" is one repetition too many. */
+  /**
+   * The owner's actual card read "Savitaipale Areena, Jonni Myyrän tie 3,
+   * Savitai…". The venue already carries its town, so the whole label is just
+   * the name - which is also why it no longer truncates.
+   */
+  it('does not repeat a town already inside the venue name', () => {
+    expect(sug({
+      name: 'Savitaipale Areena',
+      context: 'Jonni Myyrän tie 3, Savitaipale, Etelä-Karjala',
+      town: 'Savitaipale',
+    })).toBe('Savitaipale Areena');
+  });
+
+  it('keeps an address-only result as it is', () => {
+    expect(sug({ name: 'Mannerheimintie 10', town: 'Helsinki' })).toBe('Mannerheimintie 10, Helsinki');
   });
 });
