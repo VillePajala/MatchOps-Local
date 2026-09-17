@@ -74,6 +74,8 @@ export interface UseGameSessionCoordinationReturn {
     setGameNotes: (notes: string) => void;
     setPlayerPositions: (positions: Record<string, string[]>) => void;
     setGameLocation: (location: string) => void;
+    setFieldNumber: (value: string) => void;
+    setLocationCoords: (coords: { lat?: number; lng?: number }) => void;
     setGameTime: (time: string) => void;
     setAgeGroup: (group: string) => void;
     setTournamentLevel: (level: string) => void;
@@ -363,6 +365,14 @@ export function useGameSessionCoordination({
     dispatchGameSession({ type: 'SET_GAME_LOCATION', payload: location });
   }, [dispatchGameSession]);
 
+  const handleFieldNumberChange = useCallback((value: string) => {
+    dispatchGameSession({ type: 'SET_FIELD_NUMBER', payload: value });
+  }, [dispatchGameSession]);
+
+  const handleLocationCoordsChange = useCallback((coords: { lat?: number; lng?: number }) => {
+    dispatchGameSession({ type: 'SET_LOCATION_COORDS', payload: coords });
+  }, [dispatchGameSession]);
+
   const handleGameTimeChange = useCallback((time: string) => {
     dispatchGameSession({ type: 'SET_GAME_TIME', payload: time });
   }, [dispatchGameSession]);
@@ -576,6 +586,8 @@ export function useGameSessionCoordination({
       setGameNotes: handleGameNotesChange,
       setPlayerPositions: handlePlayerPositionsChange,
       setGameLocation: handleGameLocationChange,
+      setFieldNumber: handleFieldNumberChange,
+      setLocationCoords: handleLocationCoordsChange,
       setGameTime: handleGameTimeChange,
       setAgeGroup: handleAgeGroupChange,
       setTournamentLevel: handleTournamentLevelChange,

@@ -213,6 +213,9 @@ export type Database = {
           age_group: string | null
           away_score: number
           captain_id: string | null
+          field_number: string | null
+          location_lat: number | null
+          location_lng: number | null
           created_at: string | null
           current_period: number
           custom_league_name: string | null
@@ -258,6 +261,9 @@ export type Database = {
           age_group?: string | null
           away_score?: number
           captain_id?: string | null
+          field_number?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           created_at?: string | null
           current_period?: number
           custom_league_name?: string | null
@@ -303,6 +309,9 @@ export type Database = {
           age_group?: string | null
           away_score?: number
           captain_id?: string | null
+          field_number?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           created_at?: string | null
           current_period?: number
           custom_league_name?: string | null
