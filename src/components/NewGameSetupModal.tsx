@@ -201,7 +201,28 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   // <<< Step 4a: State for Home/Away >>>
   const [localHomeOrAway, setLocalHomeOrAway] = useState<'home' | 'away'>('home');
-  const [isPlayed, setIsPlayed] = useState<boolean>(true);
+  /**
+   * "Not played yet", derived from the DATE unless the coach says otherwise.
+   *
+   * IT USED TO DEFAULT TO PLAYED, AND THAT CORRUPTED THE SEASON RECORD. A coach
+   * who creates Saturday's fixture on Wednesday got a match marked played with
+   * a 0-0 scoreline - and resolveGameResult reads 0-0 as a DRAW, so every
+   * fixture booked in advance counted as a draw until it was played. A record
+   * reading "14 peliä · 4-10-0" was mostly matches that had not happened.
+   *
+   * A match in the future cannot have been played, so the date already knows
+   * the answer. Derived rather than stored so that an explicit toggle still
+   * wins and changing the date afterwards still updates the default - and so
+   * there is no setState in an effect to cascade renders.
+   */
+  const [isPlayedOverride, setIsPlayedOverride] = useState<boolean | null>(null);
+  const todayIso = new Date().toISOString().split('T')[0];
+  const isPlayed = isPlayedOverride ?? !(gameDate > todayIso);
+  const setIsPlayed = (next: boolean | ((v: boolean) => boolean)) =>
+    setIsPlayedOverride((prev) => {
+      const current = prev ?? !(gameDate > todayIso);
+      return typeof next === 'function' ? next(current) : next;
+    });
   const [isFriendly, setIsFriendly] = useState<boolean>(false);
 
   // Game type state - defaults to 'soccer', can be prefilled from season/tournament

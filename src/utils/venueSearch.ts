@@ -65,11 +65,28 @@ function toSuggestion(feature: PhotonFeature, index: number): VenueSuggestion | 
   if (typeof longitude !== 'number' || typeof latitude !== 'number') return null;
 
   const p = feature.properties ?? {};
-  // Fall back to the street for venues OSM knows by address rather than name.
-  const name = str(p.name) ?? str(p.street);
+
+  // THE HOUSE NUMBER MATTERS, and dropping it was a real fault: searching
+  // "Mannerheimintie 10" returned the right buildings and then showed them as
+  // plain "Mannerheimintie", so the address looked unfindable when Photon had
+  // in fact found it. The number comes back as its own field and has to be
+  // recombined with the street by hand.
+  const street = str(p.street);
+  const number = str(p.housenumber);
+  const address = street && number ? `${street} ${number}` : street;
+
+  // A venue's own name wins; otherwise the address IS the name.
+  const name = str(p.name) ?? address;
   if (!name) return null;
 
-  const context = [str(p.city) ?? str(p.county), str(p.state)].filter(Boolean).join(', ');
+  const context = [
+    // Only when the name is not already the address, or it reads twice.
+    name === address ? null : address,
+    str(p.city) ?? str(p.county),
+    str(p.state),
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   return {
     key: `${latitude},${longitude},${index}`,
