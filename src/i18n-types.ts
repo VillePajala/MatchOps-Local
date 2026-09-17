@@ -3222,6 +3222,7 @@ export type TranslationKey =
   | 'updateBanner.readyTitle'
   | 'updateBanner.reloadButton'
   | 'updateBanner.title'
+  | 'venueInput.pinned'
   | 'voiceNotesInfo.ai1'
   | 'voiceNotesInfo.ai2'
   | 'voiceNotesInfo.ai3'

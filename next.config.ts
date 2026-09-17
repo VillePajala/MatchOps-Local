@@ -98,7 +98,15 @@ const securityHeaders = [
       // Deliberately NOT datocms-assets.com: the game-formats PDF there is only
       // ever NAVIGATED to via a link, never fetched, so granting it connect-src
       // would widen the policy for a capability nothing uses.
-      `connect-src 'self' ${supabaseConnectSrc} https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com https://api.openai.com https://www-assets.palloliitto.fi`,
+      //
+      // photon.komoot.io looks up match venues while the coach types a location,
+      // so a real place with coordinates can be attached to the game instead of
+      // a string a map has to guess at. It is OpenStreetMap search, needs no key
+      // and no account, and it is queried ONLY with what the coach typed into
+      // that one field - never with anything about players or matches. Chosen
+      // over Google Places specifically to avoid requiring a billing account.
+      // Every failure path degrades to a plain text box (see utils/venueSearch).
+      `connect-src 'self' ${supabaseConnectSrc} https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com https://api.openai.com https://www-assets.palloliitto.fi https://photon.komoot.io`,
       "worker-src 'self' blob:",  // blob: required for Supabase realtime-js heartbeat workers
       "media-src 'self' blob:", // blob: replays locally recorded voice clips (Kirjuri); audio never leaves the device
       "object-src 'none'", // Block Flash, Java applets, and other plugins

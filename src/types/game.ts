@@ -205,6 +205,18 @@ export interface AppState {
    * unlike the venue it is never prefilled from the last match.
    */
   fieldNumber?: string;
+  /**
+   * Where the venue actually is, when it was PICKED from the lookup rather than
+   * typed. Undefined for typed locations and for every game created before
+   * migration 048, so nothing may depend on it being present.
+   *
+   * These are the durable half of the location: a name can be spelled six ways
+   * and still mean one pitch, but a position is the same fact however it was
+   * written - which is what makes the map link exact and what any later travel
+   * feature would key off.
+   */
+  locationLat?: number;
+  locationLng?: number;
   gameTime?: string;
   subIntervalMinutes?: number;
   completedIntervalDurations?: IntervalLog[];

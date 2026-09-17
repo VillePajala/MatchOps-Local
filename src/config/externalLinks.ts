@@ -41,7 +41,18 @@ export const TASO_URL = 'https://taso.palloliitto.fi';
  *
  * @returns the URL, or null when there is nothing to search for.
  */
-export function mapsSearchUrl(venue: string | undefined): string | null {
+export function mapsSearchUrl(
+  venue: string | undefined,
+  latitude?: number,
+  longitude?: number,
+): string | null {
+  // COORDINATES WIN WHEN WE HAVE THEM. A picked venue is an exact position, so
+  // there is nothing left to search for and nothing to get wrong - which is the
+  // entire reason the lookup stores them.
+  if (typeof latitude === 'number' && typeof longitude === 'number') {
+    return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+  }
+
   const trimmed = venue?.trim();
   if (!trimmed) return null;
   // Already a link (a Maps share URL, most likely): send them exactly there

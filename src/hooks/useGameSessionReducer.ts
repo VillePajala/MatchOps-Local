@@ -36,6 +36,8 @@ export interface GameSessionState {
   gameLocation?: string;
   /** Which pitch at the venue; see AppState.fieldNumber. */
   fieldNumber?: string;
+  locationLat?: number;
+  locationLng?: number;
   gameTime?: string;
   demandFactor: number;
   gameEvents: GameEvent[];
@@ -80,6 +82,8 @@ export const initialGameSessionStatePlaceholder: GameSessionState = {
   tournamentLevel: '',
   gameLocation: '',
   fieldNumber: '',
+  locationLat: undefined,
+  locationLng: undefined,
   gameTime: '',
   demandFactor: 1,
   gameEvents: [],
@@ -133,6 +137,7 @@ export type GameSessionAction =
   | { type: 'SET_SHOW_POSITION_LABELS'; payload: boolean }
   | { type: 'SET_GAME_LOCATION'; payload: string }
   | { type: 'SET_FIELD_NUMBER'; payload: string }
+  | { type: 'SET_LOCATION_COORDS'; payload: { lat?: number; lng?: number } }
   | { type: 'SET_GAME_TIME'; payload: string }
   | { type: 'SET_AGE_GROUP'; payload: string }
   | { type: 'SET_TOURNAMENT_LEVEL'; payload: string }
@@ -328,6 +333,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, gameLocation: action.payload };
     case 'SET_FIELD_NUMBER':
       return { ...state, fieldNumber: action.payload };
+    case 'SET_LOCATION_COORDS':
+      return { ...state, locationLat: action.payload.lat, locationLng: action.payload.lng };
     case 'SET_GAME_TIME':
       return { ...state, gameTime: action.payload };
     case 'SET_AGE_GROUP':
@@ -527,6 +534,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const tournamentLevel = loadedData.tournamentLevel;
       const gameLocation = loadedData.gameLocation ?? '';
       const fieldNumber = loadedData.fieldNumber ?? '';
+      const locationLat = loadedData.locationLat;
+      const locationLng = loadedData.locationLng;
       const gameTime = loadedData.gameTime ?? '';
       const demandFactor = loadedData.demandFactor ?? 1;
       const gameEvents = loadedData.gameEvents ?? [];
@@ -592,6 +601,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         tournamentLevel,
         gameLocation,
         fieldNumber,
+        locationLat,
+        locationLng,
         gameTime,
         demandFactor,
         gameEvents,
