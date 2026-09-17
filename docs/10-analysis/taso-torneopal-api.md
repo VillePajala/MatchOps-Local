@@ -1,5 +1,9 @@
 # Taso / Torneopal API: what exists (investigated 2026-09-08)
 
+**Extended 2026-09-16 with myClub (section 7).** The two systems bracket the same
+coach workflow, and they turned out to have the same shape, so they belong in one
+document.
+
 Read before any Taso integration work. Companion to UNIFIED-ROADMAP.md, "Palloliitto Taso
 integration". Every claim below comes from a public source listed at the end; where the
 source is thin it says so.
@@ -184,3 +188,172 @@ without importing PalloIDs.
 - mplattu/torneopal-info, https://github.com/mplattu/torneopal-info
 - jsvirtane/tulospalvelu-mcp, https://github.com/jsvirtane/tulospalvelu-mcp
 - LePa toimihenkilo-opas: TASO-jarjestelman kayttaminen (PDF), https://bin.yhdistysavain.fi/1592044/00K3wwro4WiauGVXIeFV0YS0Jj/Toimihenkil%C3%B6opas-TASOn%20k%C3%A4ytt%C3%A4minen.pdf
+
+
+---
+
+## 7. myClub (investigated 2026-09-16)
+
+Added because the owner described the real flow, which is three systems, not two:
+check **myClub** for who is coming -> create the game in **MatchOps** -> enter the
+lineup in **Taso** before, the result and scorers after -> mark who actually
+participated back in **myClub**. MatchOps sits in the middle of that and is the only
+one of the three the coach can change.
+
+### 7.1 Two products, and only one of them is a web page
+
+- **myClub web** is a **per-club subdomain**: `https://<club>.myclub.fi`. Verified
+  resolving: `hjk.`, `hpm.`, `ljk.`. There is no single club-agnostic app URL.
+  A central identity login exists at `https://id.myclub.fi/flow/login` (verified 200),
+  which is the only URL we can hardcode for everybody.
+- **myClub Coach** is a **native iOS/Android app**, not a web page. Android package
+  `fi.myclub.coach` (Play listing verified 200). It is where attendance is actually
+  marked - by tap or by scanning the member card - and the marks flow into the
+  training diary and club statistics. Requires toimihenkilo rights.
+  `https://www.myclub.fi/install-coach` redirects to the docs article, not the store,
+  so it is not a useful link target.
+
+This is the one structural difference from Taso: **Taso is one URL for everyone,
+myClub is a different URL per club plus an app that has no URL at all.**
+
+### 7.2 The API, and it has the same shape as Taso's
+
+OpenAPI spec at `https://taikala.github.io/myclub-api-docs/fi`. Base URL
+`https://{own-domain}.myclub.fi/api` - the per-club subdomain again. 62 paths.
+
+**Reads what we want:**
+
+- `GET /events?include_participants=true` - the events with who is coming. This is
+  exactly the screen the coach checks before a game.
+- `GET /members`, `GET /members/search`, `GET /groups/{id}/memberships` - the roster.
+- `GET /venues`, `GET /rosters`, `GET /event_categories`, `GET /groups`.
+
+**Writes - but not the write that matters.** `POST /events` and `PUT /events/{id}`
+exist. The writable payload (`event-core`) is: `allow_comments`, `course_id`,
+`description`, `description_html`, `starts_at`, `ends_at`, `event_category_id`,
+`group_id`, `max_participations`, `name`, `participants_public`, `queue_enabled`,
+`registration`, `registration_opens_at`, `registration_closes_at`,
+`send_confirmation`, `venue_id`, `visibility`.
+
+**No participation or attendance field anywhere in it.** There is no
+`/participations` path and no `/events/{id}/participants`. All 62 paths were checked.
+
+So attendance is readable and not writable - the same asymmetry as Taso, arrived at
+independently:
+
+| | Read | Write |
+|---|---|---|
+| myClub attendance | yes | **no** |
+| Taso lineup / result / scorers | yes | **no** |
+
+**The consequence for MatchOps is the whole story:** the app can *pull* from both and
+*push* to neither. Every hand-off out of MatchOps stays a person typing, and no change
+of app format (native, Capacitor, anything) alters that, because the wall is on their
+servers.
+
+### 7.3 Key, cost and terms - and the one way myClub is easier than Taso
+
+- The key is **per member**: log in as the account it belongs to, user menu ->
+  "Rajapinta-avain" -> Nayta. Enabled under Settings -> Add-ons, which is a club
+  administrator.
+- **Paid add-on**, and explicitly outside free support: *"koska kyseessa on
+  asiantuntijatason ohjelmistokehitysrajapinta ... ei ohjelmistorajapinnan kaytto
+  kuulu maksuttoman tuotetuen piiriin"*.
+- The docs warn *"Ala koskaan laheta rajapinta-avainta sahkopostitse tai jaa sita
+  muille"* but state **no server-side-only rule**. That is the difference from
+  Torneopal, whose terms explicitly forbid embedding the key in an application. A
+  per-member key that the coach holds and never shares is the BYOK shape Kirjuri
+  already uses - so myClub, unlike Taso, does not on its face require us to run a
+  backend.
+- **There is no test environment** (*"Jarjestelmassa ei ole tarjottavana
+  testiymparistoa"*). Any development runs against a real club's live data.
+
+### 7.4 The one blocker to settle before planning any pull: CORS
+
+An unauthenticated preflight on 2026-09-16 -
+`OPTIONS https://<club>.myclub.fi/api/events` with `Origin` and
+`Access-Control-Request-Method: GET`, tried against two clubs - returned **403 from
+`awselb/2.0` with no `access-control-allow-origin` header**.
+
+Suggestive, not conclusive: the clubs tested may not have the add-on at all, and a
+WAF may simply refuse OPTIONS. But if there is no CORS, a browser cannot call this
+API no matter who holds the key, and the BYOK advantage in 7.3 evaporates - the
+feature would need a Supabase Edge Function proxy and would become cloud-mode only.
+
+**The spike is one request:** with a real key, does a `GET` from a browser origin come
+back with CORS headers? That single answer decides whether a myClub pull is a
+client-side feature or a backend feature.
+
+### 7.5 Opening the apps from a link: what is actually possible
+
+Settled on a device with both apps installed (Android "Aseta oletukseksi" ->
+"Tuetut verkko-osoitteet", 2026-09-16). This is the authority, not the served
+statement file:
+
+| App | Claims | Openable from a link? |
+|---|---|---|
+| **myClub** (`fi.myclub.member`) | `*.myclub.fi`, `www.myclub.fi` | **Yes** - `id.myclub.fi` is covered by the wildcard |
+| **myClub Coach** (`fi.myclub.coach`) | **nothing** - the list is empty and greyed out | **No** |
+
+**Coach declares no web addresses at all**, so no https URL, and therefore no
+intent built from one, can ever resolve to it. That is why the first attempt
+appeared to "fall back to the Play page even though the app was installed":
+there was nothing to fall back from. Chrome additionally refuses to launch an
+app by package alone - a MAIN/LAUNCHER intent from the web is blocked by design
+- so there is no other route in.
+
+**Note the contradiction:** `myclub.fi/.well-known/assetlinks.json` grants
+`handle_all_urls` to `fi.myclub.coach` (section 7.1), but the shipped manifest
+evidently declares no matching intent filters. The statement file and the app
+disagree, and the phone wins. Anyone reading assetlinks.json alone would
+conclude Coach is deep-linkable; it is not.
+
+**And the member app cannot be opened either, for a different reason.** An
+intent aimed at `id.myclub.fi/flow/login`, with `package=fi.myclub.member`, the
+host matching `*.myclub.fi` and link-opening switched on, still fell through to
+its fallback - in a **plain Chrome tab**, not only inside the installed PWA, so
+the app context was not the cause. The host matches and the path does not:
+`id.myclub.fi` is the identity service, and an app that claimed its own login
+URLs would break signing in through a browser, so that page is very likely
+excluded deliberately.
+
+**Consequence for the app:** neither row can open its app, so both are plain
+links. Do not re-add an intent for either without new evidence from that
+settings screen.
+
+**A club subdomain does not open it either - tested, and myClub proves it
+themselves.** Opening `pepo.myclub.fi` in Chrome, signed in, with the member
+app installed, stayed in the browser. The page then displayed myClub's own
+interstitial: *"Huomasimme, etta kaytat myClubia mobiiliselaimessa. Uusi
+myClub-sovellus on nyt ladattavissa sovelluskaupoissa"* with a Play badge and
+"Ei kiitos, jatkan selaimella".
+
+That banner only needs to exist because myClub cannot hand off to their own app
+from their own site. If their club URLs were genuinely app-claimed, Android
+would have opened the app and there would be nothing to advertise. It is the
+same statement-file-versus-manifest disagreement as Coach, on a larger scale:
+`assetlinks.json` says `handle_all_urls`, the apps claim far less.
+
+**Settled: no myClub URL opens the myClub app.** Use plain links and stop
+looking.
+
+**And the links themselves were then removed (owner, 2026-09-17).** Opening the
+apps was the whole point: a row that lands the coach in a browser is slower
+than the app's own icon on their home screen. With deep linking impossible, the
+rows cost a tap and returned nothing, so they came out. Taso stays, because
+Taso has no app and the browser genuinely IS the destination.
+
+**What the test did establish** is worth keeping. After signing in, a coach
+lands on `https://<club>.myclub.fi/flow/` - the club dashboard, with attendance
+and events on it. The central login we can hardcode is two steps short of that.
+So the club-subdomain setting still earns its place, but for landing the coach
+where they work rather than for opening anything.
+
+### 7.6 Sources
+
+- myClub API docs, https://taikala.github.io/myclub-api-docs/fi
+- myClub: sovellusrajapinta, https://docs.myclub.fi/article/1432-sovellusrajapinta
+- myClub: toimihenkiloiden mobiilisovellus, https://docs.myclub.fi/article/1161-mobiilisovellus
+- myClub: API-rajapinta / jarjestelmaintegraatiot, https://www.myclub.fi/uutiset/api-rajapinta-jarjestelmaintegraatiot/
+- myClub: lasnaoloseuranta, https://www.myclub.fi/ominaisuudet/lasnaoloseuranta/
+- myClub Coach on Google Play, https://play.google.com/store/apps/details?id=fi.myclub.coach
