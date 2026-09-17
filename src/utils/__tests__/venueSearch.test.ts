@@ -126,6 +126,69 @@ describe('searchVenues', () => {
   });
 });
 
+describe('house numbers', () => {
+  /**
+   * The owner searched "Mannerheimintie 10" and saw only "Mannerheimintie", so
+   * the address looked unfindable when Photon had in fact found it. The number
+   * arrives as its own field and has to be recombined with the street.
+   */
+  it('keeps the number on an address with no venue name', async () => {
+    respondWith({
+      features: [{
+        geometry: { coordinates: [24.9384, 60.1699] },
+        properties: { street: 'Mannerheimintie', housenumber: '10', city: 'Helsinki', state: 'Uusimaa' },
+      }],
+    });
+
+    const [first] = await searchVenues('Mannerheimintie 10');
+
+    expect(first.name).toBe('Mannerheimintie 10');
+    expect(first.context).toBe('Helsinki, Uusimaa');
+  });
+
+  it('puts the address under a named venue rather than losing it', async () => {
+    respondWith({
+      features: [{
+        geometry: { coordinates: [24.9384, 60.1699] },
+        properties: { name: 'Marski by Scandic', street: 'Mannerheimintie', housenumber: '10', city: 'Helsinki', state: 'Uusimaa' },
+      }],
+    });
+
+    const [first] = await searchVenues('Mannerheimintie 10');
+
+    expect(first.name).toBe('Marski by Scandic');
+    expect(first.context).toBe('Mannerheimintie 10, Helsinki, Uusimaa');
+  });
+
+  /** A street with no number is still a usable answer, just a vaguer one. */
+  it('accepts a street with no number', async () => {
+    respondWith({
+      features: [{
+        geometry: { coordinates: [23.36, 59.82] },
+        properties: { street: 'Mannerheimintie', city: 'Hanko', state: 'Uusimaa' },
+      }],
+    });
+
+    const [first] = await searchVenues('Mannerheimintie');
+
+    expect(first.name).toBe('Mannerheimintie');
+  });
+
+  /** Never twice: the address must not be both the name and the subtitle. */
+  it('does not repeat the address under itself', async () => {
+    respondWith({
+      features: [{
+        geometry: { coordinates: [24.9384, 60.1699] },
+        properties: { street: 'Mannerheimintie', housenumber: '10', city: 'Helsinki' },
+      }],
+    });
+
+    const [first] = await searchVenues('Mannerheimintie 10');
+
+    expect(first.context).not.toContain('Mannerheimintie');
+  });
+});
+
 describe('venueLabel', () => {
   it('reads as the venue, then where it is', () => {
     expect(
