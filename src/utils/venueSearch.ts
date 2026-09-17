@@ -39,6 +39,9 @@ export interface VenueSuggestion {
   name: string;
   /** Town and region, for telling two identically named pitches apart. */
   context: string;
+  /** The town alone. Kept as a field rather than parsed back out of `context`,
+   *  whose first part is the STREET whenever the venue has both. */
+  town: string | null;
   latitude: number;
   longitude: number;
 }
@@ -79,10 +82,11 @@ function toSuggestion(feature: PhotonFeature, index: number): VenueSuggestion | 
   const name = str(p.name) ?? address;
   if (!name) return null;
 
+  const town = str(p.city) ?? str(p.county);
   const context = [
     // Only when the name is not already the address, or it reads twice.
     name === address ? null : address,
-    str(p.city) ?? str(p.county),
+    town,
     str(p.state),
   ]
     .filter(Boolean)
@@ -92,6 +96,7 @@ function toSuggestion(feature: PhotonFeature, index: number): VenueSuggestion | 
     key: `${latitude},${longitude},${index}`,
     name,
     context,
+    town,
     latitude,
     longitude,
   };
@@ -139,7 +144,21 @@ export async function searchVenues(
   }
 }
 
-/** How a chosen suggestion reads in the field: the venue, then where it is. */
+/**
+ * What gets STORED when a suggestion is picked - deliberately shorter than what
+ * was shown while picking.
+ *
+ * The full context ("Jonni Myyrän tie 3, Savitaipale, Etelä-Karjala") exists to
+ * tell two similarly named venues apart in the dropdown. Once one is chosen
+ * that job is done, and the coordinates carry the precision from then on - so
+ * keeping the whole string only makes a location that truncates everywhere it
+ * is displayed, as it did on the owner's next-match card.
+ *
+ * The town is kept because it survives being read out loud and answers "which
+ * Keskuskenttä"; the street and region are dropped.
+ */
 export function venueLabel(suggestion: VenueSuggestion): string {
-  return suggestion.context ? `${suggestion.name}, ${suggestion.context}` : suggestion.name;
+  const { name, town } = suggestion;
+  if (!town || name.includes(town)) return name;
+  return `${name}, ${town}`;
 }
