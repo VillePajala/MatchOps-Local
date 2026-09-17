@@ -746,6 +746,29 @@ describe('migrationService', () => {
 
       expect(mockLocal.close).not.toHaveBeenCalled();
     });
-  });
 
+    /**
+     * The third fixed site, reached through the exported entry point. Covered
+     * because two of three would leave the one call site that actually writes
+     * free to reintroduce the bug.
+     */
+    it('is not closed by migrateLocalToCloud', async () => {
+      const mockLocal = createMockLocalStore();
+      createMockCloudStore();
+
+      await migrateLocalToCloud(() => {});
+
+      expect(mockLocal.close).not.toHaveBeenCalled();
+    });
+
+    /** The cloud store is still closed: its client is a singleton it leaves alone. */
+    it('does not stop the cloud store being closed', async () => {
+      createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+
+      await migrateLocalToCloud(() => {});
+
+      expect(mockCloud.close).toHaveBeenCalled();
+    });
+  });
 });
