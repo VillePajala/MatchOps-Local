@@ -2276,6 +2276,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Handlers for GameSettingsModal (delegate to session coordination)
   const handleGameLocationChange = sessionCoordination.handlers.setGameLocation;
   const handleFieldNumberChange = sessionCoordination.handlers.setFieldNumber;
+  const handleLocationCoordsChange = sessionCoordination.handlers.setLocationCoords;
   const handleGameTimeChange = sessionCoordination.handlers.setGameTime;
   const handleAgeGroupChange = sessionCoordination.handlers.setAgeGroup;
   const handleTournamentLevelChange = sessionCoordination.handlers.setTournamentLevel;
@@ -2609,6 +2610,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleGameDateChange,
       handleGameLocationChange,
       handleFieldNumberChange,
+      handleLocationCoordsChange,
       handleGameTimeChange,
       handleGameNotesChange,
       handlePlayerPositionsChange,

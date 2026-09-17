@@ -87,6 +87,7 @@ interface ModalManagerHandlers {
   gameDateChange: (date: string) => void;
   gameLocationChange: (location: string) => void;
   fieldNumberChange: (value: string) => void;
+  locationCoordsChange: (coords: { lat?: number; lng?: number }) => void;
   gameTimeChange: (time: string) => void;
   gameNotesChange: (notes: string) => void;
   playerPositionsChange: (positions: Record<string, string[]>) => void;
@@ -271,6 +272,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           onGameDateChange={handlers.gameDateChange}
           onGameLocationChange={handlers.gameLocationChange}
           onFieldNumberChange={handlers.fieldNumberChange}
+          onLocationCoordsChange={handlers.locationCoordsChange}
           locationLat={data.gameSessionState.locationLat}
           locationLng={data.gameSessionState.locationLng}
           onGameTimeChange={handlers.gameTimeChange}
