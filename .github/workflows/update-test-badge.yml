@@ -9,6 +9,14 @@ on:
       - '*.config.*'
       - 'package.json'
 
+# The job pushes a commit back to master, which the default read-only
+# GITHUB_TOKEN cannot do. Without this the push failed with a bare 403 on every
+# run - and because the push is deliberately treated as non-critical, the job
+# still reported success, so the badge silently stopped updating while the full
+# suite was re-run on every merge to produce a commit that was then discarded.
+permissions:
+  contents: write
+
 jobs:
   update-badge:
     name: Update Test Count Badge
