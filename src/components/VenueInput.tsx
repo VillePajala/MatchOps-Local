@@ -226,7 +226,14 @@ export const VenueInput: React.FC<VenueInputProps> = ({
       </div>
 
       {foundNothing ? (
-        <p className="mt-1 text-xs text-slate-400">
+        <p
+          // It arrives after an async search, so without a live region a screen
+          // reader never learns the list came back empty - the field just stays
+          // silent, which is the very confusion this message exists to end.
+          role="status"
+          aria-live="polite"
+          className="mt-1 text-xs text-slate-400"
+        >
           {t(
             'venueInput.noMatches',
             'No places found. Try the venue\'s plain name, or just type it - the location is saved either way.',

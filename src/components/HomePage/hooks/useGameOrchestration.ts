@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { completenessProgress, computeGameCompleteness } from '@/utils/gameCompleteness';
+import { todayIso } from '@/utils/todayIso';
 import type { AiMeta, GameNoteInput } from '@/types/game';
 import { useDictationCapture } from '@/hooks/useDictationCapture';
 import type { ComponentProps } from 'react';
@@ -67,7 +68,7 @@ const initialState: AppState = {
   gameEvents: [], // Initialize game events as empty array
   // Initialize game info
   opponentName: "Opponent",
-  gameDate: new Date().toISOString().split('T')[0], // Default to today's date YYYY-MM-DD
+  gameDate: todayIso(), // Default to today's LOCAL date YYYY-MM-DD
   homeScore: 0,
   awayScore: 0,
   gameNotes: '', // Initialize game notes as empty string
