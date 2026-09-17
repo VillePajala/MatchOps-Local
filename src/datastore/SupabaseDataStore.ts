@@ -3069,6 +3069,12 @@ export class SupabaseDataStore implements DataStore {
         is_friendly: game.isFriendly ?? false,
         // Rule 1: empty string is "nobody", and that is NULL in the column.
         captain_id: game.captainId === '' ? null : game.captainId ?? null,
+        // Rule 1: an unset pitch is NULL, not an empty string.
+        field_number: game.fieldNumber === '' ? null : game.fieldNumber ?? null,
+        // Coordinates are absent far more often than present: only a PICKED
+        // venue has them, so undefined is the normal case, not an error.
+        location_lat: game.locationLat ?? null,
+        location_lng: game.locationLng ?? null,
         home_score: normalizeInteger(game.homeScore, 0),
         away_score: normalizeInteger(game.awayScore, 0),
         game_notes: game.gameNotes,
@@ -3257,6 +3263,12 @@ export class SupabaseDataStore implements DataStore {
       isFriendly: game.is_friendly ?? false,
       // NULL is "no captain named", which the app carries as undefined.
       captainId: game.captain_id ?? undefined,
+      // Rule 1 in reverse: NULL reads back as the empty string the input expects.
+      fieldNumber: game.field_number ?? '',
+      // Left undefined rather than coerced to 0 - the origin off West Africa
+      // is a real position, and a missing venue must not read as one.
+      locationLat: game.location_lat ?? undefined,
+      locationLng: game.location_lng ?? undefined,
       homeScore: game.home_score,
       awayScore: game.away_score,
       gameNotes: game.game_notes,

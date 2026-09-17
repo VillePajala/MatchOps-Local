@@ -13,6 +13,17 @@
     {
       "date": "2026-09-17",
       "en": [
+        "Start typing a match location and the app now suggests real places. Pick one and the match is pinned to it, so tapping the location opens that exact spot in Maps instead of searching for the name. Typed locations keep working exactly as before, and everything still works offline - the suggestions simply do not appear.",
+        "Tap a match's location to open it in Maps, so you can set off without retyping the address. The pitch now has its own box next to the location (\"TN 2\"), which is what makes the map link work - a map cannot find \"Kimpisen kentta TN 2\", only the venue. It also fixes something quieter: a season or tournament fills in the location for its games, so a competition saved with a pitch number in it gave that same pitch to every match. If you want an exact pin, paste a Maps link into the location and it will be used as-is. Also fixed: in an away match the team colour underline was drawn under the opponent's name instead of your own."
+      ],
+      "fi": [
+        "Kun alat kirjoittaa ottelun sijaintia, sovellus ehdottaa nyt oikeita paikkoja. Kun valitset yhden, ottelu kiinnittyy siihen, jolloin sijaintia napauttamalla kartta avautuu juuri siihen paikkaan nimen etsimisen sijaan. Itse kirjoitetut sijainnit toimivat kuten ennenkin, ja kaikki toimii myös ilman verkkoyhteyttä - ehdotuksia ei silloin vain näy.",
+        "Napauta ottelun sijaintia niin se aukeaa kartalla, jolloin voit lähteä matkaan ilman osoitteen uudelleenkirjoittamista. Kentällä on nyt oma kenttänsä sijainnin vieressä (\"TN 2\"), ja juuri se saa karttalinkin toimimaan - kartta ei löydä \"Kimpisen kenttä TN 2\", vain paikan. Samalla korjaantuu hiljaisempi ongelma: sarja tai turnaus täyttää otteluidensa sijainnin, joten kilpailuun tallennettu kenttänumero päätyi jokaiseen sen otteluun. Jos haluat täsmällisen sijainnin, liitä sijaintikenttään karttalinkki niin sitä käytetään sellaisenaan. Korjattu myös: vierasottelussa joukkueen väriviiva piirtyi vastustajan nimen alle oman nimesi sijaan."
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "en": [
         "Internal notes only, nothing visible in the app: a possible myClub integration was investigated and decided against."
       ],
       "fi": [

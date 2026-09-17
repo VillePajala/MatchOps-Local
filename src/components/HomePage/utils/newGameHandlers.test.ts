@@ -70,6 +70,7 @@ const createBaseRequest = (overrides?: Record<string, unknown>) => ({
   opponentName: 'Away Team',
   gameDate: '2024-10-01',
   gameLocation: 'Main Arena',
+  fieldNumber: 'TN 2',
   gameTime: '15:00',
   seasonId: null,
   tournamentId: null,

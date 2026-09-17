@@ -30,6 +30,9 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { HiOutlineMapPin } from 'react-icons/hi2';
+import { mapsSearchUrl } from '@/config/externalLinks';
+import VenueInput from '@/components/VenueInput';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -94,6 +97,14 @@ export interface GameSettingsModalProps {
   onOpponentNameChange: (name: string) => void;
   onGameDateChange: (date: string) => void;
   onGameLocationChange: (location: string) => void;
+  /** The pitch within the venue. Separate so the venue stays map-searchable. */
+  fieldNumber?: string;
+  /** Present only when the venue was picked from the lookup. */
+  locationLat?: number;
+  locationLng?: number;
+  onFieldNumberChange: (value: string) => void;
+  /** Keeps the live session's pin in step with the saved game's. */
+  onLocationCoordsChange: (coords: { lat?: number; lng?: number }) => void;
   onGameTimeChange: (time: string) => void;
   onAgeGroupChange: (age: string) => void;
   onTournamentLevelChange: (level: string) => void;
@@ -184,6 +195,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onOpponentNameChange,
   onGameDateChange,
   onGameLocationChange,
+  fieldNumber,
+  locationLat,
+  locationLng,
+  onFieldNumberChange,
+  onLocationCoordsChange,
   onGameTimeChange,
   onAgeGroupChange,
   onTournamentLevelChange,
@@ -1898,25 +1914,66 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   <label htmlFor="gameLocationInput" className="block text-sm font-medium text-slate-300 mb-1">
                     {t('gameSettingsModal.locationLabel', 'Location (Optional)')}
                   </label>
-                  <input
-                    type="text"
+                  <VenueInput
                     id="gameLocationInput"
-                    name="gameLocation"
                     value={gameLocation}
-                    onChange={(e) => {
-                        const value = e.target.value;
-                        onGameLocationChange(value);
+                    hasCoordinates={locationLat !== undefined}
+                    onChange={(venue) => {
+                        onGameLocationChange(venue.name);
+                        // Without this the session keeps the OLD position: the
+                        // name would update, the saved game would gain the new
+                        // coordinates, and the pin beside it would still point
+                        // at the previous venue until a reload.
+                        onLocationCoordsChange({ lat: venue.latitude, lng: venue.longitude });
+                        // Coordinates ride along with the name so the pin and the
+                        // words can never disagree on a saved game.
                         mutateGameDetails(
-                          { gameLocation: value },
-                          { source: 'stateSync', expectedState: { gameLocation: value } }
+                          { gameLocation: venue.name, locationLat: venue.latitude, locationLng: venue.longitude },
+                          { source: 'stateSync', expectedState: { gameLocation: venue.name } }
                         );
                     }}
-                    placeholder={t('gameSettingsModal.locationPlaceholder', 'e.g., Central Park Field 2')}
+                    placeholder={t('gameSettingsModal.locationPlaceholder', 'e.g., Central Park')}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                  />
+                  {/* Same check as game creation: confirm the venue resolves
+                      while it can still be corrected. */}
+                  {mapsSearchUrl(gameLocation, locationLat, locationLng) ? (
+                    <a
+                      href={mapsSearchUrl(gameLocation, locationLat, locationLng) as string}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex items-center gap-1 text-xs text-indigo-300 hover:text-indigo-200 hover:underline"
+                    >
+                      <HiOutlineMapPin className="w-3.5 h-3.5" aria-hidden="true" />
+                      {t('common.checkOnMap', 'Check on map')}
+                    </a>
+                  ) : null}
+                </div>
+
+                {/* Pitch. Kept out of the venue above so that value stays
+                    something a map can search for - see migration 047. */}
+                <div className="mb-4">
+                  <label htmlFor="fieldNumberInput" className="block text-sm font-medium text-slate-300 mb-1">
+                    {t('gameSettingsModal.fieldNumberLabel', 'Pitch (optional)')}
+                  </label>
+                  <input
+                    type="text"
+                    id="fieldNumberInput"
+                    name="fieldNumber"
+                    value={fieldNumber ?? ''}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        onFieldNumberChange(value);
+                        mutateGameDetails(
+                          { fieldNumber: value },
+                          { source: 'stateSync', expectedState: { fieldNumber: value } }
+                        );
+                    }}
+                    placeholder={t('gameSettingsModal.fieldNumberPlaceholder', 'e.g., TN 2')}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     autoComplete="off"
                     autoCorrect="off"
-                    autoCapitalize="words"
-                    spellCheck="true"
+                    spellCheck="false"
                   />
                 </div>
 

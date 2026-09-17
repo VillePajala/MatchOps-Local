@@ -95,6 +95,8 @@ const createProps = (): ModalManagerProps => ({
     isPlayed: false,
   },
   handlers: {
+    fieldNumberChange: noop,
+    locationCoordsChange: noop,
     toggleGoalLogModal: noop,
     addGoalEvent: noop,
     logOpponentGoal: noop,
