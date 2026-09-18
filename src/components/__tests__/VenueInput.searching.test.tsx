@@ -113,7 +113,7 @@ describe('search feedback', () => {
     renderInput('Mitta-Keittiöt Areena');
     await act(async () => { jest.advanceTimersByTime(400); });
 
-    expect(screen.getByText(/No places found/)).toBeInTheDocument();
+    expect(screen.getByText(/No place of that name/)).toBeInTheDocument();
   });
 
   it('says nothing about emptiness while still searching', async () => {
@@ -122,7 +122,7 @@ describe('search feedback', () => {
     renderInput('Mitta-Keittiöt Areena');
     await act(async () => { jest.advanceTimersByTime(400); });
 
-    expect(screen.queryByText(/No places found/)).toBeNull();
+    expect(screen.queryByText(/No place of that name/)).toBeNull();
     expect(spinner()).toBeInTheDocument();
   });
 
@@ -134,7 +134,7 @@ describe('search feedback', () => {
     renderInput('jäähalli Savonlinna');
     await act(async () => { jest.advanceTimersByTime(400); });
 
-    expect(screen.queryByText(/No places found/)).toBeNull();
+    expect(screen.queryByText(/No place of that name/)).toBeNull();
   });
 
   /** Too short to search means nothing should appear to be happening. */
@@ -143,7 +143,7 @@ describe('search feedback', () => {
     await act(async () => { jest.advanceTimersByTime(400); });
 
     expect(spinner()).toBeNull();
-    expect(screen.queryByText(/No places found/)).toBeNull();
+    expect(screen.queryByText(/No place of that name/)).toBeNull();
     expect(mockSearch).not.toHaveBeenCalled();
   });
 });
