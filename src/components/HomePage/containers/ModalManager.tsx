@@ -275,6 +275,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           onLocationCoordsChange={handlers.locationCoordsChange}
           locationLat={data.gameSessionState.locationLat}
           locationLng={data.gameSessionState.locationLng}
+          locationAddress={data.gameSessionState.locationAddress}
           onGameTimeChange={handlers.gameTimeChange}
           onAgeGroupChange={handlers.ageGroupChange}
           onTournamentLevelChange={handlers.tournamentLevelChange}
