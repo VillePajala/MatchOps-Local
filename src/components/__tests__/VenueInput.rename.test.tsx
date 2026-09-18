@@ -83,21 +83,24 @@ describe('renaming a pinned venue', () => {
     });
   });
 
-  it('shows what is still pinned, once the name no longer says it', async () => {
+  /**
+   * The pin is its own row WHENEVER there is one, not only once the name has
+   * diverged from it. Hiding it while the two happened to match is what made
+   * the pin invisible, and an invisible pin is one the coach cannot tell is
+   * there, cannot change, and cannot believe survives an edit.
+   */
+  it('shows what is pinned from the moment there is a pin', () => {
     setup();
-
-    expect(screen.queryByText('Pihlajavedentie 1, Savonlinna')).toBeNull();
-
-    await rename('Mitta-Keittiöt Areena');
 
     expect(screen.getByText('Pihlajavedentie 1, Savonlinna')).toBeInTheDocument();
   });
 
-  /** Right after a pick the field already reads as the address. */
-  it('does not repeat the address under a field that already says it', () => {
+  it('keeps showing it after the venue is renamed', async () => {
     setup();
 
-    expect(screen.queryByText('Pihlajavedentie 1, Savonlinna')).toBeNull();
+    await rename('Mitta-Keittiöt Areena');
+
+    expect(screen.getByText('Pihlajavedentie 1, Savonlinna')).toBeInTheDocument();
   });
 
   it('says nothing about a pin when there is none', () => {

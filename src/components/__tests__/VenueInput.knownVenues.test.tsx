@@ -170,7 +170,7 @@ describe('alongside the map', () => {
     await userEvent.type(field, 'Mitta');
     await settle();
 
-    expect(screen.queryByText(/No places found/)).toBeNull();
+    expect(screen.queryByText(/No place of that name/)).toBeNull();
     expect(screen.getByText('Mitta-Keittiöt Areena')).toBeInTheDocument();
   });
 
@@ -181,7 +181,7 @@ describe('alongside the map', () => {
     await userEvent.type(field, 'Zzzzz');
     await settle();
 
-    expect(screen.getByText(/No places found/)).toBeInTheDocument();
+    expect(screen.getByText(/No place of that name/)).toBeInTheDocument();
   });
 });
 

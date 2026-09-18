@@ -3876,9 +3876,16 @@
   "venueInput": {
     "pinned": "Pinned to a map location",
     "searching": "Searching for places",
-    "noMatches": "No places found. Try the venue's plain name, or just type it - the location is saved either way.",
+    "noMatches": "No place of that name on the map. The name is saved as you typed it.",
     "removePin": "Remove the pinned location",
     "yourVenues": "Your venues",
-    "fromMap": "From the map"
+    "fromMap": "From the map",
+    "attachLocation": "Attach a location by address",
+    "attachTitle": "Find it by street address",
+    "attachPlaceholder": "e.g. Muurarinkatu 4, Savonlinna",
+    "attachCancel": "Cancel",
+    "attachNothing": "No match for that address.",
+    "changePin": "Change",
+    "pinnedNoAddress": "Location pinned"
   }
 }

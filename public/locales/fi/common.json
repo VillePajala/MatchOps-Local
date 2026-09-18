@@ -3876,9 +3876,16 @@
   "venueInput": {
     "pinned": "Kiinnitetty karttasijaintiin",
     "searching": "Haetaan paikkoja",
-    "noMatches": "Paikkoja ei löytynyt. Kokeile paikan tavallista nimeä tai kirjoita se itse - sijainti tallentuu kumminkin.",
+    "noMatches": "Kartalla ei ole tämännimistä paikkaa. Nimi tallentuu juuri niin kuin sen kirjoitit.",
     "removePin": "Poista kiinnitetty sijainti",
     "yourVenues": "Omat paikkasi",
-    "fromMap": "Kartalta"
+    "fromMap": "Kartalta",
+    "attachLocation": "Liitä sijainti osoitteella",
+    "attachTitle": "Hae katuosoitteella",
+    "attachPlaceholder": "esim. Muurarinkatu 4, Savonlinna",
+    "attachCancel": "Peruuta",
+    "attachNothing": "Osoitteella ei löytynyt mitään.",
+    "changePin": "Vaihda",
+    "pinnedNoAddress": "Sijainti kiinnitetty"
   }
 }
