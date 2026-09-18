@@ -108,7 +108,11 @@ Personnel contact information (email, phone) is considered personally identifiab
 ## Data We Do NOT Collect
 
 - Game content, scores, or statistics (stored locally only, or in your private cloud account)
-- Location data
+- Location data. Nothing about where you or your device are is sent to us or stored by us.
+  One feature does reach a third party on your behalf, and only while you use it: the venue
+  search sends what you type into the match location field to Photon, which returns matching
+  places. It sees your IP address, as any web request does. A venue's coordinates are saved
+  with your match, in the same place as the rest of your match data.
 - Photos or media
 - Device identifiers for tracking or advertising
 - Player names or personal details (these are stored locally by you, or in your private cloud account)
@@ -122,6 +126,7 @@ We use the following third-party services to operate MatchOps. Data processing a
 | Service | Purpose | Data Location | Privacy Policy |
 |---------|---------|---------------|----------------|
 | **Google Play Store** | App distribution and payments | Google infrastructure | [Google Privacy Policy](https://policies.google.com/privacy) |
+| **Photon (Komoot)** | Venue search in the match location field, when used | EU (Germany) | [Komoot Privacy Policy](https://www.komoot.com/privacy) |
 | **Sentry** | Error reporting and crash analysis | US (Standard Contractual Clauses) | [Sentry Privacy Policy](https://sentry.io/privacy/) |
 | **Supabase** | Cloud database and authentication (cloud mode) | EU (Frankfurt) | [Supabase Privacy Policy](https://supabase.com/privacy) |
 | **Vercel** | PWA web hosting | Global edge network (Standard Contractual Clauses) | [Vercel Privacy Policy](https://vercel.com/legal/privacy-policy) |
