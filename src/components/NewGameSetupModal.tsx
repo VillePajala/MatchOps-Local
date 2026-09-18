@@ -1678,9 +1678,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
                       {/* Game Location */}
                       <div className="mb-4">
-                        <label htmlFor="gameLocationInput" className="block text-sm font-medium text-slate-300 mb-1">
-                          {t('newGameSetupModal.gameLocationLabel', 'Location (Optional)')}
-                        </label>
+                        {/* No label here: VenueInput is TWO labelled fields -
+                            the name and the street address - and a heading over
+                            both would only re-introduce the ambiguity about
+                            which box is which. */}
                         <VenueInput
                           id="gameLocationInput"
                           value={gameLocation}
@@ -1691,7 +1692,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           knownVenues={knownVenues}
                           onChange={handleVenueChange}
                           onKeyDown={handleKeyDown}
-                          placeholder={t('newGameSetupModal.locationPlaceholder', 'e.g., Central Park')}
                           className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                         />
                         {/* Confirm the venue resolves BEFORE the drive, which is
