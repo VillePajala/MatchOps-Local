@@ -57,6 +57,7 @@ function Closer() {
     <>
       <button onClick={() => ctx.setIsRosterModalOpen(false)}>close-roster</button>
       <button onClick={() => ctx.setIsTrainingResourcesOpen(false)}>close-training</button>
+      <button onClick={() => ctx.setIsLoadGameModalOpen(false)}>close-load</button>
     </>
   );
 }
@@ -142,5 +143,75 @@ describe('StartScreenLiftedBridge (L.2)', () => {
       expect(screen.getByTestId('probe')).toHaveTextContent('none');
       expect(onSetupModalsClosed).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('Home is refreshed by every modal that can change what it shows', () => {
+  /**
+   * ModalProvider swallows a close that lands within 200ms of the open, to stop
+   * a modal flashing. A test closes instantly, so time has to move for the
+   * close to count - a real coach is never this fast.
+   */
+  let clock = 0;
+  beforeEach(() => {
+    clock = 1_000_000;
+    jest.spyOn(Date, 'now').mockImplementation(() => clock);
+  });
+  afterEach(() => jest.restoreAllMocks());
+  const passTime = () => { clock += 1000; };
+
+  const renderWithCloser = () => {
+    const onSetupModalsClosed = jest.fn();
+    render(
+      <ModalProvider>
+        <Probe />
+        <Closer />
+        <StartScreenLiftedBridge onGetStarted={jest.fn()} onSetupModalsClosed={onSetupModalsClosed} />
+      </ModalProvider>,
+    );
+    return { onSetupModalsClosed };
+  };
+
+  /**
+   * REGRESSION. The owner deleted the fixture Home was advertising as the next
+   * match and Home went on advertising it: the summary is snapshotted in
+   * checkAppState, which re-runs only on mount and on auth changes, and the
+   * load-game modal - the ONLY place a game can be deleted - was not asking for
+   * a refresh on its way out.
+   */
+  it('refreshes after the load-game modal closes, where games are deleted', () => {
+    const { onSetupModalsClosed } = renderWithCloser();
+
+    fireEvent.click(screen.getByText('tap-load'));
+    expect(onSetupModalsClosed).not.toHaveBeenCalled();
+
+    passTime();
+    fireEvent.click(screen.getByText('close-load'));
+    expect(onSetupModalsClosed).toHaveBeenCalledTimes(1);
+  });
+
+  it('still refreshes after a setup modal closes', () => {
+    const { onSetupModalsClosed } = renderWithCloser();
+
+    fireEvent.click(screen.getByText('tap-roster'));
+    passTime();
+    fireEvent.click(screen.getByText('close-roster'));
+
+    expect(onSetupModalsClosed).toHaveBeenCalledTimes(1);
+  });
+
+  /** One refresh for the whole excursion, not one per modal. */
+  it('does not refresh while another modal is still open', () => {
+    const { onSetupModalsClosed } = renderWithCloser();
+
+    fireEvent.click(screen.getByText('tap-load'));
+    fireEvent.click(screen.getByText('tap-roster'));
+    passTime();
+    fireEvent.click(screen.getByText('close-load'));
+
+    expect(onSetupModalsClosed).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText('close-roster'));
+    expect(onSetupModalsClosed).toHaveBeenCalledTimes(1);
   });
 });
