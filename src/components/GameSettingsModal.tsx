@@ -102,9 +102,10 @@ export interface GameSettingsModalProps {
   /** Present only when the venue was picked from the lookup. */
   locationLat?: number;
   locationLng?: number;
+  locationAddress?: string;
   onFieldNumberChange: (value: string) => void;
   /** Keeps the live session's pin in step with the saved game's. */
-  onLocationCoordsChange: (coords: { lat?: number; lng?: number }) => void;
+  onLocationCoordsChange: (coords: { lat?: number; lng?: number; address?: string }) => void;
   onGameTimeChange: (time: string) => void;
   onAgeGroupChange: (age: string) => void;
   onTournamentLevelChange: (level: string) => void;
@@ -198,6 +199,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   fieldNumber,
   locationLat,
   locationLng,
+  locationAddress,
   onFieldNumberChange,
   onLocationCoordsChange,
   onGameTimeChange,
@@ -1918,17 +1920,22 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     id="gameLocationInput"
                     value={gameLocation}
                     hasCoordinates={locationLat !== undefined}
+                    latitude={locationLat}
+                    longitude={locationLng}
+                    address={locationAddress}
                     onChange={(venue) => {
                         onGameLocationChange(venue.name);
                         // Without this the session keeps the OLD position: the
                         // name would update, the saved game would gain the new
                         // coordinates, and the pin beside it would still point
                         // at the previous venue until a reload.
-                        onLocationCoordsChange({ lat: venue.latitude, lng: venue.longitude });
-                        // Coordinates ride along with the name so the pin and the
-                        // words can never disagree on a saved game.
+                        onLocationCoordsChange({ lat: venue.latitude, lng: venue.longitude, address: venue.address });
+                        // The pin rides along with the name so the two can never
+                        // disagree on a saved game - and the address comes with
+                        // it, because that is what makes a renamed venue's pin
+                        // visible instead of silent.
                         mutateGameDetails(
-                          { gameLocation: venue.name, locationLat: venue.latitude, locationLng: venue.longitude },
+                          { gameLocation: venue.name, locationLat: venue.latitude, locationLng: venue.longitude, locationAddress: venue.address },
                           { source: 'stateSync', expectedState: { gameLocation: venue.name } }
                         );
                     }}

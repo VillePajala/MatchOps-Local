@@ -3,7 +3,7 @@
  * in at a pitch. It must never throw, never block, and never leave them without
  * a working text box, whatever the network or the endpoint does.
  */
-import { searchVenues, venueLabel } from '../venueSearch';
+import { searchVenues, venueLabel, venuePinLabel } from '../venueSearch';
 
 const feature = (over: Record<string, unknown> = {}) => ({
   geometry: { coordinates: [28.1887, 61.0583] },
@@ -191,7 +191,7 @@ describe('house numbers', () => {
 
 describe('venueLabel', () => {
   const sug = (over: Partial<Parameters<typeof venueLabel>[0]>) =>
-    venueLabel({ key: 'k', name: 'Kimpisen kenttä', context: '', town: null, latitude: 1, longitude: 2, ...over });
+    venueLabel({ key: 'k', name: 'Kimpisen kenttä', context: '', town: null, address: null, latitude: 1, longitude: 2, ...over });
 
   it('reads as the venue, then the town', () => {
     expect(sug({ town: 'Lappeenranta' })).toBe('Kimpisen kenttä, Lappeenranta');
@@ -232,5 +232,58 @@ describe('venueLabel', () => {
 
   it('keeps an address-only result as it is', () => {
     expect(sug({ name: 'Mannerheimintie 10', town: 'Helsinki' })).toBe('Mannerheimintie 10, Helsinki');
+  });
+});
+
+describe('venuePinLabel', () => {
+  const pin = (over: Partial<Parameters<typeof venuePinLabel>[0]>) =>
+    venuePinLabel({ key: 'k', name: 'Kimpisen kenttä', context: '', town: null, address: null, latitude: 1, longitude: 2, ...over });
+
+  /**
+   * The line shown under a renamed venue. It is the ADDRESS, not the label:
+   * once the coach has replaced the map's name with their own, echoing the
+   * map's name back tells them nothing, while the street does.
+   */
+  it('is the street and town, not the venue name', () => {
+    expect(pin({ name: 'Kimpisen kenttä', address: 'Pohjolankatu 1', town: 'Lappeenranta' }))
+      .toBe('Pohjolankatu 1, Lappeenranta');
+  });
+
+  /** A pitch in a field has no street, and its town still beats nothing. */
+  it('falls back to the venue name when OSM has no street', () => {
+    expect(pin({ name: 'Keskuskenttä', address: null, town: 'Savitaipale' }))
+      .toBe('Keskuskenttä, Savitaipale');
+  });
+
+  it('does not repeat a town already inside the address', () => {
+    expect(pin({ address: 'Savitaipale 4', town: 'Savitaipale' })).toBe('Savitaipale 4');
+  });
+
+  it('copes with no town at all', () => {
+    expect(pin({ address: 'Pohjolankatu 1', town: null })).toBe('Pohjolankatu 1');
+  });
+});
+
+describe('the address a suggestion carries', () => {
+  it('exposes street and number separately from the name', async () => {
+    respondWith({
+      features: [{
+        geometry: { coordinates: [24.9384, 60.1699] },
+        properties: { name: 'Marski by Scandic', street: 'Mannerheimintie', housenumber: '10', city: 'Helsinki' },
+      }],
+    });
+
+    const [first] = await searchVenues('Marski');
+
+    expect(first.address).toBe('Mannerheimintie 10');
+    expect(first.name).toBe('Marski by Scandic');
+  });
+
+  it('is null for a venue OSM has no street for', async () => {
+    respondWith({ features: [feature()] });
+
+    const [first] = await searchVenues('Kimpisen');
+
+    expect(first.address).toBeNull();
   });
 });

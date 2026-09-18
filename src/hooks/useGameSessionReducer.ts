@@ -39,6 +39,8 @@ export interface GameSessionState {
   fieldNumber?: string;
   locationLat?: number;
   locationLng?: number;
+  /** The pinned venue's address; see AppState.locationAddress. */
+  locationAddress?: string;
   gameTime?: string;
   demandFactor: number;
   gameEvents: GameEvent[];
@@ -85,6 +87,7 @@ export const initialGameSessionStatePlaceholder: GameSessionState = {
   fieldNumber: '',
   locationLat: undefined,
   locationLng: undefined,
+  locationAddress: undefined,
   gameTime: '',
   demandFactor: 1,
   gameEvents: [],
@@ -138,7 +141,7 @@ export type GameSessionAction =
   | { type: 'SET_SHOW_POSITION_LABELS'; payload: boolean }
   | { type: 'SET_GAME_LOCATION'; payload: string }
   | { type: 'SET_FIELD_NUMBER'; payload: string }
-  | { type: 'SET_LOCATION_COORDS'; payload: { lat?: number; lng?: number } }
+  | { type: 'SET_LOCATION_COORDS'; payload: { lat?: number; lng?: number; address?: string } }
   | { type: 'SET_GAME_TIME'; payload: string }
   | { type: 'SET_AGE_GROUP'; payload: string }
   | { type: 'SET_TOURNAMENT_LEVEL'; payload: string }
@@ -335,7 +338,14 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     case 'SET_FIELD_NUMBER':
       return { ...state, fieldNumber: action.payload };
     case 'SET_LOCATION_COORDS':
-      return { ...state, locationLat: action.payload.lat, locationLng: action.payload.lng };
+      // The address rides with the coordinates because it describes the SAME
+      // pin - splitting them is how a position and its label drift apart.
+      return {
+        ...state,
+        locationLat: action.payload.lat,
+        locationLng: action.payload.lng,
+        locationAddress: action.payload.address,
+      };
     case 'SET_GAME_TIME':
       return { ...state, gameTime: action.payload };
     case 'SET_AGE_GROUP':
@@ -537,6 +547,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const fieldNumber = loadedData.fieldNumber ?? '';
       const locationLat = loadedData.locationLat;
       const locationLng = loadedData.locationLng;
+      const locationAddress = loadedData.locationAddress;
       const gameTime = loadedData.gameTime ?? '';
       const demandFactor = loadedData.demandFactor ?? 1;
       const gameEvents = loadedData.gameEvents ?? [];
@@ -604,6 +615,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         fieldNumber,
         locationLat,
         locationLng,
+        locationAddress,
         gameTime,
         demandFactor,
         gameEvents,
