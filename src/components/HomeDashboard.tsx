@@ -247,8 +247,6 @@ function RecentCard({ game, onOpen, accented }: { game: HomeRecentGame; onOpen?:
       <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
       <div className={`text-sm font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
       <div className="text-xs text-slate-400 tabular-nums">{game.date?.slice(5).replace('-', '.')}</div>
-      {/* A rule as well as a hue: the accent must not rest on colour alone. */}
-      {accented && <div className="mt-1 h-0.5 rounded bg-amber-500" aria-hidden="true" />}
     </button>
   );
 }
