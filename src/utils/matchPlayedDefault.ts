@@ -31,3 +31,32 @@ export function defaultIsPlayed(gameDate: string, today: string): boolean {
 }
 
 export default defaultIsPlayed;
+
+/**
+ * Evidence that a match actually took place, read off the match itself.
+ *
+ * WHY THIS EXISTS RATHER THAN A CHECKBOX. "Played" started as a flag defaulting
+ * to true, which quietly turned every fixture booked in advance into a 0-0 draw.
+ * Defaulting it to false fixes that and creates the opposite hazard: a coach
+ * plays the match, records the goals, and the result never reaches the season
+ * record because nobody remembered to tick a box. The owner named the problem
+ * exactly - "this would lead in forgetting, and that was the reason it was
+ * played as default".
+ *
+ * A flag a person has to maintain will be wrong. So nobody is asked: a match
+ * whose clock has run, or that has anything recorded against it, has been
+ * played, and the app can see that without being told. The two signals together
+ * cover both ways a coach uses the app - running the match live, and writing up
+ * one that has already finished.
+ *
+ * ONE-WAY ONLY. This promotes to played and never demotes: a match that has
+ * been played does not become unplayed, and the explicit toggle is still there
+ * for a fixture nothing was ever recorded against.
+ */
+export function hasBeenPlayed(match: {
+  timeElapsedInSeconds?: number;
+  gameEvents?: readonly unknown[];
+}): boolean {
+  if ((match.timeElapsedInSeconds ?? 0) > 0) return true;
+  return (match.gameEvents?.length ?? 0) > 0;
+}
