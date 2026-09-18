@@ -3883,6 +3883,7 @@
     "addressPlaceholder": "e.g. Muurarinkatu 4, Savonlinna",
     "addressHint": "Pick one from the list to get exact directions.",
     "addressPinned": "Directions will go straight here.",
-    "addressNothing": "No match for that address."
+    "addressNothing": "No match for that address.",
+    "useTypedName": "Use \"{{name}}\" as a new place"
   }
 }

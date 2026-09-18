@@ -3883,6 +3883,7 @@
     "addressPlaceholder": "esim. Muurarinkatu 4, Savonlinna",
     "addressHint": "Valitse listasta, niin ajo-ohjeet osuvat tarkasti.",
     "addressPinned": "Ajo-ohjeet vievät suoraan tänne.",
-    "addressNothing": "Osoitteella ei löytynyt mitään."
+    "addressNothing": "Osoitteella ei löytynyt mitään.",
+    "useTypedName": "Käytä nimeä \"{{name}}\" uutena paikkana"
   }
 }
