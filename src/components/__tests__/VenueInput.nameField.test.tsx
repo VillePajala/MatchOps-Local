@@ -12,7 +12,16 @@ import { searchVenues } from '@/utils/venueSearch';
 import type { KnownVenue } from '@/utils/venueBook';
 
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (_k: string, d?: string) => d ?? _k }),
+  useTranslation: () => ({
+    // Interpolates, because the create row's label carries the typed name and a
+    // mock that ignored {{name}} would let a broken label pass.
+    t: (_k: string, d?: string, vars?: Record<string, string>) => {
+      const text = d ?? _k;
+      return vars
+        ? text.replace(/\{\{(\w+)\}\}/g, (_m, k: string) => vars[k] ?? _m)
+        : text;
+    },
+  }),
 }));
 jest.mock('@/utils/venueSearch', () => {
   const actual = jest.requireActual('@/utils/venueSearch');
@@ -155,5 +164,81 @@ describe('the name field', () => {
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ name: 'Mitta-Keittiöt Areena' }),
     );
+  });
+});
+
+/**
+ * @critical - the owner typed "Mitta-Keittiöt Areena", saw two similar venues
+ * they had used before, and read the list as the only permitted answers - as
+ * if they had to keep trying spellings until one matched. Walking away from a
+ * suggestion list is a valid action that no suggestion list announces, so this
+ * one announces it.
+ */
+describe('using a name that is not in the book yet', () => {
+  it('offers to keep what was typed', async () => {
+    const { name } = setup();
+
+    await userEvent.type(name, 'Uusi kenttä');
+
+    expect(screen.getByText(/Use "Uusi kenttä" as a new place/)).toBeInTheDocument();
+  });
+
+  /** Tapping an existing venue is how you confirm one you already have. */
+  it('does not offer it for a venue already in the book', async () => {
+    const { name } = setup();
+
+    await userEvent.type(name, 'Kimpisen kenttä');
+
+    expect(screen.queryByText(/as a new place/)).toBeNull();
+  });
+
+  it('offers it even when nothing matches at all', async () => {
+    const { name } = setup();
+
+    await userEvent.type(name, 'Zzzz');
+
+    expect(screen.getByText(/Use "Zzzz" as a new place/)).toBeInTheDocument();
+  });
+
+  it('says nothing while the field is empty', async () => {
+    const { name } = setup();
+
+    await userEvent.click(name);
+
+    expect(screen.queryByText(/as a new place/)).toBeNull();
+  });
+
+  /** Confirming keeps the name untouched - there was nothing to change. */
+  it('keeps the typed name and closes the list', async () => {
+    const { onChange, name } = setup();
+
+    await userEvent.type(name, 'Uusi kenttä');
+    onChange.mockClear();
+    await userEvent.click(screen.getByText(/Use "Uusi kenttä" as a new place/));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByText(/as a new place/)).toBeNull();
+    expect(screen.getByLabelText(/Venue name/)).toHaveValue('Uusi kenttä');
+  });
+
+  /** The address is the step they were heading for anyway. */
+  it('moves on to the street address', async () => {
+    const { name } = setup();
+
+    await userEvent.type(name, 'Uusi kenttä');
+    await userEvent.click(screen.getByText(/Use "Uusi kenttä" as a new place/));
+
+    expect(screen.getByLabelText(/Street address/)).toHaveFocus();
+  });
+
+  it('is reachable with the arrow keys, after the venues', async () => {
+    const { name } = setup();
+
+    await userEvent.type(name, 'Mitta');
+    // One own venue matches, so two rows: the venue, then the create row.
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}{Enter}');
+
+    expect(screen.getByLabelText(/Venue name/)).toHaveValue('Mitta');
+    expect(screen.getByLabelText(/Street address/)).toHaveFocus();
   });
 });

@@ -3241,6 +3241,7 @@ export type TranslationKey =
   | 'venueInput.namePlaceholder'
   | 'venueInput.pinned'
   | 'venueInput.searching'
+  | 'venueInput.useTypedName'
   | 'venueInput.yourVenues'
   | 'voiceNotesInfo.ai1'
   | 'voiceNotesInfo.ai2'
