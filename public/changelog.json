@@ -1,12 +1,14 @@
 {
-  "version": "1e2d5bc5",
-  "date": "2026-09-16",
+  "version": "9f2800c5",
+  "date": "2026-09-18",
   "notes": {
     "en": [
-      "Internal tidy-up with no visible change: the English wording written in the code now matches the English the app actually shows. Some of it had drifted so far that Finnish text was sitting where an English default belonged."
+      "You can now call a venue what you actually call it. Map data knows buildings by their real names, not their sponsors - so \"Mitta-Keittiöt Areena\" finds nothing, while its street address finds it straight away. Search the address, pick it, then type the name you use. The pinned location stays attached, and the address it came from is shown under the field so the two can never drift apart without you seeing it. There is an × on that line if you want the name without the pin.",
+      "The privacy policy now names the service behind the venue search. When you type a location for a match, that text is sent to Photon, a map search run by Komoot, which sends back matching places. It has always worked this way; it was simply missing from the list of services we name. Nothing about where you or your device are is sent to us or stored by us."
     ],
     "fi": [
-      "Sisäinen siivous ilman näkyvää muutosta: koodiin kirjoitettu englanninkielinen teksti vastaa nyt sitä englantia, jota sovellus oikeasti näyttää. Osa oli eriytynyt niin pahasti, että englanninkielisen oletuksen paikalla oli suomenkielistä tekstiä."
+      "Voit nyt kutsua paikkaa sillä nimellä jolla sitä oikeasti kutsut. Karttadata tuntee rakennukset niiden oikeilla nimillä eikä sponsorin mukaan - \"Mitta-Keittiöt Areena\" ei siis löydy, mutta sen katuosoite löytyy heti. Hae osoitteella, valitse se, ja kirjoita sitten käyttämäsi nimi. Kiinnitetty sijainti pysyy mukana, ja osoite josta se tuli näkyy kentän alla, joten ne eivät voi erkaantua toisistaan huomaamattasi. Rivin ×-painikkeella saat nimen ilman kiinnitystä.",
+      "Tietosuojakäytäntö kertoo nyt mikä palvelu on paikkahaun takana. Kun kirjoitat ottelulle sijaintia, teksti lähetetään Photonille, Komootin ylläpitämälle karttahaulle, joka palauttaa sopivat paikat. Näin se on aina toiminut - palvelu vain puuttui listalta jolla nimeämme käyttämämme palvelut. Mitään tietoa siitä missä sinä tai laitteesi olette ei lähetetä meille eikä tallenneta meille."
     ]
   }
 }

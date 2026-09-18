@@ -3877,6 +3877,8 @@
     "pinned": "Pinned to a map location",
     "searching": "Searching for places",
     "noMatches": "No places found. Try the venue's plain name, or just type it - the location is saved either way.",
-    "removePin": "Remove the pinned location"
+    "removePin": "Remove the pinned location",
+    "yourVenues": "Your venues",
+    "fromMap": "From the map"
   }
 }
