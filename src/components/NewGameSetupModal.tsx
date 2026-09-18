@@ -10,6 +10,7 @@ import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/t
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import { getPlans } from '@/utils/playtimePlanner/storage';
+import { buildVenueBook } from '@/utils/venueBook';
 import { todayIso } from '@/utils/todayIso';
 import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
@@ -339,6 +340,16 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       (b.createdAt ?? b.updatedAt ?? '').localeCompare(a.createdAt ?? a.updatedAt ?? '')
     )[0] ?? null;
   }, [savedGames]);
+
+  /**
+   * The venues this coach has actually played at, offered ahead of any map
+   * result. Derived from the same saved games already in hand, so it costs one
+   * pass over a list the modal has anyway.
+   */
+  const knownVenues = useMemo(
+    () => buildVenueBook(savedGames ? Object.values(savedGames) : []),
+    [savedGames],
+  );
 
   const handleRepeatLastGame = useCallback(() => {
     if (!lastGame) return;
@@ -1677,6 +1688,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           latitude={locationLat}
                           longitude={locationLng}
                           address={locationAddress}
+                          knownVenues={knownVenues}
                           onChange={handleVenueChange}
                           onKeyDown={handleKeyDown}
                           placeholder={t('newGameSetupModal.locationPlaceholder', 'e.g., Central Park')}

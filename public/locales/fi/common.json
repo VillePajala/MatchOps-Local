@@ -3877,6 +3877,8 @@
     "pinned": "Kiinnitetty karttasijaintiin",
     "searching": "Haetaan paikkoja",
     "noMatches": "Paikkoja ei löytynyt. Kokeile paikan tavallista nimeä tai kirjoita se itse - sijainti tallentuu kumminkin.",
-    "removePin": "Poista kiinnitetty sijainti"
+    "removePin": "Poista kiinnitetty sijainti",
+    "yourVenues": "Omat paikkasi",
+    "fromMap": "Kartalta"
   }
 }

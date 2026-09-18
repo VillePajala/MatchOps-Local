@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineMapPin } from 'react-icons/hi2';
 import { searchVenues, venueLabel, venuePinLabel, type VenueSuggestion } from '@/utils/venueSearch';
+import { matchVenues, isKnownVenue, type KnownVenue } from '@/utils/venueBook';
 
 /**
  * The match location field: an ordinary text box that offers real venues.
@@ -33,6 +34,15 @@ import { searchVenues, venueLabel, venuePinLabel, type VenueSuggestion } from '@
  * the old rule was actually protecting. Emptying the field drops the pin, and
  * the address line carries an explicit way to remove it.
  *
+ * YOUR OWN VENUES COME FIRST, and they are the reason the search rarely has to
+ * work at all. A pitch played eight times a season should be recognised, not
+ * re-searched: the book is matched locally against what the coach has typed,
+ * with no debounce and no network, so their own places appear instantly and
+ * offline - and a venue the map can never find (a sponsor name) is findable
+ * from the moment it has been used once. Focusing an empty field offers the
+ * recent ones outright, because a coach who has to type before being
+ * recognised is still doing the typing.
+ *
  * IT DEGRADES TO A PLAIN TEXT BOX, always. Offline at a pitch, a throttled
  * endpoint, or a coach who simply ignores the list all end in the same place:
  * the typed name is the location, exactly as before this existed.
@@ -54,6 +64,8 @@ export interface VenueInputProps {
   hasCoordinates?: boolean;
   /** The pinned venue's address, shown when it differs from the typed name. */
   address?: string;
+  /** Venues this coach has used before, offered ahead of any map result. */
+  knownVenues?: readonly KnownVenue[];
   latitude?: number;
   longitude?: number;
   placeholder?: string;
@@ -75,6 +87,7 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   address,
   latitude,
   longitude,
+  knownVenues,
   placeholder,
   className,
   onKeyDown,
@@ -98,7 +111,39 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   // Derived, not stored: the list is only ever shown for the value on screen
   // right now, so suggestions left over from a longer query cannot reappear
   // when the coach deletes back to two letters.
-  const showSuggestions = isOpen && suggestions.length > 0 && value.trim().length >= MIN_QUERY;
+  /**
+   * The coach's own venues for what is typed so far. Local, so there is no
+   * debounce and no minimum length: these appear on the first character, and
+   * on focus before there is one.
+   */
+  const ownVenues = useMemo(
+    () => matchVenues(knownVenues ?? [], value),
+    [knownVenues, value],
+  );
+
+  /**
+   * Map results, minus anything the book already offers. Without this the same
+   * pitch appears twice - once under the coach's name for it and once under
+   * the map's - and the two rows disagree about what the place is called.
+   */
+  const mapSuggestions = useMemo(
+    () => suggestions.filter((s) => !isKnownVenue(knownVenues ?? [], venueLabel(s))),
+    [suggestions, knownVenues],
+  );
+
+  const showMapSuggestions =
+    isOpen && mapSuggestions.length > 0 && value.trim().length >= MIN_QUERY;
+  const showOwnVenues = isOpen && ownVenues.length > 0;
+  const showSuggestions = showOwnVenues || showMapSuggestions;
+
+  /** Arrow keys and Enter run over both groups as one list, own venues first. */
+  const navigable: Array<{ own: KnownVenue } | { map: VenueSuggestion }> = useMemo(
+    () => [
+      ...ownVenues.map((own) => ({ own })),
+      ...(showMapSuggestions ? mapSuggestions.map((map) => ({ map })) : []),
+    ],
+    [ownVenues, mapSuggestions, showMapSuggestions],
+  );
 
   /**
    * "Nothing found", shown only for the text actually searched.
@@ -117,6 +162,9 @@ export const VenueInput: React.FC<VenueInputProps> = ({
     Boolean(address) && Boolean(hasCoordinates) && address !== value.trim();
 
   const foundNothing =
+    // Never while the coach's own venues are on screen - the field has plainly
+    // found something, and the advice to try a plainer name is nonsense there.
+    ownVenues.length === 0 &&
     !isSearching &&
     searchedFor !== null &&
     searchedFor === value.trim() &&
@@ -143,7 +191,11 @@ export const VenueInput: React.FC<VenueInputProps> = ({
         if (controller.signal.aborted) return;
         setSuggestions(results);
         setActiveIndex(-1);
-        setIsOpen(results.length > 0);
+        // Deliberately NOT touching isOpen. The search used to open the list on
+        // results and close it on none, which meant an empty map lookup shut
+        // the list on the coach's OWN venues sitting in it - the one group that
+        // had matched. Typing and focus open it now; picking, Escape and a tap
+        // outside close it. Whether anything is worth showing is derived.
         setSearchedFor(query);
       } finally {
         // Not in the aborted branch alone: a superseded request must also stop
@@ -190,21 +242,55 @@ export const VenueInput: React.FC<VenueInputProps> = ({
     [onChange],
   );
 
+  /**
+   * Picking a venue the coach has used before: their name, their pin, no
+   * search. This is the path that should carry almost every match after the
+   * first one at a given pitch.
+   */
+  const pickKnown = useCallback(
+    (venue: KnownVenue) => {
+      justPickedRef.current = true;
+      setIsSearching(false);
+      setSearchedFor(null);
+      setIsOpen(false);
+      setSuggestions([]);
+      setActiveIndex(-1);
+      onChange({
+        name: venue.name,
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+        address: venue.address,
+      });
+    },
+    [onChange],
+  );
+
+  /** Whichever row the arrow keys are on, in the combined list. */
+  const pickAt = useCallback(
+    (index: number) => {
+      const row = navigable[index];
+      if (!row) return;
+      if ('own' in row) pickKnown(row.own);
+      else pick(row.map);
+    },
+    [pickKnown, pick, navigable],
+  );
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (showSuggestions) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActiveIndex((i) => (i + 1) % suggestions.length);
+        setActiveIndex((i) => (i + 1) % navigable.length);
         return;
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+        setActiveIndex((i) => (i <= 0 ? navigable.length - 1 : i - 1));
         return;
       }
       if (e.key === 'Enter' && activeIndex >= 0) {
         e.preventDefault();
-        pick(suggestions[activeIndex]);
+        pickAt(activeIndex);
         return;
       }
       if (e.key === 'Escape') {
@@ -230,7 +316,15 @@ export const VenueInput: React.FC<VenueInputProps> = ({
           // of the exact gesture this feature exists to allow. Removal is the
           // × on the address line instead: explicit, and visible the whole
           // time, which is the same thing that stops a renamed pin going stale.
-          onChange={(e) => onChange({ name: e.target.value, latitude, longitude, address })}
+          onChange={(e) => {
+            setIsOpen(true);
+            onChange({ name: e.target.value, latitude, longitude, address });
+          }}
+          // Focusing an empty field offers the venues already played at. A
+          // coach who must type before being recognised is still doing the
+          // typing, and after the first match at a pitch there is nothing left
+          // to type.
+          onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={className}
@@ -303,27 +397,75 @@ export const VenueInput: React.FC<VenueInputProps> = ({
           role="listbox"
           className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-slate-600 bg-slate-800 shadow-lg"
         >
-          {suggestions.map((s, i) => (
-            <li key={s.key} role="option" aria-selected={i === activeIndex}>
+          {/* The coach's own venues, first and visibly theirs. A pin icon
+              marks the ones that carry a position, since that is what makes
+              the car button work without ever searching again. */}
+          {showOwnVenues ? (
+            <li role="presentation" className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              {t('venueInput.yourVenues', 'Your venues')}
+            </li>
+          ) : null}
+          {ownVenues.map((venue, i) => (
+            <li key={`own-${venue.name}`} role="option" aria-selected={i === activeIndex}>
               <button
                 type="button"
-                // onMouseDown, not onClick: the input's blur would otherwise
-                // close the list before the click could land on it.
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  pick(s);
+                  pickKnown(venue);
                 }}
-                className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
                   i === activeIndex ? 'bg-slate-700 text-white' : 'text-slate-200 hover:bg-slate-700/70'
                 }`}
               >
-                <span className="block truncate font-medium">{s.name}</span>
-                {s.context ? (
-                  <span className="block truncate text-xs text-slate-400">{s.context}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{venue.name}</span>
+                  {venue.address && venue.address !== venue.name ? (
+                    <span className="block truncate text-xs text-slate-400">{venue.address}</span>
+                  ) : null}
+                </span>
+                {venue.latitude !== undefined ? (
+                  <HiOutlineMapPin
+                    className="h-4 w-4 shrink-0 text-indigo-300"
+                    aria-label={t('venueInput.pinned', 'Pinned to a map location')}
+                  />
                 ) : null}
               </button>
             </li>
           ))}
+
+          {/* Places the coach has not been yet. Anything already in the book
+              is filtered out upstream so one pitch never appears twice. */}
+          {showMapSuggestions && showOwnVenues ? (
+            <li role="presentation" className="border-t border-slate-700 px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              {t('venueInput.fromMap', 'From the map')}
+            </li>
+          ) : null}
+          {showMapSuggestions
+            ? mapSuggestions.map((s, i) => {
+                const index = ownVenues.length + i;
+                return (
+                  <li key={s.key} role="option" aria-selected={index === activeIndex}>
+                    <button
+                      type="button"
+                      // onMouseDown, not onClick: the input's blur would otherwise
+                      // close the list before the click could land on it.
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        pick(s);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                        index === activeIndex ? 'bg-slate-700 text-white' : 'text-slate-200 hover:bg-slate-700/70'
+                      }`}
+                    >
+                      <span className="block truncate font-medium">{s.name}</span>
+                      {s.context ? (
+                        <span className="block truncate text-xs text-slate-400">{s.context}</span>
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })
+            : null}
         </ul>
       ) : null}
     </div>

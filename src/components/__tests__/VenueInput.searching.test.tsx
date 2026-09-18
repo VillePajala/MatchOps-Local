@@ -64,13 +64,42 @@ describe('search feedback', () => {
 
   it('stops spinning when results arrive', async () => {
     mockSearch.mockResolvedValue([
-      { key: 'k', name: 'Kimpisen kenttä', context: 'Lappeenranta', latitude: 61, longitude: 28 },
+      { key: 'k', name: 'Kimpisen kenttä', context: 'Lappeenranta', town: null, address: null, latitude: 61, longitude: 28 },
     ]);
 
     renderInput('Kimpisen');
     await act(async () => { jest.advanceTimersByTime(400); });
 
     expect(spinner()).toBeNull();
+  });
+
+  /**
+   * Arriving results no longer open the list on their own. A field can be
+   * filled without the coach touching it - a competition prefills its own
+   * location - and popping a dropdown over a form nobody is typing in is
+   * wrong. Focus and typing open it; picking, Escape and a tap outside close
+   * it.
+   */
+  it('does not open the list over a field the coach has not touched', async () => {
+    mockSearch.mockResolvedValue([
+      { key: 'k', name: 'Kimpisen kenttä', context: 'Lappeenranta', town: null, address: null, latitude: 61, longitude: 28 },
+    ]);
+
+    renderInput('Kimpisen');
+    await act(async () => { jest.advanceTimersByTime(400); });
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('opens the list once the field is focused', async () => {
+    mockSearch.mockResolvedValue([
+      { key: 'k', name: 'Kimpisen kenttä', context: 'Lappeenranta', town: null, address: null, latitude: 61, longitude: 28 },
+    ]);
+
+    renderInput('Kimpisen');
+    await act(async () => { jest.advanceTimersByTime(400); });
+    await act(async () => { screen.getByRole('combobox').focus(); });
+
     expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
