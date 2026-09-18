@@ -214,6 +214,7 @@ export type Database = {
           away_score: number
           captain_id: string | null
           field_number: string | null
+          location_address: string | null
           location_lat: number | null
           location_lng: number | null
           created_at: string | null
@@ -262,6 +263,7 @@ export type Database = {
           away_score?: number
           captain_id?: string | null
           field_number?: string | null
+          location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
           created_at?: string | null
@@ -310,6 +312,7 @@ export type Database = {
           away_score?: number
           captain_id?: string | null
           field_number?: string | null
+          location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
           created_at?: string | null

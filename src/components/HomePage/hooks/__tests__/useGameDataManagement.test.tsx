@@ -116,6 +116,7 @@ describe('useGameDataManagement', () => {
       savedGames: null,
       currentGameId: null,
       loading: false,
+      isSettling: false,
       error: null,
     });
 
@@ -214,6 +215,7 @@ describe('useGameDataManagement', () => {
         savedGames,
         currentGameId: 'game-1',
         loading: false,
+      isSettling: false,
         error: null,
       });
 
@@ -237,6 +239,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: true,
+      isSettling: false,
         error: null,
       });
 
@@ -257,6 +260,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: false,
+      isSettling: false,
         error: testError,
       });
 
@@ -282,6 +286,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: false,
+      isSettling: false,
         error: null,
       });
 
@@ -307,6 +312,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: false,
+      isSettling: false,
         error: null,
       });
 
@@ -350,6 +356,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: false,
+      isSettling: false,
         error: new Error('Roster load failed'),
       });
 
@@ -377,6 +384,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: false,
+      isSettling: false,
         error: null,
       });
 
@@ -398,6 +406,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: false,
+      isSettling: false,
         error: new Error('Seasons load failed'),
       });
 
@@ -425,6 +434,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: false,
+      isSettling: false,
         error: null,
       });
 
@@ -446,6 +456,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: false,
+      isSettling: false,
         error: new Error('Tournaments load failed'),
       });
 
@@ -546,6 +557,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: true,
+      isSettling: false,
         error: null,
       });
 
@@ -571,6 +583,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: false,
+      isSettling: false,
         error: null,
       });
 
@@ -596,6 +609,7 @@ describe('useGameDataManagement', () => {
         savedGames: null,
         currentGameId: null,
         loading: false,
+      isSettling: false,
         error: null,
       });
 
@@ -625,7 +639,8 @@ describe('useGameDataManagement', () => {
         tournaments: [],
         savedGames: null,
         currentGameId: null,
-        loading: true, // Still loading
+        loading: true,
+      isSettling: false, // Still loading
         error: null,
       });
 
@@ -649,7 +664,8 @@ describe('useGameDataManagement', () => {
         tournaments: [],
         savedGames: null,
         currentGameId: null,
-        loading: true, // Still loading
+        loading: true,
+      isSettling: false, // Still loading
         error: null,
       });
 
@@ -672,7 +688,8 @@ describe('useGameDataManagement', () => {
         tournaments: [createTournament()],
         savedGames: null,
         currentGameId: null,
-        loading: true, // Still loading
+        loading: true,
+      isSettling: false, // Still loading
         error: null,
       });
 

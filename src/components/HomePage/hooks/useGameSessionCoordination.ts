@@ -369,7 +369,7 @@ export function useGameSessionCoordination({
     dispatchGameSession({ type: 'SET_FIELD_NUMBER', payload: value });
   }, [dispatchGameSession]);
 
-  const handleLocationCoordsChange = useCallback((coords: { lat?: number; lng?: number }) => {
+  const handleLocationCoordsChange = useCallback((coords: { lat?: number; lng?: number; address?: string }) => {
     dispatchGameSession({ type: 'SET_LOCATION_COORDS', payload: coords });
   }, [dispatchGameSession]);
 

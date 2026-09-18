@@ -10,7 +10,6 @@ import type { Player } from '@/types';
 import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 import { FieldContainer } from './FieldContainer';
 import type { FieldContainerProps } from './FieldContainer';
-import { useTeamsQuery } from '@/hooks/useTeamQueries';
 
 const barStyle = 'flex-shrink-0 bg-slate-800 border-b border-white/10';
 type ControlBarProps = React.ComponentProps<typeof ControlBar>;
@@ -47,17 +46,6 @@ export function GameContainer({
   const { t } = useTranslation();
   const assessmentsEnabled = useAssessmentsEnabled();
 
-  // The current team's kit colour, when they have one. Resolved here rather
-  // than plumbed through the view model: this container already receives the
-  // session state on fieldProps, and a colour nobody has set is the common
-  // case - not worth a new prop on every layer above.
-  const { data: teams } = useTeamsQuery();
-  // gameSessionState is genuinely absent before a game loads - the shell
-  // renders without it, which is what GameContainer's own test asserts.
-  const currentTeamId = fieldProps.gameSessionState?.teamId;
-  const currentTeamColor = currentTeamId
-    ? teams?.find((tm) => tm.id === currentTeamId)?.color
-    : undefined;
 
   return (
     <main className="flex flex-col h-full min-h-[100svh] bg-slate-900 text-slate-50" data-testid="home-page">
@@ -81,7 +69,6 @@ export function GameContainer({
         </ErrorBoundary>
         <GameInfoBar
           teamName={gameInfo.teamName}
-          teamColor={currentTeamColor}
           opponentName={gameInfo.opponentName}
           homeScore={gameInfo.homeScore}
           awayScore={gameInfo.awayScore}

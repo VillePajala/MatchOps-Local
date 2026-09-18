@@ -1,139 +1,103 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineMapPin } from 'react-icons/hi2';
-import { searchVenues, venueLabel, type VenueSuggestion } from '@/utils/venueSearch';
+import { venuePinLabel, type VenueSuggestion } from '@/utils/venueSearch';
+import { matchVenues, type KnownVenue } from '@/utils/venueBook';
+import { useVenueSuggestions, VENUE_MIN_QUERY } from '@/hooks/useVenueSuggestions';
 
 /**
- * The match location field: an ordinary text box that offers real venues.
+ * The match location: two labelled fields, because it is two facts.
  *
- * THE COORDINATES ARE THE POINT, not the dropdown. Picking a suggestion attaches
- * a position to the match, which turns the map link from a search into an exact
- * place and gives the venue an identity that does not depend on spelling. The
- * list is only how that gets captured.
+ * WHAT WENT WRONG BEFORE. A venue has two names - the one the coach and the
+ * parents say ("Mitta-Keittiöt Areena") and the one the map knows
+ * ("Muurarinkatu 4") - and OpenStreetMap carries the second and almost never
+ * the first. Two earlier attempts tried to fit both into one box: first by
+ * having the coach type over a picked result to rename it, then by hiding the
+ * second job behind a button. The owner's test killed both. Typing over a
+ * result reads as firing another search, because in a search box it IS one.
+ * And a control behind a button has to be guessed at - the owner typed the
+ * street address into the box, pressed the button expecting to name the place,
+ * and was asked for a street address.
  *
- * PICKING ADOPTS THE OFFICIAL NAME, and that is a data-quality decision rather
- * than a cosmetic one. Left as free text, one pitch accumulates "Kimpinen",
- * "Kimpisen kentta" and "kimpisen" across a season and stops grouping - the
- * same failure the opponent-name work had to clean up, and the app already
- * answers it the same way there by adopting the spelling in use.
+ * THE FIX IS TO STOP HIDING EITHER ONE. Two fields, both always visible, each
+ * labelled for exactly what it holds - and, crucially, each searching the
+ * thing its own label names:
  *
- * TYPING AFTER PICKING CLEARS THE COORDINATES. A pin that no longer matches the
- * words beside it is worse than no pin, because nothing on screen reveals the
- * disagreement. Re-picking re-attaches one.
+ *   Paikan nimi   - what you call it. Completes from YOUR OWN venues.
+ *   Katuosoite    - where it is. Searches the map.
  *
- * IT DEGRADES TO A PLAIN TEXT BOX, always. Offline at a pitch, a throttled
- * endpoint, or a coach who simply ignores the list all end in the same place:
- * the typed name is the location, exactly as before this existed.
+ * Nothing overlaps, so there is nothing to work out. The name box never
+ * queries the map, so it can never surprise the coach with places they did not
+ * ask for; the address box never rewrites the name.
+ *
+ * ONE TAP STILL DOES BOTH, in both directions. Picking one of your own venues
+ * by name fills the address and its pin too. Picking from the address search
+ * fills the name as well, but ONLY when the name is still empty - a coach who
+ * has already written "Mitta-Keittiöt Areena" must never have it replaced by
+ * an address.
+ *
+ * THE PIN COMES FROM PICKING, and only from picking. Typing in the address box
+ * is searching, so editing it after a pick drops the coordinates - the same
+ * rule as any search box, and safe here precisely because this box is never
+ * used for naming.
+ *
+ * IT DEGRADES TO PLAIN TEXT BOXES, always. Offline, throttled or simply
+ * ignored, both fields keep whatever was typed.
  *
  * @module VenueInput
  * @category Components
  */
 export interface VenueInputProps {
   id: string;
+  /** What the coach calls this place. The stored, displayed location. */
   value: string;
-  /** Emits the venue name plus coordinates when one was picked. */
-  onChange: (venue: { name: string; latitude?: number; longitude?: number }) => void;
-  /** True when the current value came from a pick, so the pin can be shown. */
+  onChange: (venue: {
+    name: string;
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+  }) => void;
   hasCoordinates?: boolean;
-  placeholder?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  knownVenues?: readonly KnownVenue[];
   className?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
-
-/** Long enough that the coach has stopped typing, short enough to feel live. */
-const DEBOUNCE_MS = 300;
-
-/** Below this, a query matches half of Finland and costs a request to say so. */
-const MIN_QUERY = 3;
 
 export const VenueInput: React.FC<VenueInputProps> = ({
   id,
   value,
   onChange,
   hasCoordinates,
-  placeholder,
+  address,
+  latitude,
+  longitude,
+  knownVenues,
   className,
   onKeyDown,
 }) => {
   const { t } = useTranslation();
-  const [suggestions, setSuggestions] = useState<VenueSuggestion[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  // Photon is a free public service and can take a second or more to answer.
-  // Without a sign that anything is happening, the field looks broken and the
-  // coach keeps typing - which cancels the request they were waiting for.
-  const [isSearching, setIsSearching] = useState(false);
-  // The query the last completed search was FOR, so "nothing found" can be
-  // shown for that exact text and not linger over the next keystroke.
-  const [searchedFor, setSearchedFor] = useState<string | null>(null);
-  // Set while a pick is being applied, so the resulting value change does not
-  // immediately fire another search for the name we just inserted.
-  const justPickedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Derived, not stored: the list is only ever shown for the value on screen
-  // right now, so suggestions left over from a longer query cannot reappear
-  // when the coach deletes back to two letters.
-  const showSuggestions = isOpen && suggestions.length > 0 && value.trim().length >= MIN_QUERY;
+  const [nameOpen, setNameOpen] = useState(false);
+  const [nameActive, setNameActive] = useState(-1);
 
-  /**
-   * "Nothing found", shown only for the text actually searched.
-   *
-   * A SILENT EMPTY RESULT READS AS A BROKEN FIELD. OpenStreetMap knows venues
-   * by their real names, not their sponsors: "Mitta-Keittiöt Areena" returns
-   * nothing while "jäähalli Savonlinna" finds the same building. Without a
-   * word on screen the coach cannot tell that apart from a failed lookup, and
-   * the useful advice - try the plain name, or just type it - never arrives.
-   */
-  const foundNothing =
-    !isSearching &&
-    searchedFor !== null &&
-    searchedFor === value.trim() &&
-    suggestions.length === 0 &&
-    value.trim().length >= MIN_QUERY;
-
-  useEffect(() => {
-    if (justPickedRef.current) {
-      justPickedRef.current = false;
-      return;
-    }
-    const query = value.trim();
-    // Nothing to clear here on purpose: `showSuggestions` below derives
-    // visibility from the current value, so a too-short query hides the list
-    // without a synchronous setState in an effect body (which cascades renders,
-    // and which react-hooks/set-state-in-effect rightly refuses).
-    if (query.length < MIN_QUERY) return;
-
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const results = await searchVenues(query, controller.signal);
-        if (controller.signal.aborted) return;
-        setSuggestions(results);
-        setActiveIndex(-1);
-        setIsOpen(results.length > 0);
-        setSearchedFor(query);
-      } finally {
-        // Not in the aborted branch alone: a superseded request must also stop
-        // the spinner, or it spins forever on the last keystroke of a word.
-        if (!controller.signal.aborted) setIsSearching(false);
-      }
-    }, DEBOUNCE_MS);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [value]);
+  /** Your own venues, matched locally - no debounce, no network, works offline. */
+  const ownVenues = useMemo(
+    () => matchVenues(knownVenues ?? [], value),
+    [knownVenues, value],
+  );
+  const showOwnVenues = nameOpen && ownVenues.length > 0;
 
   // A tap outside is a dismissal, not a choice.
   useEffect(() => {
-    if (!showSuggestions) return;
+    if (!showOwnVenues) return;
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setIsOpen(false);
+      if (!containerRef.current?.contains(e.target as Node)) setNameOpen(false);
     };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('touchstart', onPointerDown);
@@ -141,129 +105,263 @@ export const VenueInput: React.FC<VenueInputProps> = ({
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('touchstart', onPointerDown);
     };
-  }, [showSuggestions]);
+  }, [showOwnVenues]);
 
-  const pick = useCallback(
-    (suggestion: VenueSuggestion) => {
-      justPickedRef.current = true;
-      setIsSearching(false);
-      setSearchedFor(null);
-      setIsOpen(false);
-      setSuggestions([]);
-      setActiveIndex(-1);
+  /** A venue used before: its name, its address and its pin, in one tap. */
+  const pickKnown = useCallback(
+    (venue: KnownVenue) => {
+      setNameOpen(false);
+      setNameActive(-1);
       onChange({
-        name: venueLabel(suggestion),
-        latitude: suggestion.latitude,
-        longitude: suggestion.longitude,
+        name: venue.name,
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+        address: venue.address,
       });
     },
     [onChange],
   );
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (showSuggestions) {
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (showOwnVenues) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActiveIndex((i) => (i + 1) % suggestions.length);
+        setNameActive((i) => (i + 1) % ownVenues.length);
         return;
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+        setNameActive((i) => (i <= 0 ? ownVenues.length - 1 : i - 1));
         return;
       }
-      if (e.key === 'Enter' && activeIndex >= 0) {
+      if (e.key === 'Enter' && nameActive >= 0) {
         e.preventDefault();
-        pick(suggestions[activeIndex]);
+        pickKnown(ownVenues[nameActive]);
         return;
       }
       if (e.key === 'Escape') {
         e.preventDefault();
-        setIsOpen(false);
+        setNameOpen(false);
         return;
       }
     }
     onKeyDown?.(e);
   };
 
+  /** From the address search: the position, and the name only if none yet. */
+  const pickAddress = useCallback(
+    (suggestion: VenueSuggestion) => {
+      const pin = venuePinLabel(suggestion);
+      onChange({
+        // A coach who has already named the place must never have it replaced
+        // by an address; one who has not gets the venue's own name for free.
+        name: value.trim() || suggestion.name,
+        latitude: suggestion.latitude,
+        longitude: suggestion.longitude,
+        address: pin,
+      });
+    },
+    [onChange, value],
+  );
+
+  /** Editing the address is searching again, so the old pin no longer applies. */
+  const typeAddress = useCallback(
+    (text: string) => onChange({ name: value, address: text || undefined }),
+    [onChange, value],
+  );
+
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="space-y-3">
+      <div className="relative">
+        <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-300">
+          {t('venueInput.nameLabel', 'Venue name (optional)')}
+        </label>
+        <input
+          type="text"
+          id={id}
+          value={value}
+          onChange={(e) => {
+            setNameOpen(true);
+            // The name is only ever a name. It never moves the pin, and the
+            // pin never rewrites it.
+            onChange({ name: e.target.value, latitude, longitude, address });
+          }}
+          onFocus={() => setNameOpen(true)}
+          onKeyDown={handleNameKeyDown}
+          placeholder={t('venueInput.namePlaceholder', 'What you call the place')}
+          className={className}
+          role="combobox"
+          aria-expanded={showOwnVenues}
+          aria-autocomplete="list"
+          aria-controls={`${id}-own`}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck="false"
+        />
+
+        {showOwnVenues ? (
+          <ul
+            id={`${id}-own`}
+            role="listbox"
+            className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-slate-600 bg-slate-800 shadow-lg"
+          >
+            <li role="presentation" className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              {t('venueInput.yourVenues', 'Your venues')}
+            </li>
+            {ownVenues.map((venue, i) => (
+              <li key={`own-${venue.name}`} role="option" aria-selected={i === nameActive}>
+                <button
+                  type="button"
+                  // onMouseDown, not onClick: the input's blur would close the
+                  // list before a click could land on it.
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    pickKnown(venue);
+                  }}
+                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                    i === nameActive ? 'bg-slate-700 text-white' : 'text-slate-200 hover:bg-slate-700/70'
+                  }`}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{venue.name}</span>
+                    {venue.address ? (
+                      <span className="block truncate text-xs text-slate-400">{venue.address}</span>
+                    ) : null}
+                  </span>
+                  {venue.latitude !== undefined ? (
+                    <HiOutlineMapPin
+                      className="h-4 w-4 shrink-0 text-indigo-300"
+                      aria-label={t('venueInput.pinned', 'Pinned to a map location')}
+                    />
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+
+      <AddressField
+        id={`${id}-address`}
+        value={address ?? ''}
+        hasCoordinates={Boolean(hasCoordinates)}
+        className={className}
+        onType={typeAddress}
+        onPick={pickAddress}
+      />
+    </div>
+  );
+};
+
+/**
+ * The second field: where the place is, and nothing else.
+ *
+ * It searches the map, which is what "street address" means, and it is the
+ * ONLY thing here that does. Its results carry coordinates, and those are what
+ * make the directions button exact instead of a text search a map has to guess
+ * at - so picking, rather than typing, is what counts.
+ */
+const AddressField: React.FC<{
+  id: string;
+  value: string;
+  hasCoordinates: boolean;
+  className?: string;
+  onType: (text: string) => void;
+  onPick: (suggestion: VenueSuggestion) => void;
+}> = ({ id, value, hasCoordinates, className, onType, onPick }) => {
+  const { t } = useTranslation();
+  const [isOpen, setIsOpen] = useState(false);
+  const { suggestions, isSearching, searchedFor } = useVenueSuggestions(
+    value,
+    hasCoordinates ? value.trim() : null,
+  );
+
+  const results =
+    isOpen && !hasCoordinates && value.trim().length >= VENUE_MIN_QUERY ? suggestions : [];
+
+  const nothingFound =
+    isOpen &&
+    !hasCoordinates &&
+    !isSearching &&
+    searchedFor === value.trim() &&
+    suggestions.length === 0 &&
+    value.trim().length >= VENUE_MIN_QUERY;
+
+  return (
+    <div className="relative">
+      <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-300">
+        {t('venueInput.addressLabel', 'Street address (optional)')}
+      </label>
       <div className="relative">
         <input
           type="text"
           id={id}
           value={value}
-          onChange={(e) => onChange({ name: e.target.value })}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          onChange={(e) => {
+            setIsOpen(true);
+            onType(e.target.value);
+          }}
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => window.setTimeout(() => setIsOpen(false), 150)}
+          placeholder={t('venueInput.addressPlaceholder', 'e.g. Muurarinkatu 4, Savonlinna')}
           className={className}
           role="combobox"
-          aria-expanded={showSuggestions}
+          aria-expanded={results.length > 0}
           aria-autocomplete="list"
-          aria-controls={`${id}-suggestions`}
+          aria-controls={`${id}-results`}
           autoComplete="off"
           autoCorrect="off"
           spellCheck="false"
         />
-        {/* The pin is the only signal that this location is pinned to a real
-            place rather than a string, so it earns its space. */}
-        {/* One slot, three states: searching beats pinned, because the
-            spinner answers the question the coach is asking right now. */}
         {isSearching ? (
           <span
             role="status"
             aria-label={t('venueInput.searching', 'Searching for places')}
             className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2"
           >
-            <span className="block w-4 h-4 rounded-full border-2 border-slate-500 border-t-indigo-300 animate-spin" />
+            <span className="block h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-indigo-300" />
           </span>
-        ) : hasCoordinates && !showSuggestions ? (
+        ) : hasCoordinates ? (
           <HiOutlineMapPin
-            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-300"
+            className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-300"
             aria-label={t('venueInput.pinned', 'Pinned to a map location')}
           />
         ) : null}
       </div>
 
-      {foundNothing ? (
-        <p
-          // It arrives after an async search, so without a live region a screen
-          // reader never learns the list came back empty - the field just stays
-          // silent, which is the very confusion this message exists to end.
-          role="status"
-          aria-live="polite"
-          className="mt-1 text-xs text-slate-400"
-        >
-          {t(
-            'venueInput.noMatches',
-            'No places found. Try the venue\'s plain name, or just type it - the location is saved either way.',
-          )}
+      {/* Says what the pin is FOR. Without it, nothing on screen explains why
+          picking a result matters more than typing one. */}
+      <p className="mt-1 text-xs text-slate-500">
+        {hasCoordinates
+          ? t('venueInput.addressPinned', 'Directions will go straight here.')
+          : t('venueInput.addressHint', 'Pick one from the list to get exact directions.')}
+      </p>
+
+      {nothingFound ? (
+        <p role="status" aria-live="polite" className="mt-1 text-xs text-slate-400">
+          {t('venueInput.addressNothing', 'No match for that address.')}
         </p>
       ) : null}
 
-      {showSuggestions ? (
+      {results.length > 0 ? (
         <ul
-          id={`${id}-suggestions`}
+          id={`${id}-results`}
           role="listbox"
           className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-slate-600 bg-slate-800 shadow-lg"
         >
-          {suggestions.map((s, i) => (
-            <li key={s.key} role="option" aria-selected={i === activeIndex}>
+          {results.map((s) => (
+            <li key={s.key} role="option" aria-selected={false}>
               <button
                 type="button"
-                // onMouseDown, not onClick: the input's blur would otherwise
-                // close the list before the click could land on it.
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  pick(s);
+                  onPick(s);
                 }}
-                className={`w-full px-3 py-2 text-left text-sm transition-colors ${
-                  i === activeIndex ? 'bg-slate-700 text-white' : 'text-slate-200 hover:bg-slate-700/70'
-                }`}
+                className="w-full px-3 py-2 text-left text-sm text-slate-200 transition-colors hover:bg-slate-700/70"
               >
-                <span className="block truncate font-medium">{s.name}</span>
-                {s.context ? (
-                  <span className="block truncate text-xs text-slate-400">{s.context}</span>
+                <span className="block truncate font-medium">{venuePinLabel(s)}</span>
+                {s.name !== venuePinLabel(s) ? (
+                  <span className="block truncate text-xs text-slate-400">{s.name}</span>
                 ) : null}
               </button>
             </li>

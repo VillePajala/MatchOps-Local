@@ -2469,7 +2469,7 @@
       "title": "Tiedot, joita EMME kerää",
       "items": {
         "gameContent": "Pelisisältöä, tuloksia tai tilastoja (tallennettu vain paikallisesti tai yksityiselle pilvitilillesi)",
-        "location": "Sijaintitietoja",
+        "location": "Sijaintitiedot. Mitään tietoa siitä missä sinä tai laitteesi olette ei lähetetä meille eikä tallenneta meille. Paikkahaku ottaa yhteyttä karttapalveluun puolestasi silloin kun käytät sitä - katso Kolmannen osapuolen palvelut.",
         "photos": "Valokuvia tai mediaa",
         "deviceIds": "Laitetunnisteita seurantaa tai mainontaa varten",
         "playerNames": "Pelaajien nimiä tai henkilötietoja (ne tallentaa paikallisesti sinä, tai yksityiselle pilvitilillesi)"
@@ -2490,7 +2490,10 @@
       "googlePlayLink": "Googlen tietosuojakäytäntö",
       "sentryLink": "Sentryn tietosuojakäytäntö",
       "supabaseLink": "Supabasen tietosuojakäytäntö",
-      "vercelLink": "Vercelin tietosuojakäytäntö"
+      "vercelLink": "Vercelin tietosuojakäytäntö",
+      "photon": "Photon (Komoot)",
+      "photonDesc": "Paikkahaku ottelun sijaintikentässä, kun sitä käytetään (EU, Saksa).",
+      "photonLink": "Komootin tietosuojakäytäntö"
     },
     "yourRights": {
       "title": "Oikeutesi (GDPR)",
@@ -3873,6 +3876,13 @@
   "venueInput": {
     "pinned": "Kiinnitetty karttasijaintiin",
     "searching": "Haetaan paikkoja",
-    "noMatches": "Paikkoja ei löytynyt. Kokeile paikan tavallista nimeä tai kirjoita se itse - sijainti tallentuu kumminkin."
+    "yourVenues": "Omat paikkasi",
+    "nameLabel": "Paikan nimi (valinnainen)",
+    "namePlaceholder": "Se nimi jolla paikkaa kutsut",
+    "addressLabel": "Katuosoite (valinnainen)",
+    "addressPlaceholder": "esim. Muurarinkatu 4, Savonlinna",
+    "addressHint": "Valitse listasta, niin ajo-ohjeet osuvat tarkasti.",
+    "addressPinned": "Ajo-ohjeet vievät suoraan tänne.",
+    "addressNothing": "Osoitteella ei löytynyt mitään."
   }
 }

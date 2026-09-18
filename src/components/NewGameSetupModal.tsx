@@ -10,7 +10,9 @@ import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/t
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import { getPlans } from '@/utils/playtimePlanner/storage';
+import { buildVenueBook } from '@/utils/venueBook';
 import { todayIso } from '@/utils/todayIso';
+import { defaultIsPlayed } from '@/utils/matchPlayedDefault';
 import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
@@ -48,6 +50,7 @@ interface NewGameSetupModalProps {
     fieldNumber: string,
     locationLat: number | undefined,
     locationLng: number | undefined,
+    locationAddress: string | undefined,
     gameTime: string,
     seasonId: string | null,
     tournamentId: string | null,
@@ -172,6 +175,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [fieldNumber, setFieldNumber] = useState('');
   const [locationLat, setLocationLat] = useState<number | undefined>(undefined);
   const [locationLng, setLocationLng] = useState<number | undefined>(undefined);
+  const [locationAddress, setLocationAddress] = useState<string | undefined>(undefined);
   const locationMapUrl = mapsSearchUrl(gameLocation, locationLat, locationLng);
 
   /**
@@ -181,10 +185,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
    * because nothing on screen reveals the disagreement.
    */
   const handleVenueChange = useCallback(
-    (venue: { name: string; latitude?: number; longitude?: number }) => {
+    (venue: { name: string; latitude?: number; longitude?: number; address?: string }) => {
       setGameLocation(venue.name);
       setLocationLat(venue.latitude);
       setLocationLng(venue.longitude);
+      setLocationAddress(venue.address);
     },
     [],
   );
@@ -225,17 +230,19 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
    * fixture booked in advance counted as a draw until it was played. A record
    * reading "14 peliä · 4-10-0" was mostly matches that had not happened.
    *
-   * A match in the future cannot have been played, so the date already knows
-   * the answer. Derived rather than stored so that an explicit toggle still
-   * wins and changing the date afterwards still updates the default - and so
-   * there is no setState in an effect to cascade renders.
+   * A match that has not happened yet cannot have been played, so the date
+   * already knows the answer - see `matchPlayedDefault`, which is the single
+   * definition of that rule and explains why TODAY counts as not-yet-played.
+   * Derived rather than stored so that an explicit toggle still wins and
+   * changing the date afterwards still updates the default - and so there is
+   * no setState in an effect to cascade renders.
    */
   const [isPlayedOverride, setIsPlayedOverride] = useState<boolean | null>(null);
   const today = todayIso();
-  const isPlayed = isPlayedOverride ?? !(gameDate > today);
+  const isPlayed = isPlayedOverride ?? defaultIsPlayed(gameDate, today);
   const setIsPlayed = (next: boolean | ((v: boolean) => boolean)) =>
     setIsPlayedOverride((prev) => {
-      const current = prev ?? !(gameDate > today);
+      const current = prev ?? defaultIsPlayed(gameDate, today);
       return typeof next === 'function' ? next(current) : next;
     });
   const [isFriendly, setIsFriendly] = useState<boolean>(false);
@@ -337,6 +344,16 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     )[0] ?? null;
   }, [savedGames]);
 
+  /**
+   * The venues this coach has actually played at, offered ahead of any map
+   * result. Derived from the same saved games already in hand, so it costs one
+   * pass over a list the modal has anyway.
+   */
+  const knownVenues = useMemo(
+    () => buildVenueBook(savedGames ? Object.values(savedGames) : []),
+    [savedGames],
+  );
+
   const handleRepeatLastGame = useCallback(() => {
     if (!lastGame) return;
     // "Repeat last game" states an intent: build THIS game from the previous
@@ -352,6 +369,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     // The pin belongs to the venue, so it travels with it.
     setLocationLat(lastGame.locationLat);
     setLocationLng(lastGame.locationLng);
+    setLocationAddress(lastGame.locationAddress);
     // The pitch is deliberately NOT carried over. Repeating a game is about
     // not retyping the opponent and the venue; the pitch is the one part that
     // commonly differs between two matches at the same place, so an empty box
@@ -1016,6 +1034,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       fieldNumber.trim(),
       locationLat,
       locationLng,
+      locationAddress,
       gameTime,
       selectedSeasonId,
       selectedTournamentId,
@@ -1662,16 +1681,20 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
                       {/* Game Location */}
                       <div className="mb-4">
-                        <label htmlFor="gameLocationInput" className="block text-sm font-medium text-slate-300 mb-1">
-                          {t('newGameSetupModal.gameLocationLabel', 'Location (Optional)')}
-                        </label>
+                        {/* No label here: VenueInput is TWO labelled fields -
+                            the name and the street address - and a heading over
+                            both would only re-introduce the ambiguity about
+                            which box is which. */}
                         <VenueInput
                           id="gameLocationInput"
                           value={gameLocation}
                           hasCoordinates={locationLat !== undefined}
+                          latitude={locationLat}
+                          longitude={locationLng}
+                          address={locationAddress}
+                          knownVenues={knownVenues}
                           onChange={handleVenueChange}
                           onKeyDown={handleKeyDown}
-                          placeholder={t('newGameSetupModal.locationPlaceholder', 'e.g., Central Park')}
                           className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                         />
                         {/* Confirm the venue resolves BEFORE the drive, which is

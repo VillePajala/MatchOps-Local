@@ -34,6 +34,11 @@ export interface GameDataQueriesResult {
   savedGames: SavedGamesCollection | null;
   currentGameId: string | null;
   loading: boolean;
+  /** Saved games or the current-game id are refetching - see `isSettling`.
+   *  REQUIRED on purpose: optional let a missing value coerce to false, which
+   *  is exactly how this was wired to the wrong hook variant and silently did
+   *  nothing. A missing one must be a type error, not a quiet no-op. */
+  isSettling: boolean;
   error: Error | null;
 }
 
@@ -46,6 +51,11 @@ export interface TeamGameDataQueriesResult {
   savedGames: SavedGamesCollection | null;
   currentGameId: string | null;
   loading: boolean;
+  /** Saved games or the current-game id are refetching - see `isSettling`.
+   *  REQUIRED on purpose: optional let a missing value coerce to false, which
+   *  is exactly how this was wired to the wrong hook variant and silently did
+   *  nothing. A missing one must be a type error, not a quiet no-op. */
+  isSettling: boolean;
   error: Error | null;
 }
 
@@ -93,6 +103,10 @@ export function useGameDataQueries(): GameDataQueriesResult {
     savedGames.isLoading ||
     currentGameId.isLoading;
 
+  // The variant the match's boot actually calls - see the note on the team
+  // variant below for why isLoading alone is not enough.
+  const isSettling = savedGames.isFetching || currentGameId.isFetching;
+
   const error =
     masterRoster.error ||
     seasons.error ||
@@ -108,6 +122,7 @@ export function useGameDataQueries(): GameDataQueriesResult {
     savedGames: savedGames.data || null,
     currentGameId: currentGameId.data || null,
     loading,
+    isSettling,
     error,
   };
 }
@@ -173,6 +188,22 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
     savedGames.isLoading ||
     currentGameId.isLoading;
 
+  /**
+   * The two queries the match's boot decision depends on, still in flight.
+   *
+   * WHY THIS IS SEPARATE FROM `loading`. React Query reports a REFETCH as
+   * `isFetching`, not `isLoading` - `isLoading` is only the very first fetch,
+   * when there is nothing cached. So after an invalidation the cache still
+   * serves the OLD value while the new one is on its way, and anything that
+   * only checks `isLoading` believes it is looking at settled data.
+   *
+   * That is how the match could boot into the demo workspace: the persisted id
+   * was not in a stale savedGames snapshot, and the boot read "not in the list"
+   * as "no such game" rather than "not loaded yet". Callers deciding whether a
+   * game EXISTS must consult this too.
+   */
+  const isSettling = savedGames.isFetching || currentGameId.isFetching;
+
   const error =
     teams.error ||
     teamRoster.error ||
@@ -191,9 +222,10 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
     savedGames: savedGames.data || null,
     currentGameId: currentGameId.data || null,
     loading,
+    isSettling,
     error,
   }), [
     teams.data, teamRoster.data, seasons.data, tournaments.data,
-    savedGames.data, currentGameId.data, loading, error,
+    savedGames.data, currentGameId.data, loading, isSettling, error,
   ]);
 }

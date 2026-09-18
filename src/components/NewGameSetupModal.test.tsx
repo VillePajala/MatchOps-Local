@@ -235,7 +235,9 @@ describe('NewGameSetupModal', () => {
     });
     expect(mockOnStart).toHaveBeenCalledWith(
       expect.arrayContaining(['player1', 'player2']), 'New Team Name', 'Opponent Team',
-      expect.any(String), '', '', undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, true, null,
+      // isPlayed=false: the game is dated TODAY, and a match today has not been
+      // played yet at the moment it is created. See matchPlayedDefault.
+      expect.any(String), '', '', undefined, undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, false, null,
       expect.arrayContaining([
         expect.objectContaining({ id: 'player1', name: 'John Doe' }),
         expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
@@ -255,7 +257,9 @@ describe('NewGameSetupModal', () => {
   // was replaced with tab-based UI. Seasons and tournaments should now be created
   // in the SeasonTournamentManagementModal.
 
-  test('passes isPlayed false when not played toggle checked', async () => {
+  // The default for today is now "not played", so tapping the toggle marks the
+  // match PLAYED - the opposite of what it did when today defaulted to played.
+  test('the unplayed toggle flips the date-derived default', async () => {
     renderModal();
 
     // Wait for home team name to load
@@ -275,7 +279,7 @@ describe('NewGameSetupModal', () => {
     await waitFor(() => {
       expect(mockOnStart).toHaveBeenCalledWith(
         expect.arrayContaining(['player1', 'player2']), 'Last Team', 'Opponent Team',
-        expect.any(String), '', '', undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, false, null,
+        expect.any(String), '', '', undefined, undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, true, null,
         expect.arrayContaining([
           expect.objectContaining({ id: 'player1', name: 'John Doe' }),
           expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
@@ -429,6 +433,7 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // fieldNumber
           undefined,          // locationLat
           undefined,          // locationLng
+          undefined,          // locationAddress (049)
           expect.any(String), // gameTime
           null, // seasonId
           'tournament-series', // tournamentId
@@ -552,6 +557,7 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // fieldNumber
           undefined,          // locationLat
           undefined,          // locationLng
+          undefined,          // locationAddress (049)
           expect.any(String), // gameTime
           null, // seasonId
           'tournament-series', // tournamentId
@@ -812,6 +818,7 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // fieldNumber
           undefined,          // locationLat
           undefined,          // locationLng
+          undefined,          // locationAddress (049)
           expect.any(String), // gameTime
           'season1', // seasonId
           null, // tournamentId
@@ -897,6 +904,7 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // fieldNumber
           undefined,          // locationLat
           undefined,          // locationLng
+          undefined,          // locationAddress (049)
           expect.any(String), // gameTime
           'season1', // seasonId
           null, // tournamentId
@@ -1451,11 +1459,12 @@ describe('NewGameSetupModal', () => {
       const call = mockOnStart.mock.calls[0];
       // Positional onStart args: 0 playerIds, 1 homeTeam, 2 opponent, 3 date,
       // 4 venue, 5 pitch, 6 lat, 7 lng, 8 time, 9 seasonId, 10 tournamentId,
-      // 11 numPeriods, 12 periodDuration. Everything past the venue shifted
-      // when the pitch (047) and the coordinates (048) became arguments.
-      expect(call[9]).toBe('season1');           // the season binding itself is kept
-      expect(call[11]).toBe(2);                  // numPeriods: the plan's...
-      expect(call[12]).toBe(12);                 // ...and the plan's 12-minute periods
+      // 12 numPeriods, 13 periodDuration. Everything past the venue shifted
+      // when the pitch (047), the coordinates (048) and the pinned address
+      // (049) became arguments.
+      expect(call[10]).toBe('season1');          // the season binding itself is kept
+      expect(call[12]).toBe(2);                  // numPeriods: the plan's...
+      expect(call[13]).toBe(12);                 // ...and the plan's 12-minute periods
       expect(call[call.length - 3]).toBeDefined(); // prefill still rides along
     });
 

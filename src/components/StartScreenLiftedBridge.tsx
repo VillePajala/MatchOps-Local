@@ -68,19 +68,28 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
     isSeasonTournamentModalOpen,
     isTeamManagerOpen,
     isPersonnelManagerOpen,
+    isLoadGameModalOpen,
   } = useModalContext();
 
-  // The page's Home flags (hasPlayers -> isFirstTimeUser, the setup tracker) are
-  // snapshotted in checkAppState and don't refresh when a club modal closes.
-  // After a setup modal closes, ask page to re-check so the Home reflects the
-  // change (e.g. added players -> not a first-time user anymore).
-  const anySetupOpen = isRosterModalOpen || isNewGameSetupModalOpen ||
-    isSeasonTournamentModalOpen || isTeamManagerOpen || isPersonnelManagerOpen;
-  const prevAnySetupOpen = React.useRef(anySetupOpen);
+  // The page's Home flags (hasPlayers -> isFirstTimeUser, the setup tracker) and
+  // its summary are snapshotted in checkAppState, which re-runs only on mount
+  // and on auth changes - not when a modal closes. So every modal that can
+  // change what Home shows has to say so on its way out.
+  //
+  // THE LOAD-GAME MODAL IS IN THIS LIST because it is the only place a game can
+  // be DELETED, and leaving it out was a real bug: the owner deleted the
+  // fixture Home was advertising as the next match and Home went on advertising
+  // it, because the summary still held the copy fetched before the deletion.
+  // Deleting is not the only reason either - loading a different game moves the
+  // Jatka card, and both are invisible until something asks for fresh data.
+  const anyHomeAffectingModalOpen = isRosterModalOpen || isNewGameSetupModalOpen ||
+    isSeasonTournamentModalOpen || isTeamManagerOpen || isPersonnelManagerOpen ||
+    isLoadGameModalOpen;
+  const prevOpen = React.useRef(anyHomeAffectingModalOpen);
   React.useEffect(() => {
-    if (prevAnySetupOpen.current && !anySetupOpen) onSetupModalsClosed?.();
-    prevAnySetupOpen.current = anySetupOpen;
-  }, [anySetupOpen, onSetupModalsClosed]);
+    if (prevOpen.current && !anyHomeAffectingModalOpen) onSetupModalsClosed?.();
+    prevOpen.current = anyHomeAffectingModalOpen;
+  }, [anyHomeAffectingModalOpen, onSetupModalsClosed]);
 
   return (
     <StartScreen
