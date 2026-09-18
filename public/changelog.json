@@ -1,20 +1,14 @@
 {
-  "version": "9b8f4ada",
+  "version": "d298e90c",
   "date": "2026-09-18",
   "notes": {
     "en": [
-      "Match location is now two fields: the name you call the place, and its street address. The app remembers venues you have used, so after the first time one tap fills both.",
-      "A match created for today is now a fixture rather than a result. It shows as your next match, and counts as played on its own once the clock runs or you record something.",
-      "Fixes: deleting a match updates the front page straight away, and tapping Jatka right after the app opens no longer lands you on an empty practice pitch.",
-      "The privacy policy now names Photon, the map search behind the location field.",
-      "The coloured rule under your team's name in the score bar is gone."
+      "The venue list now offers to keep the name you typed, as its own row with a plus. Before, a list of places you had used before looked like the only permitted answers, with no sign that a new one was allowed.",
+      "The highlighted recent match no longer carries an orange line under it. The card's own colour already marks it."
     ],
     "fi": [
-      "Ottelun sijainti on nyt kaksi kenttää: nimi jolla paikkaa kutsut ja sen katuosoite. Sovellus muistaa käyttämäsi paikat, joten ensimmäisen kerran jälkeen yksi napautus täyttää molemmat.",
-      "Tälle päivälle luotu ottelu on nyt tuleva ottelu eikä tulos. Se näkyy seuraavana otteluna ja lasketaan pelatuksi itsestään, kun kello käynnistyy tai kirjaat jotain.",
-      "Korjauksia: ottelun poistaminen päivittää etusivun heti, eikä Jatka-painike heti sovelluksen avaamisen jälkeen enää vie tyhjälle harjoituskentälle.",
-      "Tietosuojakäytäntö nimeää nyt Photonin, sijaintikentän takana olevan karttahaun.",
-      "Tulospalkissa oman joukkueen nimen alla ollut värillinen viiva on poistettu."
+      "Paikkalista tarjoaa nyt kirjoittamasi nimen omalla rivillään plussalla. Aiemmin lista aiemmin käyttämistäsi paikoista näytti ainoilta sallituilta vaihtoehdoilta, eikä mikään kertonut että uuden voi luoda.",
+      "Korostetun viimeisimmän ottelun alla ei ole enää oranssia viivaa. Kortin oma väri kertoo sen jo."
     ]
   }
 }

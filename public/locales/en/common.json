@@ -1363,7 +1363,10 @@
     "dashToday": "Today",
     "dashTomorrow": "Tomorrow",
     "dashInDays": "{{count}} d",
-    "dashUpcoming": "Upcoming"
+    "dashUpcoming": "Upcoming",
+    "departAt": "Leave {{time}}",
+    "departEstimate": "(estimate, {{minutes}} min drive)",
+    "departKnown": "({{minutes}} min drive)"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

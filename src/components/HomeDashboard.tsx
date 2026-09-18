@@ -148,6 +148,21 @@ function NextMatchCard({
           {game.time && <span className="text-[15px] font-bold leading-none">{game.time}</span>}
         </div>
         {where && <div className="text-[11.5px] text-indigo-200 truncate mt-0.5">{where}</div>}
+        {/* WHEN TO LEAVE, which is the question a fixture actually raises. It is
+            kick-off minus the time you must already BE there minus the drive -
+            never kick-off minus the drive, which reads as helpful and is late.
+            Marked as an arvio until the coach has driven it once, because a
+            straight-line guess about roads it has never seen is not a promise. */}
+        {game.travel && (
+          <div className="mt-1 text-[11.5px] font-semibold text-amber-200">
+            {t('startScreen.departAt', 'Leave {{time}}', { time: game.travel.departure })}
+            <span className="ml-1.5 font-normal text-indigo-300">
+              {game.travel.isEstimate
+                ? t('startScreen.departEstimate', '(estimate, {{minutes}} min drive)', { minutes: game.travel.travelMinutes })
+                : t('startScreen.departKnown', '({{minutes}} min drive)', { minutes: game.travel.travelMinutes })}
+            </span>
+          </div>
+        )}
       </button>
       {/* Only ever shown for a PINNED venue - see mapsDirectionsUrl. */}
       {game.mapsUrl ? (

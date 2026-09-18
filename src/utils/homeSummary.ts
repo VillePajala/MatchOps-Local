@@ -8,6 +8,7 @@
  * and the coach's configured season window - never one of the coach's Kaudet.
  */
 import type { SavedGamesCollection, AppState, Player } from '@/types';
+import { planDeparture, DEFAULT_ARRIVAL_BUFFER_MINUTES, type TravelPlan, type Coordinates } from './travelPlan';
 import { mapsDirectionsUrl } from '@/config/externalLinks';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { filterGameIds } from '@/components/GameStatsModal/utils/gameFilters';
@@ -77,6 +78,13 @@ export interface HomeUpcomingGame {
   mapsUrl: string | null;
   /** Whole days from today: 0 = today, 1 = tomorrow. Drives the countdown. */
   daysAway: number;
+  /**
+   * When to set off, when there is enough to work it out: a kick-off time, a
+   * pinned venue, and a home ground to leave from. Null whenever any of those
+   * is missing - a confidently wrong departure time is the one output nobody
+   * wants. See `travelPlan`.
+   */
+  travel: TravelPlan | null;
 }
 
 export interface HomeVuosi extends TeamRecord {
@@ -141,6 +149,8 @@ export interface HomeSummary {
 export interface HomeSummaryOptions {
   /** Today, ISO YYYY-MM-DD - injected so the computation stays pure/testable. */
   today: string;
+  /** Minutes to be at the ground before kick-off. Warm-up, lineup, changing. */
+  arrivalBufferMinutes?: number;
   clubSeasonStartDate?: string;
   clubSeasonEndDate?: string;
   /** The Vuosi bar only shows once the coach has configured season dates. */
@@ -300,6 +310,31 @@ export function buildHomeSummary(
   // `>= opts.today` deliberately includes TODAY. A match this afternoon is the
   // most upcoming thing there is, and dropping it at midnight would blank the
   // card on the one morning it matters most.
+  /**
+   * Where the team sets off from: the pinned venue they have played at home
+   * most often.
+   *
+   * DERIVED RATHER THAN ASKED FOR. A coach should not have to configure their
+   * own ground before a departure time will work, and their own matches
+   * already say where it is - a home fixture is by definition played at home.
+   * Most-frequent rather than most-recent, because one away-labelled oddity
+   * should not move the whole club.
+   */
+  const homeBase: Coordinates | null = (() => {
+    const counts = new Map<string, { coords: Coordinates; n: number }>();
+    for (const g of Object.values(all)) {
+      if (!g || (g.homeOrAway ?? 'home') !== 'home') continue;
+      if (typeof g.locationLat !== 'number' || typeof g.locationLng !== 'number') continue;
+      const key = `${g.locationLat},${g.locationLng}`;
+      const seen = counts.get(key);
+      if (seen) seen.n += 1;
+      else counts.set(key, { coords: { latitude: g.locationLat, longitude: g.locationLng }, n: 1 });
+    }
+    let best: { coords: Coordinates; n: number } | null = null;
+    for (const entry of counts.values()) if (!best || entry.n > best.n) best = entry;
+    return best?.coords ?? null;
+  })();
+
   const upcomingAll: HomeUpcomingGame[] = Object.entries(all)
     .filter(([, g]) => {
       if (!g || g.isPlayed !== false || !isUsableDate(g.gameDate)) return false;
@@ -318,6 +353,15 @@ export function buildHomeSummary(
       fieldNumber: g.fieldNumber || undefined,
       mapsUrl: mapsDirectionsUrl(g.locationLat, g.locationLng),
       daysAway: daysBetween(opts.today, g.gameDate || ''),
+      travel: planDeparture({
+        kickoff: g.gameTime,
+        from: homeBase,
+        to:
+          typeof g.locationLat === 'number' && typeof g.locationLng === 'number'
+            ? { latitude: g.locationLat, longitude: g.locationLng }
+            : null,
+        arrivalBufferMinutes: opts.arrivalBufferMinutes ?? DEFAULT_ARRIVAL_BUFFER_MINUTES,
+      }),
     }));
 
   const upcoming = upcomingAll[0] ?? null;

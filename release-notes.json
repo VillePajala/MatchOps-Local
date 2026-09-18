@@ -4,6 +4,15 @@
     {
       "date": "2026-09-18",
       "en": [
+        "The next-match card now tells you when to leave. It counts back from kick-off: 45 minutes to be at the ground before it, plus the drive from your home ground. It needs a kick-off time and a pinned venue, and it stays quiet rather than guessing when it does not have them. The drive is marked as an estimate, because it is worked out from the distance rather than from the roads."
+      ],
+      "fi": [
+        "Seuraava ottelu -kortti kertoo nyt milloin pitää lähteä. Se laskee taaksepäin alkamisajasta: 45 minuuttia olla paikalla ennen sitä, plus ajomatka kotikentältänne. Se tarvitsee alkamisajan ja kiinnitetyn sijainnin, ja on hiljaa eikä arvaa jos niitä ei ole. Ajomatka on merkitty arvioksi, koska se lasketaan etäisyydestä eikä teistä."
+      ]
+    },
+    {
+      "date": "2026-09-18",
+      "en": [
         "The venue list now offers to keep the name you typed, as its own row with a plus. Before, a list of places you had used before looked like the only permitted answers, with no sign that a new one was allowed.",
         "The highlighted recent match no longer carries an orange line under it. The card's own colour already marks it."
       ],
