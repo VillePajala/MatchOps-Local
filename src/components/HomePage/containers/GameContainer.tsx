@@ -46,11 +46,6 @@ export function GameContainer({
   const { t } = useTranslation();
   const assessmentsEnabled = useAssessmentsEnabled();
 
-  // The current team's kit colour, when they have one. Resolved here rather
-  // than plumbed through the view model: this container already receives the
-  // session state on fieldProps, and a colour nobody has set is the common
-  // case - not worth a new prop on every layer above.
-
 
   return (
     <main className="flex flex-col h-full min-h-[100svh] bg-slate-900 text-slate-50" data-testid="home-page">

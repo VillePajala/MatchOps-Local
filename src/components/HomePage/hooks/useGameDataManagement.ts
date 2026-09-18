@@ -296,7 +296,7 @@ export function useGameDataManagement(
     isLoading: isGameDataLoading || personnelManager.isLoading,
     // Whether the saved games and the current-game id are still in flight. The
     // boot must not read "id not in the list" as "no such game" while they are.
-    isSettling: Boolean(isGameDataSettling),
+    isSettling: isGameDataSettling,
     error: gameDataError,
 
   };
