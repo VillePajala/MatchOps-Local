@@ -11,7 +11,6 @@ interface GameInfoBarProps {
   onTeamNameChange: (newName: string) => void;
   onOpponentNameChange: (newName: string) => void;
   homeOrAway: 'home' | 'away';
-  /** The team's kit colour, when they have one. Undefined for most teams. */
 }
 
 const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({

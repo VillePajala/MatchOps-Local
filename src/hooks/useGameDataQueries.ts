@@ -34,8 +34,11 @@ export interface GameDataQueriesResult {
   savedGames: SavedGamesCollection | null;
   currentGameId: string | null;
   loading: boolean;
-  /** Saved games or the current-game id are refetching - see `isSettling`. */
-  isSettling?: boolean;
+  /** Saved games or the current-game id are refetching - see `isSettling`.
+   *  REQUIRED on purpose: optional let a missing value coerce to false, which
+   *  is exactly how this was wired to the wrong hook variant and silently did
+   *  nothing. A missing one must be a type error, not a quiet no-op. */
+  isSettling: boolean;
   error: Error | null;
 }
 
@@ -48,8 +51,11 @@ export interface TeamGameDataQueriesResult {
   savedGames: SavedGamesCollection | null;
   currentGameId: string | null;
   loading: boolean;
-  /** Saved games or the current-game id are refetching - see `isSettling`. */
-  isSettling?: boolean;
+  /** Saved games or the current-game id are refetching - see `isSettling`.
+   *  REQUIRED on purpose: optional let a missing value coerce to false, which
+   *  is exactly how this was wired to the wrong hook variant and silently did
+   *  nothing. A missing one must be a type error, not a quiet no-op. */
+  isSettling: boolean;
   error: Error | null;
 }
 
@@ -97,6 +103,10 @@ export function useGameDataQueries(): GameDataQueriesResult {
     savedGames.isLoading ||
     currentGameId.isLoading;
 
+  // The variant the match's boot actually calls - see the note on the team
+  // variant below for why isLoading alone is not enough.
+  const isSettling = savedGames.isFetching || currentGameId.isFetching;
+
   const error =
     masterRoster.error ||
     seasons.error ||
@@ -112,6 +122,7 @@ export function useGameDataQueries(): GameDataQueriesResult {
     savedGames: savedGames.data || null,
     currentGameId: currentGameId.data || null,
     loading,
+    isSettling,
     error,
   };
 }
