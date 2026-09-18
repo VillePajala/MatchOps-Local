@@ -44,10 +44,11 @@ const ASSUMED_SPEED_KMH = 60;
 
 /**
  * Minutes to be AT the ground before kick-off: warm-up, the lineup, changing.
- * A default rather than a guess - it is a real quantity every club has, and 45
- * minutes is the usual figure for youth football.
+ * A DEFAULT, NOT A CONSTANT. Thirty minutes is the usual figure, but a cup tie
+ * or a tournament may ask for an hour - so this is only the starting value, and
+ * both the settings and an individual match can override it.
  */
-export const DEFAULT_ARRIVAL_BUFFER_MINUTES = 45;
+export const DEFAULT_ARRIVAL_BUFFER_MINUTES = 30;
 
 /** Below this, the drive is dominated by parking and walking, not distance. */
 const MINIMUM_TRAVEL_MINUTES = 5;
@@ -83,6 +84,8 @@ export interface TravelPlan {
   /** "HH:MM" - when to be at the ground. */
   arriveBy: string;
   travelMinutes: number;
+  /** The buffer actually used, so the UI can show which figure is in force. */
+  arrivalBufferMinutes: number;
   /** True when travelMinutes was guessed rather than confirmed by the coach. */
   isEstimate: boolean;
   /** As the crow flies, for anything that wants to show the distance. */
@@ -145,13 +148,15 @@ export function planDeparture(opts: {
   const distance = from && to ? distanceKm(from, to) : 0;
   const travelMinutes = confirmed ?? estimateTravelMinutes(from as Coordinates, to as Coordinates);
 
-  const arriveByMinutes = kickoffMinutes - Math.max(0, Math.round(arrivalBufferMinutes));
+  const buffer = Math.max(0, Math.round(arrivalBufferMinutes));
+  const arriveByMinutes = kickoffMinutes - buffer;
   const departureMinutes = arriveByMinutes - travelMinutes;
 
   return {
     departure: toClock(departureMinutes),
     arriveBy: toClock(arriveByMinutes),
     travelMinutes,
+    arrivalBufferMinutes: buffer,
     isEstimate: confirmed === null,
     distanceKm: Math.round(distance * 10) / 10,
     departsPreviousDay: departureMinutes < 0,

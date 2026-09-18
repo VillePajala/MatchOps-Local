@@ -148,6 +148,8 @@ const HomeTile: React.FC<{
 interface StartScreenProps {
   onLoadGame: () => void;
   onResumeGame?: () => void;
+  /** Persists this match's own arrival buffer / measured drive time. */
+  onAdjustTravel?: (id: string, next: { arrivalBufferMinutes?: number; travelMinutes?: number }) => void;
   onGetStarted: () => void;
   /** New Game row: opens the lifted NewGameSetup in place (L.3b). Falls back
    *  to onGetStarted (the old enter-the-workspace behavior) when absent. */
@@ -210,6 +212,7 @@ interface StartScreenProps {
 const StartScreen: React.FC<StartScreenProps> = ({
   onLoadGame,
   onResumeGame,
+  onAdjustTravel,
   onGetStarted,
   onNewGame,
   onViewStats,
@@ -797,6 +800,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     onResume={onResumeGame}
                     onOpenVuosi={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
                     onOpenGame={onOpenGameById}
+                    onAdjustTravel={onAdjustTravel}
                     t={t}
                   />
                   </>

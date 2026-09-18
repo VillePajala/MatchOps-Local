@@ -115,8 +115,16 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
 function NextMatchCard({
   game,
   onOpen,
+  onAdjustTravel,
   t,
-}: { game: HomeUpcomingGame; onOpen?: (id: string) => void; t: TFunction }) {
+}: {
+  game: HomeUpcomingGame;
+  onOpen?: (id: string) => void;
+  /** Sets this match's own arrival buffer and the drive time actually taken. */
+  onAdjustTravel?: (id: string, next: { arrivalBufferMinutes?: number; travelMinutes?: number }) => void;
+  t: TFunction;
+}) {
+  const [adjusting, setAdjusting] = useState(false);
   const countdown =
     game.daysAway === 0
       ? t('startScreen.dashToday', 'Today')
@@ -132,7 +140,8 @@ function NextMatchCard({
   const where = [venueName, game.fieldNumber].filter(Boolean).join(' · ');
 
   return (
-    <div className="flex items-stretch rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden">
+    <div className="flex flex-col rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden">
+      <div className="flex items-stretch">
       <button
         type="button"
         onClick={() => onOpen?.(game.id)}
@@ -153,16 +162,6 @@ function NextMatchCard({
             never kick-off minus the drive, which reads as helpful and is late.
             Marked as an arvio until the coach has driven it once, because a
             straight-line guess about roads it has never seen is not a promise. */}
-        {game.travel && (
-          <div className="mt-1 text-[11.5px] font-semibold text-amber-200">
-            {t('startScreen.departAt', 'Leave {{time}}', { time: game.travel.departure })}
-            <span className="ml-1.5 font-normal text-indigo-300">
-              {game.travel.isEstimate
-                ? t('startScreen.departEstimate', '(estimate, {{minutes}} min drive)', { minutes: game.travel.travelMinutes })
-                : t('startScreen.departKnown', '({{minutes}} min drive)', { minutes: game.travel.travelMinutes })}
-            </span>
-          </div>
-        )}
       </button>
       {/* Only ever shown for a PINNED venue - see mapsDirectionsUrl. */}
       {game.mapsUrl ? (
@@ -177,6 +176,92 @@ function NextMatchCard({
           <MdDirectionsCar className="w-6 h-6" aria-hidden="true" />
         </a>
       ) : null}
+      </div>
+
+      {/* WHEN TO LEAVE, and the two numbers behind it, in one place. It is
+          kick-off minus the time you must already BE there minus the drive -
+          never kick-off minus the drive, which reads as helpful and is late.
+          Tapping opens both adjustments here rather than adding fields to a
+          match form the owner already finds long, and it is the same tap that
+          turns the estimate into a measured time. */}
+      {game.travel && (
+        <div className="border-t border-indigo-500/40 bg-indigo-950/30">
+          <button
+            type="button"
+            onClick={() => setAdjusting((v) => !v)}
+            aria-expanded={adjusting}
+            className="flex w-full items-baseline gap-1.5 px-3.5 py-2 text-left text-[11.5px] transition-colors hover:bg-indigo-900/40"
+          >
+            <span className="font-semibold text-amber-200">
+              {t('startScreen.departAt', 'Leave {{time}}', { time: game.travel.departure })}
+            </span>
+            <span className="font-normal text-indigo-300">
+              {game.travel.isEstimate
+                ? t('startScreen.departEstimate', '(estimate, {{minutes}} min drive)', { minutes: game.travel.travelMinutes })
+                : t('startScreen.departKnown', '({{minutes}} min drive)', { minutes: game.travel.travelMinutes })}
+            </span>
+            <span className="ml-auto shrink-0 text-indigo-300">{adjusting ? '▾' : '▸'}</span>
+          </button>
+
+          {adjusting && (
+            <div className="space-y-2.5 px-3.5 pb-3">
+              <div>
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-indigo-300">
+                  {t('startScreen.arriveBefore', 'At the ground before kick-off')}
+                </div>
+                <div className="flex gap-1.5">
+                  {[30, 45, 60].map((minutes) => (
+                    <button
+                      key={minutes}
+                      type="button"
+                      onClick={() => onAdjustTravel?.(game.id, { arrivalBufferMinutes: minutes })}
+                      className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                        game.travel?.arrivalBufferMinutes === minutes
+                          ? 'bg-amber-500 text-slate-900'
+                          : 'bg-indigo-900/70 text-indigo-100 hover:bg-indigo-800'
+                      }`}
+                    >
+                      {minutes} min
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-indigo-300">
+                  {t('startScreen.actualDrive', 'How long the drive really takes')}
+                </div>
+                {/* A measured time replaces a straight-line guess that knows
+                    nothing about the lake you drive around - and, looked up by
+                    venue, answers for every later match at the same place. */}
+                <input
+                  type="number"
+                  min={0}
+                  max={600}
+                  inputMode="numeric"
+                  defaultValue={game.travel.travelMinutes}
+                  onBlur={(e) => {
+                    // An EMPTIED field is not a zero-minute drive. Number('')
+                    // is 0, which passed a >= 0 check and would have recorded
+                    // "this venue takes no time to reach" for every later match
+                    // there - a measured value is exactly the thing that
+                    // overrides the estimate, so a blank must change nothing.
+                    const raw = e.target.value.trim();
+                    if (!raw) return;
+                    const minutes = Number(raw);
+                    if (Number.isFinite(minutes) && minutes > 0) {
+                      onAdjustTravel?.(game.id, { travelMinutes: Math.round(minutes) });
+                    }
+                  }}
+                  aria-label={t('startScreen.actualDrive', 'How long the drive really takes')}
+                  className="w-24 rounded-md border border-indigo-500/50 bg-indigo-950/60 px-2 py-1 text-sm text-white"
+                />
+                <span className="ml-1.5 text-xs text-indigo-300">min</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -276,12 +361,14 @@ export function HomeDashboard({
   onResume,
   onOpenVuosi,
   onOpenGame,
+  onAdjustTravel,
   t,
 }: {
   summary: HomeSummary;
   onResume?: () => void;
   onOpenVuosi?: () => void;
   onOpenGame?: (id: string) => void;
+  onAdjustTravel?: (id: string, next: { arrivalBufferMinutes?: number; travelMinutes?: number }) => void;
   t: TFunction;
 }) {
   /**
@@ -312,7 +399,7 @@ export function HomeDashboard({
   return (
     <>
       {summary.upcoming
-        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} t={t} />
+        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} t={t} />
         : summary.resume && <ResumeCard resume={summary.resume} onResume={onResume} t={t} />}
       {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
       {(summary.recent.length > 0 || summary.upcomingList.length > 0) && (

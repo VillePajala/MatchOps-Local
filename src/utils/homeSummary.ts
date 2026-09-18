@@ -151,6 +151,12 @@ export interface HomeSummaryOptions {
   today: string;
   /** Minutes to be at the ground before kick-off. Warm-up, lineup, changing. */
   arrivalBufferMinutes?: number;
+  /**
+   * Where the team sets off from, as the coach set it. Undefined means no
+   * departure time - which is correct: without a starting point there is
+   * nothing to measure from, and a guess would be invisible and uncorrectable.
+   */
+  startingPoint?: Coordinates | null;
   clubSeasonStartDate?: string;
   clubSeasonEndDate?: string;
   /** The Vuosi bar only shows once the coach has configured season dates. */
@@ -311,29 +317,20 @@ export function buildHomeSummary(
   // most upcoming thing there is, and dropping it at midnight would blank the
   // card on the one morning it matters most.
   /**
-   * Where the team sets off from: the pinned venue they have played at home
-   * most often.
+   * Drive times the coach has measured, keyed by where they drove TO.
    *
-   * DERIVED RATHER THAN ASKED FOR. A coach should not have to configure their
-   * own ground before a departure time will work, and their own matches
-   * already say where it is - a home fixture is by definition played at home.
-   * Most-frequent rather than most-recent, because one away-labelled oddity
-   * should not move the whole club.
+   * Looked up by position rather than carried on each new match: confirming a
+   * drive once then applies to every fixture at that venue, past and future,
+   * and cannot fall out of step with itself. A venue is the same venue when the
+   * coordinates match - which is the whole reason coordinates were worth a
+   * migration over a name.
    */
-  const homeBase: Coordinates | null = (() => {
-    const counts = new Map<string, { coords: Coordinates; n: number }>();
-    for (const g of Object.values(all)) {
-      if (!g || (g.homeOrAway ?? 'home') !== 'home') continue;
-      if (typeof g.locationLat !== 'number' || typeof g.locationLng !== 'number') continue;
-      const key = `${g.locationLat},${g.locationLng}`;
-      const seen = counts.get(key);
-      if (seen) seen.n += 1;
-      else counts.set(key, { coords: { latitude: g.locationLat, longitude: g.locationLng }, n: 1 });
-    }
-    let best: { coords: Coordinates; n: number } | null = null;
-    for (const entry of counts.values()) if (!best || entry.n > best.n) best = entry;
-    return best?.coords ?? null;
-  })();
+  const measuredDrives = new Map<string, number>();
+  for (const g of Object.values(all)) {
+    if (!g || typeof g.travelMinutes !== 'number') continue;
+    if (typeof g.locationLat !== 'number' || typeof g.locationLng !== 'number') continue;
+    measuredDrives.set(`${g.locationLat},${g.locationLng}`, g.travelMinutes);
+  }
 
   const upcomingAll: HomeUpcomingGame[] = Object.entries(all)
     .filter(([, g]) => {
@@ -355,12 +352,17 @@ export function buildHomeSummary(
       daysAway: daysBetween(opts.today, g.gameDate || ''),
       travel: planDeparture({
         kickoff: g.gameTime,
-        from: homeBase,
+        from: opts.startingPoint ?? null,
         to:
           typeof g.locationLat === 'number' && typeof g.locationLng === 'number'
             ? { latitude: g.locationLat, longitude: g.locationLng }
             : null,
-        arrivalBufferMinutes: opts.arrivalBufferMinutes ?? DEFAULT_ARRIVAL_BUFFER_MINUTES,
+        // This match's own figure wins over the club default: a cup tie asking
+        // for an hour must not drag every other fixture with it.
+        arrivalBufferMinutes:
+          g.arrivalBufferMinutes ?? opts.arrivalBufferMinutes ?? DEFAULT_ARRIVAL_BUFFER_MINUTES,
+        confirmedTravelMinutes:
+          g.travelMinutes ?? measuredDrives.get(`${g.locationLat},${g.locationLng}`) ?? null,
       }),
     }));
 
