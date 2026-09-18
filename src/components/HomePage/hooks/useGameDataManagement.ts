@@ -93,6 +93,8 @@ export interface UseGameDataManagementReturn {
 
   /** Current game ID setting from app settings */
   currentGameIdSetting: string | null;
+  /** The boot's two queries are still fetching; "not found" is not yet true. */
+  isSettling: boolean;
 
   /** Combined loading state for all queries */
   isLoading: boolean;
@@ -125,6 +127,7 @@ export function useGameDataManagement(
     savedGames: allSavedGamesQueryResultData,
     currentGameId: currentGameIdSettingQueryResultData,
     loading: isGameDataLoading,
+    isSettling: isGameDataSettling,
     error: gameDataError,
   } = useGameDataQueries();
 
@@ -291,6 +294,9 @@ export function useGameDataManagement(
 
     // Loading and error states
     isLoading: isGameDataLoading || personnelManager.isLoading,
+    // Whether the saved games and the current-game id are still in flight. The
+    // boot must not read "id not in the list" as "no such game" while they are.
+    isSettling: Boolean(isGameDataSettling),
     error: gameDataError,
 
   };

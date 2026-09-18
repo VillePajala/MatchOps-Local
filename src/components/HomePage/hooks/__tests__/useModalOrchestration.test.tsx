@@ -83,6 +83,7 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
     personnel: [createMockPersonnel()],
     savedGames: {},
     currentGameIdSetting: null,
+        isSettling: false,
     isLoading: false,
     error: null,
     personnelManager: {
@@ -584,6 +585,7 @@ describe('useModalOrchestration', () => {
         personnel: [],
         savedGames: {},
         currentGameIdSetting: null,
+        isSettling: false,
         isLoading: false,
         error: null,
         personnelManager: {

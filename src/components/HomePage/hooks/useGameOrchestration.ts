@@ -1104,6 +1104,24 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID && currentSavedGames[lastGameIdSetting]) {
           setCurrentGameId(lastGameIdSetting);
           setHasSkippedInitialSetup(true);
+        } else if (
+          lastGameIdSetting &&
+          lastGameIdSetting !== DEFAULT_GAME_ID &&
+          gameDataManagement.isSettling
+        ) {
+          // "NOT IN THE LIST" IS NOT YET "NO SUCH GAME". React Query reports a
+          // refetch as isFetching, not isLoading, so the branch above can be
+          // reached while a stale savedGames snapshot is still being replaced -
+          // and falling through here would drop the coach into the demo
+          // workspace: no match data, the first-game "add players" overlay, and
+          // the DEMO watermark, for a game that exists perfectly well.
+          //
+          // That is the failure the new-game path already defends against by
+          // priming the cache with setQueryData before mounting. Resuming has
+          // no such prime - it just mounts and trusts the persisted id - so the
+          // decision itself has to wait instead. Leaving currentGameId as it is
+          // re-runs this effect when the fetch lands.
+          logger.debug(`[EFFECT init] ${lastGameIdSetting} not in the snapshot yet; waiting for the refetch rather than falling back.`);
         } else {
           if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID) {
             logger.warn(`[EFFECT init] Last game ID ${lastGameIdSetting} not found in saved games (from TanStack Query). Loading default.`);
@@ -1168,6 +1186,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameDataManagement.savedGames,
     gameDataManagement.currentGameIdSetting,
     gameDataManagement.isLoading,
+    // Required, not incidental: waiting on a refetch only works if the effect
+    // re-runs when that refetch lands.
+    gameDataManagement.isSettling,
     gameDataManagement.error,
     setSavedGames,
     setCurrentGameId,
