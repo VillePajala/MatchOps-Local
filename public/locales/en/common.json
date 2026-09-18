@@ -1366,7 +1366,9 @@
     "dashUpcoming": "Upcoming",
     "departAt": "Leave {{time}}",
     "departEstimate": "(estimate, {{minutes}} min drive)",
-    "departKnown": "({{minutes}} min drive)"
+    "departKnown": "({{minutes}} min drive)",
+    "arriveBefore": "At the ground before kick-off",
+    "actualDrive": "How long the drive really takes"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -1998,7 +2000,11 @@
     "factoryResetButton": "Delete All Data",
     "restoring": "Restoring backup...",
     "restoringTitle": "Restoring Backup",
-    "restoringDescription": "Please wait while your data is being restored. This may take a moment."
+    "restoringDescription": "Please wait while your data is being restored. This may take a moment.",
+    "travelTitle": "Getting to matches",
+    "travelDescription": "Used to work out when to leave for your next match. Without a starting point no departure time is shown.",
+    "arrivalBufferLabel": "Be at the ground before kick-off (minutes)",
+    "arrivalBufferHint": "Warm-up, lineup and changing. A single match can be given its own figure."
   },
   "playerAssessmentModal": {
     "title": "Record Performance",

@@ -6,72 +6,92 @@
 import { buildHomeSummary } from '../homeSummary';
 import type { AppState } from '@/types/game';
 
-const HOME = { locationLat: 61.8699, locationLng: 28.8783 };   // Savonlinna
-const AWAY = { locationLat: 61.6885, locationLng: 27.2723 };   // Mikkeli, ~87km
+const SAVONLINNA = { latitude: 61.8699, longitude: 28.8783 };
+const MIKKELI = { locationLat: 61.6885, locationLng: 27.2723 }; // ~87km away
 
 const game = (over: Partial<AppState>): Partial<AppState> => ({
   opponentName: 'Purppura', gameDate: '2026-09-25', isPlayed: false, ...over,
 });
 
-const opts = { today: '2026-09-18', teamFilter: 'all' as const };
+const opts = (over = {}) => ({
+  today: '2026-09-18',
+  teamFilter: 'all' as const,
+  startingPoint: SAVONLINNA,
+  ...over,
+});
 
-/** Past home fixtures are what tell the app where "home" is. */
-const homeHistory = {
-  h1: game({ gameDate: '2026-08-01', isPlayed: true, homeOrAway: 'home', ...HOME }),
-  h2: game({ gameDate: '2026-08-08', isPlayed: true, homeOrAway: 'home', ...HOME }),
-};
-
-const build = (games: Record<string, Partial<AppState>>) =>
-  buildHomeSummary(games as never, opts as never).upcoming;
+const next = (games: Record<string, Partial<AppState>>, o = {}) =>
+  buildHomeSummary(games as never, opts(o) as never).upcoming;
 
 describe('when to leave for the next match', () => {
-  it('works it out from the coach s own home fixtures', () => {
-    const next = build({ ...homeHistory, next: game({ gameTime: '17:30', homeOrAway: 'away', ...AWAY }) });
+  const fixture = { next: game({ gameTime: '17:30', ...MIKKELI }) };
 
-    // 17:30 less a 45 min buffer is 16:45, less the drive.
-    expect(next?.travel?.arriveBy).toBe('16:45');
-    expect(next?.travel?.departure).toBeDefined();
-    expect(next?.travel?.isEstimate).toBe(true);
+  it('counts back from kick-off through the buffer and the drive', () => {
+    const plan = next(fixture)!.travel!;
+
+    expect(plan.arriveBy).toBe('17:00'); // 17:30 less the 30 min default
+    expect(plan.isEstimate).toBe(true);
+    expect(plan.distanceKm).toBeGreaterThan(80);
   });
 
-  it('reports the distance it used', () => {
-    const next = build({ ...homeHistory, next: game({ gameTime: '17:30', homeOrAway: 'away', ...AWAY }) });
+  it('uses the club buffer when one is set', () => {
+    expect(next(fixture, { arrivalBufferMinutes: 45 })!.travel!.arriveBy).toBe('16:45');
+  });
 
-    expect(next?.travel?.distanceKm).toBeGreaterThan(80);
+  /**
+   * A cup tie asking for an hour must not drag every other fixture with it -
+   * which is what a single club-wide number would force the coach to do.
+   */
+  it('lets the match itself override the club buffer', () => {
+    const plan = next(
+      { next: game({ gameTime: '17:30', arrivalBufferMinutes: 60, ...MIKKELI }) },
+      { arrivalBufferMinutes: 30 },
+    )!.travel!;
+
+    expect(plan.arriveBy).toBe('16:30');
+  });
+
+  describe('a drive the coach has measured', () => {
+    it('replaces the estimate, and drops the hedge', () => {
+      const plan = next({ next: game({ gameTime: '17:30', travelMinutes: 75, ...MIKKELI }) })!.travel!;
+
+      expect(plan.travelMinutes).toBe(75);
+      expect(plan.isEstimate).toBe(false);
+      expect(plan.departure).toBe('15:45'); // 17:00 less 75 min
+    });
+
+    /**
+     * Measured once, applied everywhere: the figure is looked up by WHERE the
+     * coach drove to, so a past match at the same venue answers for the next
+     * one without anything being copied between them.
+     */
+    it('carries to another fixture at the same venue', () => {
+      const plan = next({
+        past: game({ gameDate: '2026-08-01', isPlayed: true, travelMinutes: 75, ...MIKKELI }),
+        next: game({ gameTime: '17:30', ...MIKKELI }),
+      })!.travel!;
+
+      expect(plan.travelMinutes).toBe(75);
+      expect(plan.isEstimate).toBe(false);
+    });
+
+    it('does not leak to a different venue', () => {
+      const plan = next({
+        past: game({ gameDate: '2026-08-01', isPlayed: true, travelMinutes: 75, locationLat: 60.1, locationLng: 24.9 }),
+        next: game({ gameTime: '17:30', ...MIKKELI }),
+      })!.travel!;
+
+      expect(plan.isEstimate).toBe(true);
+    });
   });
 
   describe('stays silent rather than guessing', () => {
-    it('with no kick-off time', () => {
-      const next = build({ ...homeHistory, next: game({ homeOrAway: 'away', ...AWAY }) });
-
-      expect(next?.travel).toBeNull();
+    it.each([
+      ['no kick-off time', { next: game({ ...MIKKELI }) }, {}],
+      ['a venue that was never pinned', { next: game({ gameTime: '17:30', gameLocation: 'Keskuskenttä' }) }, {}],
+      ['no starting point set', { next: game({ gameTime: '17:30', ...MIKKELI }) }, { startingPoint: null }],
+    ])('with %s', (_case, games, o) => {
+      expect(next(games as never, o)!.travel).toBeNull();
     });
-
-    /** A venue that was typed, not picked, has no position to measure to. */
-    it('with a venue that was never pinned', () => {
-      const next = build({ ...homeHistory, next: game({ gameTime: '17:30', gameLocation: 'Keskuskenttä' }) });
-
-      expect(next?.travel).toBeNull();
-    });
-
-    /** Nothing says where home is until a home fixture has been pinned. */
-    it('with no pinned home fixture to leave from', () => {
-      const next = build({ next: game({ gameTime: '17:30', homeOrAway: 'away', ...AWAY }) });
-
-      expect(next?.travel).toBeNull();
-    });
-  });
-
-  /** One stray away-labelled match must not move the club's home ground. */
-  it('picks the ground played at home most, not most recently', () => {
-    const next = build({
-      ...homeHistory,
-      odd: game({ gameDate: '2026-09-01', isPlayed: true, homeOrAway: 'home', ...AWAY }),
-      next: game({ gameTime: '17:30', homeOrAway: 'away', ...AWAY }),
-    });
-
-    // Home is still Savonlinna (twice) rather than Mikkeli (once), so the trip
-    // to Mikkeli is a real journey rather than a five-minute hop.
-    expect(next?.travel?.travelMinutes).toBeGreaterThan(90);
   });
 });

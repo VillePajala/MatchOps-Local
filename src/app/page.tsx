@@ -41,7 +41,7 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
-import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
+import { getSavedGames, getLatestGameId, saveGame as utilSaveGame } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
@@ -439,6 +439,11 @@ export default function Home() {
           hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
           currentGameId: resolvedCurrentId,
           teamFilter: teamScopeRef.current,
+          // The departure time on the next-match card needs both: without a
+          // starting point there is nothing to measure from, and the buffer is
+          // a real club quantity rather than a number to hardcode.
+          startingPoint: homeSettings.startingPoint,
+          arrivalBufferMinutes: homeSettings.arrivalBufferMinutes,
         }];
         homeSummaryInputsRef.current = firstArgs;
         publishHomeSummaries(firstArgs);
@@ -477,6 +482,8 @@ export default function Home() {
               clubSeasonEndDate: homeSettings.clubSeasonEndDate,
               hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
               currentGameId: resolvedCurrentId,
+              startingPoint: homeSettings.startingPoint,
+              arrivalBufferMinutes: homeSettings.arrivalBufferMinutes,
               roster,
               teamsCount: teamsList.length,
               personnelCount: personnel.length,
@@ -1570,6 +1577,30 @@ export default function Home() {
   // Open a specific game (Home dashboard recent strip). Same level-crossing as
   // the Load Game modal: persist the id first, then freshly mount the match,
   // whose boot loads the persisted current game.
+  /**
+   * This match's own arrival buffer, or the drive time the coach just measured.
+   *
+   * Written straight to the saved game and the summary rebuilt, because both
+   * numbers change what the card says immediately - a coach correcting "that
+   * took 90 minutes" expects the departure time to move while they are looking
+   * at it. The measured drive is then found by VENUE for every later fixture
+   * there, so it is only ever entered once.
+   */
+  const handleAdjustTravel = useCallback(async (
+    id: string,
+    next: { arrivalBufferMinutes?: number; travelMinutes?: number },
+  ) => {
+    try {
+      const games = await getSavedGames(userId);
+      const game = games?.[id];
+      if (!game) return;
+      await utilSaveGame(id, { ...game, ...next }, userId);
+      await refreshSetupSignals();
+    } catch (err) {
+      logger.warn('Could not save the travel adjustment', { error: err });
+    }
+  }, [userId, refreshSetupSignals]);
+
   const handleOpenGameById = useCallback(async (id: string) => {
     try {
       await utilSaveCurrentGameIdSetting(id, userId);
@@ -1813,6 +1844,7 @@ export default function Home() {
               onTeamScopeChange={handleTeamScopeChange}
               onSetHomeView={handleSetHomeView}
               onOpenGameById={handleOpenGameById}
+              onAdjustTravel={handleAdjustTravel}
               onSetupModalsClosed={refreshSetupSignals}
             />
           </ErrorBoundary>

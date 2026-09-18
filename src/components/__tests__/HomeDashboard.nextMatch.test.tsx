@@ -5,6 +5,7 @@
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HomeDashboard } from '@/components/HomeDashboard';
 import type { HomeSummary } from '@/utils/homeSummary';
 
@@ -227,5 +228,71 @@ describe('when to leave', () => {
     render(<HomeDashboard summary={base({ upcoming: fixture({ travel: null }) })} t={t} />);
 
     expect(screen.queryByText(/Leave /)).toBeNull();
+  });
+});
+
+describe('adjusting the journey from the card', () => {
+  const travel = (over = {}) => ({
+    departure: '15:45', arriveBy: '16:45', travelMinutes: 60, arrivalBufferMinutes: 45,
+    isEstimate: true, distanceKm: 87, departsPreviousDay: false, ...over,
+  });
+
+  const open = async (over = {}) => {
+    const onAdjustTravel = jest.fn();
+    render(
+      <HomeDashboard
+        summary={base({ upcoming: fixture({ travel: travel(over) }) })}
+        onAdjustTravel={onAdjustTravel}
+        t={t}
+      />,
+    );
+    await userEvent.click(screen.getByText(/Leave 15:45/));
+    return { onAdjustTravel };
+  };
+
+  it('is closed until the departure line is tapped', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travel() }) })} t={t} />);
+
+    expect(screen.queryByText(/At the ground before kick-off/)).toBeNull();
+  });
+
+  /**
+   * A cup tie asking for an hour must not force the coach to change the club
+   * default and remember to change it back.
+   */
+  it('sets this match s own arrival buffer', async () => {
+    const { onAdjustTravel } = await open();
+
+    await userEvent.click(screen.getByRole('button', { name: '60 min' }));
+
+    expect(onAdjustTravel).toHaveBeenCalledWith('next', { arrivalBufferMinutes: 60 });
+  });
+
+  it('shows which buffer is currently in force', async () => {
+    await open();
+
+    expect(screen.getByRole('button', { name: '45 min' })).toHaveClass('bg-amber-500');
+  });
+
+  /** The measured drive is what turns the estimate into a real number. */
+  it('takes the drive time the coach actually measured', async () => {
+    const { onAdjustTravel } = await open();
+
+    const field = screen.getByLabelText(/How long the drive really takes/);
+    await userEvent.clear(field);
+    await userEvent.type(field, '90');
+    await userEvent.tab();
+
+    expect(onAdjustTravel).toHaveBeenCalledWith('next', { travelMinutes: 90 });
+  });
+
+  it('ignores a cleared drive time rather than saving a zero', async () => {
+    const { onAdjustTravel } = await open();
+
+    const field = screen.getByLabelText(/How long the drive really takes/);
+    await userEvent.clear(field);
+    await userEvent.tab();
+
+    expect(onAdjustTravel).not.toHaveBeenCalledWith('next', expect.objectContaining({ travelMinutes: expect.anything() }));
   });
 });

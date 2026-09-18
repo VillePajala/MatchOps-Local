@@ -4,10 +4,10 @@
     {
       "date": "2026-09-18",
       "en": [
-        "The next-match card now tells you when to leave. It counts back from kick-off: 45 minutes to be at the ground before it, plus the drive from your home ground. It needs a kick-off time and a pinned venue, and it stays quiet rather than guessing when it does not have them. The drive is marked as an estimate, because it is worked out from the distance rather than from the roads."
+        "The next-match card now tells you when to leave. Set your starting point and how long before kick-off you want to be at the ground in Asetukset, and the card counts back from kick-off through both. Tap the line to give a single match its own arrival time, or to record how long the drive really took - a measured time replaces the estimate for every match at that venue."
       ],
       "fi": [
-        "Seuraava ottelu -kortti kertoo nyt milloin pitää lähteä. Se laskee taaksepäin alkamisajasta: 45 minuuttia olla paikalla ennen sitä, plus ajomatka kotikentältänne. Se tarvitsee alkamisajan ja kiinnitetyn sijainnin, ja on hiljaa eikä arvaa jos niitä ei ole. Ajomatka on merkitty arvioksi, koska se lasketaan etäisyydestä eikä teistä."
+        "Seuraava ottelu -kortti kertoo nyt milloin pitää lähteä. Aseta lähtöpaikka ja se kuinka paljon ennen alkamisaikaa haluat olla paikalla Asetuksissa, niin kortti laskee alkamisajasta taaksepäin molempien läpi. Napauta riviä antaaksesi yksittäiselle ottelulle oman saapumisaikansa tai kirjataksesi paljonko ajomatka oikeasti kesti - mitattu aika korvaa arvion kaikissa saman paikan otteluissa."
       ]
     },
     {

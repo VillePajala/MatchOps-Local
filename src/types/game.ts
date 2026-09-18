@@ -237,6 +237,19 @@ export interface AppState {
    * 049, so nothing may depend on it being present.
    */
   locationAddress?: string;
+  /**
+   * Minutes to be at the ground before THIS match, overriding the club
+   * default. A cup tie or a tournament may ask for an hour where the league
+   * asks for thirty; without a per-match figure the coach would change the
+   * default for one fixture and forget to change it back.
+   */
+  arrivalBufferMinutes?: number;
+  /**
+   * How long the drive to this venue actually took, once the coach has said.
+   * Replaces the straight-line estimate and, carried forward by the venue
+   * book, every later match at the same place. Undefined until measured.
+   */
+  travelMinutes?: number;
   gameTime?: string;
   subIntervalMinutes?: number;
   completedIntervalDurations?: IntervalLog[];

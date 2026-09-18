@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import VenueInput from '@/components/VenueInput';
+import type { AppSettings } from '@/types/settings';
+import { DEFAULT_ARRIVAL_BUFFER_MINUTES } from '@/utils/travelPlan';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
@@ -130,6 +133,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
   const restoreFileInputRef = useRef<HTMLInputElement>(null);
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(DEFAULT_CLUB_SEASON_START_DATE);
+  const [startingPoint, setStartingPoint] = useState<AppSettings['startingPoint']>(undefined);
+  const [arrivalBuffer, setArrivalBuffer] = useState<number>(DEFAULT_ARRIVAL_BUFFER_MINUTES);
   const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(DEFAULT_CLUB_SEASON_END_DATE);
   const [assessmentsEnabled, setAssessmentsEnabled] = useState(false);
   const [assessmentRatingStyle, setAssessmentRatingStyle] = useState<AssessmentRatingStyle>('words');
@@ -275,6 +280,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       // Load club season settings (user-scoped)
       getAppSettings(userId).then(settings => {
         setClubSeasonStartDate(settings.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE);
+        setStartingPoint(settings.startingPoint);
+        setArrivalBuffer(settings.arrivalBufferMinutes ?? DEFAULT_ARRIVAL_BUFFER_MINUTES);
         setClubSeasonEndDate(settings.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE);
         setAssessmentsEnabled(settings.assessmentsEnabled ?? false);
         setAssessmentRatingStyle(settings.assessmentRatingStyle ?? 'words');
@@ -562,6 +569,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose, showRestoreConfirm]);
 
+  /**
+   * Where the team sets off from. Stored with its coordinates, because the
+   * departure time measures a distance - a name alone is a place a map has to
+   * guess at, and a guessed start makes every departure time fiction.
+   */
+  const handleStartingPointChange = useCallback(async (venue: { name: string; latitude?: number; longitude?: number }) => {
+    const next =
+      typeof venue.latitude === 'number' && typeof venue.longitude === 'number'
+        ? { name: venue.name, latitude: venue.latitude, longitude: venue.longitude }
+        : undefined;
+    setStartingPoint(next);
+    try {
+      await updateAppSettings({ startingPoint: next }, userId);
+    } catch (error) {
+      logger.error('[SettingsModal] Could not save the starting point', error);
+    }
+  }, [userId]);
+
+  const handleArrivalBufferChange = useCallback(async (minutes: number) => {
+    // Clamped rather than validated with a message: a negative or absurd buffer
+    // is a slip, and silently sane beats an error for a number this small.
+    const clamped = Math.min(240, Math.max(0, Math.round(minutes || 0)));
+    setArrivalBuffer(clamped);
+    try {
+      await updateAppSettings({ arrivalBufferMinutes: clamped }, userId);
+    } catch (error) {
+      logger.error('[SettingsModal] Could not save the arrival buffer', error);
+    }
+  }, [userId]);
+
   if (!isOpen) return null;
 
   const getTabStyle = (tab: SettingsTab) => {
@@ -571,6 +608,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
     return `${baseStyle} bg-slate-700 text-slate-300 hover:bg-slate-600`;
   };
+
 
   const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
   const inputStyle =
@@ -758,6 +796,47 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* Kirjuri (PR 4): own AI provider behind the consent gate */}
             <AiSettingsCard userId={userId} />
+
+            {/* THE JOURNEY. Both numbers behind the next-match card's departure
+                time live here, because both are club facts rather than
+                per-match ones - and because a derived starting point was
+                invisible and uncorrectable, which is why it is asked for. */}
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+              <h3 className="text-lg font-semibold text-slate-200">
+                {t('settingsModal.travelTitle', 'Getting to matches')}
+              </h3>
+              <p className="text-sm text-slate-300">
+                {t('settingsModal.travelDescription', 'Used to work out when to leave for your next match. Without a starting point no departure time is shown.')}
+              </p>
+
+              <VenueInput
+                id="starting-point"
+                value={startingPoint?.name ?? ''}
+                latitude={startingPoint?.latitude}
+                longitude={startingPoint?.longitude}
+                hasCoordinates={startingPoint?.latitude !== undefined}
+                onChange={handleStartingPointChange}
+                className={inputStyle}
+              />
+
+              <div>
+                <label className={labelStyle} htmlFor="arrival-buffer">
+                  {t('settingsModal.arrivalBufferLabel', 'Be at the ground before kick-off (minutes)')}
+                </label>
+                <input
+                  id="arrival-buffer"
+                  type="number"
+                  min={0}
+                  max={240}
+                  value={arrivalBuffer}
+                  onChange={(e) => handleArrivalBufferChange(Number(e.target.value))}
+                  className={inputStyle}
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  {t('settingsModal.arrivalBufferHint', 'Warm-up, lineup and changing. A single match can be given its own figure.')}
+                </p>
+              </div>
+            </div>
 
             {/* Season Settings - merged from Season tab */}
             <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
