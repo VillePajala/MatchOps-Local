@@ -8,10 +8,16 @@ import { render, screen } from '@testing-library/react';
 import { HomeDashboard } from '@/components/HomeDashboard';
 import type { HomeSummary } from '@/utils/homeSummary';
 
+/**
+ * Interpolates EVERY variable, not only {{count}}. The narrower version let a
+ * label carrying {{time}} render the placeholder literally and still pass.
+ */
 const t = ((k: string, d?: string | Record<string, unknown>, o?: Record<string, unknown>) => {
   const fallback = typeof d === 'string' ? d : k;
-  const count = (o?.count ?? (typeof d === 'object' ? d?.count : undefined)) as number | undefined;
-  return count === undefined ? fallback : fallback.replace('{{count}}', String(count));
+  const vars = { ...(typeof d === 'object' ? d : {}), ...(o ?? {}) } as Record<string, unknown>;
+  return fallback.replace(/\{\{(\w+)\}\}/g, (m, key: string) =>
+    vars[key] === undefined ? m : String(vars[key]),
+  );
 }) as unknown as Parameters<typeof HomeDashboard>[0]['t'];
 
 const base = (over: Partial<HomeSummary> = {}): HomeSummary => ({
@@ -28,7 +34,7 @@ const base = (over: Partial<HomeSummary> = {}): HomeSummary => ({
 
 const resume = { id: 'open', opponent: 'HJK', ourScore: 1, theirScore: 0, homeOrAway: 'away' as const, isPlayed: true, mapsUrl: null };
 const recent = (id: string, opponent: string) => ({ id, opponent, ourScore: 1, theirScore: 0, result: 'W' as const, date: '2026-09-14', isFriendly: false });
-const fixture = (over = {}) => ({ id: 'next', opponent: 'Purppura', date: '2026-09-20', time: '14:00', venue: 'Kimpisen kenttä', fieldNumber: 'TN 2', mapsUrl: null, daysAway: 3, ...over });
+const fixture = (over = {}) => ({ id: 'next', opponent: 'Purppura', date: '2026-09-20', time: '14:00', venue: 'Kimpisen kenttä', fieldNumber: 'TN 2', mapsUrl: null, daysAway: 3, travel: null, ...over });
 
 describe('the top slot is never empty', () => {
   it('shows the fixture when one is booked', () => {
@@ -188,5 +194,38 @@ describe('which strip the toggle opens on', () => {
     );
 
     expect(screen.getByText('KuPS')).toBeInTheDocument();
+  });
+});
+
+describe('when to leave', () => {
+  const travel = (over = {}) => ({
+    departure: '15:45', arriveBy: '16:45', travelMinutes: 60,
+    isEstimate: false, distanceKm: 87, departsPreviousDay: false, ...over,
+  });
+
+  it('tells the coach when to set off', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travel() }) })} t={t} />);
+
+    expect(screen.getByText(/Leave 15:45/)).toBeInTheDocument();
+  });
+
+  /** A straight-line guess about roads it has never seen is not a promise. */
+  it('says when the drive is only a guess', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travel({ isEstimate: true }) }) })} t={t} />);
+
+    expect(screen.getByText(/estimate/)).toBeInTheDocument();
+  });
+
+  it('drops the hedge once the coach has driven it', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travel() }) })} t={t} />);
+
+    expect(screen.queryByText(/estimate/)).toBeNull();
+    expect(screen.getByText(/60 min drive/)).toBeInTheDocument();
+  });
+
+  it('says nothing at all when it cannot be worked out', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture({ travel: null }) })} t={t} />);
+
+    expect(screen.queryByText(/Leave /)).toBeNull();
   });
 });

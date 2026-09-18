@@ -1221,7 +1221,10 @@
     "dashToday": "Tänään",
     "dashTomorrow": "Huomenna",
     "dashInDays": "{{count}} pv",
-    "dashUpcoming": "Tulevat"
+    "dashUpcoming": "Tulevat",
+    "departAt": "Lähde {{time}}",
+    "departEstimate": "(arvio, {{minutes}} min ajo)",
+    "departKnown": "({{minutes}} min ajo)"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
