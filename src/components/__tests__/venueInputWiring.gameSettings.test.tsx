@@ -31,6 +31,16 @@ describe('GameSettingsModal receives the whole location', () => {
   it.each(['locationLat', 'locationLng', 'locationAddress'])('passes %s', (prop) => {
     expect(props).toContain(`${prop}={data.gameSessionState.${prop}}`);
   });
+
+  /**
+   * Editing a match's location needs the venue book as much as creating one
+   * does - a venue the map cannot find is findable ONLY from the book, and
+   * Ottelutiedot was the one place it never reached.
+   */
+  it('passes the venue book', () => {
+    expect(props).toContain('knownVenues={knownVenues}');
+    expect(source).toContain('buildVenueBook(Object.values(data.savedGames ?? {}))');
+  });
 });
 
 describe('the session carries the address alongside the coordinates', () => {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import type { KnownVenue } from '@/utils/venueBook';
 import { useTranslation } from 'react-i18next';
 
 import logger from '@/utils/logger';
@@ -103,6 +104,8 @@ export interface GameSettingsModalProps {
   locationLat?: number;
   locationLng?: number;
   locationAddress?: string;
+  /** Venues this coach has used before, offered in the name field. */
+  knownVenues?: readonly KnownVenue[];
   onFieldNumberChange: (value: string) => void;
   /** Keeps the live session's pin in step with the saved game's. */
   onLocationCoordsChange: (coords: { lat?: number; lng?: number; address?: string }) => void;
@@ -200,6 +203,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   locationLat,
   locationLng,
   locationAddress,
+  knownVenues,
   onFieldNumberChange,
   onLocationCoordsChange,
   onGameTimeChange,
@@ -1923,6 +1927,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     latitude={locationLat}
                     longitude={locationLng}
                     address={locationAddress}
+                    knownVenues={knownVenues}
                     onChange={(venue) => {
                         onGameLocationChange(venue.name);
                         // Without this the session keeps the OLD position: the
