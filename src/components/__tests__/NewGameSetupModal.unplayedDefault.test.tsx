@@ -11,7 +11,9 @@ import { resolveGameResult } from '@/utils/gameResult';
  * because the rule is one comparison and the point of the test is the RULE -
  * a match in the future cannot have been played.
  */
-const defaultIsPlayed = (gameDate: string, today: string) => !(gameDate > today);
+// Imported, not re-implemented: a local copy is exactly how this rule
+// drifted out of step with buildHomeSummary without a single test noticing.
+import { defaultIsPlayed } from '@/utils/matchPlayedDefault';
 
 const TODAY = '2026-09-17';
 
@@ -21,8 +23,8 @@ describe('the "not played yet" default', () => {
   });
 
   /** Today's match is being played now, so played is the right default. */
-  it('marks today as played', () => {
-    expect(defaultIsPlayed(TODAY, TODAY)).toBe(true);
+  it('does NOT mark today as played - it has not happened yet', () => {
+    expect(defaultIsPlayed(TODAY, TODAY)).toBe(false);
   });
 
   it('marks a past match as played', () => {
@@ -65,7 +67,7 @@ describe('a match date taken from a competition', () => {
     const date = laterOfTodayAnd('2026-08-15', TODAY);
 
     expect(date).toBe(TODAY);
-    expect(defaultIsPlayed(date, TODAY)).toBe(true); // today: being played now
+    expect(defaultIsPlayed(date, TODAY)).toBe(false); // today: not played until it is
     // Whereas the old behaviour dated it to August and marked it played, so:
     expect(defaultIsPlayed('2026-08-15', TODAY)).toBe(true);
     expect(resolveGameResult({ homeScore: 0, awayScore: 0, homeOrAway: 'home' })).toBe('D');
@@ -87,5 +89,34 @@ describe('why the old default mattered', () => {
     expect(defaultIsPlayed(fixture.gameDate, TODAY)).toBe(false);
     // Had it defaulted to played, this is what the season record would have absorbed.
     expect(resolveGameResult(fixture)).toBe('D');
+  });
+});
+
+
+/**
+ * The rule does not stand alone: the front page's next-match card requires
+ * isPlayed === false, and deliberately counts TODAY as upcoming. When the two
+ * disagreed, a match created for today fell down the gap - it could never be
+ * the next match, and it sat in the season record as a 0-0 draw. That is the
+ * owner's bug, and this is the test that would have caught it.
+ */
+describe('agrees with what the next-match card requires', () => {
+  const TODAY_ISO = '2026-09-18';
+
+  it.each([
+    ['today', TODAY_ISO],
+    ['tomorrow', '2026-09-19'],
+    ['next week', '2026-09-25'],
+  ])('a match %s can be the next match', (_when, date) => {
+    const isPlayed = defaultIsPlayed(date, TODAY_ISO);
+
+    // buildHomeSummary: `if (g.isPlayed !== false) return false`
+    expect(isPlayed).toBe(false);
+    // buildHomeSummary: `if (g.gameDate < opts.today) return false`
+    expect(date < TODAY_ISO).toBe(false);
+  });
+
+  it('a match yesterday is a result, not a fixture', () => {
+    expect(defaultIsPlayed('2026-09-17', TODAY_ISO)).toBe(true);
   });
 });

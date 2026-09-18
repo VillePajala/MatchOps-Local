@@ -12,6 +12,7 @@ import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as
 import { getPlans } from '@/utils/playtimePlanner/storage';
 import { buildVenueBook } from '@/utils/venueBook';
 import { todayIso } from '@/utils/todayIso';
+import { defaultIsPlayed } from '@/utils/matchPlayedDefault';
 import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
@@ -229,17 +230,19 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
    * fixture booked in advance counted as a draw until it was played. A record
    * reading "14 peliä · 4-10-0" was mostly matches that had not happened.
    *
-   * A match in the future cannot have been played, so the date already knows
-   * the answer. Derived rather than stored so that an explicit toggle still
-   * wins and changing the date afterwards still updates the default - and so
-   * there is no setState in an effect to cascade renders.
+   * A match that has not happened yet cannot have been played, so the date
+   * already knows the answer - see `matchPlayedDefault`, which is the single
+   * definition of that rule and explains why TODAY counts as not-yet-played.
+   * Derived rather than stored so that an explicit toggle still wins and
+   * changing the date afterwards still updates the default - and so there is
+   * no setState in an effect to cascade renders.
    */
   const [isPlayedOverride, setIsPlayedOverride] = useState<boolean | null>(null);
   const today = todayIso();
-  const isPlayed = isPlayedOverride ?? !(gameDate > today);
+  const isPlayed = isPlayedOverride ?? defaultIsPlayed(gameDate, today);
   const setIsPlayed = (next: boolean | ((v: boolean) => boolean)) =>
     setIsPlayedOverride((prev) => {
-      const current = prev ?? !(gameDate > today);
+      const current = prev ?? defaultIsPlayed(gameDate, today);
       return typeof next === 'function' ? next(current) : next;
     });
   const [isFriendly, setIsFriendly] = useState<boolean>(false);

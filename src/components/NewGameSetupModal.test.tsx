@@ -235,7 +235,9 @@ describe('NewGameSetupModal', () => {
     });
     expect(mockOnStart).toHaveBeenCalledWith(
       expect.arrayContaining(['player1', 'player2']), 'New Team Name', 'Opponent Team',
-      expect.any(String), '', '', undefined, undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, true, null,
+      // isPlayed=false: the game is dated TODAY, and a match today has not been
+      // played yet at the moment it is created. See matchPlayedDefault.
+      expect.any(String), '', '', undefined, undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, false, null,
       expect.arrayContaining([
         expect.objectContaining({ id: 'player1', name: 'John Doe' }),
         expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
@@ -255,7 +257,9 @@ describe('NewGameSetupModal', () => {
   // was replaced with tab-based UI. Seasons and tournaments should now be created
   // in the SeasonTournamentManagementModal.
 
-  test('passes isPlayed false when not played toggle checked', async () => {
+  // The default for today is now "not played", so tapping the toggle marks the
+  // match PLAYED - the opposite of what it did when today defaulted to played.
+  test('the unplayed toggle flips the date-derived default', async () => {
     renderModal();
 
     // Wait for home team name to load
@@ -275,7 +279,7 @@ describe('NewGameSetupModal', () => {
     await waitFor(() => {
       expect(mockOnStart).toHaveBeenCalledWith(
         expect.arrayContaining(['player1', 'player2']), 'Last Team', 'Opponent Team',
-        expect.any(String), '', '', undefined, undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, false, null,
+        expect.any(String), '', '', undefined, undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, true, null,
         expect.arrayContaining([
           expect.objectContaining({ id: 'player1', name: 'John Doe' }),
           expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
