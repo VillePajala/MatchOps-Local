@@ -2,9 +2,9 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiOutlineMapPin } from 'react-icons/hi2';
+import { HiOutlineMapPin, HiOutlinePlus } from 'react-icons/hi2';
 import { venuePinLabel, type VenueSuggestion } from '@/utils/venueSearch';
-import { matchVenues, type KnownVenue } from '@/utils/venueBook';
+import { matchVenues, isKnownVenue, type KnownVenue } from '@/utils/venueBook';
 import { useVenueSuggestions, VENUE_MIN_QUERY } from '@/hooks/useVenueSuggestions';
 
 /**
@@ -82,6 +82,7 @@ export const VenueInput: React.FC<VenueInputProps> = ({
 }) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
+  const addressRef = useRef<HTMLInputElement>(null);
 
   const [nameOpen, setNameOpen] = useState(false);
   const [nameActive, setNameActive] = useState(-1);
@@ -91,7 +92,22 @@ export const VenueInput: React.FC<VenueInputProps> = ({
     () => matchVenues(knownVenues ?? [], value),
     [knownVenues, value],
   );
-  const showOwnVenues = nameOpen && ownVenues.length > 0;
+  /**
+   * "Keep what I typed" as an explicit row.
+   *
+   * WITHOUT IT, NOTHING SAYS A NEW VENUE IS ALLOWED. The owner typed
+   * "Mitta-Keittiöt Areena", saw two similar venues they had used before, and
+   * read the list as the only permitted answers - as if the right move were to
+   * keep trying spellings until one matched. Walking away from a list of
+   * suggestions is a valid action that no suggestion list ever announces.
+   *
+   * Offered only when the name is not already one of theirs, since confirming
+   * a venue they have used is what tapping it in the list does.
+   */
+  const typedName = value.trim();
+  const canCreate = typedName.length > 0 && !isKnownVenue(knownVenues ?? [], typedName);
+
+  const showOwnVenues = nameOpen && (ownVenues.length > 0 || canCreate);
 
   // A tap outside is a dismissal, not a choice.
   useEffect(() => {
@@ -122,21 +138,36 @@ export const VenueInput: React.FC<VenueInputProps> = ({
     [onChange],
   );
 
+  /**
+   * Take the typed name as it stands. Nothing to emit - the field already holds
+   * it - so this only dismisses the list and moves the coach on to the address,
+   * which is the step they would reach for next anyway.
+   */
+  const keepTypedName = useCallback(() => {
+    setNameOpen(false);
+    setNameActive(-1);
+    addressRef.current?.focus();
+  }, []);
+
+  // The create row is the last stop in the list, so the arrows reach it.
+  const rowCount = ownVenues.length + (canCreate ? 1 : 0);
+
   const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (showOwnVenues) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setNameActive((i) => (i + 1) % ownVenues.length);
+        setNameActive((i) => (i + 1) % rowCount);
         return;
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setNameActive((i) => (i <= 0 ? ownVenues.length - 1 : i - 1));
+        setNameActive((i) => (i <= 0 ? rowCount - 1 : i - 1));
         return;
       }
       if (e.key === 'Enter' && nameActive >= 0) {
         e.preventDefault();
-        pickKnown(ownVenues[nameActive]);
+        if (nameActive < ownVenues.length) pickKnown(ownVenues[nameActive]);
+        else keepTypedName();
         return;
       }
       if (e.key === 'Escape') {
@@ -237,11 +268,34 @@ export const VenueInput: React.FC<VenueInputProps> = ({
                 </button>
               </li>
             ))}
+
+            {canCreate ? (
+              <li role="option" aria-selected={nameActive === ownVenues.length}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    keepTypedName();
+                  }}
+                  className={`flex w-full items-center gap-2 border-t border-slate-700 px-3 py-2 text-left text-sm transition-colors ${
+                    nameActive === ownVenues.length
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-300 hover:bg-slate-700/70'
+                  }`}
+                >
+                  <HiOutlinePlus className="h-4 w-4 shrink-0 text-indigo-300" aria-hidden="true" />
+                  <span className="truncate">
+                    {t('venueInput.useTypedName', 'Use "{{name}}" as a new place', { name: typedName })}
+                  </span>
+                </button>
+              </li>
+            ) : null}
           </ul>
         ) : null}
       </div>
 
       <AddressField
+        inputRef={addressRef}
         id={`${id}-address`}
         value={address ?? ''}
         hasCoordinates={Boolean(hasCoordinates)}
@@ -262,13 +316,14 @@ export const VenueInput: React.FC<VenueInputProps> = ({
  * at - so picking, rather than typing, is what counts.
  */
 const AddressField: React.FC<{
+  inputRef?: React.Ref<HTMLInputElement>;
   id: string;
   value: string;
   hasCoordinates: boolean;
   className?: string;
   onType: (text: string) => void;
   onPick: (suggestion: VenueSuggestion) => void;
-}> = ({ id, value, hasCoordinates, className, onType, onPick }) => {
+}> = ({ inputRef, id, value, hasCoordinates, className, onType, onPick }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const { suggestions, isSearching, searchedFor } = useVenueSuggestions(
@@ -294,6 +349,7 @@ const AddressField: React.FC<{
       </label>
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
           id={id}
           value={value}
