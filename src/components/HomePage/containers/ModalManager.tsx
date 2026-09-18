@@ -1,4 +1,5 @@
 import React from 'react';
+import { buildVenueBook } from '@/utils/venueBook';
 import type { AiMeta, GameNoteInput } from '@/types/game';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import dynamic from 'next/dynamic';
@@ -87,7 +88,7 @@ interface ModalManagerHandlers {
   gameDateChange: (date: string) => void;
   gameLocationChange: (location: string) => void;
   fieldNumberChange: (value: string) => void;
-  locationCoordsChange: (coords: { lat?: number; lng?: number }) => void;
+  locationCoordsChange: (coords: { lat?: number; lng?: number; address?: string }) => void;
   gameTimeChange: (time: string) => void;
   gameNotesChange: (notes: string) => void;
   playerPositionsChange: (positions: Record<string, string[]>) => void;
@@ -145,6 +146,11 @@ export interface ModalManagerProps {
 }
 
 export function ModalManager({ state, data, handlers, ratingStyle = 'words', assessmentTemplate = 'balanced' }: ModalManagerProps) {
+  // The venues this coach has played at, from the same saved games this
+  // container already holds. Editing a match's location needs the book as much
+  // as creating one does - a venue the map cannot find is only findable from
+  // the book, and Ottelutiedot was the one place it never reached.
+  const knownVenues = React.useMemo(() => buildVenueBook(Object.values(data.savedGames ?? {})), [data.savedGames]);
   const { t } = useTranslation();
   const assessmentsEnabled = useAssessmentsEnabled();
 
@@ -275,6 +281,8 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           onLocationCoordsChange={handlers.locationCoordsChange}
           locationLat={data.gameSessionState.locationLat}
           locationLng={data.gameSessionState.locationLng}
+          locationAddress={data.gameSessionState.locationAddress}
+          knownVenues={knownVenues}
           onGameTimeChange={handlers.gameTimeChange}
           onAgeGroupChange={handlers.ageGroupChange}
           onTournamentLevelChange={handlers.tournamentLevelChange}

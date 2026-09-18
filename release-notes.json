@@ -1,6 +1,23 @@
 {
-  "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
+  "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user.",
   "releases": [
+    {
+      "date": "2026-09-18",
+      "en": [
+        "Match location is now two fields: the name you call the place, and its street address. The app remembers venues you have used, so after the first time one tap fills both.",
+        "A match created for today is now a fixture rather than a result. It shows as your next match, and counts as played on its own once the clock runs or you record something.",
+        "Fixes: deleting a match updates the front page straight away, and tapping Jatka right after the app opens no longer lands you on an empty practice pitch.",
+        "The privacy policy now names Photon, the map search behind the location field.",
+        "The coloured rule under your team's name in the score bar is gone."
+      ],
+      "fi": [
+        "Ottelun sijainti on nyt kaksi kenttää: nimi jolla paikkaa kutsut ja sen katuosoite. Sovellus muistaa käyttämäsi paikat, joten ensimmäisen kerran jälkeen yksi napautus täyttää molemmat.",
+        "Tälle päivälle luotu ottelu on nyt tuleva ottelu eikä tulos. Se näkyy seuraavana otteluna ja lasketaan pelatuksi itsestään, kun kello käynnistyy tai kirjaat jotain.",
+        "Korjauksia: ottelun poistaminen päivittää etusivun heti, eikä Jatka-painike heti sovelluksen avaamisen jälkeen enää vie tyhjälle harjoituskentälle.",
+        "Tietosuojakäytäntö nimeää nyt Photonin, sijaintikentän takana olevan karttahaun.",
+        "Tulospalkissa oman joukkueen nimen alla ollut värillinen viiva on poistettu."
+      ]
+    },
     {
       "date": "2026-09-17",
       "en": [

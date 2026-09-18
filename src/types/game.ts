@@ -217,6 +217,26 @@ export interface AppState {
    */
   locationLat?: number;
   locationLng?: number;
+  /**
+   * The venue's address AS THE LOOKUP GAVE IT, when one was picked.
+   *
+   * WHY IT IS STORED SEPARATELY FROM THE NAME. A venue has two names: the one
+   * the map knows ("Pihlajavedentie 1, Savonlinna") and the one the coach and
+   * the parents say ("Mitta-Keittiöt Areena"). OpenStreetMap carries the first
+   * and almost never the second, so the searchable string and the recognisable
+   * string are different facts and one field cannot hold both.
+   *
+   * Keeping it is what lets the coach rename a picked venue without losing the
+   * pin. The old rule cleared the coordinates the moment the text was edited,
+   * because a pin that silently contradicts the words beside it is worse than
+   * no pin at all. That objection is answered by SHOWING this line under the
+   * field rather than by forbidding the edit: the name and the pinned place are
+   * then both on screen, and cannot drift apart unnoticed.
+   *
+   * Undefined for typed locations and for every game created before migration
+   * 049, so nothing may depend on it being present.
+   */
+  locationAddress?: string;
   gameTime?: string;
   subIntervalMinutes?: number;
   completedIntervalDurations?: IntervalLog[];

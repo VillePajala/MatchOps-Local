@@ -135,6 +135,14 @@ export function PrivacyPolicyClient() {
                 {t('privacyPolicy.thirdPartyServices.vercelLink')}
               </a>
             </p>
+            {/* Reached only while the coach is typing in the match location
+                field, which is why the description says "when used". */}
+            <p>
+              <strong>{t('privacyPolicy.thirdPartyServices.photon')}</strong> - {t('privacyPolicy.thirdPartyServices.photonDesc')}{' '}
+              <a href="https://www.komoot.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+                {t('privacyPolicy.thirdPartyServices.photonLink')}
+              </a>
+            </p>
           </div>
         </section>
 

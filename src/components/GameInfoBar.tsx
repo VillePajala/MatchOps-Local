@@ -11,8 +11,6 @@ interface GameInfoBarProps {
   onTeamNameChange: (newName: string) => void;
   onOpponentNameChange: (newName: string) => void;
   homeOrAway: 'home' | 'away';
-  /** The team's kit colour, when they have one. Undefined for most teams. */
-  teamColor?: string;
 }
 
 const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
@@ -23,7 +21,6 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
   onTeamNameChange,
   onOpponentNameChange,
   homeOrAway,
-  teamColor,
 }) => {
   const [editingField, setEditingField] = useState<'left' | 'right' | null>(null);
   const [editValue, setEditValue] = useState<string>('');
@@ -100,14 +97,11 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
 
   const leftTeamName = homeOrAway === 'home' ? teamName : opponentName;
   const rightTeamName = homeOrAway === 'home' ? opponentName : teamName;
-  // THE KIT COLOUR BELONGS TO THE TEAM, NOT TO A SIDE OF THE BAR. The sides
-  // swap with homeOrAway, and the underline used to be nailed to the left span
-  // - so in an away game the coach's own colours were drawn under the
-  // OPPONENT'S name. Derive both from the same condition so they cannot drift
-  // apart again.
-  const ownTeamStyle = teamColor ? { boxShadow: `inset 0 -3px 0 0 ${teamColor}` } : undefined;
-  const leftTeamStyle = homeOrAway === 'home' ? ownTeamStyle : undefined;
-  const rightTeamStyle = homeOrAway === 'home' ? undefined : ownTeamStyle;
+  // NO KIT-COLOUR RULE UNDER THE OWN-TEAM NAME. It used to underline whichever
+  // side was the coach's own team. The owner reads the bar by the names - they
+  // wrote them - so a colour saying "this one is yours" earned nothing, and the
+  // prop went with it rather than lingering unused. The kit colour is still the
+  // field's, where it distinguishes players at a glance.
   const leftScore = homeScore;
   const rightScore = awayScore;
 
@@ -140,11 +134,6 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
               onTouchEnd={() => handleTap('left')}
               onDoubleClick={() => handleStartEdit('left')}
               title={leftTeamName}
-              // The kit colour as an underline rather than a dot or a filled
-              // background: it has to sit beside an editable name without
-              // competing with it, and a rule under the word reads as "these
-              // are their colours" the way a scarf does.
-              style={leftTeamStyle}
             >
               {leftTeamName}
             </span>
@@ -188,7 +177,6 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
               onTouchEnd={() => handleTap('right')}
               onDoubleClick={() => handleStartEdit('right')}
               title={rightTeamName}
-              style={rightTeamStyle}
             >
               {rightTeamName}
             </span>

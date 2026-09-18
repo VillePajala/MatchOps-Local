@@ -2469,7 +2469,7 @@
       "title": "Data We Do NOT Collect",
       "items": {
         "gameContent": "Game content, scores, or statistics (stored locally only, or in your private cloud account)",
-        "location": "Location data",
+        "location": "Location data. Nothing about where you or your device are is sent to us or stored by us. The venue search does reach a map provider on your behalf while you use it - see Third-Party Services.",
         "photos": "Photos or media",
         "deviceIds": "Device identifiers for tracking or advertising",
         "playerNames": "Player names or personal details (these are stored locally by you, or in your private cloud account)"
@@ -2490,7 +2490,10 @@
       "googlePlayLink": "Google's Privacy Policy",
       "sentryLink": "Sentry's Privacy Policy",
       "supabaseLink": "Supabase's Privacy Policy",
-      "vercelLink": "Vercel's Privacy Policy"
+      "vercelLink": "Vercel's Privacy Policy",
+      "photon": "Photon (Komoot)",
+      "photonDesc": "Venue search in the match location field, when used (EU, Germany).",
+      "photonLink": "Komoot Privacy Policy"
     },
     "yourRights": {
       "title": "Your Rights (GDPR)",
@@ -3873,6 +3876,13 @@
   "venueInput": {
     "pinned": "Pinned to a map location",
     "searching": "Searching for places",
-    "noMatches": "No places found. Try the venue's plain name, or just type it - the location is saved either way."
+    "yourVenues": "Your venues",
+    "nameLabel": "Venue name (optional)",
+    "namePlaceholder": "What you call the place",
+    "addressLabel": "Street address (optional)",
+    "addressPlaceholder": "e.g. Muurarinkatu 4, Savonlinna",
+    "addressHint": "Pick one from the list to get exact directions.",
+    "addressPinned": "Directions will go straight here.",
+    "addressNothing": "No match for that address."
   }
 }

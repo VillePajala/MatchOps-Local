@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import type { KnownVenue } from '@/utils/venueBook';
 import { useTranslation } from 'react-i18next';
 
 import logger from '@/utils/logger';
@@ -102,9 +103,12 @@ export interface GameSettingsModalProps {
   /** Present only when the venue was picked from the lookup. */
   locationLat?: number;
   locationLng?: number;
+  locationAddress?: string;
+  /** Venues this coach has used before, offered in the name field. */
+  knownVenues?: readonly KnownVenue[];
   onFieldNumberChange: (value: string) => void;
   /** Keeps the live session's pin in step with the saved game's. */
-  onLocationCoordsChange: (coords: { lat?: number; lng?: number }) => void;
+  onLocationCoordsChange: (coords: { lat?: number; lng?: number; address?: string }) => void;
   onGameTimeChange: (time: string) => void;
   onAgeGroupChange: (age: string) => void;
   onTournamentLevelChange: (level: string) => void;
@@ -198,6 +202,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   fieldNumber,
   locationLat,
   locationLng,
+  locationAddress,
+  knownVenues,
   onFieldNumberChange,
   onLocationCoordsChange,
   onGameTimeChange,
@@ -1911,28 +1917,33 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
                 {/* Game Location */}
                 <div className="mb-4">
-                  <label htmlFor="gameLocationInput" className="block text-sm font-medium text-slate-300 mb-1">
-                    {t('gameSettingsModal.locationLabel', 'Location (Optional)')}
-                  </label>
+                  {/* No label here: VenueInput is TWO labelled fields - the
+                      name and the street address - and a heading over both
+                      would re-introduce the ambiguity about which is which. */}
                   <VenueInput
                     id="gameLocationInput"
                     value={gameLocation}
                     hasCoordinates={locationLat !== undefined}
+                    latitude={locationLat}
+                    longitude={locationLng}
+                    address={locationAddress}
+                    knownVenues={knownVenues}
                     onChange={(venue) => {
                         onGameLocationChange(venue.name);
                         // Without this the session keeps the OLD position: the
                         // name would update, the saved game would gain the new
                         // coordinates, and the pin beside it would still point
                         // at the previous venue until a reload.
-                        onLocationCoordsChange({ lat: venue.latitude, lng: venue.longitude });
-                        // Coordinates ride along with the name so the pin and the
-                        // words can never disagree on a saved game.
+                        onLocationCoordsChange({ lat: venue.latitude, lng: venue.longitude, address: venue.address });
+                        // The pin rides along with the name so the two can never
+                        // disagree on a saved game - and the address comes with
+                        // it, because that is what makes a renamed venue's pin
+                        // visible instead of silent.
                         mutateGameDetails(
-                          { gameLocation: venue.name, locationLat: venue.latitude, locationLng: venue.longitude },
+                          { gameLocation: venue.name, locationLat: venue.latitude, locationLng: venue.longitude, locationAddress: venue.address },
                           { source: 'stateSync', expectedState: { gameLocation: venue.name } }
                         );
                     }}
-                    placeholder={t('gameSettingsModal.locationPlaceholder', 'e.g., Central Park')}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   />
                   {/* Same check as game creation: confirm the venue resolves
