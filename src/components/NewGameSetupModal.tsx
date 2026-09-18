@@ -48,6 +48,7 @@ interface NewGameSetupModalProps {
     fieldNumber: string,
     locationLat: number | undefined,
     locationLng: number | undefined,
+    locationAddress: string | undefined,
     gameTime: string,
     seasonId: string | null,
     tournamentId: string | null,
@@ -172,6 +173,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [fieldNumber, setFieldNumber] = useState('');
   const [locationLat, setLocationLat] = useState<number | undefined>(undefined);
   const [locationLng, setLocationLng] = useState<number | undefined>(undefined);
+  const [locationAddress, setLocationAddress] = useState<string | undefined>(undefined);
   const locationMapUrl = mapsSearchUrl(gameLocation, locationLat, locationLng);
 
   /**
@@ -181,10 +183,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
    * because nothing on screen reveals the disagreement.
    */
   const handleVenueChange = useCallback(
-    (venue: { name: string; latitude?: number; longitude?: number }) => {
+    (venue: { name: string; latitude?: number; longitude?: number; address?: string }) => {
       setGameLocation(venue.name);
       setLocationLat(venue.latitude);
       setLocationLng(venue.longitude);
+      setLocationAddress(venue.address);
     },
     [],
   );
@@ -352,6 +355,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     // The pin belongs to the venue, so it travels with it.
     setLocationLat(lastGame.locationLat);
     setLocationLng(lastGame.locationLng);
+    setLocationAddress(lastGame.locationAddress);
     // The pitch is deliberately NOT carried over. Repeating a game is about
     // not retyping the opponent and the venue; the pitch is the one part that
     // commonly differs between two matches at the same place, so an empty box
@@ -1016,6 +1020,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       fieldNumber.trim(),
       locationLat,
       locationLng,
+      locationAddress,
       gameTime,
       selectedSeasonId,
       selectedTournamentId,
@@ -1669,6 +1674,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           id="gameLocationInput"
                           value={gameLocation}
                           hasCoordinates={locationLat !== undefined}
+                          latitude={locationLat}
+                          longitude={locationLng}
+                          address={locationAddress}
                           onChange={handleVenueChange}
                           onKeyDown={handleKeyDown}
                           placeholder={t('newGameSetupModal.locationPlaceholder', 'e.g., Central Park')}

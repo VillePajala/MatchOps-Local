@@ -52,6 +52,8 @@ export interface StartNewGameRequest {
   /** Present only when the venue was picked from the lookup. */
   locationLat?: number;
   locationLng?: number;
+  /** The address that pin came from, so a renamed venue can still show it. */
+  locationAddress?: string;
   gameTime: string;
   seasonId: string | null;
   tournamentId: string | null;
@@ -103,6 +105,7 @@ export async function buildAndPersistNewGame(
     fieldNumber,
     locationLat,
     locationLng,
+    locationAddress,
     gameTime,
     seasonId,
     tournamentId,
@@ -247,6 +250,7 @@ export async function buildAndPersistNewGame(
     fieldNumber,
     locationLat,
     locationLng,
+    locationAddress,
     gameTime,
     seasonId: seasonId || '',
     tournamentId: tournamentId || '',

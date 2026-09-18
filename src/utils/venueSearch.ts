@@ -42,6 +42,9 @@ export interface VenueSuggestion {
   /** The town alone. Kept as a field rather than parsed back out of `context`,
    *  whose first part is the STREET whenever the venue has both. */
   town: string | null;
+  /** Street and number, when OSM has them. This is the half a map can find
+   *  and a parent can be sent; the name is the half they recognise. */
+  address: string | null;
   latitude: number;
   longitude: number;
 }
@@ -97,6 +100,7 @@ function toSuggestion(feature: PhotonFeature, index: number): VenueSuggestion | 
     name,
     context,
     town,
+    address,
     latitude,
     longitude,
   };
@@ -161,4 +165,25 @@ export function venueLabel(suggestion: VenueSuggestion): string {
   const { name, town } = suggestion;
   if (!town || name.includes(town)) return name;
   return `${name}, ${town}`;
+}
+
+/**
+ * What gets shown as "this is the place you pinned", under a venue the coach
+ * has renamed.
+ *
+ * Deliberately the ADDRESS rather than the label: the whole reason renaming is
+ * allowed is that the map's name and the coach's name are different facts, so
+ * echoing the map's name back adds nothing once they have replaced it. The
+ * street and town are what a map can find and what a parent can be sent, and
+ * they are what makes a stale pin visible instead of silent.
+ *
+ * Falls back to the venue's own name for a place OSM has no street for - a
+ * pitch in a field still has a town, and "somewhere in Savitaipale" beats
+ * showing nothing at all.
+ */
+export function venuePinLabel(suggestion: VenueSuggestion): string {
+  const { address, town, name } = suggestion;
+  const head = address ?? name;
+  if (!town || head.includes(town)) return head;
+  return `${head}, ${town}`;
 }

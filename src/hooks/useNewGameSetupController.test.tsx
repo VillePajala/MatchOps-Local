@@ -71,7 +71,7 @@ const roster: Player[] = [
 const startArgs = (): Parameters<
   ReturnType<typeof useNewGameSetupController>['handleStartNewGameWithSetup']
 > => [
-  ['p1'], 'Home', 'Away', '2026-07-15', 'Arena', 'TN 2', undefined, undefined, '18:00',
+  ['p1'], 'Home', 'Away', '2026-07-15', 'Arena', 'TN 2', undefined, undefined, undefined, '18:00',
   null, null, 2, 25, 'home', 1, 'U12', '', null, true, null,
   roster, [], '', '', 'soccer', undefined, undefined,
 ];
@@ -140,10 +140,11 @@ describe('useNewGameSetupController (L.3b level crossing)', () => {
     } as unknown as Awaited<ReturnType<typeof getSavedGames>>);
     const { result } = await renderController();
     const args = startArgs();
-    // Index 9: after the venue come the pitch (047) and the two coordinate
-    // arguments (048), so seasonId has shifted three places from where a
-    // reader of the original signature would expect it.
-    args[9] = 'season-1'; // seasonId - limits apply per competition
+    // Index 10: after the venue come the pitch (047), the two coordinate
+    // arguments (048) and the pinned address (049), so seasonId has shifted
+    // four places from where a reader of the original signature would expect
+    // it. A 27-argument positional callback is why this keeps moving.
+    args[10] = 'season-1'; // seasonId - limits apply per competition
     await act(async () => {
       await result.current.handleStartNewGameWithSetup(...args);
     });

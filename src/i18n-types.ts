@@ -3234,6 +3234,7 @@ export type TranslationKey =
   | 'updateBanner.title'
   | 'venueInput.noMatches'
   | 'venueInput.pinned'
+  | 'venueInput.removePin'
   | 'venueInput.searching'
   | 'voiceNotesInfo.ai1'
   | 'voiceNotesInfo.ai2'

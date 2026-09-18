@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineMapPin } from 'react-icons/hi2';
-import { searchVenues, venueLabel, type VenueSuggestion } from '@/utils/venueSearch';
+import { searchVenues, venueLabel, venuePinLabel, type VenueSuggestion } from '@/utils/venueSearch';
 
 /**
  * The match location field: an ordinary text box that offers real venues.
@@ -19,9 +19,19 @@ import { searchVenues, venueLabel, type VenueSuggestion } from '@/utils/venueSea
  * same failure the opponent-name work had to clean up, and the app already
  * answers it the same way there by adopting the spelling in use.
  *
- * TYPING AFTER PICKING CLEARS THE COORDINATES. A pin that no longer matches the
- * words beside it is worse than no pin, because nothing on screen reveals the
- * disagreement. Re-picking re-attaches one.
+ * TYPING AFTER PICKING KEEPS THE PIN, AND SHOWS WHAT IT IS. This used to clear
+ * the coordinates on the first keystroke, on the grounds that a pin which no
+ * longer matches the words beside it is worse than no pin because nothing on
+ * screen reveals the disagreement. The objection was right; the remedy was
+ * wrong. A venue has TWO names - the one the map knows ("Pihlajavedentie 1")
+ * and the one the coach and the parents say ("Mitta-Keittiöt Areena") - and
+ * OSM carries the first and almost never the second. Forbidding the edit meant
+ * a pinned venue could only ever be called what the map calls it.
+ *
+ * So the pinned address is displayed under the field instead. The name and the
+ * place are then both on screen and cannot drift apart unnoticed, which is what
+ * the old rule was actually protecting. Emptying the field drops the pin, and
+ * the address line carries an explicit way to remove it.
  *
  * IT DEGRADES TO A PLAIN TEXT BOX, always. Offline at a pitch, a throttled
  * endpoint, or a coach who simply ignores the list all end in the same place:
@@ -33,10 +43,19 @@ import { searchVenues, venueLabel, type VenueSuggestion } from '@/utils/venueSea
 export interface VenueInputProps {
   id: string;
   value: string;
-  /** Emits the venue name plus coordinates when one was picked. */
-  onChange: (venue: { name: string; latitude?: number; longitude?: number }) => void;
+  /** Emits the venue name, plus the pin when there is one. */
+  onChange: (venue: {
+    name: string;
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+  }) => void;
   /** True when the current value came from a pick, so the pin can be shown. */
   hasCoordinates?: boolean;
+  /** The pinned venue's address, shown when it differs from the typed name. */
+  address?: string;
+  latitude?: number;
+  longitude?: number;
   placeholder?: string;
   className?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -53,6 +72,9 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   value,
   onChange,
   hasCoordinates,
+  address,
+  latitude,
+  longitude,
   placeholder,
   className,
   onKeyDown,
@@ -87,6 +109,13 @@ export const VenueInput: React.FC<VenueInputProps> = ({
    * word on screen the coach cannot tell that apart from a failed lookup, and
    * the useful advice - try the plain name, or just type it - never arrives.
    */
+  /**
+   * A pin whose address is no longer what the field says - i.e. the coach has
+   * renamed the venue. Derived rather than stored so it tracks every edit.
+   */
+  const pinnedElsewhere =
+    Boolean(address) && Boolean(hasCoordinates) && address !== value.trim();
+
   const foundNothing =
     !isSearching &&
     searchedFor !== null &&
@@ -155,6 +184,7 @@ export const VenueInput: React.FC<VenueInputProps> = ({
         name: venueLabel(suggestion),
         latitude: suggestion.latitude,
         longitude: suggestion.longitude,
+        address: venuePinLabel(suggestion),
       });
     },
     [onChange],
@@ -193,7 +223,14 @@ export const VenueInput: React.FC<VenueInputProps> = ({
           type="text"
           id={id}
           value={value}
-          onChange={(e) => onChange({ name: e.target.value })}
+          // THE PIN SURVIVES EVERY EDIT, including one that empties the field.
+          // Dropping it on empty looked safer and was not: selecting all and
+          // retyping is how people rename, and that passes through empty on
+          // the way - so the safe-looking rule destroyed the pin in the middle
+          // of the exact gesture this feature exists to allow. Removal is the
+          // × on the address line instead: explicit, and visible the whole
+          // time, which is the same thing that stops a renamed pin going stale.
+          onChange={(e) => onChange({ name: e.target.value, latitude, longitude, address })}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={className}
@@ -238,6 +275,25 @@ export const VenueInput: React.FC<VenueInputProps> = ({
             'venueInput.noMatches',
             'No places found. Try the venue\'s plain name, or just type it - the location is saved either way.',
           )}
+        </p>
+      ) : null}
+
+      {/* Shown only once the two disagree: right after a pick the field already
+          reads as the address, and repeating it underneath is noise. The moment
+          the coach renames the venue it appears, which is exactly when a pin
+          could otherwise go stale unseen. */}
+      {pinnedElsewhere ? (
+        <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
+          <HiOutlineMapPin className="h-3.5 w-3.5 shrink-0 text-indigo-300" aria-hidden="true" />
+          <span className="truncate">{address}</span>
+          <button
+            type="button"
+            onClick={() => onChange({ name: value })}
+            className="shrink-0 rounded px-1 text-slate-500 transition-colors hover:text-slate-300"
+            aria-label={t('venueInput.removePin', 'Remove the pinned location')}
+          >
+            ×
+          </button>
         </p>
       ) : null}
 

@@ -3075,6 +3075,9 @@ export class SupabaseDataStore implements DataStore {
         // venue has them, so undefined is the normal case, not an error.
         location_lat: game.locationLat ?? null,
         location_lng: game.locationLng ?? null,
+        // Empty string to NULL, per Rule 1: an address nobody picked is an
+        // absence, not a blank one.
+        location_address: game.locationAddress === '' ? null : (game.locationAddress ?? null),
         home_score: normalizeInteger(game.homeScore, 0),
         away_score: normalizeInteger(game.awayScore, 0),
         game_notes: game.gameNotes,
@@ -3269,6 +3272,10 @@ export class SupabaseDataStore implements DataStore {
       // is a real position, and a missing venue must not read as one.
       locationLat: game.location_lat ?? undefined,
       locationLng: game.location_lng ?? undefined,
+      // undefined, not '', for the same reason as the coordinates above: there
+      // is either a picked address or there is none, and every reader tests it
+      // for presence rather than emptiness.
+      locationAddress: game.location_address ?? undefined,
       homeScore: game.home_score,
       awayScore: game.away_score,
       gameNotes: game.game_notes,

@@ -87,7 +87,7 @@ interface ModalManagerHandlers {
   gameDateChange: (date: string) => void;
   gameLocationChange: (location: string) => void;
   fieldNumberChange: (value: string) => void;
-  locationCoordsChange: (coords: { lat?: number; lng?: number }) => void;
+  locationCoordsChange: (coords: { lat?: number; lng?: number; address?: string }) => void;
   gameTimeChange: (time: string) => void;
   gameNotesChange: (notes: string) => void;
   playerPositionsChange: (positions: Record<string, string[]>) => void;
