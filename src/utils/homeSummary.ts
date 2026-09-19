@@ -8,6 +8,7 @@
  * and the coach's configured season window - never one of the coach's Kaudet.
  */
 import type { SavedGamesCollection, AppState, Player } from '@/types';
+import { planDeparture, DEFAULT_ARRIVAL_BUFFER_MINUTES, type TravelPlan, type Coordinates } from './travelPlan';
 import { mapsDirectionsUrl } from '@/config/externalLinks';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { filterGameIds } from '@/components/GameStatsModal/utils/gameFilters';
@@ -77,6 +78,13 @@ export interface HomeUpcomingGame {
   mapsUrl: string | null;
   /** Whole days from today: 0 = today, 1 = tomorrow. Drives the countdown. */
   daysAway: number;
+  /**
+   * When to set off, when there is enough to work it out: a kick-off time, a
+   * pinned venue, and a home ground to leave from. Null whenever any of those
+   * is missing - a confidently wrong departure time is the one output nobody
+   * wants. See `travelPlan`.
+   */
+  travel: TravelPlan | null;
 }
 
 export interface HomeVuosi extends TeamRecord {
@@ -141,6 +149,14 @@ export interface HomeSummary {
 export interface HomeSummaryOptions {
   /** Today, ISO YYYY-MM-DD - injected so the computation stays pure/testable. */
   today: string;
+  /** Minutes to be at the ground before kick-off. Warm-up, lineup, changing. */
+  arrivalBufferMinutes?: number;
+  /**
+   * Where the team sets off from, as the coach set it. Undefined means no
+   * departure time - which is correct: without a starting point there is
+   * nothing to measure from, and a guess would be invisible and uncorrectable.
+   */
+  startingPoint?: Coordinates | null;
   clubSeasonStartDate?: string;
   clubSeasonEndDate?: string;
   /** The Vuosi bar only shows once the coach has configured season dates. */
@@ -300,6 +316,22 @@ export function buildHomeSummary(
   // `>= opts.today` deliberately includes TODAY. A match this afternoon is the
   // most upcoming thing there is, and dropping it at midnight would blank the
   // card on the one morning it matters most.
+  /**
+   * Drive times the coach has measured, keyed by where they drove TO.
+   *
+   * Looked up by position rather than carried on each new match: confirming a
+   * drive once then applies to every fixture at that venue, past and future,
+   * and cannot fall out of step with itself. A venue is the same venue when the
+   * coordinates match - which is the whole reason coordinates were worth a
+   * migration over a name.
+   */
+  const measuredDrives = new Map<string, number>();
+  for (const g of Object.values(all)) {
+    if (!g || typeof g.travelMinutes !== 'number') continue;
+    if (typeof g.locationLat !== 'number' || typeof g.locationLng !== 'number') continue;
+    measuredDrives.set(`${g.locationLat},${g.locationLng}`, g.travelMinutes);
+  }
+
   const upcomingAll: HomeUpcomingGame[] = Object.entries(all)
     .filter(([, g]) => {
       if (!g || g.isPlayed !== false || !isUsableDate(g.gameDate)) return false;
@@ -318,6 +350,20 @@ export function buildHomeSummary(
       fieldNumber: g.fieldNumber || undefined,
       mapsUrl: mapsDirectionsUrl(g.locationLat, g.locationLng),
       daysAway: daysBetween(opts.today, g.gameDate || ''),
+      travel: planDeparture({
+        kickoff: g.gameTime,
+        from: opts.startingPoint ?? null,
+        to:
+          typeof g.locationLat === 'number' && typeof g.locationLng === 'number'
+            ? { latitude: g.locationLat, longitude: g.locationLng }
+            : null,
+        // This match's own figure wins over the club default: a cup tie asking
+        // for an hour must not drag every other fixture with it.
+        arrivalBufferMinutes:
+          g.arrivalBufferMinutes ?? opts.arrivalBufferMinutes ?? DEFAULT_ARRIVAL_BUFFER_MINUTES,
+        confirmedTravelMinutes:
+          g.travelMinutes ?? measuredDrives.get(`${g.locationLat},${g.locationLng}`) ?? null,
+      }),
     }));
 
   const upcoming = upcomingAll[0] ?? null;

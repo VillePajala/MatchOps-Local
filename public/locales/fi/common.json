@@ -1221,7 +1221,12 @@
     "dashToday": "Tänään",
     "dashTomorrow": "Huomenna",
     "dashInDays": "{{count}} pv",
-    "dashUpcoming": "Tulevat"
+    "dashUpcoming": "Tulevat",
+    "departAt": "Lähde {{time}}",
+    "departEstimate": "(arvio, {{minutes}} min ajo)",
+    "departKnown": "({{minutes}} min ajo)",
+    "arriveBefore": "Paikalla ennen alkamisaikaa",
+    "actualDrive": "Paljonko ajomatka oikeasti kestää"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -1995,7 +2000,11 @@
     "factoryResetButton": "Poista kaikki tiedot",
     "restoring": "Palautetaan varmuuskopiota...",
     "restoringTitle": "Palautetaan varmuuskopiota",
-    "restoringDescription": "Odota hetki, tietojasi palautetaan. Tämä voi kestää hetken."
+    "restoringDescription": "Odota hetki, tietojasi palautetaan. Tämä voi kestää hetken.",
+    "travelTitle": "Otteluihin matkustaminen",
+    "travelDescription": "Käytetään sen laskemiseen milloin seuraavaan otteluun pitää lähteä. Ilman lähtöpaikkaa lähtöaikaa ei näytetä.",
+    "arrivalBufferLabel": "Paikalla ennen alkamisaikaa (minuuttia)",
+    "arrivalBufferHint": "Lämmittely, kokoonpano ja vaihtuminen. Yksittäiselle ottelulle voi antaa oman lukunsa."
   },
   "playerAssessmentModal": {
     "title": "Kirjaa ottelusuoritukset",

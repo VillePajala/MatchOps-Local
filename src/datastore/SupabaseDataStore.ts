@@ -3078,6 +3078,8 @@ export class SupabaseDataStore implements DataStore {
         // Empty string to NULL, per Rule 1: an address nobody picked is an
         // absence, not a blank one.
         location_address: game.locationAddress === '' ? null : (game.locationAddress ?? null),
+        arrival_buffer_minutes: game.arrivalBufferMinutes ?? null,
+        travel_minutes: game.travelMinutes ?? null,
         home_score: normalizeInteger(game.homeScore, 0),
         away_score: normalizeInteger(game.awayScore, 0),
         game_notes: game.gameNotes,
@@ -3276,6 +3278,8 @@ export class SupabaseDataStore implements DataStore {
       // is either a picked address or there is none, and every reader tests it
       // for presence rather than emptiness.
       locationAddress: game.location_address ?? undefined,
+      arrivalBufferMinutes: game.arrival_buffer_minutes ?? undefined,
+      travelMinutes: game.travel_minutes ?? undefined,
       homeScore: game.home_score,
       awayScore: game.away_score,
       gameNotes: game.game_notes,

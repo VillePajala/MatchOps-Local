@@ -4,6 +4,15 @@
     {
       "date": "2026-09-18",
       "en": [
+        "The next-match card now tells you when to leave. Set your starting point and how long before kick-off you want to be at the ground in Asetukset, and the card counts back from kick-off through both. Tap the line to give a single match its own arrival time, or to record how long the drive really took - a measured time replaces the estimate for every match at that venue."
+      ],
+      "fi": [
+        "Seuraava ottelu -kortti kertoo nyt milloin pitää lähteä. Aseta lähtöpaikka ja se kuinka paljon ennen alkamisaikaa haluat olla paikalla Asetuksissa, niin kortti laskee alkamisajasta taaksepäin molempien läpi. Napauta riviä antaaksesi yksittäiselle ottelulle oman saapumisaikansa tai kirjataksesi paljonko ajomatka oikeasti kesti - mitattu aika korvaa arvion kaikissa saman paikan otteluissa."
+      ]
+    },
+    {
+      "date": "2026-09-18",
+      "en": [
         "The venue list now offers to keep the name you typed, as its own row with a plus. Before, a list of places you had used before looked like the only permitted answers, with no sign that a new one was allowed.",
         "The highlighted recent match no longer carries an orange line under it. The card's own colour already marks it."
       ],
