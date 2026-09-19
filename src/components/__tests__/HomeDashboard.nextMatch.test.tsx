@@ -540,9 +540,8 @@ describe('the top card composition', () => {
     const { rerender } = render(<HomeDashboard summary={base({ resume: played })} t={t} />);
     expect(screen.getByText(/^Latest/)).toBeInTheDocument();
 
-    rerender(<HomeDashboard summary={base({ resume: { ...played, isPlayed: false, currentPeriod: 2, timeElapsedSeconds: 754 } })} t={t} />);
+    rerender(<HomeDashboard summary={base({ resume: { ...played, isPlayed: false } })} t={t} />);
     expect(screen.getByText(/^In progress/)).toBeInTheDocument();
-    expect(screen.getByText('2. · 12:34')).toBeInTheDocument();
   });
 
   /** The owner's call: it did not earn its row. */
@@ -568,12 +567,20 @@ describe('the top card composition', () => {
     expect(screen.getAllByText(/14:00/)).toHaveLength(1);
   });
 
-  it('keeps the Jatka action pressable in its own row', async () => {
+  /** No action row: the pill rides the venue row and the whole card resumes. */
+  it('keeps the Jatka action pressable', async () => {
     const onResume = jest.fn();
     render(<HomeDashboard summary={base({ resume: played })} onResume={onResume} t={t} />);
 
     await userEvent.click(screen.getByText(/Continue/));
 
     expect(onResume).toHaveBeenCalledTimes(1);
+  });
+
+  /** Owner, 2026-09-20: the card had grown a row for "Pelattu" and overflowed its slot. */
+  it('does not spend a row on whether the match was played', () => {
+    render(<HomeDashboard summary={base({ resume: played })} t={t} />);
+
+    expect(screen.queryByText(/^Played$/)).toBeNull();
   });
 });
