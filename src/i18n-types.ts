@@ -2733,6 +2733,8 @@ export type TranslationKey =
   | 'startScreen.dashInDays'
   | 'startScreen.dashInProgress'
   | 'startScreen.dashNextMatch'
+  | 'startScreen.dashNoMatchesYet'
+  | 'startScreen.dashNothingBooked'
   | 'startScreen.dashPersonnel'
   | 'startScreen.dashPersonnelCount_one'
   | 'startScreen.dashPersonnelCount_other'

@@ -54,6 +54,46 @@ const fmtElapsed = (s: number): string => `${Math.floor(s / 60)}:${String(Math.a
  * on the front page is that a coach can press it on the way out of the door
  * rather than digging three screens down for it.
  */
+/**
+ * The top slot when there is neither a fixture nor a match to resume.
+ *
+ * THE SLOT IS NEVER EMPTY, which the owner asked for twice. The rule used to
+ * be "a fixture, or failing that the last match you had open" - and both of
+ * those can be gone at once: delete the only booked fixture while the match
+ * you last opened was that same one, and the card simply vanished, leaving
+ * Home opening on a gap where its most prominent element had been.
+ *
+ * An empty state rather than a demoted recent result: the strip below already
+ * lists those, and repeating one up here is the duplication the accent rule
+ * exists to avoid. So it says what is true and offers the only useful move.
+ */
+function NoMatchCard({ hasPlayed, onNewGame, t }: {
+  /** Whether any match exists at all - a first run reads differently. */
+  hasPlayed: boolean;
+  onNewGame?: () => void;
+  t: TFunction;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-800/70 px-3.5 py-3.5 text-white shadow-md">
+      <div className="mb-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+        {t('startScreen.dashNextMatch', 'Next match')}
+      </div>
+      <p className="text-sm text-slate-300">
+        {hasPlayed
+          ? t('startScreen.dashNothingBooked', 'Nothing booked yet.')
+          : t('startScreen.dashNoMatchesYet', 'No matches yet.')}
+      </p>
+      <button
+        type="button"
+        onClick={onNewGame}
+        className="mt-2.5 w-full rounded-lg bg-indigo-600 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-indigo-500"
+      >
+        {t('startScreen.newGameButton', 'New Game')}
+      </button>
+    </div>
+  );
+}
+
 function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?: () => void; t: TFunction }) {
   return (
     <div className="flex items-stretch rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden">
@@ -380,6 +420,7 @@ export function HomeDashboard({
   onOpenVuosi,
   onOpenGame,
   onAdjustTravel,
+  onNewGame,
   t,
 }: {
   summary: HomeSummary;
@@ -387,6 +428,8 @@ export function HomeDashboard({
   onOpenVuosi?: () => void;
   onOpenGame?: (id: string) => void;
   onAdjustTravel?: (id: string, next: { arrivalBufferMinutes?: number; travelMinutes?: number }) => void;
+  /** Opens the new-game flow from the empty top card. */
+  onNewGame?: () => void;
   t: TFunction;
 }) {
   /**
@@ -416,9 +459,13 @@ export function HomeDashboard({
 
   return (
     <>
+      {/* Always something here - see NoMatchCard for why the slot must not
+          be allowed to empty. */}
       {summary.upcoming
         ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} t={t} />
-        : summary.resume && <ResumeCard resume={summary.resume} onResume={onResume} t={t} />}
+        : summary.resume
+          ? <ResumeCard resume={summary.resume} onResume={onResume} t={t} />
+          : <NoMatchCard hasPlayed={summary.recent.length > 0} onNewGame={onNewGame} t={t} />}
       {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
       {(summary.recent.length > 0 || summary.upcomingList.length > 0) && (
         /* Label and strip are one block: the heading's margin is spacing
