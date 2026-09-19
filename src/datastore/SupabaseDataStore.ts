@@ -14,6 +14,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { ASSESSMENT_RATING_STYLES, ASSESSMENT_TEMPLATES } from '@/types/settings';
 import type {
   Player,
   Team,
@@ -2822,12 +2823,16 @@ export class SupabaseDataStore implements DataStore {
       // NULL means "never set", which is not the same as false - but the app's
       // default is off, so they land in the same place.
       assessmentsEnabled: row.assessments_enabled ?? DEFAULT_APP_SETTINGS.assessmentsEnabled,
-      assessmentRatingStyle:
-        (row.assessment_rating_style as AppSettings['assessmentRatingStyle']) ??
-        DEFAULT_APP_SETTINGS.assessmentRatingStyle,
-      assessmentTemplate:
-        (row.assessment_template as AppSettings['assessmentTemplate']) ??
-        DEFAULT_APP_SETTINGS.assessmentTemplate,
+      // CHECKED, NOT CAST. A bare cast tells TypeScript a string is one of
+      // three values without asking the string, so anything the column happens
+      // to hold - an older build's spelling, a hand-edited row - would reach
+      // the UI dressed as a valid style and match no branch there.
+      assessmentRatingStyle: ASSESSMENT_RATING_STYLES.includes(row.assessment_rating_style as never)
+        ? (row.assessment_rating_style as AppSettings['assessmentRatingStyle'])
+        : DEFAULT_APP_SETTINGS.assessmentRatingStyle,
+      assessmentTemplate: ASSESSMENT_TEMPLATES.includes(row.assessment_template as never)
+        ? (row.assessment_template as AppSettings['assessmentTemplate'])
+        : DEFAULT_APP_SETTINGS.assessmentTemplate,
       // Carry the row's updated_at through so settings conflict resolution has a
       // real timestamp to compare (without it, settings always resolved local-wins).
       updatedAt: row.updated_at ?? undefined,
