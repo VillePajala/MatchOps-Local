@@ -1,6 +1,6 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: 2026-09-04
+**Last Updated**: 2026-09-19
 **Status**: 🚀 **LIVE IN PRODUCTION** (Google Play, released 2026-06-09) · **Free** (no billing)
 **Purpose**: Single, prioritized source of truth for remaining work.
 
@@ -57,6 +57,8 @@ Real issues affecting production users / exposure right now. Small, high-leverag
   **Play Console Data Safety is owner-only and may now be wrong.** The declaration predates venue coordinates (migrations 047/048). A match's location is stored, and the venue search shares the typed text with Photon - the form asks about collection *and* sharing with third parties. Worth a pass in the same sitting as the terms.
 
   **Also check while in here:** the privacy policy's hosted-URL note still says the `/privacy-policy` → `/privacy` redirect "takes effect on the next marketing-site deploy" - and the marketing site has not been redeployed since before 2026-09-09 (see the marketing-site item above), so that redirect may still be dead.
+
+- [ ] **Supabase Pro for prod: the only "when, not if" item** *(strategy memo 2026-09-19; owner-only, 25 EUR/month)* - the production database is on the free tier with no point-in-time recovery and no restorable backup. Twelve accounts were active in the last 30 days; a bug that deletes rows has no undo for any of them. Pro buys seven days of PITR. This is not a monetisation question and it does not need a decision about tiers - it is the cost of having other people's data. The local-first backup layers (`project_matchops_data_safety`: Layers 1+2) protect the owner's own device, not another coach's. Do it before the marketing push, because the push is what makes the twelve twenty.
 
 ### 🧨 Code review 2026-06-11 — Critical (data loss / broken core flows)
 
@@ -436,6 +438,136 @@ invisible.
 
 ---
 
+## 🧭 Strategy memo - where MatchOps goes next (2026-09-19)
+
+Written after reading the app, the production data (aggregates only), this roadmap and the business docs. The memo itself is at https://claude.ai/artifact/AD1u9toFVYcptkhyJ9vE5J; this section is the durable record of its items so they can be ticked, argued with or dropped here. Where a claim is a judgement rather than a measurement it is written as one.
+
+### The numbers (prod, 2026-09-19, aggregate only)
+
+The owner's account is 122 of 214 games, so the external picture is roughly 92 games across 19 other people.
+
+| What | Now | Reading |
+|------|-----|---------|
+| Accounts | 36 | The consents table says 80 sign-ups; about half never reached settings. |
+| Created at least one match | 20 | 56% activation from account to first match, with no onboarding staff. |
+| Three or more matches | **8** | **The number.** Below it is trial; above it is a coach. |
+| Ten or more | 4 | The owner, one steady real coach at ~29, two others. |
+| Active in the last 30 days | 12 | Good for an app that has done no marketing. |
+| Active in the last 7 days | 5 | Futsal season is starting: 16 futsal games already. |
+| Use the playing-time planner | **10** | Half of everyone who has ever made a match. No other feature comes close. |
+| Have created a team | 14 | Teams are understood; competitions less so (10 seasons, 22 tournaments). |
+| Used player assessments | 4 | Switched off by default 2026-09-09. The data agrees. |
+| Book fixtures ahead | 2 | The next-match card has two possible viewers today. |
+| Pin a venue | 1 | The owner. This week's location work has an audience of one until pinning is effortless. |
+
+**What they say.** One clear product-market-fit signal: fair playing time. Ten of twenty match-creating users went looking for the planner, which is a separate tab with its own model - not a feature people stumble into. The bottleneck is not features: the location system, departure times, the venue book, the one-date season and a dozen fixes shipped in three days and the number that matters is still eight. Futsal season is the moment: five people active this week and 16 futsal games mean winter is when coaches reach for this, and winter is now.
+
+### Novel ideas (ranked by how much they build on the one signal, not by how interesting they are)
+
+- [ ] **Follow-the-plan match mode** 🔴 *high leverage, all existing parts - first of the ideas to build.* Today the planner and the live match are two screens joined by a reminder: a game prefilled from a plan carries its sub schedule (`gameSubs.ts`, local-only), ghosts mark planned entries on the sideline (`ghostSubs.ts`), and the timer overlay raises an advisory "Planned sub · 12:00 · Anna ← Mikko" when a sub's time has passed (`usePlannedSubPrompts.ts`, dismiss-only, suppressed if the incoming player is already on). The coach still performs every sub by hand on the field, and nothing measures how far the match has drifted from the plan. In follow-the-plan mode the match *runs as the plan*: the next sub is always on screen with a countdown (not only once it is late), one tap performs it (moves the discs via `swap.ts`, logs the substitution event, arms the undo toast, advances to the next), the plan strip shows every remaining sub in order, and drift is visible as it happens - a late sub turns amber, a skipped one is marked skipped, per-player minutes ahead/behind the plan are computed live from `minutes.ts`. At full time: plan vs actual, which feeds re-apply/Suggest for the rest of the tournament so the next game's plan starts from what really happened. Not a tracker of what the coach did outside the plan; a plan that keeps up. Gate: none - build it. Effort: medium (one hook, one overlay strip, one field action, reuse the rest).
+  - **EXPLORE FURTHER (owner, 2026-09-19): "quite interesting and I would like it software wise."** Animated mock with a real minutes engine at https://claude.ai/artifact/MxMkXAcKt2DDMYxRyqeg2U - a scripted 40-minute match where the coach is late, a player is hurt and a sub is skipped. The owner's main concern was what happens when reality drifts a lot from the plan; the answer that held: **the plan is a target of minutes, the clock times are only the path**, so drift redraws the path (only subs not yet made, from minutes actually played, time slots kept, done subs never rewritten) and the target stays. Late = amber and a count, nothing moves. Unplanned sub from the field = reconcile (a pending sub that is now true is marked done; one made impossible by an injury is voided and the least-played bench player proposed). Skip = the player falls behind in the meter, no other consequence. Never blocks, never nags.
+  - **Where it lives (answered 2026-09-19):** no new screen. The next-sub card replaces today's advisory nudge in the large timer overlay (which is the match screen on game day - `FieldContainer.tsx` says so), the strip sits under it collapsed to marks, the drift meter is one line with the bars on tap; the field keeps its ghosts and the Vaihda tap performs the swap there; plan-vs-played is a step in the Finish-game flow.
+  - **Plan-less minutes tracking - open question, reopens a September decision.** The engine reads the field, not the plan, so it would also track minutes when a coach just drags discs with no plan behind them. But "actual playing time - segments" was DROPPED by the owner 2026-09-09 because minutes are hard to keep true: the field lags the pitch (a sub updated 40 s late, or at the next stoppage). With a plan the Vaihda tap is the record and the minutes are true by construction; without one they are inferred. If plan-less tracking is ever built it needs a "tapahtui aiemmin" time-correction on the substitution toast and an "arvio" label until the coach confirms the minutes at full time. Do not build the plan-less half until the owner says the reason for dropping it no longer applies.
+- [ ] **Playing-time transparency for parents** 🟡 *build toward.* A coach-initiated, read-only view of one child's minutes this season, as a link or a PDF. No competitor has it; it gets talked about at the pitch; it lands on Palloliitto's Kaikki Pelaa values, which is the language a valmennuspäällikkö already speaks. Privacy is tractable: per-child, coach chooses to share. Relation to what exists: the Player summary (Pelaajakooste, P3 table) is the seed; this is that summary aimed at one parent. Gate: follow-the-plan first, so the minutes it shows are real.
+- [ ] **The fairness report for a club** 🟢 *the business wedge (see Business path B).* The Ecosystem note (P4) says: the app collects, something else analyses. Scope the something to one thing first: a per-team, per-season PDF showing how minutes were distributed across the squad. That is the document a valmennuspäällikkö would pay for because it answers the parent complaint before it reaches them. It is the Analyzer idea with a buyer attached. Gate: parents' view first (same data, one child at a time).
+- [ ] **Tournament day** 🧊 *after fixtures grow.* Several matches, one venue, one day, is what the planner already models; with departure times real, a tournament-day screen chains them: leave at 8:05, first match 9:30, then 11:00, then 13:15, with the plan's lineups underneath. Gate: more than two people book ahead. Until then it is a beautiful screen for one person.
+- [ ] **Taso lineup pack** 🟢 *cheap, real.* The match report in Taso's order shipped (P3, 2026-09-09). The pre-match half did not: the lineup is due in Taso four hours before kick-off, the app knows the lineup and the kick-off. A nudge at the deadline with a copy-ready lineup removes the one piece of double entry that has a hard deadline attached. No API needed. Belongs with the myClub + Taso hand-off item (P3).
+- [ ] **Kirjuri, hosted** 🧊 *not yet.* Voice notes work and nobody uses them because BYOK asks a volunteer to create an OpenAI account. Hosted transcription with a monthly cap would be the first thing worth charging for - but four people use assessments and fewer write notes. Prove the writing habit before paying to transcribe it.
+
+### Business path
+
+The monetisation doc is honest: Finnish youth football, price-sensitive volunteers, a ceiling around 500 EUR/month. That is not a business. It can be three other things, not mutually exclusive:
+
+- **A. Reputation asset, kept free now.** What it is today, and fine. The one cost not being paid is data safety - see the P0 Supabase Pro item.
+- **B. Club licensing - the 12-month goal.** The buyer is the valmennuspäällikkö, not the coach. The product is the fairness report across all a club's teams. 200-500 EUR per club per year is plausible; ten clubs is 2-5 kEUR. Small but real money from a real buyer with a real problem, and it is the shape the Ecosystem note already describes. Needs no billing in the app: clubs get invoiced, coaches keep the free app. This is the Toiminimi trigger.
+- **C. Palloliitto costs one email.** Taso write-back is the killer feature (P4) and it is blocked on an interface that does not publicly exist. The next step is one email to Palloliitto and Torneopal asking whether a write interface exists. The pitch is theirs as much as ours: volunteer coaches enter every match twice. A no costs nothing; a partnership conversation changes what MatchOps is.
+- **D. Paid transcription later.** The 12 EUR/year cloud tier in the doc was the right shape and the wrong feature: nobody pays for backup until they have lost something. Hosted Kirjuri is a feature people would notice paying for. Waits on the Kirjuri caveat above.
+
+**Decision proposed:** do A this week, C this week, point everything at B. Do not build billing. Do not touch the premium flags. Pay the 25 EUR, send the email, build the report.
+
+### Smaller enhancements (on what exists, in the order to do them)
+
+- [ ] **Make pinning the default outcome, not a skill.** One user pins venues. The two-field design (name + street address) is right, but the address is the second field and most people stop at the first. When a name is typed and the address is empty, move focus there on the way out; let a match created from a competition inherit the competition's location as a pinned venue. Everything from the location week is worth ten times more the day pinning is effortless.
+- [ ] **Ask for the starting point once, at the right moment.** Nobody has set a lähtöpaikka, so nobody sees a departure time. The first time a fixture has a pinned venue, the next-match card should offer to set it, right there. A setting nobody finds is a feature nobody has.
+- [ ] **Ask for the real drive time after the match, not in a sheet.** The measured drive replaces the estimate everywhere, but it lives behind a tap in the adjust panel. After a match at a pinned venue, one question on the way out: did it take about two hours? Yes, or a number.
+- [ ] **Feed the venue book from competitions too.** Seasons and tournaments carry a location; `buildVenueBook` only reads games. A coach who set the tournament's venue once should find it when creating its matches.
+- [ ] **Generalise the dead-key test.** Two translation keys did not exist and the Finnish build silently showed English (fixed in #866). The test that catches it covers HomeDashboard only. The same twenty lines over every component would catch the whole class.
+- [ ] **Heal the stale season labels.** Seasons and tournaments that stored the old `off-season` label keep it until re-saved. One pass on load, the way assessment metrics already migrate.
+- [ ] **The legal paperwork.** Already logged at P0 (legal docs drifted). Two hours, and the only item here with real exposure on a live app.
+- [ ] **Site-only changes should not run the app's test suite.** Every merge cost ~15 minutes on 2026-09-18 and the owner said so. A paths filter on the test workflow and a lighter release-notes guard for `site/` would halve it.
+
+### Design
+
+The identity is strong and specific: dark navy, indigo, amber for the one thing to press, Rajdhani for numbers that are the point. Keep all of it. The work is consistency and density, not direction.
+
+- [ ] **One spacing pass.** The owner flagged cramped text twice in one week and was right both times. The parked modal-chrome modernisation (P4) is the vehicle: a single wave through every modal so they stop forking into visual generations. Do it as a pass, not as it comes up.
+- [ ] **Touch targets.** Still ~36px in places, below the 44-48 guidance. Used on a touchline in November with a glove. One audit, one fix.
+- [ ] **Same thing, same look.** Two team pickers labelled teams differently until #865. A short inventory of every place the same entity is chosen or shown, and one component per entity.
+- [ ] **Sunlight.** Dark is right for evening futsal halls; check indigo-on-navy secondary text on a pitch at noon. Marginal on paper, and glare is unforgiving.
+- [ ] **The 108px strip cards.** Built for a score and a date, now carrying a town. One more line and they must become two rows or a different shape, not a fifth line of 9.5px text.
+- [x] **The top card composition** ✅ **BUILT 2026-09-19** (owner approved the mock at https://claude.ai/artifact/AYpTCqdvfZso1C6UEFE8Wq after four rounds). One skeleton for the fixture card and the Jatka card: eyebrow (role · day, in the quiet indigo it always had - the owner rejected amber there), opponent + the one number (kick-off on a fixture, score on anything played; the kick-off appears nowhere else on the fixture card), venue name over town on two rows with the pitch as a chip, then an action row (departure / clock + Jatka / Pelattu + Jatka). Decisions the owner made in review: **no home/away** (did not earn its row); **nothing truncates** (name and town on separate lines, long names wrap); **"Lähtö", not "Lähde"**; the day keeps its clock time on played and in-progress cards. Car button only on a match still to be played, beside the venue. Weekday names via `toLocaleDateString` in the app language (`locale` prop on HomeDashboard).
+- [ ] **Document the numerals.** Rajdhani for display numbers (#838) was a real decision with a real rule: the number is the display element only where the number is the point. It is unexplained in the guide and the next person will undo it.
+
+### If I were you - the sequence
+
+The app has more features than its user base can absorb, and it grows faster than anyone can adopt it. Every week of features is a week the eight coaches were not asked to bring a ninth. The data has one loud signal, fair playing time, and silence everywhere else. The next thing to grow is the number eight.
+
+1. **Today:** Supabase Pro (P0).
+2. **This week:** the legal docs (P0) and the email to Palloliitto and Torneopal (Business path C).
+3. **Four weeks: ship nothing new.** Execute the go-to-market plan that exists and has not been run: the 30-second video, two posts in Finnish coaching groups in the builder-coach voice. Futsal season has started; this is the window.
+4. **Watch one number:** coaches with three or more matches. It is 8. Everything else is vanity until it is 30. Weekly, nothing else.
+5. **Then build toward the planner:** follow-the-plan match mode first (all existing parts), then the parents' view, then the club report, which is the business.
+6. **Keep the review loop** (it caught six real bugs on 2026-09-18, two of which would have eaten a coach's edit). Trim the CI it wraps, not the review. **Keep dogfooding**: 57% of the games are the owner's, and that is the engine.
+
+**The shape in one line:** MatchOps on the phone is the collector, and it is nearly done. The fairness report for a club is the product, and it does not exist yet. The distance between those two is the next year.
+
+### New path: the official companion (owner, 2026-09-20)
+
+The owner's reframe of the Taso question, recorded before anything is built: **we do not need the product to sell the idea.** Sell it first, to Palloliitto, and develop it with them. This section is the pitch, the reasons it could work, the reasons it could fail, and the order of steps. It is a direction, not a commitment; nothing in it is scheduled until the first conversation has happened.
+
+**The idea in one sentence.** MatchOps becomes Palloliitto's official match-day companion: the app a volunteer coach opens on the touchline, which feeds Taso without double entry and gives the federation the one dataset it does not have - playing time.
+
+**Seen from Palloliitto's side, not ours** (this is the whole discipline of the path: every slide is written from their chair):
+1. **Data quality in Taso.** Lineups four hours before kick-off, reports the same evening, the right format for the age group. Today that rests on volunteer discipline and a support desk. An app that makes compliance the path of least resistance is worth more to them than any feature we like.
+2. **Kaikki Pelaa evidence.** A values programme with no data behind it. Playing-time distribution per team per season is the dataset that proves or disproves it, and only a match-day app can produce it. Nobody else has this; it is the centre of the pitch, and it is exactly what follow-the-plan and the fairness report produce.
+3. **Volunteer retention.** Coach burnout is their structural problem; entering every match twice is a visible cause. "Enter every match once" is a sentence a district and a valmennuspäällikkö both understand immediately.
+4. **The 2027 format change.** New age-to-format rules land on every club at once. An app that already knows the formats (the rule viewer and the recorded 2027 mapping are the seed) is a rollout tool for them, not a feature for us.
+
+**What they will worry about, and the answer we bring:**
+- *Children's data.* Where it lives, who sees it, for how long. EU region, RLS and the existing delete-account path are the technical answer; a DPA and a named data-protection contact are the real one. Bring it unasked.
+- *Neutrality.* A federation cannot bless one app by preference, only through a pilot or a procurement. So the ask is a **pilot**, one district or one club with a valmennuspäällikkö, with criteria written down.
+- *Their vendor.* Torneopal builds Taso; the technical counterpart is Torneopal, the political one is Palloliitto. Two conversations. Do not let the first one become "please give us an API"; that is the last step, not the first.
+- *"Replacing us."* The word is companion, never platform. They own the system of record; we own the touchline.
+
+**Volunteering and co-development (owner's offer).** The owner is willing to do this as a volunteer for the reputation, and to develop it together with Palloliitto. Recorded with two conditions so the offer does not turn into unpaid product development for someone else: (1) the volunteering is a **time-boxed pilot** with a written scope, not open-ended labour; (2) **IP and data stay with the owner** (the app, the code, the users' data), and anything built jointly has that written before the first line. A federation taking the idea to its existing vendor is the realistic downside and the reason to lead with what already exists and works rather than with a slide about what could.
+
+**The demo is the app as it is.** No new product for the pitch. The demo is the app on a phone in their hands - the grip and feel of the field, the planner, the next-match card, the Pöytäkirja Tasoon button - followed by slides that explain the value for the whole ecosystem rather than for a coach. Slide outline (to write when the meeting exists, not before):
+1. One match, entered twice - what a volunteer's Sunday evening looks like today.
+2. The same match in MatchOps: touchline to Taso in one flow (live demo, not screenshots).
+3. What only this produces: playing time per player, per team, per season - the Kaikki Pelaa report.
+4. The 2027 formats, already in the app.
+5. What we ask: a pilot with N teams in one district, one season, with these three success criteria (lineup deadline compliance, report latency, coach retention survey).
+6. What we need from Torneopal, eventually: read first (fixtures, rosters into the app), write later (lineup, report out of it). Read alone already removes most of the double entry.
+
+**The dream, and what to do with it.** The owner's ideal is **one system for the whole of a club's football**: myClub (membership, invoicing, attendance, comms), Taso (competition, results, officials), MatchOps (the touchline). Recorded as the direction; the honest reading is: integrate what can be integrated, build only what is genuinely missing on the match-day side, and treat "our own myClub" as the far end of the road - it is billing, memberships and messaging, a different product with a different buyer (the club treasurer), and a solo build of it would stall the thing that is actually differentiated. The order that keeps the dream alive without betting on it: **Taso read → Taso write → myClub read (rosters, attendance) → only then anything of our own.** Every step earns the next conversation.
+
+**The road, in order.**
+1. Ship the **Taso lineup pack** (P3, cheap, hits their hard deadline). Be the best Taso helper without any API before asking for one.
+2. Get **one valmennuspäällikkö** to say, in writing, that it removed the double entry. That sentence is the first slide.
+3. Book the **meeting**, not send the email: Palloliitto (Kaikki Pelaa / youth development side, not IT) first, Torneopal second. Bring the phone and the six slides.
+4. Propose the **district pilot** with written criteria and the volunteer time box.
+5. Only inside a pilot: the API conversation with Torneopal, read first.
+
+**Video: a Veo substitute? (owner asked 2026-09-20).** Short answer: not the hardware, possibly the software, and one piece of it is nearly free because of what the app already has.
+- *Not the camera.* Veo is a hardware company with a subscription attached: a two-lens 4K unit, manufacturing, warranty, returns and a cloud that stores a 10-20 GB file per match. A solo developer cannot compete on that, and the cheap end of that market is already crowded (phone gimbals that auto-follow, and apps that process phone video in the cloud). Do not build a camera.
+- *The nearly-free piece: event-cut highlights.* Every goal, card and substitution in MatchOps already has a game-clock timestamp. A phone on a tripod recording the whole pitch wide, with one tap in the app to align the recording to kick-off, gives highlight clips (goal at 12:34 → clip 12:19 to 12:44) with **no ball tracking and no AI at all**. That is the Veo feature parents actually share, at zero processing cost, and nobody else can do it this way because nobody else has the event log on the same device as the clock.
+- *The expensive piece: auto-follow.* Cropping a wide 4K recording to a moving window needs player and ball detection, server-side, on a GPU, per match. Feasible, not free, and a second product's worth of work. Later, if the highlights prove people film at all.
+- *The two real blockers, before any code:* (1) **filming children** - Finnish clubs have consent policies and some parents refuse; the feature must default to "no faces, no sharing" and honour per-player consent, or it is a liability the free app cannot carry; (2) **storage** - the video never goes to our cloud; it stays on the phone, and the app only cuts clips locally. That decides the architecture (on-device trimming, WebCodecs or a native layer in the TWA), and it is the part to prototype first.
+- *Verdict:* park as a P4 idea named "event-cut highlights from a phone recording". It belongs to the same thesis as everything above - the app is the collector - and it is a real differentiator, but it is after the fairness report and after the first Palloliitto conversation, not before.
+
+
+---
+
 ## 🔵 P4 — Big bets (need planning before any code)
 
 - [x] **Kirjuri — dictation capture + BYOK post-match AI** ✅ **MERGED TO MASTER 2026-09-08 (#791, `c89a972b`; prod migrations 041-044 applied and verified the same day). Experimental, not marketed: no AI shows in the match flow until a coach connects their own key.** *planned 2026-09-04, plan: `kirjuri-ai-plan.md`* — in-game press-hold (later earbud-tap, hands-free) voice notes stamped to the game clock; post-game inbox turns them into player/game notes; clips transcribed only through the coach's own connected AI provider (BYOK, client-direct, behind a versioned consent gate with dictation rules; Google Web Speech rejected, on-device not available for Finnish); then structured drafts of the match report, tidy/translate, and a read-back of one player's own notes, pseudonymized by default, everything coach-approved before save. **v1 = Phases 0-4, owner-tested 2026-09-08; season summaries (Phase 5) taken out and rethought under "Ecosystem" below.** Risk assessment lives in the plan. Replaces rating-based assessment with evidence and closes the AI Assistant "richer data collection" prerequisite. Build on `feat/kirjuri-ai` (sub-PRs into it; to master only when complete + owner-tested).
@@ -474,6 +606,8 @@ Not a feature; a shape for everything after Kirjuri. To elaborate before any of 
   model when data leaves the coach's device for analysis; who pays.
 
 ### Palloliitto Taso integration - the absolute killer (owner, 2026-09-08)
+
+> **New path recorded 2026-09-20:** sell the idea before building the product - see "New path: the official companion" in the strategy memo section above. The email below becomes a meeting with the phone and six slides; the API conversation moves to the last step.
 
 Taso (Palloliitto's competition system) already does part of what MatchOps does: it holds
 the schedule, the lineups and the results. Today the app only links out to it (game menu).
@@ -553,6 +687,8 @@ Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are une
 
 | Date | Update |
 |------|--------|
+| 2026-09-20 | 🤝 **Official companion path written up** (owner). Sell the idea to Palloliitto before building: demo is the app as it is plus six slides written from the federation's chair (Taso data quality, Kaikki Pelaa evidence, volunteer retention, 2027 formats); pilot not blessing; Torneopal is the technical counterpart; volunteer offer recorded with a time box and IP conditions. The one-system dream (myClub + Taso + MatchOps) recorded as direction with the order read → write → myClub read → own. Veo substitute assessed: not the camera, yes to event-cut highlights from a phone recording (the app already has the timestamps), parked P4 behind consent and on-device storage. Follow-the-plan marked explore-further with the drift model and the plan-less caveat. Top card composition built. |
+| 2026-09-19 | 🧭 **Strategy memo recorded** as its own section (numbers from prod, six ideas ranked by the planner signal, a business path A-D, eight small enhancements, seven design items, and a sequence). Two new P0 items: Supabase Pro for prod (no PITR today) and, by reference, the legal docs. One decision proposed and not yet taken: four weeks of marketing before any new feature. Also this week, all merged (#856-#866): two-field venue model + venue book, departure time with starting point and buffer, one-date seurakausi, settings that never persisted in cloud (migration 051), venue address healing, Home top card never empty. Top-card composition mocked for the owner. |
 | 2026-09-18 | ⚖️ **Legal docs logged as drifted; Photon disclosed.** The app talks to six third parties and the terms name four - Photon, OpenAI (BYOK, so worded differently) and palloliitto.fi are missing, in the published markdown and the in-app copy alike. Photon has now been added to the privacy policy in both places; the terms are untouched. Three version stamps disagree: `POLICY_VERSION` says 2026-09, the published privacy-policy markdown says 2026-06, the in-app string says September 2026 - and the markdown is the copy users actually read. No stamp was bumped on purpose: the terms promise a re-consent prompt for cloud users on material change, and that call is the owner's. Play Console Data Safety predates venue coordinates and needs the same pass. |
 | 2026-09-18 | 🗺️ **Venue map picker reverted before merge** (#857, owner). Built because OSM does not carry sponsor names - "Mitta-Keittiöt Areena" finds nothing. The owner's own testing killed it on better grounds than the bug it exposed: **a venue has a street address, and OSM knows street addresses perfectly**, so the searchable path was there all along and a Leaflet dependency plus an `img-src` CSP widening bought nothing. Also found on the way, and worth remembering before anyone ships a location feature: `Permissions-Policy` has `geolocation=()`, so any "use my position" button fails before the browser ever prompts. Open question the revert leaves behind: picking by address stores the ADDRESS as the label, when the coach calls the place by its name. |
 | 2026-09-16 | 🔗 **myClub + Taso hand-offs scoped** (P3, `taso-torneopal-api.md` §7). Level 0 (owner-requested): manual "filed to Taso" / "attendance marked" checkboxes on the game, opt-in via an `assessmentsEnabled`-style toggle so the completeness bar keeps its meaning for everyone else - the first self-reported rows in an otherwise fully derived model. Confirmed on the way: **the app has no pre-game checklist at all**, which is why the pre-game Taso lineup has no home; the answer is a deadline-aware nudge on the games tab (the lineup is due 4h before kickoff), not a retrospective checkbox. Investigated rather than assumed, and the result mirrors Taso exactly: **myClub can be read but not written** - `event-core` has no participation field and there is no `/participations` path, so attendance cannot be pushed back. The app pulls from both systems and pushes to neither; no app format changes that. Level 1 is two links beside Taso (myClub web is a per-club subdomain, so only `id.myclub.fi` can be hardcoded; myClub Coach is a native app needing an `intent://` link). Level 2, a games pull, is gated on one CORS request - a preflight returned 403 with no CORS headers, and the answer decides client-side BYOK versus an Edge Function proxy. |
@@ -582,14 +718,9 @@ Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are une
 
 ---
 
-**Current Focus**: P0/P1 cleared; the big feature waves are all **shipped + live** — assessment,
-positions, recap, match report, completeness, overtime/penalties, the **Playing-Time Planner**, the
-**two-level app structure**, and (2026-07-27) a **full marketing-site revamp** (all-new v2 screenshots
-with unified chrome + neutral, natural EN/FI copy). ⏰ **Play compliance (deadline 2026-08-31)** is
-**built and waiting to upload** — a signed AAB (v1.0.8 / code 16, targetSdk 35, Play Billing removed)
-is on the owner's desktop; only the Play Console upload remains. **Next feature priority:** the 🟡 P2
-**new-user experience fixes** — three small, mostly-reuse changes (auto-place team on game start, skip
-the dead WelcomeScreen in the cloud build, return to New Game after adding players); the heavier
-resource-creation funnel is **parked** as oversized for the real problem. After that: small 🟢 P3 wins (moment capture)
-and 🔵 P4 big bets (playing-time segments, modal-chrome modernization, desktop UI, AI assistant,
-timer-hardening); plus an in-app **guide re-check** against the new two-level UI.
+**Current Focus** (2026-09-19): the feature waves are shipped and live. The strategy memo's sequence is
+the plan of record until the owner says otherwise: **Supabase Pro** and the **legal docs** (P0), the
+**Palloliitto/Torneopal email**, then **four weeks of marketing with nothing new shipped**, watching one
+number (coaches with 3+ matches: 8 → 30). After that, build toward the planner signal: **follow-the-plan
+match mode** → parents' minutes view → the club fairness report. Parked: modal-chrome modernisation
+(the vehicle for the spacing pass), desktop UI, AI assistant, timer-hardening.
