@@ -32,8 +32,8 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
-import { healVenueAddresses } from '@/utils/healVenueAddresses';
-import type { SavedGamesCollection } from '@/types/game';
+import { healVenueAddresses, persistHealedAddresses } from '@/utils/healVenueAddresses';
+import type { SavedGamesCollection, AppState } from '@/types/game';
 import { asCoordinates } from '@/utils/travelPlan';
 import { todayIso } from '@/utils/todayIso';
 import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId, buildHomeTeamScopeOptions } from '@/utils/homeTeamScope';
@@ -1625,19 +1625,14 @@ export default function Home() {
       const repaired = await healVenueAddresses(games);
       if (Object.keys(repaired).length === 0) return;
 
-      // RE-READ BEFORE WRITING. The geocode pass above is several sequential
-      // network calls, and the snapshot it started from is seconds old by the
-      // time it finishes. Writing `{ ...staleGame, locationAddress }` would
-      // clobber anything the coach changed on that match meanwhile - their
-      // edit lost to a background tidy-up they never asked for.
-      const fresh = await getSavedGames(userId);
-      for (const [id, locationAddress] of Object.entries(repaired)) {
-        const game = fresh?.[id];
-        // Gone, or somebody got there first: either way, leave it alone.
-        if (!game || game.locationAddress) continue;
-        await utilSaveGame(id, { ...game, locationAddress }, userId);
-      }
-      await refreshSetupSignals();
+      // Re-reads before writing - see persistHealedAddresses for why that
+      // ordering is what keeps a background tidy-up from eating an edit.
+      const written = await persistHealedAddresses(
+        repaired,
+        () => getSavedGames(userId),
+        (id, game) => utilSaveGame(id, game as AppState, userId),
+      );
+      if (written > 0) await refreshSetupSignals();
     } catch (err) {
       // Tidying old data is never worth an error in front of the coach.
       logger.warn('Could not fill in missing venue addresses', { error: err });

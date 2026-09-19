@@ -3,7 +3,7 @@
  * their address, so the next-match card has no town to show. Re-pinning them
  * by hand is the coach fixing our bookkeeping.
  */
-import { healVenueAddresses } from '../healVenueAddresses';
+import { healVenueAddresses, persistHealedAddresses } from '../healVenueAddresses';
 import type { AppState } from '@/types/game';
 
 const respond = (byPosition: Record<string, Record<string, string>>) => {
@@ -103,5 +103,87 @@ describe('healVenueAddresses', () => {
       expect(await healVenueAddresses({})).toEqual({});
       expect(requests()).toBe(0);
     });
+  });
+});
+
+/**
+ * @critical - REGRESSION, found by review. Finding an address is several
+ * sequential network calls, so the snapshot they began with is seconds old by
+ * the time they end. Writing that stale copy back would lose whatever the
+ * coach changed on the match meanwhile - their edit gone to a background
+ * tidy-up they never asked for.
+ */
+describe('persistHealedAddresses', () => {
+  const save = () => jest.fn(async () => undefined);
+
+  it('writes the address onto the game', async () => {
+    const saved = save();
+    const written = await persistHealedAddresses(
+      { g1: 'Olavinkatu 48, Savonlinna' },
+      async () => ({ g1: { gameLocation: 'Areena', locationLat: 61.87 } }),
+      saved,
+    );
+
+    expect(written).toBe(1);
+    expect(saved).toHaveBeenCalledWith('g1', expect.objectContaining({
+      gameLocation: 'Areena',
+      locationAddress: 'Olavinkatu 48, Savonlinna',
+    }));
+  });
+
+  /** THE BUG. The copy written must be the one read AFTER the geocoding. */
+  it('writes the coach s latest edit, not the copy it geocoded from', async () => {
+    const saved = save();
+
+    await persistHealedAddresses(
+      { g1: 'Olavinkatu 48, Savonlinna' },
+      // What the game looks like NOW - the opponent was changed while the
+      // lookup was in flight.
+      async () => ({ g1: { opponentName: 'HJK', gameLocation: 'Areena' } }),
+      saved,
+    );
+
+    expect(saved).toHaveBeenCalledWith('g1', expect.objectContaining({ opponentName: 'HJK' }));
+  });
+
+  it('reads before it writes, never the other way round', async () => {
+    const order: string[] = [];
+    await persistHealedAddresses(
+      { g1: 'X', g2: 'Y' },
+      async () => { order.push('read'); return { g1: {}, g2: {} }; },
+      async (id) => { order.push(`write:${id}`); },
+    );
+
+    expect(order).toEqual(['read', 'write:g1', 'write:g2']);
+  });
+
+  it('leaves a game that was deleted meanwhile', async () => {
+    const saved = save();
+
+    const written = await persistHealedAddresses({ g1: 'X' }, async () => ({}), saved);
+
+    expect(written).toBe(0);
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  it('leaves a game somebody already gave an address to', async () => {
+    const saved = save();
+
+    const written = await persistHealedAddresses(
+      { g1: 'X' },
+      async () => ({ g1: { locationAddress: 'Muurarinkatu 4, Savonlinna' } }),
+      saved,
+    );
+
+    expect(written).toBe(0);
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  /** Nothing found means nothing read and nothing written. */
+  it('does not even read when there is nothing to write', async () => {
+    const read = jest.fn(async () => ({}));
+
+    expect(await persistHealedAddresses({}, read, save())).toBe(0);
+    expect(read).not.toHaveBeenCalled();
   });
 });

@@ -65,3 +65,36 @@ export async function healVenueAddresses(
 }
 
 export default healVenueAddresses;
+
+/**
+ * Write the found addresses onto the games, safely.
+ *
+ * SEPARATE FROM FINDING THEM, and re-reading in between, because the finding
+ * is several sequential network calls: the snapshot they started from is
+ * seconds old by the time they finish, and writing `{ ...staleGame, address }`
+ * would lose anything the coach changed on that match meanwhile - their edit
+ * gone to a background tidy-up they never asked for.
+ *
+ * Takes its reader and writer as arguments so the ordering that makes it safe
+ * can actually be tested, rather than asserted about by reading the source.
+ *
+ * @returns how many games were written.
+ */
+export async function persistHealedAddresses(
+  repaired: Record<string, string>,
+  readGames: () => Promise<Record<string, Partial<AppState>> | null | undefined>,
+  save: (id: string, game: Partial<AppState>) => Promise<unknown>,
+): Promise<number> {
+  if (Object.keys(repaired).length === 0) return 0;
+
+  const fresh = await readGames();
+  let written = 0;
+  for (const [id, locationAddress] of Object.entries(repaired)) {
+    const game = fresh?.[id];
+    // Gone, or somebody got there first: either way, leave it alone.
+    if (!game || game.locationAddress) continue;
+    await save(id, { ...game, locationAddress });
+    written += 1;
+  }
+  return written;
+}
