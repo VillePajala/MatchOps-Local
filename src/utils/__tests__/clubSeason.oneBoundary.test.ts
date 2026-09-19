@@ -50,13 +50,28 @@ describe('every date belongs to a season', () => {
     expect(getClubSeasonForDate('2026-11-20', START)).toBe('26/27');
   });
 
-  it('never returns off-season, whatever the date', () => {
-    for (let month = 1; month <= 12; month += 1) {
-      for (const day of [1, 14, 15, 28]) {
-        const date = `2026-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        expect(getClubSeasonForDate(date, START)).not.toBe('off-season');
+  /**
+   * Every real date of a LEAP year, against every boundary. The first version
+   * of this swept a non-leap year on four days a month and missed the one day
+   * that was still broken: with a 1 March boundary the end was 28 February, so
+   * 29 February fell in a one-day gap. Review caught it; the sweep had not.
+   */
+  it('never returns off-season, for any date against any boundary', () => {
+    const daysIn = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; // 2024, a leap year
+    for (let bMonth = 1; bMonth <= 12; bMonth += 1) {
+      const boundary = `2000-${String(bMonth).padStart(2, '0')}-01`;
+      for (let month = 1; month <= 12; month += 1) {
+        for (let day = 1; day <= daysIn[month - 1]; day += 1) {
+          const date = `2024-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          expect(getClubSeasonForDate(date, boundary)).not.toBe('off-season');
+        }
       }
     }
+  });
+
+  /** The day that was still falling through. */
+  it('places 29 February against a 1 March boundary', () => {
+    expect(getClubSeasonForDate('2024-02-29', '2000-03-01')).toBe('23/24');
   });
 });
 
