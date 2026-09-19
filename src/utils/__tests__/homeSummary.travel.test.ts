@@ -95,3 +95,36 @@ describe('when to leave for the next match', () => {
     });
   });
 });
+
+/**
+ * The venue's name says which pitch; the town says how far away the afternoon
+ * is. A coach reading the card on Thursday is asking the second question.
+ */
+describe('the town on the card', () => {
+  const pinned = (address: string, name = 'Mitta-Keittiöt Areena') => ({
+    next: game({ gameTime: '17:30', gameLocation: name, locationAddress: address, ...MIKKELI }),
+  });
+
+  it('is taken from the pinned address', () => {
+    expect(next(pinned('Muurarinkatu 4, Savonlinna'))!.venueTown).toBe('Savonlinna');
+  });
+
+  it('copes with an address that also carries a region', () => {
+    expect(next(pinned('Muurarinkatu 4, Savonlinna, Etelä-Savo'))!.venueTown).toBe('Savonlinna');
+  });
+
+  /** "Savonlinna Areena · Savonlinna" says it twice and helps nobody. */
+  it('says nothing when the venue name already carries it', () => {
+    expect(next(pinned('Muurarinkatu 4, Savonlinna', 'Savonlinna Areena'))!.venueTown).toBeUndefined();
+  });
+
+  it('says nothing for a venue that was only typed', () => {
+    const upcoming = next({ next: game({ gameTime: '17:30', gameLocation: 'Keskuskenttä' }) });
+
+    expect(upcoming!.venueTown).toBeUndefined();
+  });
+
+  it('says nothing for an address with no town in it', () => {
+    expect(next(pinned('Muurarinkatu 4'))!.venueTown).toBeUndefined();
+  });
+});

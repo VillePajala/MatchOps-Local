@@ -210,18 +210,29 @@ describe('when to leave', () => {
     expect(screen.getByText(/Leave 15:45/)).toBeInTheDocument();
   });
 
-  /** A straight-line guess about roads it has never seen is not a promise. */
-  it('says when the drive is only a guess', () => {
+  /**
+   * A straight-line guess about roads it has never seen is not a promise, but
+   * the word "arvio" and a pair of brackets were most of the line. One
+   * character carries the same hedge.
+   */
+  it('marks a guessed drive with a tilde', () => {
     render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travel({ isEstimate: true }) }) })} t={t} />);
 
-    expect(screen.getByText(/estimate/)).toBeInTheDocument();
+    expect(screen.getByText(/~1 h/)).toBeInTheDocument();
   });
 
-  it('drops the hedge once the coach has driven it', () => {
+  it('drops the tilde once the coach has driven it', () => {
     render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travel() }) })} t={t} />);
 
+    expect(screen.queryByText(/~/)).toBeNull();
+    expect(screen.getByText(/1 h/)).toBeInTheDocument();
+  });
+
+  it('says nothing about estimates in words', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travel({ isEstimate: true }) }) })} t={t} />);
+
     expect(screen.queryByText(/estimate/)).toBeNull();
-    expect(screen.getByText(/1 h drive/)).toBeInTheDocument();
+    expect(screen.queryByText(/\(/)).toBeNull();
   });
 
   it('says nothing at all when it cannot be worked out', () => {

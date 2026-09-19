@@ -70,6 +70,14 @@ export interface HomeUpcomingGame {
   date: string;
   time?: string;
   venue?: string;
+  /**
+   * The town the venue is in, taken from the pinned address.
+   *
+   * Worth its own line on an away fixture: the venue's name says which pitch,
+   * the town says how far away the afternoon is - and a coach reading the card
+   * on Thursday is asking the second question, not the first.
+   */
+  venueTown?: string;
   fieldNumber?: string;
   /**
    * Turn-by-turn directions, or null when the venue was only typed.
@@ -347,6 +355,7 @@ export function buildHomeSummary(
       date: g.gameDate || '',
       time: g.gameTime || undefined,
       venue: g.gameLocation || undefined,
+      venueTown: townFromAddress(g.locationAddress, g.gameLocation),
       fieldNumber: g.fieldNumber || undefined,
       mapsUrl: mapsDirectionsUrl(g.locationLat, g.locationLng),
       daysAway: daysBetween(opts.today, g.gameDate || ''),
@@ -374,4 +383,20 @@ export function buildHomeSummary(
   const upcomingList = upcomingAll.slice(1);
 
   return { resume, vuosi, recent, upcoming, upcomingList, counts, countsReady, topScorer };
+}
+
+/**
+ * The town out of a pinned address, when it adds something.
+ *
+ * Addresses come back as "street, town" or "street, town, region", so the town
+ * is the second part. Returns nothing when the venue's own name already carries
+ * it - "Savonlinna Areena, Savonlinna" says it twice and helps nobody - and
+ * nothing at all for a venue that was typed rather than pinned, since then
+ * there is no address to read it from.
+ */
+function townFromAddress(address?: string, venueName?: string): string | undefined {
+  const parts = address?.split(',').map((p) => p.trim()).filter(Boolean);
+  const town = parts && parts.length > 1 ? parts[1] : undefined;
+  if (!town) return undefined;
+  return venueName?.toLowerCase().includes(town.toLowerCase()) ? undefined : town;
 }
