@@ -221,7 +221,7 @@ describe('when to leave', () => {
     render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travel() }) })} t={t} />);
 
     expect(screen.queryByText(/estimate/)).toBeNull();
-    expect(screen.getByText(/60 min drive/)).toBeInTheDocument();
+    expect(screen.getByText(/1 h drive/)).toBeInTheDocument();
   });
 
   it('says nothing at all when it cannot be worked out', () => {
@@ -294,5 +294,26 @@ describe('adjusting the journey from the card', () => {
     await userEvent.tab();
 
     expect(onAdjustTravel).not.toHaveBeenCalledWith('next', expect.objectContaining({ travelMinutes: expect.anything() }));
+  });
+});
+
+describe('how the drive reads', () => {
+  const travelOf = (minutes: number) => ({
+    departure: '15:45', arriveBy: '16:45', travelMinutes: minutes, arrivalBufferMinutes: 30,
+    isEstimate: true, distanceKm: 87, departsPreviousDay: false,
+  });
+
+  /** "132 min" has to be divided in the head before it means anything. */
+  it('says hours and minutes for a long drive', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travelOf(132) }) })} t={t} />);
+
+    expect(screen.getByText(/2 h 12 min/)).toBeInTheDocument();
+    expect(screen.queryByText(/132 min/)).toBeNull();
+  });
+
+  it('leaves a short drive in minutes', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travelOf(45) }) })} t={t} />);
+
+    expect(screen.getByText(/45 min/)).toBeInTheDocument();
   });
 });

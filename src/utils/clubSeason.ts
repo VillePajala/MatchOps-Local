@@ -33,6 +33,35 @@ function parseSeasonYear(shortYear: string): number {
   return year < 100 ? 2000 + year : year;
 }
 
+
+/**
+ * The day before the club season starts - which is when the previous one ends.
+ *
+ * DERIVED, NEVER STORED. A club season is a cycle: it starts, it runs, and the
+ * next one starting is what ends it. Keeping a separate end date created a gap
+ * between the two that could not mean anything useful - and the shipped default
+ * had exactly that, a 26-day hole (21 Oct to 14 Nov) where every match returned
+ * 'off-season' and fell out of the season record entirely. Opening the settings
+ * silently repaired it, because the UI derived the end even though the default
+ * did not. A setting that fixes a data gap just by being looked at is a bug
+ * wearing a form.
+ *
+ * Month and day only; the year in these strings is a template.
+ */
+export function clubSeasonEndFromStart(startDate: string): string {
+  const [, monthStr, dayStr] = startDate.split('-');
+  const month = parseInt(monthStr, 10);
+  const day = parseInt(dayStr, 10);
+
+  if (day > 1) return `2000-${String(month).padStart(2, '0')}-${String(day - 1).padStart(2, '0')}`;
+
+  const prevMonth = month === 1 ? 12 : month - 1;
+  // 28 for February: the template year is 2000, and a season boundary on 29
+  // February would be a boundary that does not exist in three years out of four.
+  const lastDay = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][prevMonth - 1];
+  return `2000-${String(prevMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+}
+
 /**
  * Determines the club season label for a given date.
  *
@@ -52,8 +81,11 @@ function parseSeasonYear(shortYear: string): number {
 export function getClubSeasonForDate(
   dateStr: string,
   startDate: string = DEFAULT_CLUB_SEASON_START_DATE,
-  endDate: string = DEFAULT_CLUB_SEASON_END_DATE
+  // Accepted for callers that still pass one, and ignored: the end is the day
+  // before the start, always. Nothing should compute it independently.
+  _legacyEndDate?: string,
 ): string {
+  const endDate = clubSeasonEndFromStart(startDate);
   // Validate ISO format (YYYY-MM-DD) to protect against corrupted data
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     // Log warning but don't throw - gracefully degrade to off-season
@@ -63,6 +95,14 @@ export function getClubSeasonForDate(
 
   // Force UTC interpretation to avoid timezone issues
   const date = new Date(dateStr + 'T00:00:00Z');
+  // '2024-13-45' passes the format check above and is still not a date. This
+  // used to reach 'off-season' by accident, through NaN failing every
+  // comparison; now that the comparisons always resolve, corrupt input has to
+  // be rejected on purpose or it would be handed a label built from NaN.
+  if (Number.isNaN(date.getTime())) {
+    logger.warn('[getClubSeasonForDate] Not a real date:', dateStr);
+    return 'off-season';
+  }
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth() + 1; // Convert 0-based to 1-based
   const day = date.getUTCDate();
@@ -90,18 +130,22 @@ export function getClubSeasonForDate(
     // Outside season
     return 'off-season';
   } else {
-    // Season spans calendar years (e.g., Oct 1 - May 1 or Dec 15 - Feb 10)
+    // Season spans calendar years. ONE COMPARISON, against the boundary alone:
+    // on or after it opens the new season, before it belongs to the outgoing
+    // one, and there is no third case. Testing the end as well left a gap of
+    // exactly one day every four years - 29 February, which the end cannot be
+    // because a boundary on a date that exists three years in four is no
+    // boundary at all. The end is the day before the start by definition, so
+    // asking about it separately could only ever reintroduce the hole this
+    // change removed.
     if (isAfterOrEqual(month, day, startMonth, startDay)) {
       // In first half of season (Oct-Dec 2024 → "24/25")
       const nextYear = year + 1;
       return `${year.toString().slice(2)}/${nextYear.toString().slice(2)}`;
-    } else if (isBeforeOrEqual(month, day, endMonth, endDay)) {
-      // In second half of season (Jan-May 2025 → "24/25")
-      const prevYear = year - 1;
-      return `${prevYear.toString().slice(2)}/${year.toString().slice(2)}`;
     }
-    // Outside season (e.g., June-September for Oct-May season)
-    return 'off-season';
+    // In second half of season (Jan-May 2025 → "24/25")
+    const prevYear = year - 1;
+    return `${prevYear.toString().slice(2)}/${year.toString().slice(2)}`;
   }
 }
 

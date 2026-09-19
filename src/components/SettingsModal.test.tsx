@@ -404,7 +404,13 @@ describe('<SettingsModal />', () => {
    * Tests club season date selectors rendering
    * @critical
    */
-  test('should render club season date selectors', () => {
+  /**
+   * The club season is ONE boundary, set with the same date picker a match
+   * date uses. It used to be two dropdowns plus a read-only end date - and the
+   * end was derived anyway, so the second date was a field with no input
+   * behind it whose shipped default left a 26-day 'off-season' hole.
+   */
+  test('offers a single date picker for the season boundary', () => {
     render(
       <TestWrapper>
         <SettingsModal {...defaultProps} />
@@ -413,30 +419,11 @@ describe('<SettingsModal />', () => {
 
     navigateToTab('General');
 
-    // Check for season start label
-    const startLabel = screen.getByText(/New season starts/i);
-    expect(startLabel).toBeInTheDocument();
-
-    // Check for season ends label (read-only display)
-    const endLabel = screen.getByText(/Season ends/i);
-    expect(endLabel).toBeInTheDocument();
-
-    // Verify month and day dropdowns exist for start date only (end date is auto-calculated, read-only)
-    const monthSelects = screen.getAllByLabelText(/Month/i);
-    expect(monthSelects.length).toBe(1); // Only 1 month select (start)
-
-    const daySelects = screen.getAllByLabelText(/Day/i);
-    expect(daySelects.length).toBe(1); // Only 1 day select (start)
-
-    // Verify auto-calculated text is shown
-    expect(screen.getByText(/auto-calculated/i)).toBeInTheDocument();
+    const picker = screen.getByLabelText(/New season starts/i);
+    expect(picker).toHaveAttribute('type', 'date');
   });
 
-  /**
-   * Tests that season date dropdowns are interactive
-   * @integration
-   */
-  test('should allow changing season date values', async () => {
+  test('no longer asks for an end date, because it is always derived', () => {
     render(
       <TestWrapper>
         <SettingsModal {...defaultProps} />
@@ -445,22 +432,26 @@ describe('<SettingsModal />', () => {
 
     navigateToTab('General');
 
-    // Wait for component to render
+    expect(screen.queryByText(/Season ends/i)).toBeNull();
+    expect(screen.queryByText(/auto-calculated/i)).toBeNull();
+    expect(screen.queryByLabelText(/Month/i)).toBeNull();
+    expect(screen.queryByLabelText(/Day/i)).toBeNull();
+  });
+
+  /** The boundary recurs yearly, so the preview says what it produces. */
+  test('shows the season the boundary produces', async () => {
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+
+    navigateToTab('General');
+
     await waitFor(() => {
-      expect(screen.getByText(/New season starts/i)).toBeInTheDocument();
+      expect(screen.getByText(/This season/i)).toBeInTheDocument();
     });
-
-    // Find the month and day select elements (only for start date)
-    const monthSelects = screen.getAllByLabelText(/Month/i);
-    const daySelects = screen.getAllByLabelText(/Day/i);
-
-    // Verify the dropdown elements are rendered and can be interacted with
-    // Only 1 month and 1 day select (end date is auto-calculated, read-only)
-    expect(monthSelects.length).toBe(1);
-    expect(daySelects.length).toBe(1);
-
-    // Note: We're not testing the actual save functionality here as that's
-    // tested at the unit level in appSettings.test.ts and requires complex mocking
+    expect(screen.getByText(/Next season/i)).toBeInTheDocument();
   });
 
   /**

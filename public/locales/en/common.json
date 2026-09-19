@@ -527,7 +527,8 @@
     "next": "Next",
     "futsal": "Futsal",
     "all": "All",
-    "checkOnMap": "Check on map"
+    "checkOnMap": "Check on map",
+    "hourShort": "h"
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
@@ -1365,8 +1366,8 @@
     "dashInDays": "{{count}} d",
     "dashUpcoming": "Upcoming",
     "departAt": "Leave {{time}}",
-    "departEstimate": "(estimate, {{minutes}} min drive)",
-    "departKnown": "({{minutes}} min drive)",
+    "departEstimate": "(estimate, {{drive}} drive)",
+    "departKnown": "({{drive}} drive)",
     "arriveBefore": "At the ground before kick-off",
     "actualDrive": "How long the drive really takes"
   },
@@ -1959,11 +1960,6 @@
     "seasonStartTitle": "Season Start Date",
     "seasonStartDescription": "When does your club's new season begin? This is typically when players move to new age groups. The previous season automatically ends the day before.",
     "newSeasonStartsLabel": "New season starts",
-    "seasonEndsLabel": "Season ends",
-    "autoCalculated": "auto-calculated",
-    "seasonExample": "Example: If your season starts {{startDate}}, the 2024-25 season runs {{startDate}}, 2024 → {{endDate}}, 2025.",
-    "monthLabel": "Month",
-    "dayLabel": "Day",
     "savePeriodDateError": "Failed to save period date. Please try again.",
     "premiumStatusLabel": "App Status",
     "premiumActive": "Full Version",
@@ -2004,7 +2000,10 @@
     "travelTitle": "Getting to matches",
     "travelDescription": "Used to work out when to leave for your next match. Without a starting point no departure time is shown.",
     "arrivalBufferLabel": "Be at the ground before kick-off (minutes)",
-    "arrivalBufferHint": "Warm-up, lineup and changing. A single match can be given its own figure."
+    "arrivalBufferHint": "Warm-up, lineup and changing. A single match can be given its own figure.",
+    "seasonThis": "This season",
+    "seasonNext": "Next season",
+    "seasonSaveFailed": "Could not save the season start. Please try again."
   },
   "playerAssessmentModal": {
     "title": "Record Performance",

@@ -1,12 +1,14 @@
 {
-  "version": "23bfcec3",
-  "date": "2026-09-18",
+  "version": "6258bd3f",
+  "date": "2026-09-19",
   "notes": {
     "en": [
-      "The next-match card now tells you when to leave. Set your starting point and how long before kick-off you want to be at the ground in Asetukset, and the card counts back from kick-off through both. Tap the line to give a single match its own arrival time, or to record how long the drive really took - a measured time replaces the estimate for every match at that venue."
+      "The club season is now one date instead of two. You set when it changes over, with the same date picker a match uses, and the previous one ends the day before. Before, a separate end date left a gap - with the shipped default, matches between 21 October and 14 November belonged to no season at all and dropped out of your record.",
+      "A long drive on the next-match card now reads as hours and minutes rather than a count of minutes, and adjusting the journey opens over the page instead of pushing everything below it down."
     ],
     "fi": [
-      "Seuraava ottelu -kortti kertoo nyt milloin pitää lähteä. Aseta lähtöpaikka ja se kuinka paljon ennen alkamisaikaa haluat olla paikalla Asetuksissa, niin kortti laskee alkamisajasta taaksepäin molempien läpi. Napauta riviä antaaksesi yksittäiselle ottelulle oman saapumisaikansa tai kirjataksesi paljonko ajomatka oikeasti kesti - mitattu aika korvaa arvion kaikissa saman paikan otteluissa."
+      "Seurakausi on nyt yksi päivämäärä kahden sijaan. Asetat milloin kausi vaihtuu, samalla päivämäärävalitsimella kuin ottelussa, ja edellinen päättyy sitä edeltävänä päivänä. Aiemmin erillinen päättymispäivä jätti välin - oletusasetuksella 21. lokakuuta ja 14. marraskuuta väliset ottelut eivät kuuluneet mihinkään kauteen ja putosivat pois tilastoista.",
+      "Pitkä ajomatka seuraava ottelu -kortissa näkyy nyt tunteina ja minuutteina pelkkien minuuttien sijaan, ja matkan säätö aukeaa sisällön päälle eikä työnnä sen alla olevaa alaspäin."
     ]
   }
 }
