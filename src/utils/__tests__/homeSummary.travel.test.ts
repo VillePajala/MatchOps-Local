@@ -128,3 +128,56 @@ describe('the town on the card', () => {
     expect(next(pinned('Muurarinkatu 4'))!.venueTown).toBeUndefined();
   });
 });
+
+/**
+ * @critical - the top card's last resort before an empty state. Kept separate
+ * from `resume` because the recent-strip accent is keyed to `resume`, and
+ * blurring the two would point the accent at a match the coach never opened.
+ */
+describe('the latest match played', () => {
+  const played = (id: string, date: string, opponent: string) => ({
+    [id]: game({ gameDate: date, isPlayed: true, opponentName: opponent, homeOrAway: 'home', homeScore: 3, awayScore: 1 }),
+  });
+
+  const summary = (games: Record<string, Partial<AppState>>, o = {}) =>
+    buildHomeSummary(games as never, opts(o) as never);
+
+  it('is the most recent one, not the most recently created', () => {
+    const s = summary({ ...played('a', '2026-08-01', 'Vanha'), ...played('b', '2026-09-10', 'Uusi') });
+
+    expect(s.lastPlayed?.id).toBe('b');
+    expect(s.lastPlayed?.opponent).toBe('Uusi');
+  });
+
+  it('reads the score from the coach s side', () => {
+    const s = summary(played('a', '2026-09-10', 'HJK'));
+
+    expect(s.lastPlayed?.ourScore).toBe(3);
+    expect(s.lastPlayed?.theirScore).toBe(1);
+  });
+
+  /**
+   * The resume card offers directions because the match is still ahead; this
+   * one has been played, and routing a coach to a ground they came home from
+   * is noise sitting where a useful control goes.
+   */
+  it('offers no directions, however well pinned the venue was', () => {
+    const s = summary({
+      a: game({ gameDate: '2026-09-10', isPlayed: true, locationLat: 61.87, locationLng: 28.88 }),
+    });
+
+    expect(s.lastPlayed?.mapsUrl).toBeNull();
+  });
+
+  it('is nothing when no match has been played', () => {
+    expect(summary({ next: game({ gameTime: '17:30' }) }).lastPlayed).toBeNull();
+  });
+
+  /** The accent must keep pointing at the match actually open, or nothing. */
+  it('does not become the resume card', () => {
+    const s = summary(played('a', '2026-09-10', 'HJK'));
+
+    expect(s.resume).toBeNull();
+    expect(s.lastPlayed).not.toBeNull();
+  });
+});

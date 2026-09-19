@@ -4,6 +4,17 @@
     {
       "date": "2026-09-19",
       "en": [
+        "The top card on the front page no longer disappears. Deleting your only upcoming fixture, or the match you last had open, used to leave a gap where the card had been. It now falls back to your latest match, ready to continue - and only invites you to create one when there are no matches at all.",
+        "The Jatka card now shows the date, kick-off, venue and pitch like the next-match card does, and the small cards in the strip below show the town."
+      ],
+      "fi": [
+        "Etusivun ylin kortti ei enää katoa. Ainoan tulevan ottelun tai viimeksi avaamasi ottelun poistaminen jätti aiemmin tyhjän kohdan kortin paikalle. Nyt se näyttää viimeisimmän ottelusi valmiina jatkettavaksi - ja tarjoaa ottelun luomista vain kun otteluita ei ole lainkaan.",
+        "Jatka-kortti näyttää nyt päivämäärän, alkamisajan, paikan ja kentän kuten seuraava ottelu -kortti, ja alla olevan rivin pienet kortit näyttävät paikkakunnan."
+      ]
+    },
+    {
+      "date": "2026-09-19",
+      "en": [
         "When adding external stats, the team list now says which competition each team belongs to. Teams are tied to a season or tournament, so the same squad appeared several times with nothing to tell the entries apart. The section itself also got some breathing room."
       ],
       "fi": [

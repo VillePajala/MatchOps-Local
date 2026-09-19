@@ -26,7 +26,8 @@ const base = (over: Partial<HomeSummary> = {}): HomeSummary => ({
   vuosi: null,
   recent: [],
   upcoming: null,
-  upcomingList: [],
+  lastPlayed: null,
+    upcomingList: [],
   counts: { players: 0, teams: 0, personnel: 0, seasons: 0, tournaments: 0 },
   countsReady: true,
   topScorer: null,
@@ -149,7 +150,8 @@ describe('the strip', () => {
     rerender(<HomeDashboard summary={base({
       recent: [recent('a', 'HJK')],
       upcoming: fixture(),
-      upcomingList: [fixture()],
+      lastPlayed: null,
+    upcomingList: [fixture()],
     })} t={t} />);
     expect(screen.getAllByRole('tab')).toHaveLength(2);
   });
@@ -158,7 +160,8 @@ describe('the strip', () => {
     render(<HomeDashboard summary={base({
       recent: [recent('a', 'HJK')],
       upcoming: fixture(),
-      upcomingList: [fixture()],
+      lastPlayed: null,
+    upcomingList: [fixture()],
     })} t={t} />);
 
     const upcomingTab = screen.getByRole('tab', { name: /Upcoming/ });
@@ -170,7 +173,8 @@ describe('which strip the toggle opens on', () => {
   const twoFixtures = [fixture({ id: 'a' }), fixture({ id: 'b', opponent: 'KuPS' })];
 
   it('opens on the fixtures when any are booked', () => {
-    render(<HomeDashboard summary={base({ upcoming: fixture(), upcomingList: twoFixtures, recent: [recent('r1', 'FC Espoo')] })} t={t} />);
+    render(<HomeDashboard summary={base({ upcoming: fixture(), lastPlayed: null,
+    upcomingList: twoFixtures, recent: [recent('r1', 'FC Espoo')] })} t={t} />);
 
     expect(screen.getByText('KuPS')).toBeInTheDocument();
     expect(screen.queryByText('FC Espoo')).toBeNull();
@@ -189,7 +193,8 @@ describe('which strip the toggle opens on', () => {
 
     rerender(
       <HomeDashboard
-        summary={base({ upcoming: fixture(), upcomingList: twoFixtures, recent: [recent('r1', 'FC Espoo')] })}
+        summary={base({ upcoming: fixture(), lastPlayed: null,
+    upcomingList: twoFixtures, recent: [recent('r1', 'FC Espoo')] })}
         t={t}
       />,
     );
@@ -326,5 +331,170 @@ describe('how the drive reads', () => {
     render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travelOf(45) }) })} t={t} />);
 
     expect(screen.getByText(/45 min/)).toBeInTheDocument();
+  });
+});
+
+
+/**
+ * @critical - the owner asked for this twice. "A fixture, or failing that the
+ * last match you had open" leaves a third case: both gone at once. Delete the
+ * only booked fixture while the match you last opened was that same one, and
+ * Home's most prominent element simply vanished.
+ */
+describe('the top slot is never empty', () => {
+  const lastPlayed = {
+    id: 'last', opponent: 'FC Espoo', ourScore: 3, theirScore: 1,
+    homeOrAway: 'home' as const, isPlayed: true, mapsUrl: null,
+  };
+
+  /**
+   * @critical - the owner asked for this twice. Deleting the only fixture
+   * when it was also the match you last had open left Home's most prominent
+   * element gone entirely.
+   */
+  it('falls back to the latest match played, with the same action', () => {
+    const onOpenGame = jest.fn();
+    render(<HomeDashboard summary={base({ lastPlayed })} onOpenGame={onOpenGame} t={t} />);
+
+    expect(screen.getByText('FC Espoo')).toBeInTheDocument();
+    expect(screen.getByText(/Continue/)).toBeInTheDocument();
+  });
+
+  it('opens that match when the card is pressed', async () => {
+    const onOpenGame = jest.fn();
+    render(<HomeDashboard summary={base({ lastPlayed })} onOpenGame={onOpenGame} t={t} />);
+
+    await userEvent.click(screen.getByText('FC Espoo'));
+
+    expect(onOpenGame).toHaveBeenCalledWith('last');
+  });
+
+  /** A fixture and a match in progress both outrank it. */
+  it.each([
+    ['a fixture', { upcoming: fixture(), lastPlayed }],
+    ['a match to resume', { resume, lastPlayed }],
+  ])('stays out of the way when there is %s', (_case, over) => {
+    render(<HomeDashboard summary={base(over)} t={t} />);
+
+    expect(screen.queryByText('FC Espoo')).toBeNull();
+  });
+
+  describe('and when there is genuinely nothing', () => {
+    it('offers the first match', () => {
+      render(<HomeDashboard summary={base()} t={t} />);
+
+      expect(screen.getByText(/No matches yet/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /New Game/ })).toBeInTheDocument();
+    });
+
+    it('starts one', async () => {
+      const onNewGame = jest.fn();
+      render(<HomeDashboard summary={base()} onNewGame={onNewGame} t={t} />);
+
+      await userEvent.click(screen.getByRole('button', { name: /New Game/ }));
+
+      expect(onNewGame).toHaveBeenCalled();
+    });
+
+    /** Never shown while any real match could take the slot. */
+    it('is not reached once a match exists', () => {
+      render(<HomeDashboard summary={base({ lastPlayed })} t={t} />);
+
+      expect(screen.queryByText(/No matches yet/)).toBeNull();
+    });
+  });
+});
+
+/**
+ * @critical - a key that does not exist falls back to the inline English, so
+ * the FI build silently shows English and nothing fails. Two were doing
+ * exactly that: the new-game button and the competitions heading.
+ */
+describe('every translation key on this screen exists', () => {
+  const source = require('fs').readFileSync(
+    require('path').join(process.cwd(), 'src/components/HomeDashboard.tsx'),
+    'utf8',
+  );
+  const en = require('../../../public/locales/en/common.json');
+
+  const lookup = (key: string) =>
+    key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], en);
+
+  it.each([...new Set([...source.matchAll(/t\('([\w.]+)'/g)].map((m: RegExpMatchArray) => m[1]))])(
+    '%s',
+    (key) => {
+      // i18next resolves a count-bearing key through its _one / _other forms,
+      // so a bare miss is only a miss when neither plural exists either.
+      const resolved = lookup(key) ?? lookup(`${key}_other`);
+      expect(typeof resolved).toBe('string');
+    },
+  );
+});
+
+/**
+ * The Jatka card and the fixture card take the same slot and are both "the
+ * match this screen is about", so one carrying only an opponent and a score
+ * read as a different kind of thing than the other.
+ */
+describe('the Jatka card carries when and where too', () => {
+  const full = {
+    ...resume,
+    date: '2026-09-20', time: '14:00',
+    venue: 'Mitta-Keittiöt Areena', venueTown: 'Savonlinna', fieldNumber: 'TN 2',
+  };
+
+  it('shows the date and kick-off', () => {
+    render(<HomeDashboard summary={base({ resume: full })} t={t} />);
+
+    expect(screen.getByText(/20\.9\./)).toBeInTheDocument();
+    expect(screen.getByText(/14:00/)).toBeInTheDocument();
+  });
+
+  it('shows the venue, its town and the pitch', () => {
+    render(<HomeDashboard summary={base({ resume: full })} t={t} />);
+
+    const line = screen.getByText(/Mitta-Keittiöt Areena/);
+    expect(line).toHaveTextContent('Savonlinna');
+    expect(line).toHaveTextContent('TN 2');
+  });
+
+  /** A bare match must stay a bare card, not grow an empty line. */
+  it('adds nothing when none of it is set', () => {
+    render(<HomeDashboard summary={base({ resume })} t={t} />);
+
+    expect(screen.queryByText(/·/)).toBeNull();
+  });
+
+  it('shows what it has when only some of it is set', () => {
+    render(<HomeDashboard summary={base({ resume: { ...resume, date: '2026-09-20' } })} t={t} />);
+
+    expect(screen.getByText('20.9.')).toBeInTheDocument();
+  });
+});
+
+describe('the strip cards show the town', () => {
+  it('puts it on a recent result', () => {
+    render(<HomeDashboard summary={base({
+      recent: [{ ...recent('r1', 'FC Espoo'), venueTown: 'Savonlinna' }],
+    })} t={t} />);
+
+    expect(screen.getByText('Savonlinna')).toBeInTheDocument();
+  });
+
+  it('puts it on an upcoming fixture', () => {
+    render(<HomeDashboard summary={base({
+      upcoming: fixture(),
+      upcomingList: [fixture({ id: 'u2', opponent: 'KuPS', venueTown: 'Mikkeli' })],
+      recent: [recent('r1', 'FC Espoo')],
+    })} t={t} />);
+
+    expect(screen.getByText('Mikkeli')).toBeInTheDocument();
+  });
+
+  /** No pinned venue, no town, no empty line. */
+  it('leaves the card as it was when there is no town', () => {
+    render(<HomeDashboard summary={base({ recent: [recent('r1', 'FC Espoo')] })} t={t} />);
+
+    expect(screen.getByText('FC Espoo')).toBeInTheDocument();
   });
 });

@@ -801,6 +801,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     onOpenVuosi={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
                     onOpenGame={onOpenGameById}
                     onAdjustTravel={onAdjustTravel}
+                    onNewGame={onNewGame}
                     t={t}
                   />
                   </>

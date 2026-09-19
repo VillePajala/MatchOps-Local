@@ -39,6 +39,13 @@ const scoreColour: Record<'W' | 'D' | 'L', string> = {
   L: 'text-red-300',
 };
 
+/** "2026-09-20" -> "20.9." - the form a Finnish coach writes on a whiteboard. */
+const formatDayMonth = (iso: string): string => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return '';
+  return `${Number(m[3])}.${Number(m[2])}.`;
+};
+
 const fmtElapsed = (s: number): string => `${Math.floor(s / 60)}:${String(Math.abs(s % 60)).padStart(2, '0')}`;
 
 /**
@@ -54,7 +61,64 @@ const fmtElapsed = (s: number): string => `${Math.floor(s / 60)}:${String(Math.a
  * on the front page is that a coach can press it on the way out of the door
  * rather than digging three screens down for it.
  */
+/**
+ * The match in progress, and - when it has a pinned venue - a way to drive to it.
+ *
+ * THE DIRECTIONS BUTTON IS A SIBLING, not a child. This card is a <button>, and
+ * a link inside a button is invalid HTML that browsers resolve unpredictably.
+ * So the card became a row: the resume action keeps the whole surface it had,
+ * and the directions link is its own tap target beside it.
+ *
+ * It appears ONLY when the match has a location. An empty seat here would be a
+ * dead control on the busiest surface in the app, and the point of putting it
+ * on the front page is that a coach can press it on the way out of the door
+ * rather than digging three screens down for it.
+ */
+/**
+ * The top slot when there is neither a fixture nor a match to resume.
+ *
+ * THE SLOT IS NEVER EMPTY, which the owner asked for twice. The rule used to
+ * be "a fixture, or failing that the last match you had open" - and both of
+ * those can be gone at once: delete the only booked fixture while the match
+ * you last opened was that same one, and the card simply vanished, leaving
+ * Home opening on a gap where its most prominent element had been.
+ *
+ * ONLY WHEN THERE IS GENUINELY NOTHING. A fixture, the match you have open,
+ * or failing both the latest one played will all take this slot first - so
+ * reaching this card means the coach has no matches at all, and the only
+ * useful thing to offer is the first one.
+ */
+function NoMatchCard({ onNewGame, t }: { onNewGame?: () => void; t: TFunction }) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-800/70 px-3.5 py-3.5 text-white shadow-md">
+      <div className="mb-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+        {t('startScreen.dashNextMatch', 'Next match')}
+      </div>
+      <p className="text-sm text-slate-300">
+        {t('startScreen.dashNoMatchesYet', 'No matches yet.')}
+      </p>
+      <button
+        type="button"
+        onClick={onNewGame}
+        className="mt-2.5 w-full rounded-lg bg-indigo-600 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-indigo-500"
+      >
+        {t('startScreen.newGame', 'New Game')}
+      </button>
+    </div>
+  );
+}
+
 function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?: () => void; t: TFunction }) {
+  // Same trim as the fixture card: the stored venue can carry a town after a
+  // comma, and the card has never had room for both halves.
+  const venueName = resume.venue?.split(',')[0]?.trim();
+  const where = [venueName, resume.venueTown, resume.fieldNumber].filter(Boolean).join(' · ');
+  // Day and month only - the year is noise on a card about this week, and
+  // the ISO date is what every other Home surface formats from.
+  const when = [resume.date ? formatDayMonth(resume.date) : null, resume.time]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div className="flex items-stretch rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden">
     <button
@@ -66,6 +130,16 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
         <span className="text-base font-extrabold truncate">{resume.opponent || t('startScreen.dashResumeGame', 'Game')}</span>
         <span className="text-xl font-black tabular-nums leading-none">{resume.ourScore}–{resume.theirScore}</span>
       </div>
+      {/* WHEN AND WHERE, as the next-match card has. Both cards take the same
+          slot and are both "the match this screen is about", so a Jatka card
+          carrying only an opponent and a score read as a different kind of
+          thing than the fixture card directly above it. Each part is dropped
+          when it is not set, so a bare match stays a bare card. */}
+      {(where || resume.date || resume.time) && (
+        <div className="mt-0.5 truncate text-[11.5px] text-indigo-200">
+          {[when, where].filter(Boolean).join(' · ')}
+        </div>
+      )}
       <div className="flex items-center justify-between mt-1 text-xs font-bold">
         <span className="text-slate-300">
           {resume.isPlayed
@@ -284,6 +358,8 @@ function NextMatchCard({
   );
 }
 
+
+
 /** One fixture in the Tulevat strip: when it is, not how it went. */
 function UpcomingCard({ game, onOpen, t }: { game: HomeUpcomingGame; onOpen?: (id: string) => void; t: TFunction }) {
   return (
@@ -297,6 +373,9 @@ function UpcomingCard({ game, onOpen, t }: { game: HomeUpcomingGame; onOpen?: (i
       </span>
       <span className="block text-xs font-bold text-indigo-200">{game.time || '–'}</span>
       <span className="block text-[9.5px] text-slate-500">{game.date.slice(5).replace('-', '.')}.</span>
+      {game.venueTown && (
+        <span className="block truncate text-[9.5px] text-slate-500">{game.venueTown}</span>
+      )}
     </button>
   );
 }
@@ -365,6 +444,10 @@ function RecentCard({ game, onOpen, accented }: { game: HomeRecentGame; onOpen?:
       <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
       <div className={`text-sm font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
       <div className="text-xs text-slate-400 tabular-nums">{game.date?.slice(5).replace('-', '.')}</div>
+      {/* Town only - see HomeRecentGame.venueTown for why not the venue. */}
+      {game.venueTown && (
+        <div className="truncate text-[9.5px] text-slate-500">{game.venueTown}</div>
+      )}
     </button>
   );
 }
@@ -380,6 +463,7 @@ export function HomeDashboard({
   onOpenVuosi,
   onOpenGame,
   onAdjustTravel,
+  onNewGame,
   t,
 }: {
   summary: HomeSummary;
@@ -387,6 +471,8 @@ export function HomeDashboard({
   onOpenVuosi?: () => void;
   onOpenGame?: (id: string) => void;
   onAdjustTravel?: (id: string, next: { arrivalBufferMinutes?: number; travelMinutes?: number }) => void;
+  /** Opens the new-game flow from the empty top card. */
+  onNewGame?: () => void;
   t: TFunction;
 }) {
   /**
@@ -416,9 +502,19 @@ export function HomeDashboard({
 
   return (
     <>
+      {/* Always something here - see NoMatchCard for why the slot must not
+          be allowed to empty. */}
       {summary.upcoming
         ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} t={t} />
-        : summary.resume && <ResumeCard resume={summary.resume} onResume={onResume} t={t} />}
+        : summary.resume
+          ? <ResumeCard resume={summary.resume} onResume={onResume} t={t} />
+          // Nothing booked and nothing open: the latest match played, with the
+          // same Jatka action. A card that opens a real match beats a prompt
+          // that opens nothing - and after deleting the fixture you had open,
+          // the match before it is what a coach reaches for next.
+          : summary.lastPlayed
+            ? <ResumeCard resume={summary.lastPlayed} onResume={() => onOpenGame?.(summary.lastPlayed!.id)} t={t} />
+            : <NoMatchCard onNewGame={onNewGame} t={t} />}
       {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
       {(summary.recent.length > 0 || summary.upcomingList.length > 0) && (
         /* Label and strip are one block: the heading's margin is spacing
@@ -577,7 +673,7 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
       </div>
       <div className="flex items-baseline justify-between gap-3 mt-0.5">
         <span className="text-base font-extrabold text-white">
-          {vuosi ? vuosi.label : t('seasonTournamentModal.title', 'Competitions')}
+          {vuosi ? vuosi.label : t('startScreen.tabSeasons', 'Competitions')}
         </span>
         {/* Was text-sm - SMALLER than the "This season" label beside it, which
             is backwards whatever else one thinks about numerals. */}
