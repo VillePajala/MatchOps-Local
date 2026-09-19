@@ -156,6 +156,19 @@ describe('the latest match played', () => {
     expect(s.lastPlayed?.theirScore).toBe(1);
   });
 
+  /**
+   * The resume card offers directions because the match is still ahead; this
+   * one has been played, and routing a coach to a ground they came home from
+   * is noise sitting where a useful control goes.
+   */
+  it('offers no directions, however well pinned the venue was', () => {
+    const s = summary({
+      a: game({ gameDate: '2026-09-10', isPlayed: true, locationLat: 61.87, locationLng: 28.88 }),
+    });
+
+    expect(s.lastPlayed?.mapsUrl).toBeNull();
+  });
+
   it('is nothing when no match has been played', () => {
     expect(summary({ next: game({ gameTime: '17:30' }) }).lastPlayed).toBeNull();
   });

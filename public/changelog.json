@@ -1,12 +1,12 @@
 {
-  "version": "d9d3e95d",
+  "version": "95758d8b",
   "date": "2026-09-19",
   "notes": {
     "en": [
-      "The top card on the front page no longer disappears. Deleting your only upcoming fixture, or the match you last had open, used to leave a gap where the card had been. It now says what is true and offers to start a new match."
+      "The top card on the front page no longer disappears. Deleting your only upcoming fixture, or the match you last had open, used to leave a gap where the card had been. It now falls back to your latest match, ready to continue - and only invites you to create one when there are no matches at all."
     ],
     "fi": [
-      "Etusivun ylin kortti ei enää katoa. Ainoan tulevan ottelun tai viimeksi avaamasi ottelun poistaminen jätti aiemmin tyhjän kohdan kortin paikalle. Nyt se kertoo tilanteen ja tarjoaa uuden ottelun luomista."
+      "Etusivun ylin kortti ei enää katoa. Ainoan tulevan ottelun tai viimeksi avaamasi ottelun poistaminen jätti aiemmin tyhjän kohdan kortin paikalle. Nyt se näyttää viimeisimmän ottelusi valmiina jatkettavaksi - ja tarjoaa ottelun luomista vain kun otteluita ei ole lainkaan."
     ]
   }
 }
