@@ -2734,7 +2734,6 @@ export type TranslationKey =
   | 'startScreen.dashInProgress'
   | 'startScreen.dashNextMatch'
   | 'startScreen.dashNoMatchesYet'
-  | 'startScreen.dashNothingBooked'
   | 'startScreen.dashPersonnel'
   | 'startScreen.dashPersonnelCount_one'
   | 'startScreen.dashPersonnelCount_other'
