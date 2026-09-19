@@ -527,7 +527,8 @@
     "continue": "Jatka",
     "futsal": "Futsal",
     "all": "Kaikki",
-    "checkOnMap": "Tarkista kartalta"
+    "checkOnMap": "Tarkista kartalta",
+    "hourShort": "t"
   },
   "backupRestore": {
     "resultsTitle": "Varmuuskopion palautus valmis",
@@ -1223,8 +1224,8 @@
     "dashInDays": "{{count}} pv",
     "dashUpcoming": "Tulevat",
     "departAt": "Lähde {{time}}",
-    "departEstimate": "(arvio, {{minutes}} min ajo)",
-    "departKnown": "({{minutes}} min ajo)",
+    "departEstimate": "(arvio, {{drive}} ajo)",
+    "departKnown": "({{drive}} ajo)",
     "arriveBefore": "Paikalla ennen alkamisaikaa",
     "actualDrive": "Paljonko ajomatka oikeasti kestää"
   },
@@ -2004,7 +2005,10 @@
     "travelTitle": "Otteluihin matkustaminen",
     "travelDescription": "Käytetään sen laskemiseen milloin seuraavaan otteluun pitää lähteä. Ilman lähtöpaikkaa lähtöaikaa ei näytetä.",
     "arrivalBufferLabel": "Paikalla ennen alkamisaikaa (minuuttia)",
-    "arrivalBufferHint": "Lämmittely, kokoonpano ja vaihtuminen. Yksittäiselle ottelulle voi antaa oman lukunsa."
+    "arrivalBufferHint": "Lämmittely, kokoonpano ja vaihtuminen. Yksittäiselle ottelulle voi antaa oman lukunsa.",
+    "seasonThis": "Tämä kausi",
+    "seasonNext": "Seuraava kausi",
+    "seasonSaveFailed": "Kauden alkua ei voitu tallentaa. Yritä uudelleen."
   },
   "playerAssessmentModal": {
     "title": "Kirjaa ottelusuoritukset",

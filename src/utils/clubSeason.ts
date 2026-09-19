@@ -33,6 +33,35 @@ function parseSeasonYear(shortYear: string): number {
   return year < 100 ? 2000 + year : year;
 }
 
+
+/**
+ * The day before the club season starts - which is when the previous one ends.
+ *
+ * DERIVED, NEVER STORED. A club season is a cycle: it starts, it runs, and the
+ * next one starting is what ends it. Keeping a separate end date created a gap
+ * between the two that could not mean anything useful - and the shipped default
+ * had exactly that, a 26-day hole (21 Oct to 14 Nov) where every match returned
+ * 'off-season' and fell out of the season record entirely. Opening the settings
+ * silently repaired it, because the UI derived the end even though the default
+ * did not. A setting that fixes a data gap just by being looked at is a bug
+ * wearing a form.
+ *
+ * Month and day only; the year in these strings is a template.
+ */
+export function clubSeasonEndFromStart(startDate: string): string {
+  const [, monthStr, dayStr] = startDate.split('-');
+  const month = parseInt(monthStr, 10);
+  const day = parseInt(dayStr, 10);
+
+  if (day > 1) return `2000-${String(month).padStart(2, '0')}-${String(day - 1).padStart(2, '0')}`;
+
+  const prevMonth = month === 1 ? 12 : month - 1;
+  // 28 for February: the template year is 2000, and a season boundary on 29
+  // February would be a boundary that does not exist in three years out of four.
+  const lastDay = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][prevMonth - 1];
+  return `2000-${String(prevMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+}
+
 /**
  * Determines the club season label for a given date.
  *
@@ -52,8 +81,11 @@ function parseSeasonYear(shortYear: string): number {
 export function getClubSeasonForDate(
   dateStr: string,
   startDate: string = DEFAULT_CLUB_SEASON_START_DATE,
-  endDate: string = DEFAULT_CLUB_SEASON_END_DATE
+  // Accepted for callers that still pass one, and ignored: the end is the day
+  // before the start, always. Nothing should compute it independently.
+  _legacyEndDate?: string,
 ): string {
+  const endDate = clubSeasonEndFromStart(startDate);
   // Validate ISO format (YYYY-MM-DD) to protect against corrupted data
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     // Log warning but don't throw - gracefully degrade to off-season

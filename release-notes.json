@@ -2,6 +2,17 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-19",
+      "en": [
+        "The club season is now one date instead of two. You set when it changes over, with the same date picker a match uses, and the previous one ends the day before. Before, a separate end date left a gap - with the shipped default, matches between 21 October and 14 November belonged to no season at all and dropped out of your record.",
+        "A long drive on the next-match card now reads as hours and minutes rather than a count of minutes, and adjusting the journey opens over the page instead of pushing everything below it down."
+      ],
+      "fi": [
+        "Seurakausi on nyt yksi päivämäärä kahden sijaan. Asetat milloin kausi vaihtuu, samalla päivämäärävalitsimella kuin ottelussa, ja edellinen päättyy sitä edeltävänä päivänä. Aiemmin erillinen päättymispäivä jätti välin - oletusasetuksella 21. lokakuuta ja 14. marraskuuta väliset ottelut eivät kuuluneet mihinkään kauteen ja putosivat pois tilastoista.",
+        "Pitkä ajomatka seuraava ottelu -kortissa näkyy nyt tunteina ja minuutteina pelkkien minuuttien sijaan, ja matkan säätö aukeaa sisällön päälle eikä työnnä sen alla olevaa alaspäin."
+      ]
+    },
+    {
       "date": "2026-09-18",
       "en": [
         "The next-match card now tells you when to leave. Set your starting point and how long before kick-off you want to be at the ground in Asetukset, and the card counts back from kick-off through both. Tap the line to give a single match its own arrival time, or to record how long the drive really took - a measured time replaces the estimate for every match at that venue."

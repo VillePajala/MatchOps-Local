@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { MdDirectionsCar } from 'react-icons/md';
 import type { TFunction } from 'i18next';
 import type { HomeSummary, HomeResumeGame, HomeRecentGame, HomeUpcomingGame } from '@/utils/homeSummary';
+import { formatDriveTime } from '@/utils/travelPlan';
 
 /**
  * The Home card surface: recent games, the Pelaajat and Joukkueet tiles, the
@@ -125,6 +126,11 @@ function NextMatchCard({
   t: TFunction;
 }) {
   const [adjusting, setAdjusting] = useState(false);
+  // "132 min" has to be divided in the head before it means anything, and the
+  // head is busy. The hour word is localised; the arithmetic is not.
+  const driveTime = game.travel
+    ? formatDriveTime(game.travel.travelMinutes, t('common.hourShort', 'h'))
+    : '';
   const countdown =
     game.daysAway === 0
       ? t('startScreen.dashToday', 'Today')
@@ -140,6 +146,10 @@ function NextMatchCard({
   const where = [venueName, game.fieldNumber].filter(Boolean).join(' · ');
 
   return (
+    // The wrapper positions; the card inside it clips. They cannot be the same
+    // element: rounded corners need overflow-hidden, and an overflowing panel
+    // is exactly what the adjustment sheet is.
+    <div className="relative">
     <div className="flex flex-col rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden">
       <div className="flex items-stretch">
       <button
@@ -197,69 +207,75 @@ function NextMatchCard({
             </span>
             <span className="font-normal text-indigo-300">
               {game.travel.isEstimate
-                ? t('startScreen.departEstimate', '(estimate, {{minutes}} min drive)', { minutes: game.travel.travelMinutes })
-                : t('startScreen.departKnown', '({{minutes}} min drive)', { minutes: game.travel.travelMinutes })}
+                ? t('startScreen.departEstimate', '(estimate, {{drive}} drive)', { drive: driveTime })
+                : t('startScreen.departKnown', '({{drive}} drive)', { drive: driveTime })}
             </span>
             <span className="ml-auto shrink-0 text-indigo-300">{adjusting ? '▾' : '▸'}</span>
           </button>
 
-          {adjusting && (
-            <div className="space-y-2.5 px-3.5 pb-3">
-              <div>
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-indigo-300">
-                  {t('startScreen.arriveBefore', 'At the ground before kick-off')}
-                </div>
-                <div className="flex gap-1.5">
-                  {[30, 45, 60].map((minutes) => (
-                    <button
-                      key={minutes}
-                      type="button"
-                      onClick={() => onAdjustTravel?.(game.id, { arrivalBufferMinutes: minutes })}
-                      className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                        game.travel?.arrivalBufferMinutes === minutes
-                          ? 'bg-amber-500 text-slate-900'
-                          : 'bg-indigo-900/70 text-indigo-100 hover:bg-indigo-800'
-                      }`}
-                    >
-                      {minutes} min
-                    </button>
-                  ))}
-                </div>
-              </div>
+        </div>
+      )}
+    </div>
 
-              <div>
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-indigo-300">
-                  {t('startScreen.actualDrive', 'How long the drive really takes')}
-                </div>
-                {/* A measured time replaces a straight-line guess that knows
-                    nothing about the lake you drive around - and, looked up by
-                    venue, answers for every later match at the same place. */}
-                <input
-                  type="number"
-                  min={0}
-                  max={600}
-                  inputMode="numeric"
-                  defaultValue={game.travel.travelMinutes}
-                  onBlur={(e) => {
-                    // An EMPTIED field is not a zero-minute drive. Number('')
-                    // is 0, which passed a >= 0 check and would have recorded
-                    // "this venue takes no time to reach" for every later match
-                    // there - a measured value is exactly the thing that
-                    // overrides the estimate, so a blank must change nothing.
-                    const raw = e.target.value.trim();
-                    if (!raw) return;
-                    const minutes = Number(raw);
-                    if (Number.isFinite(minutes) && minutes > 0) {
-                      onAdjustTravel?.(game.id, { travelMinutes: Math.round(minutes) });
-                    }
-                  }}
-                  aria-label={t('startScreen.actualDrive', 'How long the drive really takes')}
-                  className="w-24 rounded-md border border-indigo-500/50 bg-indigo-950/60 px-2 py-1 text-sm text-white"
-                />
-                <span className="ml-1.5 text-xs text-indigo-300">min</span>
-              </div>
+          {/* OVER the content below, not shoved into it. Expanding in the flow
+          pushed the season bar, the results strip and every button down the
+          page - the coach adjusts one number and the whole screen moves
+          under their thumb. Absolute, so only this panel moves. */}
+      {adjusting && game.travel && (
+        <div className="absolute left-0 right-0 top-full z-30 space-y-2.5 rounded-b-xl border-x border-b border-indigo-500/60 bg-indigo-950 px-3.5 pb-3 pt-2 shadow-xl">
+          <div>
+            <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-indigo-300">
+              {t('startScreen.arriveBefore', 'At the ground before kick-off')}
             </div>
-          )}
+            <div className="flex gap-1.5">
+              {[30, 45, 60].map((minutes) => (
+                <button
+                  key={minutes}
+                  type="button"
+                  onClick={() => onAdjustTravel?.(game.id, { arrivalBufferMinutes: minutes })}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    game.travel?.arrivalBufferMinutes === minutes
+                      ? 'bg-amber-500 text-slate-900'
+                      : 'bg-indigo-900/70 text-indigo-100 hover:bg-indigo-800'
+                  }`}
+                >
+                  {minutes} min
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-indigo-300">
+              {t('startScreen.actualDrive', 'How long the drive really takes')}
+            </div>
+            {/* A measured time replaces a straight-line guess that knows
+                nothing about the lake you drive around - and, looked up by
+                venue, answers for every later match at the same place. */}
+            <input
+              type="number"
+              min={0}
+              max={600}
+              inputMode="numeric"
+              defaultValue={game.travel.travelMinutes}
+              onBlur={(e) => {
+                // An EMPTIED field is not a zero-minute drive. Number('')
+                // is 0, which passed a >= 0 check and would have recorded
+                // "this venue takes no time to reach" for every later match
+                // there - a measured value is exactly the thing that
+                // overrides the estimate, so a blank must change nothing.
+                const raw = e.target.value.trim();
+                if (!raw) return;
+                const minutes = Number(raw);
+                if (Number.isFinite(minutes) && minutes > 0) {
+                  onAdjustTravel?.(game.id, { travelMinutes: Math.round(minutes) });
+                }
+              }}
+              aria-label={t('startScreen.actualDrive', 'How long the drive really takes')}
+              className="w-24 rounded-md border border-indigo-500/50 bg-indigo-950/60 px-2 py-1 text-sm text-white"
+            />
+            <span className="ml-1.5 text-xs text-indigo-300">min</span>
+          </div>
         </div>
       )}
     </div>
