@@ -164,3 +164,18 @@ export function planDeparture(opts: {
 }
 
 export default planDeparture;
+
+/**
+ * The starting point as a measurable position, or null.
+ *
+ * A saved starting point always has a NAME - that is what the coach typed -
+ * but only a PINNED one has coordinates, and only coordinates can be measured
+ * from. Keeping the two apart is what lets the settings field hold a half-typed
+ * name without the departure time quietly becoming fiction.
+ */
+export function asCoordinates(
+  point?: { latitude?: number; longitude?: number } | null,
+): Coordinates | null {
+  if (typeof point?.latitude !== 'number' || typeof point?.longitude !== 'number') return null;
+  return { latitude: point.latitude, longitude: point.longitude };
+}

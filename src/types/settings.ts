@@ -55,7 +55,14 @@ export interface AppSettings {
    * and uncorrectable. Undefined until the coach sets it, which simply means no
    * departure time is shown.
    */
-  startingPoint?: { name: string; latitude: number; longitude: number };
+  startingPoint?: {
+    name: string;
+    /** The pinned address, as the lookup gave it. */
+    address?: string;
+    /** Only a pinned point can be measured from; a typed name cannot. */
+    latitude?: number;
+    longitude?: number;
+  };
   /**
    * Minutes to be AT the ground before kick-off - warm-up, lineup, changing.
    * A default, not a constant: usually 30, an hour for some tournaments, so a
