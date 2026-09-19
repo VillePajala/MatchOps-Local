@@ -95,6 +95,14 @@ export function getClubSeasonForDate(
 
   // Force UTC interpretation to avoid timezone issues
   const date = new Date(dateStr + 'T00:00:00Z');
+  // '2024-13-45' passes the format check above and is still not a date. This
+  // used to reach 'off-season' by accident, through NaN failing every
+  // comparison; now that the comparisons always resolve, corrupt input has to
+  // be rejected on purpose or it would be handed a label built from NaN.
+  if (Number.isNaN(date.getTime())) {
+    logger.warn('[getClubSeasonForDate] Not a real date:', dateStr);
+    return 'off-season';
+  }
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth() + 1; // Convert 0-based to 1-based
   const day = date.getUTCDate();
@@ -122,18 +130,22 @@ export function getClubSeasonForDate(
     // Outside season
     return 'off-season';
   } else {
-    // Season spans calendar years (e.g., Oct 1 - May 1 or Dec 15 - Feb 10)
+    // Season spans calendar years. ONE COMPARISON, against the boundary alone:
+    // on or after it opens the new season, before it belongs to the outgoing
+    // one, and there is no third case. Testing the end as well left a gap of
+    // exactly one day every four years - 29 February, which the end cannot be
+    // because a boundary on a date that exists three years in four is no
+    // boundary at all. The end is the day before the start by definition, so
+    // asking about it separately could only ever reintroduce the hole this
+    // change removed.
     if (isAfterOrEqual(month, day, startMonth, startDay)) {
       // In first half of season (Oct-Dec 2024 → "24/25")
       const nextYear = year + 1;
       return `${year.toString().slice(2)}/${nextYear.toString().slice(2)}`;
-    } else if (isBeforeOrEqual(month, day, endMonth, endDay)) {
-      // In second half of season (Jan-May 2025 → "24/25")
-      const prevYear = year - 1;
-      return `${prevYear.toString().slice(2)}/${year.toString().slice(2)}`;
     }
-    // Outside season (e.g., June-September for Oct-May season)
-    return 'off-season';
+    // In second half of season (Jan-May 2025 → "24/25")
+    const prevYear = year - 1;
+    return `${prevYear.toString().slice(2)}/${year.toString().slice(2)}`;
   }
 }
 
