@@ -61,8 +61,6 @@ const formatWeekdayDate = (iso: string, locale: string): string => {
   return `${weekday} ${formatDayMonth(iso)}`;
 };
 
-const fmtElapsed = (s: number): string => `${Math.floor(s / 60)}:${String(Math.abs(s % 60)).padStart(2, '0')}`;
-
 /**
  * The top slot when there is neither a fixture nor a match to resume.
  *
@@ -115,7 +113,7 @@ function NoMatchCard({ onNewGame, t }: { onNewGame?: () => void; t: TFunction })
  */
 const CARD_HERO =
   'flex flex-col rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden';
-const CARD_BODY = 'flex-1 min-w-0 text-left px-3.5 pt-2.5 pb-2.5 hover:bg-indigo-900/40 transition-all';
+const CARD_BODY = 'flex-1 min-w-0 text-left px-3.5 pt-2 pb-2.5 hover:bg-indigo-900/40 transition-all';
 const CARD_ACTION_ROW = 'border-t border-indigo-500/40 bg-indigo-950/30';
 
 /** Role and day: "Next match · Tomorrow", "Latest · su 14.9. 19:00". */
@@ -138,19 +136,25 @@ function CardMain({ who, number }: { who: string; number?: string }) {
 }
 
 /**
- * Venue name over its town, the pitch as a chip beside them. Renders nothing
- * when none of it is set, so a bare match stays a bare card.
+ * Venue name over its town, the pitch as a chip beside them, and whatever
+ * action belongs on that row (the Jatka pill). Renders nothing when none of
+ * it is set, so a bare match stays a bare card.
  *
  * Only the first comma-separated part of the stored venue: newly picked
  * locations store just the name, but games saved earlier kept the whole
  * disambiguation string, and the town has its own line now.
  */
-function CardWhere({ venue, town, pitch }: { venue?: string; town?: string; pitch?: string }) {
+function CardWhere({ venue, town, pitch, trailing }: {
+  venue?: string;
+  town?: string;
+  pitch?: string;
+  trailing?: React.ReactNode;
+}) {
   const name = venue?.split(',')[0]?.trim();
-  if (!name && !town && !pitch) return null;
+  if (!name && !town && !pitch && !trailing) return null;
   return (
-    <div className="mt-1.5 flex items-center gap-2">
-      <div className="min-w-0 flex-1 break-words leading-snug">
+    <div className="mt-1 flex items-center gap-2">
+      <div className="min-w-0 flex-1 break-words leading-tight">
         {name && <div className="text-[13px] font-semibold">{name}</div>}
         {town && <div className="text-xs text-indigo-200">{town}</div>}
       </div>
@@ -159,6 +163,7 @@ function CardWhere({ venue, town, pitch }: { venue?: string; town?: string; pitc
           {pitch}
         </span>
       )}
+      {trailing}
     </div>
   );
 }
@@ -184,7 +189,7 @@ function CardDirections({ href, t }: { href: string; t: TFunction }) {
       rel="noopener noreferrer"
       aria-label={t('startScreen.driveToVenue', 'Directions to the venue')}
       title={t('startScreen.driveToVenue', 'Directions to the venue')}
-      className="mb-2 mr-3.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-indigo-400/40 bg-indigo-950/40 text-indigo-100 transition-colors hover:bg-indigo-800/60"
+      className="mb-2.5 mr-3.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-indigo-400/40 bg-indigo-950/40 text-indigo-100 transition-colors hover:bg-indigo-800/60"
     >
       <MdDirectionsCar className="h-5 w-5" aria-hidden="true" />
     </a>
@@ -195,8 +200,10 @@ function CardDirections({ href, t }: { href: string; t: TFunction }) {
  * The match you have open, or failing that the latest one played.
  *
  * The eyebrow says which: "In progress" while the clock has not been stopped
- * for good, "Latest" once it has. The action row carries the clock while the
- * match is on and "Played" after, so the Jatka pill always has a row to sit in.
+ * for good, "Latest" once it has. NO ACTION ROW (owner, 2026-09-20): a row of
+ * its own for "Pelattu" and the pill made the card taller than the slot and
+ * restated what the eyebrow already said. The Jatka pill rides the venue row
+ * instead, where the eye lands last.
  */
 function ResumeCard({ resume, onResume, locale, t }: {
   resume: HomeResumeGame;
@@ -210,12 +217,6 @@ function ResumeCard({ resume, onResume, locale, t }: {
   const role = resume.isPlayed
     ? t('startScreen.dashLatestMatch', 'Latest')
     : t('startScreen.dashInProgress', 'In progress');
-  const progress = resume.isPlayed
-    ? t('startScreen.dashPlayed', 'Played')
-    : [
-        resume.currentPeriod ? `${resume.currentPeriod}.` : null,
-        typeof resume.timeElapsedSeconds === 'number' ? fmtElapsed(resume.timeElapsedSeconds) : null,
-      ].filter(Boolean).join(' · ');
 
   return (
     <div className={CARD_HERO}>
@@ -226,26 +227,25 @@ function ResumeCard({ resume, onResume, locale, t }: {
             who={resume.opponent || t('startScreen.dashResumeGame', 'Game')}
             number={`${resume.ourScore}–${resume.theirScore}`}
           />
-          <CardWhere venue={resume.venue} town={resume.venueTown} pitch={resume.fieldNumber} />
+          <CardWhere
+            venue={resume.venue}
+            town={resume.venueTown}
+            pitch={resume.fieldNumber}
+            trailing={
+              /* The one amber thing on this card, and the only thing to press.
+                 Amber used to coat the whole card, which put it in direct
+                 competition with the amber wordmark directly above it. The
+                 card is still the most prominent surface on the tab through
+                 its gradient and border; amber means "press this" and
+                 nothing else. */
+              <span className="shrink-0 rounded-full bg-amber-500 px-3 py-1 text-xs font-extrabold text-slate-900">
+                {t('startScreen.resumeCard', 'Continue')} →
+              </span>
+            }
+          />
         </button>
         {!resume.isPlayed && resume.mapsUrl ? <CardDirections href={resume.mapsUrl} t={t} /> : null}
       </div>
-      {/* The one amber thing on this card, and the only thing to press.
-          Amber used to coat the whole card, which put it in direct
-          competition with the amber wordmark directly above it - two large
-          amber blocks, neither reading as the action. The card is still the
-          most prominent surface on the tab through its gradient and border;
-          amber now means "press this" and nothing else. */}
-      <button
-        type="button"
-        onClick={onResume}
-        className={`${CARD_ACTION_ROW} flex w-full items-center justify-between gap-3 px-3.5 py-2 text-left text-xs font-bold transition-colors hover:bg-indigo-900/40`}
-      >
-        <span className="min-w-0 text-slate-300">{progress}</span>
-        <span className="shrink-0 rounded-full bg-amber-500 px-3 py-1 font-extrabold text-slate-900">
-          {t('startScreen.resumeCard', 'Continue')} →
-        </span>
-      </button>
     </div>
   );
 }
