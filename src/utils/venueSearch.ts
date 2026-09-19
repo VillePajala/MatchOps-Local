@@ -187,3 +187,36 @@ export function venuePinLabel(suggestion: VenueSuggestion): string {
   if (!town || head.includes(town)) return head;
   return `${head}, ${town}`;
 }
+
+/**
+ * The address at a position, for a venue that has coordinates and nothing else.
+ *
+ * WHY THIS IS NEEDED AT ALL. Venues pinned before migration 049 had their
+ * address dropped on save - the column did not exist yet - so they carry a
+ * perfectly good position and no words to go with it. The town is what the
+ * next-match card wants, and asking the coach to re-pin a venue the app
+ * already knows the location of is asking them to fix our bookkeeping.
+ *
+ * NEVER THROWS, like `searchVenues`, and for the same reason: this runs in the
+ * background to tidy old data, and a failure must leave that data exactly as it
+ * was rather than surface anywhere.
+ */
+export async function reverseGeocode(
+  latitude: number,
+  longitude: number,
+  signal?: AbortSignal,
+): Promise<VenueSuggestion | null> {
+  try {
+    const url = `${PHOTON_ENDPOINT.replace(/\/api\/$/, '/reverse')}?lat=${latitude}&lon=${longitude}&lang=default`;
+    const response = await fetch(url, { signal });
+    if (!response.ok) return null;
+
+    const body: unknown = await response.json();
+    const features = (body as { features?: unknown })?.features;
+    if (!Array.isArray(features) || features.length === 0) return null;
+
+    return toSuggestion(features[0] as PhotonFeature, 0);
+  } catch {
+    return null;
+  }
+}
