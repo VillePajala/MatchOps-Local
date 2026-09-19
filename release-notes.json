@@ -4,6 +4,17 @@
     {
       "date": "2026-09-20",
       "en": [
+        "A venue's street address now stays with the match: it showed up empty in match settings after creating the match, and could be lost on the next save.",
+        "The front page's top card updates as soon as you come back from a match whose date, time or venue you changed - no reload needed."
+      ],
+      "fi": [
+        "Paikan katuosoite pysyy nyt ottelussa: se näkyi tyhjänä ottelun tiedoissa luomisen jälkeen ja saattoi kadota seuraavassa tallennuksessa.",
+        "Etusivun ylin kortti päivittyy heti, kun palaat ottelusta, jonka päivämäärää, aikaa tai paikkaa muutit - ilman uudelleenlatausta."
+      ]
+    },
+    {
+      "date": "2026-09-20",
+      "en": [
         "The Jatka card on the front page is shorter again: the Continue button sits beside the venue instead of on a row of its own."
       ],
       "fi": [
