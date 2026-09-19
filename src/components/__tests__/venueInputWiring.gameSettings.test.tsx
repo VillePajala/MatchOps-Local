@@ -39,7 +39,8 @@ describe('GameSettingsModal receives the whole location', () => {
    */
   it('passes the venue book', () => {
     expect(props).toContain('knownVenues={knownVenues}');
-    expect(source).toContain('buildVenueBook(Object.values(data.savedGames ?? {}))');
+    // Read from settings through the hook, so a deleted match forgets nothing.
+    expect(source).toContain('useKnownVenues(data.savedGames)');
   });
 });
 

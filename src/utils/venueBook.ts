@@ -24,19 +24,9 @@ import type { AppState } from '@/types/game';
  * @module venueBook
  */
 
-export interface KnownVenue {
-  /** The spelling the coach used most recently - theirs, not the map's. */
-  name: string;
-  /** The pin, when any match at this venue ever had one. */
-  latitude?: number;
-  longitude?: number;
-  /** The address that pin came from, so a renamed venue still shows it. */
-  address?: string;
-  /** How many matches were played here. Ties break toward the familiar. */
-  timesUsed: number;
-  /** ISO date of the most recent match here; the primary ordering. */
-  lastUsed: string;
-}
+import type { KnownVenue } from '@/types/settings';
+
+export type { KnownVenue };
 
 /**
  * Fold a name for MATCHING ONLY - never for storage or display.
@@ -127,4 +117,74 @@ export function matchVenues(
 export function isKnownVenue(book: readonly KnownVenue[], name: string): boolean {
   const key = fold(name);
   return book.some((v) => fold(v.name) === key);
+}
+
+/** The book never grows past this; a coach with more grounds than this has a different problem. */
+const MAX_KNOWN_VENUES = 200;
+
+/**
+ * Learn from the matches, keep what was already known.
+ *
+ * WHY THE BOOK IS STORED AT ALL. It used to be rebuilt from saved games on
+ * every open, which made it forget a venue the moment its last match was
+ * deleted - and a coach deletes a test match, a cancelled fixture, last
+ * season's games. A venue used once is worth knowing for good.
+ *
+ * The matches are the fresher truth: a pin set on a match overrides a stored
+ * one, the most recent spelling wins, and counts and dates only ever go up.
+ * Returns `changed` so the caller writes settings only when something moved.
+ */
+export function learnVenues(
+  stored: readonly KnownVenue[] | undefined,
+  games: readonly Partial<AppState>[],
+): { book: KnownVenue[]; changed: boolean } {
+  const byName = new Map<string, KnownVenue>();
+  for (const v of stored ?? []) byName.set(fold(v.name), { ...v });
+  for (const seen of buildVenueBook(games)) {
+    const key = fold(seen.name);
+    const have = byName.get(key);
+    if (!have) { byName.set(key, seen); continue; }
+    const seenIsNewer = seen.lastUsed.localeCompare(have.lastUsed) >= 0;
+    const seenHasPin = typeof seen.latitude === 'number' && typeof seen.longitude === 'number';
+    byName.set(key, {
+      name: seenIsNewer ? seen.name : have.name,
+      latitude: seenHasPin ? seen.latitude : have.latitude,
+      longitude: seenHasPin ? seen.longitude : have.longitude,
+      address: seenHasPin ? seen.address : have.address,
+      timesUsed: Math.max(have.timesUsed, seen.timesUsed),
+      lastUsed: seenIsNewer ? seen.lastUsed : have.lastUsed,
+    });
+  }
+  const book = [...byName.values()]
+    .sort((a, b) => b.lastUsed.localeCompare(a.lastUsed) || b.timesUsed - a.timesUsed)
+    .slice(0, MAX_KNOWN_VENUES);
+  const changed = JSON.stringify(book) !== JSON.stringify(stored ?? []);
+  return { book, changed };
+}
+
+/**
+ * The stored book as it came off the wire, checked entry by entry. A JSONB
+ * column holds whatever was last written to it - by this build, an older one,
+ * or a hand - so nothing here is trusted until its shape has been looked at.
+ * Entries that do not pass are dropped, not the whole book.
+ */
+export function sanitizeKnownVenues(value: unknown): KnownVenue[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out: KnownVenue[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== 'object') continue;
+    const v = raw as Record<string, unknown>;
+    if (typeof v.name !== 'string' || !v.name.trim()) continue;
+    const num = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : undefined);
+    const lat = num(v.latitude), lng = num(v.longitude);
+    out.push({
+      name: v.name,
+      latitude: lat !== undefined && lng !== undefined ? lat : undefined,
+      longitude: lat !== undefined && lng !== undefined ? lng : undefined,
+      address: typeof v.address === 'string' ? v.address : undefined,
+      timesUsed: num(v.timesUsed) ?? 1,
+      lastUsed: typeof v.lastUsed === 'string' ? v.lastUsed : '',
+    });
+  }
+  return out;
 }
