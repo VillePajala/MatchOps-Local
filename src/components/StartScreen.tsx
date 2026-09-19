@@ -802,6 +802,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     onOpenGame={onOpenGameById}
                     onAdjustTravel={onAdjustTravel}
                     onNewGame={onNewGame}
+                    locale={language}
                     t={t}
                   />
                   </>
