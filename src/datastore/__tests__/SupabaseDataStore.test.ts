@@ -2535,6 +2535,116 @@ describe('SupabaseDataStore', () => {
         expect(settings.updatedAt).toBe('2024-01-01T00:00:00.000Z');
       });
 
+      /**
+       * @critical - the settings added with the departure time, and the
+       * assessment settings that were broken the same way for far longer.
+       * user_settings stores each setting as its own COLUMN, so one missing
+       * from the transform is dropped in SILENCE - the value simply does not
+       * come back. These exercise the real transform rather than reading the
+       * source, which is what the first version of this coverage did.
+       */
+      it('reads back the starting point and the arrival buffer', async () => {
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: {
+            id: 'settings_123',
+            user_id: 'user_123',
+            current_game_id: null,
+            last_home_team_name: '',
+            language: 'fi',
+            has_seen_app_guide: false,
+            use_demand_correction: false,
+            has_configured_season_dates: false,
+            club_season_start_date: '2000-11-15',
+            club_season_end_date: '2000-11-14',
+            is_drawing_mode_enabled: false,
+            home_view: 'dashboard',
+            starting_point_name: 'Koti',
+            starting_point_address: 'Muurarinkatu 4, Savonlinna',
+            starting_point_lat: 61.87,
+            starting_point_lng: 28.88,
+            arrival_buffer_minutes: 45,
+            updated_at: null,
+          },
+          error: null,
+        });
+
+        const settings = await dataStore.getSettings();
+
+        expect(settings.startingPoint).toEqual({
+          name: 'Koti',
+          address: 'Muurarinkatu 4, Savonlinna',
+          latitude: 61.87,
+          longitude: 28.88,
+        });
+        expect(settings.arrivalBufferMinutes).toBe(45);
+      });
+
+      /** A starting point exists only once it has a name. */
+      it('reads no starting point from a row that has none', async () => {
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: {
+            id: 'settings_123', user_id: 'user_123', current_game_id: null,
+            last_home_team_name: '', language: 'fi', has_seen_app_guide: false,
+            use_demand_correction: false, has_configured_season_dates: false,
+            club_season_start_date: '2000-11-15', club_season_end_date: '2000-11-14',
+            is_drawing_mode_enabled: false, home_view: null,
+            starting_point_name: null, starting_point_lat: null, starting_point_lng: null,
+            arrival_buffer_minutes: null, updated_at: null,
+          },
+          error: null,
+        });
+
+        const settings = await dataStore.getSettings();
+
+        expect(settings.startingPoint).toBeUndefined();
+        expect(settings.arrivalBufferMinutes).toBeUndefined();
+      });
+
+      /**
+       * Turning assessments ON never survived a reload in cloud mode. Off
+       * appeared to work only because false is also the default.
+       */
+      it('reads back the assessment settings', async () => {
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: {
+            id: 'settings_123', user_id: 'user_123', current_game_id: null,
+            last_home_team_name: '', language: 'fi', has_seen_app_guide: false,
+            use_demand_correction: false, has_configured_season_dates: false,
+            club_season_start_date: '2000-11-15', club_season_end_date: '2000-11-14',
+            is_drawing_mode_enabled: false, home_view: null,
+            assessments_enabled: true, assessment_rating_style: 'num10',
+            assessment_template: 'balanced', updated_at: null,
+          },
+          error: null,
+        });
+
+        const settings = await dataStore.getSettings();
+
+        expect(settings.assessmentsEnabled).toBe(true);
+        expect(settings.assessmentRatingStyle).toBe('num10');
+      });
+
+      /** A value the app does not recognise must not reach the UI as one. */
+      it('falls back to the default for a rating style it does not know', async () => {
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: {
+            id: 'settings_123', user_id: 'user_123', current_game_id: null,
+            last_home_team_name: '', language: 'fi', has_seen_app_guide: false,
+            use_demand_correction: false, has_configured_season_dates: false,
+            club_season_start_date: '2000-11-15', club_season_end_date: '2000-11-14',
+            is_drawing_mode_enabled: false, home_view: null,
+            assessment_rating_style: 'nonsense', assessment_template: 'nonsense',
+            updated_at: null,
+          },
+          error: null,
+        });
+
+        const settings = await dataStore.getSettings();
+
+        expect(settings.assessmentRatingStyle).toBe('words');
+        expect(settings.assessmentTemplate).toBe('balanced');
+      });
+
       it('should preserve isDrawingModeEnabled setting', async () => {
         const mockRow = {
           id: 'settings_123',

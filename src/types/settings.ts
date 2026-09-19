@@ -16,10 +16,17 @@ import {
  *   'num10'  - numbers 1-10
  * Storage is always canonical (1-10); this only affects display/input.
  */
-export type AssessmentRatingStyle = 'words' | 'num5' | 'num10';
+/**
+ * The values, and the type derived from them - not the other way round. A
+ * separate runtime list is a second source of truth that drifts silently, and
+ * anything reading these off a database row needs to CHECK rather than cast.
+ */
+export const ASSESSMENT_RATING_STYLES = ['words', 'num5', 'num10'] as const;
+export type AssessmentRatingStyle = (typeof ASSESSMENT_RATING_STYLES)[number];
 
 /** Curated metric template for assessments (see assessmentMetrics.ts). */
-export type AssessmentTemplate = 'balanced' | 'light6' | 'creative';
+export const ASSESSMENT_TEMPLATES = ['balanced', 'light6', 'creative'] as const;
+export type AssessmentTemplate = (typeof ASSESSMENT_TEMPLATES)[number];
 
 export interface AppSettings {
   currentGameId: string | null;
