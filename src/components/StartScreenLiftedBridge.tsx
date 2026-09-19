@@ -69,6 +69,7 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
     isTeamManagerOpen,
     isPersonnelManagerOpen,
     isLoadGameModalOpen,
+    isSettingsModalOpen,
   } = useModalContext();
 
   // The page's Home flags (hasPlayers -> isFirstTimeUser, the setup tracker) and
@@ -82,9 +83,13 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
   // it, because the summary still held the copy fetched before the deletion.
   // Deleting is not the only reason either - loading a different game moves the
   // Jatka card, and both are invisible until something asks for fresh data.
+  //
+  // SO IS SETTINGS, for the same reason and found the same way: the starting
+  // point and the arrival buffer both feed the departure time on the card, and
+  // setting them left Home showing what it had worked out before they existed.
   const anyHomeAffectingModalOpen = isRosterModalOpen || isNewGameSetupModalOpen ||
     isSeasonTournamentModalOpen || isTeamManagerOpen || isPersonnelManagerOpen ||
-    isLoadGameModalOpen;
+    isLoadGameModalOpen || isSettingsModalOpen;
   const prevOpen = React.useRef(anyHomeAffectingModalOpen);
   React.useEffect(() => {
     if (prevOpen.current && !anyHomeAffectingModalOpen) onSetupModalsClosed?.();

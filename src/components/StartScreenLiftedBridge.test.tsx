@@ -58,6 +58,7 @@ function Closer() {
       <button onClick={() => ctx.setIsRosterModalOpen(false)}>close-roster</button>
       <button onClick={() => ctx.setIsTrainingResourcesOpen(false)}>close-training</button>
       <button onClick={() => ctx.setIsLoadGameModalOpen(false)}>close-load</button>
+      <button onClick={() => ctx.setIsSettingsModalOpen(false)}>close-settings</button>
     </>
   );
 }
@@ -187,6 +188,21 @@ describe('Home is refreshed by every modal that can change what it shows', () =>
 
     passTime();
     fireEvent.click(screen.getByText('close-load'));
+    expect(onSetupModalsClosed).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * REGRESSION. The starting point and the arrival buffer both feed the
+   * departure time on the card, and setting them left Home showing what it had
+   * worked out before they existed.
+   */
+  it('refreshes after settings closes, where the journey is configured', () => {
+    const { onSetupModalsClosed } = renderWithCloser();
+
+    fireEvent.click(screen.getByText('tap-settings'));
+    passTime();
+    fireEvent.click(screen.getByText('close-settings'));
+
     expect(onSetupModalsClosed).toHaveBeenCalledTimes(1);
   });
 
