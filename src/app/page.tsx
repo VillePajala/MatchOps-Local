@@ -32,6 +32,8 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
+import { healVenueAddresses, persistHealedAddresses } from '@/utils/healVenueAddresses';
+import type { SavedGamesCollection, AppState } from '@/types/game';
 import { asCoordinates } from '@/utils/travelPlan';
 import { todayIso } from '@/utils/todayIso';
 import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId, buildHomeTeamScopeOptions } from '@/utils/homeTeamScope';
@@ -1601,6 +1603,54 @@ export default function Home() {
       logger.warn('Could not save the travel adjustment', { error: err });
     }
   }, [userId, refreshSetupSignals]);
+
+  /**
+   * Venues pinned before migration 049 kept their position and lost their
+   * address, so the next-match card has no town to show. Looked up from the
+   * coordinates once, in the background, rather than asking the coach to
+   * re-pin a place the app already knows the location of.
+   *
+   * Runs once per session and only when something actually needs it; after the
+   * first pass there is nothing left to find and it costs one array scan.
+   */
+  // Keyed by user, not a bare boolean: a second account signing in on the same
+  // tab never reloads the page, and a shared flag would leave their venues
+  // unhealed for the rest of the session.
+  const healedAddressesForRef = useRef<string | null | undefined>(undefined);
+  const healVenueAddressesOnce = useCallback(async (games: SavedGamesCollection) => {
+    const who = userId ?? null;
+    if (healedAddressesForRef.current === who) return;
+    healedAddressesForRef.current = who;
+    try {
+      const repaired = await healVenueAddresses(games);
+      if (Object.keys(repaired).length === 0) return;
+
+      // Re-reads before writing - see persistHealedAddresses for why that
+      // ordering is what keeps a background tidy-up from eating an edit.
+      const written = await persistHealedAddresses(
+        repaired,
+        () => getSavedGames(userId),
+        (id, game) => utilSaveGame(id, game as AppState, userId),
+      );
+      if (written > 0) await refreshSetupSignals();
+    } catch (err) {
+      // Tidying old data is never worth an error in front of the coach.
+      logger.warn('Could not fill in missing venue addresses', { error: err });
+    }
+  }, [userId, refreshSetupSignals]);
+
+  // Runs once, after the app has settled, so tidying old data never delays a
+  // boot. Its own effect rather than a call inside checkAppState, which is
+  // defined before refreshSetupSignals and so cannot reach it.
+  useEffect(() => {
+    if (!userId && mode === 'cloud') return;
+    let cancelled = false;
+    void (async () => {
+      const games = await getSavedGames(userId);
+      if (!cancelled) await healVenueAddressesOnce(games);
+    })();
+    return () => { cancelled = true; };
+  }, [userId, mode, healVenueAddressesOnce]);
 
   const handleOpenGameById = useCallback(async (id: string) => {
     try {
