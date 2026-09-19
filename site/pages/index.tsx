@@ -40,6 +40,9 @@ const getScreenshots = (locale: string | undefined) => {
     positionBalance: isEnglish
       ? '/screenshots/MatchOps_v2_positionbalance_en.jpg'
       : '/screenshots/MatchOps_v2_positionbalance_fi.jpg',
+    nextMatch: isEnglish
+      ? '/screenshots/MatchOps_v2_nextmatch_en.jpg'
+      : '/screenshots/MatchOps_v2_nextmatch_fi.jpg',
     matchReport: isEnglish
       ? '/screenshots/MatchOps_v2_matchreport_en.jpg'
       : '/screenshots/MatchOps_v2_matchreport_fi.jpg',
@@ -458,6 +461,7 @@ export default function HomePage() {
             {[
               { key: 'planner', screenshot: screenshots.planner },
               { key: 'positionBalance', screenshot: screenshots.positionBalance },
+              { key: 'nextMatch', screenshot: screenshots.nextMatch },
             ].map((s, i) => (
               <div
                 key={s.key}

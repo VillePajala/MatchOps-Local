@@ -469,6 +469,11 @@
         "eyebrow": "Pelipaikkojen tasapaino",
         "title": "Pelipaikat koko kaudelta",
         "desc": "Näet koko kauden ajalta, missä pelipaikoissa kukin pelaaja on todella pelannut - linjoittain tai tarkalla paikalla. Yhteen rooliin jääneet erottuvat selvästi, joten peluutusta voi monipuolistaa tietoisesti."
+      },
+      "nextMatch": {
+        "eyebrow": "Seuraava ottelu",
+        "title": "Tiedä milloin lähteä",
+        "desc": "Etusivu näyttää seuraavan ottelusi: kuinka monen päivän päästä, alkamisajan, paikan ja kentän sekä painikkeen suoraan ajo-ohjeisiin. Aseta mistä lähdette ja kuinka paljon ennen alkamisaikaa haluat olla paikalla, niin sovellus laskee lähtöajan - molempien läpi taaksepäin, ei pelkän ajomatkan. Anna yksittäiselle ottelulle oma saapumisaikansa kun cup-ottelu vaatii enemmän, tai kirjaa paljonko matka oikeasti kesti, niin jokainen myöhempi ottelu samassa paikassa käyttää todellista lukua."
       }
     },
     "bands": {
@@ -685,7 +690,7 @@
       "title": "Tiedot, joita EMME kerää",
       "items": {
         "gameContent": "Pelisisältöä, tuloksia tai tilastoja (tallennettu vain paikallisesti tai yksityiselle pilvitilillesi)",
-        "location": "Sijaintitietoja",
+        "location": "Sijaintitiedot. Mitään tietoa siitä missä sinä tai laitteesi olette ei lähetetä meille eikä tallenneta meille. Paikkahaku ottaa yhteyttä karttapalveluun puolestasi silloin kun käytät sitä - katso Kolmannen osapuolen palvelut.",
         "photos": "Valokuvia tai mediaa",
         "deviceIds": "Laitetunnisteita seurantaa tai mainontaa varten",
         "playerNames": "Pelaajien nimiä tai henkilötietoja (ne tallentaa paikallisesti sinä, tai yksityiselle pilvitilillesi)"
@@ -706,7 +711,10 @@
       "googlePlayLink": "Googlen tietosuojakäytäntö",
       "sentryLink": "Sentryn tietosuojakäytäntö",
       "supabaseLink": "Supabasen tietosuojakäytäntö",
-      "vercelLink": "Vercelin tietosuojakäytäntö"
+      "vercelLink": "Vercelin tietosuojakäytäntö",
+      "photon": "Photon (Komoot)",
+      "photonDesc": "Paikkahaku ottelun sijaintikentässä, kun sitä käytetään (EU, Saksa).",
+      "photonLink": "Komootin tietosuojakäytäntö"
     },
     "yourRights": {
       "title": "Oikeutesi (GDPR)",
