@@ -1,14 +1,14 @@
 {
-  "version": "b6b879f7",
+  "version": "ad9836b2",
   "date": "2026-09-19",
   "notes": {
     "en": [
-      "Fixed settings that did not survive a reload when signed in: your starting point and arrival time, and - for much longer than that - the player-assessment settings. They were being saved into a table that had no room for them, so they were dropped without a word.",
-      "The next-match card now shows the town the venue is in, and the drive reads as plain hours and minutes."
+      "Venues you pinned before the app could store their address now get one filled in automatically, so the next-match card can show the town. Nothing to re-enter.",
+      "Changing your starting point or arrival time in settings updates the front page straight away instead of waiting for a reload."
     ],
     "fi": [
-      "Korjattu asetukset jotka eivät säilyneet uudelleenlatauksen yli kirjautuneena: lähtöpaikka ja saapumisaika sekä - paljon pidempään - pelaaja-arvioiden asetukset. Ne tallennettiin tauluun jossa ei ollut niille tilaa, joten ne katosivat sanaakaan sanomatta.",
-      "Seuraava ottelu -kortti näyttää nyt myös paikkakunnan, ja ajomatka näkyy pelkkinä tunteina ja minuutteina."
+      "Paikat jotka kiinnitit ennen kuin sovellus osasi tallentaa niiden osoitteen saavat nyt osoitteen automaattisesti, joten seuraava ottelu -kortti voi näyttää paikkakunnan. Mitään ei tarvitse syöttää uudelleen.",
+      "Lähtöpaikan tai saapumisajan muuttaminen asetuksissa päivittää etusivun heti eikä vasta uudelleenlatauksen jälkeen."
     ]
   }
 }
