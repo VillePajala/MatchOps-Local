@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { getTeamDisplayName } from '@/utils/teams';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
@@ -693,17 +694,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           <button
             type="button"
             onClick={() => setShowExternalGames(v => !v)}
-            className="text-left w-full bg-slate-800/60 p-3 rounded-lg flex justify-between items-center hover:bg-slate-800/80 transition-colors"
+            className="text-left w-full bg-slate-800/60 px-4 py-3.5 rounded-lg flex justify-between items-center gap-3 hover:bg-slate-800/80 transition-colors"
             aria-expanded={showExternalGames}
           >
             <span className="font-semibold text-slate-100">{t('playerStats.externalGames', 'External Games')}</span>
-            <span className="text-sm text-slate-400">{showExternalGames ? '-' : '+'}</span>
+            <span className="shrink-0 text-base leading-none text-slate-400">{showExternalGames ? '−' : '+'}</span>
           </button>
           {showExternalGames && (
-            <div className="mt-2">
+            <div className="mt-3">
               <button
                 type="button"
-                className="text-sm px-3 py-1.5 bg-slate-700 text-slate-200 rounded border border-slate-600 hover:bg-slate-600"
+                className="text-sm px-4 py-2.5 bg-slate-700 text-slate-200 rounded-md border border-slate-600 hover:bg-slate-600 transition-colors"
                 data-testid="add-external-game"
                 onClick={() => { setShowAdjForm(v => !v); setEditingAdjId(null); }}
               >
@@ -791,8 +792,15 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 >
                   {/* Default, and the common case: he played for somebody else. */}
                   <option value="">{t('playerStats.anotherTeam', 'Another team (not one of mine)')}</option>
+                  {/* NAME PLUS CONTEXT, because the name alone does not
+                      identify a team. Teams are bound to a competition, so one
+                      squad appears once per season it plays in - the owner's
+                      list showed "PePo Lila" four times with nothing to choose
+                      between them. Same helper the game-setup picker uses. */}
                   {teams.map(team => (
-                    <option key={team.id} value={team.id}>{team.name}</option>
+                    <option key={team.id} value={team.id}>
+                      {getTeamDisplayName(team, seasons, tournaments)}
+                    </option>
                   ))}
                 </select>
                 <p className="mt-1 text-xs text-slate-400">
@@ -944,7 +952,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
         {/* External stats list - inside collapsible section */}
         {hasAdjustments && (
-          <div className="mb-4 text-xs text-slate-400">
+          <div className="mb-4 mt-4 text-xs leading-relaxed text-slate-400">
             {/* The old caption promised every game here was in the totals. Once
                 filters started excluding some, that stopped being true, and a
                 list that lies about its own numbers is the bug this whole
@@ -956,7 +964,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   'playerStats.adjustmentsPartlyCounted',
                   'External stats are added to totals. The dimmed ones fall outside the filters you have chosen and are not counted here.',
                 )}
-            <div className="mt-1 space-y-3">
+            <div className="mt-3 space-y-3">
               {adjustments
                 .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
                 .map(a => {
@@ -1109,8 +1117,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
                           >
                             <option value="">{t('playerStats.anotherTeam', 'Another team (not one of mine)')}</option>
+                            {/* Same as the add form above: a team's name does
+                                not identify it, and editing is where a wrong
+                                guess gets locked in. */}
                             {teams.map(team => (
-                              <option key={team.id} value={team.id}>{team.name}</option>
+                              <option key={team.id} value={team.id}>
+                                {getTeamDisplayName(team, seasons, tournaments)}
+                              </option>
                             ))}
                           </select>
                           <p className="mt-1 text-xs text-slate-400">
