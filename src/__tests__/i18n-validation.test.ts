@@ -694,6 +694,11 @@ describe('Translation File Validation', () => {
       // -1 startScreen.dashRecent: the recent-games strip is introduced by the
       //     halfway-line rule alone now. The word restated what the rule
       //     already said. Lands at 3266.
+      // -2 startScreen.dashHome/dashAway, +2 startScreen.dashLatestMatch/
+      //     dashPlayed: the top card no longer says home or away (the owner's
+      //     call - it did not earn its row) and instead names its role, so the
+      //     Jatka card can say "Viimeisin" the way the fixture card says
+      //     "Seuraava ottelu". Lands at 3342.
       expect(enKeys.length).toBe(3342);
     });
 

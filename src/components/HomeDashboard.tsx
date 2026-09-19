@@ -46,34 +46,23 @@ const formatDayMonth = (iso: string): string => {
   return `${Number(m[3])}.${Number(m[2])}.`;
 };
 
+/**
+ * "2026-09-20" -> "su 20.9." in Finnish, "Sun 20.9." in English. A coach thinks
+ * in weekdays: "Sunday" places a match faster than "20.9." does, and the date
+ * then only says which Sunday. The locale is the app's, passed down because
+ * this component takes `t` and not the i18n instance.
+ */
+const formatWeekdayDate = (iso: string, locale: string): string => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return '';
+  const weekday = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    .toLocaleDateString(locale, { weekday: 'short' })
+    .replace(/\.$/, '');
+  return `${weekday} ${formatDayMonth(iso)}`;
+};
+
 const fmtElapsed = (s: number): string => `${Math.floor(s / 60)}:${String(Math.abs(s % 60)).padStart(2, '0')}`;
 
-/**
- * The match in progress, and - when it has a pinned venue - a way to drive to it.
- *
- * THE DIRECTIONS BUTTON IS A SIBLING, not a child. This card is a <button>, and
- * a link inside a button is invalid HTML that browsers resolve unpredictably.
- * So the card became a row: the resume action keeps the whole surface it had,
- * and the directions link is its own tap target beside it.
- *
- * It appears ONLY when the match has a location. An empty seat here would be a
- * dead control on the busiest surface in the app, and the point of putting it
- * on the front page is that a coach can press it on the way out of the door
- * rather than digging three screens down for it.
- */
-/**
- * The match in progress, and - when it has a pinned venue - a way to drive to it.
- *
- * THE DIRECTIONS BUTTON IS A SIBLING, not a child. This card is a <button>, and
- * a link inside a button is invalid HTML that browsers resolve unpredictably.
- * So the card became a row: the resume action keeps the whole surface it had,
- * and the directions link is its own tap target beside it.
- *
- * It appears ONLY when the match has a location. An empty seat here would be a
- * dead control on the busiest surface in the app, and the point of putting it
- * on the front page is that a coach can press it on the way out of the door
- * rather than digging three screens down for it.
- */
 /**
  * The top slot when there is neither a fixture nor a match to resume.
  *
@@ -108,69 +97,155 @@ function NoMatchCard({ onNewGame, t }: { onNewGame?: () => void; t: TFunction })
   );
 }
 
-function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?: () => void; t: TFunction }) {
-  // Same trim as the fixture card: the stored venue can carry a town after a
-  // comma, and the card has never had room for both halves.
-  const venueName = resume.venue?.split(',')[0]?.trim();
-  const where = [venueName, resume.venueTown, resume.fieldNumber].filter(Boolean).join(' · ');
-  // Day and month only - the year is noise on a card about this week, and
-  // the ISO date is what every other Home surface formats from.
-  const when = [resume.date ? formatDayMonth(resume.date) : null, resume.time]
+/**
+ * ONE SKELETON FOR EVERY TOP CARD (owner, 2026-09-19). The fixture card and the
+ * Jatka card take the same slot and mean the same thing - the match this screen
+ * is about - and they had grown different shapes: one had an eyebrow and the
+ * other did not; one spent a whole line on "Vieras"; one put the kick-off
+ * beside the opponent while the other crammed date, time, venue and town into
+ * a line that truncated the town.
+ *
+ * Both now read top to bottom in the order a coach asks the questions: which
+ * match (the eyebrow: its role and its day), who and the one number (kick-off
+ * on a fixture, the score on anything played), where (venue name over town,
+ * the pitch as a chip), then the one thing to do (the departure time, or
+ * Jatka). NOTHING ON THE CARD TRUNCATES: a long name wraps and the card grows,
+ * because "Lappe…" told the coach less than no town at all. Home and away are
+ * gone - the owner's call: it did not earn its row.
+ */
+const CARD_HERO =
+  'flex flex-col rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden';
+const CARD_BODY = 'flex-1 min-w-0 text-left px-3.5 pt-2.5 pb-2.5 hover:bg-indigo-900/40 transition-all';
+const CARD_ACTION_ROW = 'border-t border-indigo-500/40 bg-indigo-950/30';
+
+/** Role and day: "Next match · Tomorrow", "Latest · su 14.9. 19:00". */
+function CardEyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-indigo-200">
+      {children}
+    </div>
+  );
+}
+
+/** The opponent, and the one number that matters for this state. */
+function CardMain({ who, number }: { who: string; number?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="min-w-0 break-words text-base font-extrabold leading-tight">{who}</span>
+      {number && <span className="shrink-0 text-2xl font-black tabular-nums leading-none">{number}</span>}
+    </div>
+  );
+}
+
+/**
+ * Venue name over its town, the pitch as a chip beside them. Renders nothing
+ * when none of it is set, so a bare match stays a bare card.
+ *
+ * Only the first comma-separated part of the stored venue: newly picked
+ * locations store just the name, but games saved earlier kept the whole
+ * disambiguation string, and the town has its own line now.
+ */
+function CardWhere({ venue, town, pitch }: { venue?: string; town?: string; pitch?: string }) {
+  const name = venue?.split(',')[0]?.trim();
+  if (!name && !town && !pitch) return null;
+  return (
+    <div className="mt-1.5 flex items-center gap-2">
+      <div className="min-w-0 flex-1 break-words leading-snug">
+        {name && <div className="text-[13px] font-semibold">{name}</div>}
+        {town && <div className="text-xs text-indigo-200">{town}</div>}
+      </div>
+      {pitch && (
+        <span className="shrink-0 rounded-md border border-indigo-400/40 bg-indigo-500/20 px-1.5 py-1 text-[11px] font-bold tabular-nums">
+          {pitch}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Turn-by-turn directions, beside the venue it opens.
+ *
+ * A SIBLING OF THE CARD BUTTON, not a child: a link inside a button is
+ * invalid HTML that browsers resolve unpredictably. The row aligns it to its
+ * bottom edge, which is where the venue block ends, so it sits beside the
+ * address rather than in a full-height column of its own competing with the
+ * departure row for the "travel" job.
+ *
+ * Only ever rendered for a PINNED venue - see mapsDirectionsUrl - and never on
+ * a match already played: directions to a ground you came home from is a
+ * button with no job.
+ */
+function CardDirections({ href, t }: { href: string; t: TFunction }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={t('startScreen.driveToVenue', 'Directions to the venue')}
+      title={t('startScreen.driveToVenue', 'Directions to the venue')}
+      className="mb-2 mr-3.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-indigo-400/40 bg-indigo-950/40 text-indigo-100 transition-colors hover:bg-indigo-800/60"
+    >
+      <MdDirectionsCar className="h-5 w-5" aria-hidden="true" />
+    </a>
+  );
+}
+
+/**
+ * The match you have open, or failing that the latest one played.
+ *
+ * The eyebrow says which: "In progress" while the clock has not been stopped
+ * for good, "Latest" once it has. The action row carries the clock while the
+ * match is on and "Played" after, so the Jatka pill always has a row to sit in.
+ */
+function ResumeCard({ resume, onResume, locale, t }: {
+  resume: HomeResumeGame;
+  onResume?: () => void;
+  locale: string;
+  t: TFunction;
+}) {
+  const when = [resume.date ? formatWeekdayDate(resume.date, locale) : null, resume.time]
     .filter(Boolean)
     .join(' ');
+  const role = resume.isPlayed
+    ? t('startScreen.dashLatestMatch', 'Latest')
+    : t('startScreen.dashInProgress', 'In progress');
+  const progress = resume.isPlayed
+    ? t('startScreen.dashPlayed', 'Played')
+    : [
+        resume.currentPeriod ? `${resume.currentPeriod}.` : null,
+        typeof resume.timeElapsedSeconds === 'number' ? fmtElapsed(resume.timeElapsedSeconds) : null,
+      ].filter(Boolean).join(' · ');
 
   return (
-    <div className="flex items-stretch rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden">
-    <button
-      type="button"
-      onClick={onResume}
-      className="flex-1 min-w-0 text-left px-3.5 py-2.5 hover:bg-indigo-900/40 transition-all"
-    >
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-base font-extrabold truncate">{resume.opponent || t('startScreen.dashResumeGame', 'Game')}</span>
-        <span className="text-xl font-black tabular-nums leading-none">{resume.ourScore}–{resume.theirScore}</span>
+    <div className={CARD_HERO}>
+      <div className="flex items-end">
+        <button type="button" onClick={onResume} className={CARD_BODY}>
+          <CardEyebrow>{[role, when].filter(Boolean).join(' · ')}</CardEyebrow>
+          <CardMain
+            who={resume.opponent || t('startScreen.dashResumeGame', 'Game')}
+            number={`${resume.ourScore}–${resume.theirScore}`}
+          />
+          <CardWhere venue={resume.venue} town={resume.venueTown} pitch={resume.fieldNumber} />
+        </button>
+        {!resume.isPlayed && resume.mapsUrl ? <CardDirections href={resume.mapsUrl} t={t} /> : null}
       </div>
-      {/* WHEN AND WHERE, as the next-match card has. Both cards take the same
-          slot and are both "the match this screen is about", so a Jatka card
-          carrying only an opponent and a score read as a different kind of
-          thing than the fixture card directly above it. Each part is dropped
-          when it is not set, so a bare match stays a bare card. */}
-      {(where || resume.date || resume.time) && (
-        <div className="mt-0.5 truncate text-[11.5px] text-indigo-200">
-          {[when, where].filter(Boolean).join(' · ')}
-        </div>
-      )}
-      <div className="flex items-center justify-between mt-1 text-xs font-bold">
-        <span className="text-slate-300">
-          {resume.isPlayed
-            ? t(resume.homeOrAway === 'home' ? 'startScreen.dashHome' : 'startScreen.dashAway', resume.homeOrAway === 'home' ? 'Home' : 'Away')
-            : [
-                t('startScreen.dashInProgress', 'In progress'),
-                resume.currentPeriod ? `${resume.currentPeriod}.` : null,
-                typeof resume.timeElapsedSeconds === 'number' ? fmtElapsed(resume.timeElapsedSeconds) : null,
-              ].filter(Boolean).join(' · ')}
-        </span>
-        {/* The one amber thing on this card, and the only thing to press.
-            Amber used to coat the whole card, which put it in direct
-            competition with the amber wordmark directly above it - two large
-            amber blocks, neither reading as the action. The card is still the
-            most prominent surface on the tab through its gradient and border;
-            amber now means "press this" and nothing else. */}
-        <span className="bg-amber-500 text-slate-900 rounded-full px-3 py-1 font-extrabold">{t('startScreen.resumeCard', 'Continue')} →</span>
-      </div>
-    </button>
-    {resume.mapsUrl ? (
-      <a
-        href={resume.mapsUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={t('startScreen.driveToVenue', 'Directions to the venue')}
-        title={t('startScreen.driveToVenue', 'Directions to the venue')}
-        className="flex items-center justify-center px-4 border-l border-indigo-500/40 text-indigo-100 hover:bg-indigo-900/60 transition-colors"
+      {/* The one amber thing on this card, and the only thing to press.
+          Amber used to coat the whole card, which put it in direct
+          competition with the amber wordmark directly above it - two large
+          amber blocks, neither reading as the action. The card is still the
+          most prominent surface on the tab through its gradient and border;
+          amber now means "press this" and nothing else. */}
+      <button
+        type="button"
+        onClick={onResume}
+        className={`${CARD_ACTION_ROW} flex w-full items-center justify-between gap-3 px-3.5 py-2 text-left text-xs font-bold transition-colors hover:bg-indigo-900/40`}
       >
-        <MdDirectionsCar className="w-6 h-6" aria-hidden="true" />
-      </a>
-    ) : null}
+        <span className="min-w-0 text-slate-300">{progress}</span>
+        <span className="shrink-0 rounded-full bg-amber-500 px-3 py-1 font-extrabold text-slate-900">
+          {t('startScreen.resumeCard', 'Continue')} →
+        </span>
+      </button>
     </div>
   );
 }
@@ -185,7 +260,8 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
  *
  * The countdown leads because it is what a coach scans for. "3 pv" answers the
  * question faster than a date does, and turns into "Huomenna" and "Tänään" as
- * it closes.
+ * it closes. The kick-off is the big number and appears nowhere else on the
+ * card.
  */
 function NextMatchCard({
   game,
@@ -211,55 +287,20 @@ function NextMatchCard({
       : game.daysAway === 1
         ? t('startScreen.dashTomorrow', 'Tomorrow')
         : t('startScreen.dashInDays', '{{count}} d', { count: game.daysAway });
-  // Only the first comma-separated part of the venue. Newly picked locations
-  // already store just "venue, town", but games saved before that kept the
-  // whole disambiguation string - and a card that truncates mid-word tells the
-  // coach less than a short name does. The town is not worth the ellipsis on
-  // your own fixture.
-  const venueName = game.venue?.split(',')[0]?.trim();
-  const where = [venueName, game.venueTown, game.fieldNumber].filter(Boolean).join(' · ');
 
   return (
     // The wrapper positions; the card inside it clips. They cannot be the same
     // element: rounded corners need overflow-hidden, and an overflowing panel
     // is exactly what the adjustment sheet is.
     <div className="relative">
-    <div className="flex flex-col rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden">
-      <div className="flex items-stretch">
-      <button
-        type="button"
-        onClick={() => onOpen?.(game.id)}
-        className="flex-1 min-w-0 text-left px-3.5 py-2.5 hover:bg-indigo-900/40 transition-all"
-      >
-        <div className="text-[10px] font-extrabold tracking-[0.14em] uppercase text-indigo-200 mb-0.5">
-          {t('startScreen.dashNextMatch', 'Next match')} · {countdown}
-        </div>
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="text-base font-extrabold truncate">
-            {game.opponent || t('startScreen.dashResumeGame', 'Game')}
-          </span>
-          {game.time && <span className="text-[15px] font-bold leading-none">{game.time}</span>}
-        </div>
-        {where && <div className="text-[11.5px] text-indigo-200 truncate mt-0.5">{where}</div>}
-        {/* WHEN TO LEAVE, which is the question a fixture actually raises. It is
-            kick-off minus the time you must already BE there minus the drive -
-            never kick-off minus the drive, which reads as helpful and is late.
-            Marked as an arvio until the coach has driven it once, because a
-            straight-line guess about roads it has never seen is not a promise. */}
-      </button>
-      {/* Only ever shown for a PINNED venue - see mapsDirectionsUrl. */}
-      {game.mapsUrl ? (
-        <a
-          href={game.mapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={t('startScreen.driveToVenue', 'Directions to the venue')}
-          title={t('startScreen.driveToVenue', 'Directions to the venue')}
-          className="flex items-center justify-center px-4 border-l border-indigo-500/40 text-indigo-100 hover:bg-indigo-900/60 transition-colors"
-        >
-          <MdDirectionsCar className="w-6 h-6" aria-hidden="true" />
-        </a>
-      ) : null}
+    <div className={CARD_HERO}>
+      <div className="flex items-end">
+        <button type="button" onClick={() => onOpen?.(game.id)} className={CARD_BODY}>
+          <CardEyebrow>{t('startScreen.dashNextMatch', 'Next match')} · {countdown}</CardEyebrow>
+          <CardMain who={game.opponent || t('startScreen.dashResumeGame', 'Game')} number={game.time} />
+          <CardWhere venue={game.venue} town={game.venueTown} pitch={game.fieldNumber} />
+        </button>
+        {game.mapsUrl ? <CardDirections href={game.mapsUrl} t={t} /> : null}
       </div>
 
       {/* WHEN TO LEAVE, and the two numbers behind it, in one place. It is
@@ -269,7 +310,7 @@ function NextMatchCard({
           match form the owner already finds long, and it is the same tap that
           turns the estimate into a measured time. */}
       {game.travel && (
-        <div className="border-t border-indigo-500/40 bg-indigo-950/30">
+        <div className={CARD_ACTION_ROW}>
           <button
             type="button"
             onClick={() => setAdjusting((v) => !v)}
@@ -288,7 +329,6 @@ function NextMatchCard({
             </span>
             <span className="ml-auto shrink-0 text-indigo-300">{adjusting ? '▾' : '▸'}</span>
           </button>
-
         </div>
       )}
     </div>
@@ -464,6 +504,7 @@ export function HomeDashboard({
   onOpenGame,
   onAdjustTravel,
   onNewGame,
+  locale = 'fi',
   t,
 }: {
   summary: HomeSummary;
@@ -473,6 +514,8 @@ export function HomeDashboard({
   onAdjustTravel?: (id: string, next: { arrivalBufferMinutes?: number; travelMinutes?: number }) => void;
   /** Opens the new-game flow from the empty top card. */
   onNewGame?: () => void;
+  /** The app language, for weekday names - the same default as i18n.ts. */
+  locale?: string;
   t: TFunction;
 }) {
   /**
@@ -507,13 +550,13 @@ export function HomeDashboard({
       {summary.upcoming
         ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} t={t} />
         : summary.resume
-          ? <ResumeCard resume={summary.resume} onResume={onResume} t={t} />
+          ? <ResumeCard resume={summary.resume} onResume={onResume} locale={locale} t={t} />
           // Nothing booked and nothing open: the latest match played, with the
           // same Jatka action. A card that opens a real match beats a prompt
           // that opens nothing - and after deleting the fixture you had open,
           // the match before it is what a coach reaches for next.
           : summary.lastPlayed
-            ? <ResumeCard resume={summary.lastPlayed} onResume={() => onOpenGame?.(summary.lastPlayed!.id)} t={t} />
+            ? <ResumeCard resume={summary.lastPlayed} onResume={() => onOpenGame?.(summary.lastPlayed!.id)} locale={locale} t={t} />
             : <NoMatchCard onNewGame={onNewGame} t={t} />}
       {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
       {(summary.recent.length > 0 || summary.upcomingList.length > 0) && (
