@@ -2761,8 +2761,6 @@ export type TranslationKey =
   | 'startScreen.dashTournamentsCount_other'
   | 'startScreen.dashUpcoming'
   | 'startScreen.departAt'
-  | 'startScreen.departEstimate'
-  | 'startScreen.departKnown'
   | 'startScreen.description'
   | 'startScreen.driveToVenue'
   | 'startScreen.emptyCompetitions'

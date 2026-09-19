@@ -1366,8 +1366,6 @@
     "dashInDays": "{{count}} d",
     "dashUpcoming": "Upcoming",
     "departAt": "Leave {{time}}",
-    "departEstimate": "(estimate, {{drive}} drive)",
-    "departKnown": "({{drive}} drive)",
     "arriveBefore": "At the ground before kick-off",
     "actualDrive": "How long the drive really takes"
   },

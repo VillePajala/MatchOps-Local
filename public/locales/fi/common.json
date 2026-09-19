@@ -1224,8 +1224,6 @@
     "dashInDays": "{{count}} pv",
     "dashUpcoming": "Tulevat",
     "departAt": "Lähde {{time}}",
-    "departEstimate": "(arvio, {{drive}} ajo)",
-    "departKnown": "({{drive}} ajo)",
     "arriveBefore": "Paikalla ennen alkamisaikaa",
     "actualDrive": "Paljonko ajomatka oikeasti kestää"
   },

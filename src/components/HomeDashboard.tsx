@@ -143,7 +143,7 @@ function NextMatchCard({
   // coach less than a short name does. The town is not worth the ellipsis on
   // your own fixture.
   const venueName = game.venue?.split(',')[0]?.trim();
-  const where = [venueName, game.fieldNumber].filter(Boolean).join(' · ');
+  const where = [venueName, game.venueTown, game.fieldNumber].filter(Boolean).join(' · ');
 
   return (
     // The wrapper positions; the card inside it clips. They cannot be the same
@@ -205,10 +205,12 @@ function NextMatchCard({
             <span className="font-semibold text-amber-200">
               {t('startScreen.departAt', 'Leave {{time}}', { time: game.travel.departure })}
             </span>
+            {/* Just the drive. The parentheses and the word "arvio" were
+                honest and were also most of the line, and a number the coach
+                can already see is derived does not need announcing twice. The
+                tilde keeps the hedge at one character. */}
             <span className="font-normal text-indigo-300">
-              {game.travel.isEstimate
-                ? t('startScreen.departEstimate', '(estimate, {{drive}} drive)', { drive: driveTime })
-                : t('startScreen.departKnown', '({{drive}} drive)', { drive: driveTime })}
+              · {game.travel.isEstimate ? `~${driveTime}` : driveTime}
             </span>
             <span className="ml-auto shrink-0 text-indigo-300">{adjusting ? '▾' : '▸'}</span>
           </button>
