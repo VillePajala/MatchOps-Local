@@ -404,3 +404,97 @@ describe('the top slot is never empty', () => {
     });
   });
 });
+
+/**
+ * @critical - a key that does not exist falls back to the inline English, so
+ * the FI build silently shows English and nothing fails. Two were doing
+ * exactly that: the new-game button and the competitions heading.
+ */
+describe('every translation key on this screen exists', () => {
+  const source = require('fs').readFileSync(
+    require('path').join(process.cwd(), 'src/components/HomeDashboard.tsx'),
+    'utf8',
+  );
+  const en = require('../../../public/locales/en/common.json');
+
+  const lookup = (key: string) =>
+    key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], en);
+
+  it.each([...new Set([...source.matchAll(/t\('([\w.]+)'/g)].map((m: RegExpMatchArray) => m[1]))])(
+    '%s',
+    (key) => {
+      // i18next resolves a count-bearing key through its _one / _other forms,
+      // so a bare miss is only a miss when neither plural exists either.
+      const resolved = lookup(key) ?? lookup(`${key}_other`);
+      expect(typeof resolved).toBe('string');
+    },
+  );
+});
+
+/**
+ * The Jatka card and the fixture card take the same slot and are both "the
+ * match this screen is about", so one carrying only an opponent and a score
+ * read as a different kind of thing than the other.
+ */
+describe('the Jatka card carries when and where too', () => {
+  const full = {
+    ...resume,
+    date: '2026-09-20', time: '14:00',
+    venue: 'Mitta-Keittiöt Areena', venueTown: 'Savonlinna', fieldNumber: 'TN 2',
+  };
+
+  it('shows the date and kick-off', () => {
+    render(<HomeDashboard summary={base({ resume: full })} t={t} />);
+
+    expect(screen.getByText(/20\.9\./)).toBeInTheDocument();
+    expect(screen.getByText(/14:00/)).toBeInTheDocument();
+  });
+
+  it('shows the venue, its town and the pitch', () => {
+    render(<HomeDashboard summary={base({ resume: full })} t={t} />);
+
+    const line = screen.getByText(/Mitta-Keittiöt Areena/);
+    expect(line).toHaveTextContent('Savonlinna');
+    expect(line).toHaveTextContent('TN 2');
+  });
+
+  /** A bare match must stay a bare card, not grow an empty line. */
+  it('adds nothing when none of it is set', () => {
+    render(<HomeDashboard summary={base({ resume })} t={t} />);
+
+    expect(screen.queryByText(/·/)).toBeNull();
+  });
+
+  it('shows what it has when only some of it is set', () => {
+    render(<HomeDashboard summary={base({ resume: { ...resume, date: '2026-09-20' } })} t={t} />);
+
+    expect(screen.getByText('20.9.')).toBeInTheDocument();
+  });
+});
+
+describe('the strip cards show the town', () => {
+  it('puts it on a recent result', () => {
+    render(<HomeDashboard summary={base({
+      recent: [{ ...recent('r1', 'FC Espoo'), venueTown: 'Savonlinna' }],
+    })} t={t} />);
+
+    expect(screen.getByText('Savonlinna')).toBeInTheDocument();
+  });
+
+  it('puts it on an upcoming fixture', () => {
+    render(<HomeDashboard summary={base({
+      upcoming: fixture(),
+      upcomingList: [fixture({ id: 'u2', opponent: 'KuPS', venueTown: 'Mikkeli' })],
+      recent: [recent('r1', 'FC Espoo')],
+    })} t={t} />);
+
+    expect(screen.getByText('Mikkeli')).toBeInTheDocument();
+  });
+
+  /** No pinned venue, no town, no empty line. */
+  it('leaves the card as it was when there is no town', () => {
+    render(<HomeDashboard summary={base({ recent: [recent('r1', 'FC Espoo')] })} t={t} />);
+
+    expect(screen.getByText('FC Espoo')).toBeInTheDocument();
+  });
+});
