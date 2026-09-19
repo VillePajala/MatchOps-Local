@@ -1652,6 +1652,17 @@ export default function Home() {
     return () => { cancelled = true; };
   }, [userId, mode, healVenueAddressesOnce]);
 
+  // Home draws its top card from a snapshot taken when a setup modal closes,
+  // and a match edited in Ottelutiedot (date, time, venue) closes no such
+  // modal: the coach went back to Home and the card still showed the match as
+  // it had been until a reload. Re-read on every real match -> Home exit.
+  const prevScreenForHomeRef = useRef(screen);
+  useEffect(() => {
+    const cameFromMatch = prevScreenForHomeRef.current === 'home' && screen === 'start';
+    prevScreenForHomeRef.current = screen;
+    if (cameFromMatch) void refreshSetupSignals();
+  }, [screen, refreshSetupSignals]);
+
   const handleOpenGameById = useCallback(async (id: string) => {
     try {
       await utilSaveCurrentGameIdSetting(id, userId);
