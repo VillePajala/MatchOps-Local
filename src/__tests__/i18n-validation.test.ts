@@ -699,7 +699,10 @@ describe('Translation File Validation', () => {
       //     call - it did not earn its row) and instead names its role, so the
       //     Jatka card can say "Viimeisin" the way the fixture card says
       //     "Seuraava ottelu". Lands at 3342.
-      expect(enKeys.length).toBe(3342);
+      // -1 startScreen.dashPlayed: the Jatka card's action row is gone - it
+      //     made the card taller than its slot and restated the eyebrow.
+      //     Lands at 3341.
+      expect(enKeys.length).toBe(3341);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -888,7 +891,7 @@ describe('Translation File Validation', () => {
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3342);
+      expect(fiKeys.length).toBe(3341);
     });
   });
 });

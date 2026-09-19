@@ -2736,7 +2736,6 @@ export type TranslationKey =
   | 'startScreen.dashPersonnel'
   | 'startScreen.dashPersonnelCount_one'
   | 'startScreen.dashPersonnelCount_other'
-  | 'startScreen.dashPlayed'
   | 'startScreen.dashPlayers'
   | 'startScreen.dashPlayersCount_one'
   | 'startScreen.dashPlayersCount_other'
