@@ -163,8 +163,6 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
    * the futsal formats table used to sit on screen for everyone, which reflected
    * what was available to build rather than what anyone plays.
    */
-  // The venue book, kept in settings so a deleted match forgets nothing.
-  const knownVenues = useKnownVenues(newGameSetup.savedGames);
   const rulesContext = React.useMemo(
     () => preferredRulesContext(loadGame.savedGames, teams),
     [loadGame.savedGames, teams],
@@ -174,6 +172,9 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     flushLiveMatch,
     onGameCreated: () => {
       setIsNewGameSetupModalOpen(false);
+
+  // The venue book, kept in settings so a deleted match forgets nothing.
+  const knownVenues = useKnownVenues(newGameSetup.savedGames);
       setPlayerIdsForNewGame(null);
       onEnterMatch?.();
     },
