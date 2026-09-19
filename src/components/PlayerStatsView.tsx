@@ -1117,8 +1117,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
                           >
                             <option value="">{t('playerStats.anotherTeam', 'Another team (not one of mine)')}</option>
+                            {/* Same as the add form above: a team's name does
+                                not identify it, and editing is where a wrong
+                                guess gets locked in. */}
                             {teams.map(team => (
-                              <option key={team.id} value={team.id}>{team.name}</option>
+                              <option key={team.id} value={team.id}>
+                                {getTeamDisplayName(team, seasons, tournaments)}
+                              </option>
                             ))}
                           </select>
                           <p className="mt-1 text-xs text-slate-400">
