@@ -36,11 +36,14 @@ describe('clubSeason utilities', () => {
         expect(getClubSeasonForDate('2025-05-01', startDate, endDate)).toBe('24/25');
       });
 
-      it('should return off-season for summer months (Jun-Sep)', () => {
-        expect(getClubSeasonForDate('2024-06-01', startDate, endDate)).toBe('off-season');
-        expect(getClubSeasonForDate('2024-07-15', startDate, endDate)).toBe('off-season');
-        expect(getClubSeasonForDate('2024-08-20', startDate, endDate)).toBe('off-season');
-        expect(getClubSeasonForDate('2024-09-30', startDate, endDate)).toBe('off-season');
+      /**
+       * Summer used to be 'off-season' because a separate end date left a gap.
+       * The end is now the day before the next start, so a summer friendly
+       * belongs to the season it was played in rather than to nothing.
+       */
+      it('puts summer matches in the outgoing season, not nowhere', () => {
+        expect(getClubSeasonForDate('2024-06-01', startDate)).toBe('23/24');
+        expect(getClubSeasonForDate('2024-09-30', startDate)).toBe('23/24');
       });
 
       it('should handle different years correctly', () => {
@@ -66,27 +69,30 @@ describe('clubSeason utilities', () => {
       });
     });
 
-    describe('partial same-year seasons (Mar-Nov)', () => {
+    /**
+     * A March boundary no longer carves a hole out of the winter: everything
+     * from 1 March runs to the last day of February, and a January match
+     * belongs to the season that began the previous March.
+     */
+    describe('a boundary partway through the year', () => {
       const startDate = '2000-03-01';  // March 1
-      const endDate = '2000-11-30';   // November 30
 
-      it('should return year for dates within season', () => {
-        expect(getClubSeasonForDate('2024-03-01', startDate, endDate)).toBe('2024');
-        expect(getClubSeasonForDate('2024-07-15', startDate, endDate)).toBe('2024');
-        expect(getClubSeasonForDate('2024-11-30', startDate, endDate)).toBe('2024');
+      it('labels the span it opens', () => {
+        expect(getClubSeasonForDate('2024-03-01', startDate)).toBe('24/25');
+        expect(getClubSeasonForDate('2024-07-15', startDate)).toBe('24/25');
       });
 
-      it('should return off-season for dates outside season', () => {
-        expect(getClubSeasonForDate('2024-01-15', startDate, endDate)).toBe('off-season');
-        expect(getClubSeasonForDate('2024-02-28', startDate, endDate)).toBe('off-season');
-        expect(getClubSeasonForDate('2024-12-01', startDate, endDate)).toBe('off-season');
+      it('puts the winter before it in the previous season', () => {
+        expect(getClubSeasonForDate('2024-01-15', startDate)).toBe('23/24');
+        expect(getClubSeasonForDate('2024-02-28', startDate)).toBe('23/24');
       });
     });
 
     it('should use default values when not provided', () => {
-      // Default is Nov 15 - Oct 20 (cross-year season with ~3 week off-season)
-      expect(getClubSeasonForDate('2024-11-20')).toBe('24/25'); // After Nov 15 = first half
-      expect(getClubSeasonForDate('2024-11-01')).toBe('off-season'); // Before Nov 15 = off-season
+      // Default boundary is 15 November; the day before belongs to the season
+      // that is ending, and nothing falls between the two.
+      expect(getClubSeasonForDate('2024-11-20')).toBe('24/25');
+      expect(getClubSeasonForDate('2024-11-01')).toBe('23/24');
     });
   });
 
@@ -106,7 +112,9 @@ describe('clubSeason utilities', () => {
     });
 
     it('should use default date values', () => {
-      expect(getClubSeasonDisplayLabel('24/25')).toBe('Nov 15, 2024 - Oct 20, 2025');
+      // Ends the day BEFORE the next season starts - the old Oct 20 end left
+      // twenty-six days belonging to no season at all.
+      expect(getClubSeasonDisplayLabel('24/25')).toBe('Nov 15, 2024 - Nov 14, 2025');
     });
   });
 
@@ -172,15 +180,17 @@ describe('clubSeason utilities', () => {
     });
 
     it('should filter games for different season', () => {
-      const filtered = filterGamesByClubSeason(games, '23/24', '2000-10-01', '2000-05-01');
-      expect(filtered).toHaveLength(2);
-      expect(filtered.map(g => g.id)).toEqual(['3', '4']);
+      const filtered = filterGamesByClubSeason(games, '23/24', '2000-10-01');
+      // The July game now belongs here too: with one boundary there is no gap
+      // for it to fall into.
+      expect(filtered).toHaveLength(3);
+      expect(filtered.map(g => g.id)).toEqual(['3', '4', '5']);
     });
 
-    it('should filter off-season games', () => {
-      const filtered = filterGamesByClubSeason(games, 'off-season', '2000-10-01', '2000-05-01');
-      expect(filtered).toHaveLength(1);
-      expect(filtered[0].id).toBe('5');
+    /** Nothing is off-season any more, so nothing can be filtered as such. */
+    it('finds no off-season games, because there are none', () => {
+      const filtered = filterGamesByClubSeason(games, 'off-season', '2000-10-01');
+      expect(filtered).toHaveLength(0);
     });
 
     it('should return all games when seasonLabel is "all"', () => {
@@ -246,7 +256,7 @@ describe('clubSeason utilities', () => {
     it('should use default date values', () => {
       const range = getClubSeasonDateRange('24/25');
       expect(range?.startDate).toBe('2024-11-15');
-      expect(range?.endDate).toBe('2025-10-20');
+      expect(range?.endDate).toBe('2025-11-14');
     });
   });
 
@@ -256,9 +266,14 @@ describe('clubSeason utilities', () => {
       expect(getClubSeasonForDate('2000-03-01', '2000-10-01', '2000-05-01')).toBe('99/00');
     });
 
-    it('should handle single-month season', () => {
-      expect(getClubSeasonForDate('2024-06-15', '2000-06-01', '2000-06-30')).toBe('2024');
-      expect(getClubSeasonForDate('2024-05-15', '2000-06-01', '2000-06-30')).toBe('off-season');
+    /**
+     * A "single-month season" is no longer expressible, and that is the point:
+     * a club season is a cycle, so a 1 June boundary means June to the
+     * following May rather than June alone with eleven months of nothing.
+     */
+    it('treats a June boundary as a full year, not a single month', () => {
+      expect(getClubSeasonForDate('2024-06-15', '2000-06-01')).toBe('24/25');
+      expect(getClubSeasonForDate('2024-05-15', '2000-06-01')).toBe('23/24');
     });
 
     it('should handle reversed months (cross-year season)', () => {

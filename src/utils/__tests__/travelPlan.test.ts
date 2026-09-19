@@ -3,7 +3,7 @@
  * warm-up; confidently wrong is worse than absent, which is why almost every
  * missing input returns null rather than a guess.
  */
-import { distanceKm, estimateTravelMinutes, planDeparture } from '../travelPlan';
+import { distanceKm, estimateTravelMinutes, planDeparture, formatDriveTime } from '../travelPlan';
 
 /** Real places, so the numbers can be checked against a map. */
 const SAVONLINNA = { latitude: 61.8699, longitude: 28.8783 };
@@ -128,5 +128,32 @@ describe('planDeparture', () => {
 
       expect(plan.departure).toBe('09:15');
     });
+  });
+});
+
+describe('formatDriveTime', () => {
+  /** "132 min" has to be divided in the head before it means anything. */
+  it('says hours and minutes for a long drive', () => {
+    expect(formatDriveTime(132, 'h')).toBe('2 h 12 min');
+  });
+
+  it('drops a zero minutes part', () => {
+    expect(formatDriveTime(120, 'h')).toBe('2 h');
+    expect(formatDriveTime(60, 'h')).toBe('1 h');
+  });
+
+  /** Under an hour, minutes are how people already talk. */
+  it('leaves a short drive in minutes', () => {
+    expect(formatDriveTime(45, 'h')).toBe('45 min');
+    expect(formatDriveTime(59, 'h')).toBe('59 min');
+    expect(formatDriveTime(5, 'h')).toBe('5 min');
+  });
+
+  it('uses the hour word it is given', () => {
+    expect(formatDriveTime(132, 't')).toBe('2 t 12 min');
+  });
+
+  it('copes with a very long journey', () => {
+    expect(formatDriveTime(605, 'h')).toBe('10 h 5 min');
   });
 });

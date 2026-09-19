@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { clubSeasonEndFromStart } from '@/utils/clubSeason';
 import VenueInput from '@/components/VenueInput';
 import type { AppSettings } from '@/types/settings';
 import { DEFAULT_ARRIVAL_BUFFER_MINUTES } from '@/utils/travelPlan';
@@ -18,7 +19,7 @@ import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRes
 import { useAuth } from '@/contexts/AuthProvider';
 import { CollapsibleModalHeader, useCollapsingHeader, modalContainerStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
-import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
+import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE } from '@/utils/appSettings';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
@@ -135,7 +136,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(DEFAULT_CLUB_SEASON_START_DATE);
   const [startingPoint, setStartingPoint] = useState<AppSettings['startingPoint']>(undefined);
   const [arrivalBuffer, setArrivalBuffer] = useState<number>(DEFAULT_ARRIVAL_BUFFER_MINUTES);
-  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(DEFAULT_CLUB_SEASON_END_DATE);
   const [assessmentsEnabled, setAssessmentsEnabled] = useState(false);
   const [assessmentRatingStyle, setAssessmentRatingStyle] = useState<AssessmentRatingStyle>('words');
   const [assessmentTemplate, setAssessmentTemplate] = useState<AssessmentTemplate>('balanced');
@@ -184,14 +184,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   }, [isOpen, userId]);
 
   // Helper to get maximum day for a given month
-  const getMaxDayForMonth = (month: number): number => {
-    // February has 29 days (use 29 to allow leap year dates)
-    if (month === 2) return 29;
-    // April, June, September, November have 30 days
-    if (month === 4 || month === 6 || month === 9 || month === 11) return 30;
-    // All other months have 31 days
-    return 31;
-  };
 
   // Helper to parse month and day from date string with defensive fallback
   const parseMonthDay = (dateStr: string): { month: number; day: number } => {
@@ -214,50 +206,62 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   // Helper to construct date string from month and day (using year 2000 as template)
-  const constructDateString = (month: number, day: number): string => {
-    const monthStr = month.toString().padStart(2, '0');
-    const dayStr = day.toString().padStart(2, '0');
-    return `2000-${monthStr}-${dayStr}`;
-  };
 
   // Helper to calculate end date (day before start date)
   // E.g., if season starts Aug 1, it ends Jul 31
-  const calculateEndDate = (startDateStr: string): string => {
-    const { month, day } = parseMonthDay(startDateStr);
+  /**
+   * The boundary as a real date the picker can show.
+   *
+   * Stored as month and day only - a club season recurs every year - but a date
+   * input needs a year to render. This lends it the CURRENT season's year, and
+   * the preview underneath states the recurrence outright so a borrowed year is
+   * never mistaken for a one-off date.
+   */
+  const clubSeasonPickerValue = React.useMemo(() => {
+    const { month, day } = parseMonthDay(clubSeasonStartDate);
+    const today = new Date();
+    const boundaryThisYear = new Date(today.getFullYear(), month - 1, day);
+    const year = today >= boundaryThisYear ? today.getFullYear() : today.getFullYear() - 1;
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }, [clubSeasonStartDate]);
 
-    // Subtract one day
-    if (day > 1) {
-      // Simple case: just go back one day in same month
-      return constructDateString(month, day - 1);
+  /** This season and the next, spelled out, so the boundary is unambiguous. */
+  const clubSeasonPreview = React.useMemo(() => {
+    const [yearStr] = clubSeasonPickerValue.split('-');
+    const year = parseInt(yearStr, 10);
+    const start = parseMonthDay(clubSeasonStartDate);
+    const end = parseMonthDay(clubSeasonEndFromStart(clubSeasonStartDate));
+    // A season spans two calendar years UNLESS it begins on 1 January, in
+    // which case it ends on 31 December of the same one.
+    const endsNextYear = !(start.month === 1 && start.day === 1);
+    const span = (from: number) =>
+      `${start.day}.${start.month}.${from} - ${end.day}.${end.month}.${endsNextYear ? from + 1 : from}`;
+    return { current: span(year), next: span(year + 1) };
+  }, [clubSeasonPickerValue, clubSeasonStartDate]);
+
+  /**
+   * Only the month and day are kept: the year the picker carries is scaffolding
+   * for the control, not part of the setting.
+   */
+  const handleClubSeasonStartDateChange = async (picked: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(picked)) return;
+    const [, month, day] = picked.split('-');
+    const startDate = `2000-${month}-${day}`;
+
+    setClubSeasonStartDate(startDate);
+    try {
+      // The end is NOT stored. It is the day before the next start, derived
+      // wherever it is needed, so the two can never disagree and leave a gap.
+      await updateAppSettings({ clubSeasonStartDate: startDate, hasConfiguredSeasonDates: true }, userId);
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.settings.detail(), userId] });
+    } catch (error) {
+      logger.error('Failed to save the club season boundary:', error);
+      showToast(t('settingsModal.seasonSaveFailed', 'Could not save the season start. Please try again.'), 'error');
     }
-
-    // Day is 1, need to go to previous month's last day
-    const prevMonth = month === 1 ? 12 : month - 1;
-    const lastDayOfPrevMonth = getMaxDayForMonth(prevMonth);
-    // For February, use 28 as default (29 would be for leap years but we're using template year 2000)
-    const actualLastDay = prevMonth === 2 ? 28 : lastDayOfPrevMonth;
-    return constructDateString(prevMonth, actualLastDay);
   };
+
 
   // Helper to format date for display (e.g., "July 31")
-  const formatDateForDisplay = (dateStr: string): string => {
-    const { month, day } = parseMonthDay(dateStr);
-    const monthNames = [
-      t('months.january', 'January'),
-      t('months.february', 'February'),
-      t('months.march', 'March'),
-      t('months.april', 'April'),
-      t('months.may', 'May'),
-      t('months.june', 'June'),
-      t('months.july', 'July'),
-      t('months.august', 'August'),
-      t('months.september', 'September'),
-      t('months.october', 'October'),
-      t('months.november', 'November'),
-      t('months.december', 'December'),
-    ];
-    return `${monthNames[month - 1]} ${day}`;
-  };
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [pendingRestoreContent, setPendingRestoreContent] = useState<string | null>(null);
@@ -282,7 +286,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         setClubSeasonStartDate(settings.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE);
         setStartingPoint(settings.startingPoint);
         setArrivalBuffer(settings.arrivalBufferMinutes ?? DEFAULT_ARRIVAL_BUFFER_MINUTES);
-        setClubSeasonEndDate(settings.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE);
         setAssessmentsEnabled(settings.assessmentsEnabled ?? false);
         setAssessmentRatingStyle(settings.assessmentRatingStyle ?? 'words');
         setAssessmentTemplate(settings.assessmentTemplate ?? 'balanced');
@@ -290,7 +293,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         // Use defaults if loading fails
         logger.error('Failed to load club season settings:', error);
         setClubSeasonStartDate(DEFAULT_CLUB_SEASON_START_DATE);
-        setClubSeasonEndDate(DEFAULT_CLUB_SEASON_END_DATE);
       });
 
       if (navigator.storage?.estimate) {
@@ -483,36 +485,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   // Handler for season start date changes (auto-calculates end date)
-  const handleClubSeasonStartChange = async (month: number, day: number) => {
-    // Auto-correct day if it exceeds max for the new month
-    const maxDay = getMaxDayForMonth(month);
-    if (day > maxDay) {
-      day = maxDay;
-      logger.log(`[handleClubSeasonStartChange] Auto-corrected day to ${maxDay} for month ${month}`);
-    }
-
-    const startDate = constructDateString(month, day);
-    const endDate = calculateEndDate(startDate);
-
-    setClubSeasonStartDate(startDate);
-    setClubSeasonEndDate(endDate);
-
-    try {
-      await updateAppSettings({
-        clubSeasonStartDate: startDate,
-        clubSeasonEndDate: endDate,
-        hasConfiguredSeasonDates: true
-      }, userId);
-      // Invalidate React Query cache so GameStatsModal sees the update (user-scoped)
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.settings.detail(), userId] });
-    } catch (error) {
-      logger.error('Failed to save club season dates:', error);
-      showToast(
-        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
-        'error'
-      );
-    }
-  };
 
   const handleAssessmentsEnabledChange = async (enabled: boolean) => {
     setAssessmentsEnabled(enabled);
@@ -545,16 +517,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       logger.error('Failed to save assessment template:', error);
       showToast(t('settingsModal.saveSettingError', 'Failed to save setting. Please try again.'), 'error');
     }
-  };
-
-  const handleClubSeasonStartMonthChange = (month: number) => {
-    const { day } = parseMonthDay(clubSeasonStartDate);
-    handleClubSeasonStartChange(month, day);
-  };
-
-  const handleClubSeasonStartDayChange = (day: number) => {
-    const { month } = parseMonthDay(clubSeasonStartDate);
-    handleClubSeasonStartChange(month, day);
   };
 
   useEffect(() => {
@@ -861,67 +823,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="space-y-3">
                 {/* Season Start Date */}
                 <div>
-                  <label className={labelStyle}>
+                  <label className={labelStyle} htmlFor="club-season-start">
                     {t('settingsModal.newSeasonStartsLabel', 'New season starts')}
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      id="season-start-month"
-                      value={parseMonthDay(clubSeasonStartDate).month}
-                      onChange={(e) => handleClubSeasonStartMonthChange(parseInt(e.target.value, 10))}
-                      className={inputStyle}
-                      aria-describedby="club-season-description"
-                      aria-label={t('settingsModal.monthLabel', 'Month')}
-                    >
-                      <option value={1}>{t('months.january', 'January')}</option>
-                      <option value={2}>{t('months.february', 'February')}</option>
-                      <option value={3}>{t('months.march', 'March')}</option>
-                      <option value={4}>{t('months.april', 'April')}</option>
-                      <option value={5}>{t('months.may', 'May')}</option>
-                      <option value={6}>{t('months.june', 'June')}</option>
-                      <option value={7}>{t('months.july', 'July')}</option>
-                      <option value={8}>{t('months.august', 'August')}</option>
-                      <option value={9}>{t('months.september', 'September')}</option>
-                      <option value={10}>{t('months.october', 'October')}</option>
-                      <option value={11}>{t('months.november', 'November')}</option>
-                      <option value={12}>{t('months.december', 'December')}</option>
-                    </select>
-                    <select
-                      id="season-start-day"
-                      value={parseMonthDay(clubSeasonStartDate).day}
-                      onChange={(e) => handleClubSeasonStartDayChange(parseInt(e.target.value, 10))}
-                      className={inputStyle}
-                      aria-describedby="club-season-description"
-                      aria-label={t('settingsModal.dayLabel', 'Day')}
-                    >
-                      {Array.from(
-                        { length: getMaxDayForMonth(parseMonthDay(clubSeasonStartDate).month) },
-                        (_, i) => i + 1
-                      ).map(day => (
-                        <option key={day} value={day}>{day}</option>
-                      ))}
-                    </select>
+                  {/* ONE DATE, and a real picker rather than two dropdowns -
+                      the same control a match date uses. Only the month and day
+                      matter; the preview below spells out what that produces so
+                      the recurring part is never in doubt. */}
+                  <input
+                    type="date"
+                    id="club-season-start"
+                    value={clubSeasonPickerValue}
+                    onChange={(e) => handleClubSeasonStartDateChange(e.target.value)}
+                    className={inputStyle}
+                    aria-describedby="club-season-description"
+                  />
+                </div>
+
+                {/* What that boundary actually produces. The end is never stored
+                    and never configured: it is the day before the next season
+                    begins, which is what makes every date belong to exactly one
+                    season instead of falling into an 'off-season' gap. */}
+                <div className="rounded-md border border-slate-600 bg-slate-800/50 px-3 py-2 text-sm text-slate-300">
+                  <div>
+                    {t('settingsModal.seasonThis', 'This season')}:{' '}
+                    <span className="font-semibold text-slate-100">{clubSeasonPreview.current}</span>
+                  </div>
+                  <div className="mt-0.5">
+                    {t('settingsModal.seasonNext', 'Next season')}:{' '}
+                    <span className="font-semibold text-slate-100">{clubSeasonPreview.next}</span>
                   </div>
                 </div>
-                {/* Season End Date (auto-calculated, read-only) */}
-                <div>
-                  <label className={labelStyle}>
-                    {t('settingsModal.seasonEndsLabel', 'Season ends')}
-                  </label>
-                  <div className="px-3 py-2 bg-slate-800/50 rounded-md border border-slate-600 text-slate-300">
-                    {formatDateForDisplay(clubSeasonEndDate)}
-                    <span className="text-slate-500 text-xs ml-2">
-                      ({t('settingsModal.autoCalculated', 'auto-calculated')})
-                    </span>
-                  </div>
-                </div>
-                {/* Example */}
-                <p className="text-sm text-slate-400 mt-2">
-                  {t('settingsModal.seasonExample', 'Example: If your season starts {{startDate}}, the 2024-25 season runs {{startDate}}, 2024 → {{endDate}}, 2025.', {
-                    startDate: formatDateForDisplay(clubSeasonStartDate),
-                    endDate: formatDateForDisplay(clubSeasonEndDate)
-                  })}
-                </p>
               </div>
             </div>
             </>
