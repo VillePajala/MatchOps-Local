@@ -1058,6 +1058,14 @@ export type Database = {
       user_settings: {
         Row: {
           club_season_end_date: string | null
+          arrival_buffer_minutes: number | null
+          assessment_rating_style: string | null
+          assessment_template: string | null
+          assessments_enabled: boolean | null
+          starting_point_address: string | null
+          starting_point_lat: number | null
+          starting_point_lng: number | null
+          starting_point_name: string | null
           club_season_start_date: string | null
           created_at: string | null
           current_game_id: string | null
@@ -1073,6 +1081,14 @@ export type Database = {
         }
         Insert: {
           club_season_end_date?: string | null
+          arrival_buffer_minutes?: number | null
+          assessment_rating_style?: string | null
+          assessment_template?: string | null
+          assessments_enabled?: boolean | null
+          starting_point_address?: string | null
+          starting_point_lat?: number | null
+          starting_point_lng?: number | null
+          starting_point_name?: string | null
           club_season_start_date?: string | null
           created_at?: string | null
           current_game_id?: string | null
@@ -1088,6 +1104,14 @@ export type Database = {
         }
         Update: {
           club_season_end_date?: string | null
+          arrival_buffer_minutes?: number | null
+          assessment_rating_style?: string | null
+          assessment_template?: string | null
+          assessments_enabled?: boolean | null
+          starting_point_address?: string | null
+          starting_point_lat?: number | null
+          starting_point_lng?: number | null
+          starting_point_name?: string | null
           club_season_start_date?: string | null
           created_at?: string | null
           current_game_id?: string | null

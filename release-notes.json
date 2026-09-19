@@ -4,6 +4,17 @@
     {
       "date": "2026-09-19",
       "en": [
+        "Fixed settings that did not survive a reload when signed in: your starting point and arrival time, and - for much longer than that - the player-assessment settings. They were being saved into a table that had no room for them, so they were dropped without a word.",
+        "The next-match card now shows the town the venue is in, and the drive reads as plain hours and minutes."
+      ],
+      "fi": [
+        "Korjattu asetukset jotka eivät säilyneet uudelleenlatauksen yli kirjautuneena: lähtöpaikka ja saapumisaika sekä - paljon pidempään - pelaaja-arvioiden asetukset. Ne tallennettiin tauluun jossa ei ollut niille tilaa, joten ne katosivat sanaakaan sanomatta.",
+        "Seuraava ottelu -kortti näyttää nyt myös paikkakunnan, ja ajomatka näkyy pelkkinä tunteina ja minuutteina."
+      ]
+    },
+    {
+      "date": "2026-09-19",
+      "en": [
         "The club season is now one date instead of two. You set when it changes over, with the same date picker a match uses, and the previous one ends the day before. Before, a separate end date left a gap - with the shipped default, matches between 21 October and 14 November belonged to no season at all and dropped out of your record.",
         "A long drive on the next-match card now reads as hours and minutes rather than a count of minutes, and adjusting the journey opens over the page instead of pushing everything below it down."
       ],

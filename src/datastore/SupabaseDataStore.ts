@@ -2808,6 +2808,26 @@ export class SupabaseDataStore implements DataStore {
       clubSeasonEndDate: row.club_season_end_date ?? DEFAULT_APP_SETTINGS.clubSeasonEndDate,
       isDrawingModeEnabled: row.is_drawing_mode_enabled ?? false,
       homeView: row.home_view === 'dashboard' ? 'dashboard' : 'simple',
+      // A starting point exists only if it was given a name; the coordinates
+      // are optional because a half-typed one is still worth keeping.
+      startingPoint: row.starting_point_name
+        ? {
+            name: row.starting_point_name,
+            address: row.starting_point_address ?? undefined,
+            latitude: row.starting_point_lat ?? undefined,
+            longitude: row.starting_point_lng ?? undefined,
+          }
+        : undefined,
+      arrivalBufferMinutes: row.arrival_buffer_minutes ?? undefined,
+      // NULL means "never set", which is not the same as false - but the app's
+      // default is off, so they land in the same place.
+      assessmentsEnabled: row.assessments_enabled ?? DEFAULT_APP_SETTINGS.assessmentsEnabled,
+      assessmentRatingStyle:
+        (row.assessment_rating_style as AppSettings['assessmentRatingStyle']) ??
+        DEFAULT_APP_SETTINGS.assessmentRatingStyle,
+      assessmentTemplate:
+        (row.assessment_template as AppSettings['assessmentTemplate']) ??
+        DEFAULT_APP_SETTINGS.assessmentTemplate,
       // Carry the row's updated_at through so settings conflict resolution has a
       // real timestamp to compare (without it, settings always resolved local-wins).
       updatedAt: row.updated_at ?? undefined,
@@ -2827,6 +2847,14 @@ export class SupabaseDataStore implements DataStore {
       club_season_end_date: settings.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE,
       is_drawing_mode_enabled: settings.isDrawingModeEnabled ?? false,
       home_view: settings.homeView ?? null,
+      starting_point_name: settings.startingPoint?.name ?? null,
+      starting_point_address: settings.startingPoint?.address ?? null,
+      starting_point_lat: settings.startingPoint?.latitude ?? null,
+      starting_point_lng: settings.startingPoint?.longitude ?? null,
+      arrival_buffer_minutes: settings.arrivalBufferMinutes ?? null,
+      assessments_enabled: settings.assessmentsEnabled ?? null,
+      assessment_rating_style: settings.assessmentRatingStyle ?? null,
+      assessment_template: settings.assessmentTemplate ?? null,
       updated_at: new Date().toISOString(),
     };
   }
