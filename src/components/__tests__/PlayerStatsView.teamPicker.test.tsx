@@ -44,17 +44,32 @@ describe('telling two teams of the same name apart', () => {
   });
 });
 
-describe('the picker uses it', () => {
+/**
+ * BOTH pickers, because there are two: one to add an external game and one to
+ * edit it. The first version fixed only the add form, leaving the same
+ * ambiguity in the place where a wrong guess gets locked in.
+ */
+describe('every team picker uses it', () => {
   const source = require('fs').readFileSync(
     require('path').join(process.cwd(), 'src/components/PlayerStatsView.tsx'),
     'utf8',
   );
 
-  it('renders the contextual label, not the bare name', () => {
-    const select = source.slice(source.indexOf('data-testid="adj-team-select"'));
-    const options = select.slice(0, select.indexOf('</select>'));
+  const optionsOf = (testId: string) => {
+    const from = source.indexOf(`data-testid="${testId}"`);
+    expect(from).toBeGreaterThan(-1);
+    return source.slice(from, source.indexOf('</select>', from));
+  };
+
+  it.each(['adj-team-select', 'edit-team-select'])('%s shows the competition too', (testId) => {
+    const options = optionsOf(testId);
 
     expect(options).toContain('getTeamDisplayName(team, seasons, tournaments)');
     expect(options).not.toMatch(/>\{team\.name\}</);
+  });
+
+  /** A bare team.name anywhere in this file is the bug coming back. */
+  it('leaves no picker rendering a bare name', () => {
+    expect(source).not.toMatch(/<option key=\{team\.id\} value=\{team\.id\}>\{team\.name\}<\/option>/);
   });
 });
