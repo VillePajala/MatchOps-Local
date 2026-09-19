@@ -4,6 +4,17 @@
     {
       "date": "2026-09-19",
       "en": [
+        "The top card on the front page reads the same way whatever it shows: what the match is and when, the opponent with the one number that matters (kick-off, or the score), then the venue with its town on its own line and the pitch beside it. Nothing is cut off any more - long names wrap.",
+        "The Jatka card no longer says home or away, and the directions button appears only for a match still to be played."
+      ],
+      "fi": [
+        "Etusivun ylin kortti lukee samalla tavalla riippumatta siitä, mitä se näyttää: mikä ottelu ja milloin, vastustaja ja se yksi luku joka merkitsee (alkamisaika tai tulos), sitten paikka ja sen paikkakunta omalla rivillään ja kenttä vieressä. Mitään ei enää katkaista - pitkät nimet rivittyvät.",
+        "Jatka-kortti ei enää kerro koti- tai vierasottelua, ja reittinappi näkyy vain vielä pelaamattomalle ottelulle."
+      ]
+    },
+    {
+      "date": "2026-09-19",
+      "en": [
         "The top card on the front page no longer disappears. Deleting your only upcoming fixture, or the match you last had open, used to leave a gap where the card had been. It now falls back to your latest match, ready to continue - and only invites you to create one when there are no matches at all.",
         "The Jatka card now shows the date, kick-off, venue and pitch like the next-match card does, and the small cards in the strip below show the town."
       ],

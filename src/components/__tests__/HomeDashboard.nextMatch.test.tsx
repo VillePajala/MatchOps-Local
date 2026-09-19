@@ -132,7 +132,8 @@ describe('the venue on the card', () => {
       upcoming: fixture({ venue: 'Kimpisen kenttä, Lappeenranta', fieldNumber: 'TN 2' }),
     })} t={t} />);
 
-    expect(screen.getByText('Kimpisen kenttä · TN 2')).toBeInTheDocument();
+    expect(screen.getByText('Kimpisen kenttä')).toBeInTheDocument();
+    expect(screen.getByText('TN 2')).toBeInTheDocument();
   });
 
   it('says nothing when there is no venue at all', () => {
@@ -453,9 +454,9 @@ describe('the Jatka card carries when and where too', () => {
   it('shows the venue, its town and the pitch', () => {
     render(<HomeDashboard summary={base({ resume: full })} t={t} />);
 
-    const line = screen.getByText(/Mitta-Keittiöt Areena/);
-    expect(line).toHaveTextContent('Savonlinna');
-    expect(line).toHaveTextContent('TN 2');
+    expect(screen.getByText('Mitta-Keittiöt Areena')).toBeInTheDocument();
+    expect(screen.getByText('Savonlinna')).toBeInTheDocument();
+    expect(screen.getByText('TN 2')).toBeInTheDocument();
   });
 
   /** A bare match must stay a bare card, not grow an empty line. */
@@ -468,7 +469,7 @@ describe('the Jatka card carries when and where too', () => {
   it('shows what it has when only some of it is set', () => {
     render(<HomeDashboard summary={base({ resume: { ...resume, date: '2026-09-20' } })} t={t} />);
 
-    expect(screen.getByText('20.9.')).toBeInTheDocument();
+    expect(screen.getByText(/20\.9\./)).toBeInTheDocument();
   });
 });
 
@@ -496,5 +497,83 @@ describe('the strip cards show the town', () => {
     render(<HomeDashboard summary={base({ recent: [recent('r1', 'FC Espoo')] })} t={t} />);
 
     expect(screen.getByText('FC Espoo')).toBeInTheDocument();
+  });
+});
+
+/**
+ * ONE SKELETON (owner, 2026-09-19): the fixture card and the Jatka card had
+ * grown different shapes in the same slot. These pin the composition the
+ * owner approved from a mock - and the two things it removed.
+ */
+describe('the top card composition', () => {
+  const played = {
+    id: 'g', opponent: 'PePo / Musta', ourScore: 5, theirScore: 3, homeOrAway: 'away' as const,
+    isPlayed: true, mapsUrl: 'https://maps.example/x', date: '2026-09-20', time: '19:00',
+    venue: 'Sammonlahden tekonurmi', venueTown: 'Lappeenranta', fieldNumber: 'TN 2',
+  };
+
+  it('names the day of the week in the app language', () => {
+    render(<HomeDashboard summary={base({ resume: played })} locale="en" t={t} />);
+
+    expect(screen.getByText(/Sun 20\.9\. 19:00/)).toBeInTheDocument();
+  });
+
+  it('defaults to Finnish weekdays, like the app', () => {
+    render(<HomeDashboard summary={base({ resume: played })} t={t} />);
+
+    expect(screen.getByText(/su 20\.9\./)).toBeInTheDocument();
+  });
+
+  /** "Lappe…" told the coach less than no town at all. */
+  it('gives the venue and its town their own lines, so neither truncates', () => {
+    render(<HomeDashboard summary={base({ resume: played })} t={t} />);
+
+    const venue = screen.getByText('Sammonlahden tekonurmi');
+    const town = screen.getByText('Lappeenranta');
+    expect(venue).not.toBe(town);
+    expect(venue).not.toContainElement(town);
+    expect(venue.className).not.toMatch(/truncate/);
+    expect(town.className).not.toMatch(/truncate/);
+  });
+
+  it('says which match it is: Latest for a played one, In progress otherwise', () => {
+    const { rerender } = render(<HomeDashboard summary={base({ resume: played })} t={t} />);
+    expect(screen.getByText(/^Latest/)).toBeInTheDocument();
+
+    rerender(<HomeDashboard summary={base({ resume: { ...played, isPlayed: false, currentPeriod: 2, timeElapsedSeconds: 754 } })} t={t} />);
+    expect(screen.getByText(/^In progress/)).toBeInTheDocument();
+    expect(screen.getByText('2. · 12:34')).toBeInTheDocument();
+  });
+
+  /** The owner's call: it did not earn its row. */
+  it('never says home or away', () => {
+    render(<HomeDashboard summary={base({ resume: played })} t={t} />);
+
+    expect(screen.queryByText(/^(Home|Away)$/)).toBeNull();
+  });
+
+  /** Directions to a ground you came home from is a button with no job. */
+  it('offers directions only while the match is still to be played', () => {
+    const { rerender } = render(<HomeDashboard summary={base({ resume: played })} t={t} />);
+    expect(screen.queryByRole('link', { name: /Directions/ })).toBeNull();
+
+    rerender(<HomeDashboard summary={base({ resume: { ...played, isPlayed: false } })} t={t} />);
+    expect(screen.getByRole('link', { name: /Directions/ })).toHaveAttribute('href', 'https://maps.example/x');
+  });
+
+  /** On a fixture the kick-off is the big number, so the eyebrow must not repeat it. */
+  it('shows a fixture kick-off exactly once', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture({ time: '14:00' }) })} t={t} />);
+
+    expect(screen.getAllByText(/14:00/)).toHaveLength(1);
+  });
+
+  it('keeps the Jatka action pressable in its own row', async () => {
+    const onResume = jest.fn();
+    render(<HomeDashboard summary={base({ resume: played })} onResume={onResume} t={t} />);
+
+    await userEvent.click(screen.getByText(/Continue/));
+
+    expect(onResume).toHaveBeenCalledTimes(1);
   });
 });
