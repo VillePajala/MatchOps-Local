@@ -328,3 +328,54 @@ describe('how the drive reads', () => {
     expect(screen.getByText(/45 min/)).toBeInTheDocument();
   });
 });
+
+
+/**
+ * @critical - the owner asked for this twice. "A fixture, or failing that the
+ * last match you had open" leaves a third case: both gone at once. Delete the
+ * only booked fixture while the match you last opened was that same one, and
+ * Home's most prominent element simply vanished.
+ */
+describe('the top slot is never empty, even with nothing to show', () => {
+  it('offers a way forward when there is no fixture and nothing to resume', () => {
+    render(<HomeDashboard summary={base()} t={t} />);
+
+    expect(screen.getByText(/No matches yet/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New Game/ })).toBeInTheDocument();
+  });
+
+  /** A coach with history reads differently from one on their first run. */
+  it('says nothing is booked when matches have been played', () => {
+    render(<HomeDashboard summary={base({ recent: [recent('r1', 'FC Espoo')] })} t={t} />);
+
+    expect(screen.getByText(/Nothing booked yet/)).toBeInTheDocument();
+    expect(screen.queryByText(/No matches yet/)).toBeNull();
+  });
+
+  it('starts a new game from it', async () => {
+    const onNewGame = jest.fn();
+    render(<HomeDashboard summary={base()} onNewGame={onNewGame} t={t} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /New Game/ }));
+
+    expect(onNewGame).toHaveBeenCalled();
+  });
+
+  /** It must never displace a card that does have something to say. */
+  it.each([
+    ['a fixture', { upcoming: fixture() }],
+    ['a match to resume', { resume }],
+  ])('stays out of the way when there is %s', (_case, over) => {
+    render(<HomeDashboard summary={base(over)} t={t} />);
+
+    expect(screen.queryByText(/No matches yet|Nothing booked yet/)).toBeNull();
+  });
+
+  /** The strip below already lists recent results; do not repeat one up here. */
+  it('does not promote a recent result into the slot', () => {
+    render(<HomeDashboard summary={base({ recent: [recent('r1', 'FC Espoo')] })} t={t} />);
+
+    const cards = screen.getAllByText('FC Espoo');
+    expect(cards).toHaveLength(1);
+  });
+});

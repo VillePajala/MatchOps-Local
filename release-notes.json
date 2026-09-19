@@ -4,6 +4,15 @@
     {
       "date": "2026-09-19",
       "en": [
+        "The top card on the front page no longer disappears. Deleting your only upcoming fixture, or the match you last had open, used to leave a gap where the card had been. It now says what is true and offers to start a new match."
+      ],
+      "fi": [
+        "Etusivun ylin kortti ei enää katoa. Ainoan tulevan ottelun tai viimeksi avaamasi ottelun poistaminen jätti aiemmin tyhjän kohdan kortin paikalle. Nyt se kertoo tilanteen ja tarjoaa uuden ottelun luomista."
+      ]
+    },
+    {
+      "date": "2026-09-19",
+      "en": [
         "The privacy policy on match-ops.com now names Photon, the map search behind the location field, matching what the app already said."
       ],
       "fi": [

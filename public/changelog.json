@@ -1,14 +1,12 @@
 {
-  "version": "0688366e",
+  "version": "9c3cafae",
   "date": "2026-09-19",
   "notes": {
     "en": [
-      "Venues you pinned before the app could store their address now get one filled in automatically, so the next-match card can show the town. Nothing to re-enter.",
-      "Changing your starting point or arrival time in settings updates the front page straight away instead of waiting for a reload."
+      "The privacy policy on match-ops.com now names Photon, the map search behind the location field, matching what the app already said."
     ],
     "fi": [
-      "Paikat jotka kiinnitit ennen kuin sovellus osasi tallentaa niiden osoitteen saavat nyt osoitteen automaattisesti, joten seuraava ottelu -kortti voi näyttää paikkakunnan. Mitään ei tarvitse syöttää uudelleen.",
-      "Lähtöpaikan tai saapumisajan muuttaminen asetuksissa päivittää etusivun heti eikä vasta uudelleenlatauksen jälkeen."
+      "match-ops.com-sivuston tietosuojakäytäntö nimeää nyt Photonin, sijaintikentän takana olevan karttahaun, samoin kuin sovellus jo kertoi."
     ]
   }
 }
