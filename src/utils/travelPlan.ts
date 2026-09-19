@@ -179,3 +179,20 @@ export function asCoordinates(
   if (typeof point?.latitude !== 'number' || typeof point?.longitude !== 'number') return null;
   return { latitude: point.latitude, longitude: point.longitude };
 }
+
+/**
+ * A drive as a coach would say it: "2 t 12 min", not "132 min".
+ *
+ * Anything over an hour stops being countable in minutes - 132 has to be
+ * divided in the head before it means anything, and the head is busy. Under an
+ * hour, minutes are how people already talk, so the hours part is dropped
+ * rather than shown as a zero.
+ *
+ * @param hour the localised hour abbreviation ("h", "t")
+ */
+export function formatDriveTime(minutes: number, hour: string): string {
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h} ${hour}` : `${h} ${hour} ${m} min`;
+}

@@ -18,7 +18,7 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   assessmentTemplate: 'balanced',
   hasConfiguredSeasonDates: false,
   clubSeasonStartDate: '2000-11-15',
-  clubSeasonEndDate: '2000-10-20',
+  clubSeasonEndDate: '2000-11-14',
 };
 
 // Create mock store for settings
@@ -184,7 +184,7 @@ describe('App Settings Utilities', () => {
         assessmentTemplate: 'balanced',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
-        clubSeasonEndDate: '2000-10-20'
+        clubSeasonEndDate: '2000-11-14'
       });
     });
 
@@ -209,7 +209,7 @@ describe('App Settings Utilities', () => {
         assessmentTemplate: 'balanced',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
-        clubSeasonEndDate: '2000-10-20'
+        clubSeasonEndDate: '2000-11-14'
       });
     });
 
@@ -232,7 +232,7 @@ describe('App Settings Utilities', () => {
         assessmentTemplate: 'balanced',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
-        clubSeasonEndDate: '2000-10-20'
+        clubSeasonEndDate: '2000-11-14'
       });
       consoleSpy.mockRestore();
     });
@@ -288,7 +288,7 @@ describe('App Settings Utilities', () => {
         assessmentTemplate: 'balanced',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
-        clubSeasonEndDate: '2000-10-20'
+        clubSeasonEndDate: '2000-11-14'
       });
 
       // Check that updateSettings was called with the partial update

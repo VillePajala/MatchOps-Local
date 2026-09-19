@@ -2306,9 +2306,11 @@ describe('LocalDataStore', () => {
           .mockResolvedValueOnce(JSON.stringify(initialSettings)) // settings for getSeasonDates
           .mockResolvedValueOnce(JSON.stringify([])); // seasons for loadSeasons
 
-        // Create season with July-15 date - should be "off-season" with Oct-May season
+        // With a 1 October boundary, 15 July falls in the season that opened
+        // the previous October. Nothing is 'off-season' any more: one boundary
+        // means every date belongs to exactly one club season.
         const season1 = await dataStore.createSeason('Summer Games', { startDate: '2024-07-15' });
-        expect(season1.clubSeason).toBe('off-season');
+        expect(season1.clubSeason).toBe('23/24');
 
         // Clear mocks and set up for updated settings
         jest.clearAllMocks();
@@ -2322,9 +2324,10 @@ describe('LocalDataStore', () => {
           .mockResolvedValueOnce(JSON.stringify(updatedSettings)) // settings for getSeasonDates
           .mockResolvedValueOnce(JSON.stringify([season1])); // seasons for duplicate check
 
-        // Create another season with July-15 date - should now be "2024" with Jun-Aug season
+        // Moving the boundary to 1 June relabels the same date - which is the
+        // point of this test: the setting is read fresh, not cached.
         const season2 = await dataStore.createSeason('Another Summer Games', { startDate: '2024-07-15' });
-        expect(season2.clubSeason).toBe('2024');
+        expect(season2.clubSeason).toBe('24/25');
       });
     });
   });
