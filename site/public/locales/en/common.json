@@ -469,6 +469,11 @@
         "eyebrow": "Position balance",
         "title": "Positions played across the season",
         "desc": "Across a whole season, see which positions each player has actually played - by line or exact spot. Players kept in one role stand out, so you can deliberately broaden how each player is used."
+      },
+      "nextMatch": {
+        "eyebrow": "Next match",
+        "title": "Know when to leave",
+        "desc": "The front page shows your next fixture: how many days away, kick-off, the venue and which pitch, and a button straight to driving directions. Set the place you leave from and how long before kick-off you want to be at the ground, and it works out your departure time - counting back through both, not just the drive. Give one match its own arrival time when a cup tie asks for more, or record how long the journey really took, and every later match at that venue uses the real figure."
       }
     },
     "bands": {
@@ -685,7 +690,7 @@
       "title": "Data We Do NOT Collect",
       "items": {
         "gameContent": "Game content, scores, or statistics (stored locally only, or in your private cloud account)",
-        "location": "Location data",
+        "location": "Location data. Nothing about where you or your device are is sent to us or stored by us. The venue search does reach a map provider on your behalf while you use it - see Third-Party Services.",
         "photos": "Photos or media",
         "deviceIds": "Device identifiers for tracking or advertising",
         "playerNames": "Player names or personal details (these are stored locally by you, or in your private cloud account)"
@@ -706,7 +711,10 @@
       "googlePlayLink": "Google's Privacy Policy",
       "sentryLink": "Sentry's Privacy Policy",
       "supabaseLink": "Supabase's Privacy Policy",
-      "vercelLink": "Vercel's Privacy Policy"
+      "vercelLink": "Vercel's Privacy Policy",
+      "photon": "Photon (Komoot)",
+      "photonDesc": "Venue search in the match location field, when used (EU, Germany).",
+      "photonLink": "Komoot Privacy Policy"
     },
     "yourRights": {
       "title": "Your Rights (GDPR)",
