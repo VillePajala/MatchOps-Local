@@ -1613,16 +1613,29 @@ export default function Home() {
    * Runs once per session and only when something actually needs it; after the
    * first pass there is nothing left to find and it costs one array scan.
    */
-  const healedAddressesRef = useRef(false);
+  // Keyed by user, not a bare boolean: a second account signing in on the same
+  // tab never reloads the page, and a shared flag would leave their venues
+  // unhealed for the rest of the session.
+  const healedAddressesForRef = useRef<string | null | undefined>(undefined);
   const healVenueAddressesOnce = useCallback(async (games: SavedGamesCollection) => {
-    if (healedAddressesRef.current) return;
-    healedAddressesRef.current = true;
+    const who = userId ?? null;
+    if (healedAddressesForRef.current === who) return;
+    healedAddressesForRef.current = who;
     try {
       const repaired = await healVenueAddresses(games);
       if (Object.keys(repaired).length === 0) return;
+
+      // RE-READ BEFORE WRITING. The geocode pass above is several sequential
+      // network calls, and the snapshot it started from is seconds old by the
+      // time it finishes. Writing `{ ...staleGame, locationAddress }` would
+      // clobber anything the coach changed on that match meanwhile - their
+      // edit lost to a background tidy-up they never asked for.
+      const fresh = await getSavedGames(userId);
       for (const [id, locationAddress] of Object.entries(repaired)) {
-        const game = games[id];
-        if (game) await utilSaveGame(id, { ...game, locationAddress }, userId);
+        const game = fresh?.[id];
+        // Gone, or somebody got there first: either way, leave it alone.
+        if (!game || game.locationAddress) continue;
+        await utilSaveGame(id, { ...game, locationAddress }, userId);
       }
       await refreshSetupSignals();
     } catch (err) {
