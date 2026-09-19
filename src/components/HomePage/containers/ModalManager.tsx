@@ -1,5 +1,5 @@
 import React from 'react';
-import { buildVenueBook } from '@/utils/venueBook';
+import { useKnownVenues } from '@/hooks/useKnownVenues';
 import type { AiMeta, GameNoteInput } from '@/types/game';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import dynamic from 'next/dynamic';
@@ -150,7 +150,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
   // container already holds. Editing a match's location needs the book as much
   // as creating one does - a venue the map cannot find is only findable from
   // the book, and Ottelutiedot was the one place it never reached.
-  const knownVenues = React.useMemo(() => buildVenueBook(Object.values(data.savedGames ?? {})), [data.savedGames]);
+  const knownVenues = useKnownVenues(data.savedGames);
   const { t } = useTranslation();
   const assessmentsEnabled = useAssessmentsEnabled();
 

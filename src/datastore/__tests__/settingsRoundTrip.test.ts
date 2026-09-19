@@ -42,6 +42,7 @@ const PERSISTED: Array<[setting: string, column: string]> = [
   ['assessmentsEnabled', 'assessments_enabled'],
   ['assessmentRatingStyle', 'assessment_rating_style'],
   ['assessmentTemplate', 'assessment_template'],
+  ['knownVenues', 'known_venues'],
 ];
 
 describe('every setting survives the round trip to the cloud', () => {
@@ -90,5 +91,22 @@ describe('the migration that gave them somewhere to live', () => {
   it('adds nothing NOT NULL and backfills nothing', () => {
     expect(migration).not.toMatch(/NOT NULL/);
     expect(migration).not.toMatch(/UPDATE user_settings/i);
+  });
+});
+
+describe('the venue book, which lives in one JSONB column', () => {
+  const migration = fs.readFileSync(
+    path.join(process.cwd(), 'supabase/migrations/052_user_settings_known_venues.sql'),
+    'utf8',
+  );
+
+  it('has a column', () => {
+    expect(migration).toContain('ADD COLUMN IF NOT EXISTS known_venues jsonb');
+    expect(migration).not.toMatch(/NOT NULL/);
+  });
+
+  /** A JSONB column holds whatever was last written; every entry is checked. */
+  it('is read back through the sanitizer, never cast', () => {
+    expect(fromDb).toContain('knownVenues: sanitizeKnownVenues(row.known_venues)');
   });
 });

@@ -3,7 +3,7 @@
  * is typed and pinned ONCE; every match after that must recognise it from the
  * coach's own name for it, with the pin still attached.
  */
-import { buildVenueBook, matchVenues, isKnownVenue } from '../venueBook';
+import { buildVenueBook, matchVenues, isKnownVenue, learnVenues, sanitizeKnownVenues } from '../venueBook';
 import type { AppState } from '@/types/game';
 
 const game = (over: Partial<AppState>): Partial<AppState> => ({
@@ -173,5 +173,90 @@ describe('isKnownVenue', () => {
 
   it('does not claim one it has never seen', () => {
     expect(isKnownVenue(book, 'Kimpisen kenttä')).toBe(false);
+  });
+});
+
+/**
+ * @critical - the owner deleted a test fixture and the next day the app no
+ * longer knew the ground. The book is stored now, and matches only ever add.
+ */
+describe('learnVenues', () => {
+  const pinned = (name: string, date: string): Partial<AppState> => ({
+    gameLocation: name, gameDate: date, locationLat: 61.8, locationLng: 28.9, locationAddress: 'Kirkkokatu 1',
+  });
+
+  it('keeps a venue whose matches are all gone', () => {
+    const { book } = learnVenues(
+      [{ name: 'Mitta-Keittiöt Areena', latitude: 61.8, longitude: 28.9, address: 'Kirkkokatu 1', timesUsed: 1, lastUsed: '2026-09-19' }],
+      [],
+    );
+
+    expect(book.map((v) => v.name)).toEqual(['Mitta-Keittiöt Areena']);
+  });
+
+  it('learns a venue from a match it had not seen', () => {
+    const { book, changed } = learnVenues([], [pinned('Kimpisen kenttä', '2026-09-20')]);
+
+    expect(changed).toBe(true);
+    expect(book[0]).toMatchObject({ name: 'Kimpisen kenttä', latitude: 61.8, address: 'Kirkkokatu 1' });
+  });
+
+  it('reports no change when the matches teach nothing new', () => {
+    const stored = learnVenues([], [pinned('Kimpisen kenttä', '2026-09-20')]).book;
+
+    expect(learnVenues(stored, [pinned('Kimpisen kenttä', '2026-09-20')]).changed).toBe(false);
+  });
+
+  it('lets a match pin a venue that was only ever typed', () => {
+    const { book } = learnVenues(
+      [{ name: 'Kimpisen kenttä', timesUsed: 3, lastUsed: '2026-05-01' }],
+      [pinned('Kimpisen kenttä', '2026-09-20')],
+    );
+
+    expect(book[0]).toMatchObject({ latitude: 61.8, longitude: 28.9, timesUsed: 3, lastUsed: '2026-09-20' });
+  });
+
+  it('never lets a count or a date go backwards', () => {
+    const { book } = learnVenues(
+      [{ name: 'Kimpisen kenttä', timesUsed: 7, lastUsed: '2026-09-25' }],
+      [{ gameLocation: 'Kimpisen kenttä', gameDate: '2026-01-01' }],
+    );
+
+    expect(book[0]).toMatchObject({ timesUsed: 7, lastUsed: '2026-09-25' });
+  });
+
+  it('treats spellings of one venue as one, and keeps the newest', () => {
+    const { book } = learnVenues(
+      [{ name: 'kimpisen kentta', timesUsed: 1, lastUsed: '2026-01-01' }],
+      [{ gameLocation: 'Kimpisen kenttä', gameDate: '2026-09-20' }],
+    );
+
+    expect(book).toHaveLength(1);
+    expect(book[0].name).toBe('Kimpisen kenttä');
+  });
+});
+
+describe('sanitizeKnownVenues', () => {
+  it('drops entries that are not venues and keeps the rest', () => {
+    expect(sanitizeKnownVenues([
+      { name: 'Kimpisen kenttä', latitude: 61.8, longitude: 28.9, timesUsed: 2, lastUsed: '2026-09-20' },
+      { name: '' },
+      'nonsense',
+      null,
+      { latitude: 1 },
+    ])).toEqual([
+      { name: 'Kimpisen kenttä', latitude: 61.8, longitude: 28.9, address: undefined, timesUsed: 2, lastUsed: '2026-09-20' },
+    ]);
+  });
+
+  /** Half a pin is no pin: a latitude without a longitude cannot be driven to. */
+  it('keeps a pin only when both coordinates are numbers', () => {
+    expect(sanitizeKnownVenues([{ name: 'X', latitude: 61.8, longitude: 'no' }])?.[0]).toMatchObject({
+      latitude: undefined, longitude: undefined,
+    });
+  });
+
+  it('answers undefined for a column that was never written', () => {
+    expect(sanitizeKnownVenues(null)).toBeUndefined();
   });
 });
