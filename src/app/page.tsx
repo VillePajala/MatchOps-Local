@@ -32,6 +32,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
+import { asCoordinates } from '@/utils/travelPlan';
 import { todayIso } from '@/utils/todayIso';
 import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId, buildHomeTeamScopeOptions } from '@/utils/homeTeamScope';
 import type { HomeTeamScopeOption } from '@/utils/homeTeamScope';
@@ -442,7 +443,7 @@ export default function Home() {
           // The departure time on the next-match card needs both: without a
           // starting point there is nothing to measure from, and the buffer is
           // a real club quantity rather than a number to hardcode.
-          startingPoint: homeSettings.startingPoint,
+          startingPoint: asCoordinates(homeSettings.startingPoint),
           arrivalBufferMinutes: homeSettings.arrivalBufferMinutes,
         }];
         homeSummaryInputsRef.current = firstArgs;
@@ -482,7 +483,7 @@ export default function Home() {
               clubSeasonEndDate: homeSettings.clubSeasonEndDate,
               hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
               currentGameId: resolvedCurrentId,
-              startingPoint: homeSettings.startingPoint,
+              startingPoint: asCoordinates(homeSettings.startingPoint),
               arrivalBufferMinutes: homeSettings.arrivalBufferMinutes,
               roster,
               teamsCount: teamsList.length,

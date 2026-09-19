@@ -574,11 +574,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
    * departure time measures a distance - a name alone is a place a map has to
    * guess at, and a guessed start makes every departure time fiction.
    */
-  const handleStartingPointChange = useCallback(async (venue: { name: string; latitude?: number; longitude?: number }) => {
-    const next =
-      typeof venue.latitude === 'number' && typeof venue.longitude === 'number'
-        ? { name: venue.name, latitude: venue.latitude, longitude: venue.longitude }
-        : undefined;
+  const handleStartingPointChange = useCallback(async (venue: {
+    name: string; latitude?: number; longitude?: number; address?: string;
+  }) => {
+    // THE WHOLE VENUE IS KEPT, coordinates or not. Storing only pinned points
+    // meant a half-typed name had nowhere to live, so the field reverted on
+    // every keystroke and could not be typed in at all. Whether it can be
+    // measured FROM is a separate question, asked where the measuring happens.
+    // Kept while ANY of the three has content. Requiring a name discarded an
+    // address typed on its own, which is a perfectly normal order to fill two
+    // fields in - and discarding it meant that field could not be typed in
+    // either. Only an entirely empty venue means "no starting point".
+    const hasAnything =
+      Boolean(venue.name.trim()) || Boolean(venue.address?.trim()) || venue.latitude !== undefined;
+    const next = hasAnything
+      ? { name: venue.name, address: venue.address, latitude: venue.latitude, longitude: venue.longitude }
+      : undefined;
     setStartingPoint(next);
     try {
       await updateAppSettings({ startingPoint: next }, userId);
@@ -814,6 +825,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 value={startingPoint?.name ?? ''}
                 latitude={startingPoint?.latitude}
                 longitude={startingPoint?.longitude}
+                address={startingPoint?.address}
                 hasCoordinates={startingPoint?.latitude !== undefined}
                 onChange={handleStartingPointChange}
                 className={inputStyle}
