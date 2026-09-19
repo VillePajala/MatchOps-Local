@@ -1368,7 +1368,6 @@
     "departAt": "Leave {{time}}",
     "arriveBefore": "At the ground before kick-off",
     "actualDrive": "How long the drive really takes",
-    "dashNothingBooked": "Nothing booked yet.",
     "dashNoMatchesYet": "No matches yet."
   },
   "workspace": {

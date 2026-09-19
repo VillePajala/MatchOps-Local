@@ -128,3 +128,43 @@ describe('the town on the card', () => {
     expect(next(pinned('Muurarinkatu 4'))!.venueTown).toBeUndefined();
   });
 });
+
+/**
+ * @critical - the top card's last resort before an empty state. Kept separate
+ * from `resume` because the recent-strip accent is keyed to `resume`, and
+ * blurring the two would point the accent at a match the coach never opened.
+ */
+describe('the latest match played', () => {
+  const played = (id: string, date: string, opponent: string) => ({
+    [id]: game({ gameDate: date, isPlayed: true, opponentName: opponent, homeOrAway: 'home', homeScore: 3, awayScore: 1 }),
+  });
+
+  const summary = (games: Record<string, Partial<AppState>>, o = {}) =>
+    buildHomeSummary(games as never, opts(o) as never);
+
+  it('is the most recent one, not the most recently created', () => {
+    const s = summary({ ...played('a', '2026-08-01', 'Vanha'), ...played('b', '2026-09-10', 'Uusi') });
+
+    expect(s.lastPlayed?.id).toBe('b');
+    expect(s.lastPlayed?.opponent).toBe('Uusi');
+  });
+
+  it('reads the score from the coach s side', () => {
+    const s = summary(played('a', '2026-09-10', 'HJK'));
+
+    expect(s.lastPlayed?.ourScore).toBe(3);
+    expect(s.lastPlayed?.theirScore).toBe(1);
+  });
+
+  it('is nothing when no match has been played', () => {
+    expect(summary({ next: game({ gameTime: '17:30' }) }).lastPlayed).toBeNull();
+  });
+
+  /** The accent must keep pointing at the match actually open, or nothing. */
+  it('does not become the resume card', () => {
+    const s = summary(played('a', '2026-09-10', 'HJK'));
+
+    expect(s.resume).toBeNull();
+    expect(s.lastPlayed).not.toBeNull();
+  });
+});

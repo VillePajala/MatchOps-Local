@@ -63,25 +63,19 @@ const fmtElapsed = (s: number): string => `${Math.floor(s / 60)}:${String(Math.a
  * you last opened was that same one, and the card simply vanished, leaving
  * Home opening on a gap where its most prominent element had been.
  *
- * An empty state rather than a demoted recent result: the strip below already
- * lists those, and repeating one up here is the duplication the accent rule
- * exists to avoid. So it says what is true and offers the only useful move.
+ * ONLY WHEN THERE IS GENUINELY NOTHING. A fixture, the match you have open,
+ * or failing both the latest one played will all take this slot first - so
+ * reaching this card means the coach has no matches at all, and the only
+ * useful thing to offer is the first one.
  */
-function NoMatchCard({ hasPlayed, onNewGame, t }: {
-  /** Whether any match exists at all - a first run reads differently. */
-  hasPlayed: boolean;
-  onNewGame?: () => void;
-  t: TFunction;
-}) {
+function NoMatchCard({ onNewGame, t }: { onNewGame?: () => void; t: TFunction }) {
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-800/70 px-3.5 py-3.5 text-white shadow-md">
       <div className="mb-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
         {t('startScreen.dashNextMatch', 'Next match')}
       </div>
       <p className="text-sm text-slate-300">
-        {hasPlayed
-          ? t('startScreen.dashNothingBooked', 'Nothing booked yet.')
-          : t('startScreen.dashNoMatchesYet', 'No matches yet.')}
+        {t('startScreen.dashNoMatchesYet', 'No matches yet.')}
       </p>
       <button
         type="button"
@@ -465,7 +459,13 @@ export function HomeDashboard({
         ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} t={t} />
         : summary.resume
           ? <ResumeCard resume={summary.resume} onResume={onResume} t={t} />
-          : <NoMatchCard hasPlayed={summary.recent.length > 0} onNewGame={onNewGame} t={t} />}
+          // Nothing booked and nothing open: the latest match played, with the
+          // same Jatka action. A card that opens a real match beats a prompt
+          // that opens nothing - and after deleting the fixture you had open,
+          // the match before it is what a coach reaches for next.
+          : summary.lastPlayed
+            ? <ResumeCard resume={summary.lastPlayed} onResume={() => onOpenGame?.(summary.lastPlayed!.id)} t={t} />
+            : <NoMatchCard onNewGame={onNewGame} t={t} />}
       {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
       {(summary.recent.length > 0 || summary.upcomingList.length > 0) && (
         /* Label and strip are one block: the heading's margin is spacing

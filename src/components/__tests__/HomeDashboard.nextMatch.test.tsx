@@ -26,7 +26,8 @@ const base = (over: Partial<HomeSummary> = {}): HomeSummary => ({
   vuosi: null,
   recent: [],
   upcoming: null,
-  upcomingList: [],
+  lastPlayed: null,
+    upcomingList: [],
   counts: { players: 0, teams: 0, personnel: 0, seasons: 0, tournaments: 0 },
   countsReady: true,
   topScorer: null,
@@ -149,7 +150,8 @@ describe('the strip', () => {
     rerender(<HomeDashboard summary={base({
       recent: [recent('a', 'HJK')],
       upcoming: fixture(),
-      upcomingList: [fixture()],
+      lastPlayed: null,
+    upcomingList: [fixture()],
     })} t={t} />);
     expect(screen.getAllByRole('tab')).toHaveLength(2);
   });
@@ -158,7 +160,8 @@ describe('the strip', () => {
     render(<HomeDashboard summary={base({
       recent: [recent('a', 'HJK')],
       upcoming: fixture(),
-      upcomingList: [fixture()],
+      lastPlayed: null,
+    upcomingList: [fixture()],
     })} t={t} />);
 
     const upcomingTab = screen.getByRole('tab', { name: /Upcoming/ });
@@ -170,7 +173,8 @@ describe('which strip the toggle opens on', () => {
   const twoFixtures = [fixture({ id: 'a' }), fixture({ id: 'b', opponent: 'KuPS' })];
 
   it('opens on the fixtures when any are booked', () => {
-    render(<HomeDashboard summary={base({ upcoming: fixture(), upcomingList: twoFixtures, recent: [recent('r1', 'FC Espoo')] })} t={t} />);
+    render(<HomeDashboard summary={base({ upcoming: fixture(), lastPlayed: null,
+    upcomingList: twoFixtures, recent: [recent('r1', 'FC Espoo')] })} t={t} />);
 
     expect(screen.getByText('KuPS')).toBeInTheDocument();
     expect(screen.queryByText('FC Espoo')).toBeNull();
@@ -189,7 +193,8 @@ describe('which strip the toggle opens on', () => {
 
     rerender(
       <HomeDashboard
-        summary={base({ upcoming: fixture(), upcomingList: twoFixtures, recent: [recent('r1', 'FC Espoo')] })}
+        summary={base({ upcoming: fixture(), lastPlayed: null,
+    upcomingList: twoFixtures, recent: [recent('r1', 'FC Espoo')] })}
         t={t}
       />,
     );
@@ -336,46 +341,66 @@ describe('how the drive reads', () => {
  * only booked fixture while the match you last opened was that same one, and
  * Home's most prominent element simply vanished.
  */
-describe('the top slot is never empty, even with nothing to show', () => {
-  it('offers a way forward when there is no fixture and nothing to resume', () => {
-    render(<HomeDashboard summary={base()} t={t} />);
+describe('the top slot is never empty', () => {
+  const lastPlayed = {
+    id: 'last', opponent: 'FC Espoo', ourScore: 3, theirScore: 1,
+    homeOrAway: 'home' as const, isPlayed: true, mapsUrl: null,
+  };
 
-    expect(screen.getByText(/No matches yet/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /New Game/ })).toBeInTheDocument();
+  /**
+   * @critical - the owner asked for this twice. Deleting the only fixture
+   * when it was also the match you last had open left Home's most prominent
+   * element gone entirely.
+   */
+  it('falls back to the latest match played, with the same action', () => {
+    const onOpenGame = jest.fn();
+    render(<HomeDashboard summary={base({ lastPlayed })} onOpenGame={onOpenGame} t={t} />);
+
+    expect(screen.getByText('FC Espoo')).toBeInTheDocument();
+    expect(screen.getByText(/Continue/)).toBeInTheDocument();
   });
 
-  /** A coach with history reads differently from one on their first run. */
-  it('says nothing is booked when matches have been played', () => {
-    render(<HomeDashboard summary={base({ recent: [recent('r1', 'FC Espoo')] })} t={t} />);
+  it('opens that match when the card is pressed', async () => {
+    const onOpenGame = jest.fn();
+    render(<HomeDashboard summary={base({ lastPlayed })} onOpenGame={onOpenGame} t={t} />);
 
-    expect(screen.getByText(/Nothing booked yet/)).toBeInTheDocument();
-    expect(screen.queryByText(/No matches yet/)).toBeNull();
+    await userEvent.click(screen.getByText('FC Espoo'));
+
+    expect(onOpenGame).toHaveBeenCalledWith('last');
   });
 
-  it('starts a new game from it', async () => {
-    const onNewGame = jest.fn();
-    render(<HomeDashboard summary={base()} onNewGame={onNewGame} t={t} />);
-
-    await userEvent.click(screen.getByRole('button', { name: /New Game/ }));
-
-    expect(onNewGame).toHaveBeenCalled();
-  });
-
-  /** It must never displace a card that does have something to say. */
+  /** A fixture and a match in progress both outrank it. */
   it.each([
-    ['a fixture', { upcoming: fixture() }],
-    ['a match to resume', { resume }],
+    ['a fixture', { upcoming: fixture(), lastPlayed }],
+    ['a match to resume', { resume, lastPlayed }],
   ])('stays out of the way when there is %s', (_case, over) => {
     render(<HomeDashboard summary={base(over)} t={t} />);
 
-    expect(screen.queryByText(/No matches yet|Nothing booked yet/)).toBeNull();
+    expect(screen.queryByText('FC Espoo')).toBeNull();
   });
 
-  /** The strip below already lists recent results; do not repeat one up here. */
-  it('does not promote a recent result into the slot', () => {
-    render(<HomeDashboard summary={base({ recent: [recent('r1', 'FC Espoo')] })} t={t} />);
+  describe('and when there is genuinely nothing', () => {
+    it('offers the first match', () => {
+      render(<HomeDashboard summary={base()} t={t} />);
 
-    const cards = screen.getAllByText('FC Espoo');
-    expect(cards).toHaveLength(1);
+      expect(screen.getByText(/No matches yet/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /New Game/ })).toBeInTheDocument();
+    });
+
+    it('starts one', async () => {
+      const onNewGame = jest.fn();
+      render(<HomeDashboard summary={base()} onNewGame={onNewGame} t={t} />);
+
+      await userEvent.click(screen.getByRole('button', { name: /New Game/ }));
+
+      expect(onNewGame).toHaveBeenCalled();
+    });
+
+    /** Never shown while any real match could take the slot. */
+    it('is not reached once a match exists', () => {
+      render(<HomeDashboard summary={base({ lastPlayed })} t={t} />);
+
+      expect(screen.queryByText(/No matches yet/)).toBeNull();
+    });
   });
 });

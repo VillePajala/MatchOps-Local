@@ -137,6 +137,18 @@ export interface HomeTopScorer {
 export interface HomeSummary {
   /** The resumable game (current game id) as a card - null when none. */
   resume: HomeResumeGame | null;
+  /**
+   * The most recent match played, in the same shape as `resume`, for the top
+   * card to fall back to.
+   *
+   * SEPARATE FROM `resume` on purpose. `resume` means "the match you have
+   * open", and the recent-strip accent is keyed to that - blurring the two
+   * would have the accent point at a match the coach never opened. This is
+   * only ever the card's last resort, when there is no fixture and no current
+   * game: deleting both used to leave the top of Home blank, and a card that
+   * opens your latest match beats a prompt that opens nothing.
+   */
+  lastPlayed: HomeResumeGame | null;
   /** Current club-season record - null when season dates are not configured. */
   vuosi: HomeVuosi | null;
   /** Most recent played games, newest first. */
@@ -382,7 +394,31 @@ export function buildHomeSummary(
   // and no toggle at all, because there is nothing further ahead to show.
   const upcomingList = upcomingAll.slice(1);
 
-  return { resume, vuosi, recent, upcoming, upcomingList, counts, countsReady, topScorer };
+  /**
+   * The latest match played, for the top card when there is nothing else.
+   *
+   * Built from the same scoped, played set the recent strip uses, so it is the
+   * card at the front of that strip - the coach's most recent match, not the
+   * most recently CREATED one, which for a club booking fixtures ahead are
+   * different games entirely.
+   */
+  const lastPlayedId = recent[0]?.id;
+  const lastPlayedGame = lastPlayedId ? all[lastPlayedId] : undefined;
+  const lastPlayed: HomeResumeGame | null = lastPlayedGame
+    ? {
+        id: lastPlayedId as string,
+        opponent: lastPlayedGame.opponentName || '',
+        ourScore: lastPlayedGame.homeOrAway === 'home' ? lastPlayedGame.homeScore : lastPlayedGame.awayScore,
+        theirScore: lastPlayedGame.homeOrAway === 'home' ? lastPlayedGame.awayScore : lastPlayedGame.homeScore,
+        homeOrAway: lastPlayedGame.homeOrAway,
+        isPlayed: lastPlayedGame.isPlayed !== false,
+        mapsUrl: mapsDirectionsUrl(lastPlayedGame.locationLat, lastPlayedGame.locationLng),
+        currentPeriod: lastPlayedGame.currentPeriod,
+        timeElapsedSeconds: lastPlayedGame.timeElapsedInSeconds,
+      }
+    : null;
+
+  return { resume, lastPlayed, vuosi, recent, upcoming, upcomingList, counts, countsReady, topScorer };
 }
 
 /**
