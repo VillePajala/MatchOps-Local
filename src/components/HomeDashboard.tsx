@@ -64,6 +64,40 @@ const formatWeekdayDate = (iso: string, locale: string): string => {
 const fmtElapsed = (s: number): string => `${Math.floor(s / 60)}:${String(Math.abs(s % 60)).padStart(2, '0')}`;
 
 /**
+ * The top slot when there is neither a fixture nor a match to resume.
+ *
+ * THE SLOT IS NEVER EMPTY, which the owner asked for twice. The rule used to
+ * be "a fixture, or failing that the last match you had open" - and both of
+ * those can be gone at once: delete the only booked fixture while the match
+ * you last opened was that same one, and the card simply vanished, leaving
+ * Home opening on a gap where its most prominent element had been.
+ *
+ * ONLY WHEN THERE IS GENUINELY NOTHING. A fixture, the match you have open,
+ * or failing both the latest one played will all take this slot first - so
+ * reaching this card means the coach has no matches at all, and the only
+ * useful thing to offer is the first one.
+ */
+function NoMatchCard({ onNewGame, t }: { onNewGame?: () => void; t: TFunction }) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-800/70 px-3.5 py-3.5 text-white shadow-md">
+      <div className="mb-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+        {t('startScreen.dashNextMatch', 'Next match')}
+      </div>
+      <p className="text-sm text-slate-300">
+        {t('startScreen.dashNoMatchesYet', 'No matches yet.')}
+      </p>
+      <button
+        type="button"
+        onClick={onNewGame}
+        className="mt-2.5 w-full rounded-lg bg-indigo-600 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-indigo-500"
+      >
+        {t('startScreen.newGame', 'New Game')}
+      </button>
+    </div>
+  );
+}
+
+/**
  * ONE SKELETON FOR EVERY TOP CARD (owner, 2026-09-19). The fixture card and the
  * Jatka card take the same slot and mean the same thing - the match this screen
  * is about - and they had grown different shapes: one had an eyebrow and the
