@@ -1225,7 +1225,8 @@
     "dashUpcoming": "Tulevat",
     "departAt": "Lähde {{time}}",
     "arriveBefore": "Paikalla ennen alkamisaikaa",
-    "actualDrive": "Paljonko ajomatka oikeasti kestää"
+    "actualDrive": "Paljonko ajomatka oikeasti kestää",
+    "dashNoMatchesYet": "Ei vielä otteluita."
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",

@@ -53,6 +53,15 @@ export interface HomeRecentGame {
   result: GameResult;
   date: string;
   isFriendly: boolean;
+  /**
+   * The town, and only the town.
+   *
+   * These cards are 108px wide and the opponent already truncates in them, so
+   * a venue NAME here would be three characters and an ellipsis. A town is
+   * short by nature and answers the question the card actually raises at a
+   * glance - was that the away one - which the full name does not do better.
+   */
+  venueTown?: string;
 }
 
 /**
@@ -109,6 +118,18 @@ export interface HomeResumeGame {
   /** false while a match is still in progress (drives a "kesken" hint). */
   isPlayed: boolean;
   /**
+   * When and where, the same facts the next-match card carries.
+   *
+   * The Jatka card sits in the same slot and showed only an opponent and a
+   * score, so the two read as different kinds of thing when they are both
+   * just "the match this screen is about".
+   */
+  date?: string;
+  time?: string;
+  venue?: string;
+  venueTown?: string;
+  fieldNumber?: string;
+  /**
    * Turn-by-turn directions to the venue, when the match is PINNED to one.
    *
    * Null for a location that was only typed. A car button that opens a search
@@ -137,6 +158,18 @@ export interface HomeTopScorer {
 export interface HomeSummary {
   /** The resumable game (current game id) as a card - null when none. */
   resume: HomeResumeGame | null;
+  /**
+   * The most recent match played, in the same shape as `resume`, for the top
+   * card to fall back to.
+   *
+   * SEPARATE FROM `resume` on purpose. `resume` means "the match you have
+   * open", and the recent-strip accent is keyed to that - blurring the two
+   * would have the accent point at a match the coach never opened. This is
+   * only ever the card's last resort, when there is no fixture and no current
+   * game: deleting both used to leave the top of Home blank, and a card that
+   * opens your latest match beats a prompt that opens nothing.
+   */
+  lastPlayed: HomeResumeGame | null;
   /** Current club-season record - null when season dates are not configured. */
   vuosi: HomeVuosi | null;
   /** Most recent played games, newest first. */
@@ -228,6 +261,11 @@ export function buildHomeSummary(
       theirScore: c.homeOrAway === 'home' ? c.awayScore : c.homeScore,
       homeOrAway: c.homeOrAway,
       isPlayed: c.isPlayed !== false,
+      date: c.gameDate || undefined,
+      time: c.gameTime || undefined,
+      venue: c.gameLocation || undefined,
+      venueTown: townFromAddress(c.locationAddress, c.gameLocation),
+      fieldNumber: c.fieldNumber || undefined,
       mapsUrl: mapsDirectionsUrl(c.locationLat, c.locationLng),
       currentPeriod: c.currentPeriod,
       timeElapsedSeconds: c.timeElapsedInSeconds,
@@ -299,6 +337,7 @@ export function buildHomeSummary(
         theirScore,
         result: resolveGameResult(g),
         date: g.gameDate || '',
+        venueTown: townFromAddress(g.locationAddress, g.gameLocation),
         isFriendly: g.isFriendly === true,
       };
     });
@@ -382,7 +421,40 @@ export function buildHomeSummary(
   // and no toggle at all, because there is nothing further ahead to show.
   const upcomingList = upcomingAll.slice(1);
 
-  return { resume, vuosi, recent, upcoming, upcomingList, counts, countsReady, topScorer };
+  /**
+   * The latest match played, for the top card when there is nothing else.
+   *
+   * Built from the same scoped, played set the recent strip uses, so it is the
+   * card at the front of that strip - the coach's most recent match, not the
+   * most recently CREATED one, which for a club booking fixtures ahead are
+   * different games entirely.
+   */
+  const lastPlayedId = recent[0]?.id;
+  const lastPlayedGame = lastPlayedId ? all[lastPlayedId] : undefined;
+  const lastPlayed: HomeResumeGame | null = lastPlayedGame
+    ? {
+        id: lastPlayedId as string,
+        opponent: lastPlayedGame.opponentName || '',
+        ourScore: lastPlayedGame.homeOrAway === 'home' ? lastPlayedGame.homeScore : lastPlayedGame.awayScore,
+        theirScore: lastPlayedGame.homeOrAway === 'home' ? lastPlayedGame.awayScore : lastPlayedGame.homeScore,
+        homeOrAway: lastPlayedGame.homeOrAway,
+        isPlayed: lastPlayedGame.isPlayed !== false,
+        date: lastPlayedGame.gameDate || undefined,
+        time: lastPlayedGame.gameTime || undefined,
+        venue: lastPlayedGame.gameLocation || undefined,
+        venueTown: townFromAddress(lastPlayedGame.locationAddress, lastPlayedGame.gameLocation),
+        fieldNumber: lastPlayedGame.fieldNumber || undefined,
+        // NO DIRECTIONS. The resume card offers them because the match is
+        // still ahead of you; this one has already been played, and a button
+        // routing a coach to a ground they came home from hours ago is noise
+        // sitting where a useful control goes.
+        mapsUrl: null,
+        currentPeriod: lastPlayedGame.currentPeriod,
+        timeElapsedSeconds: lastPlayedGame.timeElapsedInSeconds,
+      }
+    : null;
+
+  return { resume, lastPlayed, vuosi, recent, upcoming, upcomingList, counts, countsReady, topScorer };
 }
 
 /**
