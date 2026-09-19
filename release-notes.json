@@ -4,6 +4,15 @@
     {
       "date": "2026-09-19",
       "en": [
+        "When adding external stats, the team list now says which competition each team belongs to. Teams are tied to a season or tournament, so the same squad appeared several times with nothing to tell the entries apart. The section itself also got some breathing room."
+      ],
+      "fi": [
+        "Ulkoisia tilastoja lisätessä joukkuelista kertoo nyt mihin kilpailuun kukin joukkue kuuluu. Joukkueet on sidottu kauteen tai turnaukseen, joten sama joukkue näkyi listalla useaan kertaan eikä niitä voinut erottaa toisistaan. Myös osion tekstit saivat lisää tilaa ympärilleen."
+      ]
+    },
+    {
+      "date": "2026-09-19",
+      "en": [
         "The privacy policy on match-ops.com now names Photon, the map search behind the location field, matching what the app already said."
       ],
       "fi": [
