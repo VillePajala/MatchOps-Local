@@ -435,18 +435,23 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1 [@media(min-height:600px)]:pt-[4vh]' : 'pt-3 [@media(min-height:600px)]:pt-[5vh]'}`}>
+        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1 [@media(min-height:600px)]:pt-[1.5vh]' : 'pt-3 [@media(min-height:600px)]:pt-[5vh]'}`}>
           <div className={`text-center ${dashboardOn ? 'mb-1' : 'mb-4'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
                 full-size on first-run / empty state). */}
-            <div className={`relative inline-block ${dashboardOn ? 'mb-3 [@media(min-height:700px)]:mb-4' : 'mb-1.5'}`}>
+            <div className={`relative inline-block ${dashboardOn ? 'mb-2 [@media(min-height:700px)]:mb-2.5' : 'mb-1.5'}`}>
+              {/* Owner, 2026-09-20: the hero sat ~75px below the header and the
+                  Taso row fell off the screen. Top padding 4vh -> 1.5vh, the
+                  wordmark a step smaller on tall screens, its margin trimmed:
+                  about 50px reclaimed without changing the layout. The bigger
+                  rework (compact header bar) is mocked and waiting. */}
               {/* Fluid logo: clamp(min, vw, max) scales the wordmark with the
                   screen width (bigger phones -> bigger logo) instead of a fixed
                   px size, bounded so it never gets silly on very small/large
                   screens. Dashboard mode is a touch larger now that the tighter
                   cards freed room. */}
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.4rem,11.5vw,3.3rem)] [@media(min-height:700px)]:text-[clamp(3rem,13vw,4.4rem)]' : 'text-[clamp(2rem,9.5vw,2.9rem)] [@media(min-height:700px)]:text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.4rem,11.5vw,3.3rem)] [@media(min-height:700px)]:text-[clamp(2.8rem,12vw,3.9rem)]' : 'text-[clamp(2rem,9.5vw,2.9rem)] [@media(min-height:700px)]:text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
