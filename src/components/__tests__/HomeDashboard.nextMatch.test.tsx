@@ -591,6 +591,10 @@ describe('the top card composition', () => {
  */
 describe('the travel row', () => {
   const pinned = (over = {}) => fixture({ mapsUrl: 'https://maps.example/x', ...over });
+  const travel = (over = {}) => ({
+    departure: '15:45', arriveBy: '16:45', travelMinutes: 60,
+    isEstimate: false, distanceKm: 87, departsPreviousDay: false, ...over,
+  });
 
   it('puts directions at the end of the row, beside the departure time', () => {
     render(<HomeDashboard summary={base({ upcoming: pinned({ travel: travel() }) })} t={t} />);
