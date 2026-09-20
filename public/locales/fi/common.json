@@ -1223,7 +1223,6 @@
     "dashInDays": "{{count}} pv",
     "dashUpcoming": "Tulevat",
     "departAt": "Lähtö {{time}}",
-    "directions": "Reitti",
     "setStartingPoint": "Aseta lähtöpaikka",
     "setStartingPointWhy": "niin näet lähtöajan",
     "arriveBefore": "Paikalla ennen alkamisaikaa",
