@@ -2762,7 +2762,6 @@ export type TranslationKey =
   | 'startScreen.dashUpcoming'
   | 'startScreen.departAt'
   | 'startScreen.description'
-  | 'startScreen.directions'
   | 'startScreen.driveToVenue'
   | 'startScreen.emptyCompetitions'
   | 'startScreen.emptyStats'

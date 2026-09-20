@@ -130,7 +130,7 @@ function CardMain({ who, number }: { who: string; number?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span className="min-w-0 break-words text-base font-extrabold leading-tight">{who}</span>
-      {number && <span className="shrink-0 text-2xl font-black tabular-nums leading-none">{number}</span>}
+      {number && <span className="shrink-0 text-[40px] font-black tabular-nums leading-none tracking-tight">{number}</span>}
     </div>
   );
 }
@@ -169,20 +169,21 @@ function CardWhere({ venue, town, pitch, trailing }: {
 }
 
 /**
- * Turn-by-turn directions, as a labelled pill at the end of the travel row.
+ * Turn-by-turn directions: the last cell of the travel row, behind a hairline.
  *
  * IN THE ROW, NOT THE BODY (owner, 2026-09-20). It used to be a boxed button
  * floating under the kick-off - the one element on the card that belonged to
- * no row, so the eye had nowhere to file it. Directions are a travel action
- * and the card has a travel row; the body is for reading and the row is for
- * doing. A SIBLING of the card button, never a child: a link inside a button
- * is invalid HTML that browsers resolve unpredictably.
+ * no row. Then a labelled pill in the row; the owner asked for less: a
+ * vertical divider and the car alone. The divider is the same hairline as the
+ * row's top edge, so the cell reads as part of the card's grid and the whole
+ * right end of the row is one tap target. A SIBLING of the card button, never
+ * a child: a link inside a button is invalid HTML.
  *
  * Only ever rendered for a PINNED venue - see mapsDirectionsUrl - and never on
  * a match already played: directions to a ground you came home from is a
  * button with no job.
  */
-function DirectionsPill({ href, t }: { href: string; t: TFunction }) {
+function DirectionsCell({ href, t }: { href: string; t: TFunction }) {
   return (
     <a
       href={href}
@@ -190,10 +191,9 @@ function DirectionsPill({ href, t }: { href: string; t: TFunction }) {
       rel="noopener noreferrer"
       aria-label={t('startScreen.driveToVenue', 'Directions to the venue')}
       title={t('startScreen.driveToVenue', 'Directions to the venue')}
-      className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-indigo-400/40 bg-indigo-950/60 pl-2.5 pr-3 text-xs font-bold text-white transition-colors hover:bg-indigo-800/60"
+      className="ml-auto flex w-[52px] shrink-0 items-center justify-center self-stretch border-l border-indigo-500/40 text-white transition-colors hover:bg-indigo-900/60"
     >
-      <MdDirectionsCar className="h-4 w-4" aria-hidden="true" />
-      {t('startScreen.directions', 'Directions')}
+      <MdDirectionsCar className="h-5 w-5" aria-hidden="true" />
     </a>
   );
 }
@@ -248,8 +248,8 @@ function ResumeCard({ resume, onResume, locale, t }: {
         </button>
       </div>
       {!resume.isPlayed && resume.mapsUrl && (
-        <div className={`${CARD_ACTION_ROW} flex items-center px-3.5 py-1.5`}>
-          <DirectionsPill href={resume.mapsUrl} t={t} />
+        <div className={`${CARD_ACTION_ROW} flex min-h-[42px] items-stretch`}>
+          <DirectionsCell href={resume.mapsUrl} t={t} />
         </div>
       )}
     </div>
@@ -322,13 +322,13 @@ function NextMatchCard({
           side becomes the offer to set a starting point, made where the coach
           is already looking rather than in a settings screen nobody finds. */}
       {(game.travel || game.mapsUrl) && (
-        <div className={`${CARD_ACTION_ROW} flex items-center gap-2 pr-3.5`}>
+        <div className={`${CARD_ACTION_ROW} flex min-h-[42px] items-stretch`}>
           {game.travel ? (
             <button
               type="button"
               onClick={() => setAdjusting((v) => !v)}
               aria-expanded={adjusting}
-              className="flex min-w-0 flex-1 items-baseline gap-1.5 py-2 pl-3.5 pr-1 text-left text-[11.5px] transition-colors hover:bg-indigo-900/40"
+              className="flex min-w-0 flex-1 items-baseline gap-1.5 py-2 pl-3.5 pr-2.5 text-left text-[11.5px] transition-colors hover:bg-indigo-900/40"
             >
               <span className="font-semibold text-amber-200">
                 {t('startScreen.departAt', 'Leave {{time}}', { time: game.travel.departure })}
@@ -346,7 +346,7 @@ function NextMatchCard({
             <button
               type="button"
               onClick={onSetStartingPoint}
-              className="flex min-w-0 flex-1 items-center py-2 pl-3.5 pr-1 text-left text-[11.5px] font-semibold text-indigo-200 transition-colors hover:bg-indigo-900/40"
+              className="flex min-w-0 flex-1 items-center py-2 pl-3.5 pr-2.5 text-left text-[11.5px] font-semibold text-indigo-200 transition-colors hover:bg-indigo-900/40"
             >
               <span className="border-b border-amber-200/70 text-amber-200">
                 {t('startScreen.setStartingPoint', 'Set a starting point')}
@@ -354,7 +354,7 @@ function NextMatchCard({
               <span className="ml-1">{t('startScreen.setStartingPointWhy', 'to see when to leave')}</span>
             </button>
           )}
-          {game.mapsUrl && <DirectionsPill href={game.mapsUrl} t={t} />}
+          {game.mapsUrl && <DirectionsCell href={game.mapsUrl} t={t} />}
         </div>
       )}
     </div>

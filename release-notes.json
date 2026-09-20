@@ -4,6 +4,15 @@
     {
       "date": "2026-09-20",
       "en": [
+        "Next-match card: the kick-off is bigger, and the directions button is a plain car icon behind a divider at the end of the travel row."
+      ],
+      "fi": [
+        "Seuraava ottelu -kortti: alkamisaika on isompi, ja reittinappi on pelkkä auto-kuvake matkarivin päässä jakoviivan takana."
+      ]
+    },
+    {
+      "date": "2026-09-20",
+      "en": [
         "On the next-match card the directions button now sits in the travel row as a labelled Directions pill, and a pinned venue without a departure time offers to set your starting point right there."
       ],
       "fi": [
