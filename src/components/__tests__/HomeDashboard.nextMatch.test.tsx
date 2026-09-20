@@ -597,11 +597,11 @@ describe('the travel row', () => {
   });
 
   it('puts directions at the end of the row, beside the departure time', () => {
+    // Icon only, behind a divider - the owner asked for less than a labelled pill.
     render(<HomeDashboard summary={base({ upcoming: pinned({ travel: travel() }) })} t={t} />);
 
     const link = screen.getByRole('link', { name: /Directions to the venue/i });
     expect(link).toHaveAttribute('href', 'https://maps.example/x');
-    expect(link).toHaveTextContent('Directions');
     expect(screen.getByText(/Leave /)).toBeInTheDocument();
   });
 
