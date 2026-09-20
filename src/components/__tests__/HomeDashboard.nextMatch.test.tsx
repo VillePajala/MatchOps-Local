@@ -584,3 +584,49 @@ describe('the top card composition', () => {
     expect(screen.queryByText(/^Played$/)).toBeNull();
   });
 });
+
+/**
+ * The travel row (owner, 2026-09-20): departure on the left, directions on the
+ * right - the car used to float in the body, belonging to no row.
+ */
+describe('the travel row', () => {
+  const pinned = (over = {}) => fixture({ mapsUrl: 'https://maps.example/x', ...over });
+  const travel = (over = {}) => ({
+    departure: '15:45', arriveBy: '16:45', travelMinutes: 60,
+    isEstimate: false, distanceKm: 87, departsPreviousDay: false, ...over,
+  });
+
+  it('puts directions at the end of the row, beside the departure time', () => {
+    render(<HomeDashboard summary={base({ upcoming: pinned({ travel: travel() }) })} t={t} />);
+
+    const link = screen.getByRole('link', { name: /Directions to the venue/i });
+    expect(link).toHaveAttribute('href', 'https://maps.example/x');
+    expect(link).toHaveTextContent('Directions');
+    expect(screen.getByText(/Leave /)).toBeInTheDocument();
+  });
+
+  /** A setting nobody finds is a feature nobody has: offer it where the coach is looking. */
+  it('offers to set the starting point when the venue is pinned but nothing says when to leave', async () => {
+    const onSetStartingPoint = jest.fn();
+    render(<HomeDashboard summary={base({ upcoming: pinned({ travel: null }) })} onSetStartingPoint={onSetStartingPoint} t={t} />);
+
+    await userEvent.click(screen.getByText('Set a starting point'));
+
+    expect(onSetStartingPoint).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('link', { name: /Directions to the venue/i })).toBeInTheDocument();
+  });
+
+  it('has no row at all for a venue that was only typed', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture({ mapsUrl: null, travel: null }) })} t={t} />);
+
+    expect(screen.queryByRole('link', { name: /Directions/i })).toBeNull();
+    expect(screen.queryByText('Set a starting point')).toBeNull();
+  });
+
+  it('keeps the car out of the card body', () => {
+    render(<HomeDashboard summary={base({ upcoming: pinned({ travel: travel() }) })} t={t} />);
+
+    const body = screen.getByRole('button', { name: /Purppura/ });
+    expect(body.querySelector('a')).toBeNull();
+  });
+});
