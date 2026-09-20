@@ -420,8 +420,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
               <span className="text-amber-400">MatchOps</span>
             </h1>
           ) : (
-          {/* Upper-right: language switcher (alone now). */}
-          <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
+            /* Launcher only: the language switcher. */
+            <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
               onClick={() => handleChangeLanguage('en')}
               className={`px-3 py-1.5 text-xs font-bold transition-all ${
