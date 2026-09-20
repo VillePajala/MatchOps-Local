@@ -31,6 +31,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
+import { learnVenues } from '@/utils/venueBook';
 import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
 import { healVenueAddresses, persistHealedAddresses } from '@/utils/healVenueAddresses';
 import type { SavedGamesCollection, AppState } from '@/types/game';
@@ -532,6 +533,16 @@ export default function Home() {
         getAllPersonnel(userId),
       ]);
       setHasPlayers(roster.length > 0);
+      // The venue book learns here, and only here: every match that exists
+      // adds or refreshes an entry, and a deleted match takes nothing away.
+      // Written only when something moved, then the settings query is
+      // invalidated so the venue fields see the new entry without a reload.
+      const settings = await getAppSettings(userId);
+      const learned = learnVenues(settings.knownVenues, Object.values(games || {}));
+      if (learned.changed) {
+        await updateAppSettings({ knownVenues: learned.book }, userId);
+        await queryClient.invalidateQueries({ queryKey: [...queryKeys.settings.detail(), userId] });
+      }
       setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
       setHasTeam(teamsList.length > 0);
       setHasTeamLinkedGame(
@@ -557,7 +568,7 @@ export default function Home() {
     } catch (err) {
       logger.warn('Failed to refresh setup signals', { error: err });
     }
-  }, [userId, applyTeamScope]);
+  }, [userId, applyTeamScope, queryClient]);
 
   // 3.1: hardware back mirrors "Koti" - with the match on screen and no
   // modal open, back returns to Home instead of leaving the app. Registered

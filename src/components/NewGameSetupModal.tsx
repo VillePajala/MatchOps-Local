@@ -10,7 +10,7 @@ import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/t
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import { getPlans } from '@/utils/playtimePlanner/storage';
-import { buildVenueBook } from '@/utils/venueBook';
+import { buildVenueBook, type KnownVenue } from '@/utils/venueBook';
 import { todayIso } from '@/utils/todayIso';
 import { defaultIsPlayed } from '@/utils/matchPlayedDefault';
 import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
@@ -129,6 +129,12 @@ interface NewGameSetupModalProps {
   personnel: Personnel[];
   /** All saved games, used to offer a "Repeat last game" quick-fill. */
   savedGames?: SavedGamesCollection;
+  /**
+   * The venue book from settings (every venue ever used, kept when matches
+   * are deleted). Optional so the modal still completes from its own games
+   * when rendered without it.
+   */
+  knownVenues?: KnownVenue[];
 }
 
 /**
@@ -164,6 +170,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   teams,
   personnel,
   savedGames,
+  knownVenues: storedVenues,
 }) => {
   const { t } = useTranslation();
   const headerCollapse = useCollapsingHeader();
@@ -350,8 +357,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
    * pass over a list the modal has anyway.
    */
   const knownVenues = useMemo(
-    () => buildVenueBook(savedGames ? Object.values(savedGames) : []),
-    [savedGames],
+    () => storedVenues ?? buildVenueBook(savedGames ? Object.values(savedGames) : []),
+    [storedVenues, savedGames],
   );
 
   const handleRepeatLastGame = useCallback(() => {
