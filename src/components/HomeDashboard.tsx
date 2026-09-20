@@ -446,7 +446,7 @@ function UpcomingRow({ game, onOpen, t }: { game: HomeUpcomingGame; onOpen?: (id
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-slate-700/40"
+      className="flex w-full items-center gap-3 px-3.5 py-2 text-left transition-colors hover:bg-slate-700/40"
     >
       <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-white">
         {game.opponent || t('startScreen.dashResumeGame', 'Game')}
@@ -504,7 +504,7 @@ function RecentRow({ game, onOpen, accented }: { game: HomeRecentGame; onOpen?: 
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className={`flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors ${
+      className={`flex w-full items-center gap-3 px-3.5 py-2 text-left transition-colors ${
         accented ? 'bg-amber-900/25 hover:bg-amber-900/35' : 'hover:bg-slate-700/40'
       }`}
     >
