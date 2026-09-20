@@ -431,64 +431,62 @@ function NextMatchCard({
 
 
 
-/** One fixture in the Tulevat strip: when it is, not how it went. */
-function UpcomingCard({ game, onOpen, t }: { game: HomeUpcomingGame; onOpen?: (id: string) => void; t: TFunction }) {
+/**
+ * ROWS, NOT CARDS (owner, 2026-09-20). The 108px cards were built for a score
+ * and a date, then carried a town in 9.5px, then grew with the screen and
+ * showed their emptiness. A result is a line: opponent, score, when and
+ * where, read left to right - three of them use width instead of height and
+ * scan faster than a strip that had to be scrolled to see the fourth.
+ */
+const STRIP_ROWS = 3;
+
+/** One fixture: when it is, not how it went. */
+function UpcomingRow({ game, onOpen, t }: { game: HomeUpcomingGame; onOpen?: (id: string) => void; t: TFunction }) {
   return (
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className="flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl border transition-all bg-gradient-to-r from-indigo-900/45 to-slate-800/80 border-indigo-800/35 hover:from-indigo-800/50 hover:to-slate-800"
+      className="flex w-full items-center gap-3 px-3.5 py-2 text-left transition-colors hover:bg-slate-700/40"
     >
-      <span className="block text-[11px] font-semibold text-white truncate">
+      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-white">
         {game.opponent || t('startScreen.dashResumeGame', 'Game')}
       </span>
-      <span className="block text-xs font-bold text-indigo-200">{game.time || '–'}</span>
-      <span className="block text-[9.5px] text-slate-500">{game.date.slice(5).replace('-', '.')}.</span>
-      {game.venueTown && (
-        <span className="block truncate text-[9.5px] text-slate-500">{game.venueTown}</span>
-      )}
+      <span className="shrink-0 text-[13px] font-bold tabular-nums text-indigo-200">{game.time || '–'}</span>
+      <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-slate-400">
+        {formatDayMonth(game.date)}
+        {game.venueTown && (<><span className="text-slate-600" aria-hidden="true"> · </span><span className="text-slate-500">{game.venueTown}</span></>)}
+      </span>
     </button>
   );
 }
 
-function VuosiBar({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi']>; onOpen?: () => void; t: TFunction }) {
+/**
+ * The season's record, as the strip header's right-hand side.
+ *
+ * FOLDED INTO THE HEADER (owner, 2026-09-20). It was a bar of its own between
+ * the top card and the strip - 100px for a line the coach reads once a week -
+ * on a tab that was pushing its own rows off the screen. The label, the W-D-L
+ * and the chevron stay; the games count and goal difference live in Tilastot,
+ * which this opens.
+ */
+function SeasonLink({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi']>; onOpen?: () => void; t: TFunction }) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/70 transition-all text-[13px]"
+      className="ml-auto flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold text-slate-400 transition-colors hover:text-slate-200"
+      title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
     >
-      <span className="font-extrabold text-indigo-200 whitespace-nowrap">{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
-      <span className="text-slate-600" aria-hidden="true">·</span>
-      <span className="text-slate-300 tabular-nums">{vuosi.gamesPlayed} {t('startScreen.dashGames', 'games')}</span>
+      <span className="text-indigo-200">{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
       <span className="text-slate-600" aria-hidden="true">·</span>
       {/* Green-grey-red is the football convention for W-D-L, so the colours
           label these without spending width on words. */}
-      <span
-        className="tabular-nums whitespace-nowrap"
-        title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
-      >
-        <span className="text-green-400 font-bold">{vuosi.wins}</span>
+      <span className="tabular-nums">
+        <span className="font-bold text-green-400">{vuosi.wins}</span>
         <span className="text-slate-500">-{vuosi.ties}-</span>
-        <span className="text-red-400 font-bold">{vuosi.losses}</span>
+        <span className="font-bold text-red-400">{vuosi.losses}</span>
       </span>
-      <span className="text-slate-600" aria-hidden="true">·</span>
-      {/* Goal DIFFERENCE, not "117–154". The pair was two unlabelled numbers a
-          reader had to interpret; the difference is one number that says the
-          same thing, and its sign carries the meaning on its own. */}
-      <span
-        className={`tabular-nums font-bold ${
-          vuosi.goalDifference > 0
-            ? 'text-green-400'
-            : vuosi.goalDifference < 0
-              ? 'text-red-400'
-              : 'text-slate-300'
-        }`}
-        title={t('startScreen.dashGoalDiffTitle', 'Goal difference')}
-      >
-        {vuosi.goalDifference >= 0 ? '+' : ''}{vuosi.goalDifference}
-      </span>
-      <span className="ml-auto text-slate-500" aria-hidden="true">›</span>
+      <span className="text-slate-500" aria-hidden="true">›</span>
     </button>
   );
 }
@@ -501,33 +499,26 @@ function VuosiBar({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi'
  * nothing to point at when it is the first thing on the screen. Leaving it on
  * would be the app saying one sentence twice in a single glance.
  */
-function RecentCard({ game, onOpen, accented }: { game: HomeRecentGame; onOpen?: (id: string) => void; accented?: boolean }) {
+function RecentRow({ game, onOpen, accented }: { game: HomeRecentGame; onOpen?: (id: string) => void; accented?: boolean }) {
   return (
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className={`flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl border transition-all ${
-        accented
-          ? 'bg-gradient-to-r from-amber-900/40 to-slate-800/85 border-amber-500/70 shadow-[0_0_16px_rgba(245,158,11,0.14)]'
-          : HOME_CARD
+      className={`flex w-full items-center gap-3 px-3.5 py-2 text-left transition-colors ${
+        accented ? 'bg-amber-900/25 hover:bg-amber-900/35' : 'hover:bg-slate-700/40'
       }`}
     >
-      <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
-      <div className={`text-sm font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
-      <div className="text-xs text-slate-400 tabular-nums">{game.date?.slice(5).replace('-', '.')}</div>
-      {/* Town only - see HomeRecentGame.venueTown for why not the venue. */}
-      {game.venueTown && (
-        <div className="truncate text-[9.5px] text-slate-500">{game.venueTown}</div>
-      )}
+      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-slate-100">{game.opponent || '—'}</span>
+      <span className={`shrink-0 text-[13px] font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</span>
+      <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-slate-400">
+        {game.date ? formatDayMonth(game.date) : ''}
+        {/* Town only - see HomeRecentGame.venueTown for why not the venue. */}
+        {game.venueTown && (<><span className="text-slate-600" aria-hidden="true"> · </span><span className="text-slate-500">{game.venueTown}</span></>)}
+      </span>
     </button>
   );
 }
 
-/**
- * The opt-in Pelit-tab dashboard: an informative resume card, the current
- * club-season (Vuosi) record, and a swipeable recent-games strip. Purely
- * presentational - all data is precomputed in `buildHomeSummary`.
- */
 export function HomeDashboard({
   summary,
   onResume,
@@ -592,7 +583,6 @@ export function HomeDashboard({
           : summary.lastPlayed
             ? <ResumeCard resume={summary.lastPlayed} onResume={() => onOpenGame?.(summary.lastPlayed!.id)} locale={locale} t={t} />
             : <NoMatchCard onNewGame={onNewGame} t={t} />}
-      {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
       {(summary.recent.length > 0 || summary.upcomingList.length > 0) && (
         /* Label and strip are one block: the heading's margin is spacing
            INSIDE it, not a gap between blocks, so the Home stack's own gap is
@@ -632,32 +622,21 @@ export function HomeDashboard({
                   : t('startScreen.dashRecent', 'Recent')}
               </div>
             )}
+            {summary.vuosi && <SeasonLink vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
           </div>
-          {/* The strip scrolls, and the card at the edge used to be cut clean
-              through its own border - which reads as a rendering fault, not as
-              an invitation to scroll. The gradient lets it dissolve instead.
-              pointer-events-none so it never eats a tap on the card beneath. */}
-          <div className="relative">
-            <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
-              {showing === 'upcoming'
-                ? summary.upcomingList.map((game) => (
-                    <UpcomingCard key={game.id} game={game} onOpen={onOpenGame} t={t} />
-                  ))
-                : summary.recent.map((game) => (
-                    <RecentCard
-                      key={game.id}
-                      game={game}
-                      onOpen={onOpenGame}
-                      accented={!!accentId && game.id === accentId}
-                    />
-                  ))}
-            </div>
-            {(showing === 'upcoming' ? summary.upcomingList.length : summary.recent.length) > 2 && (
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-slate-900 to-transparent"
-              />
-            )}
+          <div className={`rounded-xl border overflow-hidden divide-y divide-slate-700/50 ${HOME_CARD}`}>
+            {showing === 'upcoming'
+              ? summary.upcomingList.slice(0, STRIP_ROWS).map((game) => (
+                  <UpcomingRow key={game.id} game={game} onOpen={onOpenGame} t={t} />
+                ))
+              : summary.recent.slice(0, STRIP_ROWS).map((game) => (
+                  <RecentRow
+                    key={game.id}
+                    game={game}
+                    onOpen={onOpenGame}
+                    accented={!!accentId && game.id === accentId}
+                  />
+                ))}
           </div>
         </div>
       )}

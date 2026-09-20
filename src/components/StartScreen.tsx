@@ -59,7 +59,11 @@ import { TASO_URL } from '@/config/externalLinks';
  * Both are written out as whole class names, not composed from a shared '2.5',
  * because Tailwind scans source for complete literals and would emit neither.
  */
-const STACK = 'space-y-2.5';  // vertical
+// VERTICAL RHYTHM SCALES WITH THE SCREEN (owner, 2026-09-20). A fixed 10px
+// stack was right on a 740px phone and left the bottom third of an 850px one
+// empty, so the tab read as top-heavy. clamp(10px, 2vh, 18px): a short phone
+// keeps the tight rhythm that fits, a tall one breathes into its own height.
+const STACK = 'space-y-[clamp(0.625rem,2vh,1.125rem)]';  // vertical
 const ROW_GAP = 'gap-2.5';    // horizontal
 
 const ROW_BASE =
@@ -377,11 +381,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
           stay fixed. min-h-0 lets the flex child actually shrink to enable it. */}
       <div className="relative z-10 flex-1 min-h-0 overflow-y-auto flex flex-col px-6 pt-4 pb-4 [@media(min-height:700px)]:pt-5 [@media(min-height:700px)]:pb-6 pb-safe">
 
-        {/* === TOP: gear (upper-left) + language switcher (upper-right) ===
-            Split to opposite corners (owner feedback: the gear looked cramped
-            next to the language pill); frees the hero for a slightly larger logo. */}
-        <div className="flex justify-between items-center mb-4">
-          {/* Upper-left: Settings gear, plus the Welcome back-link (local mode). */}
+        {/* === TOP BAR ===
+            Dashboard mode (owner, 2026-09-20): a 56px bar - the wordmark small
+            on the left, the gear on the right - in place of the hero that
+            spent a third of the first screen on the app's own name. Drawn
+            with flex-row-reverse so the one gear block serves both layouts:
+            first child, so it lands right in dashboard mode and left in the
+            launcher. The language switcher leaves Home in dashboard mode: it
+            is set once and lives in Settings (and on the sign-in screen,
+            where a new user needs it). The launcher and first-run modes keep
+            the old layout, where the big wordmark still earns its space. */}
+        <div className={`flex justify-between items-center ${dashboardOn ? 'h-[clamp(3.5rem,7.5vh,4.5rem)] mb-1 flex-row-reverse' : 'mb-4'}`}>
+          {/* Settings gear, plus the Welcome back-link (local mode). */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -408,8 +419,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
             )}
           </div>
 
-          {/* Upper-right: language switcher (alone now). */}
-          <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
+          {dashboardOn ? (
+            <h1 className="font-bold tracking-tight text-[clamp(1.6rem,3.2vh,1.9rem)] leading-none">
+              <span className="text-amber-400">MatchOps</span>
+            </h1>
+          ) : (
+            /* Launcher only: the language switcher. */
+            <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
               onClick={() => handleChangeLanguage('en')}
               className={`px-3 py-1.5 text-xs font-bold transition-all ${
@@ -431,15 +447,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
               FI
             </button>
           </div>
+          )}
         </div>
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1 [@media(min-height:600px)]:pt-[1.5vh]' : 'pt-3 [@media(min-height:600px)]:pt-[5vh]'}`}>
-          <div className={`text-center ${dashboardOn ? 'mb-1' : 'mb-4'}`}>
+        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-0' : 'pt-3 [@media(min-height:600px)]:pt-[5vh]'}`}>
+          <div className={`text-center ${dashboardOn ? 'mb-0' : 'mb-4'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
                 full-size on first-run / empty state). */}
+            {/* Big wordmark: launcher and first-run only - the dashboard has the top bar. */}
+            {!dashboardOn && (
             <div className={`relative inline-block ${dashboardOn ? 'mb-2 [@media(min-height:700px)]:mb-2.5' : 'mb-1.5'}`}>
               {/* Owner, 2026-09-20: the hero sat ~75px below the header and the
                   Taso row fell off the screen. Top padding 4vh -> 1.5vh, the
@@ -455,6 +474,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
+            )}
 
             {/* Tagline - shown in the simple launcher (the dashboard packs its
                 own summary under the logo, so a tagline there would crowd it). */}
@@ -503,18 +523,22 @@ const StartScreen: React.FC<StartScreenProps> = ({
               unchanged. Phase 2 dissolves the modals into real tab content.
               Shown to everyone now - a brand-new coach learns the real Home
               from the start (no separate first-run mode). === */}
-          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-2 [@media(min-height:700px)]:mb-3' : 'mb-3 [@media(min-height:700px)]:mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
-              <div className="flex gap-1.5 rounded-xl bg-slate-800/70 border border-slate-700/60 backdrop-blur-sm p-1.5">
+          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-[clamp(0.5rem,1.6vh,1rem)]' : 'mb-3 [@media(min-height:700px)]:mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
+              {/* TEXT TABS, NOT A PILL BAR (owner, 2026-09-20). The boxed bar with an
+                  indigo pill was the same weight and colour as the hero card
+                  under it, so nothing on the tab said "this one". Navigation
+                  is lighter than content: a hairline and an underline. */}
+              <div className="flex border-b border-slate-700/60">
                 <button
                   type="button"
                   role="tab"
                   aria-selected={activeTab === 'games'}
                   data-testid="tour-tab-games"
                   onClick={() => setActiveTab('games')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  className={`flex-1 px-1 pb-2 pt-1.5 -mb-px border-b-2 text-sm font-semibold transition-colors ${
                     activeTab === 'games'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                      ? 'border-indigo-400 text-white'
+                      : 'border-transparent text-slate-400 hover:text-white'
                   }`}
                 >
                   {t('startScreen.tabGames', 'Games')}
@@ -525,10 +549,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   aria-selected={activeTab === 'team'}
                   data-testid="tour-tab-club"
                   onClick={() => setActiveTab('team')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  className={`flex-1 px-1 pb-2 pt-1.5 -mb-px border-b-2 text-sm font-semibold transition-colors ${
                     activeTab === 'team'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                      ? 'border-indigo-400 text-white'
+                      : 'border-transparent text-slate-400 hover:text-white'
                   }`}
                 >
                   {t('startScreen.tabTeam', 'Club')}
@@ -542,10 +566,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   role="tab"
                   aria-selected={activeTab === 'seasons'}
                   onClick={() => setActiveTab('seasons')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  className={`flex-1 px-1 pb-2 pt-1.5 -mb-px border-b-2 text-sm font-semibold transition-colors ${
                     activeTab === 'seasons'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                      ? 'border-indigo-400 text-white'
+                      : 'border-transparent text-slate-400 hover:text-white'
                   }`}
                 >
                   {t('startScreen.tabSeasons', 'Competitions')}
@@ -555,10 +579,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   role="tab"
                   aria-selected={activeTab === 'stats'}
                   onClick={() => setActiveTab('stats')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  className={`flex-1 px-1 pb-2 pt-1.5 -mb-px border-b-2 text-sm font-semibold transition-colors ${
                     activeTab === 'stats'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                      ? 'border-indigo-400 text-white'
+                      : 'border-transparent text-slate-400 hover:text-white'
                   }`}
                 >
                   {t('startScreen.tabStats', 'Stats')}
@@ -567,7 +591,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
 
           {/* === ACTION BUTTONS === */}
-          <div className={`max-w-sm mx-auto w-full ${STACK}`}>
+          {/* A flex column that fills the hero, so a child can gravitate to
+              the bottom with mt-auto (see the tools group on Pelit). */}
+          <div className={`max-w-sm mx-auto w-full flex flex-col flex-1 ${STACK}`}>
             {activeTab === 'team' ? (
               /* Team panel (restructure 1.3b): every club-people item gets a
                  Home entry - the rows open the EXISTING modals (strangler). */
@@ -850,7 +876,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
                      these two step back. New Game still outranks the archive:
                      starting a match is why the app exists, browsing old ones
                      is occasional, and equal weight said otherwise. */
-                  <div className={dashboardOn ? `flex ${ROW_GAP}` : STACK}>
+                  dashboardOn ? null : (
+                  <div className={STACK}>
                     <button
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
@@ -877,6 +904,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       </button>
                     )}
                   </div>
+                  )
                 ))}
 
                 {/* Side entries are DEFERRED while composing (owner round 4:
@@ -886,6 +914,17 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {/* Taso is a game-day workflow tool (submit the lineup before,
                     report the result after) - it earns a games-tab row, not a
                     burial under the gear. */}
+                {/* GRAVITATES TO THE BOTTOM in dashboard mode (owner, 2026-09-21).
+                    With the actions docked at the thumb, the page had three
+                    groups - content, tools, actions - and the screen's spare
+                    height fell between tools and actions, splitting two
+                    navigation groups with a void. mt-auto sends this group
+                    down to sit on the action bar: what is happening stays at
+                    the top, what you can do gathers at the bottom, and the
+                    spare height sits between the two where it reads as a
+                    split rather than a hole. On a short phone the auto margin
+                    is zero and the stack's own gap takes over. */}
+                <div className={dashboardOn ? '!mt-auto pt-[clamp(0.625rem,2vh,1.125rem)]' : 'contents'}>
                 {!composeOnboarding && (
                   <HomeGroup>
                     {onOpenPlanner && (
@@ -902,12 +941,52 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     />
                   </HomeGroup>
                 )}
+                </div>
               </>
             )}
           </div>
 
         </div>
       </div>
+
+      {/* === DOCKED ACTIONS (dashboard, Pelit) ===
+          Owner, 2026-09-20: the page was top-anchored, so whatever the screen
+          height, the leftover landed at the bottom - exactly where a thumb
+          rests. The two things a coach DOES on this tab now sit there, a
+          sibling of the scroll area rather than an overlay, so nothing is
+          ever hidden under them; the space between content and actions is
+          what absorbs the difference between phones. */}
+      {dashboardOn && activeTab === 'games' && !newGamePrimary && (
+        <div className="relative z-10 shrink-0 border-t border-slate-800/80 bg-slate-900/95 px-6 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm">
+          <div className={`max-w-sm mx-auto flex ${ROW_GAP}`}>
+                    <button
+              type="button"
+              onClick={onNewGame ?? onGetStarted}
+              data-testid="tour-new-game"
+              className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${canResume
+                ? 'focus:ring-indigo-500 bg-indigo-600 border-indigo-500 text-white hover:bg-indigo-500'
+                : 'focus:ring-amber-500 bg-amber-500 border-amber-400/50 text-slate-900 hover:bg-amber-400'} ${dashboardOn ? 'flex-1' : 'w-full'}`}
+            >
+              <HiOutlinePlusCircle className={`w-5 h-5 flex-shrink-0 ${canResume ? 'text-indigo-100' : 'text-slate-900'}`} aria-hidden="true" />
+              <span className="text-[13px] font-bold leading-tight">
+                {t('startScreen.newGame', 'New Game')}
+              </span>
+            </button>
+            {hasSavedGames && (
+              <button
+                type="button"
+                onClick={onLoadGame}
+                className={`flex items-center justify-center gap-2 p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${dashboardOn ? 'flex-1' : 'w-full'}`}
+              >
+                <HiOutlineFolderOpen className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
+                <span className="text-[13px] font-semibold text-white leading-tight">
+                  {t('startScreen.savedGames', 'Saved games')}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ⚙ sheet (restructure PR 1.4): every device/account-scope item in one
           bucket - settings, backup, cloud account, guide, rules, external

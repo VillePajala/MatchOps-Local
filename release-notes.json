@@ -4,6 +4,15 @@
     {
       "date": "2026-09-20",
       "en": [
+        "The front page got its space back. A slim top bar replaces the big title once you have matches, the language switch lives in Settings, and the season record sits on the Recent line. The whole Games tab now fits one screen."
+      ],
+      "fi": [
+        "Etusivu sai tilansa takaisin. Kapea yläpalkki korvaa ison otsikon kun otteluita on, kielivalinta löytyy asetuksista, ja kauden saldo on Viimeisimmät-rivillä. Koko Pelit-välilehti mahtuu nyt yhdelle näytölle."
+      ]
+    },
+    {
+      "date": "2026-09-20",
+      "en": [
         "The front page sits a little higher: less empty space above the MatchOps title, so more of the page fits on screen."
       ],
       "fi": [
