@@ -437,7 +437,7 @@ function UpcomingCard({ game, onOpen, t }: { game: HomeUpcomingGame; onOpen?: (i
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className="flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl border transition-all bg-gradient-to-r from-indigo-900/45 to-slate-800/80 border-indigo-800/35 hover:from-indigo-800/50 hover:to-slate-800"
+      className="flex-shrink-0 w-[108px] text-left px-2.5 py-[clamp(0.5rem,1.3vh,0.875rem)] rounded-xl border transition-all bg-gradient-to-r from-indigo-900/45 to-slate-800/80 border-indigo-800/35 hover:from-indigo-800/50 hover:to-slate-800"
     >
       <span className="block text-[11px] font-semibold text-white truncate">
         {game.opponent || t('startScreen.dashResumeGame', 'Game')}

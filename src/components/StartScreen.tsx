@@ -59,7 +59,11 @@ import { TASO_URL } from '@/config/externalLinks';
  * Both are written out as whole class names, not composed from a shared '2.5',
  * because Tailwind scans source for complete literals and would emit neither.
  */
-const STACK = 'space-y-2.5';  // vertical
+// VERTICAL RHYTHM SCALES WITH THE SCREEN (owner, 2026-09-20). A fixed 10px
+// stack was right on a 740px phone and left the bottom third of an 850px one
+// empty, so the tab read as top-heavy. clamp(10px, 2vh, 18px): a short phone
+// keeps the tight rhythm that fits, a tall one breathes into its own height.
+const STACK = 'space-y-[clamp(0.625rem,2vh,1.125rem)]';  // vertical
 const ROW_GAP = 'gap-2.5';    // horizontal
 
 const ROW_BASE =
@@ -387,7 +391,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
             is set once and lives in Settings (and on the sign-in screen,
             where a new user needs it). The launcher and first-run modes keep
             the old layout, where the big wordmark still earns its space. */}
-        <div className={`flex justify-between items-center ${dashboardOn ? 'h-14 mb-1 flex-row-reverse' : 'mb-4'}`}>
+        <div className={`flex justify-between items-center ${dashboardOn ? 'h-[clamp(3.5rem,7.5vh,4.5rem)] mb-1 flex-row-reverse' : 'mb-4'}`}>
           {/* Settings gear, plus the Welcome back-link (local mode). */}
           <div className="flex items-center gap-2">
             <button
@@ -416,7 +420,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
 
           {dashboardOn ? (
-            <h1 className="font-bold tracking-tight text-[1.6rem] leading-none">
+            <h1 className="font-bold tracking-tight text-[clamp(1.6rem,3.2vh,1.9rem)] leading-none">
               <span className="text-amber-400">MatchOps</span>
             </h1>
           ) : (
@@ -519,7 +523,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               unchanged. Phase 2 dissolves the modals into real tab content.
               Shown to everyone now - a brand-new coach learns the real Home
               from the start (no separate first-run mode). === */}
-          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-2 [@media(min-height:700px)]:mb-3' : 'mb-3 [@media(min-height:700px)]:mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
+          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-[clamp(0.5rem,1.6vh,1rem)]' : 'mb-3 [@media(min-height:700px)]:mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
               <div className="flex gap-1.5 rounded-xl bg-slate-800/70 border border-slate-700/60 backdrop-blur-sm p-1.5">
                 <button
                   type="button"
