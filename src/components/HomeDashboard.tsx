@@ -451,44 +451,33 @@ function UpcomingCard({ game, onOpen, t }: { game: HomeUpcomingGame; onOpen?: (i
   );
 }
 
-function VuosiBar({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi']>; onOpen?: () => void; t: TFunction }) {
+/**
+ * The season's record, as the strip header's right-hand side.
+ *
+ * FOLDED INTO THE HEADER (owner, 2026-09-20). It was a bar of its own between
+ * the top card and the strip - 100px for a line the coach reads once a week -
+ * on a tab that was pushing its own rows off the screen. The label, the W-D-L
+ * and the chevron stay; the games count and goal difference live in Tilastot,
+ * which this opens.
+ */
+function SeasonLink({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi']>; onOpen?: () => void; t: TFunction }) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/70 transition-all text-[13px]"
+      className="ml-auto flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold text-slate-400 transition-colors hover:text-slate-200"
+      title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
     >
-      <span className="font-extrabold text-indigo-200 whitespace-nowrap">{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
-      <span className="text-slate-600" aria-hidden="true">·</span>
-      <span className="text-slate-300 tabular-nums">{vuosi.gamesPlayed} {t('startScreen.dashGames', 'games')}</span>
+      <span className="text-indigo-200">{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
       <span className="text-slate-600" aria-hidden="true">·</span>
       {/* Green-grey-red is the football convention for W-D-L, so the colours
           label these without spending width on words. */}
-      <span
-        className="tabular-nums whitespace-nowrap"
-        title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
-      >
-        <span className="text-green-400 font-bold">{vuosi.wins}</span>
+      <span className="tabular-nums">
+        <span className="font-bold text-green-400">{vuosi.wins}</span>
         <span className="text-slate-500">-{vuosi.ties}-</span>
-        <span className="text-red-400 font-bold">{vuosi.losses}</span>
+        <span className="font-bold text-red-400">{vuosi.losses}</span>
       </span>
-      <span className="text-slate-600" aria-hidden="true">·</span>
-      {/* Goal DIFFERENCE, not "117–154". The pair was two unlabelled numbers a
-          reader had to interpret; the difference is one number that says the
-          same thing, and its sign carries the meaning on its own. */}
-      <span
-        className={`tabular-nums font-bold ${
-          vuosi.goalDifference > 0
-            ? 'text-green-400'
-            : vuosi.goalDifference < 0
-              ? 'text-red-400'
-              : 'text-slate-300'
-        }`}
-        title={t('startScreen.dashGoalDiffTitle', 'Goal difference')}
-      >
-        {vuosi.goalDifference >= 0 ? '+' : ''}{vuosi.goalDifference}
-      </span>
-      <span className="ml-auto text-slate-500" aria-hidden="true">›</span>
+      <span className="text-slate-500" aria-hidden="true">›</span>
     </button>
   );
 }
@@ -592,7 +581,6 @@ export function HomeDashboard({
           : summary.lastPlayed
             ? <ResumeCard resume={summary.lastPlayed} onResume={() => onOpenGame?.(summary.lastPlayed!.id)} locale={locale} t={t} />
             : <NoMatchCard onNewGame={onNewGame} t={t} />}
-      {summary.vuosi && <VuosiBar vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
       {(summary.recent.length > 0 || summary.upcomingList.length > 0) && (
         /* Label and strip are one block: the heading's margin is spacing
            INSIDE it, not a gap between blocks, so the Home stack's own gap is
@@ -632,6 +620,7 @@ export function HomeDashboard({
                   : t('startScreen.dashRecent', 'Recent')}
               </div>
             )}
+            {summary.vuosi && <SeasonLink vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
           </div>
           {/* The strip scrolls, and the card at the edge used to be cut clean
               through its own border - which reads as a rendering fault, not as
