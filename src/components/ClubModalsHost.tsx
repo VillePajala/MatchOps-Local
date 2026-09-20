@@ -172,13 +172,13 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     flushLiveMatch,
     onGameCreated: () => {
       setIsNewGameSetupModalOpen(false);
-
-  // The venue book, kept in settings so a deleted match forgets nothing.
-  const knownVenues = useKnownVenues(newGameSetup.savedGames);
       setPlayerIdsForNewGame(null);
       onEnterMatch?.();
     },
   });
+
+  // The venue book, kept in settings so a deleted match forgets nothing.
+  const knownVenues = useKnownVenues(newGameSetup.savedGames);
 
   // Every opponent name this coach has used: the competition lists they
   // curated, plus whatever they typed into past games. Derived, never stored -
