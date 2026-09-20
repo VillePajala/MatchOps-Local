@@ -524,17 +524,21 @@ const StartScreen: React.FC<StartScreenProps> = ({
               Shown to everyone now - a brand-new coach learns the real Home
               from the start (no separate first-run mode). === */}
           <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-[clamp(0.5rem,1.6vh,1rem)]' : 'mb-3 [@media(min-height:700px)]:mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
-              <div className="flex gap-1.5 rounded-xl bg-slate-800/70 border border-slate-700/60 backdrop-blur-sm p-1.5">
+              {/* TEXT TABS, NOT A PILL BAR (owner, 2026-09-20). The boxed bar with an
+                  indigo pill was the same weight and colour as the hero card
+                  under it, so nothing on the tab said "this one". Navigation
+                  is lighter than content: a hairline and an underline. */}
+              <div className="flex border-b border-slate-700/60">
                 <button
                   type="button"
                   role="tab"
                   aria-selected={activeTab === 'games'}
                   data-testid="tour-tab-games"
                   onClick={() => setActiveTab('games')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  className={`flex-1 px-1 pb-2 pt-1.5 -mb-px border-b-2 text-sm font-semibold transition-colors ${
                     activeTab === 'games'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                      ? 'border-indigo-400 text-white'
+                      : 'border-transparent text-slate-400 hover:text-white'
                   }`}
                 >
                   {t('startScreen.tabGames', 'Games')}
@@ -545,10 +549,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   aria-selected={activeTab === 'team'}
                   data-testid="tour-tab-club"
                   onClick={() => setActiveTab('team')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  className={`flex-1 px-1 pb-2 pt-1.5 -mb-px border-b-2 text-sm font-semibold transition-colors ${
                     activeTab === 'team'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                      ? 'border-indigo-400 text-white'
+                      : 'border-transparent text-slate-400 hover:text-white'
                   }`}
                 >
                   {t('startScreen.tabTeam', 'Club')}
@@ -562,10 +566,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   role="tab"
                   aria-selected={activeTab === 'seasons'}
                   onClick={() => setActiveTab('seasons')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  className={`flex-1 px-1 pb-2 pt-1.5 -mb-px border-b-2 text-sm font-semibold transition-colors ${
                     activeTab === 'seasons'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                      ? 'border-indigo-400 text-white'
+                      : 'border-transparent text-slate-400 hover:text-white'
                   }`}
                 >
                   {t('startScreen.tabSeasons', 'Competitions')}
@@ -575,10 +579,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   role="tab"
                   aria-selected={activeTab === 'stats'}
                   onClick={() => setActiveTab('stats')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  className={`flex-1 px-1 pb-2 pt-1.5 -mb-px border-b-2 text-sm font-semibold transition-colors ${
                     activeTab === 'stats'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                      ? 'border-indigo-400 text-white'
+                      : 'border-transparent text-slate-400 hover:text-white'
                   }`}
                 >
                   {t('startScreen.tabStats', 'Stats')}
@@ -870,7 +874,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
                      these two step back. New Game still outranks the archive:
                      starting a match is why the app exists, browsing old ones
                      is occasional, and equal weight said otherwise. */
-                  <div className={dashboardOn ? `flex ${ROW_GAP}` : STACK}>
+                  dashboardOn ? null : (
+                  <div className={STACK}>
                     <button
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
@@ -897,6 +902,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       </button>
                     )}
                   </div>
+                  )
                 ))}
 
                 {/* Side entries are DEFERRED while composing (owner round 4:
@@ -928,6 +934,45 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         </div>
       </div>
+
+      {/* === DOCKED ACTIONS (dashboard, Pelit) ===
+          Owner, 2026-09-20: the page was top-anchored, so whatever the screen
+          height, the leftover landed at the bottom - exactly where a thumb
+          rests. The two things a coach DOES on this tab now sit there, a
+          sibling of the scroll area rather than an overlay, so nothing is
+          ever hidden under them; the space between content and actions is
+          what absorbs the difference between phones. */}
+      {dashboardOn && activeTab === 'games' && !newGamePrimary && (
+        <div className="relative z-10 shrink-0 border-t border-slate-800/80 bg-slate-900/95 px-6 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm">
+          <div className={`max-w-sm mx-auto flex ${ROW_GAP}`}>
+                    <button
+              type="button"
+              onClick={onNewGame ?? onGetStarted}
+              data-testid="tour-new-game"
+              className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${canResume
+                ? 'focus:ring-indigo-500 bg-indigo-600 border-indigo-500 text-white hover:bg-indigo-500'
+                : 'focus:ring-amber-500 bg-amber-500 border-amber-400/50 text-slate-900 hover:bg-amber-400'} ${dashboardOn ? 'flex-1' : 'w-full'}`}
+            >
+              <HiOutlinePlusCircle className={`w-5 h-5 flex-shrink-0 ${canResume ? 'text-indigo-100' : 'text-slate-900'}`} aria-hidden="true" />
+              <span className="text-[13px] font-bold leading-tight">
+                {t('startScreen.newGame', 'New Game')}
+              </span>
+            </button>
+            {hasSavedGames && (
+              <button
+                type="button"
+                onClick={onLoadGame}
+                className={`flex items-center justify-center gap-2 p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${dashboardOn ? 'flex-1' : 'w-full'}`}
+              >
+                <HiOutlineFolderOpen className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
+                <span className="text-[13px] font-semibold text-white leading-tight">
+                  {t('startScreen.savedGames', 'Saved games')}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ⚙ sheet (restructure PR 1.4): every device/account-scope item in one
           bucket - settings, backup, cloud account, guide, rules, external
