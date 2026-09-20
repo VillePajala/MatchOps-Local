@@ -808,6 +808,53 @@ describe('useGamePersistence', () => {
     });
 
     /**
+     * @critical - REGRESSION. The match's own details (kick-off, pitch, date,
+     * venue) were never on the watched list, so a coach who changed ONLY one
+     * of them in Ottelutiedot changed nothing the autosave looked at: the edit
+     * lived in the session until the match unmounted, then was gone. The owner
+     * hit it three times in two days before it was found.
+     */
+    it.each([
+      ['the kick-off time', { gameTime: '14:00' }],
+      ['the pitch', { fieldNumber: 'TN 2' }],
+      ['the date', { gameDate: '2026-09-27' }],
+      ['the venue', { gameLocation: 'Mitta-Keittiöt Areena' }],
+    ])('auto-saves when only %s changes', async (_what, change) => {
+      jest.useFakeTimers();
+
+      const setSavedGames = jest.fn();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        initialLoadComplete: true,
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        gameSessionState: createMockGameSessionState({ teamName: 'Team' }),
+      });
+
+      const { rerender } = renderHook(
+        (props) => useGamePersistence(props),
+        { initialProps: params, wrapper: createWrapper() }
+      );
+      setSavedGames.mockClear();
+
+      act(() => {
+        rerender({
+          ...params,
+          gameSessionState: createMockGameSessionState({ teamName: 'Team', ...change }),
+        });
+      });
+      act(() => {
+        jest.advanceTimersByTime(500);
+      });
+
+      await waitFor(() => {
+        expect(setSavedGames).toHaveBeenCalled();
+      });
+
+      jest.useRealTimers();
+    });
+
+    /**
      * Tests that auto-save (silent=true) is skipped when required fields are empty
      * This prevents false-positive ValidationErrors during user editing
      * @edge-case
