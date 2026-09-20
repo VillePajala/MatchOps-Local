@@ -706,7 +706,9 @@ describe('Translation File Validation', () => {
       //     directions button moved into the travel row as a labelled pill,
       //     and a pinned fixture with no departure time now offers to set the
       //     starting point right there. Lands at 3344.
-      expect(enKeys.length).toBe(3344);
+      // -1 startScreen.directions: the pill lost its label - the car sits
+      //     alone behind a divider at the row's end. Lands at 3343.
+      expect(enKeys.length).toBe(3343);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -895,7 +897,7 @@ describe('Translation File Validation', () => {
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3344);
+      expect(fiKeys.length).toBe(3343);
     });
   });
 });
