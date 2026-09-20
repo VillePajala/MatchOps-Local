@@ -4,6 +4,15 @@
     {
       "date": "2026-09-20",
       "en": [
+        "On the next-match card the directions button now sits in the travel row as a labelled Directions pill, and a pinned venue without a departure time offers to set your starting point right there."
+      ],
+      "fi": [
+        "Seuraava ottelu -kortilla reittinappi on nyt matkarivillä Reitti-nappina, ja jos paikka on merkitty mutta lähtöaikaa ei ole, kortti tarjoaa lähtöpaikan asettamista suoraan siitä."
+      ]
+    },
+    {
+      "date": "2026-09-20",
+      "en": [
         "Changing only the kick-off time, pitch, date or venue in match settings now saves. Before, an edit that touched nothing else could be lost when you left the match."
       ],
       "fi": [

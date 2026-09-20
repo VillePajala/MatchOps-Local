@@ -169,19 +169,20 @@ function CardWhere({ venue, town, pitch, trailing }: {
 }
 
 /**
- * Turn-by-turn directions, beside the venue it opens.
+ * Turn-by-turn directions, as a labelled pill at the end of the travel row.
  *
- * A SIBLING OF THE CARD BUTTON, not a child: a link inside a button is
- * invalid HTML that browsers resolve unpredictably. The row aligns it to its
- * bottom edge, which is where the venue block ends, so it sits beside the
- * address rather than in a full-height column of its own competing with the
- * departure row for the "travel" job.
+ * IN THE ROW, NOT THE BODY (owner, 2026-09-20). It used to be a boxed button
+ * floating under the kick-off - the one element on the card that belonged to
+ * no row, so the eye had nowhere to file it. Directions are a travel action
+ * and the card has a travel row; the body is for reading and the row is for
+ * doing. A SIBLING of the card button, never a child: a link inside a button
+ * is invalid HTML that browsers resolve unpredictably.
  *
  * Only ever rendered for a PINNED venue - see mapsDirectionsUrl - and never on
  * a match already played: directions to a ground you came home from is a
  * button with no job.
  */
-function CardDirections({ href, t }: { href: string; t: TFunction }) {
+function DirectionsPill({ href, t }: { href: string; t: TFunction }) {
   return (
     <a
       href={href}
@@ -189,9 +190,10 @@ function CardDirections({ href, t }: { href: string; t: TFunction }) {
       rel="noopener noreferrer"
       aria-label={t('startScreen.driveToVenue', 'Directions to the venue')}
       title={t('startScreen.driveToVenue', 'Directions to the venue')}
-      className="mb-2.5 mr-3.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-indigo-400/40 bg-indigo-950/40 text-indigo-100 transition-colors hover:bg-indigo-800/60"
+      className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-indigo-400/40 bg-indigo-950/60 pl-2.5 pr-3 text-xs font-bold text-white transition-colors hover:bg-indigo-800/60"
     >
-      <MdDirectionsCar className="h-5 w-5" aria-hidden="true" />
+      <MdDirectionsCar className="h-4 w-4" aria-hidden="true" />
+      {t('startScreen.directions', 'Directions')}
     </a>
   );
 }
@@ -244,8 +246,12 @@ function ResumeCard({ resume, onResume, locale, t }: {
             }
           />
         </button>
-        {!resume.isPlayed && resume.mapsUrl ? <CardDirections href={resume.mapsUrl} t={t} /> : null}
       </div>
+      {!resume.isPlayed && resume.mapsUrl && (
+        <div className={`${CARD_ACTION_ROW} flex items-center px-3.5 py-1.5`}>
+          <DirectionsPill href={resume.mapsUrl} t={t} />
+        </div>
+      )}
     </div>
   );
 }
@@ -267,10 +273,13 @@ function NextMatchCard({
   game,
   onOpen,
   onAdjustTravel,
+  onSetStartingPoint,
   t,
 }: {
   game: HomeUpcomingGame;
   onOpen?: (id: string) => void;
+  /** Opens where the starting point is set; offered on a pinned fixture with no departure time. */
+  onSetStartingPoint?: () => void;
   /** Sets this match's own arrival buffer and the drive time actually taken. */
   onAdjustTravel?: (id: string, next: { arrivalBufferMinutes?: number; travelMinutes?: number }) => void;
   t: TFunction;
@@ -300,35 +309,52 @@ function NextMatchCard({
           <CardMain who={game.opponent || t('startScreen.dashResumeGame', 'Game')} number={game.time} />
           <CardWhere venue={game.venue} town={game.venueTown} pitch={game.fieldNumber} />
         </button>
-        {game.mapsUrl ? <CardDirections href={game.mapsUrl} t={t} /> : null}
       </div>
 
-      {/* WHEN TO LEAVE, and the two numbers behind it, in one place. It is
-          kick-off minus the time you must already BE there minus the drive -
-          never kick-off minus the drive, which reads as helpful and is late.
-          Tapping opens both adjustments here rather than adding fields to a
-          match form the owner already finds long, and it is the same tap that
-          turns the estimate into a measured time. */}
-      {game.travel && (
-        <div className={CARD_ACTION_ROW}>
-          <button
-            type="button"
-            onClick={() => setAdjusting((v) => !v)}
-            aria-expanded={adjusting}
-            className="flex w-full items-baseline gap-1.5 px-3.5 py-2 text-left text-[11.5px] transition-colors hover:bg-indigo-900/40"
-          >
-            <span className="font-semibold text-amber-200">
-              {t('startScreen.departAt', 'Leave {{time}}', { time: game.travel.departure })}
-            </span>
-            {/* Just the drive. The parentheses and the word "arvio" were
-                honest and were also most of the line, and a number the coach
-                can already see is derived does not need announcing twice. The
-                tilde keeps the hedge at one character. */}
-            <span className="font-normal text-indigo-300">
-              · {game.travel.isEstimate ? `~${driveTime}` : driveTime}
-            </span>
-            <span className="ml-auto shrink-0 text-indigo-300">{adjusting ? '▾' : '▸'}</span>
-          </button>
+      {/* THE TRAVEL ROW: when to leave on the left, the way there on the right.
+          Departure is kick-off minus the time you must already BE there minus
+          the drive - never kick-off minus the drive, which reads as helpful and
+          is late. Tapping it opens both adjustments here rather than adding
+          fields to a match form the owner already finds long, and it is the
+          same tap that turns the estimate into a measured time.
+
+          A pinned venue with no departure time still gets the row: the left
+          side becomes the offer to set a starting point, made where the coach
+          is already looking rather than in a settings screen nobody finds. */}
+      {(game.travel || game.mapsUrl) && (
+        <div className={`${CARD_ACTION_ROW} flex items-center gap-2 pr-3.5`}>
+          {game.travel ? (
+            <button
+              type="button"
+              onClick={() => setAdjusting((v) => !v)}
+              aria-expanded={adjusting}
+              className="flex min-w-0 flex-1 items-baseline gap-1.5 py-2 pl-3.5 pr-1 text-left text-[11.5px] transition-colors hover:bg-indigo-900/40"
+            >
+              <span className="font-semibold text-amber-200">
+                {t('startScreen.departAt', 'Leave {{time}}', { time: game.travel.departure })}
+              </span>
+              {/* Just the drive. The parentheses and the word "arvio" were
+                  honest and were also most of the line, and a number the coach
+                  can already see is derived does not need announcing twice. The
+                  tilde keeps the hedge at one character. */}
+              <span className="font-normal text-indigo-300">
+                · {game.travel.isEstimate ? `~${driveTime}` : driveTime}
+              </span>
+              <span className="ml-auto shrink-0 text-indigo-300">{adjusting ? '▾' : '▸'}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onSetStartingPoint}
+              className="flex min-w-0 flex-1 items-center py-2 pl-3.5 pr-1 text-left text-[11.5px] font-semibold text-indigo-200 transition-colors hover:bg-indigo-900/40"
+            >
+              <span className="border-b border-amber-200/70 text-amber-200">
+                {t('startScreen.setStartingPoint', 'Set a starting point')}
+              </span>
+              <span className="ml-1">{t('startScreen.setStartingPointWhy', 'to see when to leave')}</span>
+            </button>
+          )}
+          {game.mapsUrl && <DirectionsPill href={game.mapsUrl} t={t} />}
         </div>
       )}
     </div>
@@ -504,6 +530,7 @@ export function HomeDashboard({
   onOpenGame,
   onAdjustTravel,
   onNewGame,
+  onSetStartingPoint,
   locale = 'fi',
   t,
 }: {
@@ -514,6 +541,8 @@ export function HomeDashboard({
   onAdjustTravel?: (id: string, next: { arrivalBufferMinutes?: number; travelMinutes?: number }) => void;
   /** Opens the new-game flow from the empty top card. */
   onNewGame?: () => void;
+  /** Opens the settings where the starting point lives. */
+  onSetStartingPoint?: () => void;
   /** The app language, for weekday names - the same default as i18n.ts. */
   locale?: string;
   t: TFunction;
@@ -548,7 +577,7 @@ export function HomeDashboard({
       {/* Always something here - see NoMatchCard for why the slot must not
           be allowed to empty. */}
       {summary.upcoming
-        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} t={t} />
+        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} onSetStartingPoint={onSetStartingPoint} t={t} />
         : summary.resume
           ? <ResumeCard resume={summary.resume} onResume={onResume} locale={locale} t={t} />
           // Nothing booked and nothing open: the latest match played, with the
