@@ -4,6 +4,15 @@
     {
       "date": "2026-09-20",
       "en": [
+        "The front page sits a little higher: less empty space above the MatchOps title, so more of the page fits on screen."
+      ],
+      "fi": [
+        "Etusivu istuu hieman ylempänä: vähemmän tyhjää MatchOps-otsikon yllä, joten sivusta mahtuu näytölle enemmän."
+      ]
+    },
+    {
+      "date": "2026-09-20",
+      "en": [
         "The next-match card is compact again: no gap under its heading and a thinner travel row, so the season bar stays on screen."
       ],
       "fi": [
