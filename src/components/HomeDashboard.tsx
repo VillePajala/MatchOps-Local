@@ -113,13 +113,13 @@ function NoMatchCard({ onNewGame, t }: { onNewGame?: () => void; t: TFunction })
  */
 const CARD_HERO =
   'flex flex-col rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden';
-const CARD_BODY = 'flex-1 min-w-0 text-left px-3.5 pt-2 pb-2.5 hover:bg-indigo-900/40 transition-all';
+const CARD_BODY = 'flex-1 min-w-0 text-left px-3.5 pt-2 pb-2 hover:bg-indigo-900/40 transition-all';
 const CARD_ACTION_ROW = 'border-t border-indigo-500/40 bg-indigo-950/30';
 
 /** Role and day: "Next match · Tomorrow", "Latest · su 14.9. 19:00". */
 function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-indigo-200">
+    <div className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-indigo-200">
       {children}
     </div>
   );
@@ -128,9 +128,14 @@ function CardEyebrow({ children }: { children: React.ReactNode }) {
 /** The opponent, and the one number that matters for this state. */
 function CardMain({ who, number }: { who: string; number?: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
+    // CENTRED, NOT BASELINE-ALIGNED. With a 40px number the baseline sat so
+    // low that the opponent was pushed down and a band of nothing opened
+    // between the eyebrow and the name; the whole card grew and shoved the
+    // season bar off the screen. Centred, the row is exactly the number's
+    // height and the name sits beside it.
+    <div className="flex items-center justify-between gap-3">
       <span className="min-w-0 break-words text-base font-extrabold leading-tight">{who}</span>
-      {number && <span className="shrink-0 text-[40px] font-black tabular-nums leading-none tracking-tight">{number}</span>}
+      {number && <span className="shrink-0 text-4xl font-black tabular-nums leading-none tracking-tight">{number}</span>}
     </div>
   );
 }
@@ -191,7 +196,7 @@ function DirectionsCell({ href, t }: { href: string; t: TFunction }) {
       rel="noopener noreferrer"
       aria-label={t('startScreen.driveToVenue', 'Directions to the venue')}
       title={t('startScreen.driveToVenue', 'Directions to the venue')}
-      className="ml-auto flex w-[52px] shrink-0 items-center justify-center self-stretch border-l border-indigo-500/40 text-white transition-colors hover:bg-indigo-900/60"
+      className="ml-auto flex w-12 shrink-0 items-center justify-center self-stretch border-l border-indigo-500/40 text-white transition-colors hover:bg-indigo-900/60"
     >
       <MdDirectionsCar className="h-5 w-5" aria-hidden="true" />
     </a>
@@ -248,7 +253,7 @@ function ResumeCard({ resume, onResume, locale, t }: {
         </button>
       </div>
       {!resume.isPlayed && resume.mapsUrl && (
-        <div className={`${CARD_ACTION_ROW} flex min-h-[42px] items-stretch`}>
+        <div className={`${CARD_ACTION_ROW} flex min-h-[34px] items-stretch`}>
           <DirectionsCell href={resume.mapsUrl} t={t} />
         </div>
       )}
@@ -322,13 +327,13 @@ function NextMatchCard({
           side becomes the offer to set a starting point, made where the coach
           is already looking rather than in a settings screen nobody finds. */}
       {(game.travel || game.mapsUrl) && (
-        <div className={`${CARD_ACTION_ROW} flex min-h-[42px] items-stretch`}>
+        <div className={`${CARD_ACTION_ROW} flex items-stretch`}>
           {game.travel ? (
             <button
               type="button"
               onClick={() => setAdjusting((v) => !v)}
               aria-expanded={adjusting}
-              className="flex min-w-0 flex-1 items-baseline gap-1.5 py-2 pl-3.5 pr-2.5 text-left text-[11.5px] transition-colors hover:bg-indigo-900/40"
+              className="flex min-w-0 flex-1 items-baseline gap-1.5 py-1.5 pl-3.5 pr-2.5 text-left text-[11.5px] transition-colors hover:bg-indigo-900/40"
             >
               <span className="font-semibold text-amber-200">
                 {t('startScreen.departAt', 'Leave {{time}}', { time: game.travel.departure })}
@@ -346,7 +351,7 @@ function NextMatchCard({
             <button
               type="button"
               onClick={onSetStartingPoint}
-              className="flex min-w-0 flex-1 items-center py-2 pl-3.5 pr-2.5 text-left text-[11.5px] font-semibold text-indigo-200 transition-colors hover:bg-indigo-900/40"
+              className="flex min-w-0 flex-1 items-center py-1.5 pl-3.5 pr-2.5 text-left text-[11.5px] font-semibold text-indigo-200 transition-colors hover:bg-indigo-900/40"
             >
               <span className="border-b border-amber-200/70 text-amber-200">
                 {t('startScreen.setStartingPoint', 'Set a starting point')}
