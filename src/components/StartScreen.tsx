@@ -591,7 +591,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
 
           {/* === ACTION BUTTONS === */}
-          <div className={`max-w-sm mx-auto w-full ${STACK}`}>
+          {/* A flex column that fills the hero, so a child can gravitate to
+              the bottom with mt-auto (see the tools group on Pelit). */}
+          <div className={`max-w-sm mx-auto w-full flex flex-col flex-1 ${STACK}`}>
             {activeTab === 'team' ? (
               /* Team panel (restructure 1.3b): every club-people item gets a
                  Home entry - the rows open the EXISTING modals (strangler). */
@@ -912,6 +914,17 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {/* Taso is a game-day workflow tool (submit the lineup before,
                     report the result after) - it earns a games-tab row, not a
                     burial under the gear. */}
+                {/* GRAVITATES TO THE BOTTOM in dashboard mode (owner, 2026-09-21).
+                    With the actions docked at the thumb, the page had three
+                    groups - content, tools, actions - and the screen's spare
+                    height fell between tools and actions, splitting two
+                    navigation groups with a void. mt-auto sends this group
+                    down to sit on the action bar: what is happening stays at
+                    the top, what you can do gathers at the bottom, and the
+                    spare height sits between the two where it reads as a
+                    split rather than a hole. On a short phone the auto margin
+                    is zero and the stack's own gap takes over. */}
+                <div className={dashboardOn ? '!mt-auto pt-[clamp(0.625rem,2vh,1.125rem)]' : 'contents'}>
                 {!composeOnboarding && (
                   <HomeGroup>
                     {onOpenPlanner && (
@@ -928,6 +941,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     />
                   </HomeGroup>
                 )}
+                </div>
               </>
             )}
           </div>
