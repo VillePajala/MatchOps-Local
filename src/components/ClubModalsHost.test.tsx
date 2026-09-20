@@ -10,6 +10,9 @@ import ClubModalsHost from './ClubModalsHost';
 import ModalProvider, { useModalContext } from '@/contexts/ModalProvider';
 import { __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
 
+// The venue book reads settings through react-query; this host is rendered bare here.
+jest.mock('@/hooks/useKnownVenues', () => ({ useKnownVenues: () => [] }));
+
 jest.mock('@/components/TrainingResourcesModal', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) => (

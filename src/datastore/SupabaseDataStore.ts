@@ -39,6 +39,7 @@ import {
 import { adjustScoreForRemovedEvent } from '@/datastore/gameEventScore';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
+import { sanitizeKnownVenues } from '@/utils/venueBook';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import { isPlaytimePlan, PLAYTIME_PLAN_SCHEMA_VERSION } from '@/utils/playtimePlanner/types';
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
@@ -2820,6 +2821,9 @@ export class SupabaseDataStore implements DataStore {
           }
         : undefined,
       arrivalBufferMinutes: row.arrival_buffer_minutes ?? undefined,
+      // Checked entry by entry, never cast: a JSONB column holds whatever was
+      // last written to it.
+      knownVenues: sanitizeKnownVenues(row.known_venues),
       // NULL means "never set", which is not the same as false - but the app's
       // default is off, so they land in the same place.
       assessmentsEnabled: row.assessments_enabled ?? DEFAULT_APP_SETTINGS.assessmentsEnabled,
@@ -2857,6 +2861,8 @@ export class SupabaseDataStore implements DataStore {
       starting_point_lat: settings.startingPoint?.latitude ?? null,
       starting_point_lng: settings.startingPoint?.longitude ?? null,
       arrival_buffer_minutes: settings.arrivalBufferMinutes ?? null,
+      // An interface has no index signature, which is all that keeps it from being Json.
+      known_venues: settings.knownVenues ? (settings.knownVenues as unknown as Json) : null,
       assessments_enabled: settings.assessmentsEnabled ?? null,
       assessment_rating_style: settings.assessmentRatingStyle ?? null,
       assessment_template: settings.assessmentTemplate ?? null,

@@ -28,6 +28,19 @@ export type AssessmentRatingStyle = (typeof ASSESSMENT_RATING_STYLES)[number];
 export const ASSESSMENT_TEMPLATES = ['balanced', 'light6', 'creative'] as const;
 export type AssessmentTemplate = (typeof ASSESSMENT_TEMPLATES)[number];
 
+/** A venue the coach has used, with its pin when one was ever set. */
+export interface KnownVenue {
+  /** The most recent spelling the coach used. */
+  name: string;
+  latitude?: number;
+  longitude?: number;
+  /** The pinned street address, when the pin came from a lookup. */
+  address?: string;
+  timesUsed: number;
+  /** ISO date of the most recent match here, for ordering. */
+  lastUsed: string;
+}
+
 export interface AppSettings {
   currentGameId: string | null;
   lastHomeTeamName?: string;
@@ -76,6 +89,13 @@ export interface AppSettings {
    * match can override it. See `travelPlan`.
    */
   arrivalBufferMinutes?: number;
+  /**
+   * Every venue the coach has ever pinned or typed, learned from matches and
+   * KEPT when the matches go. The book used to be rebuilt from saved games
+   * alone, so deleting the only match at a ground forgot the ground - the
+   * owner hit exactly that. Name-keyed, newest spelling wins; see venueBook.
+   */
+  knownVenues?: KnownVenue[];
   /** ISO timestamp of last update - used for conflict resolution in cloud sync */
   updatedAt?: string;
   // Add other settings as needed

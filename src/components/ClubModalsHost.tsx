@@ -57,6 +57,7 @@ import { useTranslation } from 'react-i18next';
 import { preferredRulesContext } from '@/utils/rulesContext';
 import { useModalContext } from '@/contexts/ModalProvider';
 import { useModalHardwareBack, useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
+import { useKnownVenues } from '@/hooks/useKnownVenues';
 import { useAppSettingsController } from '@/hooks/useAppSettingsController';
 import { useSeasonTournamentManagement } from '@/hooks/useSeasonTournamentManagement';
 import { addOpponentToList, preferredSpellings } from '@/utils/opponentNames';
@@ -175,6 +176,9 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
       onEnterMatch?.();
     },
   });
+
+  // The venue book, kept in settings so a deleted match forgets nothing.
+  const knownVenues = useKnownVenues(newGameSetup.savedGames);
 
   // Every opponent name this coach has used: the competition lists they
   // curated, plus whatever they typed into past games. Derived, never stored -
@@ -405,6 +409,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
       {showNewGameSetup && (
         <NewGameSetupModal
           isOpen
+          knownVenues={knownVenues}
           initialPlayerSelection={playerIdsForNewGame}
           demandFactor={newGameSetup.newGameDemandFactor}
           onDemandFactorChange={newGameSetup.setNewGameDemandFactor}
