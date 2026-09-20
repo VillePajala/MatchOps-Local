@@ -2726,8 +2726,6 @@ export type TranslationKey =
   | 'startScreen.createSeasonTournament'
   | 'startScreen.dashAllTeams'
   | 'startScreen.dashClubSeason'
-  | 'startScreen.dashGames'
-  | 'startScreen.dashGoalDiffTitle'
   | 'startScreen.dashInDays'
   | 'startScreen.dashInProgress'
   | 'startScreen.dashLatestMatch'

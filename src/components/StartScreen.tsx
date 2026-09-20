@@ -377,11 +377,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
           stay fixed. min-h-0 lets the flex child actually shrink to enable it. */}
       <div className="relative z-10 flex-1 min-h-0 overflow-y-auto flex flex-col px-6 pt-4 pb-4 [@media(min-height:700px)]:pt-5 [@media(min-height:700px)]:pb-6 pb-safe">
 
-        {/* === TOP: gear (upper-left) + language switcher (upper-right) ===
-            Split to opposite corners (owner feedback: the gear looked cramped
-            next to the language pill); frees the hero for a slightly larger logo. */}
-        <div className="flex justify-between items-center mb-4">
-          {/* Upper-left: Settings gear, plus the Welcome back-link (local mode). */}
+        {/* === TOP BAR ===
+            Dashboard mode (owner, 2026-09-20): a 56px bar - the wordmark small
+            on the left, the gear on the right - in place of the hero that
+            spent a third of the first screen on the app's own name. Drawn
+            with flex-row-reverse so the one gear block serves both layouts:
+            first child, so it lands right in dashboard mode and left in the
+            launcher. The language switcher leaves Home in dashboard mode: it
+            is set once and lives in Settings (and on the sign-in screen,
+            where a new user needs it). The launcher and first-run modes keep
+            the old layout, where the big wordmark still earns its space. */}
+        <div className={`flex justify-between items-center ${dashboardOn ? 'h-14 mb-1 flex-row-reverse' : 'mb-4'}`}>
+          {/* Settings gear, plus the Welcome back-link (local mode). */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -408,6 +415,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
             )}
           </div>
 
+          {dashboardOn ? (
+            <h1 className="font-bold tracking-tight text-[1.6rem] leading-none">
+              <span className="text-amber-400">MatchOps</span>
+            </h1>
+          ) : (
           {/* Upper-right: language switcher (alone now). */}
           <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
@@ -431,15 +443,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
               FI
             </button>
           </div>
+          )}
         </div>
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1 [@media(min-height:600px)]:pt-[1.5vh]' : 'pt-3 [@media(min-height:600px)]:pt-[5vh]'}`}>
-          <div className={`text-center ${dashboardOn ? 'mb-1' : 'mb-4'}`}>
+        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-0' : 'pt-3 [@media(min-height:600px)]:pt-[5vh]'}`}>
+          <div className={`text-center ${dashboardOn ? 'mb-0' : 'mb-4'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
                 full-size on first-run / empty state). */}
+            {/* Big wordmark: launcher and first-run only - the dashboard has the top bar. */}
+            {!dashboardOn && (
             <div className={`relative inline-block ${dashboardOn ? 'mb-2 [@media(min-height:700px)]:mb-2.5' : 'mb-1.5'}`}>
               {/* Owner, 2026-09-20: the hero sat ~75px below the header and the
                   Taso row fell off the screen. Top padding 4vh -> 1.5vh, the
@@ -455,6 +470,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
+            )}
 
             {/* Tagline - shown in the simple launcher (the dashboard packs its
                 own summary under the logo, so a tagline there would crowd it). */}
