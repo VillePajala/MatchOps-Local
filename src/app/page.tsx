@@ -1667,11 +1667,18 @@ export default function Home() {
   // and a match edited in Ottelutiedot (date, time, venue) closes no such
   // modal: the coach went back to Home and the card still showed the match as
   // it had been until a reload. Re-read on every real match -> Home exit.
+  // AFTER the match's last save has landed, not at the same instant: the
+  // match unmounts on this exit and flushes any pending autosave, but that
+  // write is async, and a read fired in the same commit can still see the
+  // match as it was. One second is longer than the 500 ms debounce plus the
+  // write on any phone this has been tried on.
   const prevScreenForHomeRef = useRef(screen);
   useEffect(() => {
     const cameFromMatch = prevScreenForHomeRef.current === 'home' && screen === 'start';
     prevScreenForHomeRef.current = screen;
-    if (cameFromMatch) void refreshSetupSignals();
+    if (!cameFromMatch) return;
+    const id = setTimeout(() => { void refreshSetupSignals(); }, 1000);
+    return () => clearTimeout(id);
   }, [screen, refreshSetupSignals]);
 
   const handleOpenGameById = useCallback(async (id: string) => {

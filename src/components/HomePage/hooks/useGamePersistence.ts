@@ -584,6 +584,33 @@ export function useGamePersistence({
         periodDurationMinutes: gameSessionState.periodDurationMinutes, // Period duration (adjustable in game settings)
         showPlayerNames: gameSessionState.showPlayerNames, // Player name visibility toggle
         showPositionLabels: gameSessionState.showPositionLabels, // Position labels toggle (FieldContainer button)
+        // THE MATCH'S OWN DETAILS. None of these were watched, so a coach who
+        // opened Ottelutiedot and changed ONLY the kick-off time, the pitch,
+        // the date or the venue changed nothing the autosave looked at - the
+        // edit lived in the session until the match unmounted and was gone.
+        // It went unnoticed because a name or a note usually changes in the
+        // same visit and carries the rest along. The owner hit the case where
+        // it does not, three times in two days.
+        gameDate: gameSessionState.gameDate,
+        gameTime: gameSessionState.gameTime,
+        gameLocation: gameSessionState.gameLocation,
+        fieldNumber: gameSessionState.fieldNumber,
+        locationLat: gameSessionState.locationLat,
+        locationLng: gameSessionState.locationLng,
+        locationAddress: gameSessionState.locationAddress,
+        homeOrAway: gameSessionState.homeOrAway,
+        seasonId: gameSessionState.seasonId,
+        tournamentId: gameSessionState.tournamentId,
+        tournamentSeriesId: gameSessionState.tournamentSeriesId,
+        tournamentLevel: gameSessionState.tournamentLevel,
+        ageGroup: gameSessionState.ageGroup,
+        gender: gameSessionState.gender,
+        gameType: gameSessionState.gameType,
+        teamId: gameSessionState.teamId,
+        numberOfPeriods: gameSessionState.numberOfPeriods,
+        demandFactor: gameSessionState.demandFactor,
+        gamePersonnel: gameSessionState.gamePersonnel,
+        selectedPlayerIds: gameSessionState.selectedPlayerIds,
       },
       delay: 500,
     },

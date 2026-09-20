@@ -4,6 +4,15 @@
     {
       "date": "2026-09-20",
       "en": [
+        "Changing only the kick-off time, pitch, date or venue in match settings now saves. Before, an edit that touched nothing else could be lost when you left the match."
+      ],
+      "fi": [
+        "Pelkän alkamisajan, kentän, päivämäärän tai paikan muuttaminen ottelun tiedoissa tallentuu nyt. Aiemmin muutos, joka ei koskenut mitään muuta, saattoi kadota ottelusta poistuttaessa."
+      ]
+    },
+    {
+      "date": "2026-09-20",
+      "en": [
         "The app now remembers every venue you have used, even after the matches played there are deleted. Start typing a venue's name in a new match and it is offered with its address and pin."
       ],
       "fi": [
