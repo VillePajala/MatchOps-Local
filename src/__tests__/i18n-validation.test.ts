@@ -702,7 +702,11 @@ describe('Translation File Validation', () => {
       // -1 startScreen.dashPlayed: the Jatka card's action row is gone - it
       //     made the card taller than its slot and restated the eyebrow.
       //     Lands at 3341.
-      expect(enKeys.length).toBe(3341);
+      // +3 startScreen.directions/setStartingPoint/setStartingPointWhy: the
+      //     directions button moved into the travel row as a labelled pill,
+      //     and a pinned fixture with no departure time now offers to set the
+      //     starting point right there. Lands at 3344.
+      expect(enKeys.length).toBe(3344);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -891,7 +895,7 @@ describe('Translation File Validation', () => {
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3341);
+      expect(fiKeys.length).toBe(3344);
     });
   });
 });
