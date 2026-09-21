@@ -135,7 +135,14 @@ function CardEyebrow({ children }: { children: React.ReactNode }) {
  * something to justify its size, and the right rail is just number, then car.
  * The chip and the Jatka pill live in the travel row now.
  */
-function CardBody({ who, number, venue, town }: { who: string; number?: string; venue?: string; town?: string }) {
+function CardBody({ who, number, numberClass = '', venue, town }: {
+  who: string;
+  number?: string;
+  /** Colour for the number - the result's, on a played match. */
+  numberClass?: string;
+  venue?: string;
+  town?: string;
+}) {
   // Only the first comma-separated part of the stored venue: newly picked
   // locations store just the name, but games saved earlier kept the whole
   // disambiguation string, and the town has its own line.
@@ -151,7 +158,7 @@ function CardBody({ who, number, venue, town }: { who: string; number?: string; 
           </div>
         )}
       </div>
-      {number && <span className="text-[34px] font-black tabular-nums leading-none tracking-tight">{number}</span>}
+      {number && <span className={`text-[34px] font-black tabular-nums leading-none tracking-tight ${numberClass}`}>{number}</span>}
     </div>
   );
 }
@@ -241,9 +248,23 @@ function ResumeCard({ resume, onResume, locale, t }: {
     <div className={CARD_HERO}>
       <button type="button" onClick={onResume} className={`${CARD_BODY} w-full`}>
         <CardEyebrow>{[t('startScreen.dashLastOpened', 'Last opened'), when].filter(Boolean).join(' · ')}</CardEyebrow>
+        {/* WHO WON (owner, 2026-09-21). The number is our score first, but
+            nothing on the card said so, and with home/away gone there was no
+            other cue. The strip below already colours a score by result -
+            green, grey, red - so the top card follows the same convention.
+            A match not yet played has no result, so its number stays white. */}
         <CardBody
           who={resume.opponent || t('startScreen.dashResumeGame', 'Game')}
           number={`${resume.ourScore}–${resume.theirScore}`}
+          numberClass={
+            !resume.isPlayed
+              ? ''
+              : resume.ourScore > resume.theirScore
+                ? scoreColour.W
+                : resume.ourScore < resume.theirScore
+                  ? scoreColour.L
+                  : scoreColour.D
+          }
           venue={resume.venue}
           town={resume.venueTown}
         />
