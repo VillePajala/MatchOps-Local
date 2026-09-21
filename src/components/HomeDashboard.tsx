@@ -252,8 +252,15 @@ function ResumeCard({ resume, onResume, locale, t }: {
           />
         </button>
       </div>
+      {/* A match not yet played keeps its way there. The row's left side is
+          the address the car will drive to - an empty cell beside a car
+          button read as a mistake (owner, 2026-09-21). No departure time
+          here: that belongs to a fixture, and this match's kick-off is now. */}
       {!resume.isPlayed && resume.mapsUrl && (
         <div className={`${CARD_ACTION_ROW} flex min-h-[34px] items-stretch`}>
+          <span className="flex min-w-0 flex-1 items-center break-words py-1.5 pl-3.5 pr-2.5 text-[11.5px] text-indigo-300">
+            {resume.venueAddress ?? resume.venueTown ?? ''}
+          </span>
           <DirectionsCell href={resume.mapsUrl} t={t} />
         </div>
       )}

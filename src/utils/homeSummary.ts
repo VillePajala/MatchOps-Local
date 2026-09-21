@@ -128,6 +128,8 @@ export interface HomeResumeGame {
   time?: string;
   venue?: string;
   venueTown?: string;
+  /** The written street address, for the travel row of a match still to be played. */
+  venueAddress?: string;
   fieldNumber?: string;
   /**
    * Turn-by-turn directions to the venue, when the match is PINNED to one.
@@ -265,6 +267,7 @@ export function buildHomeSummary(
       time: c.gameTime || undefined,
       venue: c.gameLocation || undefined,
       venueTown: townFromAddress(c.locationAddress, c.gameLocation),
+      venueAddress: c.locationAddress || undefined,
       fieldNumber: c.fieldNumber || undefined,
       mapsUrl: mapsDirectionsUrl(c.locationLat, c.locationLng, c.locationAddress),
       currentPeriod: c.currentPeriod,
