@@ -125,6 +125,8 @@ interface ControlBarProps {
   /** The current match's pinned position, for the directions row. */
   locationLat?: number;
   locationLng?: number;
+  /** The written address; the map routes to it rather than to the pin when present. */
+  locationAddress?: string;
 }
 
 /** Shape of a row that leaves the app. Taso is currently the only one. */
@@ -169,11 +171,12 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onGoToStartScreen,
   locationLat,
   locationLng,
+  locationAddress,
 }) => {
   const { t } = useTranslation();
   // Directions, not a search: see mapsDirectionsUrl. A typed-only location
   // yields null and the row disappears.
-  const venueMapUrl = mapsDirectionsUrl(locationLat, locationLng);
+  const venueMapUrl = mapsDirectionsUrl(locationLat, locationLng, locationAddress);
   const [isFieldToolsOpen, setIsFieldToolsOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
