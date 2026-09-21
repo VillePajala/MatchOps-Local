@@ -711,7 +711,11 @@ describe('Translation File Validation', () => {
       // -2 startScreen.dashGames/dashGoalDiffTitle: the season bar folded into
       //     the strip header, which keeps the label and the W-D-L only; games
       //     count and goal difference live in Tilastot. Lands at 3341.
-      expect(enKeys.length).toBe(3341);
+      // +12 termsOfService/privacyPolicy.thirdPartyServices.{photon,openai,
+      //     palloliitto}*: the terms named four services and the app talks to
+      //     seven; the privacy list lacked the AI provider and palloliitto.fi.
+      //     Lands at 3353.
+      expect(enKeys.length).toBe(3353);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -900,7 +904,7 @@ describe('Translation File Validation', () => {
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3341);
+      expect(fiKeys.length).toBe(3353);
     });
   });
 });

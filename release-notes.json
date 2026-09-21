@@ -4,6 +4,15 @@
     {
       "date": "2026-09-21",
       "en": [
+        "The terms and privacy policy now name every service the app talks to, including the venue search, the AI provider you may connect yourself, and the rulebook source."
+      ],
+      "fi": [
+        "Käyttöehdot ja tietosuojakäytäntö nimeävät nyt kaikki palvelut, joihin sovellus on yhteydessä, mukaan lukien paikkahaku, itse yhdistämäsi tekoälypalvelu ja sääntökirjan lähde."
+      ]
+    },
+    {
+      "date": "2026-09-21",
+      "en": [
         "No changes you will see in this release - only faster checks behind the scenes."
       ],
       "fi": [

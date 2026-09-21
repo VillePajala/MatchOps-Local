@@ -143,6 +143,18 @@ export function PrivacyPolicyClient() {
                 {t('privacyPolicy.thirdPartyServices.photonLink')}
               </a>
             </p>
+            <p>
+              <strong>{t('privacyPolicy.thirdPartyServices.openai')}</strong> - {t('privacyPolicy.thirdPartyServices.openaiDesc')}{' '}
+              <a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+                {t('privacyPolicy.thirdPartyServices.openaiLink')}
+              </a>
+            </p>
+            <p>
+              <strong>{t('privacyPolicy.thirdPartyServices.palloliitto')}</strong> - {t('privacyPolicy.thirdPartyServices.palloliittoDesc')}{' '}
+              <a href="https://www.palloliitto.fi/tietosuoja" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+                {t('privacyPolicy.thirdPartyServices.palloliittoLink')}
+              </a>
+            </p>
           </div>
         </section>
 
