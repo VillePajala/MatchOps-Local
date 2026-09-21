@@ -715,7 +715,10 @@ describe('Translation File Validation', () => {
       //     palloliitto}*: the terms named four services and the app talks to
       //     seven; the privacy list lacked the AI provider and palloliitto.fi.
       //     Lands at 3353.
-      expect(enKeys.length).toBe(3353);
+      // +1 startScreen.dashLastOpened, -2 dashLatestMatch/dashInProgress: the
+      //     Jatka card names what the slot is (the match you last opened)
+      //     instead of guessing a state from the clock. Lands at 3352.
+      expect(enKeys.length).toBe(3352);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -904,7 +907,7 @@ describe('Translation File Validation', () => {
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3353);
+      expect(fiKeys.length).toBe(3352);
     });
   });
 });
