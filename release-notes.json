@@ -11,6 +11,15 @@
       ]
     },
     {
+      "date": "2026-09-21",
+      "en": [
+        "The season record now sits on the Recent line of the front page instead of a bar of its own, so the page is shorter. Tap it for the full stats."
+      ],
+      "fi": [
+        "Kauden saldo on nyt etusivun Viimeisimmät-rivillä oman palkin sijaan, joten sivu on lyhyempi. Napauta sitä nähdäksesi täydet tilastot."
+      ]
+    },
+    {
       "date": "2026-09-20",
       "en": [
         "The front page sits a little higher: less empty space above the MatchOps title, so more of the page fits on screen."
