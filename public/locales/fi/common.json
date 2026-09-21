@@ -2499,7 +2499,13 @@
       "vercelLink": "Vercelin tietosuojakäytäntö",
       "photon": "Photon (Komoot)",
       "photonDesc": "Paikkahaku ottelun sijaintikentässä, kun sitä käytetään (EU, Saksa).",
-      "photonLink": "Komootin tietosuojakäytäntö"
+      "photonLink": "Komootin tietosuojakäytäntö",
+      "openai": "OpenAI tai yhdistämäsi tekoälypalvelu",
+      "openaiDesc": "Vain jos yhdistät oman tilisi: valitsemasi äänimuistiinpanot ja tekstit lähetetään palveluun omalla avaimellasi. Meillä ei ole avainta emmekä näe sisältöä (ks. Äänimuistiinpanot ja tekoäly).",
+      "openaiLink": "OpenAI:n tietosuojakäytäntö",
+      "palloliitto": "palloliitto.fi (Suomen Palloliitto)",
+      "palloliittoDesc": "Sääntökirjan PDF haetaan heidän sivustoltaan, kun avaat säännön; he näkevät pyynnön kuten minkä tahansa sivustokäynnin (IP-osoite), eivät muuta.",
+      "palloliittoLink": "Palloliiton tietosuojaseloste"
     },
     "yourRights": {
       "title": "Oikeutesi (GDPR)",
@@ -2689,6 +2695,12 @@
       "supabaseDesc": "Pilvisynkronointiin ja todennukseen (pilvitila)",
       "vercel": "Vercel",
       "vercelDesc": "PWA-version isännöintiin",
+      "photon": "Photon (Komoot)",
+      "photonDesc": "Paikkahakuun ottelun sijaintikentässä; se vastaanottaa siihen kirjoittamasi tekstin",
+      "openai": "OpenAI tai muu yhdistämäsi tekoälypalvelu",
+      "openaiDesc": "Äänimuistiinpanojen litterointiin ja otteluraporttien luonnoksiin, vain omalla tililläsi ja API-avaimellasi ja vain jos yhdistät sellaisen",
+      "palloliitto": "palloliitto.fi",
+      "palloliittoDesc": "Sääntökirja haetaan Palloliiton omalta sivustolta, kun avaat säännön",
       "note": "Näiden palveluiden käyttöäsi koskevat niiden omat ehdot ja käytännöt."
     },
     "premiumSubscription": {

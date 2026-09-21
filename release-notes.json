@@ -4,6 +4,15 @@
     {
       "date": "2026-09-21",
       "en": [
+        "The terms and privacy policy now name every service the app talks to, including the venue search, the AI provider you may connect yourself, and the rulebook source."
+      ],
+      "fi": [
+        "Käyttöehdot ja tietosuojakäytäntö nimeävät nyt kaikki palvelut, joihin sovellus on yhteydessä, mukaan lukien paikkahaku, itse yhdistämäsi tekoälypalvelu ja sääntökirjan lähde."
+      ]
+    },
+    {
+      "date": "2026-09-21",
+      "en": [
         "Settings now take effect on the front page as soon as you close them: set your starting point and the next-match card shows when to leave right away, no reload needed. Same for the club season start and the arrival buffer."
       ],
       "fi": [
