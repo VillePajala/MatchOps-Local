@@ -536,12 +536,14 @@ describe('the top card composition', () => {
     expect(town.className).not.toMatch(/truncate/);
   });
 
-  it('says which match it is: Latest for a played one, In progress otherwise', () => {
+  /** One state, not three: the slot is "the match you last opened", played or not. */
+  it('names the slot, not a guessed state', () => {
     const { rerender } = render(<HomeDashboard summary={base({ resume: played })} t={t} />);
-    expect(screen.getByText(/^Latest/)).toBeInTheDocument();
+    expect(screen.getByText(/^Last opened/)).toBeInTheDocument();
 
     rerender(<HomeDashboard summary={base({ resume: { ...played, isPlayed: false } })} t={t} />);
-    expect(screen.getByText(/^In progress/)).toBeInTheDocument();
+    expect(screen.getByText(/^Last opened/)).toBeInTheDocument();
+    expect(screen.queryByText(/In progress|Latest/)).toBeNull();
   });
 
   /** The owner's call: it did not earn its row. */
@@ -551,10 +553,10 @@ describe('the top card composition', () => {
     expect(screen.queryByText(/^(Home|Away)$/)).toBeNull();
   });
 
-  /** Directions to a ground you came home from is a button with no job. */
-  it('offers directions only while the match is still to be played', () => {
+  /** Same data points in every state: a pinned venue always has its way there. */
+  it('offers directions to a pinned venue whether or not the match was played', () => {
     const { rerender } = render(<HomeDashboard summary={base({ resume: played })} t={t} />);
-    expect(screen.queryByRole('link', { name: /Directions/ })).toBeNull();
+    expect(screen.getByRole('link', { name: /Directions/ })).toHaveAttribute('href', 'https://maps.example/x');
 
     rerender(<HomeDashboard summary={base({ resume: { ...played, isPlayed: false } })} t={t} />);
     expect(screen.getByRole('link', { name: /Directions/ })).toHaveAttribute('href', 'https://maps.example/x');
@@ -628,5 +630,15 @@ describe('the travel row', () => {
 
     const body = screen.getByRole('button', { name: /Purppura/ });
     expect(body.querySelector('a')).toBeNull();
+  });
+
+  /** A1: the pitch chip rides the travel row; the number has the body's right column to itself. */
+  it('puts the pitch in the travel row, beside the address', () => {
+    render(<HomeDashboard summary={base({ upcoming: pinned({ travel: travel(), venueAddress: 'Puusepänkatu 1, Savonlinna' }) })} t={t} />);
+
+    const body = screen.getByRole('button', { name: /Purppura/ });
+    expect(body).not.toHaveTextContent('TN 2');
+    expect(screen.getByText('TN 2')).toBeInTheDocument();
+    expect(screen.getByText('Puusepänkatu 1, Savonlinna')).toBeInTheDocument();
   });
 });
