@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-21",
+      "en": [
+        "Settings now take effect on the front page as soon as you close them: set your starting point and the next-match card shows when to leave right away, no reload needed. Same for the club season start and the arrival buffer."
+      ],
+      "fi": [
+        "Asetukset näkyvät etusivulla heti kun suljet ne: aseta lähtöpaikka, ja seuraava ottelu -kortti näyttää lähtöajan saman tien ilman uudelleenlatausta. Sama koskee seurakauden alkua ja saapumisaikaa."
+      ]
+    },
+    {
       "date": "2026-09-20",
       "en": [
         "The front page sits a little higher: less empty space above the MatchOps title, so more of the page fits on screen."

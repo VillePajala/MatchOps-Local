@@ -554,10 +554,22 @@ export default function Home() {
       // closed, so the pills and the numbers have to follow. Every count, not
       // just teams: this same path runs after managing seasons, tournaments and
       // personnel, and leaving those stale is the staleness this set out to end.
+      // SETTINGS TOO (owner, 2026-09-21). The coach tapped "Aseta lähtöpaikka"
+      // on the next-match card, set it in Settings, came back - and the card
+      // still had no departure time until a reload. The summary inputs that
+      // come from settings were read once at boot and carried forward here
+      // unchanged. Every refresh now re-reads them, so a change made in
+      // Settings is on the card the moment the modal closes.
+      setHomeView(settings.homeView === 'simple' ? 'simple' : 'dashboard');
       const prev = homeSummaryInputsRef.current;
       if (prev) {
         applyTeamScope(games, teamsList, seasonsList, tournamentsList, {
           ...prev[1],
+          clubSeasonStartDate: settings.clubSeasonStartDate,
+          clubSeasonEndDate: settings.clubSeasonEndDate,
+          hasConfiguredSeasonDates: settings.hasConfiguredSeasonDates,
+          startingPoint: asCoordinates(settings.startingPoint),
+          arrivalBufferMinutes: settings.arrivalBufferMinutes,
           roster,
           teamsCount: teamsList.length,
           seasonsCount: seasonsList.length,
