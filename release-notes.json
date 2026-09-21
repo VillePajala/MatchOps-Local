@@ -4,6 +4,15 @@
     {
       "date": "2026-09-21",
       "en": [
+        "On a match still to be played, the Jatka card's travel row now shows the venue's address beside the directions button instead of an empty space."
+      ],
+      "fi": [
+        "Vielä pelaamattoman ottelun Jatka-kortin matkarivi näyttää nyt paikan osoitteen reittinapin vieressä tyhjän tilan sijaan."
+      ]
+    },
+    {
+      "date": "2026-09-21",
+      "en": [
         "Directions now go to the street address you wrote for the venue, not to the nearest point the map service knew - so \"Puusepänkatu 1\" takes you to number 1. A house number you type is kept even when the address search only knows the street."
       ],
       "fi": [
