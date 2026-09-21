@@ -4,6 +4,15 @@
     {
       "date": "2026-09-21",
       "en": [
+        "On the front page's top card the score is now coloured like the results below it: green for a win, red for a loss, grey for a draw. Your score is always first."
+      ],
+      "fi": [
+        "Etusivun ylimmällä kortilla tulos on nyt väritetty kuten alla olevat tulokset: vihreä voitto, punainen tappio, harmaa tasapeli. Oma maalimäärä on aina ensin."
+      ]
+    },
+    {
+      "date": "2026-09-21",
+      "en": [
         "The front page's top card has one shape in every state: the number (kick-off or score) in its own column beside the opponent and venue, and a travel row underneath with the address, the pitch or the Jatka button, and directions. The Jatka card now simply says Last opened instead of guessing whether the match is in progress."
       ],
       "fi": [
