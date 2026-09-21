@@ -133,6 +133,15 @@ export function TermsOfServiceClient() {
             <li>
               <strong>{t('termsOfService.thirdPartyServices.vercel')}</strong> - {t('termsOfService.thirdPartyServices.vercelDesc')}
             </li>
+            <li>
+              <strong>{t('termsOfService.thirdPartyServices.photon')}</strong> - {t('termsOfService.thirdPartyServices.photonDesc')}
+            </li>
+            <li>
+              <strong>{t('termsOfService.thirdPartyServices.openai')}</strong> - {t('termsOfService.thirdPartyServices.openaiDesc')}
+            </li>
+            <li>
+              <strong>{t('termsOfService.thirdPartyServices.palloliitto')}</strong> - {t('termsOfService.thirdPartyServices.palloliittoDesc')}
+            </li>
           </ul>
           <p className="text-slate-300 mt-2">{t('termsOfService.thirdPartyServices.note')}</p>
         </section>

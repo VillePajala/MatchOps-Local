@@ -714,7 +714,13 @@
       "vercelLink": "Vercel's Privacy Policy",
       "photon": "Photon (Komoot)",
       "photonDesc": "Venue search in the match location field, when used (EU, Germany).",
-      "photonLink": "Komoot Privacy Policy"
+      "photonLink": "Komoot Privacy Policy",
+      "openai": "OpenAI, or the AI provider you connect",
+      "openaiDesc": "Only if you connect your own account: the voice notes and text you choose to send go to that provider under your own key. We hold no key and see no content (see Voice notes and AI).",
+      "openaiLink": "OpenAI Privacy Policy",
+      "palloliitto": "palloliitto.fi (Football Association of Finland)",
+      "palloliittoDesc": "The rulebook PDF is fetched from their site when you open a law; they see the request as they would any website visit (IP address), nothing else.",
+      "palloliittoLink": "Palloliitto Privacy Notice"
     },
     "yourRights": {
       "title": "Your Rights (GDPR)",
@@ -768,7 +774,7 @@
   },
   "termsOfService": {
     "title": "Terms of Service for MatchOps",
-    "version": "Terms Version: 2026-06",
+    "version": "Terms Version: 2026-09",
     "lastUpdated": "Last Updated: June 2026",
     "agreement": {
       "title": "Agreement to Terms",
@@ -861,6 +867,12 @@
       "supabaseDesc": "For cloud sync and authentication (cloud mode)",
       "vercel": "Vercel",
       "vercelDesc": "For PWA web hosting",
+      "photon": "Photon (Komoot)",
+      "photonDesc": "For venue search in the match location field; it receives the text you type there",
+      "openai": "OpenAI, or another AI provider you connect",
+      "openaiDesc": "For voice-note transcription and match report drafts, only through your own account and API key, and only if you connect one",
+      "palloliitto": "palloliitto.fi",
+      "palloliittoDesc": "The rulebook is fetched from the Football Association of Finland's own site when you open a law",
       "note": "Your use of these services is governed by their respective terms and policies."
     },
     "premiumSubscription": {

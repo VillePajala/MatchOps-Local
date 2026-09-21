@@ -1,9 +1,9 @@
 # Privacy Policy for MatchOps
 
-**Last Updated**: June 2026
-**Policy Version**: 2026-06
+**Last Updated**: September 2026
+**Policy Version**: 2026-09
 
-> **Hosted URL**: https://match-ops.com/privacy-policy (use this URL for Play Store submission). `/privacy-policy` 301-redirects to the marketing-site privacy page at `/privacy` (`site/next.config.mjs`) — **takes effect on the next marketing-site deploy.**
+> **Hosted URL**: https://match-ops.com/privacy-policy (use this URL for Play Store submission). `/privacy-policy` 301-redirects to the marketing-site privacy page at `/privacy` (`site/next.config.mjs`) — verified live 2026-09-21 (308 to `/privacy`).
 >
 > **Canonical source**: the live text is in the locale files (`public/locales/{en,fi}/common.json` and `site/public/locales/...` → `privacyPolicy.*`), rendered at `/privacy-policy` (app) and `/privacy` (site). Keep this snapshot in sync with those; it may lag the live text in places.
 
@@ -130,6 +130,8 @@ We use the following third-party services to operate MatchOps. Data processing a
 | **Sentry** | Error reporting and crash analysis | US (Standard Contractual Clauses) | [Sentry Privacy Policy](https://sentry.io/privacy/) |
 | **Supabase** | Cloud database and authentication (cloud mode) | EU (Frankfurt) | [Supabase Privacy Policy](https://supabase.com/privacy) |
 | **Vercel** | PWA web hosting | Global edge network (Standard Contractual Clauses) | [Vercel Privacy Policy](https://vercel.com/legal/privacy-policy) |
+| **OpenAI, or the AI provider you connect** | Voice-note transcription and report drafts, only if you connect your own account and key; we hold no key and see no content | Provider's own (OpenAI: US, under its own terms with you) | [OpenAI Privacy Policy](https://openai.com/policies/privacy-policy) |
+| **palloliitto.fi (Football Association of Finland)** | The rulebook PDF is fetched from their site when you open a law; they see the request as any website visit (IP address) | Finland | [Palloliitto Privacy Notice](https://www.palloliitto.fi/tietosuoja) |
 
 ## Your Rights (GDPR)
 
