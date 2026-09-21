@@ -87,6 +87,8 @@ export interface HomeUpcomingGame {
    * on Thursday is asking the second question, not the first.
    */
   venueTown?: string;
+  /** The written street address, for the travel row. */
+  venueAddress?: string;
   fieldNumber?: string;
   /**
    * Turn-by-turn directions, or null when the venue was only typed.
@@ -398,6 +400,7 @@ export function buildHomeSummary(
       time: g.gameTime || undefined,
       venue: g.gameLocation || undefined,
       venueTown: townFromAddress(g.locationAddress, g.gameLocation),
+      venueAddress: g.locationAddress || undefined,
       fieldNumber: g.fieldNumber || undefined,
       mapsUrl: mapsDirectionsUrl(g.locationLat, g.locationLng, g.locationAddress),
       daysAway: daysBetween(opts.today, g.gameDate || ''),

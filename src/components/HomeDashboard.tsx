@@ -125,51 +125,65 @@ function CardEyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** The opponent, and the one number that matters for this state. */
-function CardMain({ who, number }: { who: string; number?: string }) {
+/**
+ * The card body (owner's pick A1, 2026-09-21): two columns. The text stack -
+ * opponent, venue name, town - on the left; the one number alone on the right,
+ * centred against the whole stack. The number had been beside the opponent
+ * only, 2.25x its size and related to nothing vertically, with a chip or pill
+ * floating under it: the card's weight was dragged into its top-right corner
+ * and the right edge was ragged. Given a column of its own, the number has
+ * something to justify its size, and the right rail is just number, then car.
+ * The chip and the Jatka pill live in the travel row now.
+ */
+function CardBody({ who, number, venue, town }: { who: string; number?: string; venue?: string; town?: string }) {
+  // Only the first comma-separated part of the stored venue: newly picked
+  // locations store just the name, but games saved earlier kept the whole
+  // disambiguation string, and the town has its own line.
+  const name = venue?.split(',')[0]?.trim();
   return (
-    // CENTRED, NOT BASELINE-ALIGNED. With a 40px number the baseline sat so
-    // low that the opponent was pushed down and a band of nothing opened
-    // between the eyebrow and the name; the whole card grew and shoved the
-    // season bar off the screen. Centred, the row is exactly the number's
-    // height and the name sits beside it.
-    <div className="flex items-center justify-between gap-3">
-      <span className="min-w-0 break-words text-base font-extrabold leading-tight">{who}</span>
-      {number && <span className="shrink-0 text-4xl font-black tabular-nums leading-none tracking-tight">{number}</span>}
+    <div className="grid grid-cols-[1fr_auto] items-center gap-x-3">
+      <div className="min-w-0">
+        <div className="break-words text-base font-extrabold leading-tight">{who}</div>
+        {(name || town) && (
+          <div className="mt-0.5 break-words leading-tight">
+            {name && <div className="text-[13px] font-semibold">{name}</div>}
+            {town && <div className="text-xs text-indigo-200">{town}</div>}
+          </div>
+        )}
+      </div>
+      {number && <span className="text-[34px] font-black tabular-nums leading-none tracking-tight">{number}</span>}
     </div>
   );
 }
 
 /**
- * Venue name over its town, the pitch as a chip beside them, and whatever
- * action belongs on that row (the Jatka pill). Renders nothing when none of
- * it is set, so a bare match stays a bare card.
- *
- * Only the first comma-separated part of the stored venue: newly picked
- * locations store just the name, but games saved earlier kept the whole
- * disambiguation string, and the town has its own line now.
+ * The travel row: a text block on the left (departure line, address), what
+ * rides beside it (the pitch chip, or the Jatka pill), and the car behind a
+ * hairline at the end. The same row on both cards, so the eye learns one.
  */
-function CardWhere({ venue, town, pitch, trailing }: {
-  venue?: string;
-  town?: string;
-  pitch?: string;
+function TravelRow({ children, trailing, mapsUrl, t }: {
+  children?: React.ReactNode;
   trailing?: React.ReactNode;
+  mapsUrl: string | null;
+  t: TFunction;
 }) {
-  const name = venue?.split(',')[0]?.trim();
-  if (!name && !town && !pitch && !trailing) return null;
   return (
-    <div className="mt-1 flex items-center gap-2">
-      <div className="min-w-0 flex-1 break-words leading-tight">
-        {name && <div className="text-[13px] font-semibold">{name}</div>}
-        {town && <div className="text-xs text-indigo-200">{town}</div>}
+    <div className={`${CARD_ACTION_ROW} flex min-h-[34px] items-stretch`}>
+      <div className="flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-3.5 pr-2.5">
+        <div className="flex min-w-0 flex-1 flex-col text-[11.5px] leading-snug">{children}</div>
+        {trailing}
       </div>
-      {pitch && (
-        <span className="shrink-0 rounded-md border border-indigo-400/40 bg-indigo-500/20 px-1.5 py-1 text-[11px] font-bold tabular-nums">
-          {pitch}
-        </span>
-      )}
-      {trailing}
+      {mapsUrl && <DirectionsCell href={mapsUrl} t={t} />}
     </div>
+  );
+}
+
+/** The pitch, as a chip that never gives way. */
+function PitchChip({ pitch }: { pitch: string }) {
+  return (
+    <span className="shrink-0 rounded-md border border-indigo-400/40 bg-indigo-500/20 px-1.5 py-1 text-[11px] font-bold tabular-nums">
+      {pitch}
+    </span>
   );
 }
 
@@ -204,13 +218,14 @@ function DirectionsCell({ href, t }: { href: string; t: TFunction }) {
 }
 
 /**
- * The match you have open, or failing that the latest one played.
+ * The match you last opened - or, when none is open, the latest one played,
+ * which is simply the last one you opened.
  *
- * The eyebrow says which: "In progress" while the clock has not been stopped
- * for good, "Latest" once it has. NO ACTION ROW (owner, 2026-09-20): a row of
- * its own for "Pelattu" and the pill made the card taller than the slot and
- * restated what the eyebrow already said. The Jatka pill rides the venue row
- * instead, where the eye lands last.
+ * ONE STATE, NOT THREE (owner, 2026-09-21). This card used to say Kesken,
+ * Pelaamatta or Viimeisin depending on the clock and the flag; the score
+ * already says it ("0-0" with no clock is an unplayed match) and Jatka is the
+ * action either way. The eyebrow names what the slot is - the match you last
+ * opened - and its day.
  */
 function ResumeCard({ resume, onResume, locale, t }: {
   resume: HomeResumeGame;
@@ -221,49 +236,37 @@ function ResumeCard({ resume, onResume, locale, t }: {
   const when = [resume.date ? formatWeekdayDate(resume.date, locale) : null, resume.time]
     .filter(Boolean)
     .join(' ');
-  const role = resume.isPlayed
-    ? t('startScreen.dashLatestMatch', 'Latest')
-    : t('startScreen.dashInProgress', 'In progress');
 
   return (
     <div className={CARD_HERO}>
-      <div className="flex items-end">
-        <button type="button" onClick={onResume} className={CARD_BODY}>
-          <CardEyebrow>{[role, when].filter(Boolean).join(' · ')}</CardEyebrow>
-          <CardMain
-            who={resume.opponent || t('startScreen.dashResumeGame', 'Game')}
-            number={`${resume.ourScore}–${resume.theirScore}`}
-          />
-          <CardWhere
-            venue={resume.venue}
-            town={resume.venueTown}
-            pitch={resume.fieldNumber}
-            trailing={
-              /* The one amber thing on this card, and the only thing to press.
-                 Amber used to coat the whole card, which put it in direct
-                 competition with the amber wordmark directly above it. The
-                 card is still the most prominent surface on the tab through
-                 its gradient and border; amber means "press this" and
-                 nothing else. */
-              <span className="shrink-0 rounded-full bg-amber-500 px-3 py-1 text-xs font-extrabold text-slate-900">
-                {t('startScreen.resumeCard', 'Continue')} →
-              </span>
-            }
-          />
-        </button>
-      </div>
-      {/* A match not yet played keeps its way there. The row's left side is
-          the address the car will drive to - an empty cell beside a car
-          button read as a mistake (owner, 2026-09-21). No departure time
-          here: that belongs to a fixture, and this match's kick-off is now. */}
-      {!resume.isPlayed && resume.mapsUrl && (
-        <div className={`${CARD_ACTION_ROW} flex min-h-[34px] items-stretch`}>
-          <span className="flex min-w-0 flex-1 items-center break-words py-1.5 pl-3.5 pr-2.5 text-[11.5px] text-indigo-300">
-            {resume.venueAddress ?? resume.venueTown ?? ''}
-          </span>
-          <DirectionsCell href={resume.mapsUrl} t={t} />
-        </div>
-      )}
+      <button type="button" onClick={onResume} className={`${CARD_BODY} w-full`}>
+        <CardEyebrow>{[t('startScreen.dashLastOpened', 'Last opened'), when].filter(Boolean).join(' · ')}</CardEyebrow>
+        <CardBody
+          who={resume.opponent || t('startScreen.dashResumeGame', 'Game')}
+          number={`${resume.ourScore}–${resume.theirScore}`}
+          venue={resume.venue}
+          town={resume.venueTown}
+        />
+      </button>
+      <TravelRow
+        mapsUrl={resume.mapsUrl}
+        t={t}
+        trailing={
+          /* The one amber thing on this card, and the only thing to press.
+             Amber used to coat the whole card, which put it in direct
+             competition with the amber wordmark directly above it. Amber
+             means "press this" and nothing else. */
+          <button
+            type="button"
+            onClick={onResume}
+            className="shrink-0 rounded-full bg-amber-500 px-3 py-1 text-xs font-extrabold text-slate-900 transition-colors hover:bg-amber-400"
+          >
+            {t('startScreen.resumeCard', 'Continue')} →
+          </button>
+        }
+      >
+        {resume.venueAddress && <span className="text-indigo-300">{resume.venueAddress}</span>}
+      </TravelRow>
     </div>
   );
 }
@@ -315,32 +318,34 @@ function NextMatchCard({
     // is exactly what the adjustment sheet is.
     <div className="relative">
     <div className={CARD_HERO}>
-      <div className="flex items-end">
-        <button type="button" onClick={() => onOpen?.(game.id)} className={CARD_BODY}>
-          <CardEyebrow>{t('startScreen.dashNextMatch', 'Next match')} · {countdown}</CardEyebrow>
-          <CardMain who={game.opponent || t('startScreen.dashResumeGame', 'Game')} number={game.time} />
-          <CardWhere venue={game.venue} town={game.venueTown} pitch={game.fieldNumber} />
-        </button>
-      </div>
+      <button type="button" onClick={() => onOpen?.(game.id)} className={`${CARD_BODY} w-full`}>
+        <CardEyebrow>{t('startScreen.dashNextMatch', 'Next match')} · {countdown}</CardEyebrow>
+        <CardBody
+          who={game.opponent || t('startScreen.dashResumeGame', 'Game')}
+          number={game.time}
+          venue={game.venue}
+          town={game.venueTown}
+        />
+      </button>
 
-      {/* THE TRAVEL ROW: when to leave on the left, the way there on the right.
+      {/* THE TRAVEL ROW: when to leave, the address, the pitch, the way there.
           Departure is kick-off minus the time you must already BE there minus
           the drive - never kick-off minus the drive, which reads as helpful and
           is late. Tapping it opens both adjustments here rather than adding
           fields to a match form the owner already finds long, and it is the
           same tap that turns the estimate into a measured time.
 
-          A pinned venue with no departure time still gets the row: the left
-          side becomes the offer to set a starting point, made where the coach
-          is already looking rather than in a settings screen nobody finds. */}
-      {(game.travel || game.mapsUrl) && (
-        <div className={`${CARD_ACTION_ROW} flex items-stretch`}>
+          A pinned venue with no departure time still gets the line: it
+          becomes the offer to set a starting point, made where the coach is
+          already looking rather than in a settings screen nobody finds. */}
+      {(game.travel || game.mapsUrl || game.venueAddress || game.fieldNumber) && (
+        <TravelRow mapsUrl={game.mapsUrl} t={t} trailing={game.fieldNumber ? <PitchChip pitch={game.fieldNumber} /> : undefined}>
           {game.travel ? (
             <button
               type="button"
               onClick={() => setAdjusting((v) => !v)}
               aria-expanded={adjusting}
-              className="flex min-w-0 flex-1 items-baseline gap-1.5 py-1.5 pl-3.5 pr-2.5 text-left text-[11.5px] transition-colors hover:bg-indigo-900/40"
+              className="flex items-baseline gap-1.5 text-left transition-colors hover:text-white"
             >
               <span className="font-semibold text-amber-200">
                 {t('startScreen.departAt', 'Leave {{time}}', { time: game.travel.departure })}
@@ -352,22 +357,22 @@ function NextMatchCard({
               <span className="font-normal text-indigo-300">
                 · {game.travel.isEstimate ? `~${driveTime}` : driveTime}
               </span>
-              <span className="ml-auto shrink-0 text-indigo-300">{adjusting ? '▾' : '▸'}</span>
+              <span className="text-indigo-300">{adjusting ? '▾' : '▸'}</span>
             </button>
-          ) : (
+          ) : game.mapsUrl ? (
             <button
               type="button"
               onClick={onSetStartingPoint}
-              className="flex min-w-0 flex-1 items-center py-1.5 pl-3.5 pr-2.5 text-left text-[11.5px] font-semibold text-indigo-200 transition-colors hover:bg-indigo-900/40"
+              className="text-left font-semibold text-indigo-200 transition-colors hover:text-white"
             >
               <span className="border-b border-amber-200/70 text-amber-200">
                 {t('startScreen.setStartingPoint', 'Set a starting point')}
               </span>
               <span className="ml-1">{t('startScreen.setStartingPointWhy', 'to see when to leave')}</span>
             </button>
-          )}
-          {game.mapsUrl && <DirectionsCell href={game.mapsUrl} t={t} />}
-        </div>
+          ) : null}
+          {game.venueAddress && <span className="text-indigo-300">{game.venueAddress}</span>}
+        </TravelRow>
       )}
     </div>
 
