@@ -4,6 +4,15 @@
     {
       "date": "2026-09-21",
       "en": [
+        "No changes you will see in this release - only faster checks behind the scenes."
+      ],
+      "fi": [
+        "Tässä julkaisussa ei sinulle näkyviä muutoksia - vain nopeammat tarkistukset kulissien takana."
+      ]
+    },
+    {
+      "date": "2026-09-21",
+      "en": [
         "Settings now take effect on the front page as soon as you close them: set your starting point and the next-match card shows when to leave right away, no reload needed. Same for the club season start and the arrival buffer."
       ],
       "fi": [
