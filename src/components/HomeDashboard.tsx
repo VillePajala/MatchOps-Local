@@ -252,17 +252,20 @@ function ResumeCard({ resume, onResume, locale, t }: {
         mapsUrl={resume.mapsUrl}
         t={t}
         trailing={
-          /* The one amber thing on this card, and the only thing to press.
-             Amber used to coat the whole card, which put it in direct
-             competition with the amber wordmark directly above it. Amber
-             means "press this" and nothing else. */
-          <button
-            type="button"
-            onClick={onResume}
-            className="shrink-0 rounded-full bg-amber-500 px-3 py-1 text-xs font-extrabold text-slate-900 transition-colors hover:bg-amber-400"
-          >
-            {t('startScreen.resumeCard', 'Continue')} →
-          </button>
+          <>
+            {resume.fieldNumber && <PitchChip pitch={resume.fieldNumber} />}
+            {/* The one amber thing on this card, and the only thing to press.
+                Amber used to coat the whole card, which put it in direct
+                competition with the amber wordmark directly above it. Amber
+                means "press this" and nothing else. */}
+            <button
+              type="button"
+              onClick={onResume}
+              className="shrink-0 rounded-full bg-amber-500 px-3 py-1 text-xs font-extrabold text-slate-900 transition-colors hover:bg-amber-400"
+            >
+              {t('startScreen.resumeCard', 'Continue')} →
+            </button>
+          </>
         }
       >
         {resume.venueAddress && <span className="text-indigo-300">{resume.venueAddress}</span>}
