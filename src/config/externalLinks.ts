@@ -78,7 +78,18 @@ export function mapsSearchUrl(
 export function mapsDirectionsUrl(
   latitude: number | undefined,
   longitude: number | undefined,
+  address?: string,
 ): string | null {
   if (typeof latitude !== 'number' || typeof longitude !== 'number') return null;
-  return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+  // THE WRITTEN ADDRESS WINS OVER THE PIN (owner, 2026-09-21). The pin comes
+  // from OpenStreetMap, which has no house number for many Finnish streets:
+  // "Puusepänkatu 1" pins the street, and Maps then names whatever door is
+  // nearest that point - the coach saw "Muurarinkatu 4" for a match they had
+  // typed as "Puusepänkatu 1". Google resolves the written address to the
+  // house itself, so when there is one it is the destination; the pin still
+  // decides whether this button exists at all (see above) and is the
+  // fallback for a venue that was pinned without an address.
+  const trimmed = address?.trim();
+  const destination = trimmed ? encodeURIComponent(trimmed) : `${latitude},${longitude}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
 }

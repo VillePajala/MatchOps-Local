@@ -4,6 +4,15 @@
     {
       "date": "2026-09-21",
       "en": [
+        "Directions now go to the street address you wrote for the venue, not to the nearest point the map service knew - so \"Puusepänkatu 1\" takes you to number 1. A house number you type is kept even when the address search only knows the street."
+      ],
+      "fi": [
+        "Reittiohjeet vievät nyt kirjoittamaasi katuosoitteeseen, eivät karttapalvelun lähimpään tuntemaan pisteeseen - \"Puusepänkatu 1\" vie numeroon 1. Kirjoittamasi talonumero säilyy, vaikka osoitehaku tuntisi vain kadun."
+      ]
+    },
+    {
+      "date": "2026-09-21",
+      "en": [
         "The terms and privacy policy now name every service the app talks to, including the venue search, the AI provider you may connect yourself, and the rulebook source."
       ],
       "fi": [

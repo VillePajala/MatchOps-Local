@@ -90,6 +90,7 @@ export function GameContainer({
           {...controlBarProps}
           onOpenPlayerAssessmentModal={assessmentsEnabled ? controlBarProps.onOpenPlayerAssessmentModal : undefined}
           locationLat={fieldProps.gameSessionState?.locationLat}
+          locationAddress={fieldProps.gameSessionState?.locationAddress}
           locationLng={fieldProps.gameSessionState?.locationLng}
         />
       </div>

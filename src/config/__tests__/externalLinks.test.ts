@@ -137,3 +137,27 @@ describe('TASO_URL', () => {
     expect(TASO_URL).toBe('https://taso.palloliitto.fi');
   });
 });
+
+/**
+ * @critical - OpenStreetMap has no house number for many Finnish streets, so a
+ * pin for "Puusepänkatu 1" is the street, and Maps names the nearest door to
+ * it. The written address is what the coach meant; the pin only proves the
+ * place is real.
+ */
+describe('mapsDirectionsUrl with a written address', () => {
+  it('routes to the address, not the pin', () => {
+    expect(mapsDirectionsUrl(61.874, 28.8677, 'Puusepänkatu 1, Savonlinna')).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=Puusep%C3%A4nkatu%201%2C%20Savonlinna',
+    );
+  });
+
+  it('still needs the pin to exist at all', () => {
+    expect(mapsDirectionsUrl(undefined, undefined, 'Puusepänkatu 1, Savonlinna')).toBeNull();
+  });
+
+  it('falls back to the pin for a blank address', () => {
+    expect(mapsDirectionsUrl(61.874, 28.8677, '  ')).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=61.874,28.8677',
+    );
+  });
+});
