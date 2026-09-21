@@ -68,6 +68,40 @@ Key points for privacy policy:
 ### Terms of Service URL
 Optional but recommended
 
+### Data Safety form (Play Console, owner-only) - checklist as of 2026-09-21
+
+The declaration predates venue coordinates (migrations 047/048), the venue
+search and the BYOK AI. Declare this, in the console's own categories:
+
+**Collected (sent off the device to us, i.e. Supabase in cloud mode)**
+- Personal info → **Name**: player names, coach-entered. Required for the
+  app's function. Not used for advertising.
+- Personal info → **Email address**: the account. Required (cloud mode).
+- App activity → **Other user-generated content**: matches, lineups, events,
+  notes, venue names and addresses, venue coordinates the coach pinned.
+- App info and performance → **Crash logs**: Sentry, production only.
+- NOT collected: device location (the app has no geolocation permission;
+  `Permissions-Policy: geolocation=()`), contacts, photos, financial info,
+  health info, messages, browsing history, device IDs for ads.
+
+**Shared (sent to a third party)**
+- Venue search text → **Photon (Komoot)**, only when the coach types in the
+  address field. Declare under "Other user-generated content", purpose "App
+  functionality".
+- Voice notes / text → the coach's own AI provider (OpenAI), only if they
+  connect their own key. Google exempts transfers the user initiates to a
+  provider they chose, so this can be left out of "shared" - but say so in
+  the privacy policy (done). Owner's call whether to declare it anyway.
+- Rulebook fetch → palloliitto.fi sees an ordinary web request. No user data.
+
+**Handling**
+- Encrypted in transit: yes (HTTPS everywhere).
+- Users can request deletion: yes - Settings → delete account removes cloud
+  data (edge function) and the local device copy.
+- Data collection is required, not optional, for the app to work in cloud
+  mode; local mode collects nothing.
+- Independent security review: no.
+
 ## Pricing & Distribution
 
 ### Pricing Model

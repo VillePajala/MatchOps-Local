@@ -1,7 +1,7 @@
 # Terms of Service for MatchOps
 
-**Last Updated**: June 2026
-**Terms Version**: 2026-06
+**Last Updated**: September 2026
+**Terms Version**: 2026-09
 
 > **Hosted URL**: https://match-ops.com/terms (use this URL for Play Store submission)
 >
@@ -123,6 +123,9 @@ The app may interact with third-party services:
 - **Sentry** — For error reporting (optional, can be disabled)
 - **Supabase** — For cloud sync and authentication (cloud mode)
 - **Vercel** — For PWA web hosting
+- **Photon (Komoot)** — For venue search in the match location field; it receives the text you type there
+- **OpenAI, or another AI provider you connect** — For voice-note transcription and match report drafts, only through your own account and API key, and only if you connect one
+- **palloliitto.fi** — The rulebook is fetched from the Football Association of Finland's own site when you open a law
 
 Your use of these services is governed by their respective terms and policies.
 
