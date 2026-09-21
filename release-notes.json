@@ -4,6 +4,15 @@
     {
       "date": "2026-09-21",
       "en": [
+        "Settings now take effect on the front page as soon as you close them: set your starting point and the next-match card shows when to leave right away, no reload needed. Same for the club season start and the arrival buffer."
+      ],
+      "fi": [
+        "Asetukset näkyvät etusivulla heti kun suljet ne: aseta lähtöpaikka, ja seuraava ottelu -kortti näyttää lähtöajan saman tien ilman uudelleenlatausta. Sama koskee seurakauden alkua ja saapumisaikaa."
+      ]
+    },
+    {
+      "date": "2026-09-21",
+      "en": [
         "The season record now sits on the Recent line of the front page instead of a bar of its own, so the page is shorter. Tap it for the full stats."
       ],
       "fi": [
