@@ -86,6 +86,30 @@ describe('finding the place', () => {
   });
 
   /**
+   * OSM has no house numbers for many Finnish streets: "Puusepänkatu 1" comes
+   * back as the street alone. The number the coach typed is what they meant;
+   * the street pin only marks where the map thinks the street is.
+   */
+  it('keeps a typed house number when the lookup found only the street', async () => {
+    mockSearch.mockResolvedValue([{
+      key: 'p', name: 'Puusepänkatu', context: 'Savonlinna', town: 'Savonlinna',
+      address: 'Puusepänkatu', latitude: 61.8735, longitude: 28.8676,
+    }]);
+    const { onChange, address } = setup('Mitta-Keittiöt Areena');
+
+    await userEvent.type(address, 'Puusepänkatu 1');
+    await settle();
+    await userEvent.click(screen.getByText('Puusepänkatu, Savonlinna'));
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      name: 'Mitta-Keittiöt Areena',
+      latitude: 61.8735,
+      longitude: 28.8676,
+      address: 'Puusepänkatu 1, Savonlinna',
+    });
+  });
+
+  /**
    * THE MISTAKE THIS DESIGN EXISTS TO PREVENT. The coach has already said what
    * the place is called; an address search must never take that away.
    */

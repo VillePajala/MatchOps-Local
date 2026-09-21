@@ -266,7 +266,7 @@ export function buildHomeSummary(
       venue: c.gameLocation || undefined,
       venueTown: townFromAddress(c.locationAddress, c.gameLocation),
       fieldNumber: c.fieldNumber || undefined,
-      mapsUrl: mapsDirectionsUrl(c.locationLat, c.locationLng),
+      mapsUrl: mapsDirectionsUrl(c.locationLat, c.locationLng, c.locationAddress),
       currentPeriod: c.currentPeriod,
       timeElapsedSeconds: c.timeElapsedInSeconds,
     };
@@ -396,7 +396,7 @@ export function buildHomeSummary(
       venue: g.gameLocation || undefined,
       venueTown: townFromAddress(g.locationAddress, g.gameLocation),
       fieldNumber: g.fieldNumber || undefined,
-      mapsUrl: mapsDirectionsUrl(g.locationLat, g.locationLng),
+      mapsUrl: mapsDirectionsUrl(g.locationLat, g.locationLng, g.locationAddress),
       daysAway: daysBetween(opts.today, g.gameDate || ''),
       travel: planDeparture({
         kickoff: g.gameTime,
