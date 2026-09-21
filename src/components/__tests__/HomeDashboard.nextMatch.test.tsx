@@ -642,3 +642,29 @@ describe('the travel row', () => {
     expect(screen.getByText('Puusepänkatu 1, Savonlinna')).toBeInTheDocument();
   });
 });
+
+/** The number is our score first; the colour says how it went, as the strip already does. */
+describe('the result colour on the top card', () => {
+  const played = (ours: number, theirs: number, isPlayed = true) => ({
+    id: 'g', opponent: 'PePo / Musta', ourScore: ours, theirScore: theirs, homeOrAway: 'away' as const,
+    isPlayed, mapsUrl: null,
+  });
+
+  it.each([
+    ['a win', 5, 3, 'text-green-300'],
+    ['a loss', 1, 6, 'text-red-300'],
+    ['a draw', 2, 2, 'text-slate-200'],
+  ])('colours %s', (_what, ours, theirs, cls) => {
+    render(<HomeDashboard summary={base({ resume: played(ours, theirs) })} t={t} />);
+
+    expect(screen.getByText(`${ours}–${theirs}`).className).toContain(cls);
+  });
+
+  /** No result yet, no colour. */
+  it('leaves an unplayed match white', () => {
+    render(<HomeDashboard summary={base({ resume: played(0, 0, false) })} t={t} />);
+
+    const n = screen.getByText('0–0').className;
+    expect(n).not.toMatch(/text-(green|red)-300|text-slate-200/);
+  });
+});
