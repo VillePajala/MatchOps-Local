@@ -42,9 +42,20 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+  # SHARDED (owner, 2026-09-21). ~4,500 tests on one 2-core runner took
+  # 5.5-6.5 min and was the long pole of every PR round; the other jobs
+  # finish in 1-2.5 min. Four shards run the same suite in parallel, each
+  # ~1.5-2 min. jest --shard splits by test file, so no test runs twice and
+  # none is skipped. Coverage thresholds are per-run and would fail on a
+  # quarter of the suite, so shards run without coverage; the badge
+  # workflow still measures the whole suite on master.
   test:
-    name: Test
+    name: Test (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       
@@ -56,16 +67,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Run all tests
-        run: CI=true npx jest --ci --maxWorkers=2 --testTimeout=30000
+      - name: Run tests (shard ${{ matrix.shard }} of 4)
+        run: CI=true npx jest --ci --maxWorkers=2 --testTimeout=30000 --coverage=false --shard=${{ matrix.shard }}/4
         env:
           NODE_OPTIONS: '--max-old-space-size=4096'
-      
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        if: always()
-        with:
-          fail_ci_if_error: false
 
   build:
     name: Build
