@@ -35,6 +35,20 @@ describe('directions on the resume card', () => {
   });
 
   /** The reported bug: a typed region name is not somewhere you can drive to. */
+  /** OSM pins the street; Google resolves the house. The address the coach wrote wins. */
+  it('routes to the written address when the match has one', () => {
+    const s = summaryFor({
+      gameLocation: 'Mitta-Keittiöt Areena',
+      locationAddress: 'Puusepänkatu 1, Savonlinna',
+      locationLat: 61.874,
+      locationLng: 28.8677,
+    });
+
+    expect(s.resume?.mapsUrl).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=Puusep%C3%A4nkatu%201%2C%20Savonlinna',
+    );
+  });
+
   it('offers nothing for a location that was only typed', () => {
     const s = summaryFor({ gameLocation: 'Itäinen alue' });
 

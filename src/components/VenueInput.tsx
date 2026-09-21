@@ -183,16 +183,31 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   const pickAddress = useCallback(
     (suggestion: VenueSuggestion) => {
       const pin = venuePinLabel(suggestion);
+      // THE HOUSE NUMBER THE COACH TYPED SURVIVES A STREET-ONLY HIT (owner,
+      // 2026-09-21). OpenStreetMap has no numbers for many Finnish streets, so
+      // "Puusepänkatu 1" comes back as the street alone, and storing that
+      // label lost the number - the map then routed to whichever door was
+      // nearest the street's midpoint. When the coach wrote a number and the
+      // lookup found none, the written address is kept (with the town the
+      // lookup did find) and the pin marks the street.
+      const typed = address?.trim() ?? '';
+      const typedHasNumber = /\d/.test(typed);
+      const hitHasNumber = /\d/.test(suggestion.address ?? '');
+      const keepTyped = typedHasNumber && !hitHasNumber;
+      const withTown = (text: string) =>
+        suggestion.town && !text.toLowerCase().includes(suggestion.town.toLowerCase())
+          ? `${text}, ${suggestion.town}`
+          : text;
       onChange({
         // A coach who has already named the place must never have it replaced
         // by an address; one who has not gets the venue's own name for free.
         name: value.trim() || suggestion.name,
         latitude: suggestion.latitude,
         longitude: suggestion.longitude,
-        address: pin,
+        address: keepTyped ? withTown(typed) : pin,
       });
     },
-    [onChange, value],
+    [onChange, value, address],
   );
 
   /** Editing the address is searching again, so the old pin no longer applies. */
