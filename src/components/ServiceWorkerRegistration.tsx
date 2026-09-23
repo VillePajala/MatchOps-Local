@@ -12,6 +12,8 @@ interface ChangelogData {
     en: string[];
     fi: string[];
   };
+  /** True for a release that changes nothing a coach can see (deps, refactors). */
+  internal?: boolean;
 }
 
 export type UpdatePhase = 'available' | 'installing' | 'ready';
@@ -22,8 +24,10 @@ export default function ServiceWorkerRegistration() {
   const [releaseNotes, setReleaseNotes] = useState<string[] | undefined>();
   const [updatePhase, setUpdatePhase] = useState<UpdatePhase>('available');
 
-  // Fetch changelog when update is detected
-  const fetchReleaseNotes = async () => {
+  // Fetch changelog when update is detected. Tells the caller whether the
+  // release is internal; unknown (fetch failed) counts as visible, so a
+  // broken changelog can never hide an update.
+  const fetchReleaseNotes = async (): Promise<{ internal: boolean }> => {
     try {
       // Cache bust to ensure we get the latest notes
       const res = await fetch('/changelog.json?t=' + Date.now());
@@ -38,11 +42,32 @@ export default function ServiceWorkerRegistration() {
           // changelog.json is cached; always hand the banner an array.
           setReleaseNotes(Array.isArray(note) ? note : note ? [note] : undefined);
         }
+        return { internal: data.internal === true };
       }
     } catch {
       // Notes are optional, don't block update banner
       logger.debug('[PWA] Could not fetch changelog');
     }
+    return { internal: false };
+  };
+
+  /**
+   * A new worker is installed and waiting. Visible releases get the banner.
+   * Internal ones (release note marked `internal: true`) stay waiting
+   * silently and activate on the next launch, which is the browser's own
+   * lifecycle: a waiting worker takes over once the old one has no clients
+   * left. A later visible release replaces the waiting worker and comes back
+   * through here with its own changelog, so the banner is never lost.
+   */
+  const offerUpdate = async (worker: ServiceWorker, how: string) => {
+    const { internal } = await fetchReleaseNotes();
+    setWaitingWorker(worker);
+    if (internal) {
+      logger.log(`[PWA] Update ${how} is internal - installed silently, applies on the next launch`);
+      return;
+    }
+    logger.log(`[PWA] Update ${how} - showing update banner`);
+    setShowUpdateBanner(true);
   };
 
   useEffect(() => {
@@ -76,10 +101,7 @@ export default function ServiceWorkerRegistration() {
 
       // Look for a waiting service worker
       if (registration.waiting) {
-        logger.log('[PWA] Update available on registration - showing update banner');
-        setWaitingWorker(registration.waiting);
-        setShowUpdateBanner(true);
-        fetchReleaseNotes();
+        offerUpdate(registration.waiting, 'available on registration');
         return;
       }
 
@@ -92,10 +114,7 @@ export default function ServiceWorkerRegistration() {
             logger.log('[PWA] New service worker state changed:', newWorker.state);
             // When the new worker is installed and waiting
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                logger.log('[PWA] New service worker installed - showing update banner');
-                setWaitingWorker(newWorker);
-                setShowUpdateBanner(true);
-                fetchReleaseNotes();
+                offerUpdate(newWorker, 'installed');
               }
           };
         }
