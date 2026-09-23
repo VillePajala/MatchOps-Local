@@ -14,6 +14,7 @@ const eslintConfig = [
       "coverage/**",
       "test-results/**",
       "docs/**",
+      "scripts/promo-video/**",
       "__mocks__/**",
       "types/**",
       "public/**",
