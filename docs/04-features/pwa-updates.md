@@ -8,6 +8,15 @@ MatchOps-Local is a Progressive Web App that can be installed on devices and run
 
 **Key Fix Implemented**: October 7, 2025 - Added periodic update checks to ensure users receive update prompts reliably (commit `d25cddf`)
 
+## Which deploys prompt (2026-09-23)
+
+Every build stamps a new service worker, and a new service worker means the update banner on every coach's phone. Two rules keep that banner for things a coach can see:
+
+1. **A push that changes nothing in the app does not deploy.** `vercel.json` runs `scripts/vercel-ignore-build.mjs` as the ignore step. It diffs the push against the last deploy (or the parent commit) and skips the build when every changed file is outside the app: docs, `.github`, tests, `supabase/`, `site/`, tooling under `scripts/promo-video`, config for lint/jest/playwright, Markdown, and `release-notes.json` itself. The Release Notes Guard runs the same script, so such a PR needs no release note. The list lives in that one file; extend it there and its test.
+2. **An app change a coach cannot see installs silently.** Mark the top entry in `release-notes.json` with `"internal": true` (deps, refactors). `generate-changelog.mjs` copies the flag into `public/changelog.json`, and `ServiceWorkerRegistration` reads it before showing the banner: an internal release is left waiting and takes over on the next launch, which is the browser's normal lifecycle once the old worker has no clients. A later visible release replaces the waiting worker and prompts as usual. If `changelog.json` cannot be read, the banner is shown, so a broken changelog never hides an update.
+
+Everything else, meaning any change under `src/`, `public/`, the build scripts or the deploy config, deploys and prompts with its note.
+
 ## Architecture
 
 ### Service Worker Registration
