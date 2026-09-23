@@ -1,0 +1,17 @@
+{
+  "name": "matchops-promo-video",
+  "private": true,
+  "type": "module",
+  "description": "Records the MatchOps app with Playwright and renders captioned, phone-framed promo videos. See README.md.",
+  "scripts": {
+    "demo": "node demo/make-demo.mjs",
+    "assets": "python3 render/frame-assets.py",
+    "record": "node scenes/hero.mjs",
+    "captions": "python3 render/captions.py",
+    "encode": "node render/encode.mjs --style phone",
+    "hero": "bash run.sh"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0"
+  }
+}
