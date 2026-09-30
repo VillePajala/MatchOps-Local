@@ -11,7 +11,7 @@ import { openRecorder } from '../lib/recorder.mjs';
 import { loadStates, pid } from '../lib/seeds.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
-const OUT = path.join(ROOT, 'out');
+const OUT = path.join(ROOT, 'out', 'hero');
 const only = process.argv[2] ? process.argv[2].split(',') : null;
 
 export const CAPTIONS = {
@@ -36,7 +36,7 @@ export const CAPTIONS = {
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'captions.json'), JSON.stringify(CAPTIONS, null, 1));
 
-const S = loadStates(path.join(OUT, 'demo-backup.json'));
+const S = loadStates(path.join(ROOT, 'out', 'demo-backup.json'));
 const rec = await openRecorder({ outDir: OUT });
 const FIELD = '[data-testid="plan-field-backdrop"]';
 
@@ -64,7 +64,9 @@ await rec.scene('timer', S.timer, { inMatch: true, startCur: [195, 815], only },
   mark(5); await tap(page.getByRole('button', { name: 'Käynnistä' })); await hold(2600);
   mark(6); await tap(page.getByRole('button', { name: 'Kirjaa maali' }).first()); await hold(900); await arm();
   await pickFromSelect('#scorerSelect', pid(10)); await pickFromSelect('#assisterSelect', pid(7));
-  await tap(page.getByTestId('tour-confirm-goal'), 500); await hold(2600);
+  await tap(page.getByTestId('tour-confirm-goal'), 500); await hold(2200);
+  await tap(page.getByRole('button', { name: 'Vastustaja +1' }).first(), 500); await hold(700); await arm();
+  await tap(page.getByRole('button', { name: 'Vahvista' }).first(), 500); await hold(2200);
   mark(7); await page.getByText('SUUNNITELTU VAIHTO', { exact: false }).first().waitFor({ timeout: 40000 }).catch(() => {}); await hold(2000);
   await tap(page.getByRole('button', { name: 'Selvä' }).first(), 600); await hold(1200);
   await tap(page.getByRole('button', { name: 'Vaihto tehty' }).first(), 600); await hold(3200);
@@ -81,6 +83,6 @@ await rec.scene('timer', S.timer, { inMatch: true, startCur: [195, 815], only },
   await tap(page.getByRole('button', { name: /kooste/i }).first(), 700); await hold(6000);
 });
 
-// The closing Home view: the match played, the result on the card.
-await rec.scene('after', S.played, { only }, async ({ mark, hold }) => { mark(11); await hold(5200); });
+// The closing Home view: the result on the card, then the season's stats tab with today's goal in it.
+await rec.scene('after', S.played, { only }, async ({ page, tap, mark, hold }) => { mark(11); await hold(3200); await tap(page.getByRole('tab', { name: 'Tilastot' }).first(), 600); await hold(3600); });
 await rec.close();
