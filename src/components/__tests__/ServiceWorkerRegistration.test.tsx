@@ -240,6 +240,79 @@ describe('ServiceWorkerRegistration', () => {
     expect(mockUpdateBannerProps.notes).toBeUndefined();
   });
 
+  /**
+   * @critical - the owner's complaint (2026-09-23): every deploy prompted every
+   * coach, even ones that changed nothing they could see. A release marked
+   * internal installs without the banner and applies on the next launch.
+   */
+  describe('internal releases install silently', () => {
+    const changelog = (internal: boolean) => ({
+      ok: true,
+      json: async () => ({ version: 'x', date: '2026-09-23', notes: { en: ['Behind-the-scenes improvements.'], fi: ['Taustaparannuksia.'] }, internal }),
+    });
+
+    const waiting = () => ({ state: 'installed', postMessage: jest.fn() } as Partial<ServiceWorker>);
+
+    it('does not show the banner for an internal release', async () => {
+      global.fetch = jest.fn().mockResolvedValue(changelog(true));
+      Object.defineProperty(mockRegistration, 'waiting', { value: waiting() as ServiceWorker, writable: true, configurable: true });
+
+      const { queryByTestId } = render(<ServiceWorkerRegistration />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/changelog.json'));
+      });
+      await act(async () => {});
+      expect(queryByTestId('update-banner')).not.toBeInTheDocument();
+    });
+
+    it('still shows the banner for a visible release', async () => {
+      global.fetch = jest.fn().mockResolvedValue(changelog(false));
+      Object.defineProperty(mockRegistration, 'waiting', { value: waiting() as ServiceWorker, writable: true, configurable: true });
+
+      const { getByTestId } = render(<ServiceWorkerRegistration />);
+
+      await waitFor(() => {
+        expect(getByTestId('update-banner')).toBeInTheDocument();
+      });
+    });
+
+    /**
+     * The silent worker sits waiting; when a visible release lands after it,
+     * the browser replaces the waiting worker and that one must prompt.
+     */
+    it('prompts for a visible release that follows a silent one', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce(changelog(true)).mockResolvedValueOnce(changelog(false));
+
+      const { queryByTestId, getByTestId } = render(<ServiceWorkerRegistration />);
+      await waitFor(() => {
+        expect(mockRegistration.onupdatefound).toBeInstanceOf(Function);
+      });
+
+      type Installing = { state: ServiceWorkerState; postMessage: jest.Mock; onstatechange: (() => void) | null };
+      const install = async (worker: Installing) => {
+        Object.defineProperty(mockRegistration, 'installing', { value: worker as unknown as ServiceWorker, writable: true, configurable: true });
+        await act(async () => {
+          (mockRegistration.onupdatefound as unknown as () => void)();
+        });
+        worker.state = 'installed';
+        await act(async () => {
+          worker.onstatechange?.();
+        });
+      };
+
+      await install({ state: 'installing', postMessage: jest.fn(), onstatechange: null });
+      await act(async () => {});
+      expect(queryByTestId('update-banner')).not.toBeInTheDocument();
+
+      await install({ state: 'installing', postMessage: jest.fn(), onstatechange: null });
+      await waitFor(() => {
+        expect(getByTestId('update-banner')).toBeInTheDocument();
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('should cleanup interval and event listeners on unmount', async () => {
     const { unmount } = render(<ServiceWorkerRegistration />);
 

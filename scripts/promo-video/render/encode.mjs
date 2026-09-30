@@ -1,6 +1,6 @@
 /**
  * Cuts every recording into captioned clips and joins them into the hero.
- * Usage: node render/encode.mjs [--style phone|plain] [--out out]
+ * Usage: node render/encode.mjs [--style phone|plain] [--out out] [--music track.mp3] [--music-lufs -18]
  *  - marks are wall-clock; the screencast file runs slightly slow, so each recording's marks are
  *    scaled by (file length / measured length) before cutting;
  *  - a clip id with a caption gets the caption overlay, one without becomes a plain transition;
@@ -11,7 +11,7 @@ import fs from 'node:fs'; import path from 'node:path'; import { execFileSync } 
 const ffmpeg = (await import('ffmpeg-static')).default;
 const ROOT = new URL('..', import.meta.url).pathname;
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > -1 ? process.argv[i + 1] : d; };
-const style = arg('--style', 'phone'); const OUT = path.resolve(ROOT, arg('--out', 'out')); const CLIPS = path.join(OUT, `clips-${style}`);
+const style = arg('--style', 'phone'); const music = arg('--music', null); const musicLufs = Number(arg('--music-lufs', '-18')); const OUT = path.resolve(ROOT, arg('--out', 'out')); const CLIPS = path.join(OUT, `clips-${style}`);
 const run = (args) => execFileSync(ffmpeg, ['-y', '-hide_banner', '-loglevel', 'error', ...args]);
 const durationOf = (p) => { try { execFileSync(ffmpeg, ['-hide_banner', '-i', p], { stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { const m = /Duration: (\d+):(\d+):([\d.]+)/.exec(String(e.stderr)); if (m) return (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]); } return null; };
 const enc = ['-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-r', '30', '-pix_fmt', 'yuv420p', '-movflags', '+faststart'];
@@ -42,3 +42,22 @@ fs.writeFileSync(path.join(CLIPS, 'list.txt'), list.map(p => `file '${p}'`).join
 const hero = path.join(OUT, `matchops-hero-${style}.mp4`);
 run(['-f', 'concat', '-safe', '0', '-i', path.join(CLIPS, 'list.txt'), '-c:v', 'libx264', '-preset', 'medium', '-crf', '24', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', hero]);
 console.log('clips', list.length, '->', hero, (fs.statSync(hero).size / 1e6).toFixed(1) + ' MB', durationOf(hero)?.toFixed(1) + ' s');
+
+/**
+ * Music bed under the joined hero (the clips stay silent; social apps add their own sound).
+ * The track is repeated with a 2 s crossfade until it outlasts the video, trimmed, fades in over the
+ * intro and out over the end card, and is levelled to --music-lufs so any source lands at the same
+ * loudness. Video stream is copied, so this is quick. Output: <hero>-music.mp4.
+ */
+if (music) {
+  const D = durationOf(hero); const L = durationOf(music); const XF = 2;
+  if (!D || !L) throw new Error('cannot read durations for the music mix');
+  let n = 1; while (n * L - (n - 1) * XF < D) n++;
+  const inputs = ['-i', hero]; for (let i = 0; i < n; i++) inputs.push('-i', music);
+  let chain = ''; let last = '[1:a]';
+  for (let i = 2; i <= n; i++) { chain += `${last}[${i}:a]acrossfade=d=${XF}:c1=tri:c2=tri[x${i}];`; last = `[x${i}]`; }
+  chain += `${last}atrim=0:${D.toFixed(2)},asetpts=PTS-STARTPTS,loudnorm=I=${musicLufs}:TP=-1.5:LRA=11,afade=t=in:st=0:d=2.5,afade=t=out:st=${(D - 3).toFixed(2)}:d=3[a]`;
+  const out = hero.replace(/\.mp4$/, '-music.mp4');
+  run([...inputs, '-filter_complex', chain, '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest', out]);
+  console.log('music', path.basename(music), `x${n}`, '->', out, (fs.statSync(out).size / 1e6).toFixed(1) + ' MB');
+}

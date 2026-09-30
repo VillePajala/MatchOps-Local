@@ -278,7 +278,7 @@ GitHub Actions (parallel checks)           Vercel (automatic)
 └── update-test-badge.yml ──────┘     (master push only: auto-update README badge)
 
 ALL checks must pass before merge.
-Vercel auto-deploys on merge to master (production) and on PR push (preview).
+Vercel auto-deploys on merge to master (production) and on PR push (preview). A push that changes nothing in the app (docs, CI, tests, tooling) is skipped by the ignore step in `vercel.json` (`scripts/vercel-ignore-build.mjs`), so it produces no new service worker and no update prompt; see `docs/04-features/pwa-updates.md`.
 ```
 
 ### Workflow 1: CI — The Main Gate (`ci.yml`)
