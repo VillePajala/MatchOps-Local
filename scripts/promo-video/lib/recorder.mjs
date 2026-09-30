@@ -24,7 +24,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const STYLE = `nextjs-portal{display:none!important}
-[role=dialog][aria-label="Ottelusuunnittelu"] button[aria-label="Sulje"]{display:flex!important}
+[role=dialog] button[aria-label="Sulje"],[role=dialog] button[aria-label="Valmis"]{display:flex!important}
 #cur{position:fixed;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.5);background:rgba(255,255,255,.12);pointer-events:none;z-index:99998;transition:transform .65s cubic-bezier(.4,0,.2,1)}
 .tap{position:fixed;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none;z-index:99999;animation:tap .5s ease-out forwards}@keyframes tap{from{transform:scale(.5);opacity:.9}to{transform:scale(1.6);opacity:0}}`;
 
@@ -34,23 +34,25 @@ export async function openRecorder({ outDir, baseUrl = 'http://localhost:3000', 
   fs.mkdirSync(path.join(outDir, 'raw'), { recursive: true });
   const browser = await chromium.launch({ args: [`--force-device-scale-factor=${scale}`] });
 
-  async function scene(name, data, { inMatch = false, startCur = [195, 700], only = null } = {}, run) {
+  /** `cloud: true` records the real first run against the dev server's staging backend: nothing is seeded and
+   *  the app boots to its sign-up form. Use a synthetic address; delete the accounts afterwards. */
+  async function scene(name, data, { inMatch = false, startCur = [195, 700], only = null, cloud = false } = {}, run) {
     if (only && !only.includes(name)) return null;
     const ctx = await browser.newContext({ viewport, locale: 'fi-FI', timezoneId: 'Europe/Helsinki',
       recordVideo: { dir: path.join(outDir, 'raw'), size: { width: viewport.width * scale, height: viewport.height * scale } } });
     const t0 = Date.now(); const now = () => (Date.now() - t0) / 1000; const marks = [];
-    await ctx.addInitScript(({ inMatch, surfaces }) => {
+    await ctx.addInitScript(({ inMatch, surfaces, cloud }) => {
       try {
-        localStorage.setItem('matchops_backend_mode', 'local'); localStorage.setItem('matchops_welcome_seen', 'true');
+        if (!cloud) { localStorage.setItem('matchops_backend_mode', 'local'); localStorage.setItem('matchops_welcome_seen', 'true'); }
         if (inMatch) localStorage.setItem('matchops_was_in_match', '1'); else localStorage.removeItem('matchops_was_in_match');
         for (const sf of surfaces) localStorage.setItem('matchops_first_visit_' + sf + '_local', '1');
       } catch {}
       // Dev-mode StrictMode double-mount makes the single-tab lock look taken; grant it.
       try { Object.defineProperty(navigator, 'locks', { value: { request: (_n, _o, cb) => Promise.resolve(typeof _o === 'function' ? _o({ name: _n }) : cb({ name: _n })) } }); } catch {}
-    }, { inMatch, surfaces: FIRST_VISIT_SURFACES });
+    }, { inMatch, surfaces: FIRST_VISIT_SURFACES, cloud });
     const page = await ctx.newPage();
     await page.goto(baseUrl + '/manifest.json');
-    await page.evaluate(async (d) => { await new Promise((res, rej) => { const req = indexedDB.open('MatchOpsLocal', 1);
+    if (!cloud) await page.evaluate(async (d) => { await new Promise((res, rej) => { const req = indexedDB.open('MatchOpsLocal', 1);
       req.onupgradeneeded = () => { const db = req.result; if (!db.objectStoreNames.contains('keyValueStore')) { const s = db.createObjectStore('keyValueStore', { keyPath: 'key' }); s.createIndex('keyIndex', 'key', { unique: true }); } };
       req.onsuccess = () => { const db = req.result; const tx = db.transaction('keyValueStore', 'readwrite'); const st = tx.objectStore('keyValueStore'); for (const [k, v] of Object.entries(d)) if (v != null) st.put({ key: k, value: JSON.stringify(v) }); tx.oncomplete = () => { db.close(); res(); }; tx.onerror = () => rej(tx.error); };
       req.onerror = () => rej(req.error); }); }, data);
@@ -64,6 +66,22 @@ export async function openRecorder({ outDir, baseUrl = 'http://localhost:3000', 
     const hold = (ms) => page.waitForTimeout(ms);
     const ripple = (x, y) => page.evaluate(([x, y]) => { const d = document.createElement('div'); d.className = 'tap'; d.style.left = x + 'px'; d.style.top = y + 'px'; document.body.appendChild(d); setTimeout(() => d.remove(), 550); }, [x, y]);
     const glide = async (loc, rest = 850, dur = 650) => { await loc.scrollIntoViewIfNeeded().catch(() => {}); const b = await loc.boundingBox(); if (!b) throw new Error('glide: target has no box'); const x = b.x + b.width / 2, y = b.y + b.height / 2; await setCur(x, y, dur); await hold(dur + 50 + rest); return [x, y]; };
+    /** Cursor to a screen point (for canvas targets such as a pitch position). */
+    const glideTo = async (x, y, rest = 850, dur = 650) => { await setCur(x, y, dur); await hold(dur + 50 + rest); return [x, y]; };
+    const tapAt = async (x, y, rest) => { await glideTo(x, y, rest); await page.mouse.click(x, y); };
+    /** Press on a point, move to another with the cursor riding along, release (pitch disc drags). */
+    const drag = async (x1, y1, x2, y2, { dur = 900, rest = 900 } = {}) => {
+      await glideTo(x1, y1, 350); await page.mouse.move(x1, y1); await page.mouse.down(); await hold(250);
+      await setCur(x2, y2, dur); const steps = 24; for (let i = 1; i <= steps; i++) { await page.mouse.move(x1 + (x2 - x1) * i / steps, y1 + (y2 - y1) * i / steps); await hold(dur / steps); }
+      await hold(150); await page.mouse.up(); await hold(rest); };
+    /** A finger tap at a point: synthetic touchstart/touchend on the element there. Some gestures
+     *  exist only for touch (tap one pitch disc, tap another: they swap); the mouse path drags instead. */
+    const touchTap = async (x, y, rest = 850) => { await glideTo(x, y, rest); await ripple(x, y); await page.evaluate(([x, y]) => {
+      const el = document.elementFromPoint(x, y); if (!el) return; const t = new Touch({ identifier: Date.now() % 100000, target: el, clientX: x, clientY: y, pageX: x, pageY: y, radiusX: 2, radiusY: 2, force: 1 });
+      const fire = (type, touches) => el.dispatchEvent(new TouchEvent(type, { touches, targetTouches: touches, changedTouches: [t], bubbles: true, cancelable: true }));
+      fire('touchstart', [t]); fire('touchend', []); }, [x, y]); await hold(300); };
+    /** Tap a field and type into it at a human pace. */
+    const type = async (loc, str, { delay = 55, rest = 300 } = {}) => { await tap(loc, rest); await loc.pressSequentially(str, { delay }); };
     const tap = async (loc, rest) => { await glide(loc, rest); const b = await loc.boundingBox(); if (!b) return; const x = b.x + b.width / 2, y = b.y + b.height / 2; if (Math.hypot(x - curPos[0], y - curPos[1]) > 4) { await setCur(x, y); await hold(400); } await page.mouse.click(x, y); };
     const orbit = async (loc) => { const b = await loc.boundingBox(); if (!b) return; for (const [x, y] of [[b.x + 14, b.y + 14], [b.x + b.width - 14, b.y + 14], [b.x + b.width - 14, b.y + b.height - 14], [b.x + 14, b.y + b.height - 14], [b.x + 14, b.y + 14]]) { await setCur(x, y); await hold(520); } await hold(500); };
     const pickFromSelect = async (sel, value) => {
@@ -84,10 +102,11 @@ export async function openRecorder({ outDir, baseUrl = 'http://localhost:3000', 
     const text = async () => (await page.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
 
     await page.goto(baseUrl + '/', { waitUntil: 'networkidle' });
-    if (inMatch) await page.getByRole('button', { name: 'Avaa ajastin' }).waitFor({ timeout: 90000 }); else await page.getByText(/Seuraava ottelu|Viimeksi avattu/).first().waitFor({ timeout: 90000 });
+    if (cloud) await page.getByRole('button', { name: 'Luo tili' }).first().waitFor({ timeout: 90000 });
+    else if (inMatch) await page.getByRole('button', { name: 'Avaa ajastin' }).waitFor({ timeout: 90000 }); else await page.getByText(/Seuraava ottelu|Viimeksi avattu|Uusi ottelu/).first().waitFor({ timeout: 90000 });
     await page.evaluate(() => { for (let i = 0; i < 4; i++) history.pushState({}, '', '/'); });
     await arm(); await hold(300);
-    try { await run({ page, arm, glide, tap, hold, mark, orbit, ripple, pickFromSelect, scrollToHeading, scrollToId, scrollToSelector, scrollPanelTop, text }); }
+    try { await run({ page, arm, glide, glideTo, tap, tapAt, touchTap, drag, type, hold, mark, orbit, ripple, pickFromSelect, scrollToHeading, scrollToId, scrollToSelector, scrollPanelTop, text }); }
     catch (e) { await page.screenshot({ path: path.join(outDir, `fail-${name}.png`) }).catch(() => {}); console.error('FAIL', name, page.url(), (await text().catch(() => '')).slice(0, 300)); throw e; }
     const endT = now(); const v = page.video(); await ctx.close(); const p = await v.path();
     const segs = marks.map((m, i) => ({ id: m.id, start: m.t, end: i + 1 < marks.length ? marks[i + 1].t : endT }));
