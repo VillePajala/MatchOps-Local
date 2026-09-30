@@ -4,8 +4,9 @@ Usage: python3 render/captions.py [--style plain|phone]"""
 import argparse, json, os
 from PIL import Image, ImageDraw, ImageFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); OUT = os.path.join(ROOT, 'out')
-ap = argparse.ArgumentParser(); ap.add_argument('--style', default='phone'); args = ap.parse_args()
-W, H = 1080, 1920; caps = json.load(open(os.path.join(OUT, 'captions.json')))
+ap = argparse.ArgumentParser(); ap.add_argument('--style', default='phone'); ap.add_argument('--out', default=os.path.join(OUT, 'hero'), help='video folder holding captions.json; the PNGs land there too'); args = ap.parse_args()
+VID = os.path.abspath(args.out)
+W, H = 1080, 1920; caps = json.load(open(os.path.join(VID, 'captions.json')))
 if args.style == 'phone':
     G = json.load(open(os.path.join(OUT, 'phone-geom.json'))); size, wrap_w, box_max, bottom, lh, pad = 48, 680, G['SW'] - 60, G['SY'] + G['SH'] - 230, 58, 20
 else:
@@ -22,5 +23,5 @@ for k, text in caps.items():
     d.rounded_rectangle((x0, y0, x0 + bw, y0 + h), radius=18, fill=(11, 18, 32, 200))
     for i, l in enumerate(lines):
         tw = d.textlength(l, font=font); d.text(((W - tw) / 2, y0 + pad + i * lh), l, font=font, fill=(255, 255, 255, 255))
-    im.save(os.path.join(OUT, f'cap_{args.style}_{k.replace(".", "_")}.png'))
+    im.save(os.path.join(VID, f'cap_{args.style}_{k.replace(".", "_")}.png'))
 print('captions ok', len(caps), args.style)
