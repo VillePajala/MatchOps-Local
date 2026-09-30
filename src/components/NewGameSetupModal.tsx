@@ -1827,8 +1827,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   onChange={(e) => setLocalNumPeriods(parseInt(e.target.value) as 1 | 2)}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                 >
-                  <option value={1}>{t('newGameSetupModal.periodOptionOne', '1 period')}</option>
-                  <option value={2}>{t('newGameSetupModal.periodOptionTwo', '2 halves')}</option>
+                  <option value={1}>{t('newGameSetupModal.periodOptionOne', '1')}</option>
+                  <option value={2}>{t('newGameSetupModal.periodOptionTwo', '2')}</option>
                 </select>
               </div>
 

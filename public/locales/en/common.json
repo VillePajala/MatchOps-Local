@@ -1111,8 +1111,8 @@
     "opponentAddFailed": "Could not add the team to the league.",
     "fieldNumberLabel": "Pitch (optional)",
     "fieldNumberPlaceholder": "e.g., TN 2",
-    "periodOptionOne": "1 period",
-    "periodOptionTwo": "2 halves",
+    "periodOptionOne": "1",
+    "periodOptionTwo": "2",
     "friendlyHint": "Kept out of competitive stats"
   },
   "gameSettingsModal": {
@@ -1252,8 +1252,8 @@
     "addToClubRosterFailed": "Adding the player failed. Please try again.",
     "fieldNumberLabel": "Pitch (optional)",
     "fieldNumberPlaceholder": "e.g., TN 2",
-    "periodOptionOne": "1 period",
-    "periodOptionTwo": "2 halves",
+    "periodOptionOne": "1",
+    "periodOptionTwo": "2",
     "friendlyHint": "Kept out of competitive stats"
   },
   "errors": {
