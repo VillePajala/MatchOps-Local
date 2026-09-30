@@ -270,7 +270,7 @@ describe('NewGameSetupModal', () => {
 
     const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
     fireEvent.change(opponentInput, { target: { value: 'Opponent Team' } });
-    const toggle = screen.getByRole('button', { name: translations['newGameSetupModal.unplayedToggle'] });
+    const toggle = screen.getByRole('switch', { name: translations['newGameSetupModal.unplayedToggle'] });
     fireEvent.click(toggle);
     const startButton = screen.getByRole('button', { name: /Create Game/i });
     await act(async () => {

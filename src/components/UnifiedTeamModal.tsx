@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useId } from 'react';
-import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton, secondaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalStickyPrimary, ModalSwitch, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import TeamKitColorPicker from '@/components/TeamKitColorPicker';
@@ -765,9 +765,9 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     />
 
                     {/* Archived */}
-                    <ModalToggleButton pressed={archived} onToggle={() => setArchived(v => !v)}>
+                    <ModalSwitch checked={archived} onToggle={() => setArchived(v => !v)}>
                       {t('teamDetailsModal.archivedLabel', 'Archived')}
-                    </ModalToggleButton>
+                    </ModalSwitch>
 
                     {/* Tournament & Season Placements Section */}
                     {teamId && (teamHistory.tournaments.length > 0 || teamHistory.seasons.length > 0) && (

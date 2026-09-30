@@ -12,7 +12,6 @@ import { getShootoutTally } from '@/utils/shootout';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { UseMutationResult } from '@tanstack/react-query';
-import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
@@ -28,7 +27,7 @@ import {
 } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { CollapsibleModalHeader, secondaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, secondaryButtonStyle, ModalSwitch } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { HiOutlineMapPin } from 'react-icons/hi2';
@@ -227,10 +226,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   customLeagueName = '',
   numPeriods,
   periodDurationMinutes,
-  demandFactor = 1,
+  // Still accepted from callers; no longer shown (the slider left the form, 2026-09-30).
+  demandFactor: _demandFactor = 1,
   onNumPeriodsChange,
   onPeriodDurationChange,
-  onDemandFactorChange,
+  onDemandFactorChange: _onDemandFactorChange,
   onSeasonIdChange,
   onTournamentIdChange,
   onLeagueIdChange,
@@ -2103,31 +2103,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 />
               </div>
 
-              {/* Demand Factor Slider */}
-              <div className="mb-4">
-                <AssessmentSlider
-                  label={t('gameSettingsModal.demandFactorLabel', 'Game Demand Level')}
-                  value={demandFactor}
-                  onChange={(v) => {
-                    onDemandFactorChange(v);
-                    mutateGameDetails(
-                      { demandFactor: v },
-                      { source: 'stateSync', expectedState: { demandFactor: v } }
-                    );
-                  }}
-                  min={0.5}
-                  max={1.5}
-                  step={0.05}
-                  reverseColor
-                />
-              </div>
+              {/* The demand-level slider used to sit here; see NewGameSetupModal. */}
 
-              {/* Played status + overtime/penalties as toggle buttons */}
+              {/* Played status, friendly and overtime/penalties as switches */}
               <div className="mb-4 space-y-2">
-                <button
-                  type="button"
-                  aria-pressed={!isPlayed}
-                  onClick={() => {
+                <ModalSwitch
+                  checked={!isPlayed}
+                  onToggle={() => {
                     const newValue = !isPlayed;
                     onIsPlayedChange(newValue);
                     mutateGameDetails(
@@ -2135,20 +2117,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       { source: 'stateSync', expectedIsPlayed: newValue }
                     );
                   }}
-                  className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                    !isPlayed
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
                 >
                   {t('gameSettingsModal.unplayedToggle', 'Not played yet')}
-                </button>
+                </ModalSwitch>
                 {/* Friendly / practice match: reclassify an existing game. Kept
                     out of competitive stat totals by default. */}
-                <button
-                  type="button"
-                  aria-pressed={isFriendlyLocal}
-                  onClick={() => {
+                <ModalSwitch
+                  checked={isFriendlyLocal}
+                  onToggle={() => {
                     const newValue = !isFriendlyLocal;
                     setIsFriendlyLocal(newValue);
                     mutateGameDetails(
@@ -2156,49 +2132,30 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       { source: 'stateSync' }
                     );
                   }}
-                  className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                    isFriendlyLocal
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
+                  hint={t('gameSettingsModal.friendlyHint', 'Kept out of competitive stats')}
                 >
                   {t('gameSettingsModal.friendlyToggle', 'Friendly match')}
-                </button>
-                {/* Overtime / penalties as toggle buttons (matching the timer's chip). */}
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    aria-pressed={!!wentToOvertime}
-                    onClick={() => {
-                      const newValue = !wentToOvertime;
-                      onWentToOvertimeChange(newValue);
-                      mutateGameDetails({ wentToOvertime: newValue }, { source: 'stateSync' });
-                    }}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      wentToOvertime
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                  >
-                    {t('gameSettingsModal.wentToOvertime', 'Overtime')}
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={!!wentToPenalties}
-                    onClick={() => {
-                      const newValue = !wentToPenalties;
-                      onWentToPenaltiesChange(newValue);
-                      mutateGameDetails({ wentToPenalties: newValue }, { source: 'stateSync' });
-                    }}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      wentToPenalties
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                  >
-                    {t('gameSettingsModal.wentToPenalties', 'Penalties')}
-                  </button>
-                </div>
+                </ModalSwitch>
+                <ModalSwitch
+                  checked={!!wentToOvertime}
+                  onToggle={() => {
+                    const newValue = !wentToOvertime;
+                    onWentToOvertimeChange(newValue);
+                    mutateGameDetails({ wentToOvertime: newValue }, { source: 'stateSync' });
+                  }}
+                >
+                  {t('gameSettingsModal.wentToOvertime', 'Overtime')}
+                </ModalSwitch>
+                <ModalSwitch
+                  checked={!!wentToPenalties}
+                  onToggle={() => {
+                    const newValue = !wentToPenalties;
+                    onWentToPenaltiesChange(newValue);
+                    mutateGameDetails({ wentToPenalties: newValue }, { source: 'stateSync' });
+                  }}
+                >
+                  {t('gameSettingsModal.wentToPenalties', 'Penalties')}
+                </ModalSwitch>
                 {/* Penalty shootout — log kicks; the result is derived and breaks a level score */}
                 <button
                   type="button"

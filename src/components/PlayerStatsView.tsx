@@ -15,7 +15,7 @@ import { adjustmentInScope } from '@/utils/adjustmentScope';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import type { PlayerStatAdjustment } from '@/types';
 import { calculatePlayerDevelopment, getPlayerAssessmentTrends, getPlayerAssessmentNotes, type TrendDirection, type AssessmentScope } from '@/utils/assessmentStats';
-import { ModalToggleButton } from '@/styles/modalStyles';
+import { ModalSwitch } from '@/styles/modalStyles';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { useAssessmentRatingStyle } from '@/hooks/useAssessmentRatingStyle';
 import { useAssessmentTemplate } from '@/hooks/useAssessmentTemplate';
@@ -918,23 +918,23 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 </div>
               </div>
               <div>
-                <ModalToggleButton
-                  pressed={adjFairPlayCards > 0}
+                <ModalSwitch
+                  checked={adjFairPlayCards > 0}
                   onToggle={() => setAdjFairPlayCards(adjFairPlayCards > 0 ? 0 : 1)}
                 >
                   <span className="inline-flex items-center gap-2">
                     {t('playerStats.receivedFairPlayCard', 'Received Fair Play Card')}
                     <span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span>
                   </span>
-                </ModalToggleButton>
+                </ModalSwitch>
               </div>
               <div className="lg:col-span-3">
-                <ModalToggleButton
-                  pressed={adjIncludeInSeasonTournament}
+                <ModalSwitch
+                  checked={adjIncludeInSeasonTournament}
                   onToggle={() => setAdjIncludeInSeasonTournament(v => !v)}
                 >
                   {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
-                </ModalToggleButton>
+                </ModalSwitch>
                 <p className="text-sm text-slate-400 mt-1 ml-1">
                   {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
                 </p>
@@ -1183,23 +1183,23 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           </div>
                         </div>
                         <div>
-                          <ModalToggleButton
-                            pressed={editFairPlayCards > 0}
+                          <ModalSwitch
+                            checked={editFairPlayCards > 0}
                             onToggle={() => setEditFairPlayCards(editFairPlayCards > 0 ? 0 : 1)}
                           >
                             <span className="inline-flex items-center gap-2">
                               {t('playerStats.receivedFairPlayCard', 'Received Fair Play Card')}
                               <span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span>
                             </span>
-                          </ModalToggleButton>
+                          </ModalSwitch>
                         </div>
                         <div className="lg:col-span-3">
-                          <ModalToggleButton
-                            pressed={editIncludeInSeasonTournament}
+                          <ModalSwitch
+                            checked={editIncludeInSeasonTournament}
                             onToggle={() => setEditIncludeInSeasonTournament(v => !v)}
                           >
                             {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
-                          </ModalToggleButton>
+                          </ModalSwitch>
                           <p className="text-sm text-slate-400 mt-1 ml-1">
                             {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
                           </p>
