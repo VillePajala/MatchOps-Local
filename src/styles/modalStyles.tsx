@@ -330,26 +330,43 @@ export const ModalStickyPrimary: React.FC<{
 );
 
 /**
- * Full-width solid on/off toggle - the house replacement for a settings
- * checkbox (owner: no checkboxes for settings; always solid, full-width).
- * `aria-pressed` carries the state; indigo when on, slate when off. Matches
- * the "Show archived" / "Show only unplayed" filter toggles.
+ * A settings switch: label on the left, a track with a thumb on the right,
+ * amber when on. Replaces the full-width on/off BUTTON that used to carry
+ * these settings (owner, 2026-09-30: a button that is indigo when on and
+ * slate when off reads as "a button to press" in both states, so nobody could
+ * tell Harjoitusottelu or Sisällytä kausitilastoihin on from off). The state
+ * lives in the thumb's position and the track colour; `role="switch"` and
+ * `aria-checked` announce it. Still one full-width row, still solid.
  */
-export const ModalToggleButton: React.FC<{
-  pressed: boolean;
+export const ModalSwitch: React.FC<{
+  checked: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  /** One short line under the label, e.g. what "on" means. */
+  hint?: React.ReactNode;
   disabled?: boolean;
   className?: string;
-}> = ({ pressed, onToggle, children, disabled, className = '' }) => (
+}> = ({ checked, onToggle, children, hint, disabled, className = '' }) => (
   <button
     type="button"
+    role="switch"
+    aria-checked={checked}
     onClick={onToggle}
-    aria-pressed={pressed}
     disabled={disabled}
-    className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${pressed ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} ${className}`}
+    className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-md text-left text-sm font-medium bg-slate-900/60 border border-slate-700 text-slate-200 transition-colors shadow-sm hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
   >
-    {children}
+    <span className="min-w-0">
+      <span className="block">{children}</span>
+      {hint && <span className="block text-xs font-normal text-slate-400 mt-0.5">{hint}</span>}
+    </span>
+    <span
+      aria-hidden="true"
+      className={`relative flex-none w-11 h-[26px] rounded-full transition-colors ${checked ? 'bg-amber-500' : 'bg-slate-600'}`}
+    >
+      <span
+        className={`absolute top-[3px] left-[3px] w-5 h-5 rounded-full transition-transform ${checked ? 'translate-x-[18px] bg-slate-900' : 'bg-slate-200'}`}
+      />
+    </span>
   </button>
 );
 
