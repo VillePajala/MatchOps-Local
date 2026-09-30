@@ -223,7 +223,7 @@ GitHub Actions workflows (`.github/workflows/`):
 - **ci.yml** — full CI pipeline
 - **full-test-suite.yml** — complete test suite
 - **claude-code-review.yml** — automated review on every PR
-- **release-notes-guard.yml** — **blocks any PR to master that does not add a new top entry to `release-notes.json`**. Every merge ships a build, so every PR needs a user-facing note in EN and FI. No exceptions, no skip label
+- **release-notes-guard.yml** — **blocks any PR to master that changes the app but does not add a new top entry to `release-notes.json`**. A PR whose files are all outside the app (docs, CI, tests, tooling) does not deploy and is exempt; the same list drives Vercel's ignore step (`scripts/vercel-ignore-build.mjs`). An app change a coach cannot see takes an entry with `"internal": true`, which installs without the update banner. No skip label
 - **check-rule-links.yml** — verifies the external rule links still resolve
 - **update-test-badge.yml** — recounts tests on master and updates the badge above
 
