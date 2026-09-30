@@ -309,12 +309,12 @@ describe('TournamentDetailsModal', () => {
       renderWithProviders();
     });
 
-    // The archived setting is a house-style toggle button (aria-pressed), not a checkbox.
-    const archivedToggle = screen.getByRole('button', { name: i18n.t('tournamentDetailsModal.archivedLabel', 'Archived') });
-    expect(archivedToggle).toHaveAttribute('aria-pressed', 'false');
+    // The archived setting is a switch (role=switch, aria-checked), not a checkbox.
+    const archivedToggle = screen.getByRole('switch', { name: i18n.t('tournamentDetailsModal.archivedLabel', 'Archived') });
+    expect(archivedToggle).toHaveAttribute('aria-checked', 'false');
 
     await user.click(archivedToggle);
-    expect(archivedToggle).toHaveAttribute('aria-pressed', 'true');
+    expect(archivedToggle).toHaveAttribute('aria-checked', 'true');
   });
 
   it('handles date inputs correctly', async () => {

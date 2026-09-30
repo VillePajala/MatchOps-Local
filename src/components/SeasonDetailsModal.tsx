@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useId } from 'react';
-import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalStickyPrimary, ModalSwitch } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Season, GameType, Gender } from '@/types';
@@ -651,9 +651,9 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
               </div>
 
               {/* Archived */}
-              <ModalToggleButton pressed={archived} onToggle={() => setArchived(v => !v)}>
+              <ModalSwitch checked={archived} onToggle={() => setArchived(v => !v)}>
                 {t('seasonDetailsModal.archivedLabel', 'Archived')}
-              </ModalToggleButton>
+              </ModalSwitch>
             </div>
           </div>
         </div>

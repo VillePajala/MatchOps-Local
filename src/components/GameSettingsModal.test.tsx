@@ -234,7 +234,7 @@ describe('<GameSettingsModal />', () => {
     const user = userEvent.setup();
     (defaultProps.updateGameDetailsMutation.mutate as jest.Mock).mockClear();
     renderModal();
-    await user.click(screen.getByRole('button', { name: 'Harjoitusottelu' }));
+    await user.click(screen.getByRole('switch', { name: 'Harjoitusottelu' }));
     expect(defaultProps.updateGameDetailsMutation.mutate).toHaveBeenCalledWith(
       expect.objectContaining({ gameId: 'game123', updates: { isFriendly: true } }),
       expect.anything(),

@@ -16,7 +16,6 @@ import { defaultIsPlayed } from '@/utils/matchPlayedDefault';
 import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
-import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
@@ -24,7 +23,7 @@ import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalSwitch } from '@/styles/modalStyles';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
 import { officialFieldSize } from '@/config/officialFieldSize';
@@ -1828,8 +1827,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   onChange={(e) => setLocalNumPeriods(parseInt(e.target.value) as 1 | 2)}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                 >
-                  <option value={1}>1</option>
-                  <option value={2}>2</option>
+                  <option value={1}>{t('newGameSetupModal.periodOptionOne', '1 period')}</option>
+                  <option value={2}>{t('newGameSetupModal.periodOptionTwo', '2 halves')}</option>
                 </select>
               </div>
 
@@ -1863,31 +1862,23 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 {periodDurationError && <p className="mt-1 text-sm text-red-400">{periodDurationError}</p>}
               </div>
 
-              {/* Demand Factor Slider */}
-              <div className="mb-4">
-                <AssessmentSlider
-                  label={t('newGameSetupModal.demandFactorLabel', 'Game Demand Level')}
-                  value={demandFactor}
-                  onChange={onDemandFactorChange}
-                  min={0.5}
-                  max={1.5}
-                  step={0.05}
-                  reverseColor
-                />
-              </div>
+              {/* The demand-level slider used to sit here. Only the assessment
+                  averaging reads it, behind a setting that is off by default, so
+                  it left the form (owner, 2026-09-30); `demandFactor` stays in the
+                  data model and the props so old games and callers are untouched. */}
 
               {/* Not Played Yet toggle */}
               <div className="mb-4">
-                <ModalToggleButton pressed={!isPlayed} onToggle={() => setIsPlayed(v => !v)}>
+                <ModalSwitch checked={!isPlayed} onToggle={() => setIsPlayed(v => !v)}>
                   {t('newGameSetupModal.unplayedToggle', 'Not played yet')}
-                </ModalToggleButton>
+                </ModalSwitch>
               </div>
 
               {/* Friendly / practice match toggle */}
               <div className="mb-4">
-                <ModalToggleButton pressed={isFriendly} onToggle={() => setIsFriendly(v => !v)}>
-                  {t('newGameSetupModal.friendlyToggle', 'Friendly match (kept out of competitive stats)')}
-                </ModalToggleButton>
+                <ModalSwitch checked={isFriendly} onToggle={() => setIsFriendly(v => !v)} hint={t('newGameSetupModal.friendlyHint', 'Kept out of competitive stats')}>
+                  {t('newGameSetupModal.friendlyToggle', 'Friendly match')}
+                </ModalSwitch>
               </div>
             </div>
           </div>
