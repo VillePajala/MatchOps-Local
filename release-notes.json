@@ -6,12 +6,12 @@
       "en": [
         "Settings that are on or off now use a real switch, so you can see at a glance whether a match is a friendly, not yet played, or an external game counts in the season.",
         "The game-demand slider is gone from the match forms; it only affected assessment averages, which are off by default.",
-        "Finnish match settings now say puoliaika instead of erä: pick 1 jakso or 2 puoliaikaa and set the half length."
+        "Finnish match settings now say jakso instead of erä."
       ],
       "fi": [
         "Päällä tai pois olevat asetukset ovat nyt kytkimiä, joten näet yhdellä silmäyksellä onko ottelu harjoitusottelu, vielä pelaamatta tai lasketaanko ulkoinen peli kauteen.",
         "Pelin vaativuustaso -liukusäädin on poistettu ottelulomakkeista; se vaikutti vain pelaaja-arvioiden keskiarvoihin, jotka ovat oletuksena pois päältä.",
-        "Ottelun asetuksissa puhutaan nyt puoliajoista erien sijaan: valitse 1 jakso tai 2 puoliaikaa ja aseta puoliajan kesto."
+        "Ottelun asetuksissa puhutaan nyt jaksoista erien sijaan."
       ]
     },
     {
