@@ -59,7 +59,9 @@ function getLatestCuratedRelease() {
       console.warn(`  ⚠ Top release-notes.json entry is missing ${missing} bullets — falling back to a generic note.`);
       return null;
     }
-    return { date: typeof latest.date === 'string' ? latest.date : null, en, fi };
+    // `internal: true` marks a release that changes nothing a coach can see
+    // (deps, refactors). The client installs it without the update banner.
+    return { date: typeof latest.date === 'string' ? latest.date : null, en, fi, internal: latest.internal === true };
   } catch {
     return null;
   }
@@ -73,6 +75,7 @@ const changelog = {
   version: getCommitHash(),
   date: curated?.date || getCommitDate(),
   notes: usingFallback ? GENERIC_FALLBACK : { en: curated.en, fi: curated.fi },
+  internal: curated?.internal === true,
 };
 
 const outputPath = path.join(process.cwd(), 'public', 'changelog.json');
@@ -81,6 +84,7 @@ fs.writeFileSync(outputPath, JSON.stringify(changelog, null, 2) + '\n');
 console.log('✓ Generated public/changelog.json');
 console.log(`  Source: ${usingFallback ? 'GENERIC FALLBACK (no curated note found)' : 'release-notes.json'}`);
 console.log(`  Date: ${changelog.date}`);
+console.log(`  Internal (silent update): ${changelog.internal}`);
 console.log(`  EN: ${changelog.notes.en.join(' / ')}`);
 console.log(`  FI: ${changelog.notes.fi.join(' / ')}`);
 if (usingFallback) {

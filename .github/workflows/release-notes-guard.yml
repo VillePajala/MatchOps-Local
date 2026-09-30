@@ -1,8 +1,13 @@
 name: Release Notes Guard
 
-# One concept: every merge to master ships a new build, and every build must tell
-# users what changed. So every PR to master MUST add a brand-new entry at the TOP
-# of release-notes.json (plain-language EN + FI). No exceptions, no skip label.
+# One concept: every merge to master that changes the app ships a new build, and
+# every build must tell users what changed. So every such PR MUST add a brand-new
+# entry at the TOP of release-notes.json (plain-language EN + FI). No skip label.
+#
+# The one exemption is decided by code, not by a label: a PR whose changed files
+# are all outside the app (docs, CI, tests, tooling) does not deploy - Vercel's
+# ignore step uses the same list in scripts/vercel-ignore-build.mjs - so there
+# is no build to describe and no note is required.
 #
 # This checks for a genuinely NEW top entry — not just that the file was touched —
 # so editing the comment, tweaking an old entry, or reordering can't satisfy it.
@@ -24,7 +29,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Does this PR deploy at all?
+        id: deploys
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Same list Vercel uses: exit 0 = nothing in the app changed (no deploy).
+          if node scripts/vercel-ignore-build.mjs "$BASE_SHA" "$HEAD_SHA"; then
+            echo "deploys=false" >> "$GITHUB_OUTPUT"
+            echo "✓ No app files changed - this PR does not deploy, so no release note is required."
+          else
+            echo "deploys=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Require a NEW top entry in release-notes.json
+        if: steps.deploys.outputs.deploys == 'true'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -51,7 +71,7 @@ jobs:
           fi
 
           if [ "$NEW" = "$OLD" ]; then
-            echo "::error::Every PR to master must add a NEW user-facing update note. The top entry of release-notes.json is unchanged — add a new entry at the TOP of releases[] (plain-language EN + FI bullets). For an internal-only change (CI, deps, refactor, docs) write something honest and user-friendly, e.g. \"Behind-the-scenes improvements\" / \"Taustaparannuksia\"."
+            echo "::error::Every PR to master must add a NEW user-facing update note. The top entry of release-notes.json is unchanged — add a new entry at the TOP of releases[] (plain-language EN + FI bullets). For an app change a coach cannot see (deps, refactor) add an entry with \"internal\": true and honest bullets, e.g. \"Behind-the-scenes improvements\" / \"Taustaparannuksia\" - it ships without the update banner."
             exit 1
           fi
 

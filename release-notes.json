@@ -1,6 +1,15 @@
 {
-  "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user.",
+  "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user. Two exceptions to the prompt: a PR that touches nothing in the app (docs, CI, tests, tooling - see scripts/vercel-ignore-build.mjs) does not deploy and needs no entry; a PR that changes the app but nothing a coach can see (deps, refactors) adds an entry with \"internal\": true, which ships without the update banner and applies on the next launch.",
   "releases": [
+    {
+      "date": "2026-09-23",
+      "en": [
+        "Fewer update prompts: changes that do not affect the app no longer ask you to update, and small behind-the-scenes updates install quietly the next time you open the app."
+      ],
+      "fi": [
+        "Vähemmän päivityskehotuksia: muutokset, jotka eivät vaikuta sovellukseen, eivät enää pyydä päivittämään, ja pienet taustapäivitykset asentuvat hiljaa seuraavalla avauksella."
+      ]
+    },
     {
       "date": "2026-09-23",
       "en": [

@@ -15,6 +15,12 @@ Output: `out/matchops-hero-phone.mp4` plus one clip per caption in `out/clips-ph
 
 Python needs Pillow (`pip install pillow`).
 
+## Music
+
+`MUSIC=path/to/track.mp3 bash run.sh` (or `node render/encode.mjs --style phone --music track.mp3`) writes a second hero, `out/matchops-hero-phone-music.mp4`, with the track looped under the video: 2 s crossfade between repeats, fade in over the intro, fade out over the end card, levelled to -18 LUFS (`--music-lufs` to taste). The silent hero and the clips are unchanged; Instagram and TikTok get the silent one and a sound added in the app.
+
+Only a licensed track goes into a published render. A stock-site preview is for judging the fit privately, never for upload. Keep the track and its license certificate in the marketing assets folder, not in git.
+
 ## The pieces
 
 | File | Does |
