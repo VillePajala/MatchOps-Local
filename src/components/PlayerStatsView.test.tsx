@@ -846,13 +846,27 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
     );
   });
 
-  it('shows the recorded positions on the row and counts them in the positions card', async () => {
+  /**
+   * @critical - the positions card merges own matches and external games
+   * through computePositionDiversity, which reads only `playerPositions`; the
+   * counts must add up across both, one game each, with no double counting.
+   */
+  it('counts positions across own matches and external games, one game each', async () => {
     const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
-    getAdjustmentsForPlayer.mockResolvedValue([existing]);
-    render(<PlayerStatsView {...baseProps} savedGames={{}} />);
+    getAdjustmentsForPlayer.mockResolvedValue([existing, { ...existing, id: 'adj-2', positions: ['gk', 'st'] }]);
+    const own = createGame({
+      opponentName: 'Own Opponent', gameDate: '2024-02-15', gameType: 'soccer',
+      playerPositions: { 'player-1': ['gk', 'lb'] },
+      selectedPlayerIds: ['player-1'],
+    } as Partial<AppState>);
+    render(<PlayerStatsView {...baseProps} savedGames={{ 'own-game': own }} />);
     await expandExternal();
 
-    expect(screen.getByTitle('Positions played')).toHaveTextContent('GK');
-    expect(screen.getByText(/Includes .* external games with recorded positions/)).toBeInTheDocument();
+    const card = screen.getByText('Positions played', { selector: 'h3' }).closest('div')?.parentElement as HTMLElement;
+    expect(card).toHaveTextContent(/GK\s*3/);
+    expect(card).toHaveTextContent(/LB\s*1/);
+    expect(card).toHaveTextContent(/ST\s*1/);
+    expect(card).toHaveTextContent(/Includes .* external games with recorded positions/);
+    expect(screen.getAllByTitle('Positions played')[0]).toHaveTextContent('GK');
   });
 });

@@ -92,11 +92,15 @@ const ExternalGameScopeFields: React.FC<{
   fallbackGameType: GameType;
 }> = ({ player, prefix, positions, onPositions, gameType, onGameType, gender, onGender, ageGroup, onAgeGroup, fallbackGameType }) => {
   const { t } = useTranslation();
-  // Soccer and futsal have different position sets, so a sport change drops
-  // the positions the new sport does not know rather than keeping a wrong one.
+  // Soccer and futsal have different position sets, so switching from one
+  // sport to the other drops the positions the new sport does not know rather
+  // than keeping a wrong one. Clearing the sport altogether keeps them: the
+  // editor merely falls back to a position set for display, and losing picks
+  // over a cleared toggle would be data loss with no signal.
   const changeSport = (next: GameType | '') => {
     onGameType(next);
-    const allowed = new Set(positionsForSport(next || fallbackGameType).map(p => p.id));
+    if (!next) return;
+    const allowed = new Set(positionsForSport(next).map(p => p.id));
     const kept = positions.filter(id => allowed.has(id));
     if (kept.length !== positions.length) onPositions(kept);
   };
