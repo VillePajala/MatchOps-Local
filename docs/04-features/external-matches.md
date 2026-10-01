@@ -16,15 +16,21 @@ player played** (`positions: string[]`, the finish flow's position ids) and
 - Playing time by position across games is the app's one signal; a game played
   up an age group left a hole in it. External positions now feed the player's
   "Positions played" card as one game each, marked as including external games.
-- The stats filters for sport, gender and age group could not place an
-  external game at all, so every row dropped out under any such filter. A row
-  that records the matching value now lands where it belongs; rows recorded
-  before 053 carry nothing and stay out, exactly as before (an unplaceable
-  game is omitted, never assumed).
+- The stats filters for sport and gender could not place an external game at
+  all, so every row dropped out under any such filter. A row that records the
+  matching value now lands where it belongs; rows recorded before 053 carry
+  nothing and stay out, exactly as before (an unplaceable game is omitted,
+  never assumed). Both values are needed for both filters: a row with a sport
+  but no gender is still unplaceable under a gender filter, and the form says
+  so. Age group is recorded on the row and the scope rule accepts an
+  `ageGroupFilter`, but no stats view filters by age group yet; that is
+  groundwork, not a feature.
 
 All four fields are optional. Local rows are stored as they are; the cloud
-table gained four nullable columns with no backfill. Backups, the Excel
-"External Games" sheet and the local-to-cloud migration carry them. The form
+table gained four nullable columns with no backfill. Backups and both
+migration directions move whole adjustment objects through
+`upsertPlayerAdjustment`, so they carry the fields without changes of their
+own; the Excel "External Games" sheet gained four columns. The form
 uses the same `PlayerPositionsEditor` as the finish flow (single player) and
 the game form's sport, gender and age-group controls.
 
