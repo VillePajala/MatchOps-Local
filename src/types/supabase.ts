@@ -507,6 +507,7 @@ export type Database = {
       }
       player_adjustments: {
         Row: {
+          age_group: string | null
           applied_at: string | null
           assists_delta: number | null
           created_at: string | null
@@ -514,7 +515,9 @@ export type Database = {
           external_team_name: string | null
           fair_play_cards_delta: number | null
           game_date: string | null
+          game_type: string | null
           games_played_delta: number | null
+          gender: string | null
           goals_delta: number | null
           home_or_away: string | null
           id: string
@@ -522,6 +525,7 @@ export type Database = {
           note: string | null
           opponent_name: string | null
           player_id: string
+          positions: string[] | null
           score_against: number | null
           score_for: number | null
           season_id: string | null
@@ -530,6 +534,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          age_group?: string | null
           applied_at?: string | null
           assists_delta?: number | null
           created_at?: string | null
@@ -537,7 +542,9 @@ export type Database = {
           external_team_name?: string | null
           fair_play_cards_delta?: number | null
           game_date?: string | null
+          game_type?: string | null
           games_played_delta?: number | null
+          gender?: string | null
           goals_delta?: number | null
           home_or_away?: string | null
           id: string
@@ -545,6 +552,7 @@ export type Database = {
           note?: string | null
           opponent_name?: string | null
           player_id: string
+          positions: string[] | null
           score_against?: number | null
           score_for?: number | null
           season_id?: string | null
@@ -553,6 +561,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          age_group?: string | null
           applied_at?: string | null
           assists_delta?: number | null
           created_at?: string | null
@@ -560,7 +569,9 @@ export type Database = {
           external_team_name?: string | null
           fair_play_cards_delta?: number | null
           game_date?: string | null
+          game_type?: string | null
           games_played_delta?: number | null
+          gender?: string | null
           goals_delta?: number | null
           home_or_away?: string | null
           id?: string
@@ -568,6 +579,7 @@ export type Database = {
           note?: string | null
           opponent_name?: string | null
           player_id?: string
+          positions?: string[] | null
           score_against?: number | null
           score_for?: number | null
           season_id?: string | null

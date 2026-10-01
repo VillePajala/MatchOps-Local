@@ -27,6 +27,8 @@ export interface AdjustmentScope {
   clubSeasonEndDate?: string;
   gameTypeFilter?: GameType | 'all';
   genderFilter?: Gender | 'all';
+  /** Age group such as 'U12', or 'all'. */
+  ageGroupFilter?: string | 'all';
 }
 
 export function adjustmentInScope(
@@ -38,6 +40,7 @@ export function adjustmentInScope(
     clubSeasonEndDate = DEFAULT_CLUB_SEASON_END_DATE,
     gameTypeFilter = 'all',
     genderFilter = 'all',
+    ageGroupFilter = 'all',
   }: AdjustmentScope,
 ): boolean {
   // Team: an external game recorded against another team, or against none, is
@@ -59,10 +62,13 @@ export function adjustmentInScope(
     }
   }
 
-  // Sport and gender are not recorded on an adjustment at all, so under a
-  // specific filter there is no way to say it belongs.
-  if (gameTypeFilter !== 'all') return false;
-  if (genderFilter !== 'all') return false;
+  // Sport, gender and age group: recorded on the row since 053. Under a
+  // specific filter the row must carry the matching value; a row that carries
+  // none (every row recorded before 053) cannot be shown to belong, so it
+  // stays out, exactly as before.
+  if (gameTypeFilter !== 'all' && adj.gameType !== gameTypeFilter) return false;
+  if (genderFilter !== 'all' && adj.gender !== genderFilter) return false;
+  if (ageGroupFilter !== 'all' && adj.ageGroup !== ageGroupFilter) return false;
 
   return true;
 }

@@ -302,6 +302,39 @@ describe('calculatePlayerStats', () => {
    * Tests fair play cards in manual adjustments (external games)
    * @critical
    */
+  describe('external game positions (053)', () => {
+    /**
+     * @critical - an external game with positions must leave the same trail
+     * as an own match: the per-game row carries them for the position summary.
+     */
+    it('carries positions and sport onto the external per-game row', () => {
+      const adjustments: PlayerStatAdjustment[] = [
+        {
+          id: 'adj_pos',
+          playerId: 'p1',
+          gamesPlayedDelta: 1,
+          goalsDelta: 0,
+          assistsDelta: 0,
+          appliedAt: '2024-03-01',
+          positions: ['lm', 'st'],
+          gameType: 'futsal',
+        } as PlayerStatAdjustment,
+      ];
+      const stats = calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments);
+      const row = stats.gameByGameStats.find(g => g.gameId === 'external-adj_pos');
+      expect(row?.positions).toEqual(['lm', 'st']);
+      expect(row?.gameType).toBe('futsal');
+    });
+
+    it('leaves positions undefined on a row recorded before 053', () => {
+      const adjustments: PlayerStatAdjustment[] = [
+        { id: 'adj_old', playerId: 'p1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, appliedAt: '2024-03-01' } as PlayerStatAdjustment,
+      ];
+      const stats = calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments);
+      expect(stats.gameByGameStats.find(g => g.gameId === 'external-adj_old')?.positions).toBeUndefined();
+    });
+  });
+
   describe('Fair Play Cards in Manual Adjustments', () => {
     it('should include fairPlayCardsDelta in total fair play cards', () => {
       const adjustments: PlayerStatAdjustment[] = [

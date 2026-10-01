@@ -2082,7 +2082,8 @@
       "title": "Pelipaikat",
       "linesPlayed": "{{n}}/4 linjaa",
       "narrowHint": "Pelannut vain yhtä linjaa tällä seurakaudella - tilaisuus monipuolistaa.",
-      "allPositions": "Kaikki pelipaikat"
+      "allPositions": "Kaikki pelipaikat",
+      "includesExternal": "Sisältää {{count}} ulkoista peliä, joihin on merkitty pelipaikat."
     },
     "gamesPlayed_short": "O",
     "goals": "Maalit",
@@ -2178,7 +2179,10 @@
     "whichTeam": "Mille joukkueelle tämä ottelu oli?",
     "anotherTeam": "Toinen joukkue (ei omani)",
     "whichTeamMineHint": "Lasketaan tälle joukkueelle joukkuetilastoissa.",
-    "whichTeamOtherHint": "Lasketaan pelaajalle, mutta ei millekään omalle joukkueellesi."
+    "whichTeamOtherHint": "Lasketaan pelaajalle, mutta ei millekään omalle joukkueellesi.",
+    "externalPositionsHint": "Missä pelaaja pelasi tässä pelissä. Lasketaan pelipaikkatilastoihin.",
+    "externalScopeHint": "Laji, sukupuoli ja ikäluokka asettavat pelin oikeiden suodattimien alle.",
+    "positionsLabel": "Toteutuneet pelipaikat"
   },
   "months": {
     "january": "Tammikuu",
@@ -2391,7 +2395,10 @@
     "noCanvas": "Kentän kaappaus epäonnistui",
     "success": "Kenttä viety onnistuneesti",
     "failed": "Kentän vienti epäonnistui",
-    "buttonTitle": "Vie kenttä kuvana"
+    "buttonTitle": "Vie kenttä kuvana",
+    "positions": "Pelipaikat",
+    "gameType": "Laji",
+    "gender": "Sukupuoli"
   },
   "reset": {
     "resetting": "Nollataan sovellusta...",

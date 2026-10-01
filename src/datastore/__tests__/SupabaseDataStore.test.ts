@@ -4952,6 +4952,24 @@ describe('SupabaseDataStore', () => {
         expect(adjustment.appliedAt).toBeDefined();
       });
 
+      /** 053: positions and scope reach the row; absent values are NULL, not ''. */
+      it('writes positions, sport, gender and age group to the row (053)', async () => {
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+        await dataStore.addPlayerAdjustment({
+          playerId: 'player_123', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0,
+          positions: ['lm', 'st'], gameType: 'futsal', gender: 'girls', ageGroup: 'U12',
+        });
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({
+          positions: ['lm', 'st'], game_type: 'futsal', gender: 'girls', age_group: 'U12',
+        }));
+
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+        await dataStore.addPlayerAdjustment({ playerId: 'player_123', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, positions: [] });
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({
+          positions: null, game_type: null, gender: null, age_group: null,
+        }));
+      });
+
       it('should throw NetworkError on add failure', async () => {
         mockQueryBuilder.insert = jest.fn().mockResolvedValue({
           error: { message: 'Insert failed' },

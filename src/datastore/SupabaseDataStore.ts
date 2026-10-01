@@ -4333,6 +4333,12 @@ export class SupabaseDataStore implements DataStore {
       goalsDelta: row.goals_delta ?? 0,
       assistsDelta: row.assists_delta ?? 0,
       fairPlayCardsDelta: row.fair_play_cards_delta ?? undefined,
+      // 053: positions and scope. NULL reads as undefined ("not recorded"), the
+      // same shape a pre-053 local row has, so every reader treats both alike.
+      positions: Array.isArray(row.positions) && row.positions.length > 0 ? row.positions : undefined,
+      gameType: row.game_type === 'soccer' || row.game_type === 'futsal' ? row.game_type : undefined,
+      gender: row.gender === 'boys' || row.gender === 'girls' ? row.gender : undefined,
+      ageGroup: row.age_group ?? undefined,
       note: row.note ?? undefined,
       createdBy: row.created_by ?? undefined,
       appliedAt: row.applied_at ?? new Date().toISOString(),
@@ -4368,6 +4374,11 @@ export class SupabaseDataStore implements DataStore {
       goals_delta: adjustment.goalsDelta,
       assists_delta: adjustment.assistsDelta,
       fair_play_cards_delta: adjustment.fairPlayCardsDelta,
+      // 053: an empty list is "not recorded", stored as NULL like every other absent field.
+      positions: adjustment.positions && adjustment.positions.length > 0 ? adjustment.positions : null,
+      game_type: adjustment.gameType ?? null,
+      gender: adjustment.gender ?? null,
+      age_group: normalizeOptionalString(adjustment.ageGroup ?? undefined) ?? null,
       note: adjustment.note,
       created_by: adjustment.createdBy,
       applied_at: adjustment.appliedAt,
