@@ -728,3 +728,104 @@ describe('PlayerStatsView Kirjuri notes', () => {
     expect(within(card).queryByText('not mine')).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Positions and scope on an external game (053).
+ *
+ * @critical - the add and edit forms are the only way these fields get onto a
+ * row, and the edit form must send `undefined` when a sport is toggled off, or
+ * the stores keep the old value and the game stays under the wrong filter.
+ */
+describe('PlayerStatsView - external game positions and scope (053)', () => {
+  const existing = {
+    id: 'adj-1',
+    playerId: 'player-1',
+    externalTeamName: 'KuPS P13',
+    opponentName: 'Vastus',
+    gamesPlayedDelta: 1,
+    goalsDelta: 0,
+    assistsDelta: 0,
+    appliedAt: '2024-12-02T00:00:00Z',
+    positions: ['gk'],
+    gameType: 'futsal' as const,
+    gender: 'girls' as const,
+    ageGroup: 'U12',
+  };
+
+  const expandExternal = async () => {
+    await waitFor(() => expect(screen.getByText('External Games')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('External Games'));
+    });
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('saves sport, gender and age group from the add form', async () => {
+    const { getAdjustmentsForPlayer, addPlayerAdjustment } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    addPlayerAdjustment.mockResolvedValue({ ...existing, id: 'new' });
+    render(<PlayerStatsView {...baseProps} savedGames={{}} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('External team'), { target: { value: 'KuPS P13' } });
+    fireEvent.change(screen.getByPlaceholderText('Opponent name'), { target: { value: 'Vastus' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Futsal' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Girls' }));
+    fireEvent.change(screen.getByLabelText('Age Group (Optional)'), { target: { value: 'U12' } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('save-external-game'));
+    });
+
+    expect(addPlayerAdjustment).toHaveBeenCalledWith(
+      expect.objectContaining({ gameType: 'futsal', gender: 'girls', ageGroup: 'U12', positions: undefined }),
+      undefined,
+    );
+  });
+
+  it('hydrates the row into the edit form and clears a sport that is toggled off', async () => {
+    const { getAdjustmentsForPlayer, updatePlayerAdjustment } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([existing]);
+    updatePlayerAdjustment.mockResolvedValue({ ...existing, gameType: undefined });
+    render(<PlayerStatsView {...baseProps} savedGames={{}} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+
+    const futsal = screen.getByRole('button', { name: 'Futsal' });
+    expect(futsal).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Girls' })).toHaveAttribute('aria-pressed', 'true');
+    expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('U12');
+
+    fireEvent.click(futsal);
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save'));
+    });
+
+    expect(updatePlayerAdjustment).toHaveBeenCalledWith(
+      'player-1',
+      'adj-1',
+      expect.objectContaining({ positions: ['gk'], gameType: undefined, gender: 'girls', ageGroup: 'U12' }),
+      undefined,
+    );
+  });
+
+  it('shows the recorded positions on the row and counts them in the positions card', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([existing]);
+    render(<PlayerStatsView {...baseProps} savedGames={{}} />);
+    await expandExternal();
+
+    expect(screen.getByTitle('Positions played')).toHaveTextContent('GK');
+    expect(screen.getByText(/Includes .* external games with recorded positions/)).toBeInTheDocument();
+  });
+});
