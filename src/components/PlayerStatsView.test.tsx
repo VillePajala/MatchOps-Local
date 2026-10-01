@@ -819,6 +819,33 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
     );
   });
 
+  /** Soccer and futsal have different position sets; a sport change must not keep a position the new sport lacks. */
+  it('drops positions the new sport does not have when the sport changes', async () => {
+    const { getAdjustmentsForPlayer, updatePlayerAdjustment } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([{ ...existing, positions: ['gk', 'lb'], gameType: 'soccer' }]);
+    updatePlayerAdjustment.mockResolvedValue({ ...existing, positions: ['gk'], gameType: 'futsal' });
+    render(<PlayerStatsView {...baseProps} savedGames={{}} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+
+    fireEvent.click(screen.getByTestId('edit-adj-1-sport-futsal'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save'));
+    });
+
+    expect(updatePlayerAdjustment).toHaveBeenCalledWith(
+      'player-1',
+      'adj-1',
+      expect.objectContaining({ positions: ['gk'], gameType: 'futsal' }),
+      undefined,
+    );
+  });
+
   it('shows the recorded positions on the row and counts them in the positions card', async () => {
     const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
     getAdjustmentsForPlayer.mockResolvedValue([existing]);

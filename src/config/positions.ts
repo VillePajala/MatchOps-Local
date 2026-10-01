@@ -110,7 +110,6 @@ export function positionsForSport(gameType: GameType | undefined): PositionDef[]
   return POSITIONS.filter(p => p.sports.includes(sport));
 }
 
-/** Sort a set of position ids into the canonical back-to-front order. */
 /**
  * The subset of `ids` the app knows, in the order given, or undefined when
  * nothing is left: the stored shape of "positions not recorded". Both stores
@@ -123,6 +122,7 @@ export function knownPositionIds(ids: readonly unknown[] | null | undefined): st
   return known.length > 0 ? [...new Set(known)] : undefined;
 }
 
+/** Sort a set of position ids into the canonical back-to-front order. */
 export function orderPositionIds(ids: readonly string[]): string[] {
   const rank = new Map(POSITION_IDS.map((id, i) => [id, i]));
   return [...ids].sort((a, b) => (rank.get(a) ?? 999) - (rank.get(b) ?? 999));
