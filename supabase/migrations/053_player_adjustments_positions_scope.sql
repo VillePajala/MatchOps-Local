@@ -16,6 +16,10 @@
 ALTER TABLE player_adjustments ADD COLUMN IF NOT EXISTS positions text[];
 ALTER TABLE player_adjustments ADD COLUMN IF NOT EXISTS game_type text CHECK (game_type IN ('soccer', 'futsal'));
 ALTER TABLE player_adjustments ADD COLUMN IF NOT EXISTS gender text CHECK (gender IN ('boys', 'girls'));
+-- age_group has no CHECK on purpose: the list of age groups is an app
+-- constant (U7..U21 today) that has changed before and will again, and a
+-- constraint would turn every such change into a migration. The form offers
+-- a <select>; the stores accept any short string.
 ALTER TABLE player_adjustments ADD COLUMN IF NOT EXISTS age_group text;
 
 COMMENT ON COLUMN player_adjustments.positions IS

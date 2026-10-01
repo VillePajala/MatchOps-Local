@@ -54,32 +54,36 @@ describe('adjustmentInScope', () => {
     });
   });
 
-  describe('sport, gender and age group', () => {
+  describe('sport and gender', () => {
     /**
-     * Rows recorded before 053 carry none of these, so under a specific
-     * filter there is no way to say they belong. Left out rather than assumed
-     * to match, exactly as before 053.
+     * Rows recorded before 053 carry neither, so under a specific filter
+     * there is no way to say they belong. Left out rather than assumed to
+     * match, exactly as before 053.
      */
     it('drops an external game that records no sport or gender once one is chosen', () => {
       expect(adjustmentInScope(adj(), { gameTypeFilter: 'futsal' })).toBe(false);
       expect(adjustmentInScope(adj(), { genderFilter: 'girls' })).toBe(false);
-      expect(adjustmentInScope(adj(), { ageGroupFilter: 'U12' })).toBe(false);
     });
 
     /** Since 053 the row can say what it is, and then it lands where it belongs. */
-    it('keeps one that records the matching sport, gender and age group', () => {
-      const a = adj({ gameType: 'futsal', gender: 'girls', ageGroup: 'U12' });
+    it('keeps one that records the matching sport and gender', () => {
+      const a = adj({ gameType: 'futsal', gender: 'girls' });
       expect(adjustmentInScope(a, { gameTypeFilter: 'futsal' })).toBe(true);
       expect(adjustmentInScope(a, { genderFilter: 'girls' })).toBe(true);
-      expect(adjustmentInScope(a, { ageGroupFilter: 'U12' })).toBe(true);
-      expect(adjustmentInScope(a, { gameTypeFilter: 'futsal', genderFilter: 'girls', ageGroupFilter: 'U12' })).toBe(true);
+      expect(adjustmentInScope(a, { gameTypeFilter: 'futsal', genderFilter: 'girls' })).toBe(true);
     });
 
-    it('drops one that records a different sport, gender or age group', () => {
-      const a = adj({ gameType: 'soccer', gender: 'boys', ageGroup: 'U13' });
+    it('drops one that records a different sport or gender', () => {
+      const a = adj({ gameType: 'soccer', gender: 'boys' });
       expect(adjustmentInScope(a, { gameTypeFilter: 'futsal' })).toBe(false);
       expect(adjustmentInScope(a, { genderFilter: 'girls' })).toBe(false);
-      expect(adjustmentInScope(a, { ageGroupFilter: 'U12' })).toBe(false);
+    });
+
+    /** One field alone cannot place the row under the other filter. */
+    it('needs the matching field for each filter, not just one of them', () => {
+      const a = adj({ gameType: 'futsal' });
+      expect(adjustmentInScope(a, { gameTypeFilter: 'futsal' })).toBe(true);
+      expect(adjustmentInScope(a, { genderFilter: 'girls' })).toBe(false);
     });
   });
 

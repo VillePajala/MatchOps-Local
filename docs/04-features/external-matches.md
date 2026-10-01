@@ -22,9 +22,10 @@ player played** (`positions: string[]`, the finish flow's position ids) and
   nothing and stay out, exactly as before (an unplaceable game is omitted,
   never assumed). Both values are needed for both filters: a row with a sport
   but no gender is still unplaceable under a gender filter, and the form says
-  so. Age group is recorded on the row and the scope rule accepts an
-  `ageGroupFilter`, but no stats view filters by age group yet; that is
-  groundwork, not a feature.
+  so. The age group is recorded on the row for display and export; no stats
+  view filters by age group, so the scope rule does not look at it (add it
+  there the day a filter exists). `age_group` has no CHECK constraint on
+  purpose: the age-group list is an app constant that changes.
 
 All four fields are optional. Local rows are stored as they are; the cloud
 table gained four nullable columns with no backfill. Backups and both
