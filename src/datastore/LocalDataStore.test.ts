@@ -2434,6 +2434,13 @@ describe('LocalDataStore', () => {
         expect(kept?.positions).toEqual(['gk']);
       });
 
+      it('refuses a sport or gender the cloud table would reject (053)', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+        const added = await dataStore.addPlayerAdjustment({ playerId: 'player_1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, gameType: 'hockey' as never, gender: 'mixed' as never });
+        expect(added.gameType).toBeUndefined();
+        expect(added.gender).toBeUndefined();
+      });
+
       it('normalises positions and age group on update like the add path does', async () => {
         mockGetStorageItem.mockResolvedValue(JSON.stringify({ player_1: [mockAdjustment] }));
         const updated = await dataStore.updatePlayerAdjustment('player_1', 'adj_123', { positions: ['gk', 'nope', 'gk'], ageGroup: ' U12 ' });
