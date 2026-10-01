@@ -775,8 +775,8 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
 
     fireEvent.change(screen.getByPlaceholderText('External team'), { target: { value: 'KuPS P13' } });
     fireEvent.change(screen.getByPlaceholderText('Opponent name'), { target: { value: 'Vastus' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Futsal' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Girls' }));
+    fireEvent.click(screen.getByTestId('adj-sport-futsal'));
+    fireEvent.click(screen.getByTestId('adj-gender-girls'));
     fireEvent.change(screen.getByLabelText('Age Group (Optional)'), { target: { value: 'U12' } });
     await act(async () => {
       fireEvent.click(screen.getByTestId('save-external-game'));
@@ -801,9 +801,9 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
       fireEvent.click(screen.getByText('Edit'));
     });
 
-    const futsal = screen.getByRole('button', { name: 'Futsal' });
+    const futsal = screen.getByTestId('edit-adj-1-sport-futsal');
     expect(futsal).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Girls' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('edit-adj-1-gender-girls')).toHaveAttribute('aria-pressed', 'true');
     expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('U12');
 
     fireEvent.click(futsal);

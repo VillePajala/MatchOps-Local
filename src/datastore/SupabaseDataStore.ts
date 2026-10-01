@@ -14,7 +14,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { POSITION_IDS } from '@/config/positions';
+import { knownPositionIds } from '@/config/positions';
 import { ASSESSMENT_RATING_STYLES, ASSESSMENT_TEMPLATES } from '@/types/settings';
 import type {
   Player,
@@ -92,12 +92,7 @@ type GameTacticalDataRow = Database['public']['Tables']['game_tactical_data']['R
 type PlayerAssessmentRow = Database['public']['Tables']['player_assessments']['Row'];
 type PlayerAdjustmentRow = Database['public']['Tables']['player_adjustments']['Row'];
 
-/** 053: only the app's own position ids come through; anything else is "not recorded". */
-const readPositions = (value: unknown): string[] | undefined => {
-  if (!Array.isArray(value)) return undefined;
-  const known = value.filter((p): p is string => typeof p === 'string' && (POSITION_IDS as readonly string[]).includes(p));
-  return known.length > 0 ? known : undefined;
-};
+
 type WarmupPlanRow = Database['public']['Tables']['warmup_plans']['Row'];
 
 // Insert types (data for INSERT operations)
@@ -4343,7 +4338,7 @@ export class SupabaseDataStore implements DataStore {
       fairPlayCardsDelta: row.fair_play_cards_delta ?? undefined,
       // 053: positions and scope. NULL reads as undefined ("not recorded"), the
       // same shape a pre-053 local row has, so every reader treats both alike.
-      positions: readPositions(row.positions),
+      positions: knownPositionIds(row.positions),
       gameType: row.game_type === 'soccer' || row.game_type === 'futsal' ? row.game_type : undefined,
       gender: row.gender === 'boys' || row.gender === 'girls' ? row.gender : undefined,
       ageGroup: row.age_group ?? undefined,
@@ -4383,7 +4378,7 @@ export class SupabaseDataStore implements DataStore {
       assists_delta: adjustment.assistsDelta,
       fair_play_cards_delta: adjustment.fairPlayCardsDelta,
       // 053: an empty list is "not recorded", stored as NULL like every other absent field.
-      positions: adjustment.positions && adjustment.positions.length > 0 ? adjustment.positions : null,
+      positions: knownPositionIds(adjustment.positions) ?? null,
       game_type: adjustment.gameType ?? null,
       gender: adjustment.gender ?? null,
       age_group: normalizeOptionalString(adjustment.ageGroup ?? undefined) ?? null,
