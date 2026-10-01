@@ -15,7 +15,7 @@ import type {
   PlayerStatAdjustment,
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
-import { POSITION_IDS } from '@/config/positions';
+import { knownPositionIds } from '@/config/positions';
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { DEFAULT_APP_SETTINGS } from '@/types/settings';
@@ -2238,7 +2238,7 @@ export class LocalDataStore implements DataStore {
       assistsDelta: adjustment.assistsDelta || 0,
       fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
       // 053: positions and scope; an empty list is "not recorded".
-      positions: (() => { const known = (adjustment.positions ?? []).filter(p => (POSITION_IDS as readonly string[]).includes(p)); return known.length > 0 ? known : undefined; })(),
+      positions: knownPositionIds(adjustment.positions),
       gameType: adjustment.gameType,
       gender: adjustment.gender,
       ageGroup: adjustment.ageGroup?.trim() || undefined,
@@ -2324,6 +2324,10 @@ export class LocalDataStore implements DataStore {
       }
 
       const updated = { ...list[index], ...patch } as PlayerStatAdjustment;
+      // 053: the same normalisation as the add path, so an update cannot
+      // smuggle in an unknown position id or an untrimmed age group.
+      updated.positions = knownPositionIds(updated.positions);
+      updated.ageGroup = updated.ageGroup?.trim() || undefined;
       list[index] = updated;
       all[playerId] = list;
       await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));

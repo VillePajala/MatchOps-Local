@@ -2434,6 +2434,13 @@ describe('LocalDataStore', () => {
         expect(kept?.positions).toEqual(['gk']);
       });
 
+      it('normalises positions and age group on update like the add path does', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({ player_1: [mockAdjustment] }));
+        const updated = await dataStore.updatePlayerAdjustment('player_1', 'adj_123', { positions: ['gk', 'nope', 'gk'], ageGroup: ' U12 ' });
+        expect(updated?.positions).toEqual(['gk']);
+        expect(updated?.ageGroup).toBe('U12');
+      });
+
       it('should return null for non-existent adjustment', async () => {
         mockGetStorageItem.mockResolvedValue(
           JSON.stringify({ player_1: [mockAdjustment] })

@@ -1,4 +1,5 @@
 import {
+  knownPositionIds,
   POSITIONS,
   POSITION_IDS,
   POSITION_ABBREV_FALLBACK,
@@ -68,5 +69,16 @@ describe('positions config', () => {
     expect(inferFormat('soccer', 11)).toBe('8v8');
     expect(inferFormat('soccer', 16)).toBe('11v11');
     expect(inferFormat(undefined, 16)).toBe('11v11'); // legacy = soccer
+  });
+});
+
+describe('knownPositionIds', () => {
+  /** Stale or mistyped ids never reach the stats; nothing left means "not recorded". */
+  it('keeps known ids once, in order, and returns undefined when none remain', () => {
+    expect(knownPositionIds(['gk', 'nope', 'st', 'gk'])).toEqual(['gk', 'st']);
+    expect(knownPositionIds(['nope'])).toBeUndefined();
+    expect(knownPositionIds([])).toBeUndefined();
+    expect(knownPositionIds(undefined)).toBeUndefined();
+    expect(knownPositionIds('gk' as unknown as string[])).toBeUndefined();
   });
 });

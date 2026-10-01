@@ -33,6 +33,7 @@ import MetricAreaChart from './MetricAreaChart';
 import { computePositionDiversity } from '@/utils/positionDiversity';
 import { POSITION_IDS } from '@/config/positions';
 import { AGE_GROUPS } from '@/config/gameOptions';
+import { positionsForSport } from '@/config/positions';
 import PlayerPositionsEditor from './PlayerPositionsEditor';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
@@ -92,6 +93,14 @@ const ExternalGameScopeFields: React.FC<{
   fallbackGameType: GameType;
 }> = ({ player, prefix, positions, onPositions, gameType, onGameType, gender, onGender, ageGroup, onAgeGroup, fallbackGameType }) => {
   const { t } = useTranslation();
+  // Soccer and futsal have different position sets, so a sport change drops
+  // the positions the new sport does not know rather than keeping a wrong one.
+  const changeSport = (next: GameType | '') => {
+    onGameType(next);
+    const allowed = new Set(positionsForSport(next || fallbackGameType).map(p => p.id));
+    const kept = positions.filter(id => allowed.has(id));
+    if (kept.length !== positions.length) onPositions(kept);
+  };
   const choice = (on: boolean) => `flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${on ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
   return (
     <>
@@ -109,15 +118,15 @@ const ExternalGameScopeFields: React.FC<{
         <div>
           <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.gameTypeLabel', 'Sport Type')}</label>
           <div className="flex gap-2">
-            <button type="button" aria-pressed={gameType === 'soccer'} onClick={() => onGameType(gameType === 'soccer' ? '' : 'soccer')} className={choice(gameType === 'soccer')}>{t('common.gameTypeSoccer', 'Soccer')}</button>
-            <button type="button" aria-pressed={gameType === 'futsal'} onClick={() => onGameType(gameType === 'futsal' ? '' : 'futsal')} className={choice(gameType === 'futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</button>
+            <button type="button" data-testid={`${prefix}-sport-soccer`} aria-pressed={gameType === 'soccer'} onClick={() => changeSport(gameType === 'soccer' ? '' : 'soccer')} className={choice(gameType === 'soccer')}>{t('common.gameTypeSoccer', 'Soccer')}</button>
+            <button type="button" data-testid={`${prefix}-sport-futsal`} aria-pressed={gameType === 'futsal'} onClick={() => changeSport(gameType === 'futsal' ? '' : 'futsal')} className={choice(gameType === 'futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</button>
           </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.genderLabel', 'Gender')}</label>
           <div className="flex gap-2">
-            <button type="button" aria-pressed={gender === 'boys'} onClick={() => onGender(gender === 'boys' ? '' : 'boys')} className={choice(gender === 'boys')}>{t('common.genderBoys', 'Boys')}</button>
-            <button type="button" aria-pressed={gender === 'girls'} onClick={() => onGender(gender === 'girls' ? '' : 'girls')} className={choice(gender === 'girls')}>{t('common.genderGirls', 'Girls')}</button>
+            <button type="button" data-testid={`${prefix}-gender-boys`} aria-pressed={gender === 'boys'} onClick={() => onGender(gender === 'boys' ? '' : 'boys')} className={choice(gender === 'boys')}>{t('common.genderBoys', 'Boys')}</button>
+            <button type="button" data-testid={`${prefix}-gender-girls`} aria-pressed={gender === 'girls'} onClick={() => onGender(gender === 'girls' ? '' : 'girls')} className={choice(gender === 'girls')}>{t('common.genderGirls', 'Girls')}</button>
           </div>
         </div>
         <div>
