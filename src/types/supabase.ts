@@ -552,7 +552,7 @@ export type Database = {
           note?: string | null
           opponent_name?: string | null
           player_id: string
-          positions: string[] | null
+          positions?: string[] | null
           score_against?: number | null
           score_for?: number | null
           season_id?: string | null

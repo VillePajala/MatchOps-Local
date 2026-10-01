@@ -2083,7 +2083,8 @@
       "linesPlayed": "{{n}} of 4 lines",
       "narrowHint": "Played only one line this season - a chance to broaden.",
       "allPositions": "All positions",
-      "includesExternal": "Includes {{count}} external game(s) with recorded positions."
+      "includesExternal_one": "Includes {{count}} external game with recorded positions.",
+      "includesExternal_other": "Includes {{count}} external games with recorded positions."
     },
     "gamesPlayed_short": "GP",
     "goals": "Goals",
@@ -2181,7 +2182,7 @@
     "whichTeamMineHint": "Counts toward this team in team statistics.",
     "whichTeamOtherHint": "Counts toward the player, but not toward any of your teams.",
     "externalPositionsHint": "Where the player played in this game. Counted in the positions played.",
-    "externalScopeHint": "Sport, gender and age group place the game under the right filters.",
+    "externalScopeHint": "Sport and gender place the game under the stats filters. If either is missing, the game stays out of a filtered view.",
     "positionsLabel": "Positions played"
   },
   "months": {

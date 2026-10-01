@@ -4970,6 +4970,39 @@ describe('SupabaseDataStore', () => {
         }));
       });
 
+      /**
+       * The update reads the row, spreads the patch over it and writes the
+       * whole row back, so clearing a 053 field means sending it as undefined
+       * and seeing NULL go out; an untouched field must survive the round trip.
+       */
+      it('clears and keeps positions and scope through update (053)', async () => {
+        const existingRow = {
+          id: 'adj_1', user_id: 'user_123', player_id: 'player_123', games_played_delta: 1, goals_delta: 0, assists_delta: 0,
+          positions: ['gk', 'cb'], game_type: 'futsal', gender: 'girls', age_group: 'U12', applied_at: '2024-01-01T00:00:00.000Z',
+        };
+        const eqChain = () => ({ eq: jest.fn().mockReturnValue({ eq: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ data: null, error: null }) }) }) });
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: existingRow, error: null });
+        mockQueryBuilder.update = jest.fn().mockReturnValue(eqChain());
+
+        const kept = await dataStore.updatePlayerAdjustment('player_123', 'adj_1', { goalsDelta: 2 });
+        expect(kept?.positions).toEqual(['gk', 'cb']);
+        expect(kept?.gameType).toBe('futsal');
+        expect(mockQueryBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ positions: ['gk', 'cb'], game_type: 'futsal', gender: 'girls', age_group: 'U12', goals_delta: 2 }));
+
+        mockQueryBuilder.update = jest.fn().mockReturnValue(eqChain());
+        const cleared = await dataStore.updatePlayerAdjustment('player_123', 'adj_1', { positions: undefined, gameType: undefined, gender: undefined, ageGroup: undefined });
+        expect(cleared?.positions).toBeUndefined();
+        expect(mockQueryBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ positions: null, game_type: null, gender: null, age_group: null }));
+      });
+
+      /** A row with a value the CHECK constraint would never allow reads as "not recorded". */
+      it('reads an unknown game_type as not recorded', async () => {
+        mockQueryBuilder.eq = jest.fn().mockReturnValue({ order: jest.fn().mockResolvedValue({ data: [{ id: 'adj_2', user_id: 'user_123', player_id: 'player_123', games_played_delta: 1, goals_delta: 0, assists_delta: 0, positions: [], game_type: 'hockey', gender: null, age_group: null, applied_at: '2024-01-01T00:00:00.000Z' }], error: null }) });
+        const rows = await dataStore.getPlayerAdjustments('player_123');
+        expect(rows[0]?.gameType).toBeUndefined();
+        expect(rows[0]?.positions).toBeUndefined();
+      });
+
       it('should throw NetworkError on add failure', async () => {
         mockQueryBuilder.insert = jest.fn().mockResolvedValue({
           error: { message: 'Insert failed' },

@@ -2416,6 +2416,24 @@ describe('LocalDataStore', () => {
         expect(updated?.goalsDelta).toBe(5);
       });
 
+      /**
+       * The update spreads the patch over the row, so clearing a 053 field
+       * means sending it as undefined; the row must come back without it.
+       */
+      it('clears positions and scope when the patch sets them undefined (053)', async () => {
+        mockGetStorageItem.mockResolvedValue(
+          JSON.stringify({ player_1: [{ ...mockAdjustment, positions: ['gk'], gameType: 'futsal', gender: 'girls', ageGroup: 'U12' }] })
+        );
+        const updated = await dataStore.updatePlayerAdjustment('player_1', 'adj_123', { positions: undefined, gameType: undefined, gender: undefined, ageGroup: undefined });
+        expect(updated?.positions).toBeUndefined();
+        expect(updated?.gameType).toBeUndefined();
+        expect(updated?.gender).toBeUndefined();
+        expect(updated?.ageGroup).toBeUndefined();
+
+        const kept = await dataStore.updatePlayerAdjustment('player_1', 'adj_123', { goalsDelta: 2 });
+        expect(kept?.positions).toEqual(['gk']);
+      });
+
       it('should return null for non-existent adjustment', async () => {
         mockGetStorageItem.mockResolvedValue(
           JSON.stringify({ player_1: [mockAdjustment] })

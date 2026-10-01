@@ -2240,7 +2240,7 @@ export class LocalDataStore implements DataStore {
       positions: adjustment.positions && adjustment.positions.length > 0 ? [...adjustment.positions] : undefined,
       gameType: adjustment.gameType,
       gender: adjustment.gender,
-      ageGroup: adjustment.ageGroup || undefined,
+      ageGroup: adjustment.ageGroup?.trim() || undefined,
       note: adjustment.note,
       createdBy: adjustment.createdBy,
     };

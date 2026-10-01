@@ -70,6 +70,69 @@ interface PlayerStatsViewProps {
   assessmentsEnabled?: boolean;
 }
 
+
+/**
+ * The 053 fields of an external game: positions played, sport, gender, age
+ * group. One component for the add and the edit form so the two cannot drift.
+ * Sport and gender toggle off when tapped again; "not recorded" is a real
+ * value here (it keeps the row out of filtered views, and the hint says so).
+ */
+const ExternalGameScopeFields: React.FC<{
+  player: Player;
+  prefix: string;
+  positions: string[];
+  onPositions: (next: string[]) => void;
+  gameType: GameType | '';
+  onGameType: (next: GameType | '') => void;
+  gender: Gender | '';
+  onGender: (next: Gender | '') => void;
+  ageGroup: string;
+  onAgeGroup: (next: string) => void;
+  /** Which position set the editor shows when the row names no sport. */
+  fallbackGameType: GameType;
+}> = ({ player, prefix, positions, onPositions, gameType, onGameType, gender, onGender, ageGroup, onAgeGroup, fallbackGameType }) => {
+  const { t } = useTranslation();
+  const choice = (on: boolean) => `flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${on ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+  return (
+    <>
+      <div className="lg:col-span-3">
+        <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.positionsLabel', 'Positions played')}</label>
+        <p className="text-xs text-slate-500 mb-2">{t('playerStats.externalPositionsHint', 'Where the player played in this game. Counted in the positions played.')}</p>
+        <PlayerPositionsEditor
+          players={[player]}
+          value={{ [player.id]: positions }}
+          gameType={gameType || fallbackGameType}
+          onChange={(next) => onPositions(next[player.id] ?? [])}
+        />
+      </div>
+      <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.gameTypeLabel', 'Sport Type')}</label>
+          <div className="flex gap-2">
+            <button type="button" aria-pressed={gameType === 'soccer'} onClick={() => onGameType(gameType === 'soccer' ? '' : 'soccer')} className={choice(gameType === 'soccer')}>{t('common.gameTypeSoccer', 'Soccer')}</button>
+            <button type="button" aria-pressed={gameType === 'futsal'} onClick={() => onGameType(gameType === 'futsal' ? '' : 'futsal')} className={choice(gameType === 'futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.genderLabel', 'Gender')}</label>
+          <div className="flex gap-2">
+            <button type="button" aria-pressed={gender === 'boys'} onClick={() => onGender(gender === 'boys' ? '' : 'boys')} className={choice(gender === 'boys')}>{t('common.genderBoys', 'Boys')}</button>
+            <button type="button" aria-pressed={gender === 'girls'} onClick={() => onGender(gender === 'girls' ? '' : 'girls')} className={choice(gender === 'girls')}>{t('common.genderGirls', 'Girls')}</button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor={`${prefix}-age-group`}>{t('newGameSetupModal.ageGroupLabel', 'Age Group (Optional)')}</label>
+          <select id={`${prefix}-age-group`} value={ageGroup} onChange={e => onAgeGroup(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+            <option value="">{t('common.none', 'None')}</option>
+            {AGE_GROUPS.map((group) => (<option key={group} value={group}>{group}</option>))}
+          </select>
+        </div>
+        <p className="sm:col-span-3 text-xs text-slate-500">{t('playerStats.externalScopeHint', 'Sport and gender place the game under the stats filters. If either is missing, the game stays out of a filtered view.')}</p>
+      </div>
+    </>
+  );
+};
+
 const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false, masterRoster, teams = [] , assessmentsEnabled = true }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
@@ -709,7 +772,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             {externalPositionGames.length > 0 && (
               <p className="text-xs text-slate-400 mt-2">
                 <span className="inline-block bg-purple-600/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded mr-1.5">{t('playerStats.external', 'EXT')}</span>
-                {t('playerStats.positionsPlayed.includesExternal', 'Includes {{count}} external game(s) with recorded positions.', { count: externalPositionGames.length })}
+                {t('playerStats.positionsPlayed.includesExternal', { count: externalPositionGames.length, defaultValue: 'Includes {{count}} external games with recorded positions.' })}
               </p>
             )}
           </div>
@@ -959,41 +1022,19 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   </span>
                 </ModalSwitch>
               </div>
-              {/* 053: positions played and the game's own scope, the same controls the finish flow and the game form use */}
-              <div className="lg:col-span-3">
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.positionsLabel', 'Positions played')}</label>
-                <p className="text-xs text-slate-500 mb-2">{t('playerStats.externalPositionsHint', 'Where the player played in this game. Counted in the positions played.')}</p>
-                <PlayerPositionsEditor
-                  players={[player]}
-                  value={{ [player.id]: adjPositions }}
-                  gameType={adjGameType || 'soccer'}
-                  onChange={(next) => setAdjPositions(next[player.id] ?? [])}
-                />
-              </div>
-              <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.gameTypeLabel', 'Sport Type')}</label>
-                  <div className="flex gap-2">
-                    <button type="button" aria-pressed={adjGameType === 'soccer'} onClick={() => setAdjGameType(v => (v === 'soccer' ? '' : 'soccer'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${adjGameType === 'soccer' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.gameTypeSoccer', 'Soccer')}</button>
-                    <button type="button" aria-pressed={adjGameType === 'futsal'} onClick={() => setAdjGameType(v => (v === 'futsal' ? '' : 'futsal'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${adjGameType === 'futsal' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.gameTypeFutsal', 'Futsal')}</button>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.genderLabel', 'Gender')}</label>
-                  <div className="flex gap-2">
-                    <button type="button" aria-pressed={adjGender === 'boys'} onClick={() => setAdjGender(v => (v === 'boys' ? '' : 'boys'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${adjGender === 'boys' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.genderBoys', 'Boys')}</button>
-                    <button type="button" aria-pressed={adjGender === 'girls'} onClick={() => setAdjGender(v => (v === 'girls' ? '' : 'girls'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${adjGender === 'girls' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.genderGirls', 'Girls')}</button>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor="adj-age-group">{t('newGameSetupModal.ageGroupLabel', 'Age Group (Optional)')}</label>
-                  <select id="adj-age-group" value={adjAgeGroup} onChange={e => setAdjAgeGroup(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                    <option value="">{t('common.none', 'None')}</option>
-                    {AGE_GROUPS.map((group) => (<option key={group} value={group}>{group}</option>))}
-                  </select>
-                </div>
-                <p className="sm:col-span-3 text-xs text-slate-500">{t('playerStats.externalScopeHint', 'Sport, gender and age group place the game under the right filters.')}</p>
-              </div>
+              <ExternalGameScopeFields
+                player={player}
+                prefix="adj"
+                positions={adjPositions}
+                onPositions={setAdjPositions}
+                gameType={adjGameType}
+                onGameType={setAdjGameType}
+                gender={adjGender}
+                onGender={setAdjGender}
+                ageGroup={adjAgeGroup}
+                onAgeGroup={setAdjAgeGroup}
+                fallbackGameType={selectedGameTypeFilter !== 'all' ? selectedGameTypeFilter : 'soccer'}
+              />
               <div className="lg:col-span-3">
                 <ModalSwitch
                   checked={adjIncludeInSeasonTournament}
@@ -1263,41 +1304,19 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             </span>
                           </ModalSwitch>
                         </div>
-                        {/* 053: positions played and the game's own scope, the same controls the finish flow and the game form use */}
-                        <div className="lg:col-span-3">
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.positionsLabel', 'Positions played')}</label>
-                          <p className="text-xs text-slate-500 mb-2">{t('playerStats.externalPositionsHint', 'Where the player played in this game. Counted in the positions played.')}</p>
-                          <PlayerPositionsEditor
-                            players={[player]}
-                            value={{ [player.id]: editPositions }}
-                            gameType={editGameType || 'soccer'}
-                            onChange={(next) => setEditPositions(next[player.id] ?? [])}
-                          />
-                        </div>
-                        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.gameTypeLabel', 'Sport Type')}</label>
-                            <div className="flex gap-2">
-                              <button type="button" aria-pressed={editGameType === 'soccer'} onClick={() => setEditGameType(v => (v === 'soccer' ? '' : 'soccer'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${editGameType === 'soccer' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.gameTypeSoccer', 'Soccer')}</button>
-                              <button type="button" aria-pressed={editGameType === 'futsal'} onClick={() => setEditGameType(v => (v === 'futsal' ? '' : 'futsal'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${editGameType === 'futsal' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.gameTypeFutsal', 'Futsal')}</button>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.genderLabel', 'Gender')}</label>
-                            <div className="flex gap-2">
-                              <button type="button" aria-pressed={editGender === 'boys'} onClick={() => setEditGender(v => (v === 'boys' ? '' : 'boys'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${editGender === 'boys' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.genderBoys', 'Boys')}</button>
-                              <button type="button" aria-pressed={editGender === 'girls'} onClick={() => setEditGender(v => (v === 'girls' ? '' : 'girls'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${editGender === 'girls' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.genderGirls', 'Girls')}</button>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor="edit-age-group">{t('newGameSetupModal.ageGroupLabel', 'Age Group (Optional)')}</label>
-                            <select id="edit-age-group" value={editAgeGroup} onChange={e => setEditAgeGroup(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                              <option value="">{t('common.none', 'None')}</option>
-                              {AGE_GROUPS.map((group) => (<option key={group} value={group}>{group}</option>))}
-                            </select>
-                          </div>
-                          <p className="sm:col-span-3 text-xs text-slate-500">{t('playerStats.externalScopeHint', 'Sport, gender and age group place the game under the right filters.')}</p>
-                        </div>
+                        <ExternalGameScopeFields
+                          player={player}
+                          prefix={`edit-${a.id}`}
+                          positions={editPositions}
+                          onPositions={setEditPositions}
+                          gameType={editGameType}
+                          onGameType={setEditGameType}
+                          gender={editGender}
+                          onGender={setEditGender}
+                          ageGroup={editAgeGroup}
+                          onAgeGroup={setEditAgeGroup}
+                          fallbackGameType={selectedGameTypeFilter !== 'all' ? selectedGameTypeFilter : 'soccer'}
+                        />
                         <div className="lg:col-span-3">
                           <ModalSwitch
                             checked={editIncludeInSeasonTournament}
