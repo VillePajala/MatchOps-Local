@@ -16,6 +16,11 @@ import type {
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import { knownPositionIds } from '@/config/positions';
+import type { GameType, Gender } from '@/types/game';
+
+/** 053: the same value sets the cloud table's CHECK constraints allow; anything else is "not recorded". */
+const adjustmentGameType = (v: unknown): GameType | undefined => (v === 'soccer' || v === 'futsal' ? v : undefined);
+const adjustmentGender = (v: unknown): Gender | undefined => (v === 'boys' || v === 'girls' ? v : undefined);
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { DEFAULT_APP_SETTINGS } from '@/types/settings';
@@ -2239,8 +2244,10 @@ export class LocalDataStore implements DataStore {
       fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
       // 053: positions and scope; an empty list is "not recorded".
       positions: knownPositionIds(adjustment.positions),
-      gameType: adjustment.gameType,
-      gender: adjustment.gender,
+      // Guarded like the cloud table's CHECK constraints, so a bad value can
+      // never sit in IndexedDB and jam the sync queue on its way up.
+      gameType: adjustmentGameType(adjustment.gameType),
+      gender: adjustmentGender(adjustment.gender),
       ageGroup: adjustment.ageGroup?.trim() || undefined,
       note: adjustment.note,
       createdBy: adjustment.createdBy,
@@ -2327,6 +2334,8 @@ export class LocalDataStore implements DataStore {
       // 053: the same normalisation as the add path, so an update cannot
       // smuggle in an unknown position id or an untrimmed age group.
       updated.positions = knownPositionIds(updated.positions);
+      updated.gameType = adjustmentGameType(updated.gameType);
+      updated.gender = adjustmentGender(updated.gender);
       updated.ageGroup = updated.ageGroup?.trim() || undefined;
       list[index] = updated;
       all[playerId] = list;
