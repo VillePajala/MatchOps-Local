@@ -31,9 +31,8 @@ import { buildPlayerEvidence, DEFAULT_EVIDENCE_SECTIONS, type EvidenceSections }
 import GameRecapModal from '@/components/GameRecapModal';
 import MetricAreaChart from './MetricAreaChart';
 import { computePositionDiversity } from '@/utils/positionDiversity';
-import { POSITION_IDS } from '@/config/positions';
+import { POSITION_IDS, positionsForSport } from '@/config/positions';
 import { AGE_GROUPS } from '@/config/gameOptions';
-import { positionsForSport } from '@/config/positions';
 import PlayerPositionsEditor from './PlayerPositionsEditor';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
