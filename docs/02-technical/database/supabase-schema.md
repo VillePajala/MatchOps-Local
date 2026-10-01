@@ -738,6 +738,14 @@ CREATE TABLE player_adjustments (
   assists_delta integer DEFAULT 0,
   fair_play_cards_delta integer DEFAULT 0,
 
+  -- 053: positions played (the app's position ids) and the row's own scope.
+  -- NULL on rows recorded before 053 = "not recorded"; such rows stay out of
+  -- any sport / gender / age-group filtered view, as they always did.
+  positions text[],
+  game_type text CHECK (game_type IN ('soccer', 'futsal')),
+  gender text CHECK (gender IN ('boys', 'girls')),
+  age_group text,
+
   note text,
   created_by text,
   applied_at timestamptz DEFAULT now(),

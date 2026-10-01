@@ -2379,6 +2379,26 @@ describe('LocalDataStore', () => {
         expect(adjustment.id).toMatch(/^adj_\d+_[a-f0-9]{8}$/);
         expect(adjustment.appliedAt).toBeDefined();
       });
+
+      /**
+       * @critical - the store copies fields by name, which is how a field
+       * travels everywhere except one place. Positions and scope (053) must
+       * come out exactly as they went in; an empty list is "not recorded".
+       */
+      it('keeps positions, sport, gender and age group (053)', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+        const adjustment = await dataStore.addPlayerAdjustment({
+          playerId: 'player_1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0,
+          positions: ['gk'], gameType: 'futsal', gender: 'girls', ageGroup: 'U12',
+        });
+        expect(adjustment.positions).toEqual(['gk']);
+        expect(adjustment.gameType).toBe('futsal');
+        expect(adjustment.gender).toBe('girls');
+        expect(adjustment.ageGroup).toBe('U12');
+
+        const bare = await dataStore.addPlayerAdjustment({ playerId: 'player_1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, positions: [] });
+        expect(bare.positions).toBeUndefined();
+      });
     });
 
     describe('updatePlayerAdjustment', () => {

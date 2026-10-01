@@ -32,6 +32,8 @@ import GameRecapModal from '@/components/GameRecapModal';
 import MetricAreaChart from './MetricAreaChart';
 import { computePositionDiversity } from '@/utils/positionDiversity';
 import { POSITION_IDS } from '@/config/positions';
+import { AGE_GROUPS } from '@/config/gameOptions';
+import PlayerPositionsEditor from './PlayerPositionsEditor';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
@@ -106,6 +108,11 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [adjFairPlayCards, setAdjFairPlayCards] = useState(0);
   const [adjNote, setAdjNote] = useState('');
   const [adjIncludeInSeasonTournament, setAdjIncludeInSeasonTournament] = useState(false);
+  // 053: where the player played, and what kind of game it was
+  const [adjPositions, setAdjPositions] = useState<string[]>([]);
+  const [adjGameType, setAdjGameType] = useState<GameType | ''>('');
+  const [adjGender, setAdjGender] = useState<Gender | ''>('');
+  const [adjAgeGroup, setAdjAgeGroup] = useState('');
   const [editingAdjId, setEditingAdjId] = useState<string | null>(null);
   const [editGames, setEditGames] = useState<number>(0);
   const [editGoals, setEditGoals] = useState<number>(0);
@@ -123,6 +130,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [editScoreFor, setEditScoreFor] = useState<number | ''>('');
   const [editScoreAgainst, setEditScoreAgainst] = useState<number | ''>('');
   const [editIncludeInSeasonTournament, setEditIncludeInSeasonTournament] = useState(false);
+  const [editPositions, setEditPositions] = useState<string[]>([]);
+  const [editGameType, setEditGameType] = useState<GameType | ''>('');
+  const [editGender, setEditGender] = useState<Gender | ''>('');
+  const [editAgeGroup, setEditAgeGroup] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
   const [showExternalGames, setShowExternalGames] = useState(false);
@@ -453,14 +464,23 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   // This player's position spread over the current scope, for the compact
   // "Positions played" card (games where they were recorded at a position).
+  // External games with recorded positions (053) count here too, as one game
+  // each, so a season played partly for another team still shows the whole
+  // position trail. Rows without positions add nothing, like an own match
+  // whose positions were never filled in.
+  const externalPositionGames = useMemo(
+    () => (player ? adjustmentsInScope.filter(a => a.playerId === player.id && (a.positions?.length ?? 0) > 0) : []),
+    [player, adjustmentsInScope],
+  );
   const positionSummary = useMemo(() => {
     if (!player) return null;
+    const external = externalPositionGames.map(a => ({ playerPositions: { [player.id]: a.positions ?? [] } }));
     return (
-      computePositionDiversity(Object.values(filteredGamesByClubSeason)).players.find(
+      computePositionDiversity([...Object.values(filteredGamesByClubSeason), ...external]).players.find(
         p => p.playerId === player.id,
       ) ?? null
     );
-  }, [player, filteredGamesByClubSeason]);
+  }, [player, filteredGamesByClubSeason, externalPositionGames]);
 
   /**
    * The match evidence text: this player, this scope, all fact. Built from the
@@ -686,6 +706,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 {t('playerStats.positionsPlayed.narrowHint', 'Played only one line this season - a chance to broaden.')}
               </p>
             )}
+            {externalPositionGames.length > 0 && (
+              <p className="text-xs text-slate-400 mt-2">
+                <span className="inline-block bg-purple-600/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded mr-1.5">{t('playerStats.external', 'EXT')}</span>
+                {t('playerStats.positionsPlayed.includesExternal', 'Includes {{count}} external game(s) with recorded positions.', { count: externalPositionGames.length })}
+              </p>
+            )}
           </div>
         )}
 
@@ -761,6 +787,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     fairPlayCardsDelta: Math.max(0, Number(adjFairPlayCards) || 0),
                     note: adjNote.trim() || undefined,
                     includeInSeasonTournament: adjIncludeInSeasonTournament,
+                    positions: adjPositions.length > 0 ? adjPositions : undefined,
+                    gameType: adjGameType || undefined,
+                    gender: adjGender || undefined,
+                    ageGroup: adjAgeGroup || undefined,
                   }, userId);
                   setAdjustments(prev => [...prev, created]);
                   setShowAdjForm(false);
@@ -771,6 +801,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   setAdjGameDate(new Date().toISOString().split('T')[0]);
                   setAdjHomeAway('neutral');
                   setAdjIncludeInSeasonTournament(false);
+                  setAdjPositions([]); setAdjGameType(''); setAdjGender(''); setAdjAgeGroup('');
                 } catch (error) {
                   logger.error('[PlayerStatsView] Failed to add external game', { error });
                   showToast(t('playerStats.addError', 'Failed to save the external game entry.'), 'error');
@@ -928,6 +959,41 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   </span>
                 </ModalSwitch>
               </div>
+              {/* 053: positions played and the game's own scope, the same controls the finish flow and the game form use */}
+              <div className="lg:col-span-3">
+                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.positionsLabel', 'Positions played')}</label>
+                <p className="text-xs text-slate-500 mb-2">{t('playerStats.externalPositionsHint', 'Where the player played in this game. Counted in the positions played.')}</p>
+                <PlayerPositionsEditor
+                  players={[player]}
+                  value={{ [player.id]: adjPositions }}
+                  gameType={adjGameType || 'soccer'}
+                  onChange={(next) => setAdjPositions(next[player.id] ?? [])}
+                />
+              </div>
+              <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.gameTypeLabel', 'Sport Type')}</label>
+                  <div className="flex gap-2">
+                    <button type="button" aria-pressed={adjGameType === 'soccer'} onClick={() => setAdjGameType(v => (v === 'soccer' ? '' : 'soccer'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${adjGameType === 'soccer' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.gameTypeSoccer', 'Soccer')}</button>
+                    <button type="button" aria-pressed={adjGameType === 'futsal'} onClick={() => setAdjGameType(v => (v === 'futsal' ? '' : 'futsal'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${adjGameType === 'futsal' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.gameTypeFutsal', 'Futsal')}</button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.genderLabel', 'Gender')}</label>
+                  <div className="flex gap-2">
+                    <button type="button" aria-pressed={adjGender === 'boys'} onClick={() => setAdjGender(v => (v === 'boys' ? '' : 'boys'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${adjGender === 'boys' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.genderBoys', 'Boys')}</button>
+                    <button type="button" aria-pressed={adjGender === 'girls'} onClick={() => setAdjGender(v => (v === 'girls' ? '' : 'girls'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${adjGender === 'girls' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.genderGirls', 'Girls')}</button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor="adj-age-group">{t('newGameSetupModal.ageGroupLabel', 'Age Group (Optional)')}</label>
+                  <select id="adj-age-group" value={adjAgeGroup} onChange={e => setAdjAgeGroup(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                    <option value="">{t('common.none', 'None')}</option>
+                    {AGE_GROUPS.map((group) => (<option key={group} value={group}>{group}</option>))}
+                  </select>
+                </div>
+                <p className="sm:col-span-3 text-xs text-slate-500">{t('playerStats.externalScopeHint', 'Sport, gender and age group place the game under the right filters.')}</p>
+              </div>
               <div className="lg:col-span-3">
                 <ModalSwitch
                   checked={adjIncludeInSeasonTournament}
@@ -1043,6 +1109,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                               scoreFor: typeof editScoreFor === 'number' ? editScoreFor : undefined,
                               scoreAgainst: typeof editScoreAgainst === 'number' ? editScoreAgainst : undefined,
                               includeInSeasonTournament: editIncludeInSeasonTournament,
+                              positions: editPositions.length > 0 ? editPositions : undefined,
+                              gameType: editGameType || undefined,
+                              gender: editGender || undefined,
+                              ageGroup: editAgeGroup || undefined,
                             }, userId);
                             if (updated) {
                               setAdjustments(prev => prev.map(x => x.id === updated.id ? updated : x));
@@ -1193,6 +1263,41 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             </span>
                           </ModalSwitch>
                         </div>
+                        {/* 053: positions played and the game's own scope, the same controls the finish flow and the game form use */}
+                        <div className="lg:col-span-3">
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.positionsLabel', 'Positions played')}</label>
+                          <p className="text-xs text-slate-500 mb-2">{t('playerStats.externalPositionsHint', 'Where the player played in this game. Counted in the positions played.')}</p>
+                          <PlayerPositionsEditor
+                            players={[player]}
+                            value={{ [player.id]: editPositions }}
+                            gameType={editGameType || 'soccer'}
+                            onChange={(next) => setEditPositions(next[player.id] ?? [])}
+                          />
+                        </div>
+                        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.gameTypeLabel', 'Sport Type')}</label>
+                            <div className="flex gap-2">
+                              <button type="button" aria-pressed={editGameType === 'soccer'} onClick={() => setEditGameType(v => (v === 'soccer' ? '' : 'soccer'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${editGameType === 'soccer' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.gameTypeSoccer', 'Soccer')}</button>
+                              <button type="button" aria-pressed={editGameType === 'futsal'} onClick={() => setEditGameType(v => (v === 'futsal' ? '' : 'futsal'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${editGameType === 'futsal' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.gameTypeFutsal', 'Futsal')}</button>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.genderLabel', 'Gender')}</label>
+                            <div className="flex gap-2">
+                              <button type="button" aria-pressed={editGender === 'boys'} onClick={() => setEditGender(v => (v === 'boys' ? '' : 'boys'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${editGender === 'boys' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.genderBoys', 'Boys')}</button>
+                              <button type="button" aria-pressed={editGender === 'girls'} onClick={() => setEditGender(v => (v === 'girls' ? '' : 'girls'))} className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${editGender === 'girls' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>{t('common.genderGirls', 'Girls')}</button>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor="edit-age-group">{t('newGameSetupModal.ageGroupLabel', 'Age Group (Optional)')}</label>
+                            <select id="edit-age-group" value={editAgeGroup} onChange={e => setEditAgeGroup(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                              <option value="">{t('common.none', 'None')}</option>
+                              {AGE_GROUPS.map((group) => (<option key={group} value={group}>{group}</option>))}
+                            </select>
+                          </div>
+                          <p className="sm:col-span-3 text-xs text-slate-500">{t('playerStats.externalScopeHint', 'Sport, gender and age group place the game under the right filters.')}</p>
+                        </div>
                         <div className="lg:col-span-3">
                           <ModalSwitch
                             checked={editIncludeInSeasonTournament}
@@ -1310,6 +1415,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                       setEditScoreFor(typeof a.scoreFor === 'number' ? a.scoreFor : '');
                                       setEditScoreAgainst(typeof a.scoreAgainst === 'number' ? a.scoreAgainst : '');
                                       setEditIncludeInSeasonTournament(a.includeInSeasonTournament || false);
+                                      setEditPositions(a.positions ?? []); setEditGameType(a.gameType ?? ''); setEditGender(a.gender ?? ''); setEditAgeGroup(a.ageGroup ?? '');
                                       setShowActionsMenu(null);
                                     }}
                                   >
@@ -1343,6 +1449,16 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                               <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`}></span>
                               {t('playerStats.external', 'EXT')}
                             </span>
+                            {(a.positions ?? []).length > 0 && (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/20 text-amber-200" title={t('playerStats.positionsLabel', 'Positions played')}>
+                                {(a.positions ?? []).map(id => t(`playingPositions.${id}.abbrev` as TranslationKey, id.toUpperCase())).join(' · ')}
+                              </span>
+                            )}
+                            {(a.gameType || a.ageGroup) && (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
+                                {[a.gameType ? t(a.gameType === 'futsal' ? 'common.gameTypeFutsal' : 'common.gameTypeSoccer', a.gameType) : null, a.ageGroup ?? null].filter(Boolean).join(' · ')}
+                              </span>
+                            )}
                             {seasonName && (
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200" title={seasonName}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.season}`}></span>

@@ -7,6 +7,30 @@ Individual player stat adjustment system that allows manual addition of statisti
 
 **Implementation Note**: This document describes the UI/UX behavior and business logic.
 
+## 2026-10-01: positions and scope on the record (migration 053)
+
+An external game used to be a scoreboard row. It now also records **where the
+player played** (`positions: string[]`, the finish flow's position ids) and
+**what kind of game it was** (`gameType`, `gender`, `ageGroup`). Why:
+
+- Playing time by position across games is the app's one signal; a game played
+  up an age group left a hole in it. External positions now feed the player's
+  "Positions played" card as one game each, marked as including external games.
+- The stats filters for sport, gender and age group could not place an
+  external game at all, so every row dropped out under any such filter. A row
+  that records the matching value now lands where it belongs; rows recorded
+  before 053 carry nothing and stay out, exactly as before (an unplaceable
+  game is omitted, never assumed).
+
+All four fields are optional. Local rows are stored as they are; the cloud
+table gained four nullable columns with no backfill. Backups, the Excel
+"External Games" sheet and the local-to-cloud migration carry them. The form
+uses the same `PlayerPositionsEditor` as the finish flow (single player) and
+the game form's sport, gender and age-group controls.
+
+Not recorded on purpose: playing time. The app records positions and events,
+never minutes, and external games must not pretend otherwise.
+
 ## Business Logic
 
 ### Core Data Structure

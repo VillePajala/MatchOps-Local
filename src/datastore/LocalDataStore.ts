@@ -2236,6 +2236,11 @@ export class LocalDataStore implements DataStore {
       goalsDelta: adjustment.goalsDelta || 0,
       assistsDelta: adjustment.assistsDelta || 0,
       fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
+      // 053: positions and scope; an empty list is "not recorded".
+      positions: adjustment.positions && adjustment.positions.length > 0 ? [...adjustment.positions] : undefined,
+      gameType: adjustment.gameType,
+      gender: adjustment.gender,
+      ageGroup: adjustment.ageGroup || undefined,
       note: adjustment.note,
       createdBy: adjustment.createdBy,
     };
