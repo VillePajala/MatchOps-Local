@@ -26,4 +26,4 @@ COMMENT ON COLUMN player_adjustments.positions IS
   'Positions the player held in this external game: the app''s position ids (gk, lb, cam, st ...). NULL on rows recorded before 053.';
 COMMENT ON COLUMN player_adjustments.game_type IS 'soccer or futsal; places the row under the sport filter. NULL = not recorded.';
 COMMENT ON COLUMN player_adjustments.gender IS 'boys or girls; places the row under the gender filter. NULL = not recorded.';
-COMMENT ON COLUMN player_adjustments.age_group IS 'Age group such as U12; places the row under the age-group filter. NULL = not recorded.';
+COMMENT ON COLUMN player_adjustments.age_group IS 'Age group such as U12, kept for display and export; no stats view filters by it. NULL = not recorded.';
