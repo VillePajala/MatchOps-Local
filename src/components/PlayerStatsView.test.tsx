@@ -925,6 +925,59 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
     expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('U13');
   });
 
+  /** Opening an old row must not change it: the link fills nothing until the coach changes a link. */
+  it('does not backfill an old row from its link when opened for edit', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([{ ...existing, teamId: 'teamA', positions: undefined, gameType: undefined, gender: undefined, ageGroup: undefined }]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', gameType: 'futsal', ageGroup: 'U12' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+    expect(screen.getByTestId('edit-adj-1-sport-futsal')).toHaveAttribute('aria-pressed', 'false');
+    expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('');
+  });
+
+  /** A link that flips the sport prunes positions the new sport lacks, like a manual switch does. */
+  it('prunes positions when a picked team flips the sport', async () => {
+    const { getAdjustmentsForPlayer, updatePlayerAdjustment } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([{ ...existing, positions: ['gk', 'lb'], gameType: undefined, gender: undefined, ageGroup: undefined }]);
+    updatePlayerAdjustment.mockResolvedValue({ ...existing });
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', gameType: 'futsal' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+    fireEvent.change(screen.getByTestId('edit-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect(screen.getByTestId('edit-adj-1-sport-futsal')).toHaveAttribute('aria-pressed', 'true'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save'));
+    });
+    expect(updatePlayerAdjustment).toHaveBeenCalledWith(
+      'player-1', 'adj-1',
+      expect.objectContaining({ positions: ['gk'], gameType: 'futsal' }),
+      undefined,
+    );
+  });
+
   /**
    * @critical - the positions card merges own matches and external games
    * through computePositionDiversity, which reads only `playerPositions`; the
