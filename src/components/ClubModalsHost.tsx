@@ -556,6 +556,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           tournaments={seasonTournament.tournaments}
           teams={teams}
           initialPlayerId={externalGamesPlayerId}
+          playersLoading={newGameSetup.isRosterLoading}
         />
       )}
       {isTeamManagerOpen && (

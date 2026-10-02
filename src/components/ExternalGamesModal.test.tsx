@@ -77,6 +77,18 @@ describe('ExternalGamesModal', () => {
     expect(screen.queryByTestId('external-games-player')).not.toBeInTheDocument();
   });
 
+  it('shows neither the hint nor the picker while the roster is still loading', () => {
+    render(<ExternalGamesModal {...baseProps} players={[]} playersLoading />);
+    expect(screen.queryByText('Add your players on the Club tab first.')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('external-games-player')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the picker when the preselected player is gone', () => {
+    render(<ExternalGamesModal {...baseProps} initialPlayerId="ghost" />);
+    expect((screen.getByTestId('external-games-player') as HTMLSelectElement).value).toBe('');
+    expect(screen.queryByTestId('add-external-game')).not.toBeInTheDocument();
+  });
+
   it('renders nothing when closed', () => {
     const { container } = render(<ExternalGamesModal {...baseProps} isOpen={false} />);
     expect(container).toBeEmptyDOMElement();

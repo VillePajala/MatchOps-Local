@@ -21,13 +21,16 @@ interface ExternalGamesModalProps {
   teams: Team[];
   /** Preselected player (from the roster menu); null means the coach picks one. */
   initialPlayerId?: string | null;
+  /** The roster query is still loading: show nothing rather than the empty-roster hint for a flash. */
+  playersLoading?: boolean;
 }
 
-const ExternalGamesModal: React.FC<ExternalGamesModalProps> = ({ isOpen, onClose, players, seasons, tournaments, teams, initialPlayerId = null }) => {
+const ExternalGamesModal: React.FC<ExternalGamesModalProps> = ({ isOpen, onClose, players, seasons, tournaments, teams, initialPlayerId = null, playersLoading = false }) => {
   const { t, i18n } = useTranslation();
   // Seeded once: ClubModalsHost mounts this modal only while open, so a new
-  // initialPlayerId always arrives with a fresh mount. Keep it that way.
-  const [playerId, setPlayerId] = useState<string>(initialPlayerId ?? '');
+  // initialPlayerId always arrives with a fresh mount. Keep it that way. An id
+  // the roster no longer has falls back to "pick one".
+  const [playerId, setPlayerId] = useState<string>(() => (initialPlayerId && players.some(p => p.id === initialPlayerId) ? initialPlayerId : ''));
   const sorted = useMemo(() => [...players].sort((a, b) => a.name.localeCompare(b.name, i18n.language)), [players, i18n.language]);
   const player = useMemo(() => sorted.find(p => p.id === playerId) ?? null, [sorted, playerId]);
 
@@ -41,7 +44,7 @@ const ExternalGamesModal: React.FC<ExternalGamesModalProps> = ({ isOpen, onClose
       />
       <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6">
         <p className={`${subtextStyle} mb-4`}>{t('externalGamesModal.intro', 'A game the player played for another team, or anywhere this app did not record.')}</p>
-        {sorted.length === 0 ? (
+        {playersLoading ? null : sorted.length === 0 ? (
           <p className="text-sm text-slate-400">{t('externalGamesModal.noPlayers', 'Add your players on the Club tab first.')}</p>
         ) : (
           <div className="mb-4">
