@@ -16,11 +16,15 @@
 ALTER TABLE player_adjustments ADD COLUMN IF NOT EXISTS positions text[];
 ALTER TABLE player_adjustments ADD COLUMN IF NOT EXISTS game_type text CHECK (game_type IN ('soccer', 'futsal'));
 ALTER TABLE player_adjustments ADD COLUMN IF NOT EXISTS gender text CHECK (gender IN ('boys', 'girls'));
--- age_group has no CHECK on purpose: the list of age groups is an app
+-- age_group has no value CHECK on purpose: the list of age groups is an app
 -- constant (U7..U21 today) that has changed before and will again, and a
 -- constraint would turn every such change into a migration. The form offers
--- a <select>; the stores accept any short string.
+-- a <select>; the stores accept any short string, bounded below.
 ALTER TABLE player_adjustments ADD COLUMN IF NOT EXISTS age_group text;
+-- The one bound that does not change with the list: the app caps the label at
+-- 16 characters (asAdjustmentAgeGroup), and so does the table.
+ALTER TABLE player_adjustments DROP CONSTRAINT IF EXISTS player_adjustments_age_group_len;
+ALTER TABLE player_adjustments ADD CONSTRAINT player_adjustments_age_group_len CHECK (age_group IS NULL OR char_length(age_group) <= 16);
 
 COMMENT ON COLUMN player_adjustments.positions IS
   'Positions the player held in this external game: the app''s position ids (gk, lb, cam, st ...). NULL on rows recorded before 053.';

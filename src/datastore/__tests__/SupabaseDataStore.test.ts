@@ -4992,6 +4992,12 @@ describe('SupabaseDataStore', () => {
         mockQueryBuilder.update = jest.fn().mockReturnValue(eqChain());
         const cleared = await dataStore.updatePlayerAdjustment('player_123', 'adj_1', { positions: undefined, gameType: undefined, gender: undefined, ageGroup: undefined });
         expect(cleared?.positions).toBeUndefined();
+
+        // The caller gets the normalised row, not the raw patch.
+        mockQueryBuilder.update = jest.fn().mockReturnValue(eqChain());
+        const normalised = await dataStore.updatePlayerAdjustment('player_123', 'adj_1', { positions: ['bogus', 'gk'], ageGroup: '  U12  ' });
+        expect(normalised?.positions).toEqual(['gk']);
+        expect(normalised?.ageGroup).toBe('U12');
         expect(mockQueryBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ positions: null, game_type: null, gender: null, age_group: null }));
       });
 

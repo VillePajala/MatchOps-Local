@@ -17,7 +17,6 @@ import type {
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import { knownPositionIds } from '@/config/positions';
 import { asAdjustmentGameType, asAdjustmentGender, asAdjustmentAgeGroup } from '@/utils/adjustmentScope';
-
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { DEFAULT_APP_SETTINGS } from '@/types/settings';
