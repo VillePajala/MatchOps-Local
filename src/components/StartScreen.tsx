@@ -255,6 +255,15 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // Dashboard is the default view, but it only renders once there are games to
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
   const dashboardOn = homeView === 'dashboard' && !isFirstTimeUser && hasSavedGames;
+  // "Lisää ulkoinen peli": the same row in both Games-tab layouts, null without a handler.
+  const externalGameRow = onAddExternalGame ? (
+    <HomeRow
+      icon={HiOutlineGlobeAlt}
+      label={t('startScreen.addExternalGame', 'Add external game')}
+      onClick={onAddExternalGame}
+      testId="home-add-external-game"
+    />
+  ) : null;
   // With nothing to resume, "New Game" is the day-one hero: it's the single
   // action a new coach needs (players are added inside the new-game flow). When
   // there's a game to resume, Continue is the hero and New Game steps back to a row.
@@ -848,14 +857,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                             onClick={onLoadGame}
                           />
                         )}
-                        {onAddExternalGame && (
-                          <HomeRow
-                            icon={HiOutlineGlobeAlt}
-                            label={t('startScreen.addExternalGame', 'Add external game')}
-                            onClick={onAddExternalGame}
-                            testId="home-add-external-game"
-                          />
-                        )}
+                        {externalGameRow}
                       </HomeGroup>
                     )}
                   </>
@@ -894,15 +896,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 ))}
                 {/* A game played elsewhere: a row of its own under the pair, never a
                     third button squeezed into the row on a phone. */}
-                {(!composeOnboarding || heroStep === 'game') && !newGamePrimary && onAddExternalGame && (
-                  <HomeGroup>
-                    <HomeRow
-                      icon={HiOutlineGlobeAlt}
-                      label={t('startScreen.addExternalGame', 'Add external game')}
-                      onClick={onAddExternalGame}
-                      testId="home-add-external-game"
-                    />
-                  </HomeGroup>
+                {(!composeOnboarding || heroStep === 'game') && !newGamePrimary && externalGameRow && (
+                  <HomeGroup>{externalGameRow}</HomeGroup>
                 )}
 
                 {/* Side entries are DEFERRED while composing (owner round 4:

@@ -24,9 +24,11 @@ interface ExternalGamesModalProps {
 }
 
 const ExternalGamesModal: React.FC<ExternalGamesModalProps> = ({ isOpen, onClose, players, seasons, tournaments, teams, initialPlayerId = null }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Seeded once: ClubModalsHost mounts this modal only while open, so a new
+  // initialPlayerId always arrives with a fresh mount. Keep it that way.
   const [playerId, setPlayerId] = useState<string>(initialPlayerId ?? '');
-  const sorted = useMemo(() => [...players].sort((a, b) => a.name.localeCompare(b.name)), [players]);
+  const sorted = useMemo(() => [...players].sort((a, b) => a.name.localeCompare(b.name, i18n.language)), [players, i18n.language]);
   const player = useMemo(() => sorted.find(p => p.id === playerId) ?? null, [sorted, playerId]);
 
   if (!isOpen) return null;
@@ -51,7 +53,7 @@ const ExternalGamesModal: React.FC<ExternalGamesModalProps> = ({ isOpen, onClose
               value={playerId}
               onChange={e => setPlayerId(e.target.value)}
             >
-              <option value="">{t('common.none', 'None')}</option>
+              <option value="">{t('externalGamesModal.choosePlaceholder', 'Select a player')}</option>
               {sorted.map(p => (
                 <option key={p.id} value={p.id}>{p.name}{p.nickname ? ` (${p.nickname})` : ''}</option>
               ))}
