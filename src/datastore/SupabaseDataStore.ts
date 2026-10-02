@@ -15,6 +15,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { knownPositionIds } from '@/config/positions';
+import { asAdjustmentGameType, asAdjustmentGender } from '@/utils/adjustmentScope';
 import { ASSESSMENT_RATING_STYLES, ASSESSMENT_TEMPLATES } from '@/types/settings';
 import type {
   Player,
@@ -4339,8 +4340,8 @@ export class SupabaseDataStore implements DataStore {
       // 053: positions and scope. NULL reads as undefined ("not recorded"), the
       // same shape a pre-053 local row has, so every reader treats both alike.
       positions: knownPositionIds(row.positions),
-      gameType: row.game_type === 'soccer' || row.game_type === 'futsal' ? row.game_type : undefined,
-      gender: row.gender === 'boys' || row.gender === 'girls' ? row.gender : undefined,
+      gameType: asAdjustmentGameType(row.game_type),
+      gender: asAdjustmentGender(row.gender),
       ageGroup: row.age_group ?? undefined,
       note: row.note ?? undefined,
       createdBy: row.created_by ?? undefined,
@@ -4379,8 +4380,8 @@ export class SupabaseDataStore implements DataStore {
       fair_play_cards_delta: adjustment.fairPlayCardsDelta,
       // 053: an empty list is "not recorded", stored as NULL like every other absent field.
       positions: knownPositionIds(adjustment.positions) ?? null,
-      game_type: adjustment.gameType ?? null,
-      gender: adjustment.gender ?? null,
+      game_type: asAdjustmentGameType(adjustment.gameType) ?? null,
+      gender: asAdjustmentGender(adjustment.gender) ?? null,
       age_group: normalizeOptionalString(adjustment.ageGroup ?? undefined) ?? null,
       note: adjustment.note,
       created_by: adjustment.createdBy,

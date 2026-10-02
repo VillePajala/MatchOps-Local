@@ -18,6 +18,10 @@ import type { GameType, Gender } from '@/types/game';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 
+/** 053: the value sets the cloud table's CHECK constraints allow; anything else reads and writes as "not recorded". */
+export const asAdjustmentGameType = (v: unknown): GameType | undefined => (v === 'soccer' || v === 'futsal' ? v : undefined);
+export const asAdjustmentGender = (v: unknown): Gender | undefined => (v === 'boys' || v === 'girls' ? v : undefined);
+
 export interface AdjustmentScope {
   /** Team id, or the literals 'legacy' (games naming no team) and 'all'. */
   teamFilter?: string;

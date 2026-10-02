@@ -4995,6 +4995,12 @@ describe('SupabaseDataStore', () => {
         expect(mockQueryBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ positions: null, game_type: null, gender: null, age_group: null }));
       });
 
+      it('writes NULL for a sport or gender the CHECK constraint would reject (053)', async () => {
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+        await dataStore.addPlayerAdjustment({ playerId: 'player_123', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, gameType: 'hockey' as never, gender: 'mixed' as never });
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ game_type: null, gender: null }));
+      });
+
       /** A row with a value the CHECK constraint would never allow reads as "not recorded". */
       it('reads an unknown game_type as not recorded', async () => {
         mockQueryBuilder.eq = jest.fn().mockReturnValue({ order: jest.fn().mockResolvedValue({ data: [{ id: 'adj_2', user_id: 'user_123', player_id: 'player_123', games_played_delta: 1, goals_delta: 0, assists_delta: 0, positions: [], game_type: 'hockey', gender: null, age_group: null, applied_at: '2024-01-01T00:00:00.000Z' }], error: null }) });
