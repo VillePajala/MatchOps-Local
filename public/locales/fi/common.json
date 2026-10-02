@@ -1228,7 +1228,7 @@
     "arriveBefore": "Paikalla ennen alkamisaikaa",
     "actualDrive": "Paljonko ajomatka oikeasti kestää",
     "dashNoMatchesYet": "Ei vielä otteluita.",
-    "addExternalGame": "Lisää ulkoinen peli"
+    "addExternalGame": "Täydennä pelaajan tilastoja"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -2084,8 +2084,8 @@
       "linesPlayed": "{{n}}/4 linjaa",
       "narrowHint": "Pelannut vain yhtä linjaa tällä seurakaudella - tilaisuus monipuolistaa.",
       "allPositions": "Kaikki pelipaikat",
-      "includesExternal_one": "Sisältää {{count}} ulkoisen pelin, johon on merkitty pelipaikat.",
-      "includesExternal_other": "Sisältää {{count}} ulkoista peliä, joihin on merkitty pelipaikat."
+      "includesExternal_one": "Sisältää {{count}} lisätyn pelin, johon on merkitty pelipaikat.",
+      "includesExternal_other": "Sisältää {{count}} lisättyä peliä, joihin on merkitty pelipaikat."
     },
     "gamesPlayed_short": "O",
     "goals": "Maalit",
@@ -2132,11 +2132,11 @@
     "exportReportFailed": "Raportin vienti epäonnistui",
     "noAssessmentsForPeriod": "Ei arviointeja tältä ajanjaksolta.",
     "assessed": "Arvioitu",
-    "includesAdjustments": "Sisältää ulkoiset pelit",
-    "externalGames": "Ulkoiset pelit",
-    "externalGame": "Ulkoinen peli",
-    "external": "ULK",
-    "addExternalStats": "Lisää ulkoisia tilastoja",
+    "includesAdjustments": "Sisältää lisätyt tilastot",
+    "externalGames": "Lisätyt tilastot",
+    "externalGame": "Lisätty peli",
+    "external": "LISÄTTY",
+    "addExternalStats": "Lisää peli",
     "seasonRequired": "Luo ensin sarja.",
     "teamRequired": "Joukkueen nimi on pakollinen.",
     "opponentRequired": "Vastustajan nimi on pakollinen.",
@@ -2154,19 +2154,19 @@
     "tournament": "Turnaus",
     "selectTournament": "Valitse turnaus (valinnainen)",
     "team": "Joukkue",
-    "externalTeam": "Ulkoinen joukkue",
+    "externalTeam": "Joukkueen nimi",
     "opponent": "Vastustaja",
     "opponentName": "Vastustajan nimi",
     "score": "Tulos",
     "gameDate": "Ottelupäivä",
     "note": "Muistiinpano",
     "noteOptional": "Valinnainen muistiinpano tästä pelistä",
-    "adjustmentsInfo": "Ulkoiset tilastot lisätään läpinäkyvästi kokonaissummiin.",
+    "adjustmentsInfo": "Lisätyt tilastot lasketaan mukaan kokonaissummiin.",
     "requiredFields": "Joukkueen ja vastustajan nimet ovat pakollisia.",
-    "deleteConfirmMessage": "Haluatko varmasti poistaa tämän ulkoisen pelin merkinnän? Tätä toimintoa ei voi perua.",
-    "deleteError": "Ulkoisen pelin merkinnän poisto epäonnistui.",
+    "deleteConfirmMessage": "Haluatko varmasti poistaa tämän lisätyn pelin? Tätä toimintoa ei voi perua.",
+    "deleteError": "Lisätyn pelin poisto epäonnistui.",
     "includeInSeasonTournament": "Sisällytä sarja/turnaus-tilastoihin",
-    "includeInSeasonTournamentHelp": "Valitse tämä, jos ulkoinen peli pelattiin samassa joukkueessa",
+    "includeInSeasonTournamentHelp": "Valitse tämä, jos peli pelattiin samassa joukkueessa",
     "periodFilter": "Suodata ajanjakson mukaan",
     "allPeriods": "Kaikki ajanjaksot",
     "offPeriod": "Jakson ulkopuolella",
@@ -2176,7 +2176,7 @@
     "configurePeriodDates": "Määritä ajanjakso",
     "configurePeriodDatesFirst": "Määritä ajanjakso asetuksista ensin",
     "tapGearToConfigurePeriods": "Napauta ratas-kuvaketta määrittääksesi ajanjakso",
-    "adjustmentsPartlyCounted": "Ulkopuoliset tilastot lisätään summiin. Himmennetyt jäävät valitsemiesi suodattimien ulkopuolelle, eikä niitä lasketa tässä.",
+    "adjustmentsPartlyCounted": "Lisätyt tilastot lasketaan summiin. Himmennetyt jäävät valitsemiesi suodattimien ulkopuolelle, eikä niitä lasketa tässä.",
     "adjustmentNotCounted": "Ei lasketa nykyisillä suodattimilla",
     "whichTeam": "Mille joukkueelle tämä ottelu oli?",
     "anotherTeam": "Toinen joukkue (ei omani)",
@@ -2184,7 +2184,8 @@
     "whichTeamOtherHint": "Lasketaan pelaajalle, mutta ei millekään omalle joukkueellesi.",
     "externalPositionsHint": "Missä pelaaja pelasi tässä pelissä. Lasketaan pelipaikkatilastoihin.",
     "externalScopeHint": "Laji ja sukupuoli asettavat pelin tilastosuodattimien alle. Jos jompikumpi puuttuu, peli jää suodatetun näkymän ulkopuolelle.",
-    "positionsLabel": "Toteutuneet pelipaikat"
+    "positionsLabel": "Toteutuneet pelipaikat",
+    "addToStats": "Täydennä tilastoja"
   },
   "months": {
     "january": "Tammikuu",
@@ -2358,7 +2359,7 @@
     "sheetSeasonBreakdown": "Sarjakohtaiset tilastot",
     "sheetTournamentBreakdown": "Turnauskohtaiset tilastot",
     "sheetAssessmentsSummary": "Arviointien yhteenveto",
-    "sheetExternalGames": "Ulkoiset pelit",
+    "sheetExternalGames": "Lisätyt tilastot",
     "date": "Päivämäärä",
     "wePlayed": "Pelasimme",
     "goalDiff": "Maaliero",
@@ -2374,7 +2375,7 @@
     "avgTeamwork": "Keskim. joukkuepeli",
     "avgFairPlay": "Keskim. fair play",
     "avgImpact": "Keskim. vaikutus",
-    "externalTeam": "Ulkoinen joukkue",
+    "externalTeam": "Joukkue",
     "scoreFor": "Omat maalit",
     "scoreAgainst": "Vastustajan maalit",
     "homeAway": "Koti/Vieras",
@@ -3700,7 +3701,7 @@
     "matchMenuTitle": "Ottelun valikko",
     "matchMenuNote": "Ottelun aikana valikko sisältää ottelupäivän toiminnot:",
     "opponentNames": "Vastustajien nimet: kun kirjoitat joukkueen, jota vastaan olet jo pelannut, kenttä asettuu aiemmin käyttämääsi kirjoitusasuun, jotta sama joukkue pysyy tilastoissa yhtenä joukkueena. Jos vanha kirjoitusasu on väärä, valitse \"käytä minun kirjoitusasuani\", niin se korjataan myös kaikkiin aiempiin otteluihin.",
-    "externalGames": "Ulkoiset pelit: pelaajan muualla pelaamat pelit kirjataan Seura-välilehdeltä pelaajan valikosta tai Pelit-välilehden Lisää ulkoinen peli -riviltä. Pelipaikat, laji ja sukupuoli vievät pelin oikeisiin tilastoihin."
+    "externalGames": "Lisätyt tilastot: pelin, jota ei kirjattu sovelluksessa otteluna, voi lisätä pelaajan tilastoihin Tilastot-välilehden Täydennä pelaajan tilastoja -riviltä tai Seura-välilehdellä pelaajan valikosta. Pelipaikat, laji ja sukupuoli vievät pelin oikeisiin tilastoihin."
   },
   "aiSettings": {
     "title": "Äänimuistiinpanot ja tekoäly",
@@ -3920,9 +3921,9 @@
     "useTypedName": "Käytä nimeä \"{{name}}\" uutena paikkana"
   },
   "externalGamesModal": {
-    "title": "Ulkoiset pelit",
+    "title": "Täydennä pelaajan tilastoja",
     "pickPlayer": "Valitse pelaaja",
-    "intro": "Peli, jonka pelaaja pelasi toisessa joukkueessa tai muualla kuin tässä sovelluksessa.",
+    "intro": "Pelit, joita ei kirjattu sovelluksessa otteluina. Ne lasketaan vain tämän pelaajan tilastoihin.",
     "noPlayers": "Lisää ensin pelaajat Seura-välilehdeltä.",
     "choosePlaceholder": "Valitse pelaaja"
   }

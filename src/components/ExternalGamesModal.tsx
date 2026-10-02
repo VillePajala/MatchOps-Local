@@ -36,14 +36,14 @@ const ExternalGamesModal: React.FC<ExternalGamesModalProps> = ({ isOpen, onClose
 
   if (!isOpen) return null;
   return (
-    <ModalContainer aria-label={t('externalGamesModal.title', 'External games')}>
+    <ModalContainer aria-label={t('externalGamesModal.title', 'Add to player stats')}>
       <CollapsibleModalHeader
-        title={t('externalGamesModal.title', 'External games')}
+        title={t('externalGamesModal.title', 'Add to player stats')}
         onClose={onClose}
         closeLabel={t('common.doneButton', 'Done')}
       />
       <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6">
-        <p className={`${subtextStyle} mb-4`}>{t('externalGamesModal.intro', 'A game the player played for another team, or anywhere this app did not record.')}</p>
+        <p className={`${subtextStyle} mb-4`}>{t('externalGamesModal.intro', "Games not recorded in the app as matches. They count only in this player's stats.")}</p>
         {playersLoading ? null : sorted.length === 0 ? (
           <p className="text-sm text-slate-400">{t('externalGamesModal.noPlayers', 'Add your players on the Club tab first.')}</p>
         ) : (

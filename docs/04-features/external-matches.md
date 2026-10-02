@@ -104,12 +104,19 @@ owns the player's rows and reports changes upward. Three places mount it:
    under the player's stats and folds the rows into the totals through
    `onAdjustmentsChange`; `countedIds` tells the list which rows the current
    filters count.
-2. **Seura, player menu**: the roster's actions menu has "Ulkoiset pelit",
+2. **Seura, player menu**: the roster's actions menu has "Täydennä tilastoja",
    which closes the roster and opens `ExternalGamesModal` on that player, list
    expanded, form closed.
-3. **Pelit tab, "Lisää ulkoinen peli"**: a row under New Game / Saved games
-   opens the same modal with no player; the coach picks one and the add form
-   is already open.
+3. **Tilastot tab, "Täydennä pelaajan tilastoja"**: the last row of the Stats
+   tab (live before the first recorded match) opens the same modal with no
+   player; the coach picks one and the add form is already open.
+
+**Naming (owner, 2026-10-02).** In the UI these are not "external games" but
+additions to one player's statistics: the section is *Lisätyt tilastot*, the
+action *Täydennä pelaajan tilastoja* / *Täydennä tilastoja*, the button inside
+*Lisää peli*, the chip *LISÄTTY*. "Ulkoinen peli" asked "elsewhere from what"
+and read as another app's purpose; "muualla pelattu" the same. The code keeps
+its names (`PlayerStatAdjustment`, `ExternalGamesSection`).
 
 The modal's state (`isExternalGamesOpen`, `externalGamesPlayerId`) lives in
 `ModalProvider` and the modal is hosted by `ClubModalsHost`, like the other

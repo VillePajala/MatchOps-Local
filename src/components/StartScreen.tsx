@@ -148,7 +148,7 @@ const HomeTile: React.FC<{
 
 interface StartScreenProps {
   onLoadGame: () => void;
-  /** Games tab: "Lisää ulkoinen peli", the external-games modal with the player picked first. */
+  /** Stats tab: "Täydennä pelaajan tilastoja", the player-stats additions modal with the player picked first. */
   onAddExternalGame?: () => void;
   onResumeGame?: () => void;
   /** Persists this match's own arrival buffer / measured drive time. */
@@ -255,11 +255,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // Dashboard is the default view, but it only renders once there are games to
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
   const dashboardOn = homeView === 'dashboard' && !isFirstTimeUser && hasSavedGames;
-  // "Lisää ulkoinen peli": the same row in both Games-tab layouts, null without a handler.
+  // "Täydennä pelaajan tilastoja" on the Tilastot tab, null without a handler.
   const externalGameRow = onAddExternalGame ? (
     <HomeRow
       icon={HiOutlineGlobeAlt}
-      label={t('startScreen.addExternalGame', 'Add external game')}
+      label={t('startScreen.addExternalGame', 'Add to player stats')}
       onClick={onAddExternalGame}
       testId="home-add-external-game"
     />
@@ -719,6 +719,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       disabled={!hasSavedGames}
                     />
                   ))}
+                  {/* Topping up one player's record is a stats task, so it lives
+                      here and not among the team's matches; it works before the
+                      first recorded match too. */}
+                  {externalGameRow}
                 </HomeGroup>
               </>
             ) : (
@@ -848,7 +852,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     >
                       {t('startScreen.newGame', 'New Game')}
                     </button>
-                    {(hasSavedGames || onAddExternalGame) && (
+                    {hasSavedGames && (
                       <HomeGroup>
                         {hasSavedGames && (
                           <HomeRow
@@ -857,7 +861,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                             onClick={onLoadGame}
                           />
                         )}
-                        {externalGameRow}
                       </HomeGroup>
                     )}
                   </>
@@ -894,11 +897,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     )}
                   </div>
                 ))}
-                {/* A game played elsewhere: a row of its own under the pair, never a
-                    third button squeezed into the row on a phone. */}
-                {(!composeOnboarding || heroStep === 'game') && !newGamePrimary && externalGameRow && (
-                  <HomeGroup>{externalGameRow}</HomeGroup>
-                )}
 
                 {/* Side entries are DEFERRED while composing (owner round 4:
                     they pushed the onboarding screen past the fold and are

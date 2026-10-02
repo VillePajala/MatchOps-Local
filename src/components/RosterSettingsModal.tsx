@@ -301,7 +301,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                                 className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
                               >
                                 <HiOutlineGlobeAlt className="w-4 h-4" />
-                                {t('playerStats.externalGames', 'External Games')}
+                                {t('playerStats.addToStats', 'Add to stats')}
                               </button>
                             )}
                             <button

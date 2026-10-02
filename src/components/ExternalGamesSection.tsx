@@ -392,7 +392,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
             className="text-left w-full bg-slate-800/60 px-4 py-3.5 rounded-lg flex justify-between items-center gap-3 hover:bg-slate-800/80 transition-colors"
             aria-expanded={showExternalGames}
           >
-            <span className="font-semibold text-slate-100">{t('playerStats.externalGames', 'External Games')}</span>
+            <span className="font-semibold text-slate-100">{t('playerStats.externalGames', 'Added stats')}</span>
             <span className="shrink-0 text-base leading-none text-slate-400">{showExternalGames ? '−' : '+'}</span>
           </button>
           {showExternalGames && (
@@ -403,7 +403,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                 data-testid="add-external-game"
                 onClick={() => { if (!showAdjForm) adjScope.reset(); setShowAdjForm(!showAdjForm); setEditingAdjId(null); }}
               >
-                {t('playerStats.addExternalStats', 'Add external stats')}
+                {t('playerStats.addExternalStats', 'Add game')}
               </button>
           {showAdjForm && (
             <form
@@ -572,7 +572,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.team', 'Team')} <span className="text-red-400">*</span></label>
-                <input type="text" value={adjExternalTeam} onChange={e => setAdjExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.externalTeam', 'External team') as string} required />
+                <input type="text" value={adjExternalTeam} onChange={e => setAdjExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.externalTeam', 'Team name') as string} required />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
@@ -650,7 +650,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                   {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                 </ModalSwitch>
                 <p className="text-sm text-slate-400 mt-1 ml-1">
-                  {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
+                  {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the game was played for the same team')}
                 </p>
               </div>
               <div className="lg:col-span-3">
@@ -673,10 +673,10 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                 change is about. Every game is still SHOWN, so none looks lost
                 and all stay editable; the ones outside the filter say so. */}
             {(!countedIds || countedIds.size === adjustments.length)
-              ? t('playerStats.adjustmentsInfo', 'External stats are transparently added to totals.')
+              ? t('playerStats.adjustmentsInfo', 'Added stats are counted in the totals.')
               : t(
                   'playerStats.adjustmentsPartlyCounted',
-                  'External stats are added to totals. The dimmed ones fall outside the filters you have chosen and are not counted here.',
+                  'Added stats are counted in the totals. The dimmed ones fall outside the filters you have chosen and are not counted here.',
                 )}
             <div className="mt-3 space-y-3">
               {adjustments
@@ -934,7 +934,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                             {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                           </ModalSwitch>
                           <p className="text-sm text-slate-400 mt-1 ml-1">
-                            {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
+                            {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the game was played for the same team')}
                           </p>
                         </div>
                         <div className="lg:col-span-3">
@@ -1078,9 +1078,9 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
 
                           {/* Right: Category labels */}
                           <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-600/40 text-purple-200" title={t('playerStats.externalGame', 'External Game')}>
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-600/40 text-purple-200" title={t('playerStats.externalGame', 'Added game')}>
                               <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`}></span>
-                              {t('playerStats.external', 'EXT')}
+                              {t('playerStats.external', 'ADDED')}
                             </span>
                             {(a.positions ?? []).length > 0 && (
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/20 text-amber-200" title={t('playerStats.positionsLabel', 'Positions played')}>
@@ -1121,7 +1121,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
         <ConfirmationModal
           isOpen={showDeleteConfirm !== null}
           title={t('common.confirmDelete', 'Are you sure you want to delete this item?')}
-          message={t('playerStats.deleteConfirmMessage', 'Are you sure you want to delete this external game entry? This action cannot be undone.')}
+          message={t('playerStats.deleteConfirmMessage', 'Delete this added game? This action cannot be undone.')}
           onConfirm={async () => {
             if (!player || !showDeleteConfirm) return;
             try {
@@ -1130,11 +1130,11 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                 setAdjustments(prev => prev.filter(a => a.id !== showDeleteConfirm));
                 setShowDeleteConfirm(null);
               } else {
-                showToast(t('playerStats.deleteError', 'Failed to delete the external game entry.'), 'error');
+                showToast(t('playerStats.deleteError', 'Failed to delete the added game.'), 'error');
               }
             } catch (error) {
               logger.error('[PlayerStatsView] Failed to delete external game', { error });
-              showToast(t('playerStats.deleteError', 'Failed to delete the external game entry.'), 'error');
+              showToast(t('playerStats.deleteError', 'Failed to delete the added game.'), 'error');
             }
           }}
           onCancel={() => setShowDeleteConfirm(null)}

@@ -1725,6 +1725,7 @@ export type TranslationKey =
   | 'playerNotesSummary.title'
   | 'playerNotesSummary.working'
   | 'playerStats.addExternalStats'
+  | 'playerStats.addToStats'
   | 'playerStats.adjustmentNotCounted'
   | 'playerStats.adjustmentsInfo'
   | 'playerStats.adjustmentsPartlyCounted'

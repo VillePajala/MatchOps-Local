@@ -275,7 +275,7 @@ describe('<RosterSettingsModal />', () => {
       </TestWrapper>
     );
     fireEvent.click(screen.getAllByTitle('Actions')[1]);
-    fireEvent.click(screen.getByRole('button', { name: /External Games/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Add to stats/i }));
     expect(onOpenExternalGames).toHaveBeenCalledWith('p2');
   });
 
@@ -286,7 +286,7 @@ describe('<RosterSettingsModal />', () => {
       </TestWrapper>
     );
     fireEvent.click(screen.getAllByTitle('Actions')[0]);
-    expect(screen.queryByRole('button', { name: /External Games/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Add to stats/i })).not.toBeInTheDocument();
   });
 
   test('filters players by search input', () => {

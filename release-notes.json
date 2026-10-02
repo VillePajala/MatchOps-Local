@@ -4,10 +4,10 @@
     {
       "date": "2026-10-02",
       "en": [
-        "External games can now be added from the Games tab (Add external game) and from a player's menu on the Club tab, not only through the stats."
+        "External games are now \"Added stats\": a game not recorded in the app can be added to a player's stats from the Stats tab (Add to player stats) or from the player's menu on the Club tab, not only through the stats drill-down."
       ],
       "fi": [
-        "Ulkoisen pelin voi nyt lisätä Pelit-välilehdeltä (Lisää ulkoinen peli) ja pelaajan valikosta Seura-välilehdellä, ei vain tilastojen kautta."
+        "Ulkoiset pelit ovat nyt Lisätyt tilastot: pelin, jota ei kirjattu sovelluksessa, voi lisätä pelaajan tilastoihin Tilastot-välilehdeltä (Täydennä pelaajan tilastoja) tai pelaajan valikosta Seura-välilehdellä, ei vain tilastojen kautta."
       ]
     },
     {
