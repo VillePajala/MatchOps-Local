@@ -1015,6 +1015,50 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
     );
   });
 
+  it('starts the add form clean after it was cancelled', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(<PlayerStatsView {...baseProps} savedGames={{}} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    fireEvent.click(screen.getByTestId('adj-sport-futsal'));
+    expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Cancel'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  /** A value the coach picked by hand stays even when it equals what a link filled and the link then changes. */
+  it('keeps a hand-picked sport that happens to equal the auto value when the link changes', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', gameType: 'futsal' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true'));
+    // The coach confirms futsal by hand: tap it off and on again.
+    fireEvent.click(screen.getByTestId('adj-sport-futsal'));
+    fireEvent.click(screen.getByTestId('adj-sport-futsal'));
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: '' } });
+    await waitFor(() => expect((screen.getByTestId('adj-team-select') as HTMLSelectElement).value).toBe(''));
+    expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true');
+  });
+
   /**
    * @critical - the positions card merges own matches and external games
    * through computePositionDiversity, which reads only `playerPositions`; the
