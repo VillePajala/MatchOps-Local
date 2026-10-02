@@ -188,6 +188,8 @@ const ExternalGameScopeFields: React.FC<{
           <select id={`${prefix}-age-group`} value={ageGroup} onChange={e => onAgeGroup(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
             <option value="">{t('common.none', 'None')}</option>
             {AGE_GROUPS.map((group) => (<option key={group} value={group}>{group}</option>))}
+            {/* A stored label outside today's list (the list has changed before) still shows and survives a save. */}
+            {ageGroup && !AGE_GROUPS.includes(ageGroup) && <option value={ageGroup}>{ageGroup}</option>}
           </select>
         </div>
         <p className="sm:col-span-3 text-xs text-slate-500">{t('playerStats.externalScopeHint', 'Sport and gender place the game under the stats filters. If either is missing, the game stays out of a filtered view.')}</p>

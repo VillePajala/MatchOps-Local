@@ -1059,6 +1059,32 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
     expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true');
   });
 
+  /** Clearing a filled field by hand means "not recorded"; the next link change may fill it again. */
+  it('refills a sport the coach cleared when the link changes again', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[
+          { id: 'teamA', name: 'FC Oma', gameType: 'futsal' } as never,
+          { id: 'teamB', name: 'FC Toinen', gameType: 'soccer' } as never,
+        ]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true'));
+    fireEvent.click(screen.getByTestId('adj-sport-futsal')); // cleared by hand
+    expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamB' } });
+    await waitFor(() => expect(screen.getByTestId('adj-sport-soccer')).toHaveAttribute('aria-pressed', 'true'));
+  });
+
   /**
    * @critical - the positions card merges own matches and external games
    * through computePositionDiversity, which reads only `playerPositions`; the
