@@ -561,6 +561,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     const next = scopeOf(teamId, seasonId, tournamentId); const prev = adjAutoScopeRef.current;
     if (sameScope(next, prev)) return;
     const cur = adjGameTypeRef.current; const willBe = !cur || cur === prev.gameType ? next.gameType : cur;
+    adjGameTypeRef.current = willBe; // a second call in the same tick must see this one's result, not the last render's
     setAdjGameType(willBe);
     if (willBe && willBe !== cur) setAdjPositions(ps => prunePositions(ps, willBe));
     setAdjGender(v => (!v || v === prev.gender ? next.gender : v));
@@ -571,6 +572,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     const next = scopeOf(teamId, seasonId, tournamentId); const prev = editAutoScopeRef.current;
     if (sameScope(next, prev)) return;
     const cur = editGameTypeRef.current; const willBe = !cur || cur === prev.gameType ? next.gameType : cur;
+    editGameTypeRef.current = willBe;
     setEditGameType(willBe);
     if (willBe && willBe !== cur) setEditPositions(ps => prunePositions(ps, willBe));
     setEditGender(v => (!v || v === prev.gender ? next.gender : v));
@@ -1265,6 +1267,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           {editSeasonId !== '' && (
                             <select
                               value={editSeasonId}
+                              data-testid="edit-season-select"
                               onChange={(e) => { setEditSeasonId(e.target.value); applyEditScope(editTeamId, e.target.value, ''); }}
                               className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
                             >
@@ -1276,6 +1279,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           {editTournamentId !== '' && (
                             <select
                               value={editTournamentId}
+                              data-testid="edit-tournament-select"
                               onChange={(e) => { setEditTournamentId(e.target.value); applyEditScope(editTeamId, '', e.target.value); }}
                               className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
                             >
