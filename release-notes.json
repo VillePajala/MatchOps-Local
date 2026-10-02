@@ -13,6 +13,16 @@
       ]
     },
     {
+      "date": "2026-10-01",
+      "internal": true,
+      "en": [
+        "Behind-the-scenes improvements."
+      ],
+      "fi": [
+        "Taustaparannuksia."
+      ]
+    },
+    {
       "date": "2026-09-30",
       "en": [
         "Settings that are on or off now use a real switch, so you can see at a glance whether a match is a friendly, not yet played, or an external game counts in the season.",
