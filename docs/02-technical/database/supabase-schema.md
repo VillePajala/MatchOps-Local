@@ -135,7 +135,7 @@ CREATE TABLE teams (
   name text NOT NULL,
   color text,
   notes text,
-  age_group text CHECK (age_group IS NULL OR char_length(age_group) <= 16),
+  age_group text,
   game_type text CHECK (game_type IN ('soccer', 'futsal')),
   archived boolean DEFAULT false,
 
@@ -740,11 +740,12 @@ CREATE TABLE player_adjustments (
 
   -- 053: positions played (the app's position ids) and the row's own scope.
   -- NULL on rows recorded before 053 = "not recorded"; such rows stay out of
-  -- any sport / gender / age-group filtered view, as they always did.
+  -- any sport / gender filtered view, as they always did. age_group is kept
+  -- for display and export only.
   positions text[],
   game_type text CHECK (game_type IN ('soccer', 'futsal')),
   gender text CHECK (gender IN ('boys', 'girls')),
-  age_group text,
+  age_group text CHECK (age_group IS NULL OR char_length(age_group) <= 16),
 
   note text,
   created_by text,

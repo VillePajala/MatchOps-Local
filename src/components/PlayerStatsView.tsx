@@ -880,7 +880,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 type="button"
                 className="text-sm px-4 py-2.5 bg-slate-700 text-slate-200 rounded-md border border-slate-600 hover:bg-slate-600 transition-colors"
                 data-testid="add-external-game"
-                onClick={() => { setShowAdjForm(v => { if (!v) adjScope.reset(); return !v; }); setEditingAdjId(null); }}
+                onClick={() => { if (!showAdjForm) adjScope.reset(); setShowAdjForm(!showAdjForm); setEditingAdjId(null); }}
               >
                 {t('playerStats.addExternalStats', 'Add external stats')}
               </button>
