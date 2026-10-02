@@ -50,10 +50,11 @@ describe('telling two teams of the same name apart', () => {
  * ambiguity in the place where a wrong guess gets locked in.
  */
 describe('every team picker uses it', () => {
-  const source = require('fs').readFileSync(
-    require('path').join(process.cwd(), 'src/components/PlayerStatsView.tsx'),
-    'utf8',
-  );
+  // The pickers moved with the external-game forms into ExternalGamesSection
+  // (phase 3); the stats view keeps no picker of its own, but is checked too.
+  const read = (file: string) => require('fs').readFileSync(require('path').join(process.cwd(), file), 'utf8');
+  const source = read('src/components/ExternalGamesSection.tsx');
+  const statsSource = read('src/components/PlayerStatsView.tsx');
 
   const optionsOf = (testId: string) => {
     const from = source.indexOf(`data-testid="${testId}"`);
@@ -70,6 +71,8 @@ describe('every team picker uses it', () => {
 
   /** A bare team.name anywhere in this file is the bug coming back. */
   it('leaves no picker rendering a bare name', () => {
-    expect(source).not.toMatch(/<option key=\{team\.id\} value=\{team\.id\}>\{team\.name\}<\/option>/);
+    for (const text of [source, statsSource]) {
+      expect(text).not.toMatch(/<option key=\{team\.id\} value=\{team\.id\}>\{team\.name\}<\/option>/);
+    }
   });
 });

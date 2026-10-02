@@ -49,6 +49,28 @@ describe('ExternalGamesModal', () => {
     expect(screen.queryByTestId('adj-team-select')).not.toBeInTheDocument();
   });
 
+  it('starts the section fresh when the coach switches player', async () => {
+    render(<ExternalGamesModal {...baseProps} />);
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('external-games-player'), { target: { value: 'p1' } });
+    });
+    await waitFor(() => expect(screen.getByTestId('adj-team-select')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('adj-sport-futsal'));
+    expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true');
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('external-games-player'), { target: { value: 'p2' } });
+    });
+    await waitFor(() => expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'false'));
+  });
+
+  it('shows the nickname in the picker and closes on Done', () => {
+    const onClose = jest.fn();
+    render(<ExternalGamesModal {...baseProps} onClose={onClose} players={[{ id: 'p1', name: 'Aino', nickname: 'Ai', isGoalie: false } as Player]} />);
+    expect(screen.getByRole('option', { name: 'Aino (Ai)' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('tells the coach to add players first when the roster is empty', () => {
     render(<ExternalGamesModal {...baseProps} players={[]} />);
     expect(screen.getByText('Add your players on the Club tab first.')).toBeInTheDocument();
