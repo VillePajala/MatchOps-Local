@@ -5,11 +5,11 @@
       "date": "2026-10-01",
       "en": [
         "External games can now record the positions the player held, and they count in the player's positions played.",
-        "An external game can carry its sport and gender, so it shows up under those stats filters, and its age group for the record."
+        "An external game can carry its sport and gender, so it shows up under those stats filters, and its age group for the record. Games saved earlier have none yet, so they stay out of a filtered view until you edit them."
       ],
       "fi": [
         "Ulkoisiin peleihin voi nyt merkitä pelaajan pelipaikat, ja ne lasketaan mukaan pelipaikkatilastoihin.",
-        "Ulkoiselle pelille voi antaa lajin ja sukupuolen, jolloin se näkyy niiden tilastosuodattimien alla, sekä ikäluokan muistiin."
+        "Ulkoiselle pelille voi antaa lajin ja sukupuolen, jolloin se näkyy niiden tilastosuodattimien alla, sekä ikäluokan muistiin. Aiemmin tallennetuilla peleillä näitä ei vielä ole, joten ne jäävät suodatetun näkymän ulkopuolelle, kunnes muokkaat niitä."
       ]
     },
     {
