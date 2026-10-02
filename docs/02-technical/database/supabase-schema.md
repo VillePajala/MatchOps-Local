@@ -135,7 +135,7 @@ CREATE TABLE teams (
   name text NOT NULL,
   color text,
   notes text,
-  age_group text,
+  age_group text CHECK (age_group IS NULL OR char_length(age_group) <= 16),
   game_type text CHECK (game_type IN ('soccer', 'futsal')),
   archived boolean DEFAULT false,
 

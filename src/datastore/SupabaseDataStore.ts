@@ -1421,7 +1421,7 @@ export class SupabaseDataStore implements DataStore {
       name: row.name,
       color: row.color ?? undefined,
       notes: row.notes ?? undefined,
-      ageGroup: asAdjustmentAgeGroup(row.age_group),
+      ageGroup: row.age_group ?? undefined,
       gameType: normalizeGameType(row.game_type) ?? undefined,
       archived: row.archived ?? false,
       boundSeasonId: row.bound_season_id ?? undefined,
@@ -4279,12 +4279,15 @@ export class SupabaseDataStore implements DataStore {
     }
 
     const existingAdjustment = this.transformAdjustmentFromDb(existing as PlayerAdjustmentRow);
-    const updated = { ...existingAdjustment, ...patch };
+    const merged = { ...existingAdjustment, ...patch };
+    const dbUpdated = this.transformAdjustmentToDb(merged, userId);
+    // Return what was written, normalised, as add and upsert do.
+    const updated = this.transformAdjustmentFromDb(dbUpdated as unknown as PlayerAdjustmentRow);
 
     const { error: updateError } = await this.withRetry(async () => {
       const result = await this.getClient()
         .from('player_adjustments')
-        .update(this.transformAdjustmentToDb(updated, userId) as unknown as never)
+        .update(dbUpdated as unknown as never)
         .eq('id', adjustmentId)
         .eq('player_id', playerId)
         .eq('user_id', userId);
@@ -4347,7 +4350,7 @@ export class SupabaseDataStore implements DataStore {
       positions: knownPositionIds(row.positions),
       gameType: asAdjustmentGameType(row.game_type),
       gender: asAdjustmentGender(row.gender),
-      ageGroup: row.age_group ?? undefined,
+      ageGroup: asAdjustmentAgeGroup(row.age_group),
       note: row.note ?? undefined,
       createdBy: row.created_by ?? undefined,
       appliedAt: row.applied_at ?? new Date().toISOString(),
