@@ -917,6 +917,8 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
       fireEvent.click(screen.getByTestId('add-external-game'));
     });
 
+    const form = screen.getByTestId('save-external-game').closest('form') as HTMLElement;
+    fireEvent.click(within(form).getByRole('button', { name: 'League' }));
     fireEvent.change(screen.getByTestId('adj-season-select'), { target: { value: 'season-1' } });
     await waitFor(() => expect(screen.getByTestId('adj-gender-boys')).toHaveAttribute('aria-pressed', 'true'));
     expect(screen.getByTestId('adj-sport-soccer')).toHaveAttribute('aria-pressed', 'true');
