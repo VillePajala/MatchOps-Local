@@ -15,7 +15,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { knownPositionIds } from '@/config/positions';
-import { asAdjustmentGameType, asAdjustmentGender } from '@/utils/adjustmentScope';
+import { asAdjustmentGameType, asAdjustmentGender, asAdjustmentAgeGroup } from '@/utils/adjustmentScope';
 import { ASSESSMENT_RATING_STYLES, ASSESSMENT_TEMPLATES } from '@/types/settings';
 import type {
   Player,
@@ -1421,7 +1421,7 @@ export class SupabaseDataStore implements DataStore {
       name: row.name,
       color: row.color ?? undefined,
       notes: row.notes ?? undefined,
-      ageGroup: row.age_group ?? undefined,
+      ageGroup: asAdjustmentAgeGroup(row.age_group),
       gameType: normalizeGameType(row.game_type) ?? undefined,
       archived: row.archived ?? false,
       boundSeasonId: row.bound_season_id ?? undefined,
@@ -4180,6 +4180,9 @@ export class SupabaseDataStore implements DataStore {
       { ...adjustment, id, appliedAt } as PlayerStatAdjustment,
       userId
     );
+    // What the caller gets back is what was written, normalised, so a cache
+    // never holds a position id or sport the row does not.
+    const stored = this.transformAdjustmentFromDb(dbAdjustment as unknown as PlayerAdjustmentRow);
 
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
@@ -4193,7 +4196,7 @@ export class SupabaseDataStore implements DataStore {
       this.classifyAndThrowError(error, 'Failed to add player adjustment');
     }
 
-    return { ...adjustment, id, appliedAt } as PlayerStatAdjustment;
+    return stored;
   }
 
   /**
@@ -4215,6 +4218,9 @@ export class SupabaseDataStore implements DataStore {
       { ...adjustment, id, appliedAt } as PlayerStatAdjustment,
       userId
     );
+    // What the caller gets back is what was written, normalised, so a cache
+    // never holds a position id or sport the row does not.
+    const stored = this.transformAdjustmentFromDb(dbAdjustment as unknown as PlayerAdjustmentRow);
 
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
@@ -4228,7 +4234,7 @@ export class SupabaseDataStore implements DataStore {
       this.classifyAndThrowError(error, 'Failed to upsert player adjustment');
     }
 
-    return { ...adjustment, id, appliedAt } as PlayerStatAdjustment;
+    return stored;
   }
 
   async updatePlayerAdjustment(
@@ -4381,7 +4387,7 @@ export class SupabaseDataStore implements DataStore {
       positions: knownPositionIds(adjustment.positions) ?? null,
       game_type: asAdjustmentGameType(adjustment.gameType) ?? null,
       gender: asAdjustmentGender(adjustment.gender) ?? null,
-      age_group: normalizeOptionalString(adjustment.ageGroup ?? undefined) ?? null,
+      age_group: asAdjustmentAgeGroup(adjustment.ageGroup) ?? null,
       note: adjustment.note,
       created_by: adjustment.createdBy,
       applied_at: adjustment.appliedAt,

@@ -16,7 +16,7 @@ import type {
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import { knownPositionIds } from '@/config/positions';
-import { asAdjustmentGameType, asAdjustmentGender } from '@/utils/adjustmentScope';
+import { asAdjustmentGameType, asAdjustmentGender, asAdjustmentAgeGroup } from '@/utils/adjustmentScope';
 
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
@@ -2245,7 +2245,7 @@ export class LocalDataStore implements DataStore {
       // never sit in IndexedDB and jam the sync queue on its way up.
       gameType: asAdjustmentGameType(adjustment.gameType),
       gender: asAdjustmentGender(adjustment.gender),
-      ageGroup: adjustment.ageGroup?.trim() || undefined,
+      ageGroup: asAdjustmentAgeGroup(adjustment.ageGroup),
       note: adjustment.note,
       createdBy: adjustment.createdBy,
     };
@@ -2333,7 +2333,7 @@ export class LocalDataStore implements DataStore {
       updated.positions = knownPositionIds(updated.positions);
       updated.gameType = asAdjustmentGameType(updated.gameType);
       updated.gender = asAdjustmentGender(updated.gender);
-      updated.ageGroup = updated.ageGroup?.trim() || undefined;
+      updated.ageGroup = asAdjustmentAgeGroup(updated.ageGroup);
       list[index] = updated;
       all[playerId] = list;
       await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));

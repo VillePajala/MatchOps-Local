@@ -751,7 +751,7 @@ export const exportAggregateExcel = (
         [translate('export.assists', 'Assists')]: adj.assistsDelta,
         [translate('export.fairPlayCards', 'Fair Play Cards')]: adj.fairPlayCardsDelta ?? 0,
         [translate('export.positions', 'Positions')]: (adj.positions ?? []).map((p) => translate(`playingPositions.${p}.abbrev`, p.toUpperCase())).join(', '),
-        [translate('export.gameType', 'Sport')]: adj.gameType ? translate(adj.gameType === 'futsal' ? 'common.gameTypeFutsal' : 'common.gameTypeSoccer', adj.gameType) : '',
+        [translate('export.gameType', 'Sport')]: adj.gameType ? translate(adj.gameType === 'futsal' ? 'common.gameTypeFutsal' : 'common.gameTypeSoccer', adj.gameType === 'futsal' ? 'Futsal' : 'Soccer') : '',
         [translate('export.gender', 'Gender')]: adj.gender ?? '',
         [translate('export.ageGroup', 'Age Group')]: adj.ageGroup ?? '',
         [translate('export.season', 'Season')]: season,

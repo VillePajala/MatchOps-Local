@@ -18,6 +18,18 @@ const adj = (over: Partial<PlayerStatAdjustment> = {}): PlayerStatAdjustment =>
     ...over,
   }) as PlayerStatAdjustment;
 
+import { asAdjustmentAgeGroup, ADJUSTMENT_AGE_GROUP_MAX } from '../adjustmentScope';
+
+describe('asAdjustmentAgeGroup', () => {
+  it('trims, bounds and treats empty as not recorded', () => {
+    expect(asAdjustmentAgeGroup(' U12 ')).toBe('U12');
+    expect(asAdjustmentAgeGroup('')).toBeUndefined();
+    expect(asAdjustmentAgeGroup('   ')).toBeUndefined();
+    expect(asAdjustmentAgeGroup(42)).toBeUndefined();
+    expect(asAdjustmentAgeGroup('x'.repeat(40))).toHaveLength(ADJUSTMENT_AGE_GROUP_MAX);
+  });
+});
+
 describe('adjustmentInScope', () => {
   it('lets everything through when nothing is filtered', () => {
     expect(adjustmentInScope(adj(), {})).toBe(true);
