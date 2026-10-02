@@ -46,6 +46,12 @@ sport keeps them. So soccer, then futsal, then soccer again loses the
 soccer-only positions, with no undo, which is the price of never storing a
 position under a sport that lacks it.
 
+Both stores drop position ids the running build does not know, on read and on
+write. That keeps stale or mistyped ids out of the stats, and it means position
+ids are append-only: a build older than a new id would write a row back without
+it. Never rename or remove an id in `config/positions.ts` without a data
+migration.
+
 Not recorded on purpose: playing time. The app records positions and events,
 never minutes, and external games must not pretend otherwise.
 

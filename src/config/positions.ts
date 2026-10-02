@@ -115,6 +115,12 @@ export function positionsForSport(gameType: GameType | undefined): PositionDef[]
  * nothing is left: the stored shape of "positions not recorded". Both stores
  * run external-game positions through this on write and on read, so a stale
  * or mistyped id never reaches the stats.
+ *
+ * The flip side: an id this build does not know is dropped, and an edit from
+ * such a build writes the shorter list back. So position ids are append-only
+ * and never renamed; a client older than a new id loses that id from a row it
+ * edits. Removing or renaming an id needs a data migration, not just an edit
+ * to this list.
  */
 export function knownPositionIds(ids: readonly unknown[] | null | undefined): string[] | undefined {
   if (!Array.isArray(ids)) return undefined;
