@@ -1013,6 +1013,20 @@ describe('SyncedDataStore', () => {
       expect(result).toEqual(mockAdjustment);
     });
 
+    /** 053: the queued payload carries positions and scope, so the cloud row gets them too. */
+    it('queues the 053 fields with the adjustment', async () => {
+      const created = { ...mockAdjustment, positions: ['gk', 'cb'], gameType: 'futsal' as const, gender: 'girls' as const, ageGroup: 'U12' };
+      localStoreSpy.addPlayerAdjustment.mockResolvedValue(created);
+      await store.addPlayerAdjustment({ playerId: 'player-1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, positions: ['gk', 'cb'], gameType: 'futsal', gender: 'girls', ageGroup: 'U12' });
+      expect(queueEnqueueSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: 'playerAdjustment',
+          operation: 'create',
+          data: expect.objectContaining({ positions: ['gk', 'cb'], gameType: 'futsal', gender: 'girls', ageGroup: 'U12' }),
+        })
+      );
+    });
+
     it('should update player adjustment and queue sync', async () => {
       const updated = { ...mockAdjustment, goalsDelta: 10 };
       localStoreSpy.updatePlayerAdjustment.mockResolvedValue(updated);
