@@ -15,6 +15,8 @@ import type {
   PlayerStatAdjustment,
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
+import { knownPositionIds } from '@/config/positions';
+import { asAdjustmentGameType, asAdjustmentGender, asAdjustmentAgeGroup } from '@/utils/adjustmentScope';
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { DEFAULT_APP_SETTINGS } from '@/types/settings';
@@ -2236,6 +2238,13 @@ export class LocalDataStore implements DataStore {
       goalsDelta: adjustment.goalsDelta || 0,
       assistsDelta: adjustment.assistsDelta || 0,
       fairPlayCardsDelta: adjustment.fairPlayCardsDelta,
+      // 053: positions and scope; an empty list is "not recorded".
+      positions: knownPositionIds(adjustment.positions),
+      // Guarded like the cloud table's CHECK constraints, so a bad value can
+      // never sit in IndexedDB and jam the sync queue on its way up.
+      gameType: asAdjustmentGameType(adjustment.gameType),
+      gender: asAdjustmentGender(adjustment.gender),
+      ageGroup: asAdjustmentAgeGroup(adjustment.ageGroup),
       note: adjustment.note,
       createdBy: adjustment.createdBy,
     };
@@ -2318,6 +2327,12 @@ export class LocalDataStore implements DataStore {
       }
 
       const updated = { ...list[index], ...patch } as PlayerStatAdjustment;
+      // 053: the same normalisation as the add path, so an update cannot
+      // smuggle in an unknown position id or an untrimmed age group.
+      updated.positions = knownPositionIds(updated.positions);
+      updated.gameType = asAdjustmentGameType(updated.gameType);
+      updated.gender = asAdjustmentGender(updated.gender);
+      updated.ageGroup = asAdjustmentAgeGroup(updated.ageGroup);
       list[index] = updated;
       all[playerId] = list;
       await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));

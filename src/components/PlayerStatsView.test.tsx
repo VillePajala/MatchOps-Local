@@ -728,3 +728,384 @@ describe('PlayerStatsView Kirjuri notes', () => {
     expect(within(card).queryByText('not mine')).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Positions and scope on an external game (053).
+ *
+ * @critical - the add and edit forms are the only way these fields get onto a
+ * row, and the edit form must send `undefined` when a sport is toggled off, or
+ * the stores keep the old value and the game stays under the wrong filter.
+ */
+describe('PlayerStatsView - external game positions and scope (053)', () => {
+  const existing = {
+    id: 'adj-1',
+    playerId: 'player-1',
+    externalTeamName: 'KuPS P13',
+    opponentName: 'Vastus',
+    gamesPlayedDelta: 1,
+    goalsDelta: 0,
+    assistsDelta: 0,
+    appliedAt: '2024-12-02T00:00:00Z',
+    positions: ['gk'],
+    gameType: 'futsal' as const,
+    gender: 'girls' as const,
+    ageGroup: 'U12',
+  };
+
+  const expandExternal = async () => {
+    await waitFor(() => expect(screen.getByText('External Games')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('External Games'));
+    });
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('saves sport, gender and age group from the add form', async () => {
+    const { getAdjustmentsForPlayer, addPlayerAdjustment } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    addPlayerAdjustment.mockResolvedValue({ ...existing, id: 'new' });
+    render(<PlayerStatsView {...baseProps} savedGames={{}} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('External team'), { target: { value: 'KuPS P13' } });
+    fireEvent.change(screen.getByPlaceholderText('Opponent name'), { target: { value: 'Vastus' } });
+    fireEvent.click(screen.getByTestId('adj-sport-futsal'));
+    fireEvent.click(screen.getByTestId('adj-gender-girls'));
+    fireEvent.change(screen.getByLabelText('Age Group (Optional)'), { target: { value: 'U12' } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('save-external-game'));
+    });
+
+    expect(addPlayerAdjustment).toHaveBeenCalledWith(
+      expect.objectContaining({ gameType: 'futsal', gender: 'girls', ageGroup: 'U12', positions: undefined }),
+      undefined,
+    );
+  });
+
+  it('hydrates the row into the edit form and clears a sport that is toggled off', async () => {
+    const { getAdjustmentsForPlayer, updatePlayerAdjustment } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([existing]);
+    updatePlayerAdjustment.mockResolvedValue({ ...existing, gameType: undefined });
+    render(<PlayerStatsView {...baseProps} savedGames={{}} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+
+    const futsal = screen.getByTestId('edit-adj-1-sport-futsal');
+    expect(futsal).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('edit-adj-1-gender-girls')).toHaveAttribute('aria-pressed', 'true');
+    expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('U12');
+
+    fireEvent.click(futsal);
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save'));
+    });
+
+    expect(updatePlayerAdjustment).toHaveBeenCalledWith(
+      'player-1',
+      'adj-1',
+      expect.objectContaining({ positions: ['gk'], gameType: undefined, gender: 'girls', ageGroup: 'U12' }),
+      undefined,
+    );
+  });
+
+  /** Soccer and futsal have different position sets; a sport change must not keep a position the new sport lacks. */
+  it('drops positions the new sport does not have when the sport changes', async () => {
+    const { getAdjustmentsForPlayer, updatePlayerAdjustment } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([{ ...existing, positions: ['gk', 'lb'], gameType: 'soccer' }]);
+    updatePlayerAdjustment.mockResolvedValue({ ...existing, positions: ['gk'], gameType: 'futsal' });
+    render(<PlayerStatsView {...baseProps} savedGames={{}} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+
+    fireEvent.click(screen.getByTestId('edit-adj-1-sport-futsal'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save'));
+    });
+
+    expect(updatePlayerAdjustment).toHaveBeenCalledWith(
+      'player-1',
+      'adj-1',
+      expect.objectContaining({ positions: ['gk'], gameType: 'futsal' }),
+      undefined,
+    );
+  });
+
+  /**
+   * @critical - the linked team, season or tournament already knows the
+   * sport, gender and age group; typing them again is what makes coaches skip
+   * the fields. Only empty fields are filled, and a cleared link clears what it
+   * filled.
+   */
+  it('fills sport, gender and age group from the picked team and its season', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', boundSeasonId: 'season-1', gameType: 'futsal', ageGroup: 'U12' } as never]}
+        seasons={[{ id: 'season-1', name: 'Aluesarja', gameType: 'futsal', gender: 'girls', ageGroup: 'U12' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByTestId('adj-gender-girls')).toHaveAttribute('aria-pressed', 'true');
+    expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('U12');
+
+    // Clearing the team clears what it filled in.
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: '' } });
+    await waitFor(() => expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'false'));
+    expect(screen.getByTestId('adj-gender-girls')).toHaveAttribute('aria-pressed', 'false');
+    expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('');
+  });
+
+  it('never overwrites a sport the coach already chose', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', gameType: 'futsal', ageGroup: 'U12' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+
+    fireEvent.click(screen.getByTestId('adj-sport-soccer'));
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('U12'));
+    expect(screen.getByTestId('adj-sport-soccer')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('fills the scope from a season picked directly', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        seasons={[{ id: 'season-1', name: 'Aluesarja', gameType: 'soccer', gender: 'boys', ageGroup: 'U13' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+
+    const form = screen.getByTestId('save-external-game').closest('form') as HTMLElement;
+    fireEvent.click(within(form).getByRole('button', { name: 'League' }));
+    fireEvent.change(screen.getByTestId('adj-season-select'), { target: { value: 'season-1' } });
+    await waitFor(() => expect(screen.getByTestId('adj-gender-boys')).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByTestId('adj-sport-soccer')).toHaveAttribute('aria-pressed', 'true');
+    expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('U13');
+  });
+
+  /** Opening an old row must not change it: the link fills nothing until the coach changes a link. */
+  it('does not backfill an old row from its link when opened for edit', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([{ ...existing, teamId: 'teamA', positions: undefined, gameType: undefined, gender: undefined, ageGroup: undefined }]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', gameType: 'futsal', ageGroup: 'U12' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+    expect(screen.getByTestId('edit-adj-1-sport-futsal')).toHaveAttribute('aria-pressed', 'false');
+    expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('');
+  });
+
+  /** A link that flips the sport prunes positions the new sport lacks, like a manual switch does. */
+  it('prunes positions when a picked team flips the sport', async () => {
+    const { getAdjustmentsForPlayer, updatePlayerAdjustment } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([{ ...existing, positions: ['gk', 'lb'], gameType: undefined, gender: undefined, ageGroup: undefined }]);
+    updatePlayerAdjustment.mockResolvedValue({ ...existing });
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', gameType: 'futsal' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+    fireEvent.change(screen.getByTestId('edit-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect(screen.getByTestId('edit-adj-1-sport-futsal')).toHaveAttribute('aria-pressed', 'true'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save'));
+    });
+    expect(updatePlayerAdjustment).toHaveBeenCalledWith(
+      'player-1', 'adj-1',
+      expect.objectContaining({ positions: ['gk'], gameType: 'futsal' }),
+      undefined,
+    );
+  });
+
+  /** Two link changes back to back must each see the other's result, not the last render's sport. */
+  it('follows two link changes in a row without a stale sport', async () => {
+    const { getAdjustmentsForPlayer, updatePlayerAdjustment } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([{ ...existing, positions: ['gk', 'lb'], gameType: undefined, gender: undefined, ageGroup: undefined }]);
+    updatePlayerAdjustment.mockResolvedValue({ ...existing });
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', gameType: 'futsal' } as never]}
+        seasons={[{ id: 'season-1', name: 'Aluesarja', gameType: 'soccer', gender: 'boys' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+    // Team flips the sport to futsal (prunes lb); the season then carries soccer and boys.
+    const form = screen.getByText('Save').closest('form') as HTMLElement;
+    fireEvent.change(screen.getByTestId('edit-team-select'), { target: { value: 'teamA' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'League' }));
+    fireEvent.change(screen.getByTestId('edit-season-select'), { target: { value: 'season-1' } });
+    await waitFor(() => expect(screen.getByTestId('edit-adj-1-sport-soccer')).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByTestId('edit-adj-1-gender-boys')).toHaveAttribute('aria-pressed', 'true');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save'));
+    });
+    expect(updatePlayerAdjustment).toHaveBeenCalledWith(
+      'player-1', 'adj-1',
+      expect.objectContaining({ positions: ['gk'], gameType: 'soccer', gender: 'boys' }),
+      undefined,
+    );
+  });
+
+  it('starts the add form clean after it was cancelled', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(<PlayerStatsView {...baseProps} savedGames={{}} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    fireEvent.click(screen.getByTestId('adj-sport-futsal'));
+    expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Cancel'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  /** A value the coach picked by hand stays even when it equals what a link filled and the link then changes. */
+  it('keeps a hand-picked sport that happens to equal the auto value when the link changes', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', gameType: 'futsal' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true'));
+    // The coach confirms futsal by hand: tap it off and on again.
+    fireEvent.click(screen.getByTestId('adj-sport-futsal'));
+    fireEvent.click(screen.getByTestId('adj-sport-futsal'));
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: '' } });
+    await waitFor(() => expect((screen.getByTestId('adj-team-select') as HTMLSelectElement).value).toBe(''));
+    expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  /** Clearing a filled field by hand means "not recorded"; the next link change may fill it again. */
+  it('refills a sport the coach cleared when the link changes again', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[
+          { id: 'teamA', name: 'FC Oma', gameType: 'futsal' } as never,
+          { id: 'teamB', name: 'FC Toinen', gameType: 'soccer' } as never,
+        ]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true'));
+    fireEvent.click(screen.getByTestId('adj-sport-futsal')); // cleared by hand
+    expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamB' } });
+    await waitFor(() => expect(screen.getByTestId('adj-sport-soccer')).toHaveAttribute('aria-pressed', 'true'));
+  });
+
+  /**
+   * @critical - the positions card merges own matches and external games
+   * through computePositionDiversity, which reads only `playerPositions`; the
+   * counts must add up across both, one game each, with no double counting.
+   */
+  it('counts positions across own matches and external games, one game each', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([existing, { ...existing, id: 'adj-2', positions: ['gk', 'st'] }]);
+    const own = createGame({
+      opponentName: 'Own Opponent', gameDate: '2024-02-15', gameType: 'soccer',
+      playerPositions: { 'player-1': ['gk', 'lb'] },
+      selectedPlayerIds: ['player-1'],
+    } as Partial<AppState>);
+    render(<PlayerStatsView {...baseProps} savedGames={{ 'own-game': own }} />);
+    await expandExternal();
+
+    const card = screen.getByText('Positions played', { selector: 'h3' }).closest('div')?.parentElement as HTMLElement;
+    expect(card).toHaveTextContent(/GK\s*3/);
+    expect(card).toHaveTextContent(/LB\s*1/);
+    expect(card).toHaveTextContent(/ST\s*1/);
+    expect(card).toHaveTextContent(/Includes .* external games with recorded positions/);
+    expect(screen.getAllByTitle('Positions played')[0]).toHaveTextContent('GK');
+  });
+});

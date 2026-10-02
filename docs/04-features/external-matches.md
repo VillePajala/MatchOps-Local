@@ -7,6 +7,54 @@ Individual player stat adjustment system that allows manual addition of statisti
 
 **Implementation Note**: This document describes the UI/UX behavior and business logic.
 
+## 2026-10-01: positions and scope on the record (migration 053)
+
+An external game used to be a scoreboard row. It now also records **where the
+player played** (`positions: string[]`, the finish flow's position ids) and
+**what kind of game it was** (`gameType`, `gender`, `ageGroup`). Why:
+
+- Playing time by position across games is the app's one signal; a game played
+  up an age group left a hole in it. External positions now feed the player's
+  "Positions played" card as one game each, marked as including external games.
+- The stats filters for sport and gender could not place an external game at
+  all, so every row dropped out under any such filter. A row that records the
+  matching value now lands where it belongs; rows recorded before 053 carry
+  nothing and stay out, exactly as before (an unplaceable game is omitted,
+  never assumed). Both values are needed for both filters: a row with a sport
+  but no gender is still unplaceable under a gender filter, and the form says
+  so. The age group is recorded on the row for display and export; no stats
+  view filters by age group, so the scope rule does not look at it (add it
+  there the day a filter exists). `age_group` has no CHECK constraint on
+  purpose: the age-group list is an app constant that changes.
+
+All four fields are optional. Local rows are stored as they are; the cloud
+table gained four nullable columns with no backfill. Backups and both
+migration directions move whole adjustment objects through
+`upsertPlayerAdjustment`, so they carry the fields without changes of their
+own; the Excel "External Games" sheet gained four columns. The form
+uses the same `PlayerPositionsEditor` as the finish flow (single player) and
+the game form's sport, gender and age-group controls.
+
+The linked team, season or tournament fills these in: picking a team fills
+sport and age group from the team and gender, sport and age group from its
+bound competition; picking a season or tournament directly fills all three.
+Only empty fields are filled, a value the coach chose is never overwritten,
+and clearing the link clears what it filled. A field the coach clears by hand
+counts as empty again, so the next link change may fill it. Switching the sport, by hand or
+through a link, drops the positions the new sport does not have; clearing the
+sport keeps them. So soccer, then futsal, then soccer again loses the
+soccer-only positions, with no undo, which is the price of never storing a
+position under a sport that lacks it.
+
+Both stores drop position ids the running build does not know, on read and on
+write. That keeps stale or mistyped ids out of the stats, and it means position
+ids are append-only: a build older than a new id would write a row back without
+it. Never rename or remove an id in `config/positions.ts` without a data
+migration.
+
+Not recorded on purpose: playing time. The app records positions and events,
+never minutes, and external games must not pretend otherwise.
+
 ## Business Logic
 
 ### Core Data Structure

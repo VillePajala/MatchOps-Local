@@ -110,6 +110,24 @@ export function positionsForSport(gameType: GameType | undefined): PositionDef[]
   return POSITIONS.filter(p => p.sports.includes(sport));
 }
 
+/**
+ * The subset of `ids` the app knows, in the order given, or undefined when
+ * nothing is left: the stored shape of "positions not recorded". Both stores
+ * run external-game positions through this on write and on read, so a stale
+ * or mistyped id never reaches the stats.
+ *
+ * The flip side: an id this build does not know is dropped, and an edit from
+ * such a build writes the shorter list back. So position ids are append-only
+ * and never renamed; a client older than a new id loses that id from a row it
+ * edits. Removing or renaming an id needs a data migration, not just an edit
+ * to this list.
+ */
+export function knownPositionIds(ids: readonly unknown[] | null | undefined): string[] | undefined {
+  if (!Array.isArray(ids)) return undefined;
+  const known = ids.filter((p): p is string => typeof p === 'string' && POSITION_IDS.includes(p));
+  return known.length > 0 ? [...new Set(known)] : undefined;
+}
+
 /** Sort a set of position ids into the canonical back-to-front order. */
 export function orderPositionIds(ids: readonly string[]): string[] {
   const rank = new Map(POSITION_IDS.map((id, i) => [id, i]));

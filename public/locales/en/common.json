@@ -2082,7 +2082,9 @@
       "title": "Positions played",
       "linesPlayed": "{{n}} of 4 lines",
       "narrowHint": "Played only one line this season - a chance to broaden.",
-      "allPositions": "All positions"
+      "allPositions": "All positions",
+      "includesExternal_one": "Includes {{count}} external game with recorded positions.",
+      "includesExternal_other": "Includes {{count}} external games with recorded positions."
     },
     "gamesPlayed_short": "GP",
     "goals": "Goals",
@@ -2178,7 +2180,10 @@
     "whichTeam": "Which team was this game for?",
     "anotherTeam": "Another team (not one of mine)",
     "whichTeamMineHint": "Counts toward this team in team statistics.",
-    "whichTeamOtherHint": "Counts toward the player, but not toward any of your teams."
+    "whichTeamOtherHint": "Counts toward the player, but not toward any of your teams.",
+    "externalPositionsHint": "Where the player played in this game. Counted in the positions played.",
+    "externalScopeHint": "Sport and gender place the game under the stats filters. If either is missing, the game stays out of a filtered view.",
+    "positionsLabel": "Positions played"
   },
   "months": {
     "january": "January",
@@ -2391,7 +2396,10 @@
     "noCanvas": "Could not capture field",
     "success": "Field exported successfully",
     "failed": "Failed to export field",
-    "buttonTitle": "Export field as image"
+    "buttonTitle": "Export field as image",
+    "positions": "Positions",
+    "gameType": "Sport",
+    "gender": "Gender"
   },
   "reset": {
     "resetting": "Resetting Application...",

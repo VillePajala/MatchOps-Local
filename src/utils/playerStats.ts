@@ -57,6 +57,8 @@ export interface GameStats {
   isExternal?: boolean;  // True for external games (adjustments)
   externalTeamName?: string;  // Team name for external games
   gameType?: 'soccer' | 'futsal';  // Sport type for filtering/display
+  /** Positions held, for external games (053); the app's own matches keep theirs on the game. */
+  positions?: string[];
 }
 
 /**
@@ -258,6 +260,8 @@ export const calculatePlayerStats = (
       fairPlayCards: fpCards,
       isExternal: true,
       externalTeamName: adj.externalTeamName,
+      gameType: adj.gameType,
+      positions: adj.positions,
     });
   });
 

@@ -265,6 +265,17 @@ export interface PlayerStatAdjustment {
   goalsDelta: number; // may be 0
   assistsDelta: number; // may be 0
   fairPlayCardsDelta?: number; // Optional: fair play cards from external games (defaults to 0 if undefined)
+  /**
+   * Positions played in this external game, the finish flow's position ids
+   * (gk, lb, cam, st ...). Added 2026-10-01 so a game played for another team
+   * leaves the same position trail as the app's own matches; older rows have
+   * none and count as "position not recorded".
+   */
+  positions?: string[];
+  /** Sport, gender and age group place the row under the stats filters; absent on older rows. */
+  gameType?: GameType;
+  gender?: Gender;
+  ageGroup?: string;
   note?: string; // optional note shown in UI
   createdBy?: string; // optional user identifier
   appliedAt: string; // ISO timestamp

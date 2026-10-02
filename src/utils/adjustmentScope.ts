@@ -18,6 +18,21 @@ import type { GameType, Gender } from '@/types/game';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 
+/** 053: the value sets the cloud table's CHECK constraints allow; anything else reads and writes as "not recorded". */
+export const asAdjustmentGameType = (v: unknown): GameType | undefined => (v === 'soccer' || v === 'futsal' ? v : undefined);
+export const asAdjustmentGender = (v: unknown): Gender | undefined => (v === 'boys' || v === 'girls' ? v : undefined);
+/**
+ * Age group: a short label such as U12. Trimmed; empty, non-string or longer
+ * than the column allows reads as "not recorded" (a cut label would be a
+ * different label, not a valid one).
+ */
+export const ADJUSTMENT_AGE_GROUP_MAX = 16;
+export const asAdjustmentAgeGroup = (v: unknown): string | undefined => {
+  if (typeof v !== 'string') return undefined;
+  const t = v.trim();
+  return t.length > 0 && t.length <= ADJUSTMENT_AGE_GROUP_MAX ? t : undefined;
+};
+
 export interface AdjustmentScope {
   /** Team id, or the literals 'legacy' (games naming no team) and 'all'. */
   teamFilter?: string;
@@ -59,10 +74,14 @@ export function adjustmentInScope(
     }
   }
 
-  // Sport and gender are not recorded on an adjustment at all, so under a
-  // specific filter there is no way to say it belongs.
-  if (gameTypeFilter !== 'all') return false;
-  if (genderFilter !== 'all') return false;
+  // Sport and gender: recorded on the row since 053. Under a specific filter
+  // the row must carry the matching value; a row that carries none (every row
+  // recorded before 053) cannot be shown to belong, so it stays out, exactly
+  // as before. The age group is also on the row, but no stats view filters by
+  // it, so it is kept for display and export only; add it here the day one
+  // does, not before.
+  if (gameTypeFilter !== 'all' && adj.gameType !== gameTypeFilter) return false;
+  if (genderFilter !== 'all' && adj.gender !== genderFilter) return false;
 
   return true;
 }

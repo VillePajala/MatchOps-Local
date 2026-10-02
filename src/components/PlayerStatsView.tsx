@@ -31,7 +31,9 @@ import { buildPlayerEvidence, DEFAULT_EVIDENCE_SECTIONS, type EvidenceSections }
 import GameRecapModal from '@/components/GameRecapModal';
 import MetricAreaChart from './MetricAreaChart';
 import { computePositionDiversity } from '@/utils/positionDiversity';
-import { POSITION_IDS } from '@/config/positions';
+import { POSITION_IDS, positionsForSport } from '@/config/positions';
+import { AGE_GROUPS } from '@/config/gameOptions';
+import PlayerPositionsEditor from './PlayerPositionsEditor';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
@@ -67,6 +69,133 @@ interface PlayerStatsViewProps {
   /** Off hides the development report even where ratings exist (default true for callers that predate the setting). */
   assessmentsEnabled?: boolean;
 }
+
+/** What a linked team or competition fills into the form: sport, gender, age group. */
+type AutoScope = { gameType: GameType | ''; gender: Gender | ''; ageGroup: string };
+const sameScope = (a: AutoScope, b: AutoScope) => a.gameType === b.gameType && a.gender === b.gender && a.ageGroup === b.ageGroup;
+
+/** The positions the given sport knows; a sport the link flips to must not keep the other sport's positions. */
+const prunePositions = (ids: string[], sport: GameType): string[] => {
+  const allowed = new Set(positionsForSport(sport).map(p => p.id));
+  const kept = ids.filter(id => allowed.has(id));
+  return kept.length === ids.length ? ids : kept;
+};
+
+interface ExternalScopeState {
+  positions: string[];
+  gameType: GameType | '';
+  gender: Gender | '';
+  ageGroup: string;
+  /** What the linked team or competition filled in last, so a later link change can replace it. */
+  auto: AutoScope;
+  /** Which fields the coach set by hand; a hand-picked value is never treated as auto-filled. */
+  manual: { gameType: boolean; gender: boolean; ageGroup: boolean };
+}
+const emptyScopeState = (): ExternalScopeState => ({
+  positions: [], gameType: '', gender: '', ageGroup: '',
+  auto: { gameType: '', gender: '', ageGroup: '' }, manual: { gameType: false, gender: false, ageGroup: false },
+});
+
+/**
+ * The 053 fields of one external-game form, add or edit, as one piece of
+ * state with functional updates: no refs to keep in step, and two link
+ * changes in one tick each see the other's result. `applyLink` fills only
+ * empty, non-hand-picked fields, replaces what it filled last time, clears
+ * them when the link goes, and prunes positions when it flips the sport.
+ */
+function useExternalScope() {
+  const [state, setState] = useState<ExternalScopeState>(emptyScopeState);
+  const setPositions = useCallback((positions: string[]) => setState(s => ({ ...s, positions })), []);
+  const setGameType = useCallback((v: GameType | '') => setState(s => ({ ...s, gameType: v, manual: { ...s.manual, gameType: v !== '' } })), []);
+  const setGender = useCallback((v: Gender | '') => setState(s => ({ ...s, gender: v, manual: { ...s.manual, gender: v !== '' } })), []);
+  const setAgeGroup = useCallback((v: string) => setState(s => ({ ...s, ageGroup: v, manual: { ...s.manual, ageGroup: v !== '' } })), []);
+  const applyLink = useCallback((next: AutoScope) => setState(s => {
+    if (sameScope(next, s.auto)) return s;
+    const gameType = !s.manual.gameType && (!s.gameType || s.gameType === s.auto.gameType) ? next.gameType : s.gameType;
+    const positions = gameType && gameType !== s.gameType ? prunePositions(s.positions, gameType) : s.positions;
+    const gender = !s.manual.gender && (!s.gender || s.gender === s.auto.gender) ? next.gender : s.gender;
+    const ageGroup = !s.manual.ageGroup && (!s.ageGroup || s.ageGroup === s.auto.ageGroup) ? next.ageGroup : s.ageGroup;
+    return { ...s, gameType, positions, gender, ageGroup, auto: next };
+  }), []);
+  const reset = useCallback((init?: Partial<ExternalScopeState>) => setState({ ...emptyScopeState(), ...init }), []);
+  return { state, setPositions, setGameType, setGender, setAgeGroup, applyLink, reset };
+}
+
+/**
+ * The 053 fields of an external game: positions played, sport, gender, age
+ * group. One component for the add and the edit form so the two cannot drift.
+ * Sport and gender toggle off when tapped again; "not recorded" is a real
+ * value here (it keeps the row out of filtered views, and the hint says so).
+ */
+const ExternalGameScopeFields: React.FC<{
+  player: Player;
+  prefix: string;
+  positions: string[];
+  onPositions: (next: string[]) => void;
+  gameType: GameType | '';
+  onGameType: (next: GameType | '') => void;
+  gender: Gender | '';
+  onGender: (next: Gender | '') => void;
+  ageGroup: string;
+  onAgeGroup: (next: string) => void;
+  /** Which position set the editor shows when the row names no sport. */
+  fallbackGameType: GameType;
+}> = ({ player, prefix, positions, onPositions, gameType, onGameType, gender, onGender, ageGroup, onAgeGroup, fallbackGameType }) => {
+  const { t } = useTranslation();
+  // Soccer and futsal have different position sets, so switching from one
+  // sport to the other drops the positions the new sport does not know rather
+  // than keeping a wrong one (the parent does the same when a link flips the
+  // sport). Clearing the sport altogether keeps them: the editor merely falls
+  // back to a position set for display, and losing picks over a cleared
+  // toggle would be data loss with no signal.
+  const changeSport = (next: GameType | '') => {
+    onGameType(next);
+    if (!next) return;
+    const kept = prunePositions(positions, next);
+    if (kept !== positions) onPositions(kept);
+  };
+  const choice = (on: boolean) => `flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${on ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+  return (
+    <>
+      <div className="lg:col-span-3">
+        <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.positionsLabel', 'Positions played')}</label>
+        <p className="text-xs text-slate-500 mb-2">{t('playerStats.externalPositionsHint', 'Where the player played in this game. Counted in the positions played.')}</p>
+        <PlayerPositionsEditor
+          players={[player]}
+          value={{ [player.id]: positions }}
+          gameType={gameType || fallbackGameType}
+          onChange={(next) => onPositions(next[player.id] ?? [])}
+        />
+      </div>
+      <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.gameTypeLabel', 'Sport Type')}</label>
+          <div className="flex gap-2">
+            <button type="button" data-testid={`${prefix}-sport-soccer`} aria-pressed={gameType === 'soccer'} onClick={() => changeSport(gameType === 'soccer' ? '' : 'soccer')} className={choice(gameType === 'soccer')}>{t('common.gameTypeSoccer', 'Soccer')}</button>
+            <button type="button" data-testid={`${prefix}-sport-futsal`} aria-pressed={gameType === 'futsal'} onClick={() => changeSport(gameType === 'futsal' ? '' : 'futsal')} className={choice(gameType === 'futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.genderLabel', 'Gender')}</label>
+          <div className="flex gap-2">
+            <button type="button" data-testid={`${prefix}-gender-boys`} aria-pressed={gender === 'boys'} onClick={() => onGender(gender === 'boys' ? '' : 'boys')} className={choice(gender === 'boys')}>{t('common.genderBoys', 'Boys')}</button>
+            <button type="button" data-testid={`${prefix}-gender-girls`} aria-pressed={gender === 'girls'} onClick={() => onGender(gender === 'girls' ? '' : 'girls')} className={choice(gender === 'girls')}>{t('common.genderGirls', 'Girls')}</button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor={`${prefix}-age-group`}>{t('newGameSetupModal.ageGroupLabel', 'Age Group (Optional)')}</label>
+          <select id={`${prefix}-age-group`} value={ageGroup} onChange={e => onAgeGroup(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+            <option value="">{t('common.none', 'None')}</option>
+            {AGE_GROUPS.map((group) => (<option key={group} value={group}>{group}</option>))}
+            {/* A stored label outside today's list (the list has changed before) still shows and survives a save. */}
+            {ageGroup && !AGE_GROUPS.includes(ageGroup) && <option value={ageGroup}>{ageGroup}</option>}
+          </select>
+        </div>
+        <p className="sm:col-span-3 text-xs text-slate-500">{t('playerStats.externalScopeHint', 'Sport and gender place the game under the stats filters. If either is missing, the game stays out of a filtered view.')}</p>
+      </div>
+    </>
+  );
+};
 
 const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false, masterRoster, teams = [] , assessmentsEnabled = true }) => {
   const { t, i18n } = useTranslation();
@@ -106,6 +235,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [adjFairPlayCards, setAdjFairPlayCards] = useState(0);
   const [adjNote, setAdjNote] = useState('');
   const [adjIncludeInSeasonTournament, setAdjIncludeInSeasonTournament] = useState(false);
+  // 053: where the player played, and what kind of game it was (one state object per form)
+  const adjScope = useExternalScope();
   const [editingAdjId, setEditingAdjId] = useState<string | null>(null);
   const [editGames, setEditGames] = useState<number>(0);
   const [editGoals, setEditGoals] = useState<number>(0);
@@ -123,6 +254,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [editScoreFor, setEditScoreFor] = useState<number | ''>('');
   const [editScoreAgainst, setEditScoreAgainst] = useState<number | ''>('');
   const [editIncludeInSeasonTournament, setEditIncludeInSeasonTournament] = useState(false);
+  const editScope = useExternalScope();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
   const [showExternalGames, setShowExternalGames] = useState(false);
@@ -427,6 +559,32 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     [teams],
   );
 
+  /**
+   * Sport, gender and age group from what the game is linked to: the season
+   * or tournament first (they carry gender), the team as fallback. Only empty
+   * fields are filled, so a value the coach chose stays; a field that still
+   * holds what we filled in last time follows the new link, or clears when
+   * the link goes, the way the name and competition already behave.
+   */
+  const scopeOf = useCallback(
+    (teamId: string, seasonId: string, tournamentId: string) => {
+      const team = teamId ? teams.find(t => t.id === teamId) : undefined;
+      const season = seasonId ? seasons.find(s => s.id === seasonId) : undefined;
+      const tournament = tournamentId ? tournaments.find(t => t.id === tournamentId) : undefined;
+      const comp = season ?? tournament;
+      return {
+        gameType: (comp?.gameType ?? team?.gameType ?? '') as GameType | '',
+        gender: (comp?.gender ?? '') as Gender | '',
+        ageGroup: comp?.ageGroup ?? team?.ageGroup ?? '',
+      };
+    },
+    [teams, seasons, tournaments],
+  );
+  const { applyLink: applyAdjLink } = adjScope;
+  const { applyLink: applyEditLink } = editScope;
+  const applyAdjScope = useCallback((teamId: string, seasonId: string, tournamentId: string) => applyAdjLink(scopeOf(teamId, seasonId, tournamentId)), [applyAdjLink, scopeOf]);
+  const applyEditScope = useCallback((teamId: string, seasonId: string, tournamentId: string) => applyEditLink(scopeOf(teamId, seasonId, tournamentId)), [applyEditLink, scopeOf]);
+
   const applyAdjTeam = useCallback((teamId: string) => {
     const filled = teamAutofill(teamId, adjExternalTeam, adjTeamId);
     setAdjTeamId(teamId);
@@ -434,7 +592,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     setAdjSeasonId(filled.seasonId);
     setAdjTournamentId(filled.tournamentId);
     setAdjIncludeInSeasonTournament(filled.include);
-  }, [teamAutofill, adjExternalTeam, adjTeamId]);
+    applyAdjScope(teamId, filled.seasonId, filled.tournamentId);
+  }, [teamAutofill, adjExternalTeam, adjTeamId, applyAdjScope]);
 
   /** The same, for correcting an entry that predates the question. */
   const applyEditTeam = useCallback((teamId: string) => {
@@ -444,7 +603,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     setEditSeasonId(filled.seasonId);
     setEditTournamentId(filled.tournamentId);
     setEditIncludeInSeasonTournament(filled.include);
-  }, [teamAutofill, editExternalTeam, editTeamId]);
+    applyEditScope(teamId, filled.seasonId, filled.tournamentId);
+  }, [teamAutofill, editExternalTeam, editTeamId, applyEditScope]);
 
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
@@ -453,14 +613,23 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   // This player's position spread over the current scope, for the compact
   // "Positions played" card (games where they were recorded at a position).
+  // External games with recorded positions (053) count here too, as one game
+  // each, so a season played partly for another team still shows the whole
+  // position trail. Rows without positions add nothing, like an own match
+  // whose positions were never filled in.
+  const externalPositionGames = useMemo(
+    () => (player ? adjustmentsInScope.filter(a => a.playerId === player.id && (a.positions?.length ?? 0) > 0) : []),
+    [player, adjustmentsInScope],
+  );
   const positionSummary = useMemo(() => {
     if (!player) return null;
+    const external = externalPositionGames.map(a => ({ playerPositions: { [player.id]: a.positions ?? [] } }));
     return (
-      computePositionDiversity(Object.values(filteredGamesByClubSeason)).players.find(
+      computePositionDiversity([...Object.values(filteredGamesByClubSeason), ...external]).players.find(
         p => p.playerId === player.id,
       ) ?? null
     );
-  }, [player, filteredGamesByClubSeason]);
+  }, [player, filteredGamesByClubSeason, externalPositionGames]);
 
   /**
    * The match evidence text: this player, this scope, all fact. Built from the
@@ -686,6 +855,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 {t('playerStats.positionsPlayed.narrowHint', 'Played only one line this season - a chance to broaden.')}
               </p>
             )}
+            {externalPositionGames.length > 0 && (
+              <p className="text-xs text-slate-400 mt-2">
+                <span className="inline-block bg-purple-600/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded mr-1.5">{t('playerStats.external', 'EXT')}</span>
+                {t('playerStats.positionsPlayed.includesExternal', { count: externalPositionGames.length, defaultValue: 'Includes {{count}} external games with recorded positions.' })}
+              </p>
+            )}
           </div>
         )}
 
@@ -706,7 +881,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 type="button"
                 className="text-sm px-4 py-2.5 bg-slate-700 text-slate-200 rounded-md border border-slate-600 hover:bg-slate-600 transition-colors"
                 data-testid="add-external-game"
-                onClick={() => { setShowAdjForm(v => !v); setEditingAdjId(null); }}
+                onClick={() => { if (!showAdjForm) adjScope.reset(); setShowAdjForm(!showAdjForm); setEditingAdjId(null); }}
               >
                 {t('playerStats.addExternalStats', 'Add external stats')}
               </button>
@@ -761,6 +936,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     fairPlayCardsDelta: Math.max(0, Number(adjFairPlayCards) || 0),
                     note: adjNote.trim() || undefined,
                     includeInSeasonTournament: adjIncludeInSeasonTournament,
+                    positions: adjScope.state.positions.length > 0 ? adjScope.state.positions : undefined,
+                    gameType: adjScope.state.gameType || undefined,
+                    gender: adjScope.state.gender || undefined,
+                    ageGroup: adjScope.state.ageGroup || undefined,
                   }, userId);
                   setAdjustments(prev => [...prev, created]);
                   setShowAdjForm(false);
@@ -771,6 +950,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   setAdjGameDate(new Date().toISOString().split('T')[0]);
                   setAdjHomeAway('neutral');
                   setAdjIncludeInSeasonTournament(false);
+                  adjScope.reset();
                 } catch (error) {
                   logger.error('[PlayerStatsView] Failed to add external game', { error });
                   showToast(t('playerStats.addError', 'Failed to save the external game entry.'), 'error');
@@ -814,13 +994,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <div className="lg:col-span-3">
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
                 <div className="flex gap-1 mb-2">
-                  <button type="button" onClick={() => { setAdjSeasonId(''); setAdjTournamentId(''); setAdjIncludeInSeasonTournament(false); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!adjSeasonId && !adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                  <button type="button" onClick={() => { setAdjSeasonId(''); setAdjTournamentId(''); setAdjIncludeInSeasonTournament(false); applyAdjScope(adjTeamId, '', ''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!adjSeasonId && !adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.eiMitaan', 'None')}
                   </button>
-                  <button type="button" onClick={() => { setAdjTournamentId(''); if (seasons.length > 0) { if (!adjSeasonId) setAdjSeasonId(seasons[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                  <button type="button" onClick={() => { const nextSeasonId = seasons.length > 0 ? (adjSeasonId || seasons[0].id) : ''; setAdjTournamentId(''); setAdjSeasonId(nextSeasonId); if (nextSeasonId) setAdjIncludeInSeasonTournament(true); applyAdjScope(adjTeamId, nextSeasonId, ''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.kausi', 'League')}
                   </button>
-                  <button type="button" onClick={() => { setAdjSeasonId(''); if (tournaments.length > 0) { if (!adjTournamentId) setAdjTournamentId(tournaments[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                  <button type="button" onClick={() => { const nextTournamentId = tournaments.length > 0 ? (adjTournamentId || tournaments[0].id) : ''; setAdjSeasonId(''); setAdjTournamentId(nextTournamentId); if (nextTournamentId) setAdjIncludeInSeasonTournament(true); applyAdjScope(adjTeamId, '', nextTournamentId); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.turnaus', 'Tournament')}
                   </button>
                 </div>
@@ -828,7 +1008,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <select
                     data-testid="adj-season-select"
                     value={adjSeasonId}
-                    onChange={(e) => { setAdjSeasonId(e.target.value); }}
+                    onChange={(e) => { setAdjSeasonId(e.target.value); applyAdjScope(adjTeamId, e.target.value, ''); }}
                     className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
                   >
                     {seasons.map(s => (
@@ -842,6 +1022,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     onChange={(e) => {
                       const tournamentId = e.target.value;
                       setAdjTournamentId(tournamentId);
+                      applyAdjScope(adjTeamId, '', tournamentId);
                       // Prefill tournament data when selected
                       if (tournamentId) {
                         const tournament = tournaments.find(t => t.id === tournamentId);
@@ -928,6 +1109,19 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   </span>
                 </ModalSwitch>
               </div>
+              <ExternalGameScopeFields
+                player={player}
+                prefix="adj"
+                positions={adjScope.state.positions}
+                onPositions={adjScope.setPositions}
+                gameType={adjScope.state.gameType}
+                onGameType={adjScope.setGameType}
+                gender={adjScope.state.gender}
+                onGender={adjScope.setGender}
+                ageGroup={adjScope.state.ageGroup}
+                onAgeGroup={adjScope.setAgeGroup}
+                fallbackGameType={selectedGameTypeFilter !== 'all' ? selectedGameTypeFilter : 'soccer'}
+              />
               <div className="lg:col-span-3">
                 <ModalSwitch
                   checked={adjIncludeInSeasonTournament}
@@ -1043,6 +1237,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                               scoreFor: typeof editScoreFor === 'number' ? editScoreFor : undefined,
                               scoreAgainst: typeof editScoreAgainst === 'number' ? editScoreAgainst : undefined,
                               includeInSeasonTournament: editIncludeInSeasonTournament,
+                              positions: editScope.state.positions.length > 0 ? editScope.state.positions : undefined,
+                              gameType: editScope.state.gameType || undefined,
+                              gender: editScope.state.gender || undefined,
+                              ageGroup: editScope.state.ageGroup || undefined,
                             }, userId);
                             if (updated) {
                               setAdjustments(prev => prev.map(x => x.id === updated.id ? updated : x));
@@ -1060,20 +1258,21 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         <div className="lg:col-span-3">
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
                           <div className="flex gap-1 mb-2">
-                            <button type="button" onClick={() => { setEditSeasonId(''); setEditTournamentId(''); setEditIncludeInSeasonTournament(false); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!editSeasonId && !editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                            <button type="button" onClick={() => { setEditSeasonId(''); setEditTournamentId(''); setEditIncludeInSeasonTournament(false); applyEditScope(editTeamId, '', ''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!editSeasonId && !editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                               {t('gameSettingsModal.eiMitaan', 'None')}
                             </button>
-                            <button type="button" onClick={() => { setEditTournamentId(''); if (!editSeasonId && seasons.length > 0) setEditSeasonId(seasons[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                            <button type="button" onClick={() => { const nextSeasonId = editSeasonId || (seasons.length > 0 ? seasons[0].id : ''); setEditTournamentId(''); setEditSeasonId(nextSeasonId); if (nextSeasonId) setEditIncludeInSeasonTournament(true); applyEditScope(editTeamId, nextSeasonId, ''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                               {t('gameSettingsModal.kausi', 'League')}
                             </button>
-                            <button type="button" onClick={() => { setEditSeasonId(''); if (!editTournamentId && tournaments.length > 0) setEditTournamentId(tournaments[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                            <button type="button" onClick={() => { const nextTournamentId = editTournamentId || (tournaments.length > 0 ? tournaments[0].id : ''); setEditSeasonId(''); setEditTournamentId(nextTournamentId); if (nextTournamentId) setEditIncludeInSeasonTournament(true); applyEditScope(editTeamId, '', nextTournamentId); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                               {t('gameSettingsModal.turnaus', 'Tournament')}
                             </button>
                           </div>
                           {editSeasonId !== '' && (
                             <select
                               value={editSeasonId}
-                              onChange={(e) => { setEditSeasonId(e.target.value); }}
+                              data-testid="edit-season-select"
+                              onChange={(e) => { setEditSeasonId(e.target.value); applyEditScope(editTeamId, e.target.value, ''); }}
                               className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
                             >
                               {seasons.map(s => (
@@ -1084,7 +1283,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           {editTournamentId !== '' && (
                             <select
                               value={editTournamentId}
-                              onChange={(e) => { setEditTournamentId(e.target.value); }}
+                              data-testid="edit-tournament-select"
+                              onChange={(e) => { setEditTournamentId(e.target.value); applyEditScope(editTeamId, '', e.target.value); }}
                               className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
                             >
                               {tournaments.map(t => (
@@ -1193,6 +1393,19 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             </span>
                           </ModalSwitch>
                         </div>
+                        <ExternalGameScopeFields
+                          player={player}
+                          prefix={`edit-${a.id}`}
+                          positions={editScope.state.positions}
+                          onPositions={editScope.setPositions}
+                          gameType={editScope.state.gameType}
+                          onGameType={editScope.setGameType}
+                          gender={editScope.state.gender}
+                          onGender={editScope.setGender}
+                          ageGroup={editScope.state.ageGroup}
+                          onAgeGroup={editScope.setAgeGroup}
+                          fallbackGameType={selectedGameTypeFilter !== 'all' ? selectedGameTypeFilter : 'soccer'}
+                        />
                         <div className="lg:col-span-3">
                           <ModalSwitch
                             checked={editIncludeInSeasonTournament}
@@ -1310,6 +1523,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                       setEditScoreFor(typeof a.scoreFor === 'number' ? a.scoreFor : '');
                                       setEditScoreAgainst(typeof a.scoreAgainst === 'number' ? a.scoreAgainst : '');
                                       setEditIncludeInSeasonTournament(a.includeInSeasonTournament || false);
+                                      // The row's own values count as the coach's; the link it already has fills nothing on open.
+                                      editScope.reset({
+                                        positions: a.positions ?? [], gameType: a.gameType ?? '', gender: a.gender ?? '', ageGroup: a.ageGroup ?? '',
+                                        auto: scopeOf(a.teamId ?? '', a.seasonId ?? '', a.tournamentId ?? ''),
+                                        manual: { gameType: !!a.gameType, gender: !!a.gender, ageGroup: !!a.ageGroup },
+                                      });
                                       setShowActionsMenu(null);
                                     }}
                                   >
@@ -1343,6 +1562,16 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                               <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`}></span>
                               {t('playerStats.external', 'EXT')}
                             </span>
+                            {(a.positions ?? []).length > 0 && (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/20 text-amber-200" title={t('playerStats.positionsLabel', 'Positions played')}>
+                                {(a.positions ?? []).map(id => t(`playingPositions.${id}.abbrev` as TranslationKey, id.toUpperCase())).join(' · ')}
+                              </span>
+                            )}
+                            {(a.gameType || a.ageGroup) && (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
+                                {[a.gameType ? t(a.gameType === 'futsal' ? 'common.gameTypeFutsal' : 'common.gameTypeSoccer', a.gameType) : null, a.ageGroup ?? null].filter(Boolean).join(' · ')}
+                              </span>
+                            )}
                             {seasonName && (
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200" title={seasonName}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.season}`}></span>
