@@ -39,6 +39,12 @@ interface ModalContextValue {
   setIsPersonnelManagerOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isTeamManagerOpen: boolean;
   setIsTeamManagerOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /** Ulkoiset pelit as its own modal (phase 3): from a player's menu in Seura or "Lisää ulkoinen peli" on Home. */
+  isExternalGamesOpen: boolean;
+  setIsExternalGamesOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /** The player the modal opens on; null means the coach picks one first. */
+  externalGamesPlayerId: string | null;
+  setExternalGamesPlayerId: React.Dispatch<React.SetStateAction<string | null>>;
   /** Player deep-link for GameStats (set by the roster modal's stats shortcut,
    *  read by GameStatsModal as its initial selection). Lifted in L.2. */
   selectedPlayerForStats: Player | null;
@@ -122,6 +128,8 @@ export const ModalProvider = ({ children, currentUserId }: {
   // L.2: TeamManager open-state + the GameStats player deep-link lifted here
   // (roster modal renders in ClubModalsHost; GameStats still match-side).
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
+  const [isExternalGamesOpen, setIsExternalGamesOpen] = useState(false);
+  const [externalGamesPlayerId, setExternalGamesPlayerId] = useState<string | null>(null);
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
   // L.3b: NewGameSetup prefill selection lifted here (modal renders in ClubModalsHost).
   const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
@@ -367,6 +375,8 @@ export const ModalProvider = ({ children, currentUserId }: {
     setIsSeasonTournamentModalOpen(false);
     setIsPersonnelManagerOpen(false);
     setIsTeamManagerOpen(false);
+    setIsExternalGamesOpen(false);
+    setExternalGamesPlayerId(null);
     setIsLoadGameModalOpen(false);
     setIsNewGameSetupModalOpen(false);
     setIsTrainingResourcesOpen(false);
@@ -405,6 +415,10 @@ export const ModalProvider = ({ children, currentUserId }: {
     setIsPersonnelManagerOpen,
     isTeamManagerOpen,
     setIsTeamManagerOpen,
+    isExternalGamesOpen,
+    setIsExternalGamesOpen,
+    externalGamesPlayerId,
+    setExternalGamesPlayerId,
     selectedPlayerForStats,
     setSelectedPlayerForStats,
     isAppResetting,
@@ -444,6 +458,7 @@ export const ModalProvider = ({ children, currentUserId }: {
     isInstructionsModalOpen, setIsInstructionsModalOpen,
     isPersonnelManagerOpen, setIsPersonnelManagerOpen,
     isTeamManagerOpen, setIsTeamManagerOpen,
+    isExternalGamesOpen, externalGamesPlayerId,
     selectedPlayerForStats, setSelectedPlayerForStats,
     isAppResetting, setIsAppResetting,
     isGoalLogModalOpen, setIsGoalLogModalOpen,

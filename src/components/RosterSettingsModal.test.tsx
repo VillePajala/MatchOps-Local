@@ -266,6 +266,29 @@ describe('<RosterSettingsModal />', () => {
     expect(mockOnOpenPlayerStats).toHaveBeenCalledWith('p1');
   });
 
+  /** Phase 3 entry point: a player's menu in Seura opens Ulkoiset pelit for that player. */
+  test('opens external games for the player from the actions menu', () => {
+    const onOpenExternalGames = jest.fn();
+    render(
+      <TestWrapper>
+        <RosterSettingsModal {...defaultProps} onOpenExternalGames={onOpenExternalGames} />
+      </TestWrapper>
+    );
+    fireEvent.click(screen.getAllByTitle('Actions')[1]);
+    fireEvent.click(screen.getByRole('button', { name: /External Games/i }));
+    expect(onOpenExternalGames).toHaveBeenCalledWith('p2');
+  });
+
+  test('hides the external games item when no handler is given', () => {
+    render(
+      <TestWrapper>
+        <RosterSettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+    fireEvent.click(screen.getAllByTitle('Actions')[0]);
+    expect(screen.queryByRole('button', { name: /External Games/i })).not.toBeInTheDocument();
+  });
+
   test('filters players by search input', () => {
     render(
       <TestWrapper>
