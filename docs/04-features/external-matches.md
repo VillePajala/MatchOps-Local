@@ -39,7 +39,11 @@ The linked team, season or tournament fills these in: picking a team fills
 sport and age group from the team and gender, sport and age group from its
 bound competition; picking a season or tournament directly fills all three.
 Only empty fields are filled, a value the coach chose is never overwritten,
-and clearing the link clears what it filled.
+and clearing the link clears what it filled. Switching the sport, by hand or
+through a link, drops the positions the new sport does not have; clearing the
+sport keeps them. So soccer, then futsal, then soccer again loses the
+soccer-only positions, with no undo, which is the price of never storing a
+position under a sport that lacks it.
 
 Not recorded on purpose: playing time. The app records positions and events,
 never minutes, and external games must not pretend otherwise.
