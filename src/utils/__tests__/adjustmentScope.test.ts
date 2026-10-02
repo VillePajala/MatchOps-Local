@@ -18,6 +18,19 @@ const adj = (over: Partial<PlayerStatAdjustment> = {}): PlayerStatAdjustment =>
     ...over,
   }) as PlayerStatAdjustment;
 
+import { asAdjustmentAgeGroup, ADJUSTMENT_AGE_GROUP_MAX } from '../adjustmentScope';
+
+describe('asAdjustmentAgeGroup', () => {
+  it('trims, bounds and treats empty as not recorded', () => {
+    expect(asAdjustmentAgeGroup(' U12 ')).toBe('U12');
+    expect(asAdjustmentAgeGroup('')).toBeUndefined();
+    expect(asAdjustmentAgeGroup('   ')).toBeUndefined();
+    expect(asAdjustmentAgeGroup(42)).toBeUndefined();
+    expect(asAdjustmentAgeGroup('x'.repeat(ADJUSTMENT_AGE_GROUP_MAX))).toHaveLength(ADJUSTMENT_AGE_GROUP_MAX);
+    expect(asAdjustmentAgeGroup('x'.repeat(ADJUSTMENT_AGE_GROUP_MAX + 1))).toBeUndefined();
+  });
+});
+
 describe('adjustmentInScope', () => {
   it('lets everything through when nothing is filtered', () => {
     expect(adjustmentInScope(adj(), {})).toBe(true);
@@ -56,12 +69,34 @@ describe('adjustmentInScope', () => {
 
   describe('sport and gender', () => {
     /**
-     * An adjustment records neither, so under a specific filter there is no
-     * way to say it belongs. Left out rather than assumed to match.
+     * Rows recorded before 053 carry neither, so under a specific filter
+     * there is no way to say they belong. Left out rather than assumed to
+     * match, exactly as before 053.
      */
-    it('drops every external game once a sport or gender is chosen', () => {
+    it('drops an external game that records no sport or gender once one is chosen', () => {
       expect(adjustmentInScope(adj(), { gameTypeFilter: 'futsal' })).toBe(false);
       expect(adjustmentInScope(adj(), { genderFilter: 'girls' })).toBe(false);
+    });
+
+    /** Since 053 the row can say what it is, and then it lands where it belongs. */
+    it('keeps one that records the matching sport and gender', () => {
+      const a = adj({ gameType: 'futsal', gender: 'girls' });
+      expect(adjustmentInScope(a, { gameTypeFilter: 'futsal' })).toBe(true);
+      expect(adjustmentInScope(a, { genderFilter: 'girls' })).toBe(true);
+      expect(adjustmentInScope(a, { gameTypeFilter: 'futsal', genderFilter: 'girls' })).toBe(true);
+    });
+
+    it('drops one that records a different sport or gender', () => {
+      const a = adj({ gameType: 'soccer', gender: 'boys' });
+      expect(adjustmentInScope(a, { gameTypeFilter: 'futsal' })).toBe(false);
+      expect(adjustmentInScope(a, { genderFilter: 'girls' })).toBe(false);
+    });
+
+    /** One field alone cannot place the row under the other filter. */
+    it('needs the matching field for each filter, not just one of them', () => {
+      const a = adj({ gameType: 'futsal' });
+      expect(adjustmentInScope(a, { gameTypeFilter: 'futsal' })).toBe(true);
+      expect(adjustmentInScope(a, { genderFilter: 'girls' })).toBe(false);
     });
   });
 

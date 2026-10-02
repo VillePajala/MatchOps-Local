@@ -517,6 +517,10 @@ export interface DataStore {
 
   /**
    * Update a player adjustment.
+   *
+   * Patch semantics: a key the patch omits keeps its stored value; a key the
+   * patch sets to `undefined` clears it (the forms clear a 053 field this
+   * way). Both stores spread the patch over the row and normalise the result.
    * @param playerId - Player ID
    * @param adjustmentId - Adjustment ID
    * @param patch - Partial adjustment data to update

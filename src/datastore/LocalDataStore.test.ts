@@ -2379,6 +2379,26 @@ describe('LocalDataStore', () => {
         expect(adjustment.id).toMatch(/^adj_\d+_[a-f0-9]{8}$/);
         expect(adjustment.appliedAt).toBeDefined();
       });
+
+      /**
+       * @critical - the store copies fields by name, which is how a field
+       * travels everywhere except one place. Positions and scope (053) must
+       * come out exactly as they went in; an empty list is "not recorded".
+       */
+      it('keeps positions, sport, gender and age group (053)', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+        const adjustment = await dataStore.addPlayerAdjustment({
+          playerId: 'player_1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0,
+          positions: ['gk'], gameType: 'futsal', gender: 'girls', ageGroup: 'U12',
+        });
+        expect(adjustment.positions).toEqual(['gk']);
+        expect(adjustment.gameType).toBe('futsal');
+        expect(adjustment.gender).toBe('girls');
+        expect(adjustment.ageGroup).toBe('U12');
+
+        const bare = await dataStore.addPlayerAdjustment({ playerId: 'player_1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, positions: [] });
+        expect(bare.positions).toBeUndefined();
+      });
     });
 
     describe('updatePlayerAdjustment', () => {
@@ -2394,6 +2414,38 @@ describe('LocalDataStore', () => {
         );
 
         expect(updated?.goalsDelta).toBe(5);
+      });
+
+      /**
+       * The update spreads the patch over the row, so clearing a 053 field
+       * means sending it as undefined; the row must come back without it.
+       */
+      it('clears positions and scope when the patch sets them undefined (053)', async () => {
+        mockGetStorageItem.mockResolvedValue(
+          JSON.stringify({ player_1: [{ ...mockAdjustment, positions: ['gk'], gameType: 'futsal', gender: 'girls', ageGroup: 'U12' }] })
+        );
+        const updated = await dataStore.updatePlayerAdjustment('player_1', 'adj_123', { positions: undefined, gameType: undefined, gender: undefined, ageGroup: undefined });
+        expect(updated?.positions).toBeUndefined();
+        expect(updated?.gameType).toBeUndefined();
+        expect(updated?.gender).toBeUndefined();
+        expect(updated?.ageGroup).toBeUndefined();
+
+        const kept = await dataStore.updatePlayerAdjustment('player_1', 'adj_123', { goalsDelta: 2 });
+        expect(kept?.positions).toEqual(['gk']);
+      });
+
+      it('refuses a sport or gender the cloud table would reject (053)', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+        const added = await dataStore.addPlayerAdjustment({ playerId: 'player_1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, gameType: 'hockey' as never, gender: 'mixed' as never });
+        expect(added.gameType).toBeUndefined();
+        expect(added.gender).toBeUndefined();
+      });
+
+      it('normalises positions and age group on update like the add path does', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({ player_1: [mockAdjustment] }));
+        const updated = await dataStore.updatePlayerAdjustment('player_1', 'adj_123', { positions: ['gk', 'nope', 'gk'], ageGroup: ' U12 ' });
+        expect(updated?.positions).toEqual(['gk']);
+        expect(updated?.ageGroup).toBe('U12');
       });
 
       it('should return null for non-existent adjustment', async () => {

@@ -523,6 +523,20 @@ describe('Excel Export Utilities', () => {
      * Tests error handling
      * @critical - Validates error recovery
      */
+    /** 053: the External Games sheet carries positions (as abbreviations), sport, gender and age group; absent ones export empty. */
+    it('exports positions and scope on the External Games sheet', () => {
+      const adjustments = [
+        { id: 'adj_1', playerId: 'p_1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, appliedAt: '2024-03-01T00:00:00Z', positions: ['lm', 'st'], gameType: 'futsal', gender: 'girls', ageGroup: 'U12' },
+        { id: 'adj_2', playerId: 'p_1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, appliedAt: '2024-03-02T00:00:00Z' },
+      ] as PlayerStatAdjustment[];
+      exportAggregateExcel({}, [], [], [], adjustments);
+      const sheets = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls.map(c => c[0] as Array<Record<string, unknown>>);
+      const external = sheets.find(rows => Array.isArray(rows) && rows.length > 0 && 'Positions' in rows[0]);
+      expect(external).toBeDefined();
+      expect(external?.[0]).toEqual(expect.objectContaining({ Positions: 'LM, ST', Sport: 'Futsal', Gender: 'Girls', 'Age Group': 'U12' }));
+      expect(external?.[1]).toEqual(expect.objectContaining({ Positions: '', Sport: '', Gender: '', 'Age Group': '' }));
+    });
+
     it('should preserve error context when aggregate export fails', () => {
       const mockError = new Error('Export failed');
       (XLSX.utils.book_new as jest.Mock).mockImplementationOnce(() => {

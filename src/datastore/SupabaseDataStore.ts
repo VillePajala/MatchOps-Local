@@ -14,6 +14,8 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { knownPositionIds } from '@/config/positions';
+import { asAdjustmentGameType, asAdjustmentGender, asAdjustmentAgeGroup } from '@/utils/adjustmentScope';
 import { ASSESSMENT_RATING_STYLES, ASSESSMENT_TEMPLATES } from '@/types/settings';
 import type {
   Player,
@@ -4177,6 +4179,9 @@ export class SupabaseDataStore implements DataStore {
       { ...adjustment, id, appliedAt } as PlayerStatAdjustment,
       userId
     );
+    // What the caller gets back is what was written, normalised, so a cache
+    // never holds a position id or sport the row does not.
+    const stored = this.transformAdjustmentFromDb(dbAdjustment as unknown as PlayerAdjustmentRow);
 
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
@@ -4190,7 +4195,7 @@ export class SupabaseDataStore implements DataStore {
       this.classifyAndThrowError(error, 'Failed to add player adjustment');
     }
 
-    return { ...adjustment, id, appliedAt } as PlayerStatAdjustment;
+    return stored;
   }
 
   /**
@@ -4212,6 +4217,9 @@ export class SupabaseDataStore implements DataStore {
       { ...adjustment, id, appliedAt } as PlayerStatAdjustment,
       userId
     );
+    // What the caller gets back is what was written, normalised, so a cache
+    // never holds a position id or sport the row does not.
+    const stored = this.transformAdjustmentFromDb(dbAdjustment as unknown as PlayerAdjustmentRow);
 
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
@@ -4225,7 +4233,7 @@ export class SupabaseDataStore implements DataStore {
       this.classifyAndThrowError(error, 'Failed to upsert player adjustment');
     }
 
-    return { ...adjustment, id, appliedAt } as PlayerStatAdjustment;
+    return stored;
   }
 
   async updatePlayerAdjustment(
@@ -4270,12 +4278,15 @@ export class SupabaseDataStore implements DataStore {
     }
 
     const existingAdjustment = this.transformAdjustmentFromDb(existing as PlayerAdjustmentRow);
-    const updated = { ...existingAdjustment, ...patch };
+    const merged = { ...existingAdjustment, ...patch };
+    const dbUpdated = this.transformAdjustmentToDb(merged, userId);
+    // Return what was written, normalised, as add and upsert do.
+    const updated = this.transformAdjustmentFromDb(dbUpdated as unknown as PlayerAdjustmentRow);
 
     const { error: updateError } = await this.withRetry(async () => {
       const result = await this.getClient()
         .from('player_adjustments')
-        .update(this.transformAdjustmentToDb(updated, userId) as unknown as never)
+        .update(dbUpdated as unknown as never)
         .eq('id', adjustmentId)
         .eq('player_id', playerId)
         .eq('user_id', userId);
@@ -4333,6 +4344,12 @@ export class SupabaseDataStore implements DataStore {
       goalsDelta: row.goals_delta ?? 0,
       assistsDelta: row.assists_delta ?? 0,
       fairPlayCardsDelta: row.fair_play_cards_delta ?? undefined,
+      // 053: positions and scope. NULL reads as undefined ("not recorded"), the
+      // same shape a pre-053 local row has, so every reader treats both alike.
+      positions: knownPositionIds(row.positions),
+      gameType: asAdjustmentGameType(row.game_type),
+      gender: asAdjustmentGender(row.gender),
+      ageGroup: asAdjustmentAgeGroup(row.age_group),
       note: row.note ?? undefined,
       createdBy: row.created_by ?? undefined,
       appliedAt: row.applied_at ?? new Date().toISOString(),
@@ -4368,6 +4385,11 @@ export class SupabaseDataStore implements DataStore {
       goals_delta: adjustment.goalsDelta,
       assists_delta: adjustment.assistsDelta,
       fair_play_cards_delta: adjustment.fairPlayCardsDelta,
+      // 053: an empty list is "not recorded", stored as NULL like every other absent field.
+      positions: knownPositionIds(adjustment.positions) ?? null,
+      game_type: asAdjustmentGameType(adjustment.gameType) ?? null,
+      gender: asAdjustmentGender(adjustment.gender) ?? null,
+      age_group: asAdjustmentAgeGroup(adjustment.ageGroup) ?? null,
       note: adjustment.note,
       created_by: adjustment.createdBy,
       applied_at: adjustment.appliedAt,

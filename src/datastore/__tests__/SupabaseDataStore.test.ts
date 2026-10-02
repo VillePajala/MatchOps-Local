@@ -4952,6 +4952,85 @@ describe('SupabaseDataStore', () => {
         expect(adjustment.appliedAt).toBeDefined();
       });
 
+      /** 053: positions and scope reach the row; absent values are NULL, not ''. */
+      it('writes positions, sport, gender and age group to the row (053)', async () => {
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+        await dataStore.addPlayerAdjustment({
+          playerId: 'player_123', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0,
+          positions: ['lm', 'st'], gameType: 'futsal', gender: 'girls', ageGroup: 'U12',
+        });
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({
+          positions: ['lm', 'st'], game_type: 'futsal', gender: 'girls', age_group: 'U12',
+        }));
+
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+        await dataStore.addPlayerAdjustment({ playerId: 'player_123', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, positions: [] });
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({
+          positions: null, game_type: null, gender: null, age_group: null,
+        }));
+      });
+
+      /**
+       * The update reads the row, spreads the patch over it and writes the
+       * whole row back, so clearing a 053 field means sending it as undefined
+       * and seeing NULL go out; an untouched field must survive the round trip.
+       */
+      /** The returned row is rebuilt from the DB payload; every pre-053 field must survive that round trip. */
+      it('returns the full row from add, with the pre-053 fields intact', async () => {
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+        const result = await dataStore.addPlayerAdjustment({
+          playerId: 'player_123', gamesPlayedDelta: 1, goalsDelta: 2, assistsDelta: 1,
+          externalTeamName: 'FC Vieras', scoreFor: 3, scoreAgainst: 2, homeOrAway: 'away', includeInSeasonTournament: true,
+          seasonId: 'season_1', gameDate: '2024-03-01', note: 'cup game', positions: ['gk'], gameType: 'soccer',
+        });
+        expect(result).toEqual(expect.objectContaining({
+          id: expect.any(String), appliedAt: expect.any(String), playerId: 'player_123',
+          gamesPlayedDelta: 1, goalsDelta: 2, assistsDelta: 1,
+          externalTeamName: 'FC Vieras', scoreFor: 3, scoreAgainst: 2, homeOrAway: 'away', includeInSeasonTournament: true,
+          seasonId: 'season_1', gameDate: '2024-03-01', note: 'cup game', positions: ['gk'], gameType: 'soccer',
+        }));
+      });
+
+      it('clears and keeps positions and scope through update (053)', async () => {
+        const existingRow = {
+          id: 'adj_1', user_id: 'user_123', player_id: 'player_123', games_played_delta: 1, goals_delta: 0, assists_delta: 0,
+          positions: ['gk', 'cb'], game_type: 'futsal', gender: 'girls', age_group: 'U12', applied_at: '2024-01-01T00:00:00.000Z',
+        };
+        const eqChain = () => ({ eq: jest.fn().mockReturnValue({ eq: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ data: null, error: null }) }) }) });
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: existingRow, error: null });
+        mockQueryBuilder.update = jest.fn().mockReturnValue(eqChain());
+
+        const kept = await dataStore.updatePlayerAdjustment('player_123', 'adj_1', { goalsDelta: 2 });
+        expect(kept?.positions).toEqual(['gk', 'cb']);
+        expect(kept?.gameType).toBe('futsal');
+        expect(mockQueryBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ positions: ['gk', 'cb'], game_type: 'futsal', gender: 'girls', age_group: 'U12', goals_delta: 2 }));
+
+        mockQueryBuilder.update = jest.fn().mockReturnValue(eqChain());
+        const cleared = await dataStore.updatePlayerAdjustment('player_123', 'adj_1', { positions: undefined, gameType: undefined, gender: undefined, ageGroup: undefined });
+        expect(cleared?.positions).toBeUndefined();
+        expect(mockQueryBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ positions: null, game_type: null, gender: null, age_group: null }));
+
+        // The caller gets the normalised row, not the raw patch.
+        mockQueryBuilder.update = jest.fn().mockReturnValue(eqChain());
+        const normalised = await dataStore.updatePlayerAdjustment('player_123', 'adj_1', { positions: ['bogus', 'gk'], ageGroup: '  U12  ' });
+        expect(normalised?.positions).toEqual(['gk']);
+        expect(normalised?.ageGroup).toBe('U12');
+      });
+
+      it('writes NULL for a sport or gender the CHECK constraint would reject (053)', async () => {
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+        await dataStore.addPlayerAdjustment({ playerId: 'player_123', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, gameType: 'hockey' as never, gender: 'mixed' as never });
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ game_type: null, gender: null }));
+      });
+
+      /** A row with a value the CHECK constraint would never allow reads as "not recorded". */
+      it('reads an unknown game_type as not recorded', async () => {
+        mockQueryBuilder.eq = jest.fn().mockReturnValue({ order: jest.fn().mockResolvedValue({ data: [{ id: 'adj_2', user_id: 'user_123', player_id: 'player_123', games_played_delta: 1, goals_delta: 0, assists_delta: 0, positions: [], game_type: 'hockey', gender: null, age_group: null, applied_at: '2024-01-01T00:00:00.000Z' }], error: null }) });
+        const rows = await dataStore.getPlayerAdjustments('player_123');
+        expect(rows[0]?.gameType).toBeUndefined();
+        expect(rows[0]?.positions).toBeUndefined();
+      });
+
       it('should throw NetworkError on add failure', async () => {
         mockQueryBuilder.insert = jest.fn().mockResolvedValue({
           error: { message: 'Insert failed' },
