@@ -4975,6 +4975,22 @@ describe('SupabaseDataStore', () => {
        * whole row back, so clearing a 053 field means sending it as undefined
        * and seeing NULL go out; an untouched field must survive the round trip.
        */
+      /** The returned row is rebuilt from the DB payload; every pre-053 field must survive that round trip. */
+      it('returns the full row from add, with the pre-053 fields intact', async () => {
+        mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+        const result = await dataStore.addPlayerAdjustment({
+          playerId: 'player_123', gamesPlayedDelta: 1, goalsDelta: 2, assistsDelta: 1,
+          externalTeamName: 'FC Vieras', scoreFor: 3, scoreAgainst: 2, homeOrAway: 'away', includeInSeasonTournament: true,
+          seasonId: 'season_1', gameDate: '2024-03-01', note: 'cup game', positions: ['gk'], gameType: 'soccer',
+        });
+        expect(result).toEqual(expect.objectContaining({
+          id: expect.any(String), appliedAt: expect.any(String), playerId: 'player_123',
+          gamesPlayedDelta: 1, goalsDelta: 2, assistsDelta: 1,
+          externalTeamName: 'FC Vieras', scoreFor: 3, scoreAgainst: 2, homeOrAway: 'away', includeInSeasonTournament: true,
+          seasonId: 'season_1', gameDate: '2024-03-01', note: 'cup game', positions: ['gk'], gameType: 'soccer',
+        }));
+      });
+
       it('clears and keeps positions and scope through update (053)', async () => {
         const existingRow = {
           id: 'adj_1', user_id: 'user_123', player_id: 'player_123', games_played_delta: 1, goals_delta: 0, assists_delta: 0,
