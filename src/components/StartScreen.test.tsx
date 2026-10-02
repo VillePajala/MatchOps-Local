@@ -54,6 +54,20 @@ import StartScreen from './StartScreen';
 import GuidedTourProvider from '@/contexts/GuidedTourProvider';
 
 describe('StartScreen', () => {
+  /** Phase 3 entry point: "Add to player stats" is the last row of the Stats tab, live even before the first match. */
+  it('offers Add to player stats on the Stats tab and hides it without a handler', () => {
+    const onAddExternalGame = jest.fn();
+    const base = { onLoadGame: jest.fn(), onGetStarted: jest.fn(), onViewStats: jest.fn(), onOpenSettings: jest.fn(), canResume: false, hasSavedGames: false, isFirstTimeUser: false };
+    const { rerender } = render(<StartScreen {...base} onAddExternalGame={onAddExternalGame} />);
+    expect(screen.queryByTestId('home-add-external-game')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.getByTestId('home-add-external-game')).not.toBeDisabled();
+    fireEvent.click(screen.getByTestId('home-add-external-game'));
+    expect(onAddExternalGame).toHaveBeenCalled();
+    rerender(<StartScreen {...base} />);
+    expect(screen.queryByTestId('home-add-external-game')).not.toBeInTheDocument();
+  });
+
   it('renders experienced user interface with all action buttons', () => {
     const handlers = {
       onLoadGame: jest.fn(),

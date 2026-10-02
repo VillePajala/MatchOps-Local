@@ -23,6 +23,7 @@ type StartScreenProps = React.ComponentProps<typeof StartScreen>;
 /** The entries whose modals render in ClubModalsHost - opened in place. */
 type LiftedHandlerProps =
   | 'onLoadGame'
+  | 'onAddExternalGame'
   | 'onNewGame'
   | 'onOpenPlanner'
   | 'onViewStats'
@@ -49,6 +50,8 @@ export type StartScreenLiftedBridgeProps = Omit<StartScreenProps, LiftedHandlerP
 export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props }: StartScreenLiftedBridgeProps) {
   const {
     setIsLoadGameModalOpen,
+    setIsExternalGamesOpen,
+    setExternalGamesPlayerId,
     setIsNewGameSetupModalOpen,
     setPlayerIdsForNewGame,
     setIsPlaytimePlannerOpen,
@@ -100,6 +103,10 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
     <StartScreen
       {...props}
       onLoadGame={() => setIsLoadGameModalOpen(true)}
+      onAddExternalGame={() => {
+        setExternalGamesPlayerId(null);
+        setIsExternalGamesOpen(true);
+      }}
       onNewGame={() => {
         // From Home there is no live selection to carry over - null lets the
         // modal default to the full roster. (Match-side openers prefill the
