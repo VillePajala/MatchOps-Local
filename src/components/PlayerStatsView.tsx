@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { getTeamDisplayName } from '@/utils/teams';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
@@ -513,6 +513,48 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     [teams],
   );
 
+  /**
+   * Sport, gender and age group from what the game is linked to: the season
+   * or tournament first (they carry gender), the team as fallback. Only empty
+   * fields are filled, so a value the coach chose stays; a field that still
+   * holds what we filled in last time follows the new link, or clears when
+   * the link goes, the way the name and competition already behave.
+   */
+  const scopeOf = useCallback(
+    (teamId: string, seasonId: string, tournamentId: string) => {
+      const team = teamId ? teams.find(t => t.id === teamId) : undefined;
+      const season = seasonId ? seasons.find(s => s.id === seasonId) : undefined;
+      const tournament = tournamentId ? tournaments.find(t => t.id === tournamentId) : undefined;
+      const comp = season ?? tournament;
+      return {
+        gameType: (comp?.gameType ?? team?.gameType ?? '') as GameType | '',
+        gender: (comp?.gender ?? '') as Gender | '',
+        ageGroup: comp?.ageGroup ?? team?.ageGroup ?? '',
+      };
+    },
+    [teams, seasons, tournaments],
+  );
+  const adjAutoScopeRef = useRef({ gameType: '' as GameType | '', gender: '' as Gender | '', ageGroup: '' });
+  const editAutoScopeRef = useRef({ gameType: '' as GameType | '', gender: '' as Gender | '', ageGroup: '' });
+  const applyAdjScope = useCallback((teamId: string, seasonId: string, tournamentId: string) => {
+    const next = scopeOf(teamId, seasonId, tournamentId); const prev = adjAutoScopeRef.current;
+    setAdjGameType(v => (!v || v === prev.gameType ? next.gameType : v));
+    setAdjGender(v => (!v || v === prev.gender ? next.gender : v));
+    setAdjAgeGroup(v => (!v || v === prev.ageGroup ? next.ageGroup : v));
+    adjAutoScopeRef.current = next;
+  }, [scopeOf]);
+  const applyEditScope = useCallback((teamId: string, seasonId: string, tournamentId: string) => {
+    const next = scopeOf(teamId, seasonId, tournamentId); const prev = editAutoScopeRef.current;
+    setEditGameType(v => (!v || v === prev.gameType ? next.gameType : v));
+    setEditGender(v => (!v || v === prev.gender ? next.gender : v));
+    setEditAgeGroup(v => (!v || v === prev.ageGroup ? next.ageGroup : v));
+    editAutoScopeRef.current = next;
+  }, [scopeOf]);
+  // Whatever changed the links (team pick, the competition tabs, a select, a
+  // reset), the scope follows: one effect per form instead of a call in each handler.
+  useEffect(() => { applyAdjScope(adjTeamId, adjSeasonId, adjTournamentId); }, [applyAdjScope, adjTeamId, adjSeasonId, adjTournamentId]);
+  useEffect(() => { if (editingAdjId) applyEditScope(editTeamId, editSeasonId, editTournamentId); }, [applyEditScope, editingAdjId, editTeamId, editSeasonId, editTournamentId]);
+
   const applyAdjTeam = useCallback((teamId: string) => {
     const filled = teamAutofill(teamId, adjExternalTeam, adjTeamId);
     setAdjTeamId(teamId);
@@ -877,6 +919,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   setAdjHomeAway('neutral');
                   setAdjIncludeInSeasonTournament(false);
                   setAdjPositions([]); setAdjGameType(''); setAdjGender(''); setAdjAgeGroup('');
+                  adjAutoScopeRef.current = { gameType: '', gender: '', ageGroup: '' };
                 } catch (error) {
                   logger.error('[PlayerStatsView] Failed to add external game', { error });
                   showToast(t('playerStats.addError', 'Failed to save the external game entry.'), 'error');
@@ -1447,6 +1490,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                       setEditScoreAgainst(typeof a.scoreAgainst === 'number' ? a.scoreAgainst : '');
                                       setEditIncludeInSeasonTournament(a.includeInSeasonTournament || false);
                                       setEditPositions(a.positions ?? []); setEditGameType(a.gameType ?? ''); setEditGender(a.gender ?? ''); setEditAgeGroup(a.ageGroup ?? '');
+                                      editAutoScopeRef.current = { gameType: '', gender: '', ageGroup: '' };
                                       setShowActionsMenu(null);
                                     }}
                                   >
