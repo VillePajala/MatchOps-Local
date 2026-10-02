@@ -70,13 +70,7 @@ interface PlayerStatsViewProps {
   assessmentsEnabled?: boolean;
 }
 
-
-/**
- * The 053 fields of an external game: positions played, sport, gender, age
- * group. One component for the add and the edit form so the two cannot drift.
- * Sport and gender toggle off when tapped again; "not recorded" is a real
- * value here (it keeps the row out of filtered views, and the hint says so).
- */
+/** What a linked team or competition fills into the form: sport, gender, age group. */
 type AutoScope = { gameType: GameType | ''; gender: Gender | ''; ageGroup: string };
 const sameScope = (a: AutoScope, b: AutoScope) => a.gameType === b.gameType && a.gender === b.gender && a.ageGroup === b.ageGroup;
 
@@ -127,6 +121,12 @@ function useExternalScope() {
   return { state, setPositions, setGameType, setGender, setAgeGroup, applyLink, reset };
 }
 
+/**
+ * The 053 fields of an external game: positions played, sport, gender, age
+ * group. One component for the add and the edit form so the two cannot drift.
+ * Sport and gender toggle off when tapped again; "not recorded" is a real
+ * value here (it keeps the row out of filtered views, and the hint says so).
+ */
 const ExternalGameScopeFields: React.FC<{
   player: Player;
   prefix: string;
