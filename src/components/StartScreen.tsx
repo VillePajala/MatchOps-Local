@@ -27,6 +27,7 @@ import {
   HiOutlineRectangleStack,
   HiOutlinePlusCircle,
   HiOutlineFolderOpen,
+  HiOutlineGlobeAlt,
   HiOutlineClipboard,
 } from 'react-icons/hi2';
 import { TASO_URL } from '@/config/externalLinks';
@@ -147,6 +148,8 @@ const HomeTile: React.FC<{
 
 interface StartScreenProps {
   onLoadGame: () => void;
+  /** Games tab: "Lisää ulkoinen peli", the external-games modal with the player picked first. */
+  onAddExternalGame?: () => void;
   onResumeGame?: () => void;
   /** Persists this match's own arrival buffer / measured drive time. */
   onAdjustTravel?: (id: string, next: { arrivalBufferMinutes?: number; travelMinutes?: number }) => void;
@@ -211,6 +214,7 @@ interface StartScreenProps {
 
 const StartScreen: React.FC<StartScreenProps> = ({
   onLoadGame,
+  onAddExternalGame,
   onResumeGame,
   onAdjustTravel,
   onGetStarted,
@@ -835,13 +839,23 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     >
                       {t('startScreen.newGame', 'New Game')}
                     </button>
-                    {hasSavedGames && (
+                    {(hasSavedGames || onAddExternalGame) && (
                       <HomeGroup>
-                        <HomeRow
-                          icon={HiOutlineFolderOpen}
-                          label={t('startScreen.savedGames', 'Saved games')}
-                          onClick={onLoadGame}
-                        />
+                        {hasSavedGames && (
+                          <HomeRow
+                            icon={HiOutlineFolderOpen}
+                            label={t('startScreen.savedGames', 'Saved games')}
+                            onClick={onLoadGame}
+                          />
+                        )}
+                        {onAddExternalGame && (
+                          <HomeRow
+                            icon={HiOutlineGlobeAlt}
+                            label={t('startScreen.addExternalGame', 'Add external game')}
+                            onClick={onAddExternalGame}
+                            testId="home-add-external-game"
+                          />
+                        )}
                       </HomeGroup>
                     )}
                   </>
@@ -878,6 +892,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     )}
                   </div>
                 ))}
+                {/* A game played elsewhere: a row of its own under the pair, never a
+                    third button squeezed into the row on a phone. */}
+                {(!composeOnboarding || heroStep === 'game') && !newGamePrimary && onAddExternalGame && (
+                  <HomeGroup>
+                    <HomeRow
+                      icon={HiOutlineGlobeAlt}
+                      label={t('startScreen.addExternalGame', 'Add external game')}
+                      onClick={onAddExternalGame}
+                      testId="home-add-external-game"
+                    />
+                  </HomeGroup>
+                )}
 
                 {/* Side entries are DEFERRED while composing (owner round 4:
                     they pushed the onboarding screen past the fold and are

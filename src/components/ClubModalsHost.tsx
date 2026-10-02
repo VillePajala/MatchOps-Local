@@ -78,6 +78,7 @@ const SeasonTournamentManagementModal = dynamic(() => import('@/components/Seaso
 const PersonnelManagerModal = dynamic(() => import('@/components/PersonnelManagerModal'));
 const RosterSettingsModal = dynamic(() => import('@/components/RosterSettingsModal'));
 const TeamManagerModal = dynamic(() => import('@/components/TeamManagerModal'));
+const ExternalGamesModal = dynamic(() => import('@/components/ExternalGamesModal'));
 const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
 const NewGameSetupModal = dynamic(() => import('@/components/NewGameSetupModal'));
 const PlaytimePlannerModal = dynamic(() => import('@/components/PlaytimePlannerModal'));
@@ -115,6 +116,10 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     setIsRosterModalOpen,
     isTeamManagerOpen,
     setIsTeamManagerOpen,
+    isExternalGamesOpen,
+    setIsExternalGamesOpen,
+    externalGamesPlayerId,
+    setExternalGamesPlayerId,
     isLoadGameModalOpen,
     setIsLoadGameModalOpen,
     isNewGameSetupModalOpen,
@@ -287,6 +292,19 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     openClubStatsToTab('player');
   };
 
+  // Roster menu's "Ulkoiset pelit": the same sideways move as the stats
+  // shortcut, into the dedicated modal with the player already picked.
+  const handleOpenExternalGames = (playerId: string) => {
+    setResumeNewGameAfterRoster(false);
+    setExternalGamesPlayerId(playerId);
+    setIsRosterModalOpen(false);
+    setIsExternalGamesOpen(true);
+  };
+  const handleCloseExternalGames = () => {
+    setIsExternalGamesOpen(false);
+    setExternalGamesPlayerId(null);
+  };
+
   // Closing club stats clears the player deep-link so the NEXT open (from
   // any entry) starts fresh instead of landing on a stale player tab.
   const handleCloseClubStats = () => {
@@ -309,6 +327,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   useModalHardwareBack(isPersonnelManagerOpen, () => setIsPersonnelManagerOpen(false));
   useModalHardwareBack(isRosterModalOpen, handleCloseRosterModal);
   useModalHardwareBack(isTeamManagerOpen, () => setIsTeamManagerOpen(false));
+  useModalHardwareBack(isExternalGamesOpen, handleCloseExternalGames);
   useModalHardwareBack(isLoadGameModalOpen, () => setIsLoadGameModalOpen(false));
   useModalHardwareBack(isNewGameSetupModalOpen, handleCloseNewGameSetup);
   // Planner hardware-back is owned by PlaytimePlannerModal itself (one
@@ -525,6 +544,18 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           isRosterUpdating={rosterSettings.isRosterUpdating}
           rosterError={rosterSettings.rosterError}
           onOpenPlayerStats={handleOpenPlayerStats}
+          onOpenExternalGames={handleOpenExternalGames}
+        />
+      )}
+      {isExternalGamesOpen && (
+        <ExternalGamesModal
+          isOpen
+          onClose={handleCloseExternalGames}
+          players={rosterSettings.availablePlayers}
+          seasons={seasonTournament.seasons}
+          tournaments={seasonTournament.tournaments}
+          teams={teams}
+          initialPlayerId={externalGamesPlayerId}
         />
       )}
       {isTeamManagerOpen && (

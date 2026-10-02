@@ -54,6 +54,17 @@ import StartScreen from './StartScreen';
 import GuidedTourProvider from '@/contexts/GuidedTourProvider';
 
 describe('StartScreen', () => {
+  /** Phase 3 entry point: "Add external game" sits under New Game / Saved games on the Games tab. */
+  it('offers Add external game on the Games tab and hides it without a handler', () => {
+    const onAddExternalGame = jest.fn();
+    const base = { onLoadGame: jest.fn(), onGetStarted: jest.fn(), onViewStats: jest.fn(), onOpenSettings: jest.fn(), canResume: true, hasSavedGames: true, isFirstTimeUser: false };
+    const { rerender } = render(<StartScreen {...base} onAddExternalGame={onAddExternalGame} />);
+    fireEvent.click(screen.getByTestId('home-add-external-game'));
+    expect(onAddExternalGame).toHaveBeenCalled();
+    rerender(<StartScreen {...base} />);
+    expect(screen.queryByTestId('home-add-external-game')).not.toBeInTheDocument();
+  });
+
   it('renders experienced user interface with all action buttons', () => {
     const handlers = {
       onLoadGame: jest.fn(),

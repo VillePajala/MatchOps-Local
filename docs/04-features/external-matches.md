@@ -96,14 +96,24 @@ interface PlayerStatAdjustment {
 
 ## UI/UX Implementation Details
 
-### Access Point
-**Location**: Within Player Stats View component
-**Trigger**: "Add external stats" button below player statistics summary
-**Button Styling**:
-```css
-text-sm px-3 py-1.5 bg-slate-700 rounded 
-border border-slate-600 hover:bg-slate-600
-```
+### Access Points (phase 3, 2026-10-02)
+The list and both forms live in one component, `ExternalGamesSection`, which
+owns the player's rows and reports changes upward. Three places mount it:
+
+1. **Stats drill-down** (the original): `PlayerStatsView` renders it collapsed
+   under the player's stats and folds the rows into the totals through
+   `onAdjustmentsChange`; `countedIds` tells the list which rows the current
+   filters count.
+2. **Seura, player menu**: the roster's actions menu has "Ulkoiset pelit",
+   which closes the roster and opens `ExternalGamesModal` on that player, list
+   expanded, form closed.
+3. **Pelit tab, "Lisää ulkoinen peli"**: a row under New Game / Saved games
+   opens the same modal with no player; the coach picks one and the add form
+   is already open.
+
+The modal's state (`isExternalGamesOpen`, `externalGamesPlayerId`) lives in
+`ModalProvider` and the modal is hosted by `ClubModalsHost`, like the other
+club-scope modals; hardware back closes it.
 
 ### Form Interface
 

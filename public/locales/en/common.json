@@ -1372,7 +1372,8 @@
     "setStartingPointWhy": "to see when to leave",
     "arriveBefore": "At the ground before kick-off",
     "actualDrive": "How long the drive really takes",
-    "dashNoMatchesYet": "No matches yet."
+    "dashNoMatchesYet": "No matches yet.",
+    "addExternalGame": "Add external game"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -3698,7 +3699,8 @@
     "homeGear": "The gear icon (top-left): the home view toggle (summary or simplified), settings, backups, your account, the setup checklist, the getting-started guide and this one.",
     "matchMenuTitle": "The match menu",
     "matchMenuNote": "While in a match, the menu holds match-day actions:",
-    "opponentNames": "Opponent names: type a team you have played before and the field settles on the spelling you already used, so one team stays one team in your statistics. If that earlier spelling is the wrong one, choose \"use mine instead\" and it is corrected in every past game too."
+    "opponentNames": "Opponent names: type a team you have played before and the field settles on the spelling you already used, so one team stays one team in your statistics. If that earlier spelling is the wrong one, choose \"use mine instead\" and it is corrected in every past game too.",
+    "externalGames": "External games: a game the player played elsewhere is recorded from the player's menu on the Club tab or from the Add external game row on the Games tab. Positions, sport and gender place it in the right stats."
   },
   "aiSettings": {
     "title": "Voice notes and AI",
@@ -3916,5 +3918,11 @@
     "addressPinned": "Directions will go straight here.",
     "addressNothing": "No match for that address.",
     "useTypedName": "Use \"{{name}}\" as a new place"
+  },
+  "externalGamesModal": {
+    "title": "External games",
+    "pickPlayer": "Pick a player",
+    "intro": "A game the player played for another team, or anywhere this app did not record.",
+    "noPlayers": "Add your players on the Club tab first."
   }
 }
