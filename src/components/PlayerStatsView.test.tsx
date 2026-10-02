@@ -978,6 +978,43 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
     );
   });
 
+  /** Two link changes back to back must each see the other's result, not the last render's sport. */
+  it('follows two link changes in a row without a stale sport', async () => {
+    const { getAdjustmentsForPlayer, updatePlayerAdjustment } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([{ ...existing, positions: ['gk', 'lb'], gameType: undefined, gender: undefined, ageGroup: undefined }]);
+    updatePlayerAdjustment.mockResolvedValue({ ...existing });
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', gameType: 'futsal' } as never]}
+        seasons={[{ id: 'season-1', name: 'Aluesarja', gameType: 'soccer', gender: 'boys' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+    // Team flips the sport to futsal (prunes lb); the season then carries soccer and boys.
+    const form = screen.getByText('Save').closest('form') as HTMLElement;
+    fireEvent.change(screen.getByTestId('edit-team-select'), { target: { value: 'teamA' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'League' }));
+    fireEvent.change(screen.getByTestId('edit-season-select'), { target: { value: 'season-1' } });
+    await waitFor(() => expect(screen.getByTestId('edit-adj-1-sport-soccer')).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByTestId('edit-adj-1-gender-boys')).toHaveAttribute('aria-pressed', 'true');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save'));
+    });
+    expect(updatePlayerAdjustment).toHaveBeenCalledWith(
+      'player-1', 'adj-1',
+      expect.objectContaining({ positions: ['gk'], gameType: 'soccer', gender: 'boys' }),
+      undefined,
+    );
+  });
+
   /**
    * @critical - the positions card merges own matches and external games
    * through computePositionDiversity, which reads only `playerPositions`; the
