@@ -13,7 +13,8 @@ import type { Player } from '@/types'; // Import Player type from the central ty
 import {
     HiOutlineTrash,
     HiOutlineChartBar,
-    HiOutlineEllipsisVertical
+    HiOutlineEllipsisVertical,
+    HiOutlineGlobeAlt,
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import ConfirmationModal from './ConfirmationModal';
@@ -55,6 +56,8 @@ interface RosterSettingsModalProps {
   isRosterUpdating?: boolean;
   rosterError?: string | null;
   onOpenPlayerStats: (playerId: string) => void;
+  /** Ulkoiset pelit for this player (phase 3 entry point). */
+  onOpenExternalGames?: (playerId: string) => void;
 }
 
 const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
@@ -70,6 +73,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   isRosterUpdating,
   rosterError,
   onOpenPlayerStats,
+  onOpenExternalGames,
 }) => {
   const { t } = useTranslation();
   const headerCollapse = useCollapsingHeader();
@@ -287,6 +291,19 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                               <HiOutlineChartBar className="w-4 h-4" />
                               {t('common.stats', 'Stats')}
                             </button>
+                            {onOpenExternalGames && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenExternalGames(player.id);
+                                  setActionsMenuPlayerId(null);
+                                }}
+                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
+                              >
+                                <HiOutlineGlobeAlt className="w-4 h-4" />
+                                {t('playerStats.addToStats', 'Add to stats')}
+                              </button>
+                            )}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

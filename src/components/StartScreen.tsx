@@ -27,6 +27,7 @@ import {
   HiOutlineRectangleStack,
   HiOutlinePlusCircle,
   HiOutlineFolderOpen,
+  HiOutlineGlobeAlt,
   HiOutlineClipboard,
 } from 'react-icons/hi2';
 import { TASO_URL } from '@/config/externalLinks';
@@ -147,6 +148,8 @@ const HomeTile: React.FC<{
 
 interface StartScreenProps {
   onLoadGame: () => void;
+  /** Stats tab: "Täydennä pelaajan tilastoja", the player-stats additions modal with the player picked first. */
+  onAddExternalGame?: () => void;
   onResumeGame?: () => void;
   /** Persists this match's own arrival buffer / measured drive time. */
   onAdjustTravel?: (id: string, next: { arrivalBufferMinutes?: number; travelMinutes?: number }) => void;
@@ -211,6 +214,7 @@ interface StartScreenProps {
 
 const StartScreen: React.FC<StartScreenProps> = ({
   onLoadGame,
+  onAddExternalGame,
   onResumeGame,
   onAdjustTravel,
   onGetStarted,
@@ -251,6 +255,15 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // Dashboard is the default view, but it only renders once there are games to
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
   const dashboardOn = homeView === 'dashboard' && !isFirstTimeUser && hasSavedGames;
+  // "Täydennä pelaajan tilastoja" on the Tilastot tab, null without a handler.
+  const externalGameRow = onAddExternalGame ? (
+    <HomeRow
+      icon={HiOutlineGlobeAlt}
+      label={t('startScreen.addExternalGame', 'Add to player stats')}
+      onClick={onAddExternalGame}
+      testId="home-add-external-game"
+    />
+  ) : null;
   // With nothing to resume, "New Game" is the day-one hero: it's the single
   // action a new coach needs (players are added inside the new-game flow). When
   // there's a game to resume, Continue is the hero and New Game steps back to a row.
@@ -706,6 +719,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       disabled={!hasSavedGames}
                     />
                   ))}
+                  {/* Topping up one player's record is a stats task, so it lives
+                      here and not among the team's matches; it works before the
+                      first recorded match too. */}
+                  {externalGameRow}
                 </HomeGroup>
               </>
             ) : (
@@ -837,11 +854,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     </button>
                     {hasSavedGames && (
                       <HomeGroup>
-                        <HomeRow
-                          icon={HiOutlineFolderOpen}
-                          label={t('startScreen.savedGames', 'Saved games')}
-                          onClick={onLoadGame}
-                        />
+                        {hasSavedGames && (
+                          <HomeRow
+                            icon={HiOutlineFolderOpen}
+                            label={t('startScreen.savedGames', 'Saved games')}
+                            onClick={onLoadGame}
+                          />
+                        )}
                       </HomeGroup>
                     )}
                   </>

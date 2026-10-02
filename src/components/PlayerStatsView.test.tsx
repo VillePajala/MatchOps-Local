@@ -252,12 +252,12 @@ describe('External game cards styling', () => {
 
     // Wait for external games section to load
     await waitFor(() => {
-      expect(screen.getByText('External Games')).toBeInTheDocument();
+      expect(screen.getByText('Added stats')).toBeInTheDocument();
     });
 
     // Expand the external games section
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Added stats'));
     });
 
     await waitFor(() => {
@@ -269,7 +269,7 @@ describe('External game cards styling', () => {
     expect(screen.getByText(/Mar 15, 2024|15\.3\.2024/)).toBeInTheDocument();
 
     // Check EXT badge is displayed (bottom row right)
-    expect(screen.getByText('EXT')).toBeInTheDocument();
+    expect(screen.getByText('ADDED')).toBeInTheDocument();
   });
 
   it('should show colored dot indicators for badges (purple=EXT, blue=season, amber=tournament)', async () => {
@@ -283,19 +283,19 @@ describe('External game cards styling', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('External Games')).toBeInTheDocument();
+      expect(screen.getByText('Added stats')).toBeInTheDocument();
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Added stats'));
     });
 
     await waitFor(() => {
-      expect(screen.getByText('EXT')).toBeInTheDocument();
+      expect(screen.getByText('ADDED')).toBeInTheDocument();
     });
 
     // Find EXT badge and verify it has purple styling
-    const extBadge = screen.getByText('EXT').closest('span');
+    const extBadge = screen.getByText('ADDED').closest('span');
     expect(extBadge).toHaveClass('bg-purple-600/40');
 
     // Find purple dot inside EXT badge
@@ -326,15 +326,15 @@ describe('External game cards styling', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('External Games')).toBeInTheDocument();
+      expect(screen.getByText('Added stats')).toBeInTheDocument();
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Added stats'));
     });
 
     await waitFor(() => {
-      expect(screen.getByText('EXT')).toBeInTheDocument();
+      expect(screen.getByText('ADDED')).toBeInTheDocument();
     });
 
     // Verify home/away/neutral text is NOT displayed
@@ -354,11 +354,11 @@ describe('External game cards styling', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('External Games')).toBeInTheDocument();
+      expect(screen.getByText('Added stats')).toBeInTheDocument();
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Added stats'));
     });
 
     await waitFor(() => {
@@ -404,9 +404,9 @@ describe('PlayerStatsView - editing which team an external game was for', () => 
   };
 
   const openEditForm = async () => {
-    await waitFor(() => expect(screen.getByText('External Games')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Added stats')).toBeInTheDocument());
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Added stats'));
     });
     await act(async () => {
       fireEvent.click(screen.getByLabelText('Actions'));
@@ -467,9 +467,9 @@ describe('PlayerStatsView - which team was this external game for', () => {
   const myTeam = { id: 'teamA', name: 'FC Oma', boundSeasonId: 'season-1' } as never;
 
   const openAddForm = async () => {
-    await waitFor(() => expect(screen.getByText('External Games')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Added stats')).toBeInTheDocument());
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Added stats'));
     });
     await act(async () => {
       fireEvent.click(screen.getByTestId('add-external-game'));
@@ -533,12 +533,12 @@ describe('PlayerStatsView - which team was this external game for', () => {
 
     fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
     await waitFor(() =>
-      expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('FC Oma'),
+      expect((screen.getByPlaceholderText('Team name') as HTMLInputElement).value).toBe('FC Oma'),
     );
 
     fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: '' } });
 
-    expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('');
+    expect((screen.getByPlaceholderText('Team name') as HTMLInputElement).value).toBe('');
     expect(screen.queryByTestId('adj-season-select')).not.toBeInTheDocument();
   });
 
@@ -565,18 +565,18 @@ describe('PlayerStatsView - which team was this external game for', () => {
 
     fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamB' } });
     expect(screen.queryByTestId('adj-season-select')).not.toBeInTheDocument();
-    expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('FC Toinen');
+    expect((screen.getByPlaceholderText('Team name') as HTMLInputElement).value).toBe('FC Toinen');
   });
 
   it('keeps a name the coach typed when switching to another team', async () => {
     render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} />);
     await openAddForm();
 
-    fireEvent.change(screen.getByPlaceholderText('External team'), { target: { value: 'Alue-joukkue' } });
+    fireEvent.change(screen.getByPlaceholderText('Team name'), { target: { value: 'Alue-joukkue' } });
     fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: '' } });
 
     // Nothing of ours to undo, so their own words survive.
-    expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('Alue-joukkue');
+    expect((screen.getByPlaceholderText('Team name') as HTMLInputElement).value).toBe('Alue-joukkue');
   });
 
   it('sends no team when the game was for somebody else', async () => {
@@ -585,7 +585,7 @@ describe('PlayerStatsView - which team was this external game for', () => {
     render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} />);
     await openAddForm();
 
-    fireEvent.change(screen.getByPlaceholderText('External team'), { target: { value: 'Alue-joukkue' } });
+    fireEvent.change(screen.getByPlaceholderText('Team name'), { target: { value: 'Alue-joukkue' } });
     fireEvent.change(screen.getByPlaceholderText('Opponent name'), { target: { value: 'Vastus' } });
     await act(async () => {
       fireEvent.click(screen.getByTestId('save-external-game'));
@@ -674,9 +674,9 @@ describe('PlayerStatsView - external games respect the filters on screen', () =>
     setAdjustments([external({ teamId: 'teamA' }), external({ teamId: 'teamB' })]);
     render(<PlayerStatsView {...baseProps} savedGames={{ g1: teamGame }} teamId="teamA" />);
 
-    await waitFor(() => expect(screen.getByText('External Games')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Added stats')).toBeInTheDocument());
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Added stats'));
     });
 
     // Both are still listed, so neither looks lost and both stay editable.
@@ -753,9 +753,9 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
   };
 
   const expandExternal = async () => {
-    await waitFor(() => expect(screen.getByText('External Games')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Added stats')).toBeInTheDocument());
     await act(async () => {
-      fireEvent.click(screen.getByText('External Games'));
+      fireEvent.click(screen.getByText('Added stats'));
     });
   };
 
@@ -773,7 +773,7 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
       fireEvent.click(screen.getByTestId('add-external-game'));
     });
 
-    fireEvent.change(screen.getByPlaceholderText('External team'), { target: { value: 'KuPS P13' } });
+    fireEvent.change(screen.getByPlaceholderText('Team name'), { target: { value: 'KuPS P13' } });
     fireEvent.change(screen.getByPlaceholderText('Opponent name'), { target: { value: 'Vastus' } });
     fireEvent.click(screen.getByTestId('adj-sport-futsal'));
     fireEvent.click(screen.getByTestId('adj-gender-girls'));
@@ -1105,7 +1105,7 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
     expect(card).toHaveTextContent(/GK\s*3/);
     expect(card).toHaveTextContent(/LB\s*1/);
     expect(card).toHaveTextContent(/ST\s*1/);
-    expect(card).toHaveTextContent(/Includes .* external games with recorded positions/);
+    expect(card).toHaveTextContent(/Includes .* added games with recorded positions/);
     expect(screen.getAllByTitle('Positions played')[0]).toHaveTextContent('GK');
   });
 });

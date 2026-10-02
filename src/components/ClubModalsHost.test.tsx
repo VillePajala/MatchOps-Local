@@ -93,10 +93,20 @@ jest.mock('@/hooks/usePersonnelManager', () => ({
 
 jest.mock('@/components/RosterSettingsModal', () => ({
   __esModule: true,
-  default: ({ onOpenPlayerStats, onClose }: { onOpenPlayerStats: (id: string) => void; onClose: () => void }) => (
+  default: ({ onOpenPlayerStats, onOpenExternalGames, onClose }: { onOpenPlayerStats: (id: string) => void; onOpenExternalGames?: (id: string) => void; onClose: () => void }) => (
     <div data-testid="roster-modal">
       <button onClick={() => onOpenPlayerStats('p1')}>player-stats-p1</button>
+      <button onClick={() => onOpenExternalGames?.('p1')}>external-games-p1</button>
       <button onClick={onClose}>close-roster</button>
+    </div>
+  ),
+}));
+jest.mock('@/components/ExternalGamesModal', () => ({
+  __esModule: true,
+  default: ({ initialPlayerId, onClose }: { initialPlayerId: string | null; onClose: () => void }) => (
+    <div data-testid="external-games-modal">
+      <span data-testid="external-games-player">{initialPlayerId ?? 'none'}</span>
+      <button onClick={onClose}>close-external-games</button>
     </div>
   ),
 }));
@@ -379,6 +389,24 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     await waitFor(() => expect(screen.getByTestId('club-stats-modal')).toBeInTheDocument());
     expect(screen.getByTestId('club-stats-shape')).toHaveTextContent('aggregate:player:p1');
     expect(onEnterMatch).not.toHaveBeenCalled();
+  });
+
+  /** Phase 3: the roster menu's "Ulkoiset pelit" swaps the roster for the external-games modal on that player. */
+  it('roster external-games shortcut opens the host modal on the player and closes the roster', async () => {
+    render(
+      <ModalProvider>
+        <Opener />
+        <ClubModalsHost />
+      </ModalProvider>,
+    );
+    fireEvent.click(screen.getByText('open-roster'));
+    await waitFor(() => expect(screen.getByTestId('roster-modal')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('external-games-p1'));
+    await waitFor(() => expect(screen.queryByTestId('roster-modal')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('external-games-modal')).toBeInTheDocument());
+    expect(screen.getByTestId('external-games-player')).toHaveTextContent('p1');
+    fireEvent.click(screen.getByText('close-external-games'));
+    await waitFor(() => expect(screen.queryByTestId('external-games-modal')).not.toBeInTheDocument());
   });
 
   it('club stats renders at host level; a game-row tap is the LoadGame level crossing (L.4)', async () => {
