@@ -77,7 +77,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                     typed. Unexplained it looks like a bug, so it is explained
                     here rather than left to be discovered. */}
                 <li>{t('appGuide.opponentNames', 'Opponent names: type a team you have played before and the field settles on the spelling you already used, so one team stays one team in your statistics. If that earlier spelling is the wrong one, choose "use mine instead" and it is corrected in every past game too.')}</li>
-                <li>{t('appGuide.externalGames', 'External games: a game the player played elsewhere is recorded from the player\'s menu on the Club tab or from the Add external game row on the Games tab. Positions, sport and gender place it in the right stats.')}</li>
+                <li>{t('appGuide.externalGames', "Added stats: a game not recorded in the app as a match can be added to a player's stats from the Add to player stats row on the Stats tab or from the player's menu on the Club tab. Positions, sport and gender place it in the right stats.")}</li>
               </ul>
             </div>
           </section>

@@ -1373,7 +1373,7 @@
     "arriveBefore": "At the ground before kick-off",
     "actualDrive": "How long the drive really takes",
     "dashNoMatchesYet": "No matches yet.",
-    "addExternalGame": "Add external game"
+    "addExternalGame": "Add to player stats"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -2084,8 +2084,8 @@
       "linesPlayed": "{{n}} of 4 lines",
       "narrowHint": "Played only one line this season - a chance to broaden.",
       "allPositions": "All positions",
-      "includesExternal_one": "Includes {{count}} external game with recorded positions.",
-      "includesExternal_other": "Includes {{count}} external games with recorded positions."
+      "includesExternal_one": "Includes {{count}} added game with recorded positions.",
+      "includesExternal_other": "Includes {{count}} added games with recorded positions."
     },
     "gamesPlayed_short": "GP",
     "goals": "Goals",
@@ -2126,11 +2126,11 @@
     "exportReportFailed": "Failed to export report",
     "noAssessmentsForPeriod": "No assessments for this period.",
     "assessed": "Assessed",
-    "includesAdjustments": "Includes external games",
-    "externalGames": "External Games",
-    "externalGame": "External Game",
-    "external": "EXT",
-    "addExternalStats": "Add external stats",
+    "includesAdjustments": "Includes added stats",
+    "externalGames": "Added stats",
+    "externalGame": "Added game",
+    "external": "ADDED",
+    "addExternalStats": "Add game",
     "seasonRequired": "Please create a league first.",
     "teamRequired": "Team name is required.",
     "opponentRequired": "Opponent name is required.",
@@ -2148,19 +2148,19 @@
     "tournament": "Tournament",
     "selectTournament": "Select tournament (optional)",
     "team": "Team",
-    "externalTeam": "External team",
+    "externalTeam": "Team name",
     "opponent": "Opponent",
     "opponentName": "Opponent name",
     "score": "Score",
     "gameDate": "Game date",
     "note": "Note",
     "noteOptional": "Optional note about this game",
-    "adjustmentsInfo": "External stats are transparently added to totals.",
+    "adjustmentsInfo": "Added stats are counted in the totals.",
     "requiredFields": "Team and opponent names are required.",
-    "deleteConfirmMessage": "Are you sure you want to delete this external game entry? This action cannot be undone.",
-    "deleteError": "Failed to delete the external game entry.",
+    "deleteConfirmMessage": "Delete this added game? This action cannot be undone.",
+    "deleteError": "Failed to delete the added game.",
     "includeInSeasonTournament": "Include in league/tournament statistics",
-    "includeInSeasonTournamentHelp": "Check this if the external game was played for the same team",
+    "includeInSeasonTournamentHelp": "Check this if the game was played for the same team",
     "periodFilter": "Filter by Period",
     "allPeriods": "All Periods",
     "offPeriod": "Off-Period",
@@ -2176,7 +2176,7 @@
     "configurePeriodDates": "Configure Period Dates",
     "configurePeriodDatesFirst": "Configure period dates in Settings first",
     "tapGearToConfigurePeriods": "Tap gear icon to configure period dates",
-    "adjustmentsPartlyCounted": "External stats are added to totals. The dimmed ones fall outside the filters you have chosen and are not counted here.",
+    "adjustmentsPartlyCounted": "Added stats are counted in the totals. The dimmed ones fall outside the filters you have chosen and are not counted here.",
     "adjustmentNotCounted": "Not counted under the current filters",
     "whichTeam": "Which team was this game for?",
     "anotherTeam": "Another team (not one of mine)",
@@ -2184,7 +2184,8 @@
     "whichTeamOtherHint": "Counts toward the player, but not toward any of your teams.",
     "externalPositionsHint": "Where the player played in this game. Counted in the positions played.",
     "externalScopeHint": "Sport and gender place the game under the stats filters. If either is missing, the game stays out of a filtered view.",
-    "positionsLabel": "Positions played"
+    "positionsLabel": "Positions played",
+    "addToStats": "Add to stats"
   },
   "months": {
     "january": "January",
@@ -2358,7 +2359,7 @@
     "sheetSeasonBreakdown": "League Breakdown",
     "sheetTournamentBreakdown": "Tournament Breakdown",
     "sheetAssessmentsSummary": "Assessments Summary",
-    "sheetExternalGames": "External Games",
+    "sheetExternalGames": "Added Stats",
     "date": "Date",
     "wePlayed": "We Played",
     "goalDiff": "Goal Diff",
@@ -2374,7 +2375,7 @@
     "avgTeamwork": "Avg Teamwork",
     "avgFairPlay": "Avg Fair Play",
     "avgImpact": "Avg Impact",
-    "externalTeam": "External Team",
+    "externalTeam": "Team",
     "scoreFor": "Score For",
     "scoreAgainst": "Score Against",
     "homeAway": "Home/Away",
@@ -3700,7 +3701,7 @@
     "matchMenuTitle": "The match menu",
     "matchMenuNote": "While in a match, the menu holds match-day actions:",
     "opponentNames": "Opponent names: type a team you have played before and the field settles on the spelling you already used, so one team stays one team in your statistics. If that earlier spelling is the wrong one, choose \"use mine instead\" and it is corrected in every past game too.",
-    "externalGames": "External games: a game the player played elsewhere is recorded from the player's menu on the Club tab or from the Add external game row on the Games tab. Positions, sport and gender place it in the right stats."
+    "externalGames": "Added stats: a game not recorded in the app as a match can be added to a player's stats from the Add to player stats row on the Stats tab or from the player's menu on the Club tab. Positions, sport and gender place it in the right stats."
   },
   "aiSettings": {
     "title": "Voice notes and AI",
@@ -3920,9 +3921,9 @@
     "useTypedName": "Use \"{{name}}\" as a new place"
   },
   "externalGamesModal": {
-    "title": "External games",
+    "title": "Add to player stats",
     "pickPlayer": "Pick a player",
-    "intro": "A game the player played for another team, or anywhere this app did not record.",
+    "intro": "Games not recorded in the app as matches. They count only in this player's stats.",
     "noPlayers": "Add your players on the Club tab first.",
     "choosePlaceholder": "Select a player"
   }

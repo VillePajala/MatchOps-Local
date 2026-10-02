@@ -523,8 +523,8 @@ describe('Excel Export Utilities', () => {
      * Tests error handling
      * @critical - Validates error recovery
      */
-    /** 053: the External Games sheet carries positions (as abbreviations), sport, gender and age group; absent ones export empty. */
-    it('exports positions and scope on the External Games sheet', () => {
+    /** 053: the Added Stats sheet carries positions (as abbreviations), sport, gender and age group; absent ones export empty. */
+    it('exports positions and scope on the Added Stats sheet', () => {
       const adjustments = [
         { id: 'adj_1', playerId: 'p_1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, appliedAt: '2024-03-01T00:00:00Z', positions: ['lm', 'st'], gameType: 'futsal', gender: 'girls', ageGroup: 'U12' },
         { id: 'adj_2', playerId: 'p_1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, appliedAt: '2024-03-02T00:00:00Z' },
