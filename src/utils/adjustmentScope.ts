@@ -21,12 +21,16 @@ import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/
 /** 053: the value sets the cloud table's CHECK constraints allow; anything else reads and writes as "not recorded". */
 export const asAdjustmentGameType = (v: unknown): GameType | undefined => (v === 'soccer' || v === 'futsal' ? v : undefined);
 export const asAdjustmentGender = (v: unknown): Gender | undefined => (v === 'boys' || v === 'girls' ? v : undefined);
-/** Age group: a short label such as U12. Trimmed and bounded; empty or non-string reads as "not recorded". */
+/**
+ * Age group: a short label such as U12. Trimmed; empty, non-string or longer
+ * than the column allows reads as "not recorded" (a cut label would be a
+ * different label, not a valid one).
+ */
 export const ADJUSTMENT_AGE_GROUP_MAX = 16;
 export const asAdjustmentAgeGroup = (v: unknown): string | undefined => {
   if (typeof v !== 'string') return undefined;
-  const t = v.trim().slice(0, ADJUSTMENT_AGE_GROUP_MAX);
-  return t.length > 0 ? t : undefined;
+  const t = v.trim();
+  return t.length > 0 && t.length <= ADJUSTMENT_AGE_GROUP_MAX ? t : undefined;
 };
 
 export interface AdjustmentScope {

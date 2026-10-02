@@ -92,7 +92,6 @@ type GameEventRow = Database['public']['Tables']['game_events']['Row'];
 type GameTacticalDataRow = Database['public']['Tables']['game_tactical_data']['Row'];
 type PlayerAssessmentRow = Database['public']['Tables']['player_assessments']['Row'];
 type PlayerAdjustmentRow = Database['public']['Tables']['player_adjustments']['Row'];
-
 type WarmupPlanRow = Database['public']['Tables']['warmup_plans']['Row'];
 
 // Insert types (data for INSERT operations)
