@@ -847,6 +847,83 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
   });
 
   /**
+   * @critical - the linked team, season or tournament already knows the
+   * sport, gender and age group; typing them again is what makes coaches skip
+   * the fields. Only empty fields are filled, and a cleared link clears what it
+   * filled.
+   */
+  it('fills sport, gender and age group from the picked team and its season', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', boundSeasonId: 'season-1', gameType: 'futsal', ageGroup: 'U12' } as never]}
+        seasons={[{ id: 'season-1', name: 'Aluesarja', gameType: 'futsal', gender: 'girls', ageGroup: 'U12' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByTestId('adj-gender-girls')).toHaveAttribute('aria-pressed', 'true');
+    expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('U12');
+
+    // Clearing the team clears what it filled in.
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: '' } });
+    await waitFor(() => expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'false'));
+    expect(screen.getByTestId('adj-gender-girls')).toHaveAttribute('aria-pressed', 'false');
+    expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('');
+  });
+
+  it('never overwrites a sport the coach already chose', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', gameType: 'futsal', ageGroup: 'U12' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+
+    fireEvent.click(screen.getByTestId('adj-sport-soccer'));
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('U12'));
+    expect(screen.getByTestId('adj-sport-soccer')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('adj-sport-futsal')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('fills the scope from a season picked directly', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        seasons={[{ id: 'season-1', name: 'Aluesarja', gameType: 'soccer', gender: 'boys', ageGroup: 'U13' } as never]}
+      />,
+    );
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+
+    fireEvent.change(screen.getByTestId('adj-season-select'), { target: { value: 'season-1' } });
+    await waitFor(() => expect(screen.getByTestId('adj-gender-boys')).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByTestId('adj-sport-soccer')).toHaveAttribute('aria-pressed', 'true');
+    expect((screen.getByLabelText('Age Group (Optional)') as HTMLSelectElement).value).toBe('U13');
+  });
+
+  /**
    * @critical - the positions card merges own matches and external games
    * through computePositionDiversity, which reads only `playerPositions`; the
    * counts must add up across both, one game each, with no double counting.

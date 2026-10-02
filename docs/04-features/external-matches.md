@@ -35,6 +35,12 @@ own; the Excel "External Games" sheet gained four columns. The form
 uses the same `PlayerPositionsEditor` as the finish flow (single player) and
 the game form's sport, gender and age-group controls.
 
+The linked team, season or tournament fills these in: picking a team fills
+sport and age group from the team and gender, sport and age group from its
+bound competition; picking a season or tournament directly fills all three.
+Only empty fields are filled, a value the coach chose is never overwritten,
+and clearing the link clears what it filled.
+
 Not recorded on purpose: playing time. The app records positions and events,
 never minutes, and external games must not pretend otherwise.
 
