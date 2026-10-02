@@ -533,7 +533,7 @@ describe('Excel Export Utilities', () => {
       const sheets = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls.map(c => c[0] as Array<Record<string, unknown>>);
       const external = sheets.find(rows => Array.isArray(rows) && rows.length > 0 && 'Positions' in rows[0]);
       expect(external).toBeDefined();
-      expect(external?.[0]).toEqual(expect.objectContaining({ Positions: 'LM, ST', Sport: 'Futsal', Gender: 'girls', 'Age Group': 'U12' }));
+      expect(external?.[0]).toEqual(expect.objectContaining({ Positions: 'LM, ST', Sport: 'Futsal', Gender: 'Girls', 'Age Group': 'U12' }));
       expect(external?.[1]).toEqual(expect.objectContaining({ Positions: '', Sport: '', Gender: '', 'Age Group': '' }));
     });
 

@@ -26,7 +26,8 @@ describe('asAdjustmentAgeGroup', () => {
     expect(asAdjustmentAgeGroup('')).toBeUndefined();
     expect(asAdjustmentAgeGroup('   ')).toBeUndefined();
     expect(asAdjustmentAgeGroup(42)).toBeUndefined();
-    expect(asAdjustmentAgeGroup('x'.repeat(40))).toHaveLength(ADJUSTMENT_AGE_GROUP_MAX);
+    expect(asAdjustmentAgeGroup('x'.repeat(ADJUSTMENT_AGE_GROUP_MAX))).toHaveLength(ADJUSTMENT_AGE_GROUP_MAX);
+    expect(asAdjustmentAgeGroup('x'.repeat(ADJUSTMENT_AGE_GROUP_MAX + 1))).toBeUndefined();
   });
 });
 

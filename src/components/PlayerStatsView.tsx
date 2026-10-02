@@ -151,9 +151,8 @@ const ExternalGameScopeFields: React.FC<{
   const changeSport = (next: GameType | '') => {
     onGameType(next);
     if (!next) return;
-    const allowed = new Set(positionsForSport(next).map(p => p.id));
-    const kept = positions.filter(id => allowed.has(id));
-    if (kept.length !== positions.length) onPositions(kept);
+    const kept = prunePositions(positions, next);
+    if (kept !== positions) onPositions(kept);
   };
   const choice = (on: boolean) => `flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${on ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
   return (
