@@ -3923,6 +3923,7 @@
     "title": "External games",
     "pickPlayer": "Pick a player",
     "intro": "A game the player played for another team, or anywhere this app did not record.",
-    "noPlayers": "Add your players on the Club tab first."
+    "noPlayers": "Add your players on the Club tab first.",
+    "choosePlaceholder": "Select a player"
   }
 }

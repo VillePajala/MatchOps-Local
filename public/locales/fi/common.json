@@ -3923,6 +3923,7 @@
     "title": "Ulkoiset pelit",
     "pickPlayer": "Valitse pelaaja",
     "intro": "Peli, jonka pelaaja pelasi toisessa joukkueessa tai muualla kuin tässä sovelluksessa.",
-    "noPlayers": "Lisää ensin pelaajat Seura-välilehdeltä."
+    "noPlayers": "Lisää ensin pelaajat Seura-välilehdeltä.",
+    "choosePlaceholder": "Valitse pelaaja"
   }
 }

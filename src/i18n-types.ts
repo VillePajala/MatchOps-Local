@@ -767,6 +767,7 @@ export type TranslationKey =
   | 'export.winShort'
   | 'export.wins'
   | 'export.yes'
+  | 'externalGamesModal.choosePlaceholder'
   | 'externalGamesModal.intro'
   | 'externalGamesModal.noPlayers'
   | 'externalGamesModal.pickPlayer'

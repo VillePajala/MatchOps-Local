@@ -34,7 +34,7 @@ describe('ExternalGamesModal', () => {
     render(<ExternalGamesModal {...baseProps} />);
     expect(screen.queryByTestId('add-external-game')).not.toBeInTheDocument();
     const options = screen.getAllByRole('option').map(o => o.textContent);
-    expect(options).toEqual(['None', 'Aino', 'Ville']);
+    expect(options).toEqual(['Select a player', 'Aino', 'Ville']);
     await act(async () => {
       fireEvent.change(screen.getByTestId('external-games-player'), { target: { value: 'p1' } });
     });
