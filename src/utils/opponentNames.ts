@@ -82,6 +82,57 @@ export function addOpponentToList(list: readonly string[], name: string): string
 }
 
 /**
+ * Every opponent name a coach has used, as one pool for suggestions and
+ * adoption: the competition lists they curated first, then whatever they
+ * typed into past games, most-used spelling of each. Derived, never stored -
+ * a global opponent list with an edit button is the first step back toward
+ * treating opponents as entities, which the design rejects. Shared by the
+ * game form (ClubModalsHost) and the added-game form (PlayerStatsView), so
+ * the two boxes draw from one pool.
+ */
+export function knownOpponentPool(
+  seasons: ReadonlyArray<{ opponents?: readonly string[] | null }>,
+  games: ReadonlyArray<{ opponentName?: string | null } | null | undefined>,
+): string[] {
+  return [
+    ...preferredSpellings(seasons.flatMap((s) => s.opponents ?? [])),
+    ...preferredSpellings(games.map((g) => g?.opponentName ?? '')),
+  ].reduce<string[]>((kept, name) => addOpponentToList(kept, name), []);
+}
+
+/** What the last blur did to a field, so the coach's second attempt can refuse it. */
+export interface SpellingAdoption {
+  /** A spelling the coach kept over the adopted one; never overridden again. */
+  insisted: string | null;
+  /** The last adoption: what they typed and what it became. */
+  last: { typed: string; adopted: string } | null;
+}
+export const NO_ADOPTION: SpellingAdoption = { insisted: null, last: null };
+
+/**
+ * Settle a typed name on the spelling already in use, where one exists, and
+ * let the coach refuse it by typing theirs again.
+ *
+ * First blur of "ips" with "IPS" in the pool becomes "IPS", visibly, while
+ * the coach still looks at the field. If they then type "ips" once more and
+ * leave the field again, that is their answer: it stays "ips" from then on.
+ * A genuinely new name passes through untouched. Matching is exact after
+ * normalising, never fuzzy, so "IPS/Punainen" is never adopted onto
+ * "IPS/Sininen".
+ *
+ * Pure, so every name box applies one rule and the rule has one test.
+ */
+export function settleSpelling(state: SpellingAdoption, raw: string, pool: readonly string[]): { value: string; state: SpellingAdoption } {
+  const typed = raw.trim();
+  if (!typed) return { value: typed, state };
+  if (state.insisted === typed) return { value: typed, state };
+  const existing = findExistingSpelling(typed, pool);
+  if (!existing || existing === typed) return { value: typed, state: { ...state, last: null } };
+  if (state.last && state.last.typed === typed) return { value: typed, state: { insisted: typed, last: null } };
+  return { value: existing, state: { ...state, last: { typed, adopted: existing } } };
+}
+
+/**
  * One spelling per name, chosen the way the sweep tool chooses its suggestion:
  * MOST USED, ties broken by first appearance.
  *
