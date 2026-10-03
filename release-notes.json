@@ -4,6 +4,15 @@
     {
       "date": "2026-10-03",
       "en": [
+        "The player stats note about the selected season now shows the game counts and reads in Finnish too."
+      ],
+      "fi": [
+        "Pelaajatilastojen ilmoitus valitusta kaudesta näkyy nyt suomeksi ja ottelumäärien kanssa."
+      ]
+    },
+    {
+      "date": "2026-10-03",
+      "en": [
         "When you add a game to a player's stats, the opponent and team boxes now suggest the names you have used before and settle on your usual spelling, the same way the new-game form does. Type your own spelling again to keep it."
       ],
       "fi": [
