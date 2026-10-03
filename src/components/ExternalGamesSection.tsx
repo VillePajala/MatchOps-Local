@@ -33,6 +33,8 @@ export const getResultClass = (result: 'W' | 'L' | 'D' | 'N/A') => {
   }
 };
 
+const NO_POOL: string[] = [];
+
 /**
  * A player's external games (ulkoiset pelit): the collapsible list plus the
  * add and edit forms, lifted out of PlayerStatsView so the same section can
@@ -191,7 +193,7 @@ const ExternalGameScopeFields: React.FC<{
   );
 };
 
-const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, seasons, tournaments, teams = [], selectedGameTypeFilter, countedIds, onAdjustmentsChange, defaultOpen = false, startWithAdd = false, opponentPool = [] }) => {
+const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, seasons, tournaments, teams = [], selectedGameTypeFilter, countedIds, onAdjustmentsChange, defaultOpen = false, startWithAdd = false, opponentPool = NO_POOL }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const { userId } = useDataStore();
@@ -247,6 +249,17 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
   const adjTeamAdoption = useRef<SpellingAdoption>(NO_ADOPTION);
   const editOpponentAdoption = useRef<SpellingAdoption>(NO_ADOPTION);
   const editTeamAdoption = useRef<SpellingAdoption>(NO_ADOPTION);
+  /** The add form starts with no adoption history, so an earlier "keep mine" cannot leak into the next game. */
+  const resetAdjAdoption = () => { adjOpponentAdoption.current = NO_ADOPTION; adjTeamAdoption.current = NO_ADOPTION; };
+  /**
+   * Editing seeds each box with the stored value as the coach's own choice:
+   * tabbing through without typing must never rewrite a name they saved on
+   * purpose, and a different name they then type is adopted as usual.
+   */
+  const seedEditAdoption = (opponentName: string, teamName: string) => {
+    editOpponentAdoption.current = { insisted: opponentName.trim(), last: null };
+    editTeamAdoption.current = { insisted: teamName.trim(), last: null };
+  };
   /** Settle a box on an earlier spelling when it loses focus; the coach can type theirs again to keep it. */
   const settle = (ref: React.MutableRefObject<SpellingAdoption>, value: string, pool: readonly string[], set: (v: string) => void) => {
     const next = settleSpelling(ref.current, value, pool);
@@ -424,7 +437,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                 type="button"
                 className="text-sm px-4 py-2.5 bg-slate-700 text-slate-200 rounded-md border border-slate-600 hover:bg-slate-600 transition-colors"
                 data-testid="add-external-game"
-                onClick={() => { if (!showAdjForm) adjScope.reset(); setShowAdjForm(!showAdjForm); setEditingAdjId(null); }}
+                onClick={() => { if (!showAdjForm) { adjScope.reset(); resetAdjAdoption(); } setShowAdjForm(!showAdjForm); setEditingAdjId(null); }}
               >
                 {t('playerStats.addExternalStats', 'Add game')}
               </button>
@@ -494,6 +507,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                   setAdjHomeAway('neutral');
                   setAdjIncludeInSeasonTournament(false);
                   adjScope.reset();
+                  resetAdjAdoption();
                 } catch (error) {
                   logger.error('[PlayerStatsView] Failed to add external game', { error });
                   showToast(t('playerStats.addError', 'Failed to save the external game entry.'), 'error');
@@ -1071,6 +1085,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                                       setEditScoreAgainst(typeof a.scoreAgainst === 'number' ? a.scoreAgainst : '');
                                       setEditIncludeInSeasonTournament(a.includeInSeasonTournament || false);
                                       // The row's own values count as the coach's; the link it already has fills nothing on open.
+                                      seedEditAdoption(a.opponentName ?? '', a.externalTeamName ?? '');
                                       editScope.reset({
                                         positions: a.positions ?? [], gameType: a.gameType ?? '', gender: a.gender ?? '', ageGroup: a.ageGroup ?? '',
                                         auto: scopeOf(a.teamId ?? '', a.seasonId ?? '', a.tournamentId ?? ''),
