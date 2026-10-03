@@ -1103,6 +1103,57 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
     await waitFor(() => expect(box.value).toBe('ips'));
   });
 
+  /** A name the coach saved on purpose is theirs: leaving the edit box without typing changes nothing. */
+  it('keeps a stored spelling on a bare blur in the edit form, and still adopts a newly typed one', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([
+      { id: 'adj_1', playerId: 'p1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, appliedAt: '2024-03-01T00:00:00Z', externalTeamName: 'KuPS P13', opponentName: 'ips' },
+    ]);
+    render(<PlayerStatsView {...baseProps} savedGames={{}} seasons={[{ id: 's1', name: 'Liiga', opponents: ['IPS', 'KuPS'] } as never]} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+    const box = screen.getByTestId('edit-opponent-input') as HTMLInputElement;
+    expect(box.value).toBe('ips');
+    fireEvent.focus(box);
+    fireEvent.blur(box);
+    expect(box.value).toBe('ips');
+    fireEvent.change(box, { target: { value: 'kups' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(box.value).toBe('KuPS'));
+  });
+
+  /** "Keep mine" belongs to one game: the next add form adopts again. */
+  it('does not carry an insisted spelling into the next add form', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(<PlayerStatsView {...baseProps} savedGames={{}} seasons={[{ id: 's1', name: 'Liiga', opponents: ['IPS'] } as never]} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    let box = screen.getByTestId('adj-opponent-input') as HTMLInputElement;
+    fireEvent.change(box, { target: { value: 'ips' } });
+    fireEvent.blur(box);
+    fireEvent.change(box, { target: { value: 'ips' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(box.value).toBe('ips'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Cancel'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    box = screen.getByTestId('adj-opponent-input') as HTMLInputElement;
+    fireEvent.change(box, { target: { value: 'ips' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(box.value).toBe('IPS'));
+  });
+
   /** The team box offers the names from this player's earlier added games. */
   it('suggests team names from the player\'s earlier added games', async () => {
     const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
