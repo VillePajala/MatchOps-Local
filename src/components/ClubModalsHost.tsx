@@ -60,7 +60,7 @@ import { useModalHardwareBack, useHardwareBackSubLevel } from '@/hooks/useModalH
 import { useKnownVenues } from '@/hooks/useKnownVenues';
 import { useAppSettingsController } from '@/hooks/useAppSettingsController';
 import { useSeasonTournamentManagement } from '@/hooks/useSeasonTournamentManagement';
-import { addOpponentToList, preferredSpellings } from '@/utils/opponentNames';
+import { addOpponentToList, preferredSpellings, knownOpponentPool } from '@/utils/opponentNames';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import { useRosterSettingsController } from '@/hooks/useRosterSettingsController';
 import { useLoadGameController } from '@/hooks/useLoadGameController';
@@ -190,18 +190,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   // a global opponent list with an edit button is the first step back toward
   // treating opponents as entities, which is what the design rejects.
   const knownOpponents = React.useMemo(
-    // preferredSpellings, not a plain dedupe: when a name has been written
-    // several ways the pool must offer the one used MOST, because that is the
-    // spelling the sweep tool would settle on. A dedupe keeps whichever came
-    // back from the database first, which is arbitrary.
-    // Two tiers: a curated name outranks a frequent one, and within each tier
-    // the most-used spelling wins. Same rule as useOpponentSuggestions.
-    () => [
-      ...preferredSpellings(seasonTournament.seasons.flatMap((s) => s.opponents ?? [])),
-      ...preferredSpellings(
-        Object.values(newGameSetup.savedGames ?? {}).map((g) => g?.opponentName ?? ''),
-      ),
-    ].reduce<string[]>((kept, name) => addOpponentToList(kept, name), []),
+    () => knownOpponentPool(seasonTournament.seasons, Object.values(newGameSetup.savedGames ?? {})),
     [seasonTournament.seasons, newGameSetup.savedGames],
   );
 
@@ -557,6 +546,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           teams={teams}
           initialPlayerId={externalGamesPlayerId}
           playersLoading={newGameSetup.isRosterLoading}
+          opponentPool={knownOpponents}
         />
       )}
       {isTeamManagerOpen && (

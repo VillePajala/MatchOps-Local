@@ -23,9 +23,11 @@ interface ExternalGamesModalProps {
   initialPlayerId?: string | null;
   /** The roster query is still loading: show nothing rather than the empty-roster hint for a flash. */
   playersLoading?: boolean;
+  /** Every opponent name the coach has used, for chips and spelling adoption (see ExternalGamesSection). */
+  opponentPool?: string[];
 }
 
-const ExternalGamesModal: React.FC<ExternalGamesModalProps> = ({ isOpen, onClose, players, seasons, tournaments, teams, initialPlayerId = null, playersLoading = false }) => {
+const ExternalGamesModal: React.FC<ExternalGamesModalProps> = ({ isOpen, onClose, players, seasons, tournaments, teams, initialPlayerId = null, playersLoading = false, opponentPool }) => {
   const { t, i18n } = useTranslation();
   // Seeded once: ClubModalsHost mounts this modal only while open, so a new
   // initialPlayerId always arrives with a fresh mount. Keep it that way. An id
@@ -73,6 +75,7 @@ const ExternalGamesModal: React.FC<ExternalGamesModalProps> = ({ isOpen, onClose
             teams={teams}
             defaultOpen
             startWithAdd={!initialPlayerId}
+            opponentPool={opponentPool}
           />
         )}
       </div>

@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user. Two exceptions to the prompt: a PR that touches nothing in the app (docs, CI, tests, tooling - see scripts/vercel-ignore-build.mjs) does not deploy and needs no entry; a PR that changes the app but nothing a coach can see (deps, refactors) adds an entry with \"internal\": true, which ships without the update banner and applies on the next launch.",
   "releases": [
     {
+      "date": "2026-10-03",
+      "en": [
+        "When you add a game to a player's stats, the opponent and team boxes now suggest the names you have used before and settle on your usual spelling, the same way the new-game form does. Type your own spelling again to keep it."
+      ],
+      "fi": [
+        "Kun lisäät pelin pelaajan tilastoihin, vastustaja- ja joukkuekentät ehdottavat nyt aiemmin käyttämiäsi nimiä ja asettuvat tuttuun kirjoitusasuun, kuten uuden ottelun lomake. Kirjoita oma kirjoitusasusi uudelleen, jos haluat pitää sen."
+      ]
+    },
+    {
       "date": "2026-10-02",
       "en": [
         "External games are now \"Added stats\": a game not recorded in the app can be added to a player's stats from the Stats tab (Add to player stats) or from the player's menu on the Club tab, not only through the stats drill-down."
