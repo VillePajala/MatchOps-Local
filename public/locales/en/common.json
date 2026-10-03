@@ -2185,7 +2185,8 @@
     "externalPositionsHint": "Where the player played in this game. Counted in the positions played.",
     "externalScopeHint": "Sport and gender place the game under the stats filters. If either is missing, the game stays out of a filtered view.",
     "positionsLabel": "Positions played",
-    "addToStats": "Add to stats"
+    "addToStats": "Add to stats",
+    "viewingFilteredStats": "Showing the selected club season only ({{filtered}} of {{total}} games)"
   },
   "months": {
     "january": "January",

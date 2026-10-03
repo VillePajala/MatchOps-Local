@@ -2185,7 +2185,8 @@
     "externalPositionsHint": "Missä pelaaja pelasi tässä pelissä. Lasketaan pelipaikkatilastoihin.",
     "externalScopeHint": "Laji ja sukupuoli asettavat pelin tilastosuodattimien alle. Jos jompikumpi puuttuu, peli jää suodatetun näkymän ulkopuolelle.",
     "positionsLabel": "Toteutuneet pelipaikat",
-    "addToStats": "Täydennä tilastoja"
+    "addToStats": "Täydennä tilastoja",
+    "viewingFilteredStats": "Näytetään vain valitun kauden tilastot ({{filtered}}/{{total}} ottelua)"
   },
   "months": {
     "january": "Tammikuu",

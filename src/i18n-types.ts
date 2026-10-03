@@ -1835,6 +1835,7 @@ export type TranslationKey =
   | 'playerStats.unrealisticGoalsError'
   | 'playerStats.useDemandCorrection'
   | 'playerStats.useDemandCorrectionTooltip'
+  | 'playerStats.viewingFilteredStats'
   | 'playerStats.vs'
   | 'playerStats.whichTeam'
   | 'playerStats.whichTeamMineHint'
