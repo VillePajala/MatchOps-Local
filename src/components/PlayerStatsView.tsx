@@ -10,6 +10,7 @@ import { AppState } from '@/types';
 import type { GameType, Gender } from '@/types/game';
 import { calculatePlayerStats, PlayerStats as PlayerStatsData, isGameInPlayerScope } from '@/utils/playerStats';
 import { adjustmentInScope } from '@/utils/adjustmentScope';
+import { knownOpponentPool } from '@/utils/opponentNames';
 import type { PlayerStatAdjustment } from '@/types';
 import { calculatePlayerDevelopment, getPlayerAssessmentTrends, getPlayerAssessmentNotes, type TrendDirection, type AssessmentScope } from '@/utils/assessmentStats';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
@@ -301,6 +302,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     [adjustments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter, selectedGenderFilter],
   );
 
+  // The same opponent pool the game form draws from, built from what this
+  // view already holds; the added-game boxes then adopt the same spellings.
+  const opponentPool = useMemo(() => knownOpponentPool(seasons, Object.values(savedGames)), [seasons, savedGames]);
+
   /** Ids that actually reach the totals, so the list can say which do. */
   const countedAdjustmentIds = useMemo(
     () => new Set(adjustmentsInScope.map(a => a.id)),
@@ -552,6 +557,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           selectedGameTypeFilter={selectedGameTypeFilter}
           countedIds={countedAdjustmentIds}
           onAdjustmentsChange={setAdjustments}
+          opponentPool={opponentPool}
         />
 
         {/* Game by Game Stats - Title and Chart */}

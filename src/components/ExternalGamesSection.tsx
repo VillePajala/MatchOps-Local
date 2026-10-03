@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
@@ -10,6 +10,8 @@ import type { PlayerStatAdjustment } from '@/types';
 import type { GameType, Gender } from '@/types/game';
 import { getAdjustmentsForPlayer, addPlayerAdjustment, updatePlayerAdjustment, deletePlayerAdjustment } from '@/utils/playerAdjustments';
 import { getTeamDisplayName } from '@/utils/teams';
+import { preferredSpellings, settleSpelling, NO_ADOPTION, type SpellingAdoption } from '@/utils/opponentNames';
+import SuggestionChips from './SuggestionChips';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { ModalSwitch } from '@/styles/modalStyles';
 import { format } from 'date-fns';
@@ -54,6 +56,12 @@ export interface ExternalGamesSectionProps {
   defaultOpen?: boolean;
   /** Start with the add form open. */
   startWithAdd?: boolean;
+  /**
+   * Every opponent name the coach has used (knownOpponentPool): offered as
+   * chips under the opponent box and adopted on blur, exactly as the game
+   * form does, so one opponent stays one opponent across both kinds of game.
+   */
+  opponentPool?: string[];
 }
 
 /** What a linked team or competition fills into the form: sport, gender, age group. */
@@ -183,7 +191,7 @@ const ExternalGameScopeFields: React.FC<{
   );
 };
 
-const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, seasons, tournaments, teams = [], selectedGameTypeFilter, countedIds, onAdjustmentsChange, defaultOpen = false, startWithAdd = false }) => {
+const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, seasons, tournaments, teams = [], selectedGameTypeFilter, countedIds, onAdjustmentsChange, defaultOpen = false, startWithAdd = false, opponentPool = [] }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const { userId } = useDataStore();
@@ -230,6 +238,21 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
   const [showExternalGames, setShowExternalGames] = useState(defaultOpen);
 
   useEffect(() => { onAdjustmentsChange?.(adjustments); }, [adjustments, onAdjustmentsChange]);
+
+  // Team names from this player's earlier added games, most-used spelling of
+  // each: the guest team they keep playing for is the one they will type again.
+  const teamPool = useMemo(() => preferredSpellings(adjustments.map(a => a.externalTeamName ?? '')), [adjustments]);
+  // One adoption state per name box; refs, since it only matters on blur.
+  const adjOpponentAdoption = useRef<SpellingAdoption>(NO_ADOPTION);
+  const adjTeamAdoption = useRef<SpellingAdoption>(NO_ADOPTION);
+  const editOpponentAdoption = useRef<SpellingAdoption>(NO_ADOPTION);
+  const editTeamAdoption = useRef<SpellingAdoption>(NO_ADOPTION);
+  /** Settle a box on an earlier spelling when it loses focus; the coach can type theirs again to keep it. */
+  const settle = (ref: React.MutableRefObject<SpellingAdoption>, value: string, pool: readonly string[], set: (v: string) => void) => {
+    const next = settleSpelling(ref.current, value, pool);
+    ref.current = next.state;
+    if (next.value !== value) set(next.value);
+  };
   const isCounted = (id: string) => (countedIds ? countedIds.has(id) : true);
 
   const formatDisplayDate = (dateStr: string) => {
@@ -572,11 +595,13 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.team', 'Team')} <span className="text-red-400">*</span></label>
-                <input type="text" value={adjExternalTeam} onChange={e => setAdjExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.externalTeam', 'Team name') as string} required />
+                <input type="text" data-testid="adj-external-team" value={adjExternalTeam} onChange={e => setAdjExternalTeam(e.target.value)} onBlur={() => settle(adjTeamAdoption, adjExternalTeam, teamPool, setAdjExternalTeam)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.externalTeam', 'Team name') as string} required />
+                <SuggestionChips value={adjExternalTeam} options={teamPool} onPick={setAdjExternalTeam} testId="adj-team-options" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
-                <input type="text" value={adjOpponentName} onChange={e => setAdjOpponentName(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.opponentName', 'Opponent name') as string} required />
+                <input type="text" data-testid="adj-opponent-input" value={adjOpponentName} onChange={e => setAdjOpponentName(e.target.value)} onBlur={() => settle(adjOpponentAdoption, adjOpponentName, opponentPool, setAdjOpponentName)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.opponentName', 'Opponent name') as string} required />
+                <SuggestionChips value={adjOpponentName} options={opponentPool} onPick={setAdjOpponentName} testId="adj-opponent-options" />
               </div>
               <div>
                 <label className="block text-xs text-slate-400 mb-1">{t('playerStats.score', 'Score')}</label>
@@ -823,7 +848,8 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.team', 'Team')} <span className="text-red-400">*</span></label>
-                          <input type="text" data-testid="edit-external-team" value={editExternalTeam} onChange={e => setEditExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                          <input type="text" data-testid="edit-external-team" value={editExternalTeam} onChange={e => setEditExternalTeam(e.target.value)} onBlur={() => settle(editTeamAdoption, editExternalTeam, teamPool, setEditExternalTeam)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                          <SuggestionChips value={editExternalTeam} options={teamPool} onPick={setEditExternalTeam} testId="edit-team-options" />
                           {/* Editable too: existing entries predate this question
                               and all read as "another team" until corrected. */}
                           <label className="block text-xs font-medium text-slate-400 mt-2 mb-1" htmlFor={`edit-team-${a.id}`}>
@@ -854,7 +880,8 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
-                          <input type="text" value={editOpponentName} onChange={e => setEditOpponentName(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                          <input type="text" data-testid="edit-opponent-input" value={editOpponentName} onChange={e => setEditOpponentName(e.target.value)} onBlur={() => settle(editOpponentAdoption, editOpponentName, opponentPool, setEditOpponentName)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                          <SuggestionChips value={editOpponentName} options={opponentPool} onPick={setEditOpponentName} testId="edit-opponent-options" />
                         </div>
                         <div className="lg:col-span-2">
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.score', 'Score')}</label>

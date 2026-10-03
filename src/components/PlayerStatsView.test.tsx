@@ -1085,6 +1085,40 @@ describe('PlayerStatsView - external game positions and scope (053)', () => {
     await waitFor(() => expect(screen.getByTestId('adj-sport-soccer')).toHaveAttribute('aria-pressed', 'true'));
   });
 
+  /** Phase 2 name adoption: the opponent box settles on the spelling the coach already uses, unless they insist. */
+  it('adopts an earlier opponent spelling on blur and keeps one typed again', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+    render(<PlayerStatsView {...baseProps} savedGames={{}} seasons={[{ id: 's1', name: 'Liiga', opponents: ['IPS'] } as never]} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    const box = screen.getByTestId('adj-opponent-input') as HTMLInputElement;
+    fireEvent.change(box, { target: { value: 'ips' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(box.value).toBe('IPS'));
+    fireEvent.change(box, { target: { value: 'ips' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(box.value).toBe('ips'));
+  });
+
+  /** The team box offers the names from this player's earlier added games. */
+  it('suggests team names from the player\'s earlier added games', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([
+      { id: 'adj_1', playerId: 'p1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, appliedAt: '2024-03-01T00:00:00Z', externalTeamName: 'KuPS P13', opponentName: 'IPS' },
+    ]);
+    render(<PlayerStatsView {...baseProps} savedGames={{}} />);
+    await expandExternal();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+    await waitFor(() => expect(screen.getByTestId('adj-team-options')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'KuPS P13' }));
+    expect((screen.getByTestId('adj-external-team') as HTMLInputElement).value).toBe('KuPS P13');
+  });
+
   /**
    * @critical - the positions card merges own matches and external games
    * through computePositionDiversity, which reads only `playerPositions`; the

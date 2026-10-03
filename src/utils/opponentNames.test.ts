@@ -12,6 +12,9 @@ import {
   groupOpponentVariants,
   preferredSpellings,
   listOpponents,
+  knownOpponentPool,
+  settleSpelling,
+  NO_ADOPTION,
 } from './opponentNames';
 
 describe('normalizeOpponentName', () => {
@@ -241,5 +244,40 @@ describe('listOpponents', () => {
 
   it('ignores blanks', () => {
     expect(listOpponents(['', '  ', 'HJK'])).toHaveLength(1);
+  });
+});
+
+describe('knownOpponentPool', () => {
+  it('puts curated names first, then played ones, most-used spelling of each, no duplicates', () => {
+    const pool = knownOpponentPool(
+      [{ opponents: ['IPS', 'KuPS'] }, { opponents: null }],
+      [{ opponentName: 'ips' }, { opponentName: 'HJK' }, { opponentName: 'Hjk' }, { opponentName: 'Hjk' }, null, { opponentName: '' }],
+    );
+    expect(pool).toEqual(['IPS', 'KuPS', 'Hjk']);
+  });
+});
+
+/** The rule both name boxes of an added game follow (phase 2 name adoption). */
+describe('settleSpelling', () => {
+  const pool = ['IPS', 'KuPS'];
+  it('adopts an earlier spelling', () => {
+    const r = settleSpelling(NO_ADOPTION, 'ips', pool);
+    expect(r.value).toBe('IPS');
+    expect(r.state.last).toEqual({ typed: 'ips', adopted: 'IPS' });
+  });
+  it('keeps a spelling the coach types again after it was adopted, and never adopts it after that', () => {
+    const first = settleSpelling(NO_ADOPTION, 'ips', pool);
+    const second = settleSpelling(first.state, 'ips', pool);
+    expect(second.value).toBe('ips');
+    expect(second.state.insisted).toBe('ips');
+    expect(settleSpelling(second.state, 'ips', pool).value).toBe('ips');
+  });
+  it('leaves a genuinely new name alone', () => {
+    const r = settleSpelling(NO_ADOPTION, 'IPS/Punainen', pool);
+    expect(r.value).toBe('IPS/Punainen');
+    expect(r.state.last).toBeNull();
+  });
+  it('does nothing with an empty box', () => {
+    expect(settleSpelling(NO_ADOPTION, '   ', pool).value).toBe('');
   });
 });

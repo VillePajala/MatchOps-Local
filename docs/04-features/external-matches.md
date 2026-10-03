@@ -111,6 +111,19 @@ owns the player's rows and reports changes upward. Three places mount it:
    tab (live before the first recorded match) opens the same modal with no
    player; the coach picks one and the add form is already open.
 
+### Name adoption (phase 2, 2026-10-03)
+Both free-text boxes of an added game behave like the game form's opponent
+box. `SuggestionChips` (lifted out of `TeamOpponentInputs`, which now uses it
+too) offers tap-to-fill chips that narrow as the coach types, capped with a
+"more" hint. On blur each box settles on the spelling already in use through
+`settleSpelling` in `utils/opponentNames.ts`; typing the same spelling again
+and leaving the box keeps it for good (`insisted`), so a wrong first capture
+always has a way back. Pools: the opponent box draws from
+`knownOpponentPool(seasons, games)`, the same pool the game form uses
+(`ClubModalsHost` passes it to the modal, `PlayerStatsView` builds it from
+what it already holds); the team box draws from the player's earlier added
+games, most-used spelling of each (`preferredSpellings`).
+
 **Naming (owner, 2026-10-02).** In the UI these are not "external games" but
 additions to one player's statistics: the section is *Lisätyt tilastot*, the
 action *Täydennä pelaajan tilastoja* / *Täydennä tilastoja*, the button inside
