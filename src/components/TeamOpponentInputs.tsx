@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { normalizeOpponentName } from '@/utils/opponentNames';
+import SuggestionChips from './SuggestionChips';
 
 export interface TeamOpponentInputsProps {
   teamName: string;
@@ -35,14 +34,6 @@ export interface TeamOpponentInputsProps {
   onOpponentBlur?: () => void;
 }
 
-/**
- * How many suggestion chips to show before the coach types, and while they are
- * typing. Small at rest so the form below stays reachable; a little more while
- * searching, where the chips are the thing being looked at.
- */
-const RESTING_CHIP_LIMIT = 6;
-const SEARCHING_CHIP_LIMIT = 12;
-
 const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
   teamName,
   opponentName,
@@ -62,52 +53,6 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
   onOpponentBlur,
   opponentFooter,
 }) => {
-  // Labels arrive as props because each consumer modal has its own key
-  // namespace; this one string is the component's own, describing capping that
-  // only it knows about.
-  const { t } = useTranslation();
-  const allOptions = (opponentOptions ?? []).filter((name) => name.trim() !== '');
-
-  /**
-   * Chips narrow as the coach types - that IS the autocomplete. The datalist
-   * that used to do it was removed because <input list> re-roles the field to
-   * combobox, so the filtering has to live here instead.
-   *
-   * TEXT IN THE FIELD ALWAYS FILTERS, including text that exactly matches an
-   * option. There used to be an exception for that case - the whole list came
-   * back, so tapping a chip did not strand the coach with only the chip they
-   * had just tapped. Harmless while the list was uncapped, because the team
-   * they wanted was still somewhere in it. Once the list was capped at six it
-   * became a visibly broken search: typing "Ips" with "IPS" among 69 known
-   * teams showed the first six of those 69, none of them IPS.
-   *
-   * Filtering on an exact match is also the more useful answer, not merely the
-   * less broken one. Finnish clubs name teams club + colour, so "Ips" matching
-   * IPS, IPS/Sininen and IPS/Punainen shows the coach exactly the set they
-   * need to tell apart. The stranding it used to avoid costs a keystroke:
-   * editing the field re-opens the list.
-   */
-  /*
-   * CAPPED, because a real coach's pool is not small. After a season or two
-   * this list is thirty-odd teams, and rendering all of them before a single
-   * key is pressed pushed every other field in the form - team, date, season,
-   * the create button - off the bottom of the phone. A suggestion list that
-   * buries the form it belongs to is worse than no suggestion list.
-   *
-   * The cap applies to the RESTING state hardest. What it truncates is
-   * meaningful rather than arbitrary: the caller puts the competition's own
-   * teams first and the rest in order of use, so the few shown are the few
-   * most likely. Typing searches the WHOLE pool, so nothing is unreachable -
-   * and the hint below says so, because a truncated list that looks complete
-   * would have a coach believe a team is missing.
-   */
-  const typed = normalizeOpponentName(opponentName);
-  const searching = !!typed;
-  const matches = searching
-    ? allOptions.filter((name) => normalizeOpponentName(name).includes(typed))
-    : allOptions;
-  const options = matches.slice(0, searching ? SEARCHING_CHIP_LIMIT : RESTING_CHIP_LIMIT);
-  const hiddenCount = matches.length - options.length;
   return (
     <>
       <div className="mb-4">
@@ -153,47 +98,9 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           autoCapitalize="words"
           spellCheck="true"
         />
-        {/* Chips rather than a datalist. An <input list=...> takes the implicit
-            ARIA role COMBOBOX instead of textbox, which silently re-roles this
-            field for assistive tech and for anything querying it by role - it
-            broke existing tests the moment a competition had teams listed.
-            Chips are also the better phone affordance: one tap, and visible
-            without opening anything. */}
-        {options.length > 0 && (
-          <>
-            <div className="mt-2 flex flex-wrap gap-1.5" data-testid="opponent-options">
-              {options.map((name) => {
-                const chosen = name === opponentName;
-                return (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => onOpponentNameChange(name)}
-                    disabled={disabled}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                      chosen
-                        ? 'bg-indigo-600 border-indigo-400/40 text-white'
-                        : 'bg-slate-700/70 border-slate-600/60 text-slate-200 hover:bg-slate-600/70'
-                    }`}
-                  >
-                    {name}
-                  </button>
-                );
-              })}
-            </div>
-            {/* Says the list is partial. Without it a coach whose team is not
-                among the six believes the app has forgotten it, and types the
-                name fresh - which is how a second spelling gets created, the
-                exact thing the suggestions exist to prevent. */}
-            {hiddenCount > 0 && (
-              <p className="mt-1.5 text-xs text-slate-400" data-testid="opponent-options-more">
-                {t('common.moreOpponents', '+{{count}} more. Type to search them all.', {
-                  count: hiddenCount,
-                })}
-              </p>
-            )}
-          </>
-        )}
+        {/* The chips are shared with the added-game form (SuggestionChips),
+            so the two name boxes in the app suggest the same way. */}
+        <SuggestionChips value={opponentName} options={opponentOptions} onPick={onOpponentNameChange} disabled={disabled} />
         {opponentFooter}
         {opponentError && <p className="mt-1 text-sm text-red-400">{opponentError}</p>}
       </div>
