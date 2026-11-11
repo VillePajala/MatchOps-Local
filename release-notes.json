@@ -11,6 +11,16 @@
       ]
     },
     {
+      "date": "2026-11-11",
+      "internal": true,
+      "en": [
+        "Behind-the-scenes security updates."
+      ],
+      "fi": [
+        "Taustalla tehtyjä tietoturvapäivityksiä."
+      ]
+    },
+    {
       "date": "2026-10-03",
       "en": [
         "The player stats note about the selected season now shows the game counts and reads in Finnish too."
