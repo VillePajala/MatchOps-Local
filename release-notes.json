@@ -4,6 +4,15 @@
     {
       "date": "2026-11-11",
       "en": [
+        "A new game no longer starts with last game's fair play card already given. The card now belongs only to the game it was given in."
+      ],
+      "fi": [
+        "Uusi ottelu ei enää ala edellisen ottelun reilun pelin kortti valmiiksi annettuna. Kortti kuuluu nyt vain siihen otteluun, jossa se annettiin."
+      ]
+    },
+    {
+      "date": "2026-11-11",
+      "en": [
         "When the connection comes back during a match, the app now reconnects in the background instead of jumping to the loading screen, so the running clock keeps going."
       ],
       "fi": [

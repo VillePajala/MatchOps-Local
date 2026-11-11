@@ -158,6 +158,15 @@ describe('buildReapplyPatch', () => {
     expect(z.jerseyNumber).toBe('7');
   });
 
+  it('does not bring a stale fair-play flag from the master roster into the game', () => {
+    const g = planGame();
+    const edited = replacePlayerInPlan(plan(g), 'b', { id: 'z', name: 'Zeb' });
+    const master: Player[] = [{ id: 'z', name: 'Zeb', receivedFairPlayCard: true }];
+    const res = buildReapplyPatch(makeGame(), edited, edited.games[0], master);
+    const z = res.patch!.availablePlayers!.find((p) => p.id === 'z')!;
+    expect(z.receivedFairPlayCard).toBe(false);
+  });
+
   it('removing a player from the plan removes them from the linked game', () => {
     const g = planGame();
     const edited = removePlayerFromPlan(plan(g), 'c'); // 'c' was a starter

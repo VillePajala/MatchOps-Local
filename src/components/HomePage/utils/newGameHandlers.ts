@@ -9,6 +9,7 @@ import type { AppState, Player, SavedGamesCollection, GameType, Gender, Point } 
 import { setGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
 import { buildAutoPlacement } from '@/utils/formations';
+import { withoutFairPlayCard } from '@/utils/playerStats';
 import { getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
 import type { ResourceType } from '@/config/premiumLimits';
 
@@ -119,7 +120,7 @@ export async function buildAndPersistNewGame(
     isPlayed,
     isFriendly,
     teamId,
-    availablePlayersForGame,
+    availablePlayersForGame: availablePlayersFromRoster,
     selectedPersonnelIds,
     leagueId,
     customLeagueName,
@@ -163,6 +164,10 @@ export async function buildAndPersistNewGame(
     }
   }
 
+  // The squad is copied from the master/team roster, which can still carry a stale
+  // fair-play flag; a new game always starts with nobody holding the card.
+  const availablePlayersForGame = withoutFairPlayCard(availablePlayersFromRoster);
+
   const finalSelectedPlayerIds =
     initialSelectedPlayerIds && initialSelectedPlayerIds.length > 0
       ? initialSelectedPlayerIds
@@ -174,7 +179,11 @@ export async function buildAndPersistNewGame(
   // availablePlayers always holds: drop prefilled players no longer in the roster,
   // and make sure everyone left on the field stays selected.
   const availableIdSet = new Set(availablePlayersForGame.map((p) => p.id));
-  const reconciledOnField = (prefill?.playersOnField ?? []).filter((p) => availableIdSet.has(p.id));
+  // The prefilled field players were built from the roster before this function ran,
+  // so they can carry the same stale fair-play flag; stats read playersOnField first.
+  const reconciledOnField = withoutFairPlayCard(
+    (prefill?.playersOnField ?? []).filter((p) => availableIdSet.has(p.id)),
+  );
   // Deep-review M7: reconcile the NON-prefill selection too - the full-club
   // fallback (and any future caller) must not persist ids outside this
   // game's roster (selectedPlayerIds ⊆ availablePlayers, always).
