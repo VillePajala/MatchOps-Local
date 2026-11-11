@@ -22,6 +22,14 @@ export function diffRemovedRosterIds(
   previousSnapshot: Set<string> | null,
   currentRoster: Player[] | undefined,
 ): RosterRemovalDiff {
+  // A roster that goes from players to none (or to not-loaded) is treated as a
+  // missing read, not as "everyone was deleted": prune nothing and keep the last
+  // known snapshot, so the next real roster is compared against it. Wiping a
+  // live lineup on a bad read is far worse than leaving one stale token on the
+  // field in the rare case a coach deletes their very last player mid-match.
+  if (previousSnapshot && previousSnapshot.size > 0 && (!currentRoster || currentRoster.length === 0)) {
+    return { removedIds: new Set(), nextSnapshot: previousSnapshot };
+  }
   const nextSnapshot = new Set((currentRoster || []).map((p) => p.id));
   if (!previousSnapshot) {
     return { removedIds: new Set(), nextSnapshot };

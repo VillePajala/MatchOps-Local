@@ -28,11 +28,30 @@ describe('diffRemovedRosterIds (L.2 pruning cascade)', () => {
     expect(third.removedIds.size).toBe(0);
   });
 
-  it('handles an emptied roster and undefined input', () => {
+  /**
+   * Review 1.4: a roster read that comes back empty (or not loaded yet) must
+   * not read as "every player was deleted" - that wiped live lineups.
+   * @critical
+   */
+  it('prunes nothing when the roster suddenly goes empty, and keeps the last snapshot', () => {
     const first = diffRemovedRosterIds(null, [p('a'), p('b')]);
-    const second = diffRemovedRosterIds(first.nextSnapshot, []);
-    expect([...second.removedIds].sort()).toEqual(['a', 'b']);
-    const third = diffRemovedRosterIds(second.nextSnapshot, undefined);
-    expect(third.removedIds.size).toBe(0);
+    const emptied = diffRemovedRosterIds(first.nextSnapshot, []);
+    expect(emptied.removedIds.size).toBe(0);
+    expect([...emptied.nextSnapshot].sort()).toEqual(['a', 'b']);
+    const unloaded = diffRemovedRosterIds(emptied.nextSnapshot, undefined);
+    expect(unloaded.removedIds.size).toBe(0);
+    expect([...unloaded.nextSnapshot].sort()).toEqual(['a', 'b']);
+    // The next real roster is still compared against the last good snapshot,
+    // so a genuine deletion that happened meanwhile is still pruned.
+    const recovered = diffRemovedRosterIds(unloaded.nextSnapshot, [p('a')]);
+    expect([...recovered.removedIds]).toEqual(['b']);
+  });
+
+  it('handles an empty or missing first snapshot', () => {
+    expect(diffRemovedRosterIds(null, undefined).removedIds.size).toBe(0);
+    const empty = diffRemovedRosterIds(null, []);
+    const added = diffRemovedRosterIds(empty.nextSnapshot, [p('a')]);
+    expect(added.removedIds.size).toBe(0);
+    expect(diffRemovedRosterIds(added.nextSnapshot, [p('a')]).removedIds.size).toBe(0);
   });
 });

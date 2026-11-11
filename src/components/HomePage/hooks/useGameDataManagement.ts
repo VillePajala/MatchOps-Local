@@ -130,6 +130,7 @@ export function useGameDataManagement(
     loading: isGameDataLoading,
     isSettling: isGameDataSettling,
     error: gameDataError,
+    masterRosterError,
   } = useGameDataQueries();
 
   // Teams query for multi-team support
@@ -143,11 +144,11 @@ export function useGameDataManagement(
   const areSeasonsQueryLoading = isGameDataLoading;
   const areTournamentsQueryLoading = isGameDataLoading;
 
-  const isMasterRosterQueryError = !!gameDataError;
+  const isMasterRosterQueryError = !!masterRosterError;
   const isSeasonsQueryError = !!gameDataError;
   const isTournamentsQueryError = !!gameDataError;
 
-  const masterRosterQueryErrorData = gameDataError;
+  const masterRosterQueryErrorData = masterRosterError;
   const seasonsQueryErrorData = gameDataError;
   const tournamentsQueryErrorData = gameDataError;
 
@@ -168,8 +169,10 @@ export function useGameDataManagement(
     }
 
     if (isMasterRosterQueryError) {
-      logger.error('[TanStack Query] Error loading master roster:', masterRosterQueryErrorData);
-      setAvailablePlayers([]);
+      // Keep the players the game already has. A failed read (transient on
+      // mobile IndexedDB) is not an empty roster; clearing here wiped the
+      // game's players. The next successful read syncs as usual.
+      logger.warn('[TanStack Query] Roster read failed - keeping current players:', masterRosterQueryErrorData);
       return;
     }
 

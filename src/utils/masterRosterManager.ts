@@ -11,21 +11,13 @@ import logger from '@/utils/logger';
 
 /**
  * Retrieves the master roster of players.
- * Calls the underlying async utility from masterRoster.ts.
+ * Calls the underlying async utility from masterRoster.ts, which logs the failure.
+ * A failed read throws rather than resolving to [] - see masterRoster.ts for why.
  * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns {Promise<Player[]>} The current roster.
+ * @throws When the roster cannot be read.
  */
-export const getMasterRoster = async (userId?: string): Promise<Player[]> => {
-    // logger.log('[masterRosterManager] getMasterRoster called');
-    try {
-        const roster = await utilGetMasterRoster(userId);
-        // logger.log('[masterRosterManager] Roster fetched by util:', roster);
-        return roster;
-    } catch (error) {
-        logger.error("[masterRosterManager] Error in getMasterRoster:", error);
-        return []; // Return empty array on error to maintain type consistency
-    }
-};
+export const getMasterRoster = (userId?: string): Promise<Player[]> => utilGetMasterRoster(userId);
 
 /**
  * Adds a new player to the master roster.
