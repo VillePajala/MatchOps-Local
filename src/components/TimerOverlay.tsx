@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaPlay, FaPause, FaUndo } from 'react-icons/fa'; // Import icons
 import { useTranslation } from 'react-i18next'; // Import translation hook
 import { IntervalLog, SubAlertLevel } from '@/types'; // Import types
-import type { PlannedSubPrompt } from '@/hooks/usePlannedSubPrompts';
+import type { PlannedSubGroup } from '@/hooks/usePlannedSubPrompts';
 import { formatTime } from '@/utils/time';
 import SteadyDigits from '@/components/SteadyDigits';
 import logger from '@/utils/logger';
@@ -52,10 +52,10 @@ interface TimerOverlayProps {
   onRecordShootout?: () => void;
   onClose?: () => void;
   isLoaded: boolean;
-  /** Playing-Time Planner (Phase 2): the due planned sub to nudge, or null. */
-  plannedSubPrompt?: PlannedSubPrompt | null;
-  /** Acknowledge a planned-sub nudge so it stops showing. */
-  onDismissPlannedSub?: (subId: string) => void;
+  /** Playing-Time Planner: the latest due group of planned subs, or null. */
+  plannedSubGroup?: PlannedSubGroup | null;
+  /** How many earlier groups were also due (shown as "+N earlier"). */
+  plannedSubsEarlier?: number;
   /** Kirjuri voice notes (PR 2): press-hold recorder controls; absent = feature not wired. */
   dictation?: DictationControls;
 }
@@ -94,8 +94,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   onRecordShootout = () => {},
   onClose,
   isLoaded,
-  plannedSubPrompt = null,
-  onDismissPlannedSub,
+  plannedSubGroup = null,
+  plannedSubsEarlier = 0,
 }) => {
   const { t } = useTranslation(); // Initialize translation hook
 
@@ -383,35 +383,33 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           </button>
         </div>
 
-        {/* Planned sub nudge (Playing-Time Planner) - persists until dismissed.
-            Shown while the match is live INCLUDING period breaks (half-time is
-            exactly when planned subs happen), but never before kick-off or
-            after full time - there is nobody left to substitute. */}
-        {plannedSubPrompt && gameStatus !== 'notStarted' && gameStatus !== 'gameEnd' && (
+        {/* Planned subs (Playing-Time Planner): every change planned for the
+            latest due moment, as one block. No dismiss - it moves on by itself
+            when the next group falls due. Shown while the match is live
+            INCLUDING period breaks (half-time is exactly when planned subs
+            happen), but never before kick-off or after full time. */}
+        {plannedSubGroup && gameStatus !== 'notStarted' && gameStatus !== 'gameEnd' && (
           <div
             role="status"
-            className="w-full mb-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 flex items-center justify-between gap-3 pointer-events-auto"
+            data-testid="planned-sub-group"
+            className="w-full mb-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 text-left pointer-events-auto"
           >
-            <div className="text-left">
-              <div className="text-xs font-semibold uppercase tracking-wide text-amber-300">
-                {t('timerOverlay.plannedSubTitle', 'Planned sub')} · {formatTime(plannedSubPrompt.timeSeconds)}
-              </div>
-              <div className="text-sm text-slate-100">
-                {plannedSubPrompt.outName
-                  ? t('timerOverlay.plannedSubInOut', '{{in}} on for {{out}}', {
-                      in: plannedSubPrompt.inName,
-                      out: plannedSubPrompt.outName,
-                    })
-                  : t('timerOverlay.plannedSubIn', '{{in}} on', { in: plannedSubPrompt.inName })}
-              </div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-amber-300">
+              {t('timerOverlay.plannedSubTitle', 'Planned subs')} · {formatTime(plannedSubGroup.timeSeconds)}
+              {plannedSubsEarlier > 0 && (
+                <span className="ml-2 normal-case font-normal text-amber-200/80">
+                  {t('timerOverlay.plannedSubsEarlier', '+{{count}} earlier', { count: plannedSubsEarlier })}
+                </span>
+              )}
             </div>
-            <button
-              onClick={() => onDismissPlannedSub?.(plannedSubPrompt.subId)}
-              className="text-white font-semibold py-1.5 px-3 rounded-sm bg-amber-600 hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm whitespace-nowrap"
-              aria-label={t('timerOverlay.plannedSubDismiss', 'Got it')}
-            >
-              {t('timerOverlay.plannedSubDismiss', 'Got it')}
-            </button>
+            <div className="text-sm text-slate-100">
+              {t('timerOverlay.plannedSubsOn', 'On')}: {plannedSubGroup.inNames.join(', ')}
+            </div>
+            {plannedSubGroup.outNames.length > 0 && (
+              <div className="text-sm text-slate-300">
+                {t('timerOverlay.plannedSubsOff', 'Off')}: {plannedSubGroup.outNames.join(', ')}
+              </div>
+            )}
           </div>
         )}
 

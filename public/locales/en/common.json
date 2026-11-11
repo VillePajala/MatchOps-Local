@@ -740,10 +740,11 @@
     "wentToOvertime": "Overtime",
     "recordShootout": "Penalties",
     "assessPlayersButton": "Assess players",
-    "plannedSubTitle": "Planned sub",
-    "plannedSubInOut": "{{in}} on for {{out}}",
-    "plannedSubIn": "{{in}} on",
-    "plannedSubDismiss": "Got it",
+    "plannedSubTitle": "Planned subs",
+    "plannedSubsEarlier_one": "+{{count}} earlier",
+    "plannedSubsEarlier_other": "+{{count}} earlier",
+    "plannedSubsOn": "On",
+    "plannedSubsOff": "Off",
     "finishGameButton": "Finish this game"
   },
   "instructionsModal": {
