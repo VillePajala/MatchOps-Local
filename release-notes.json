@@ -4,6 +4,15 @@
     {
       "date": "2026-11-11",
       "en": [
+        "Linking a game to a season or tournament no longer changes its date or venue, and a game that has already started keeps its period length."
+      ],
+      "fi": [
+        "Ottelun liittäminen kauteen tai turnaukseen ei enää muuta sen päivämäärää eikä paikkaa, ja jo alkanut ottelu pitää jaksojensa pituuden."
+      ]
+    },
+    {
+      "date": "2026-11-11",
+      "en": [
         "Your lineup on the field no longer disappears if the phone briefly fails to read the player list when you return to the app during a match."
       ],
       "fi": [
