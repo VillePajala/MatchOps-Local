@@ -202,6 +202,49 @@ describe('newGameHandlers', () => {
     expect(available.filter((pl) => pl.isGoalie)).toHaveLength(1);
   });
 
+  /**
+   * A new game always starts with nobody holding the fair-play card, even when the
+   * roster it is copied from still carries a stale flag.
+   * @critical
+   */
+  it('starts a new game with no fair-play card even if the roster carries one', async () => {
+    const rosterWithStaleCard: Player[] = [
+      { id: 'p1', name: 'Player 1', isGoalie: false, receivedFairPlayCard: true },
+      { id: 'p2', name: 'Player 2', isGoalie: true },
+    ];
+    const deps = createTestDeps({ availablePlayers: rosterWithStaleCard });
+    const result = await buildAndPersistNewGame(
+      deps,
+      createBaseRequest({ availablePlayersForGame: rosterWithStaleCard }),
+    );
+    expect(result).not.toBeNull();
+    expect(result!.gameState.availablePlayers.some((p) => p.receivedFairPlayCard)).toBe(false);
+    expect(result!.gameState.playersOnField.some((p) => p.receivedFairPlayCard)).toBe(false);
+  });
+
+  /**
+   * Planner-prefilled field players are built from the roster before game creation,
+   * so they can carry the same stale flag; stats read playersOnField first.
+   * @critical
+   */
+  it('clears a stale fair-play flag from planner-prefilled field players', async () => {
+    const result = await buildAndPersistNewGame(
+      createTestDeps(),
+      createBaseRequest({
+        initialSelectedPlayerIds: ['p1', 'p2'],
+        prefill: {
+          playersOnField: [
+            { id: 'p1', name: 'Player 1', isGoalie: false, receivedFairPlayCard: true, relX: 0.5, relY: 0.5 },
+          ],
+          plannedSubs: [],
+          formationSnapPoints: [],
+        },
+      }),
+    );
+    expect(result!.gameState.playersOnField[0].receivedFairPlayCard).toBe(false);
+    expect(result!.gameState.availablePlayers.some((p) => p.receivedFairPlayCard)).toBe(false);
+  });
+
   it('threads the isFriendly flag onto the built game (default false, explicit true)', async () => {
     const def = await buildAndPersistNewGame(createTestDeps(), createBaseRequest());
     expect(def!.gameState.isFriendly).toBe(false);
