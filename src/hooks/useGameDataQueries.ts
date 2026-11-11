@@ -109,8 +109,13 @@ export function useGameDataQueries(): GameDataQueriesResult {
     queryFn: () => getCurrentGameIdSetting(userId),
   });
 
+  // The roster gates boot only on its FIRST attempt (as before, when a failed
+  // read resolved to [] at once). Its retries after a failed read run in the
+  // background: waiting ~7s through them would delay resuming the match even
+  // though the saved game and current-game id are ready. Meanwhile the roster
+  // reads as empty, which the roster sync and the live prune both tolerate.
   const loading =
-    masterRoster.isLoading ||
+    (masterRoster.isLoading && masterRoster.failureCount === 0) ||
     seasons.isLoading ||
     tournaments.isLoading ||
     savedGames.isLoading ||

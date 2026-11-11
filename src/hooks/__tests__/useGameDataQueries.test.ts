@@ -84,11 +84,33 @@ describe('useGameDataQueries', () => {
 
   test('loading true when any query is loading', () => {
     mockUseQuery
-      .mockReturnValueOnce({ data: [], isLoading: true })
+      .mockReturnValueOnce({ data: [], isLoading: true, failureCount: 0 })
       .mockReturnValue({ data: [], isLoading: false });
 
     const { result } = renderHook(() => useGameDataQueries());
 
     expect(result.current.loading).toBe(true);
+  });
+
+  /**
+   * Review 1.4 (Codex): the roster's retries after a failed first read run in
+   * the background - they must not hold the match boot for ~7s when everything
+   * else is ready. Only its first attempt gates boot.
+   * @critical
+   */
+  test('roster retries do not gate boot; its first attempt does', () => {
+    const roster = (failureCount: number) => ({ queryKey }: { queryKey: unknown[] }) =>
+      queryKey[0] === 'masterRoster'
+        ? { data: undefined, isLoading: true, failureCount, error: null }
+        : { data: undefined, isLoading: false, error: null };
+
+    mockUseQuery.mockImplementation(roster(0));
+    const { result, rerender } = renderHook(() => useGameDataQueries());
+    expect(result.current.loading).toBe(true);
+
+    mockUseQuery.mockImplementation(roster(1));
+    rerender();
+    expect(result.current.loading).toBe(false);
+    expect(result.current.masterRoster).toEqual([]);
   });
 });
