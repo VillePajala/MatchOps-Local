@@ -115,14 +115,28 @@ describe('Master Roster Utilities', () => {
       expect(result).toEqual(mockPlayers);
     });
 
-    it('should return an empty array and log error if DataStore fails', async () => {
+    /**
+     * Review 1.4: a failed read must throw, never resolve to [] - an empty
+     * roster cached as success wiped the live lineup.
+     * @critical
+     */
+    it('should throw and log error if DataStore fails', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockDataStore.getPlayers.mockRejectedValueOnce(new Error('DataStore error'));
 
-      const result = await getMasterRoster();
+      await expect(getMasterRoster()).rejects.toThrow('DataStore error');
 
       expect(consoleSpy).toHaveBeenCalled();
-      expect(result).toEqual([]);
+      consoleSpy.mockRestore();
+    });
+
+    it('should throw (without an error log) when the DataStore is closed mid-switch', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockDataStore.getPlayers.mockRejectedValueOnce(Object.assign(new Error('closed'), { code: 'NOT_INITIALIZED' }));
+
+      await expect(getMasterRoster()).rejects.toThrow('closed');
+
+      expect(consoleSpy).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
   });

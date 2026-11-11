@@ -8,6 +8,7 @@ import {
   setPlayerFairPlayCardStatus
 } from './masterRoster';
 import type { Player } from '@/types';
+import { QueryClient } from '@tanstack/react-query';
 
 jest.mock('./masterRoster');
 
@@ -49,10 +50,32 @@ it('returns roster on success', async () => {
   await expect(getMasterRoster()).resolves.toEqual(mockRoster);
 });
 
-it('returns empty array on get error', async () => {
+/** Review 1.4: a failed read propagates so React Query can retry. @critical */
+it('rethrows on get error instead of returning an empty roster', async () => {
   mockedUtilGet.mockRejectedValue(new Error('fail'));
-  const result = await getMasterRoster();
-  expect(result).toEqual([]);
+  await expect(getMasterRoster()).rejects.toThrow('fail');
+});
+
+/**
+ * Review 1.4: with the roster used as a query function, a failed refetch keeps
+ * the last good roster in the cache instead of replacing it with [] (which the
+ * live-game prune read as "every player deleted").
+ * @critical
+ */
+it('a failed refetch keeps the last good roster in the query cache', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryKey = ['masterRoster', 'user-1'];
+  mockedUtilGet.mockResolvedValueOnce(mockRoster);
+  await client.fetchQuery({ queryKey, queryFn: () => getMasterRoster('user-1') });
+
+  mockedUtilGet.mockRejectedValueOnce(new Error('IndexedDB read failed'));
+  await expect(
+    client.fetchQuery({ queryKey, queryFn: () => getMasterRoster('user-1'), staleTime: 0 }),
+  ).rejects.toThrow('IndexedDB read failed');
+
+  expect(client.getQueryData(queryKey)).toEqual(mockRoster);
+  expect(client.getQueryState(queryKey)?.status).toBe('error');
+  client.clear();
 });
 
 it('adds player via util', async () => {

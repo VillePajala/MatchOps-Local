@@ -4,6 +4,15 @@
     {
       "date": "2026-11-11",
       "en": [
+        "Your lineup on the field no longer disappears if the phone briefly fails to read the player list when you return to the app during a match."
+      ],
+      "fi": [
+        "Kentälle asetettu kokoonpano ei enää katoa, jos puhelin ei hetkellisesti pysty lukemaan pelaajalistaa, kun palaat sovellukseen kesken ottelun."
+      ]
+    },
+    {
+      "date": "2026-11-11",
+      "en": [
         "A new game no longer starts with last game's fair play card already given. The card now belongs only to the game it was given in."
       ],
       "fi": [

@@ -11,8 +11,15 @@ import { getDataStore } from '@/datastore';
 /**
  * Retrieves the master roster of players from IndexedDB.
  * DataStore handles initialization and storage access.
+ *
+ * A failed read THROWS - it never resolves to an empty roster. An empty list is
+ * indistinguishable from "every player was deleted": React Query would cache it
+ * as a success (skipping its retries and dropping the last good roster), and the
+ * live-game prune would then take every player off the field. Callers that can
+ * live without the roster catch the error themselves.
  * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns An array of Player objects.
+ * @throws When the DataStore read fails (including NOT_INITIALIZED during a user switch).
  */
 export const getMasterRoster = async (userId?: string): Promise<Player[]> => {
   try {
@@ -23,10 +30,10 @@ export const getMasterRoster = async (userId?: string): Promise<Player[]> => {
     // Don't log as error to avoid Sentry noise
     if (error && typeof error === 'object' && 'code' in error && error.code === 'NOT_INITIALIZED') {
       logger.info('[getMasterRoster] Read skipped - DataStore closed during transition');
-      return [];
+    } else {
+      logger.error('[getMasterRoster] Error getting master roster:', error);
     }
-    logger.error('[getMasterRoster] Error getting master roster:', error);
-    return [];
+    throw error;
   }
 };
 

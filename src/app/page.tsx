@@ -40,7 +40,7 @@ import { asCoordinates } from '@/utils/travelPlan';
 import { todayIso } from '@/utils/todayIso';
 import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId, buildHomeTeamScopeOptions } from '@/utils/homeTeamScope';
 import type { HomeTeamScopeOption } from '@/utils/homeTeamScope';
-import type { Season, Team, Tournament } from '@/types';
+import type { Player, Season, Team, Tournament } from '@/types';
 import type { TranslationKey } from '@/i18n-types';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
@@ -458,7 +458,14 @@ export default function Home() {
 
       // Check if user has any players in roster
       // CRITICAL: Pass userId for user-scoped storage (cloud mode)
-      const roster = await getMasterRoster(userId);
+      // A failed roster read must not fall into the outer catch, which would
+      // also hide "Resume" and every other start-screen signal.
+      let roster: Player[] = [];
+      try {
+        roster = await getMasterRoster(userId);
+      } catch (rosterErr) {
+        logger.warn('Failed to read roster for start screen', { error: rosterErr });
+      }
       setHasPlayers(roster.length > 0);
 
       // Recommended-setup signals for the Start Screen card.

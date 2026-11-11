@@ -58,6 +58,30 @@ describe('useGameDataQueries', () => {
     expect(result.current.error).toBeNull();
   });
 
+  /**
+   * Review 1.4: a roster query with no data (first load failed) must return the
+   * SAME empty array every render - a fresh [] re-ran every effect depending on
+   * it in an endless render loop. Its error is reported on its own, not as the
+   * saved-games/boot error.
+   * @critical
+   */
+  test('failed roster load: stable empty roster, separate roster error', () => {
+    const rosterError = new Error('IndexedDB read failed');
+    mockUseQuery.mockImplementation(({ queryKey }: { queryKey: unknown[] }) =>
+      queryKey[0] === 'masterRoster'
+        ? { data: undefined, isLoading: false, error: rosterError }
+        : { data: undefined, isLoading: false, error: null });
+
+    const { result, rerender } = renderHook(() => useGameDataQueries());
+    const first = result.current.masterRoster;
+    rerender();
+
+    expect(result.current.masterRoster).toEqual([]);
+    expect(result.current.masterRoster).toBe(first);
+    expect(result.current.masterRosterError).toBe(rosterError);
+    expect(result.current.error).toBeNull();
+  });
+
   test('loading true when any query is loading', () => {
     mockUseQuery
       .mockReturnValueOnce({ data: [], isLoading: true })
