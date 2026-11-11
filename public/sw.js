@@ -104,6 +104,14 @@ self.addEventListener('activate', (event) => {
  * matchAndAdopt).
  */
 async function cleanupOldCaches() {
+  // The page posts to its controller. While a newer version is installing or
+  // waiting, that controller is THIS (older) worker, and "every other cache"
+  // would include the newer version's. Leave cleanup to the newer version.
+  const reg = self.registration;
+  if (reg && (reg.installing || reg.waiting)) {
+    log('[SW] A newer version is pending - leaving cache cleanup to it');
+    return;
+  }
   const current = await caches.open(CACHE_NAME);
   const shell = await current.match(self.location.origin + '/');
   if (!shell) {
@@ -125,6 +133,8 @@ async function cleanupOldCaches() {
  * Looks in this version's cache first, then in any older one. A hit in an
  * older cache is copied into this version's cache, so a file that did not
  * change between builds (same hashed URL) survives the old cache's cleanup.
+ * Only for content-hashed URLs (/_next/static/): copying an unhashed file
+ * (a logo, ball.png) would carry an outdated copy into every later version.
  */
 async function matchAndAdopt(key) {
   const current = await caches.open(CACHE_NAME);
@@ -139,6 +149,44 @@ async function matchAndAdopt(key) {
     }
   }
   return older;
+}
+
+/**
+ * Cache-first for static assets. Content-hashed build files can be taken from
+ * any version's cache (and adopted). Unhashed files only come from this
+ * version's cache or the network; an older version's copy is used only when
+ * the network fails, so a replaced logo is picked up after an update.
+ */
+async function cachedAsset(request, url) {
+  const immutable = url.pathname.startsWith('/_next/static/');
+  const cached = immutable
+    ? await matchAndAdopt(request)
+    : await caches.open(CACHE_NAME).then((current) => current.match(request));
+  if (cached) return cached;
+
+  try {
+    const fetchResponse = await fetch(request);
+    // Only cache successful GET requests
+    if (request.method === 'GET' && fetchResponse.status === 200) {
+      const responseClone = fetchResponse.clone();
+      caches.open(CACHE_NAME).then(async (cache) => {
+        await cache.put(request, responseClone);
+        // Trim cache if it exceeds size limit
+        await trimCache(cache);
+      }).catch(err => {
+        logError('[SW] Cache put failed:', err);
+      });
+    }
+    return fetchResponse;
+  } catch (err) {
+    // Offline: an older version's copy beats a broken image.
+    const older = immutable ? undefined : await caches.match(request);
+    if (older) return older;
+    logError('[SW] Network request failed for asset:', request.url, err);
+    // For assets not in cache and network failed, return error
+    // The browser will handle this gracefully (broken image, etc.)
+    throw err;
+  }
 }
 
 // Listen for messages from the client
@@ -251,34 +299,7 @@ self.addEventListener('fetch', (event) => {
     request.url.includes('/icons/') ||
     request.url.includes('/logos/')
   ) {
-    event.respondWith(
-      matchAndAdopt(request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-
-        // Fetch from network and cache for next time
-        return fetch(request).then((fetchResponse) => {
-          // Only cache successful GET requests
-          if (request.method === 'GET' && fetchResponse.status === 200) {
-            const responseClone = fetchResponse.clone();
-            caches.open(CACHE_NAME).then(async (cache) => {
-              await cache.put(request, responseClone);
-              // Trim cache if it exceeds size limit
-              await trimCache(cache);
-            }).catch(err => {
-              logError('[SW] Cache put failed:', err);
-            });
-          }
-          return fetchResponse;
-        }).catch((err) => {
-          logError('[SW] Network request failed for asset:', request.url, err);
-          // For assets not in cache and network failed, return error
-          // The browser will handle this gracefully (broken image, etc.)
-          throw err;
-        });
-      })
-    );
+    event.respondWith(cachedAsset(request, url));
     return;
   }
 

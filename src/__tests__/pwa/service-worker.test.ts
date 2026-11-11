@@ -279,12 +279,13 @@ describe('Service Worker cache lifecycle across an update', () => {
   };
 
   /** Boots the new sw.js with an old version's cache already on the device. */
-  const boot = (online: boolean) => {
+  const boot = (online: boolean, registration: Record<string, unknown> = { installing: null, waiting: null }) => {
     const storage = makeCacheStorage();
     const old = new Map<string, FakeResponse>([
       [ORIGIN + '/', new FakeResponse('old shell')],
       [ORIGIN + '/_next/static/chunks/app-OLD.js', new FakeResponse('old app chunk')],
       [ORIGIN + '/_next/static/chunks/shared-SAME.js', new FakeResponse('unchanged chunk')],
+      [ORIGIN + '/logos/logo.png', new FakeResponse('old logo')],
     ]);
     storage.stores.set(OLD, old);
     storage.stores.set('other-app-cache', new Map());
@@ -303,6 +304,7 @@ describe('Service Worker cache lifecycle across an update', () => {
       location: { origin: ORIGIN, hostname: 'app.test' },
       addEventListener: (type: string, fn: (e: unknown) => void) => { handlers[type] = fn; },
       skipWaiting: jest.fn(),
+      registration,
     };
     sandbox.self = sandbox;
     vm.runInNewContext(swSource, sandbox);
@@ -328,6 +330,7 @@ describe('Service Worker cache lifecycle across an update', () => {
       appReady: () => run('message', { data: { type: 'APP_READY' } }),
       navigate: (p = '/') => run('fetch', request(p, 'document')),
       script: (p: string) => run('fetch', request(p, 'script')),
+      image: (p: string) => run('fetch', request(p, 'image')),
     };
   };
 
@@ -384,5 +387,31 @@ describe('Service Worker cache lifecycle across an update', () => {
     sw.storage.stores.set(currentName, new Map([[ORIGIN + '/', new FakeResponse('new shell')]]));
     await sw.activate();
     expect((await sw.navigate())!.body).toBe('new shell');
+  });
+
+  /**
+   * While an update waits, the page's controller is the OLD worker and gets
+   * APP_READY. It must not delete the newer version's cache.
+   */
+  it('APP_READY on the old worker leaves a pending newer version cache alone', async () => {
+    const sw = boot(true, { installing: null, waiting: { state: 'installed' } });
+    sw.storage.stores.set(currentName, new Map([[ORIGIN + '/', new FakeResponse('shell')]]));
+    sw.storage.stores.set('matchops-NEWER', new Map([[ORIGIN + '/offline.html', new FakeResponse('offline')]]));
+    await sw.appReady();
+    expect(sw.storage.stores.has('matchops-NEWER')).toBe(true);
+    expect(sw.storage.stores.has(OLD)).toBe(true);
+  });
+
+  /** Unhashed files (logos) must not be carried over from an older version. */
+  it('fetches an unhashed image fresh after an update, and uses the old copy only offline', async () => {
+    const online = boot(true);
+    await online.activate();
+    expect((await online.image('/logos/logo.png'))!.body).toBe('network ' + ORIGIN + '/logos/logo.png');
+
+    const offline = boot(false);
+    await offline.activate();
+    expect((await offline.image('/logos/logo.png'))!.body).toBe('old logo');
+    // ...and it is not adopted into the new version's cache.
+    expect(offline.storage.stores.get(currentName)?.has(ORIGIN + '/logos/logo.png') ?? false).toBe(false);
   });
 });
