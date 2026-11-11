@@ -3,6 +3,15 @@
   "releases": [
     {
       "date": "2026-11-11",
+      "en": [
+        "When the app has no connection, the orange offline notice now stays a thin strip at the top instead of covering the whole screen, so you can keep using the app at a pitch without signal."
+      ],
+      "fi": [
+        "Kun sovelluksella ei ole yhteyttä, oranssi offline-ilmoitus näkyy nyt ohuena palkkina ylhäällä eikä enää peitä koko näyttöä, joten sovellusta voi käyttää kentällä myös ilman verkkoa."
+      ]
+    },
+    {
+      "date": "2026-11-11",
       "internal": true,
       "en": [
         "Behind-the-scenes security updates."
