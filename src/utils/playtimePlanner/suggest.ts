@@ -4,10 +4,11 @@
  * One tap builds a complete rotation for every INCLUDED game, ported from the
  * standalone planner's greedy `suggestFairShareLineup`: walk the games in order
  * with a running minutes accumulator, give each game's start to the players with
- * the least accumulated time, and pair the remaining bench players with outfield
- * slots as half-time subs. The goalkeeper is never subbed mid-game (standalone's
- * GK protection); GK duty itself rotates because the accumulator naturally
- * pushes last game's full-time keeper down the pecking order.
+ * the least accumulated time, and bring the remaining bench players on as subs:
+ * one round at half time when the bench fits, otherwise several sub moments so
+ * every attending player gets time. The goalkeeper is never subbed mid-game
+ * (standalone's GK protection); GK duty itself rotates because the accumulator
+ * naturally pushes last game's full-time keeper down the pecking order.
  *
  * Pure and deterministic: same plan in, same plan out. Excluded games are left
  * untouched. The result intentionally overwrites included games' lineups and
@@ -55,6 +56,25 @@ const subRankOf = (label: string): number => {
   return i === -1 ? getRunningIntensity(label) : 100 + (SUB_FIRST.length - i);
 };
 
+
+/**
+ * Times of the sub moments when the bench needs `k` rounds (k >= 2). Evenly
+ * spread, and a two-period game always keeps half time as one of them:
+ * 2 x 25 gives 12:30 + 25:00 for k = 2 and 12:30, 25:00, 37:30 for k = 3.
+ * Returns null only when the game is shorter than k + 2 seconds (a 0-minute
+ * game - real games are whole minutes, so k distinct seconds always fit). The
+ * caller then keeps the one-round path; such a game has no minutes to share.
+ */
+function subWindowTimes(game: PlanGame, k: number): number[] | null {
+  const total = gameTotalSeconds(game);
+  // Odd k: k + 1 equal parts, so the middle moment lands on half time. Even k
+  // would straddle it, so use k + 2 parts and keep the first k - the
+  // (k/2 + 1)-th of those is half time.
+  const parts = game.numberOfPeriods === 2 && k % 2 === 0 ? k + 2 : k + 1;
+  const times = Array.from({ length: k }, (_, j) => Math.round((total * (j + 1)) / parts));
+  const distinct = times.every((t, i) => t > 0 && t < total && (i === 0 || t > times[i - 1]));
+  return distinct ? times : null;
+}
 
 export function suggestFairShareLineup(plan: PlaytimePlan): PlaytimePlan {
   // Nothing to generate: return the SAME reference so callers (history, the
@@ -108,36 +128,100 @@ export function suggestFairShareLineup(plan: PlaytimePlan): PlaytimePlan {
     // game); the best-served of the XI take the high-running roles, which are
     // exactly the slots the half-time rotation targets below - so the legs
     // that tire first are also the ones that get relieved.
-    const startingSlots: PlanSlotAssignment[] = [];
+    let startingSlots: PlanSlotAssignment[] = [];
     let cursor = 0;
     if (gkSlot) startingSlots.push({ slotId: gkSlot.slotId, playerId: xi[cursor++] ?? null });
     for (const { slot } of outfieldSlots) {
       startingSlots.push({ slotId: slot.slotId, playerId: xi[cursor++] ?? null });
     }
 
-    // Half-time subs: each bench player comes on for one outfield slot,
-    // HIGHEST-running positions first (wingers/striker before midfield before
-    // defence) - fresh legs go where the running is. This also hands over the
-    // best-served starters first (they were placed into those slots above),
-    // spreading minutes hardest against the current imbalance. GK is never a
-    // sub target.
+    // Sub targets: the filled outfield slots, HIGHEST-running positions first
+    // (wingers/striker before midfield before defence) - fresh legs go where
+    // the running is. In the one-round case this also hands over the
+    // best-served starters first (they were placed into those slots above).
+    // GK is never a sub target.
     const filledBySlotId = new Map(startingSlots.map((a) => [a.slotId, a.playerId]));
     const subs: PlanSub[] = [];
     const subTargets = [...outfieldSlots]
       .reverse()
       .filter(({ slot }) => filledBySlotId.get(slot.slotId) !== null && filledBySlotId.get(slot.slotId) !== undefined);
-    bench.slice(0, subTargets.length).forEach((playerId, i) => {
-      subs.push(makeSub(subTargets[i].slot.slotId, playerId, half));
-    });
+    const windowTimes =
+      bench.length > subTargets.length && subTargets.length > 0
+        ? subWindowTimes(game, Math.ceil(bench.length / subTargets.length))
+        : null;
 
-    // Update the accumulator with this game's outcome.
-    const subbedSlotIds = new Set(subs.map((s) => s.slotId));
-    for (const a of startingSlots) {
-      if (!a.playerId) continue;
-      acc.set(a.playerId, (acc.get(a.playerId) ?? 0) + (subbedSlotIds.has(a.slotId) ? half : total));
-    }
-    for (const sub of subs) {
-      if (sub.inPlayerId) acc.set(sub.inPlayerId, (acc.get(sub.inPlayerId) ?? 0) + secondHalf);
+    if (!windowTimes) {
+      // The bench fits into one round: every bench player comes on at half time.
+      bench.slice(0, subTargets.length).forEach((playerId, i) => {
+        subs.push(makeSub(subTargets[i].slot.slotId, playerId, half));
+      });
+
+      // Update the accumulator with this game's outcome.
+      const subbedSlotIds = new Set(subs.map((s) => s.slotId));
+      for (const a of startingSlots) {
+        if (!a.playerId) continue;
+        acc.set(a.playerId, (acc.get(a.playerId) ?? 0) + (subbedSlotIds.has(a.slotId) ? half : total));
+      }
+      for (const sub of subs) {
+        if (sub.inPlayerId) acc.set(sub.inPlayerId, (acc.get(sub.inPlayerId) ?? 0) + secondHalf);
+      }
+    } else {
+      // The bench is bigger than one round: spread it over several sub moments
+      // so every attending player gets time. The later moments each take a full
+      // round and the remainder comes on at the first one - that keeps minutes
+      // closest together (16 in 8v8, 2 x 25: one sub at 12:30, seven at half
+      // time, every outfield player 12:30-25:00). Each sub replaces whoever has
+      // played most in this game so far, higher-running positions first on a
+      // tie; the GK is never a target.
+      //
+      // Here starting is not automatically the best deal (a half-time sub can
+      // outplay a starter), so the schedule is built from ROLES first and the
+      // roles with the most minutes then go to the least-played players - the
+      // GK's full game to the most under-played, as above.
+      const k = windowTimes.length;
+      const sizes = windowTimes.map((_, j) =>
+        j === 0 ? bench.length - (k - 1) * subTargets.length : subTargets.length,
+      );
+      const roleSeconds = new Map<string, number>();
+      const credit = (role: string, secs: number) => roleSeconds.set(role, (roleSeconds.get(role) ?? 0) + secs);
+      const startRole = (slotId: string) => `start:${slotId}`;
+      const onPitch = new Map(subTargets.map(({ slot }) => [slot.slotId, { role: startRole(slot.slotId), since: 0 }]));
+      const subRoles: { role: string; slotId: string; timeSeconds: number }[] = [];
+      windowTimes.forEach((t, j) => {
+        const ranked = subTargets
+          .map(({ slot }, rank) => {
+            const occ = onPitch.get(slot.slotId)!;
+            return { slotId: slot.slotId, rank, occ, soFar: (roleSeconds.get(occ.role) ?? 0) + (t - occ.since) };
+          })
+          .sort((x, y) => y.soFar - x.soFar || x.rank - y.rank);
+        for (const { slotId, occ } of ranked.slice(0, sizes[j])) {
+          const role = `sub:${subRoles.length}`;
+          credit(occ.role, t - occ.since);
+          onPitch.set(slotId, { role, since: t });
+          subRoles.push({ role, slotId, timeSeconds: t });
+        }
+      });
+      for (const occ of onPitch.values()) credit(occ.role, total - occ.since);
+      // Starters outside the rotation (the GK) play the whole game.
+      for (const a of startingSlots) {
+        if (!roleSeconds.has(startRole(a.slotId))) credit(startRole(a.slotId), total);
+      }
+
+      // Most minutes first; ties keep role order (GK, then starters, then subs).
+      const roles = [...startingSlots.map((a) => startRole(a.slotId)), ...subRoles.map((r) => r.role)];
+      const byMinutes = roles
+        .map((role, i) => ({ role, i }))
+        .sort((x, y) => (roleSeconds.get(y.role) ?? 0) - (roleSeconds.get(x.role) ?? 0) || x.i - y.i);
+      // `ordered` is every attending player, least-played first, and there is
+      // exactly one role per attending player (the XI is full, the bench all comes on).
+      const playerOf = new Map(byMinutes.map(({ role }, i) => [role, ordered[i]]));
+
+      startingSlots = startingSlots.map((a) => ({ slotId: a.slotId, playerId: playerOf.get(startRole(a.slotId)) ?? null }));
+      for (const r of subRoles) subs.push(makeSub(r.slotId, playerOf.get(r.role)!, r.timeSeconds));
+      for (const role of roles) {
+        const id = playerOf.get(role);
+        if (id) acc.set(id, (acc.get(id) ?? 0) + (roleSeconds.get(role) ?? 0));
+      }
     }
 
     return { ...game, startingSlots, subs };

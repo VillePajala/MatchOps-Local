@@ -3549,7 +3549,7 @@
       "reapplyDoneNoRoster": "Updated {{updated}} games; {{skipped}} had no players in their roster and were left unchanged.",
       "suggestButton": "Suggest fair lineups",
       "suggestConfirmTitle": "Suggest fair lineups?",
-      "suggestConfirmMessage": "Builds lineups and half-time substitutions for every included game so playing time comes out as even as possible. The goalkeeper is never subbed mid-game.",
+      "suggestConfirmMessage": "Builds lineups and substitutions for every included game so playing time comes out as even as possible and every player gets on the pitch. The goalkeeper is never subbed mid-game.",
       "suggestConfirmWarning": "Current lineups and substitutions of included games will be replaced. Undo (on the Games tab) restores them.",
       "suggestConfirmLabel": "Suggest",
       "suggestDone": "Fair lineups suggested - check the balance view.",

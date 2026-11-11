@@ -4,6 +4,15 @@
     {
       "date": "2026-11-11",
       "en": [
+        "\"Suggest fair lineups\" now gives every player time in every game. With a big squad it adds an earlier sub moment instead of leaving someone on the bench all game."
+      ],
+      "fi": [
+        "\"Ehdota reilut kokoonpanot\" antaa nyt peliaikaa jokaiselle pelaajalle joka pelissä. Ison ryhmän kanssa se lisää aiemman vaihtohetken sen sijaan, että joku istuisi koko pelin vaihdossa."
+      ]
+    },
+    {
+      "date": "2026-11-11",
+      "en": [
         "Planned subs now show on the match clock as one block per moment, with everyone coming on and off. A sub that brings a starter back no longer goes missing, and there is nothing to dismiss."
       ],
       "fi": [

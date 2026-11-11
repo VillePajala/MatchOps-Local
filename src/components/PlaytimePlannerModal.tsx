@@ -2667,7 +2667,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         title={t('playtimePlanner.overview.suggestConfirmTitle', 'Suggest fair lineups?')}
         message={t(
           'playtimePlanner.overview.suggestConfirmMessage',
-          'Builds lineups and half-time substitutions for every included game so playing time comes out as even as possible. The goalkeeper is never subbed mid-game.',
+          'Builds lineups and substitutions for every included game so playing time comes out as even as possible and every player gets on the pitch. The goalkeeper is never subbed mid-game.',
         )}
         warningMessage={t(
           'playtimePlanner.overview.suggestConfirmWarning',
