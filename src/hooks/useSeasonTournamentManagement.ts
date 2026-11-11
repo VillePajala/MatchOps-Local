@@ -41,9 +41,11 @@ export interface UseSeasonTournamentManagementReturn {
   deleteTournamentMutation: UseMutationResult<boolean, Error, string, unknown>;
 }
 
-// Stable fallback: the roster query now fails instead of resolving to [], and a
-// fresh [] per render while it has no data would change identity every render.
+// Stable fallbacks: a fresh [] per render while a query has no data (the roster
+// query can now fail) would change identity every render.
 const NO_PLAYERS: Player[] = [];
+const NO_SEASONS: Season[] = [];
+const NO_TOURNAMENTS: Tournament[] = [];
 
 export function useSeasonTournamentManagement(): UseSeasonTournamentManagementReturn {
   const queryClient = useQueryClient();
@@ -137,8 +139,8 @@ export function useSeasonTournamentManagement(): UseSeasonTournamentManagementRe
   });
 
   return {
-    seasons: seasonsQuery.data || [],
-    tournaments: tournamentsQuery.data || [],
+    seasons: seasonsQuery.data ?? NO_SEASONS,
+    tournaments: tournamentsQuery.data ?? NO_TOURNAMENTS,
     masterRoster: masterRosterQuery.data ?? NO_PLAYERS,
     addSeasonMutation,
     addTournamentMutation,

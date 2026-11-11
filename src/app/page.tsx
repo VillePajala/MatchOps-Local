@@ -531,7 +531,12 @@ export default function Home() {
   const refreshSetupSignals = useCallback(async () => {
     try {
       const [roster, games, seasonsList, tournamentsList, teamsList, personnel] = await Promise.all([
-        getMasterRoster(userId),
+        // Guarded on its own: a transient roster read failure must not cancel
+        // the rest of this refresh (null = unknown, keep what is shown).
+        getMasterRoster(userId).catch((rosterErr) => {
+          logger.warn('Failed to read roster for setup signals', { error: rosterErr });
+          return null;
+        }),
         getSavedGames(userId),
         getSeasons(userId),
         getTournaments(userId),
@@ -540,7 +545,7 @@ export default function Home() {
         // closes, and the dashboard counts every entity, not only teams.
         getAllPersonnel(userId),
       ]);
-      setHasPlayers(roster.length > 0);
+      if (roster) setHasPlayers(roster.length > 0);
       // The venue book learns here, and only here: every match that exists
       // adds or refreshes an entry, and a deleted match takes nothing away.
       // Written only when something moved, then the settings query is
@@ -578,7 +583,7 @@ export default function Home() {
           hasConfiguredSeasonDates: settings.hasConfiguredSeasonDates,
           startingPoint: asCoordinates(settings.startingPoint),
           arrivalBufferMinutes: settings.arrivalBufferMinutes,
-          roster,
+          ...(roster ? { roster } : {}),
           teamsCount: teamsList.length,
           seasonsCount: seasonsList.length,
           tournamentsCount: tournamentsList.length,
