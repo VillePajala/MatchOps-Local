@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState, useMemo } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
@@ -11,7 +11,6 @@ import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
 import { exportFieldAsImage, isExportSupported } from '@/utils/export';
 import { useExportMetadata } from '@/hooks/useExportMetadata';
 import { usePlannedSubPrompts } from '@/hooks/usePlannedSubPrompts';
-import { isSidelinePosition } from '@/utils/positionLabels';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import type {
@@ -333,26 +332,14 @@ export function FieldContainer({
   const tmShowOverlay = timerVM.showLargeTimerOverlay;
   const tmInitialLoad = timerVM.initialLoadComplete;
 
-  // Playing-Time Planner (Phase 2): surface the due planned sub in the timer overlay.
-  // On-field ids suppress prompts already satisfied by an early manual sub - but
-  // ONLY players actually on the pitch count. A game created from a plan parks its
-  // waiting subs INSIDE playersOnField at the sideline (relX ~0.96); counting those
-  // as "on field" made every planned sub's incoming player look already-played, so
-  // the nudge was suppressed for essentially every plan-created game. Exclude them.
-  const onFieldIds = useMemo(
-    () => new Set(
-      fcPlayersOnField
-        .filter((p) => typeof p.relX !== 'number' || !isSidelinePosition(p.relX))
-        .map((p) => p.id),
-    ),
-    [fcPlayersOnField],
-  );
-  const { prompt: plannedSubPrompt, dismiss: dismissPlannedSub } = usePlannedSubPrompts(
+  // Playing-Time Planner: the due group of planned subs for the timer overlay. A
+  // pure function of the clock and the schedule - deliberately NOT of the discs on
+  // the field, which coaches don't move during play (see usePlannedSubPrompts).
+  const { current: plannedSubGroup, overdueEarlier: plannedSubsEarlier } = usePlannedSubPrompts(
     currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
     tmTime,
     availablePlayers,
     plannedSubsRefreshKey,
-    onFieldIds,
   );
 
   return (
@@ -387,8 +374,8 @@ export function FieldContainer({
           isTimerRunning={tmIsRunning}
           onStartPauseTimer={startPauseTimer}
           onResetTimer={resetTimer}
-          plannedSubPrompt={plannedSubPrompt}
-          onDismissPlannedSub={dismissPlannedSub}
+          plannedSubGroup={plannedSubGroup}
+          plannedSubsEarlier={plannedSubsEarlier}
           onToggleGoalLogModal={toggleGoalLogModal}
           onOpenPlayerAssessmentModal={assessmentsEnabled ? onOpenPlayerAssessmentModal : undefined}
           onFinishGame={onFinishGame}

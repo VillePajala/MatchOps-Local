@@ -4,6 +4,15 @@
     {
       "date": "2026-11-11",
       "en": [
+        "Planned subs now show on the match clock as one block per moment, with everyone coming on and off. A sub that brings a starter back no longer goes missing, and there is nothing to dismiss."
+      ],
+      "fi": [
+        "Suunnitellut vaihdot näkyvät nyt ottelukellossa yhtenä ryhmänä kerrallaan: kaikki kentälle tulevat ja sieltä lähtevät. Aloittajan paluuvaihto ei enää jää näyttämättä, eikä mitään tarvitse kuitata pois."
+      ]
+    },
+    {
+      "date": "2026-11-11",
+      "en": [
         "Linking a game to a season or tournament no longer changes its date or venue, and a game that has already started keeps its period length."
       ],
       "fi": [

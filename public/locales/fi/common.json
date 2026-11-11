@@ -611,10 +611,11 @@
     "wentToOvertime": "Jatkoaika",
     "recordShootout": "Rangaistuslaukaukset",
     "assessPlayersButton": "Arvioi pelaajat",
-    "plannedSubTitle": "Suunniteltu vaihto",
-    "plannedSubInOut": "{{in}} kentälle, {{out}} pois",
-    "plannedSubIn": "{{in}} kentälle",
-    "plannedSubDismiss": "Selvä",
+    "plannedSubTitle": "Suunnitellut vaihdot",
+    "plannedSubsEarlier_one": "+{{count}} aiemmin",
+    "plannedSubsEarlier_other": "+{{count}} aiemmin",
+    "plannedSubsOn": "Kentälle",
+    "plannedSubsOff": "Pois",
     "finishGameButton": "Viimeistele ottelu"
   },
   "instructionsModal": {
