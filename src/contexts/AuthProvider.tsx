@@ -212,6 +212,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // cause the entire auth init to re-run on every grace period change).
   const isAuthGracePeriodRef = useRef(isAuthGracePeriod);
   isAuthGracePeriodRef.current = isAuthGracePeriod;
+  // True while a background re-init started by an 'online' event is running.
+  // Cleared when that init settles (finally block or the timeout's grace branch).
+  const onlineRevalidationInFlightRef = useRef(false);
 
   // Track if password reset flow is in progress (OTP verified, waiting for new password).
   // When true, onAuthStateChange ignores the recovery session — prevents the app from
@@ -628,6 +631,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } finally {
         if (mounted) {
           setIsLoading(false);
+          onlineRevalidationInFlightRef.current = false;
         }
         if (timeoutId) {
           clearTimeout(timeoutId);
@@ -664,6 +668,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
             setSession(null); // grace-period invariant: user from cache, no live session
             setIsLoading(false);
+            onlineRevalidationInFlightRef.current = false;
             // Do NOT set initTimedOut — grace period supersedes the timeout screen
             return; // Skip the normal timeout handling below
           }
@@ -702,15 +707,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [initRetryTrigger]); // Re-run when retry is triggered
 
-  // Online re-validation: when device comes back online during grace period,
-  // clear the grace period and retry auth initialization to get a real session.
+  // Online re-validation: when the device comes back online during the grace period,
+  // re-run auth initialization IN THE BACKGROUND to get a real session.
+  //
+  // Deliberately does NOT set isLoading or clear the grace period up front: page.tsx
+  // swaps the whole tree for the loading screen while auth is loading, which unmounted
+  // a running match (the clock reset to its last save and stopped) every time signal
+  // returned at the pitch. The init effect never sets isLoading itself, and it settles
+  // the grace state on completion: a real session clears it, still-offline / timeout
+  // re-enters it (no visible change), a rejected session follows the normal path.
+  // A full re-init (not just refreshSession) is needed because grace triggers 2 and 4
+  // (timeout, init threw) can leave init unfinished (no auth listener, no service).
   useEffect(() => {
     if (!isAuthGracePeriod) return;
 
     const handleOnline = () => {
-      logger.info('[AuthProvider] Grace period: device came online, retrying auth init');
-      setIsAuthGracePeriod(false);
-      setIsLoading(true);
+      // Flaky signal fires 'online' repeatedly; don't stack re-inits.
+      if (onlineRevalidationInFlightRef.current) return;
+      onlineRevalidationInFlightRef.current = true;
+      logger.info('[AuthProvider] Grace period: device came online, re-validating auth in the background');
       setInitTimedOut(false);
       setInitRetryTrigger(prev => prev + 1);
     };

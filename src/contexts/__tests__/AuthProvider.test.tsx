@@ -1561,11 +1561,12 @@ describe('AuthProvider', () => {
           window.dispatchEvent(new Event('online'));
         });
 
-        // Grace period should be cleared, loading should restart
-        await waitFor(() => {
-          expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
-          expect(screen.getByTestId('loading')).toHaveTextContent('loading');
-        });
+        // Background re-validation (review 2026-11, 1.2): the grace period and the
+        // loaded tree stay in place while auth re-initializes. Flipping isLoading here
+        // made page.tsx unmount a running match.
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
 
         // Re-init hangs — advance past 10s timeout
         // The timeout handler finds the valid cached token and re-enters grace period
@@ -1587,6 +1588,143 @@ describe('AuthProvider', () => {
         expect(initCallCount).toBe(2);
       } finally {
         // Note: jest.useRealTimers() handled by describe-level afterEach
+        if (originalOnLine) {
+          Object.defineProperty(navigator, 'onLine', originalOnLine);
+        } else {
+          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        }
+      }
+    });
+
+    /**
+     * Coming back online during the grace period re-validates auth in the background:
+     * the app never shows the loading state (which unmounted a running match in page.tsx),
+     * and a restored session clears the grace period. Review 2026-11, item 1.2.
+     * @critical
+     */
+    it('re-validates in the background on online: never loading, session restored, grace cleared', async () => {
+      const validSession = {
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: mockCloudUser.id, email: mockCloudUser.email },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validSession));
+
+      const factory = require('@/datastore/factory');
+      const onlineService = createMockCloudAuthService(true);
+      let initCallCount = 0;
+      factory.getAuthService.mockImplementation(() => {
+        initCallCount++;
+        return Promise.resolve(initCallCount === 1 ? mockAuthService : onlineService);
+      });
+
+      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+
+      // Record every isLoading value rendered after the initial load settles.
+      const loadingStates: string[] = [];
+      function LoadingRecorder() {
+        const { isLoading } = useAuth();
+        loadingStates.push(isLoading ? 'loading' : 'ready');
+        return null;
+      }
+
+      try {
+        render(
+          <AuthProvider>
+            <GracePeriodTestComponent />
+            <LoadingRecorder />
+          </AuthProvider>
+        );
+
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+          expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+        });
+
+        loadingStates.length = 0;
+        Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        await act(async () => {
+          window.dispatchEvent(new Event('online'));
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+          expect(screen.getByTestId('has-session')).toHaveTextContent('yes');
+          expect(screen.getByTestId('user-id')).toHaveTextContent(mockCloudUser.id);
+        });
+
+        expect(loadingStates).not.toContain('loading');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+        expect(initCallCount).toBe(2);
+      } finally {
+        if (originalOnLine) {
+          Object.defineProperty(navigator, 'onLine', originalOnLine);
+        } else {
+          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        }
+      }
+    });
+
+    /**
+     * Flaky signal fires 'online' several times in a row; only one background
+     * re-init may run at a time. Review 2026-11, item 1.2.
+     * @edge-case
+     */
+    it('does not stack background re-inits when online fires repeatedly', async () => {
+      const validSession = {
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: 'cached-user-555', email: 'flaky@example.com' },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validSession));
+
+      const factory = require('@/datastore/factory');
+      let initCallCount = 0;
+      factory.getAuthService.mockImplementation(() => {
+        initCallCount++;
+        if (initCallCount === 1) return Promise.resolve(mockAuthService);
+        return new Promise(() => {}); // re-init hangs on a weak connection
+      });
+
+      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+
+      try {
+        render(
+          <AuthProvider>
+            <GracePeriodTestComponent />
+          </AuthProvider>
+        );
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+        });
+
+        Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        await act(async () => {
+          window.dispatchEvent(new Event('online'));
+          window.dispatchEvent(new Event('online'));
+          window.dispatchEvent(new Event('online'));
+        });
+
+        expect(initCallCount).toBe(2);
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+
+        // After the hung re-init times out (grace re-entered), a later online event
+        // may start a new re-validation.
+        await act(async () => {
+          jest.advanceTimersByTime(20001);
+        });
+        await act(async () => {
+          window.dispatchEvent(new Event('online'));
+        });
+        expect(initCallCount).toBe(3);
+      } finally {
         if (originalOnLine) {
           Object.defineProperty(navigator, 'onLine', originalOnLine);
         } else {
