@@ -12,6 +12,7 @@ import LoginScreen from '@/components/LoginScreen';
 import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import OfflineGraceBanner from '@/components/OfflineGraceBanner';
 import BackupReminderBanner from '@/components/BackupReminderBanner';
 import ClubModalsHost from '@/components/ClubModalsHost';
 import { MigrationStatus } from '@/components/MigrationStatus';
@@ -1957,14 +1958,8 @@ export default function Home() {
         )}
         </div>
 
-        {/* Auth grace period banner — offline with cached session.
-            z-40: same as ControlBar, visible during normal use but below modals (z-[60])
-            and sidebar (z-50). Intentional — informational banner shouldn't overlay modal content. */}
-        {isAuthGracePeriod && (
-          <div className="fixed top-0 left-0 right-0 z-40 bg-amber-500/90 text-slate-900 px-4 py-2 text-sm text-center font-medium">
-            {t('page.offlineGracePeriod', 'Offline — changes saved locally, will sync when connected')}
-          </div>
-        )}
+        {/* Auth grace period banner — offline with cached session (see component for z-index and height notes). */}
+        {isAuthGracePeriod && <OfflineGraceBanner />}
 
         {/* Migration status overlay */}
         <MigrationStatus />
