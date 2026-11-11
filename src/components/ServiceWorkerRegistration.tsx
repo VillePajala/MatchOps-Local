@@ -99,6 +99,13 @@ export default function ServiceWorkerRegistration() {
       logger.log('[PWA] Service Worker registered: ', registration);
       logger.log('[PWA] Registration state - active:', registration.active?.state, 'waiting:', registration.waiting?.state, 'installing:', registration.installing?.state);
 
+      // The app has booted under the worker that serves this page. Telling it
+      // lets that worker drop the PREVIOUS version's cache - but only once its
+      // own cache holds the app shell (sw.js cleanupOldCaches). Until then the
+      // old cache stays, so a launch that activates a new worker offline can
+      // still boot from it.
+      navigator.serviceWorker.controller?.postMessage({ type: 'APP_READY' });
+
       // Look for a waiting service worker
       if (registration.waiting) {
         offerUpdate(registration.waiting, 'available on registration');
@@ -257,19 +264,18 @@ export default function ServiceWorkerRegistration() {
     }, CONTROLLER_CHANGE_TIMEOUT_MS);
   };
 
-  const handleReload = async () => {
+  /**
+   * Apply the update with a fresh navigation to '/' (more reliable than
+   * window.location.reload() in Chrome's installed-PWA context).
+   *
+   * The caches are NOT cleared here any more. Clearing them all meant a reload
+   * that hit a dead connection had nothing to boot from. Stale content cannot
+   * be served instead: HTML is network-first and every JS/CSS chunk URL is
+   * content-hashed per build. The previous version's cache is removed by the
+   * worker once this version has booted (APP_READY).
+   */
+  const handleReload = () => {
     logger.log('[PWA] User requested reload to apply update.');
-    // Clear all SW caches to prevent stale assets after update.
-    // Chrome's installed PWA context can serve old content from disk cache
-    // even after SW update — a fresh navigation to '/' is more reliable
-    // than window.location.reload() which may hit browser caches.
-    try {
-      const cacheNames = await caches.keys();
-      await Promise.all(cacheNames.map(name => caches.delete(name)));
-      logger.log(`[PWA] Cleared ${cacheNames.length} caches before reload`);
-    } catch (e) {
-      logger.warn('[PWA] Cache clear failed, reloading anyway:', e);
-    }
     window.location.replace('/');
   };
 

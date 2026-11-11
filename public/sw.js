@@ -18,7 +18,8 @@
 const CACHE_NAME = 'matchops-2026-09-19T16-15-00';
 
 // Cache size limit - prevents unbounded growth from dynamically cached assets
-// Note: Entire cache is cleared on SW update, so this just limits runtime growth
+// Note: the previous version's cache is removed once this version has booted
+// (APP_READY), so this just limits runtime growth
 const MAX_CACHE_ENTRIES = 100;
 
 // Static resources to precache (NO HTML - HTML should never be cached)
@@ -42,7 +43,7 @@ const logError = console.error.bind(console); // Always log errors
 // Helper to trim cache if it exceeds size limit
 // Note: Cache API doesn't guarantee key order = insertion order, so this removes
 // "first" entries which may not be strictly oldest. This is acceptable because:
-// 1. The entire cache is cleared on SW update anyway
+// 1. The previous version's cache is removed after an update anyway
 // 2. This just prevents unbounded growth within a single SW version
 async function trimCache(cache) {
   const keys = await cache.keys();
@@ -78,31 +79,78 @@ self.addEventListener('install', (event) => {
   // Wait for user to click the update button.
 });
 
-// Listen for the activate event - clean up old caches
+/**
+ * Old caches are NOT deleted on activate. A waiting worker is often activated
+ * by an OFFLINE launch (the app was closed after the update downloaded, then
+ * opened at the pitch). Deleting the previous cache there threw away the only
+ * copy of the app shell and its chunks, and the coach got the offline page.
+ * The previous cache keeps serving until this version has booted once with its
+ * own shell cached - see cleanupOldCaches (APP_READY).
+ */
 self.addEventListener('activate', (event) => {
   log('[SW] Activating...');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter(name => name !== CACHE_NAME && name.startsWith('matchops-'))
-          .map(cacheName => {
-            log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          })
-      );
-    }).then(() => {
+    clients.claim().then(() => {
       log('[SW] Activated');
-      return clients.claim();
     })
   );
 });
+
+/**
+ * Deletes every other matchops-* cache, but only once THIS version's cache
+ * holds the app shell ('/'), i.e. it has been loaded online under this worker.
+ * Called when a page reports it booted (APP_READY): by then the chunks that
+ * boot needed are in this cache too (fetched, or copied from an older cache by
+ * matchAndAdopt).
+ */
+async function cleanupOldCaches() {
+  const current = await caches.open(CACHE_NAME);
+  const shell = await current.match(self.location.origin + '/');
+  if (!shell) {
+    log('[SW] Shell not cached by this version yet - keeping old caches');
+    return;
+  }
+  const names = await caches.keys();
+  await Promise.all(
+    names
+      .filter((name) => name !== CACHE_NAME && name.startsWith('matchops-'))
+      .map((name) => {
+        log('[SW] Deleting old cache:', name);
+        return caches.delete(name);
+      })
+  );
+}
+
+/**
+ * Looks in this version's cache first, then in any older one. A hit in an
+ * older cache is copied into this version's cache, so a file that did not
+ * change between builds (same hashed URL) survives the old cache's cleanup.
+ */
+async function matchAndAdopt(key) {
+  const current = await caches.open(CACHE_NAME);
+  const own = await current.match(key);
+  if (own) return own;
+  const older = await caches.match(key);
+  if (older) {
+    try {
+      await current.put(key, older.clone());
+    } catch (err) {
+      logError('[SW] Could not adopt cached entry:', err);
+    }
+  }
+  return older;
+}
 
 // Listen for messages from the client
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     log('[SW] SKIP_WAITING received, activating new version');
     self.skipWaiting();
+  }
+  if (event.data && event.data.type === 'APP_READY') {
+    event.waitUntil(
+      cleanupOldCaches().catch((err) => logError('[SW] Old cache cleanup failed:', err))
+    );
   }
 });
 
@@ -139,23 +187,29 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Offline: try to serve the cached HTML for this route (same query-stripped key)
-          return caches.match(documentCacheKey).then((cached) => {
-            if (cached) {
-              return cached;
-            }
-            // Fall back to offline.html if specific page not cached
-            return caches.match('/offline.html').then((offlinePage) => {
-              if (offlinePage) {
-                return offlinePage;
+          // Offline: serve the cached HTML for this route (same query-stripped
+          // key) - this version's copy first, else the previous version's.
+          // Not adopted: '/' in this version's cache must mean "loaded online
+          // under this version", which is what cleanupOldCaches relies on.
+          return caches.open(CACHE_NAME)
+            .then((current) => current.match(documentCacheKey))
+            .then((own) => own || caches.match(documentCacheKey))
+            .then((cached) => {
+              if (cached) {
+                return cached;
               }
-              // Final fallback if nothing cached (bilingual to match offline.html)
-              return new Response(
-                '<html><head><title>Offline / Ei yhteyttä</title></head><body style="font-family:system-ui;text-align:center;padding:40px"><h1>Ei yhteyttä / Offline</h1><p>Tarkista yhteys ja yritä uudelleen.</p><p style="color:#888">Please check your connection and try again.</p></body></html>',
-                { headers: { 'Content-Type': 'text/html' } }
-              );
+              // Fall back to offline.html if specific page not cached
+              return caches.match('/offline.html').then((offlinePage) => {
+                if (offlinePage) {
+                  return offlinePage;
+                }
+                // Final fallback if nothing cached (bilingual to match offline.html)
+                return new Response(
+                  '<html><head><title>Offline / Ei yhteyttä</title></head><body style="font-family:system-ui;text-align:center;padding:40px"><h1>Ei yhteyttä / Offline</h1><p>Tarkista yhteys ja yritä uudelleen.</p><p style="color:#888">Please check your connection and try again.</p></body></html>',
+                  { headers: { 'Content-Type': 'text/html' } }
+                );
+              });
             });
-          });
         })
     );
     return;
@@ -198,7 +252,7 @@ self.addEventListener('fetch', (event) => {
     request.url.includes('/logos/')
   ) {
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
+      matchAndAdopt(request).then((cachedResponse) => {
         if (cachedResponse) {
           return cachedResponse;
         }
