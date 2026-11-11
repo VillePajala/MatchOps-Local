@@ -117,6 +117,7 @@ describe('useGameDataManagement', () => {
       currentGameId: null,
       loading: false,
       isSettling: false,
+      masterRosterError: null,
       error: null,
     });
 
@@ -216,6 +217,7 @@ describe('useGameDataManagement', () => {
         currentGameId: 'game-1',
         loading: false,
       isSettling: false,
+      masterRosterError: null,
         error: null,
       });
 
@@ -240,6 +242,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: true,
       isSettling: false,
+      masterRosterError: null,
         error: null,
       });
 
@@ -261,6 +264,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: false,
       isSettling: false,
+      masterRosterError: null,
         error: testError,
       });
 
@@ -287,6 +291,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: false,
       isSettling: false,
+      masterRosterError: null,
         error: null,
       });
 
@@ -319,6 +324,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: false,
         isSettling: false,
+        masterRosterError: null,
         error: null,
       });
 
@@ -350,6 +356,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: false,
         isSettling: false,
+        masterRosterError: null,
         error: null,
       });
       const setAvailablePlayers = jest.fn();
@@ -374,6 +381,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: false,
       isSettling: false,
+      masterRosterError: null,
         error: null,
       });
 
@@ -409,26 +417,35 @@ describe('useGameDataManagement', () => {
       expect(mergedResult[1].isGoalie).toBe(false); // Preserved from game
     });
 
-    it('should set empty array on roster load error', async () => {
+    /**
+     * Review 1.4: a failed roster read must keep the game's players. Clearing
+     * them here wiped the live lineup's player list.
+     * @critical
+     */
+    it('keeps the current players on a roster load error', async () => {
       mockedUseGameDataQueries.mockReturnValue({
         masterRoster: [],
         seasons: [],
         tournaments: [],
         savedGames: null,
-        currentGameId: null,
+        currentGameId: 'game_123',
         loading: false,
       isSettling: false,
-        error: new Error('Roster load failed'),
+      masterRosterError: new Error('Roster load failed'),
+        error: null,
       });
 
       const setAvailablePlayers = jest.fn();
-      const params = { ...defaultParams, setAvailablePlayers };
+      const params = { ...defaultParams, currentGameId: 'game_123', setAvailablePlayers };
 
-      renderHook(() => useGameDataManagement(params), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useGameDataManagement(params), { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(setAvailablePlayers).toHaveBeenCalledWith([]);
+        expect(result.current.isLoading).toBe(false);
       });
+      expect(setAvailablePlayers).not.toHaveBeenCalled();
+      // A roster failure is not a saved-games failure for the boot.
+      expect(result.current.error).toBeNull();
     });
   });
 
@@ -446,6 +463,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: false,
       isSettling: false,
+      masterRosterError: null,
         error: null,
       });
 
@@ -468,6 +486,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: false,
       isSettling: false,
+      masterRosterError: null,
         error: new Error('Seasons load failed'),
       });
 
@@ -496,6 +515,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: false,
       isSettling: false,
+      masterRosterError: null,
         error: null,
       });
 
@@ -518,6 +538,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: false,
       isSettling: false,
+      masterRosterError: null,
         error: new Error('Tournaments load failed'),
       });
 
@@ -619,6 +640,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: true,
       isSettling: false,
+      masterRosterError: null,
         error: null,
       });
 
@@ -645,6 +667,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: false,
       isSettling: false,
+      masterRosterError: null,
         error: null,
       });
 
@@ -671,6 +694,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: false,
       isSettling: false,
+      masterRosterError: null,
         error: null,
       });
 
@@ -702,6 +726,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: true,
       isSettling: false, // Still loading
+      masterRosterError: null,
         error: null,
       });
 
@@ -727,6 +752,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: true,
       isSettling: false, // Still loading
+      masterRosterError: null,
         error: null,
       });
 
@@ -751,6 +777,7 @@ describe('useGameDataManagement', () => {
         currentGameId: null,
         loading: true,
       isSettling: false, // Still loading
+      masterRosterError: null,
         error: null,
       });
 
