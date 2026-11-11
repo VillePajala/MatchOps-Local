@@ -118,6 +118,28 @@ describe('ServiceWorkerRegistration', () => {
     });
   });
 
+  /**
+   * Telling the serving worker the app booted is what lets it drop the
+   * previous version's cache - it no longer does that on activate, so an
+   * offline launch after an update still has something to boot from.
+   * @critical
+   */
+  it('tells the serving worker the app has booted (APP_READY)', async () => {
+    render(<ServiceWorkerRegistration />);
+    await waitFor(() => {
+      expect(mockServiceWorker.postMessage).toHaveBeenCalledWith({ type: 'APP_READY' });
+    });
+  });
+
+  it('sends nothing when no worker controls the page yet (first install)', async () => {
+    (navigator.serviceWorker as { controller: ServiceWorker | null }).controller = null;
+    render(<ServiceWorkerRegistration />);
+    // The initial update check runs after the APP_READY step, so reaching it
+    // proves registration carried on without throwing.
+    await waitFor(() => expect(mockRegistration.update).toHaveBeenCalled());
+    expect(mockServiceWorker.postMessage).not.toHaveBeenCalled();
+  });
+
   it('should check for updates on interval (hourly in prod/test, 60s in dev)', async () => {
     // In test environment (NODE_ENV !== 'development'), interval is 1 hour
     render(<ServiceWorkerRegistration />);

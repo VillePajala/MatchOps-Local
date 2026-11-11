@@ -4,6 +4,15 @@
     {
       "date": "2026-11-11",
       "en": [
+        "The app now opens without a connection right after an update, even if the update arrived while you were at home and you open the app at the pitch with no signal."
+      ],
+      "fi": [
+        "Sovellus aukeaa nyt ilman verkkoyhteyttä myös heti päivityksen jälkeen, vaikka päivitys olisi tullut kotona ja avaat sovelluksen kentällä ilman verkkoa."
+      ]
+    },
+    {
+      "date": "2026-11-11",
+      "en": [
         "\"Suggest fair lineups\" now gives every player time in every game. With a big squad it adds an earlier sub moment instead of leaving someone on the bench all game."
       ],
       "fi": [

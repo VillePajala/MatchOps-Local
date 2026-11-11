@@ -1,3 +1,5 @@
+import { waitFor } from '@testing-library/react';
+
 /**
  * Tests for Service Worker configuration and caching strategy
  * @critical - Service worker affects app updates and offline behavior
@@ -80,18 +82,6 @@ describe('Service Worker Configuration', () => {
 
     it('should include manifest in precache', () => {
       expect(swContent).toContain("'/manifest.json'");
-    });
-  });
-
-  describe('Cache Cleanup', () => {
-    it('should delete old caches on activate', () => {
-      expect(swContent).toContain('caches.keys()');
-      expect(swContent).toContain('caches.delete(cacheName)');
-    });
-
-    it('should only delete matchops caches and keep current version', () => {
-      // Uses filter to select only old matchops caches for deletion
-      expect(swContent).toContain("name !== CACHE_NAME && name.startsWith('matchops-')");
     });
   });
 
@@ -232,5 +222,196 @@ describe('Offline Page Branding', () => {
       expect(offlineHtmlContent).toMatch(/img[^>]*width="\d+"/);
       expect(offlineHtmlContent).toMatch(/img[^>]*height="\d+"/);
     });
+  });
+});
+
+/**
+ * Runs the real public/sw.js in a sandbox with an in-memory Cache Storage, to
+ * check how caches behave across a version update.
+ * @critical - an update must never leave the app unable to start offline.
+ */
+describe('Service Worker cache lifecycle across an update', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const vm = require('vm');
+
+  const ORIGIN = 'https://app.test';
+  const swSource: string = fs.readFileSync(path.join(process.cwd(), 'public', 'sw.js'), 'utf8');
+  const currentName = /const CACHE_NAME = '([^']+)'/.exec(swSource)![1];
+  const OLD = 'matchops-previous-build';
+
+  class FakeResponse {
+    constructor(public body: string, public ok = true, public status = 200) {}
+    clone() { return new FakeResponse(this.body, this.ok, this.status); }
+  }
+  type Key = string | { url: string };
+  const keyOf = (k: Key) => (typeof k === 'string' ? (k.startsWith('/') ? ORIGIN + k : k) : k.url);
+
+  /** In-memory CacheStorage: caches.match searches caches in creation order, like browsers. */
+  const makeCacheStorage = () => {
+    const stores = new Map<string, Map<string, FakeResponse>>();
+    const open = async (name: string) => {
+      if (!stores.has(name)) stores.set(name, new Map());
+      const m = stores.get(name)!;
+      return {
+        match: async (k: Key) => m.get(keyOf(k))?.clone(),
+        put: async (k: Key, r: FakeResponse) => { m.set(keyOf(k), r); },
+        add: async (k: Key) => { m.set(keyOf(k), new FakeResponse('precached ' + keyOf(k))); },
+        keys: async () => [...m.keys()],
+        delete: async (k: Key) => m.delete(keyOf(k)),
+      };
+    };
+    return {
+      stores,
+      api: {
+        open,
+        keys: async () => [...stores.keys()],
+        delete: async (name: string) => stores.delete(name),
+        match: async (k: Key) => {
+          for (const m of stores.values()) {
+            const hit = m.get(keyOf(k));
+            if (hit) return hit.clone();
+          }
+          return undefined;
+        },
+      },
+    };
+  };
+
+  /** Boots the new sw.js with an old version's cache already on the device. */
+  const boot = (online: boolean, registration: Record<string, unknown> = { installing: null, waiting: null }) => {
+    const storage = makeCacheStorage();
+    const old = new Map<string, FakeResponse>([
+      [ORIGIN + '/', new FakeResponse('old shell')],
+      [ORIGIN + '/_next/static/chunks/app-OLD.js', new FakeResponse('old app chunk')],
+      [ORIGIN + '/_next/static/chunks/shared-SAME.js', new FakeResponse('unchanged chunk')],
+      [ORIGIN + '/logos/logo.png', new FakeResponse('old logo')],
+    ]);
+    storage.stores.set(OLD, old);
+    storage.stores.set('other-app-cache', new Map());
+    const handlers: Record<string, (e: unknown) => void> = {};
+    const fetchMock = jest.fn(async (req: { url: string }) => {
+      if (!online) throw new TypeError('Failed to fetch');
+      return new FakeResponse('network ' + req.url);
+    });
+    const sandbox: Record<string, unknown> = {
+      caches: storage.api,
+      clients: { claim: jest.fn().mockResolvedValue(undefined) },
+      fetch: fetchMock,
+      Response: FakeResponse,
+      URL,
+      console: { log: () => {}, error: () => {} },
+      location: { origin: ORIGIN, hostname: 'app.test' },
+      addEventListener: (type: string, fn: (e: unknown) => void) => { handlers[type] = fn; },
+      skipWaiting: jest.fn(),
+      registration,
+    };
+    sandbox.self = sandbox;
+    vm.runInNewContext(swSource, sandbox);
+
+    const run = async (type: string, extra: Record<string, unknown> = {}) => {
+      let pending: Promise<unknown> = Promise.resolve();
+      let response: Promise<unknown> | undefined;
+      handlers[type]({
+        ...extra,
+        waitUntil: (p: Promise<unknown>) => { pending = p; },
+        respondWith: (p: Promise<unknown>) => { response = p; },
+      });
+      await pending;
+      return response ? ((await response) as FakeResponse) : undefined;
+    };
+    const request = (p: string, destination: string) =>
+      ({ request: { url: ORIGIN + p, destination, mode: destination === 'document' ? 'navigate' : 'no-cors', method: 'GET' } });
+    return {
+      storage,
+      fetchMock,
+      setOnline: (v: boolean) => { online = v; },
+      activate: () => run('activate'),
+      appReady: () => run('message', { data: { type: 'APP_READY' } }),
+      navigate: (p = '/') => run('fetch', request(p, 'document')),
+      script: (p: string) => run('fetch', request(p, 'script')),
+      image: (p: string) => run('fetch', request(p, 'image')),
+    };
+  };
+
+  it('keeps the previous version cache when the new worker activates', async () => {
+    const sw = boot(false);
+    await sw.activate();
+    expect(sw.storage.stores.has(OLD)).toBe(true);
+  });
+
+  /**
+   * The reported failure: the update downloaded at home, the app was closed,
+   * and the first launch (which activates the new worker) happens offline.
+   * @critical
+   */
+  it('an offline launch right after activation still boots from the previous cache', async () => {
+    const sw = boot(false);
+    await sw.activate();
+    expect((await sw.navigate())!.body).toBe('old shell');
+    expect((await sw.script('/_next/static/chunks/app-OLD.js'))!.body).toBe('old app chunk');
+  });
+
+  it('APP_READY keeps old caches while this version has not loaded its own shell', async () => {
+    const sw = boot(false);
+    await sw.activate();
+    await sw.navigate();
+    await sw.appReady();
+    expect(sw.storage.stores.has(OLD)).toBe(true);
+    // Serving the old shell offline must not count as "this version loaded".
+    expect(sw.storage.stores.get(currentName)?.has(ORIGIN + '/') ?? false).toBe(false);
+  });
+
+  /** @critical - unchanged chunks keep the same hashed URL across builds. */
+  it('after an online boot, APP_READY drops old matchops caches and unchanged chunks survive', async () => {
+    const sw = boot(true);
+    await sw.activate();
+    await sw.navigate();
+    // The shell write is fire-and-forget in the worker; wait for it to land.
+    await waitFor(() => expect(sw.storage.stores.get(currentName)?.has(ORIGIN + '/')).toBe(true));
+    // An unchanged chunk is served from the old cache (no network) and adopted.
+    sw.fetchMock.mockClear();
+    expect((await sw.script('/_next/static/chunks/shared-SAME.js'))!.body).toBe('unchanged chunk');
+    expect(sw.fetchMock).not.toHaveBeenCalled();
+    await sw.appReady();
+    expect(sw.storage.stores.has(OLD)).toBe(false);
+    expect(sw.storage.stores.has('other-app-cache')).toBe(true);
+    // Next launch offline: the unchanged chunk is still there.
+    sw.setOnline(false);
+    expect((await sw.script('/_next/static/chunks/shared-SAME.js'))!.body).toBe('unchanged chunk');
+    expect((await sw.navigate())!.body).toBe('network ' + ORIGIN + '/');
+  });
+
+  it('prefers this version shell over the previous one when offline', async () => {
+    const sw = boot(false);
+    sw.storage.stores.set(currentName, new Map([[ORIGIN + '/', new FakeResponse('new shell')]]));
+    await sw.activate();
+    expect((await sw.navigate())!.body).toBe('new shell');
+  });
+
+  /**
+   * While an update waits, the page's controller is the OLD worker and gets
+   * APP_READY. It must not delete the newer version's cache.
+   */
+  it('APP_READY on the old worker leaves a pending newer version cache alone', async () => {
+    const sw = boot(true, { installing: null, waiting: { state: 'installed' } });
+    sw.storage.stores.set(currentName, new Map([[ORIGIN + '/', new FakeResponse('shell')]]));
+    sw.storage.stores.set('matchops-NEWER', new Map([[ORIGIN + '/offline.html', new FakeResponse('offline')]]));
+    await sw.appReady();
+    expect(sw.storage.stores.has('matchops-NEWER')).toBe(true);
+    expect(sw.storage.stores.has(OLD)).toBe(true);
+  });
+
+  /** Unhashed files (logos) must not be carried over from an older version. */
+  it('fetches an unhashed image fresh after an update, and uses the old copy only offline', async () => {
+    const online = boot(true);
+    await online.activate();
+    expect((await online.image('/logos/logo.png'))!.body).toBe('network ' + ORIGIN + '/logos/logo.png');
+
+    const offline = boot(false);
+    await offline.activate();
+    expect((await offline.image('/logos/logo.png'))!.body).toBe('old logo');
+    // ...and it is not adopted into the new version's cache.
+    expect(offline.storage.stores.get(currentName)?.has(ORIGIN + '/logos/logo.png') ?? false).toBe(false);
   });
 });
