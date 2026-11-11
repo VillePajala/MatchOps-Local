@@ -134,7 +134,9 @@ describe('ServiceWorkerRegistration', () => {
   it('sends nothing when no worker controls the page yet (first install)', async () => {
     (navigator.serviceWorker as { controller: ServiceWorker | null }).controller = null;
     render(<ServiceWorkerRegistration />);
-    await waitFor(() => expect(navigator.serviceWorker.register).toHaveBeenCalled());
+    // The initial update check runs after the APP_READY step, so reaching it
+    // proves registration carried on without throwing.
+    await waitFor(() => expect(mockRegistration.update).toHaveBeenCalled());
     expect(mockServiceWorker.postMessage).not.toHaveBeenCalled();
   });
 
