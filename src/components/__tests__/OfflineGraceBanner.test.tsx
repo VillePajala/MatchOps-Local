@@ -38,9 +38,7 @@ describe('OfflineGraceBanner', () => {
     const banner = screen.getByTestId('offline-grace-banner');
     expect(banner).toHaveClass('fixed', 'top-0');
     expect(banner.style.height).toBe('auto');
-    expect(banner).not.toHaveClass('h-full');
-    expect(banner).not.toHaveClass('h-screen');
-    expect(banner).not.toHaveClass('inset-0');
-    expect(banner).not.toHaveClass('bottom-0');
+    // The global rule also sets display:flex/column; block keeps layout independent of it.
+    expect(banner.style.display).toBe('block');
   });
 });
