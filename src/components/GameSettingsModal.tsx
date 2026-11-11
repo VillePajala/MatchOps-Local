@@ -695,12 +695,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
    * (review 1.5). Linking classifies an EXISTING game, so it only fills what
    * the game lacks and never rewrites what already happened:
    * - date: never touched (a competition's start date is not this match's date);
-   * - venue: only when the game has none; the pin and address are cleared with
-   *   it so they cannot point at a different place than the name;
+   * - venue: only when the game has none - no name, no picked address and no
+   *   pin (an address-only venue is still a venue); the pin and address are
+   *   cleared with it so they cannot point at a different place than the name;
    * - period format: only before the game has started - a played game keeps
    *   the format it was actually played with;
    * - age group: taken when the competition has one, otherwise the game keeps
-   *   its own (it used to be blanked).
+   *   its own (it used to be blanked). Unlike the venue it does replace the
+   *   game's value: it classifies the game, which is what linking is for.
    * Calls the form handlers and records the persisted fields in `updates`.
    * @returns whether anything was applied.
    */
@@ -709,7 +711,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     updates: Partial<AppState>,
   ): boolean => {
     let applied = false;
-    if (competition.location && !gameLocation?.trim()) {
+    const gameHasVenue = !!gameLocation?.trim() || !!locationAddress?.trim() || locationLat !== undefined;
+    if (competition.location && !gameHasVenue) {
       onGameLocationChange(competition.location);
       onLocationCoordsChange({ lat: undefined, lng: undefined, address: undefined });
       updates.gameLocation = competition.location;
