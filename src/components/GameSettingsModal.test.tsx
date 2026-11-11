@@ -362,6 +362,7 @@ describe('<GameSettingsModal />', () => {
         ],
         tournaments: [
           { id: 'tour-100', name: 'Elite Cup', location: 'Cup Arena', startDate: '2024-06-01', periodCount: 1, periodDuration: 15, level: 'A', ageGroup: 'u12' },
+          { id: 'tour-bare', name: 'Bare Cup', location: 'Bare Arena', startDate: '2024-07-01', periodCount: 1, periodDuration: 12 },
         ],
         ...handlers,
         updateGameDetailsMutation: {
@@ -430,6 +431,61 @@ describe('<GameSettingsModal />', () => {
       for (const key of ['gameDate', 'gameLocation', 'locationLat', 'numberOfPeriods', 'periodDurationMinutes', 'ageGroup']) {
         expect(updates).not.toHaveProperty(key);
       }
+    });
+
+    /**
+     * A fresh game whose venue is already set keeps it; only the format and
+     * classification come from the season.
+     * @critical
+     */
+    test('linking a season to a fresh game with a venue keeps the venue', async () => {
+      const { handlers, updates } = await linkCompetition('season', { gameLocation: 'Central Park', hasGameStarted: false });
+
+      expect(handlers.onGameLocationChange).not.toHaveBeenCalled();
+      expect(handlers.onLocationCoordsChange).not.toHaveBeenCalled();
+      expect(handlers.onNumPeriodsChange).toHaveBeenCalledWith(2);
+      expect(updates).not.toHaveProperty('gameLocation');
+      expect(updates).not.toHaveProperty('gameDate');
+    });
+
+    /**
+     * A venue recorded only as a picked address (no name typed) is still a
+     * venue: linking must not replace it or clear its pin.
+     * @critical
+     */
+    test('linking a season keeps an address-only venue and its pin', async () => {
+      const { handlers, updates } = await linkCompetition('season', {
+        gameLocation: '',
+        locationAddress: 'Pihlajavedentie 1, Savonlinna',
+        locationLat: 61.87,
+        locationLng: 28.88,
+        hasGameStarted: false,
+      });
+
+      expect(handlers.onGameLocationChange).not.toHaveBeenCalled();
+      expect(handlers.onLocationCoordsChange).not.toHaveBeenCalled();
+      expect(updates).not.toHaveProperty('gameLocation');
+      expect(updates).not.toHaveProperty('locationLat');
+    });
+
+    /**
+     * Tournament on a fresh game: periods come from the tournament; a
+     * tournament without a level keeps the game's own level.
+     * @critical
+     */
+    test('linking a level-less tournament to a fresh game takes its periods and keeps the level', async () => {
+      const { handlers, updates } = await linkCompetition(
+        'tournament',
+        { gameLocation: 'Central Park', tournamentLevel: 'B', hasGameStarted: false },
+        'tour-bare',
+      );
+
+      expect(handlers.onNumPeriodsChange).toHaveBeenCalledWith(1);
+      expect(handlers.onPeriodDurationChange).toHaveBeenCalledWith(12);
+      expect(handlers.onTournamentLevelChange).not.toHaveBeenCalled();
+      expect(handlers.onGameDateChange).not.toHaveBeenCalled();
+      expect(updates).not.toHaveProperty('tournamentLevel');
+      expect(updates).not.toHaveProperty('gameDate');
     });
 
     /**
