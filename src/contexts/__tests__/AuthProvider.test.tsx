@@ -1561,9 +1561,9 @@ describe('AuthProvider', () => {
           window.dispatchEvent(new Event('online'));
         });
 
-        // Background re-validation (review 2026-11, 1.2): the grace period and the
-        // loaded tree stay in place while auth re-initializes. Flipping isLoading here
-        // made page.tsx unmount a running match.
+        // Background re-validation: the grace period and the loaded tree stay in place
+        // while auth re-initializes. Flipping isLoading here made page.tsx unmount a
+        // running match.
         expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
         expect(screen.getByTestId('loading')).toHaveTextContent('ready');
         expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
@@ -1599,7 +1599,7 @@ describe('AuthProvider', () => {
     /**
      * Coming back online during the grace period re-validates auth in the background:
      * the app never shows the loading state (which unmounted a running match in page.tsx),
-     * and a restored session clears the grace period. Review 2026-11, item 1.2.
+     * and a restored session clears the grace period.
      * @critical
      */
     it('re-validates in the background on online: never loading, session restored, grace cleared', async () => {
@@ -1670,7 +1670,7 @@ describe('AuthProvider', () => {
 
     /**
      * Flaky signal fires 'online' several times in a row; only one background
-     * re-init may run at a time. Review 2026-11, item 1.2.
+     * re-init may run at a time.
      * @edge-case
      */
     it('does not stack background re-inits when online fires repeatedly', async () => {
@@ -1734,12 +1734,13 @@ describe('AuthProvider', () => {
     });
 
     /**
-     * The online-revalidation guard must be released on EVERY timeout path, including
-     * the one without a cached identity (cache cleared mid-grace), or later 'online'
-     * events would be ignored. PR #895 review.
+     * A background re-validation that times out after the cached identity disappeared
+     * (cache cleared mid-grace) must keep the user in the grace session (no retry
+     * screen, which would unmount a running match) and must release the guard so a
+     * later 'online' event can re-validate.
      * @edge-case
      */
-    it('releases the re-validation guard when a re-init times out without a cached identity', async () => {
+    it('stays in grace and releases the guard when a background re-init times out without a cached identity', async () => {
       const validSession = {
         expires_at: Math.floor(Date.now() / 1000) + 3600,
         user: { id: 'cached-user-666', email: 'nocache@example.com' },
@@ -1776,15 +1777,16 @@ describe('AuthProvider', () => {
         });
         expect(initCallCount).toBe(2);
 
-        // Cached identity disappears while the re-init hangs; the timeout then takes
-        // the no-cache branch (retry screen) instead of the grace branch.
+        // Cached identity disappears while the re-init hangs. The timeout must not
+        // switch to the retry screen: the user keeps the grace session.
         localStorage.removeItem(STORAGE_KEY);
         await act(async () => {
           jest.advanceTimersByTime(20001);
         });
-        await waitFor(() => {
-          expect(screen.getByTestId('timed-out')).toHaveTextContent('yes');
-        });
+        expect(screen.getByTestId('timed-out')).toHaveTextContent('no');
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
 
         // A later online event must be able to re-validate again.
         await act(async () => {

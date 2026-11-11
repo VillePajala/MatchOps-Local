@@ -213,7 +213,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthGracePeriodRef = useRef(isAuthGracePeriod);
   isAuthGracePeriodRef.current = isAuthGracePeriod;
   // True while a background re-init started by an 'online' event is running.
-  // Cleared when that init settles (its finally block, or the 20 s timeout callback).
+  // Cleared when an init run settles (its finally block or its 20 s timeout callback);
+  // a run superseded by a newer init is released by that newer run.
   const onlineRevalidationInFlightRef = useRef(false);
 
   // Track if password reset flow is in progress (OTP verified, waiting for new password).
@@ -645,10 +646,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // calls. On slow networks or cold starts, 10s was too aggressive and caused false timeouts.
     timeoutId = setTimeout(() => {
       if (mounted) {
-        // Init has settled (timed out) on every branch below, including the no-cached-
-        // identity path that shows the retry screen: release the online-revalidation
-        // guard so a later 'online' event can try again.
+        // This init has settled (timed out): release the online-revalidation guard on
+        // every branch below so a later 'online' event can try again.
+        const wasBackgroundRevalidation = onlineRevalidationInFlightRef.current;
         onlineRevalidationInFlightRef.current = false;
+
+        // A background re-validation that times out while the user already has a
+        // working grace-period session must not leave that session: the retry screen
+        // below would replace the whole tree and unmount a running match. Stay in grace
+        // (even if the cached identity has meanwhile disappeared); the next 'online'
+        // event re-validates again.
+        if (wasBackgroundRevalidation && isAuthGracePeriodRef.current) {
+          logger.info('[AuthProvider] Background re-validation timed out; staying in grace period');
+          setIsLoading(false);
+          return;
+        }
         // Log detailed context for debugging init hangs
         const context = {
           cloudAvailable: isCloudAvailable(),
@@ -717,8 +729,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // swaps the whole tree for the loading screen while auth is loading, which unmounted
   // a running match (the clock reset to its last save and stopped) every time signal
   // returned at the pitch. The init effect never sets isLoading itself, and it settles
-  // the grace state on completion: a real session clears it, still-offline / timeout
-  // keeps it on (no visible change), a rejected session follows the normal path.
+  // the grace state on completion: a real session clears it; still offline, a timeout,
+  // or a session the server no longer accepts keeps it on while a cached identity
+  // exists (no visible change; same as before this handler stopped flipping isLoading).
   // A full re-init (not just refreshSession) is needed because grace triggers 2 and 4
   // (timeout, init threw) can leave init unfinished (no auth listener, no service).
   useEffect(() => {
