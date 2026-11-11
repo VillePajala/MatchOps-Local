@@ -12,6 +12,19 @@ import { resolveGameResult } from '@/utils/gameResult';
  * count the same games the stats table shows - a drifting copy of this is
  * what once put another team's games in a team's totals.
  */
+/**
+ * The fair-play card is PER-GAME state, like isGoalie: it lives on the game's own
+ * player list and nowhere else. Master/team roster rows can still carry a stale
+ * `receivedFairPlayCard: true` from older app versions (which also wrote the award to
+ * the master roster), so any player list copied from a roster into a game must be
+ * passed through this first, or the previous winner starts the game holding the card.
+ * Returns the same array when nothing needs clearing.
+ */
+export function withoutFairPlayCard<T extends { receivedFairPlayCard?: boolean }>(players: T[]): T[] {
+  if (!players.some((p) => p.receivedFairPlayCard)) return players;
+  return players.map((p) => (p.receivedFairPlayCard ? { ...p, receivedFairPlayCard: false } : p));
+}
+
 export function isGameInPlayerScope(
   game: { isPlayed?: boolean; isFriendly?: boolean; teamId?: string },
   teamId?: string | 'legacy',

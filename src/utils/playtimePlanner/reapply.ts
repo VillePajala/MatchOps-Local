@@ -10,6 +10,7 @@ import type { PlannedGameSub } from './gameSubs';
 import type { PlanLink, PlanLinksCollection } from './planLinks';
 import { buildPrefillFromPlan } from './prefill';
 import logger from '@/utils/logger';
+import { withoutFairPlayCard } from '@/utils/playerStats';
 
 /** Why a re-apply could not proceed (drives the UI's disabled reason / toast). */
 export type ReapplyBlockedReason =
@@ -78,7 +79,9 @@ export function buildReapplyPatch(
   // {id,name}. Players in the game but NOT in the plan are dropped - the removal
   // half of the sync.
   const existingById = new Map((game.availablePlayers ?? []).map((p) => [p.id, p]));
-  const enrichById = new Map(masterRoster.map((p) => [p.id, p]));
+  // Players new to this game come from the master roster; the fair-play card is
+  // per-game, so never bring the roster's (stale) flag into the game.
+  const enrichById = new Map(withoutFairPlayCard(masterRoster).map((p) => [p.id, p]));
   const roster: Player[] = plan.players.map(
     (pp) => existingById.get(pp.id) ?? enrichById.get(pp.id) ?? { id: pp.id, name: pp.name },
   );

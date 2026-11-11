@@ -9,6 +9,7 @@ import type { AppState, Player, SavedGamesCollection, GameType, Gender, Point } 
 import { setGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
 import { buildAutoPlacement } from '@/utils/formations';
+import { withoutFairPlayCard } from '@/utils/playerStats';
 import { getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
 import type { ResourceType } from '@/config/premiumLimits';
 
@@ -119,7 +120,7 @@ export async function buildAndPersistNewGame(
     isPlayed,
     isFriendly,
     teamId,
-    availablePlayersForGame,
+    availablePlayersForGame: availablePlayersFromRoster,
     selectedPersonnelIds,
     leagueId,
     customLeagueName,
@@ -162,6 +163,10 @@ export async function buildAndPersistNewGame(
       return null;
     }
   }
+
+  // The squad is copied from the master/team roster, which can still carry a stale
+  // fair-play flag; a new game always starts with nobody holding the card.
+  const availablePlayersForGame = withoutFairPlayCard(availablePlayersFromRoster);
 
   const finalSelectedPlayerIds =
     initialSelectedPlayerIds && initialSelectedPlayerIds.length > 0

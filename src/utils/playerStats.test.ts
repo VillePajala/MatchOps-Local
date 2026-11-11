@@ -1,4 +1,4 @@
-import { isGameInPlayerScope, calculatePlayerStats } from './playerStats';
+import { isGameInPlayerScope, calculatePlayerStats, withoutFairPlayCard } from './playerStats';
 import { Player, Season, Tournament, AppState, GameEvent, PlayerStatAdjustment } from '@/types';
 
 describe('calculatePlayerStats', () => {
@@ -578,5 +578,23 @@ describe('isGameInPlayerScope', () => {
     expect(isGameInPlayerScope({ teamId: '' }, 'legacy')).toBe(true);
     expect(isGameInPlayerScope({ teamId: 'a' }, 'legacy')).toBe(false);
     expect(isGameInPlayerScope({})).toBe(true);
+  });
+});
+
+describe('withoutFairPlayCard', () => {
+  it('clears the per-game fair-play flag on every player', () => {
+    const players: Player[] = [
+      { id: 'a', name: 'A', receivedFairPlayCard: true },
+      { id: 'b', name: 'B', receivedFairPlayCard: false },
+      { id: 'c', name: 'C' },
+    ];
+    const out = withoutFairPlayCard(players);
+    expect(out.map((p) => p.receivedFairPlayCard ?? false)).toEqual([false, false, false]);
+    expect(players[0].receivedFairPlayCard).toBe(true); // input not mutated
+  });
+
+  it('returns the same array when nobody holds the card', () => {
+    const players: Player[] = [{ id: 'a', name: 'A' }, { id: 'b', name: 'B', receivedFairPlayCard: false }];
+    expect(withoutFairPlayCard(players)).toBe(players);
   });
 });

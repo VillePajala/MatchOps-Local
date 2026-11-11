@@ -22,7 +22,6 @@ import { diffRemovedRosterIds } from '@/utils/rosterRemovalDiff';
 import { Player, Team } from '@/types';
 import type { GameType } from '@/types/game';
 import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment, UpdateGameDetailsMutationVariables } from "@/types";
-import { setPlayerFairPlayCardStatus } from '@/utils/masterRoster';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import { useRoster } from '@/hooks/useRoster';
@@ -42,6 +41,7 @@ import { exportJson } from '@/utils/exportGames';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
+import { withoutFairPlayCard } from '@/utils/playerStats';
 import { readTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
@@ -1043,10 +1043,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // Data synchronization effects are now managed by useGameDataManagement hook
 
-  // Roster metadata sync (name, nickname, jerseyNumber, notes, color, receivedFairPlayCard)
+  // Roster metadata sync (name, nickname, jerseyNumber, notes, color)
   // is handled by useGameState.ts's roster sync effect via mergeRosterDetails().
   // That effect also removes players deleted from the roster and saves to history.
-  // Note: isGoalie is intentionally NOT synced from roster — it's per-game field state.
+  // Note: isGoalie and receivedFairPlayCard are intentionally NOT synced from roster —
+  // they are per-game state.
   
   useEffect(() => {
     const loadInitialAppData = async () => {
@@ -1374,7 +1375,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
     // Load per-game availablePlayers (with per-game goalie status)
     // Prioritize saved game data, fall back to master roster for new games
-    setAvailablePlayers(gameData?.availablePlayers || gameDataManagement.masterRoster || availablePlayers);
+    // (the fair-play card is per-game: a roster fallback must not bring a stale award)
+    setAvailablePlayers(gameData?.availablePlayers || withoutFairPlayCard(gameDataManagement.masterRoster || availablePlayers));
     
     // History state should be based on the new gameSessionState + other states
     // For simplicity, we'll form history state AFTER the reducer has processed the load.
@@ -1424,7 +1426,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       tacticalDrawings: gameData?.tacticalDrawings || [],
       tacticalBallPosition: gameData?.tacticalBallPosition ?? { relX: 0.5, relY: 0.5 },
       formationSnapPoints: gameData?.formationSnapPoints || [],
-      availablePlayers: gameData?.availablePlayers || gameDataManagement.masterRoster || availablePlayers,
+      // A game without its own player list falls back to the roster; the fair-play
+      // card is per-game, so a roster copy must not bring a stale award along.
+      availablePlayers: gameData?.availablePlayers || withoutFairPlayCard(gameDataManagement.masterRoster || availablePlayers),
     };
     resetHistory(newHistoryState);
     logger.log('[LOAD GAME STATE] Finished dispatching. Reducer will update gameSessionState.');
@@ -1999,24 +2003,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       );
     }
 
+    // The card is per-game state: it lives only on this game's player lists, which
+    // autosave persists (availablePlayers is in the per-game save payload). It is NOT
+    // written to the master roster any more - that copy leaked the award into every
+    // new game and, via the roster sync, into whichever game was open.
     setAvailablePlayers(updatedAvailablePlayers);
     setPlayersOnField(updatedPlayersOnField);
-
-    // Persist fair play card changes to master roster via DataStore
-    // Uses individual player updates rather than replacing entire roster
-    try {
-      // Clear previous holder (if different from new recipient)
-      if (currentlyAwardedPlayerId && currentlyAwardedPlayerId !== playerId) {
-        await setPlayerFairPlayCardStatus(currentlyAwardedPlayerId, false);
-      }
-      // Award to new player (or toggle off if same player clicked again)
-      if (playerId) {
-        const shouldAward = playerId !== currentlyAwardedPlayerId;
-        await setPlayerFairPlayCardStatus(playerId, shouldAward);
-      }
-    } catch (error) {
-      logger.error('[handleAwardFairPlayCard] Error updating fair play card status:', error);
-    }
 
     saveStateToHistory({ playersOnField: updatedPlayersOnField, availablePlayers: updatedAvailablePlayers });
     logger.log(`[page.tsx] Updated Fair Play card award. ${playerId ? `Awarded to ${playerId}` : 'Cleared'}`);

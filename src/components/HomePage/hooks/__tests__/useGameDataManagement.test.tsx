@@ -300,6 +300,67 @@ describe('useGameDataManagement', () => {
       });
     });
 
+    /**
+     * The fair-play card is per-game: a roster refresh must never move or add the
+     * card in the open game (the roster can carry a stale flag from older versions).
+     * @critical
+     */
+    it('keeps the open game\'s own fair-play card and ignores the roster\'s flag when merging', async () => {
+      const masterRoster = [
+        createPlayer({ id: 'p1', name: 'Player 1', receivedFairPlayCard: true }), // stale roster flag
+        createPlayer({ id: 'p2', name: 'Player 2', receivedFairPlayCard: false }),
+        createPlayer({ id: 'p3', name: 'New Player', receivedFairPlayCard: true }), // new to this game
+      ];
+      mockedUseGameDataQueries.mockReturnValue({
+        masterRoster,
+        seasons: [],
+        tournaments: [],
+        savedGames: null,
+        currentGameId: null,
+        loading: false,
+        isSettling: false,
+        error: null,
+      });
+
+      const setAvailablePlayers = jest.fn();
+      renderHook(
+        () => useGameDataManagement({ ...defaultParams, currentGameId: 'game-123', setAvailablePlayers }),
+        { wrapper: createWrapper() },
+      );
+      await waitFor(() => expect(setAvailablePlayers).toHaveBeenCalled());
+
+      const mergeFunction = setAvailablePlayers.mock.calls[0][0];
+      // In THIS game the card went to p2.
+      const merged = mergeFunction([
+        createPlayer({ id: 'p1', name: 'Player 1', receivedFairPlayCard: false }),
+        createPlayer({ id: 'p2', name: 'Player 2', receivedFairPlayCard: true }),
+      ]);
+      const flag = (id: string) => merged.find((p: Player) => p.id === id)?.receivedFairPlayCard;
+      expect(flag('p1')).toBe(false);
+      expect(flag('p2')).toBe(true);
+      expect(flag('p3')).toBe(false);
+    });
+
+    it('does not bring the roster\'s fair-play flag into the default game', async () => {
+      mockedUseGameDataQueries.mockReturnValue({
+        masterRoster: [createPlayer({ id: 'p1', name: 'Player 1', receivedFairPlayCard: true })],
+        seasons: [],
+        tournaments: [],
+        savedGames: null,
+        currentGameId: null,
+        loading: false,
+        isSettling: false,
+        error: null,
+      });
+      const setAvailablePlayers = jest.fn();
+      renderHook(
+        () => useGameDataManagement({ ...defaultParams, currentGameId: null, setAvailablePlayers }),
+        { wrapper: createWrapper() },
+      );
+      await waitFor(() => expect(setAvailablePlayers).toHaveBeenCalled());
+      expect(setAvailablePlayers.mock.calls[0][0][0].receivedFairPlayCard).toBe(false);
+    });
+
     it('should merge master roster while preserving per-game goalie status for active games', async () => {
       const masterRoster = [
         createPlayer({ id: 'p1', name: 'Player 1 Updated', isGoalie: false }),
