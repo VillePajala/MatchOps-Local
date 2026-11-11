@@ -39,7 +39,13 @@ export interface GameDataQueriesResult {
    *  is exactly how this was wired to the wrong hook variant and silently did
    *  nothing. A missing one must be a type error, not a quiet no-op. */
   isSettling: boolean;
+  /** Saved games, seasons, tournaments or the current-game id failed to load.
+   *  The roster is reported separately in `masterRosterError`. */
   error: Error | null;
+  /** The roster read failed. `masterRoster` then still holds the last good
+   *  roster if there was one (React Query keeps it), so callers must keep
+   *  what they have rather than clear it. */
+  masterRosterError: Error | null;
 }
 
 export interface TeamGameDataQueriesResult {
@@ -58,6 +64,13 @@ export interface TeamGameDataQueriesResult {
   isSettling: boolean;
   error: Error | null;
 }
+
+// Stable fallbacks: a fresh `[]` per render would change identity every render
+// while a query has no data (e.g. its first load failed) and re-run every effect
+// that depends on it - an endless render loop.
+const NO_PLAYERS: Player[] = [];
+const NO_SEASONS: Season[] = [];
+const NO_TOURNAMENTS: Tournament[] = [];
 
 export function useGameDataQueries(): GameDataQueriesResult {
   const { userId } = useDataStore();
@@ -96,8 +109,13 @@ export function useGameDataQueries(): GameDataQueriesResult {
     queryFn: () => getCurrentGameIdSetting(userId),
   });
 
+  // The roster gates boot only on its FIRST attempt (as before, when a failed
+  // read resolved to [] at once). Its retries after a failed read run in the
+  // background: waiting ~7s through them would delay resuming the match even
+  // though the saved game and current-game id are ready. Meanwhile the roster
+  // reads as empty, which the roster sync and the live prune both tolerate.
   const loading =
-    masterRoster.isLoading ||
+    (masterRoster.isLoading && masterRoster.failureCount === 0) ||
     seasons.isLoading ||
     tournaments.isLoading ||
     savedGames.isLoading ||
@@ -107,8 +125,9 @@ export function useGameDataQueries(): GameDataQueriesResult {
   // variant below for why isLoading alone is not enough.
   const isSettling = savedGames.isFetching || currentGameId.isFetching;
 
+  // The roster is left out on purpose: a failed roster read (transient on
+  // mobile IndexedDB) must not read as "saved games failed" during boot.
   const error =
-    masterRoster.error ||
     seasons.error ||
     tournaments.error ||
     savedGames.error ||
@@ -116,9 +135,10 @@ export function useGameDataQueries(): GameDataQueriesResult {
     null;
 
   return {
-    masterRoster: masterRoster.data || [],
-    seasons: seasons.data || [],
-    tournaments: tournaments.data || [],
+    masterRoster: masterRoster.data ?? NO_PLAYERS,
+    masterRosterError: masterRoster.error ?? null,
+    seasons: seasons.data ?? NO_SEASONS,
+    tournaments: tournaments.data ?? NO_TOURNAMENTS,
     savedGames: savedGames.data || null,
     currentGameId: currentGameId.data || null,
     loading,
