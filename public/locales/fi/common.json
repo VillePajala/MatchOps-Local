@@ -3549,7 +3549,7 @@
       "reapplyDoneNoRoster": "Päivitettiin {{updated}} peliä; {{skipped}} pelissä ei ollut pelaajia listalla, joten ne jätettiin ennalleen.",
       "suggestButton": "Ehdota reilut kokoonpanot",
       "suggestConfirmTitle": "Ehdotetaanko reilut kokoonpanot?",
-      "suggestConfirmMessage": "Rakentaa avauskokoonpanot ja puoliaikavaihdot jokaiseen mukana olevaan peliin niin, että peliaika jakautuu mahdollisimman tasan. Maalivahtia ei koskaan vaihdeta kesken pelin.",
+      "suggestConfirmMessage": "Rakentaa avauskokoonpanot ja vaihdot jokaiseen mukana olevaan peliin niin, että peliaika jakautuu mahdollisimman tasan ja jokainen pelaaja pääsee kentälle. Maalivahtia ei koskaan vaihdeta kesken pelin.",
       "suggestConfirmWarning": "Mukana olevien pelien nykyiset kokoonpanot ja vaihdot korvataan. Kumoa (Pelit-välilehdellä) palauttaa ne.",
       "suggestConfirmLabel": "Ehdota",
       "suggestDone": "Reilut kokoonpanot ehdotettu - katso peliaikanäkymä.",

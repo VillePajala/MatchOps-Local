@@ -193,3 +193,102 @@ describe('suggestFairShareLineup with absences', () => {
     expect(g2Starters.has('p0') || g2.subs.some((s) => s.inPlayerId === 'p0')).toBe(true);
   });
 });
+
+describe('suggestFairShareLineup with a bench bigger than one round of subs', () => {
+  /** Planned seconds per player for a one-game plan. */
+  const minutesOf = (p: PlaytimePlan): Map<string, number> =>
+    new Map(computePlanMinutes(toEnginePlan(p)).players.map((x) => [x.playerId, x.totalSeconds]));
+  const gkSlotIdOf = (formationId: string) => getGameSlots(formationId).find((s) => s.isGoalie)!.slotId;
+  const subTimes = (g: PlanGame) => [...new Set(g.subs.map((s) => s.timeSeconds))].sort((a, b) => a - b);
+
+  const cases = [
+    { name: '10 in 5v5', formationId: '5v5-2-2', players: 10, k: 2 },
+    { name: '12 in 5v5', formationId: '5v5-2-2', players: 12, k: 2 },
+    { name: '14 in 5v5', formationId: '5v5-2-2', players: 14, k: 3 },
+    { name: '16 in 8v8', formationId: '8v8-2-1-2-1-1', players: 16, k: 2 },
+  ];
+
+  /**
+   * @critical - owner rule: in junior games every selected player plays.
+   * Before the fix the extra bench players got 0 minutes ("1 pelaaja ilman
+   * peliaikaa").
+   */
+  it.each(cases)('$name: every player gets time, GK stays, at most k sub moments incl. half time', ({ formationId, players, k }) => {
+    const result = suggestFairShareLineup(
+      plan([game('g1', { formationId, numberOfPeriods: 2, periodMinutes: 25 })], players),
+    );
+    const g = result.games[0];
+    const mins = minutesOf(result);
+    expect(mins.size).toBe(players);
+    expect([...mins.values()].every((s) => s > 0)).toBe(true);
+    expect(g.subs.some((s) => s.slotId === gkSlotIdOf(formationId))).toBe(false);
+    const times = subTimes(g);
+    expect(times.length).toBeLessThanOrEqual(k);
+    expect(times).toContain(25 * 60);
+    // Every bench player comes on exactly once.
+    const ins = g.subs.map((s) => s.inPlayerId);
+    expect(new Set(ins).size).toBe(ins.length);
+    expect(ins).toHaveLength(players - getGameSlots(formationId).length);
+  });
+
+  /**
+   * @critical - the onboarding plan's acceptance case: 16 players, 8v8,
+   * 2 x 25. Sub moments 12:30 and half time; every outfield player 12:30-25:00.
+   */
+  it('16 in 8v8: subs at 12:30 and 25:00, outfield minutes 12:30 to 25:00', () => {
+    const formationId = '8v8-2-1-2-1-1';
+    const result = suggestFairShareLineup(
+      plan([game('g1', { formationId, numberOfPeriods: 2, periodMinutes: 25 })], 16),
+    );
+    const g = result.games[0];
+    expect(subTimes(g)).toEqual([750, 1500]);
+    const gk = g.startingSlots.find((a) => a.slotId === gkSlotIdOf(formationId))!.playerId!;
+    const mins = minutesOf(result);
+    expect(mins.get(gk)).toBe(50 * 60);
+    for (const [id, s] of mins) {
+      if (id === gk) continue;
+      expect(s).toBeGreaterThanOrEqual(750);
+      expect(s).toBeLessThanOrEqual(1500);
+    }
+  });
+
+  it('14 in 8v8 still fits one round: all subs at half time, as before', () => {
+    const result = suggestFairShareLineup(
+      plan([game('g1', { formationId: '8v8-2-1-2-1-1', numberOfPeriods: 2, periodMinutes: 25 })], 14),
+    );
+    expect(subTimes(result.games[0])).toEqual([1500]);
+    expect(result.games[0].subs).toHaveLength(6);
+  });
+
+  it('spreads moments evenly in a one-period game', () => {
+    // 1 x 30, 12 in 5v5: bench 7 over 4 outfield slots -> k = 2 -> 10:00 and 20:00.
+    const result = suggestFairShareLineup(
+      plan([game('g1', { numberOfPeriods: 1, periodMinutes: 30 })], 12),
+    );
+    expect(subTimes(result.games[0])).toEqual([600, 1200]);
+    expect([...minutesOf(result).values()].every((s) => s > 0)).toBe(true);
+  });
+
+  it('absentees still get nothing; everyone attending plays', () => {
+    const result = suggestFairShareLineup(
+      plan([game('g1', { numberOfPeriods: 2, periodMinutes: 20, absentIds: ['p0', 'p1'] })], 14),
+    );
+    const g = result.games[0];
+    const used = new Set([...g.startingSlots.map((a) => a.playerId), ...g.subs.map((s) => s.inPlayerId)]);
+    expect(used.has('p0') || used.has('p1')).toBe(false);
+    const mins = minutesOf(result);
+    for (let i = 2; i < 14; i++) expect(mins.get(`p${i}`)).toBeGreaterThan(0);
+  });
+
+  it('balances a multi-game plan using the real minutes of each game', () => {
+    // 3 games x 2 x 20 in 5v5 with 12 players: everyone plays every game and the
+    // plan-wide spread stays within one 10-minute window.
+    const games = ['g1', 'g2', 'g3'].map((id) => game(id, { numberOfPeriods: 2, periodMinutes: 20 }));
+    const result = suggestFairShareLineup(plan(games, 12));
+    const m = computePlanMinutes(toEnginePlan(result));
+    for (const p of m.players) expect(p.perGameSeconds.every((s) => s > 0)).toBe(true);
+    const totals = m.players.map((p) => p.totalSeconds);
+    const outfield = totals.sort((a, b) => a - b).slice(0, -3); // drop the three keepers' full games
+    expect(Math.max(...outfield) - Math.min(...outfield)).toBeLessThanOrEqual(20 * 60);
+  });
+});
