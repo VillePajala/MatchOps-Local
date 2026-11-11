@@ -316,6 +316,11 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           gender={data.gameSessionState.gender}
           onGenderChange={handlers.setGender}
           timeElapsedInSeconds={data.gameSessionState.timeElapsedInSeconds}
+          hasGameStarted={
+            data.gameSessionState.gameStatus !== 'notStarted' ||
+            (data.gameSessionState.timeElapsedInSeconds ?? 0) > 0 ||
+            (data.gameSessionState.gameEvents?.length ?? 0) > 0
+          }
           updateGameDetailsMutation={data.updateGameDetailsMutation!}
           seasons={data.seasons}
           tournaments={data.tournaments}
