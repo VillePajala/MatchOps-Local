@@ -336,6 +336,11 @@ const localStorageMock = (() => {
       };
     }),
     getAll: () => store,
+    // Standard Storage enumeration, so code that walks the keys works in tests too.
+    get length() {
+      return Object.keys(store).length;
+    },
+    key: jest.fn(index => Object.keys(store)[index] ?? null),
   };
 })();
 

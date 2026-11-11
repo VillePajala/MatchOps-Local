@@ -103,38 +103,46 @@ describe('TimerOverlay', () => {
     await waitFor(() => expect(baseProps.onRecordOpponentGoal).toHaveBeenCalledTimes(1));
   });
 
-  describe('planned sub nudge (Playing-Time Planner)', () => {
-    const prompt = { subId: 's1', timeSeconds: 720, inName: 'Niko', outName: 'Sam' };
+  describe('planned subs block (Playing-Time Planner)', () => {
+    const group = { timeSeconds: 1500, inNames: ['Eino', 'Niilo', 'Veeti'], outNames: ['Aapo', 'Elias', 'Leevi'] };
 
-    it('shows the due planned sub during play and dismisses it', () => {
-      const onDismiss = jest.fn();
-      render(
-        <TimerOverlay
-          {...baseProps}
-          gameStatus="inProgress"
-          plannedSubPrompt={prompt}
-          onDismissPlannedSub={onDismiss}
-        />,
-      );
-      expect(screen.getByText(/Niko/)).toBeInTheDocument();
-      expect(screen.getByText(/Sam/)).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: /Got it/i }));
-      expect(onDismiss).toHaveBeenCalledWith('s1');
+    /**
+     * Every change due at one moment reads as one block, with no button to
+     * dismiss it (it moves on by itself when the next group falls due).
+     * @critical
+     */
+    it('shows the whole due group as one block with no dismiss button', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={group} />);
+      const block = screen.getByTestId('planned-sub-group');
+      expect(block).toHaveTextContent('25:00');
+      expect(block).toHaveTextContent('Eino, Niilo, Veeti');
+      expect(block).toHaveTextContent('Aapo, Elias, Leevi');
+      expect(within(block).queryByRole('button')).not.toBeInTheDocument();
     });
 
-    it('does not show the nudge before the game starts', () => {
-      render(<TimerOverlay {...baseProps} gameStatus="notStarted" plannedSubPrompt={prompt} />);
-      expect(screen.queryByRole('button', { name: /Got it/i })).not.toBeInTheDocument();
+    it('says how many earlier groups were also due', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={group} plannedSubsEarlier={2} />);
+      expect(screen.getByTestId('planned-sub-group')).toHaveTextContent(/\+2/);
     });
 
-    it('keeps the nudge through a period break (half-time is when subs happen)', () => {
-      render(<TimerOverlay {...baseProps} gameStatus="periodEnd" plannedSubPrompt={prompt} />);
-      expect(screen.getByRole('button', { name: /Got it/i })).toBeInTheDocument();
+    it('omits the off line when every slot was empty', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={{ ...group, outNames: [] }} />);
+      expect(screen.getByTestId('planned-sub-group')).not.toHaveTextContent('Aapo');
     });
 
-    it('does not show the nudge after full time - nobody left to substitute', () => {
-      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" plannedSubPrompt={prompt} />);
-      expect(screen.queryByRole('button', { name: /Got it/i })).not.toBeInTheDocument();
+    it('does not show the block before the game starts', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="notStarted" plannedSubGroup={group} />);
+      expect(screen.queryByTestId('planned-sub-group')).not.toBeInTheDocument();
+    });
+
+    it('keeps the block through a period break (half-time is when subs happen)', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="periodEnd" plannedSubGroup={group} />);
+      expect(screen.getByTestId('planned-sub-group')).toBeInTheDocument();
+    });
+
+    it('does not show the block after full time - nobody left to substitute', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" plannedSubGroup={group} />);
+      expect(screen.queryByTestId('planned-sub-group')).not.toBeInTheDocument();
     });
   });
 

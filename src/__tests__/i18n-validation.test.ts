@@ -718,7 +718,10 @@ describe('Translation File Validation', () => {
       // +1 startScreen.dashLastOpened, -2 dashLatestMatch/dashInProgress: the
       //     Jatka card names what the slot is (the match you last opened)
       //     instead of guessing a state from the clock. Lands at 3352.
-      expect(enKeys.length).toBe(3375);
+      // +4 timerOverlay.plannedSubsEarlier_one/_other/plannedSubsOn/Off,
+      //     -3 plannedSubInOut/plannedSubIn/plannedSubDismiss: planned subs
+      //     show as one group per moment with no dismiss. Lands at 3376.
+      expect(enKeys.length).toBe(3376);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -907,7 +910,8 @@ describe('Translation File Validation', () => {
       // +10 kitColor.* swatch names (see EN above). Lands at 3266.
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
-      expect(fiKeys.length).toBe(3375);
+      // +1 grouped planned subs (see EN above). Lands at 3376.
+      expect(fiKeys.length).toBe(3376);
     });
   });
 });
