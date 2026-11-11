@@ -1043,11 +1043,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // Data synchronization effects are now managed by useGameDataManagement hook
 
-  // Roster metadata sync (name, nickname, jerseyNumber, notes, color)
-  // is handled by useGameState.ts's roster sync effect via mergeRosterDetails().
+  // Roster metadata sync (name, nickname, jerseyNumber, notes, color, receivedFairPlayCard)
+  // onto the field players is handled by useGameState.ts's sync effect via
+  // mergeRosterDetails(). Its "roster" is THIS GAME's own availablePlayers, not the
+  // master roster, so mirroring receivedFairPlayCard there is correct: the card is
+  // per-game state, and the master roster's flag is kept out of availablePlayers in
+  // useGameDataManagement (merge) and at every roster-copy site (withoutFairPlayCard).
   // That effect also removes players deleted from the roster and saves to history.
-  // Note: isGoalie and receivedFairPlayCard are intentionally NOT synced from roster —
-  // they are per-game state.
+  // Note: isGoalie is intentionally NOT synced — it's per-game field state.
   
   useEffect(() => {
     const loadInitialAppData = async () => {

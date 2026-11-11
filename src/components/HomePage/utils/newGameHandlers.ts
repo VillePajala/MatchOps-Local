@@ -179,7 +179,11 @@ export async function buildAndPersistNewGame(
   // availablePlayers always holds: drop prefilled players no longer in the roster,
   // and make sure everyone left on the field stays selected.
   const availableIdSet = new Set(availablePlayersForGame.map((p) => p.id));
-  const reconciledOnField = (prefill?.playersOnField ?? []).filter((p) => availableIdSet.has(p.id));
+  // The prefilled field players were built from the roster before this function ran,
+  // so they can carry the same stale fair-play flag; stats read playersOnField first.
+  const reconciledOnField = withoutFairPlayCard(
+    (prefill?.playersOnField ?? []).filter((p) => availableIdSet.has(p.id)),
+  );
   // Deep-review M7: reconcile the NON-prefill selection too - the full-club
   // fallback (and any future caller) must not persist ids outside this
   // game's roster (selectedPlayerIds ⊆ availablePlayers, always).
