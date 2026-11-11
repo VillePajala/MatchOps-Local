@@ -196,6 +196,40 @@ describe('useGameState', () => {
   });
 
   /**
+   * The sync source is THIS GAME's own availablePlayers (not the master roster), so the
+   * game's fair-play award is mirrored onto the field discs. The master roster's flag is
+   * kept out of availablePlayers upstream (useGameDataManagement, withoutFairPlayCard).
+   * @critical
+   */
+  it("mirrors the game's own fair-play award onto field players", async () => {
+    const saveStateToHistory = jest.fn();
+    const player1 = { ...basePlayer, id: 'p1', name: 'Player 1', receivedFairPlayCard: false };
+    const player2 = { ...basePlayer, id: 'p2', name: 'Player 2', receivedFairPlayCard: false };
+    // Defined outside the render callback: a new object per render would loop the
+    // hook's initialState sync.
+    const initial = {
+      ...initialState,
+      availablePlayers: [player1, player2],
+      playersOnField: [{ ...player2, relX: 0.4, relY: 0.5 }],
+    };
+    const { result } = renderHook(() =>
+      useGameState({
+        initialState: initial,
+        saveStateToHistory,
+      })
+    );
+
+    // The game's own list now says p2 holds the card (as the award handler sets it).
+    act(() => {
+      result.current.setAvailablePlayers([player1, { ...player2, receivedFairPlayCard: true }]);
+    });
+
+    await waitFor(() => {
+      expect(result.current.playersOnField.find((p) => p.id === 'p2')?.receivedFairPlayCard).toBe(true);
+    });
+  });
+
+  /**
    * Covers combined roster removals + metadata updates in one payload.
    * @critical
    * @edge-case

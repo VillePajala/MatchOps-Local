@@ -188,6 +188,8 @@ export function useGameDataManagement(
           // own fair-play award
           const perGameGoalieMap = new Map<string, boolean>();
           const perGamePlayerIds = new Set<string>();
+          // The card is unique per game (the award handler clears the previous holder),
+          // so the first holder is THE holder.
           const perGameFairPlayHolder = currentPlayers.find((p: Player) => p.receivedFairPlayCard)?.id;
           currentPlayers.forEach((p: Player) => {
             perGamePlayerIds.add(p.id);

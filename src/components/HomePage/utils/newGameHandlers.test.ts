@@ -222,6 +222,29 @@ describe('newGameHandlers', () => {
     expect(result!.gameState.playersOnField.some((p) => p.receivedFairPlayCard)).toBe(false);
   });
 
+  /**
+   * Planner-prefilled field players are built from the roster before game creation,
+   * so they can carry the same stale flag; stats read playersOnField first.
+   * @critical
+   */
+  it('clears a stale fair-play flag from planner-prefilled field players', async () => {
+    const result = await buildAndPersistNewGame(
+      createTestDeps(),
+      createBaseRequest({
+        initialSelectedPlayerIds: ['p1', 'p2'],
+        prefill: {
+          playersOnField: [
+            { id: 'p1', name: 'Player 1', isGoalie: false, receivedFairPlayCard: true, relX: 0.5, relY: 0.5 },
+          ],
+          plannedSubs: [],
+          formationSnapPoints: [],
+        },
+      }),
+    );
+    expect(result!.gameState.playersOnField[0].receivedFairPlayCard).toBe(false);
+    expect(result!.gameState.availablePlayers.some((p) => p.receivedFairPlayCard)).toBe(false);
+  });
+
   it('threads the isFriendly flag onto the built game (default false, explicit true)', async () => {
     const def = await buildAndPersistNewGame(createTestDeps(), createBaseRequest());
     expect(def!.gameState.isFriendly).toBe(false);
