@@ -171,6 +171,11 @@ export interface GameSettingsModalProps {
   // Removed: isAddingTournament - unused prop, mutations handle loading state internally
   // Add current time for fair play card
   timeElapsedInSeconds?: number;
+  /** The game has been started or has anything recorded (clock run, status
+   *  past "not started", events). Linking a competition then keeps the game's
+   *  own period format instead of taking the competition's. REQUIRED so a
+   *  missing wiring is a type error, not a silent rewrite of a played game. */
+  hasGameStarted: boolean;
   updateGameDetailsMutation: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
   // Fresh data from React Query
   seasons: Season[];
@@ -256,6 +261,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // Removed: isAddingSeason - unused prop, mutations handle loading state internally
   // Removed: isAddingTournament - unused prop, mutations handle loading state internally
   timeElapsedInSeconds: _timeElapsedInSeconds,
+  hasGameStarted,
   updateGameDetailsMutation,
   seasons,
   tournaments,
@@ -684,6 +690,60 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   }, [isOpen, seasonId, tournamentId]);
 
 
+  /**
+   * Defaults a season or tournament may give a game when it is linked here
+   * (review 1.5). Linking classifies an EXISTING game, so it only fills what
+   * the game lacks and never rewrites what already happened:
+   * - date: never touched (a competition's start date is not this match's date);
+   * - venue: only when the game has none - no name, no picked address and no
+   *   pin (an address-only venue is still a venue); the pin and address are
+   *   cleared with it so they cannot point at a different place than the name;
+   * - period format: only before the game has started - a played game keeps
+   *   the format it was actually played with;
+   * - age group: taken when the competition has one, otherwise the game keeps
+   *   its own (it used to be blanked). Unlike the venue it does replace the
+   *   game's value: it classifies the game, which is what linking is for.
+   * Calls the form handlers and records the persisted fields in `updates`.
+   * @returns whether anything was applied.
+   */
+  const applyCompetitionDefaults = (
+    competition: Pick<Season, 'location' | 'ageGroup' | 'periodCount' | 'periodDuration'>,
+    updates: Partial<AppState>,
+  ): boolean => {
+    let applied = false;
+    const gameHasVenue = !!gameLocation?.trim() || !!locationAddress?.trim() || locationLat !== undefined;
+    if (competition.location && !gameHasVenue) {
+      onGameLocationChange(competition.location);
+      onLocationCoordsChange({ lat: undefined, lng: undefined, address: undefined });
+      updates.gameLocation = competition.location;
+      updates.locationLat = undefined;
+      updates.locationLng = undefined;
+      updates.locationAddress = undefined;
+      applied = true;
+    }
+    if (competition.ageGroup) {
+      onAgeGroupChange(competition.ageGroup);
+      updates.ageGroup = competition.ageGroup;
+      applied = true;
+    }
+    if (!hasGameStarted) {
+      const parsedCount = Number(competition.periodCount);
+      if (parsedCount === 1 || parsedCount === 2) {
+        const count = parsedCount as 1 | 2;
+        onNumPeriodsChange(count);
+        updates.numberOfPeriods = count;
+        applied = true;
+      }
+      const parsedDuration = Number(competition.periodDuration);
+      if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
+        onPeriodDurationChange(parsedDuration);
+        updates.periodDurationMinutes = parsedDuration;
+        applied = true;
+      }
+    }
+    return applied;
+  };
+
   // Prefill game settings when selecting a season
   useEffect(() => {
     if (!isOpen || !seasonId) {
@@ -730,36 +790,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     // Update local state (form inputs) AND prepare for persistence
     // Call handlers BEFORE setting ref so failures can retry
     try {
-      if (season.location !== undefined) {
-        const location = season.location || '';
-        onGameLocationChange(location);
-        batchedUpdates.gameLocation = location;
-        hasUpdates = true;
-      }
-      // Always set ageGroup (empty string if season doesn't have one)
-      const seasonAgeGroup = season.ageGroup || '';
-      onAgeGroupChange(seasonAgeGroup);
-      batchedUpdates.ageGroup = seasonAgeGroup;
-      hasUpdates = true;
-
-      // Always set gameDate (keep current if season doesn't have one)
-      const seasonDate = season.startDate || gameDate;
-      onGameDateChange(seasonDate);
-      batchedUpdates.gameDate = seasonDate;
-      hasUpdates = true;
-      const parsedCount = Number(season.periodCount);
-      if (parsedCount === 1 || parsedCount === 2) {
-        const count = parsedCount as 1 | 2;
-        onNumPeriodsChange(count);
-        batchedUpdates.numberOfPeriods = count;
-        hasUpdates = true;
-      }
-      const parsedDuration = Number(season.periodDuration);
-      if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
-        onPeriodDurationChange(parsedDuration);
-        batchedUpdates.periodDurationMinutes = parsedDuration;
-        hasUpdates = true;
-      }
+      // Linking classifies the game; it must not rewrite what the game already
+      // is (review 1.5). The date is never touched - a competition's start date
+      // says nothing about this match. See applyCompetitionDefaults.
+      if (applyCompetitionDefaults(season, batchedUpdates)) hasUpdates = true;
 
       // Apply league from season as default
       //
@@ -900,40 +934,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     // Update local state (form inputs) AND prepare for persistence
     // Call handlers BEFORE setting ref so failures can retry
     try {
-      if (tournament.location !== undefined) {
-        const location = tournament.location || '';
-        onGameLocationChange(location);
-        batchedUpdates.gameLocation = location;
-        hasUpdates = true;
-      }
-      // Always set ageGroup (empty string if tournament doesn't have one)
-      const tournamentAgeGroup = tournament.ageGroup || '';
-      onAgeGroupChange(tournamentAgeGroup);
-      batchedUpdates.ageGroup = tournamentAgeGroup;
-      hasUpdates = true;
-
-      // Always set tournamentLevel (empty string if tournament doesn't have one)
-      const tournamentLvl = tournament.level || '';
-      onTournamentLevelChange(tournamentLvl);
-      batchedUpdates.tournamentLevel = tournamentLvl;
-      hasUpdates = true;
-
-      // Always set gameDate (keep current if tournament doesn't have one)
-      const tournamentDate = tournament.startDate || gameDate;
-      onGameDateChange(tournamentDate);
-      batchedUpdates.gameDate = tournamentDate;
-      hasUpdates = true;
-      const parsedCount = Number(tournament.periodCount);
-      if (parsedCount === 1 || parsedCount === 2) {
-        const count = parsedCount as 1 | 2;
-        onNumPeriodsChange(count);
-        batchedUpdates.numberOfPeriods = count;
-        hasUpdates = true;
-      }
-      const parsedDuration = Number(tournament.periodDuration);
-      if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
-        onPeriodDurationChange(parsedDuration);
-        batchedUpdates.periodDurationMinutes = parsedDuration;
+      // Same rules as the season link (review 1.5); the date is never touched.
+      if (applyCompetitionDefaults(tournament, batchedUpdates)) hasUpdates = true;
+      // The level classifies the game like the age group: taken when the
+      // tournament has one, otherwise the game keeps its own.
+      if (tournament.level) {
+        onTournamentLevelChange(tournament.level);
+        batchedUpdates.tournamentLevel = tournament.level;
         hasUpdates = true;
       }
 
