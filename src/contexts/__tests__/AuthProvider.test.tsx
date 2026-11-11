@@ -1734,6 +1734,73 @@ describe('AuthProvider', () => {
     });
 
     /**
+     * The online-revalidation guard must be released on EVERY timeout path, including
+     * the one without a cached identity (cache cleared mid-grace), or later 'online'
+     * events would be ignored. PR #895 review.
+     * @edge-case
+     */
+    it('releases the re-validation guard when a re-init times out without a cached identity', async () => {
+      const validSession = {
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: 'cached-user-666', email: 'nocache@example.com' },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validSession));
+
+      const factory = require('@/datastore/factory');
+      let initCallCount = 0;
+      factory.getAuthService.mockImplementation(() => {
+        initCallCount++;
+        if (initCallCount === 1) return Promise.resolve(mockAuthService);
+        return new Promise(() => {}); // re-inits hang
+      });
+
+      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+
+      try {
+        render(
+          <AuthProvider>
+            <GracePeriodTestComponent />
+          </AuthProvider>
+        );
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+        });
+
+        Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        await act(async () => {
+          window.dispatchEvent(new Event('online'));
+        });
+        expect(initCallCount).toBe(2);
+
+        // Cached identity disappears while the re-init hangs; the timeout then takes
+        // the no-cache branch (retry screen) instead of the grace branch.
+        localStorage.removeItem(STORAGE_KEY);
+        await act(async () => {
+          jest.advanceTimersByTime(20001);
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('timed-out')).toHaveTextContent('yes');
+        });
+
+        // A later online event must be able to re-validate again.
+        await act(async () => {
+          window.dispatchEvent(new Event('online'));
+        });
+        expect(initCallCount).toBe(3);
+      } finally {
+        if (originalOnLine) {
+          Object.defineProperty(navigator, 'onLine', originalOnLine);
+        } else {
+          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        }
+      }
+    });
+
+    /**
      * Mid-session token expiry while offline should enter grace period (trigger 3).
      * When onAuthStateChange fires signed_out with null session while offline and
      * a valid cached token exists, the user should keep access via grace period.
