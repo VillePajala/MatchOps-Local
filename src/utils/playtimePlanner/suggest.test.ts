@@ -209,9 +209,8 @@ describe('suggestFairShareLineup with a bench bigger than one round of subs', ()
   ];
 
   /**
-   * @critical - owner rule: in junior games every selected player plays.
-   * Before the fix the extra bench players got 0 minutes ("1 pelaaja ilman
-   * peliaikaa").
+   * @critical - owner rule: in junior games every selected player plays, also
+   * when the bench is bigger than one round of subs.
    */
   it.each(cases)('$name: every player gets time, GK stays, at most k sub moments incl. half time', ({ formationId, players, k }) => {
     const result = suggestFairShareLineup(
@@ -290,5 +289,23 @@ describe('suggestFairShareLineup with a bench bigger than one round of subs', ()
     const totals = m.players.map((p) => p.totalSeconds);
     const outfield = totals.sort((a, b) => a - b).slice(0, -3); // drop the three keepers' full games
     expect(Math.max(...outfield) - Math.min(...outfield)).toBeLessThanOrEqual(20 * 60);
+  });
+
+  /** @edge-case - three periods: two sub moments land on the period breaks. */
+  it('3 periods: the sub moments fall on the period breaks', () => {
+    const result = suggestFairShareLineup(
+      plan([game('g1', { numberOfPeriods: 3, periodMinutes: 15 })], 12),
+    );
+    expect(subTimes(result.games[0])).toEqual([15 * 60, 30 * 60]);
+    expect([...minutesOf(result).values()].every((s) => s > 0)).toBe(true);
+  });
+
+  /** @edge-case - the shortest real game still fits every sub moment. */
+  it('2 x 1 min with 16 in 8v8: nobody is left on zero', () => {
+    const result = suggestFairShareLineup(
+      plan([game('g1', { formationId: '8v8-2-1-2-1-1', numberOfPeriods: 2, periodMinutes: 1 })], 16),
+    );
+    expect(subTimes(result.games[0])).toEqual([30, 60]);
+    expect([...minutesOf(result).values()].every((s) => s > 0)).toBe(true);
   });
 });

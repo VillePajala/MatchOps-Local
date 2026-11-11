@@ -6,9 +6,9 @@
  * with a running minutes accumulator, give each game's start to the players with
  * the least accumulated time, and bring the remaining bench players on as subs:
  * one round at half time when the bench fits, otherwise several sub moments so
- * every attending player gets time. The goalkeeper is never subbed mid-game (standalone's
- * GK protection); GK duty itself rotates because the accumulator naturally
- * pushes last game's full-time keeper down the pecking order.
+ * every attending player gets time. The goalkeeper is never subbed mid-game
+ * (standalone's GK protection); GK duty itself rotates because the accumulator
+ * naturally pushes last game's full-time keeper down the pecking order.
  *
  * Pure and deterministic: same plan in, same plan out. Excluded games are left
  * untouched. The result intentionally overwrites included games' lineups and
@@ -61,7 +61,9 @@ const subRankOf = (label: string): number => {
  * Times of the sub moments when the bench needs `k` rounds (k >= 2). Evenly
  * spread, and a two-period game always keeps half time as one of them:
  * 2 x 25 gives 12:30 + 25:00 for k = 2 and 12:30, 25:00, 37:30 for k = 3.
- * Returns null when the game is too short for k distinct moments.
+ * Returns null only when the game is shorter than k + 2 seconds (a 0-minute
+ * game - real games are whole minutes, so k distinct seconds always fit). The
+ * caller then keeps the one-round path; such a game has no minutes to share.
  */
 function subWindowTimes(game: PlanGame, k: number): number[] | null {
   const total = gameTotalSeconds(game);
@@ -133,12 +135,11 @@ export function suggestFairShareLineup(plan: PlaytimePlan): PlaytimePlan {
       startingSlots.push({ slotId: slot.slotId, playerId: xi[cursor++] ?? null });
     }
 
-    // Half-time subs: each bench player comes on for one outfield slot,
-    // HIGHEST-running positions first (wingers/striker before midfield before
-    // defence) - fresh legs go where the running is. This also hands over the
-    // best-served starters first (they were placed into those slots above),
-    // spreading minutes hardest against the current imbalance. GK is never a
-    // sub target.
+    // Sub targets: the filled outfield slots, HIGHEST-running positions first
+    // (wingers/striker before midfield before defence) - fresh legs go where
+    // the running is. In the one-round case this also hands over the
+    // best-served starters first (they were placed into those slots above).
+    // GK is never a sub target.
     const filledBySlotId = new Map(startingSlots.map((a) => [a.slotId, a.playerId]));
     const subs: PlanSub[] = [];
     const subTargets = [...outfieldSlots]
