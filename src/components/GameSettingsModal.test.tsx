@@ -126,6 +126,7 @@ const mockTournaments: Tournament[] = [
 ];
 
 const defaultProps: GameSettingsModalProps = {
+  hasGameStarted: false,
   onFieldNumberChange: jest.fn(),
   onLocationCoordsChange: jest.fn(),
   isOpen: true,
@@ -333,43 +334,122 @@ describe('<GameSettingsModal />', () => {
   });
 
   describe('Season Prefill Regression', () => {
-    test('applies season data to local handlers immediately when season changes', async () => {
+    /**
+     * Links a competition to the modal's game the way a coach does (tab, then
+     * select) and returns the handler mocks plus the persisted batch.
+     */
+    const linkCompetition = async (
+      kind: 'season' | 'tournament',
+      overrides: Partial<GameSettingsModalProps>,
+      competitionId?: string,
+    ) => {
       const user = userEvent.setup();
-      const onGameLocationChange = jest.fn();
-      const onAgeGroupChange = jest.fn();
-      const onNumPeriodsChange = jest.fn();
-      const onPeriodDurationChange = jest.fn();
-      const onGameDateChange = jest.fn();
-
-      const seasonProps = {
+      const handlers = {
+        onGameLocationChange: jest.fn(),
+        onLocationCoordsChange: jest.fn(),
+        onAgeGroupChange: jest.fn(),
+        onTournamentLevelChange: jest.fn(),
+        onGameDateChange: jest.fn(),
+        onNumPeriodsChange: jest.fn(),
+        onPeriodDurationChange: jest.fn(),
+      };
+      const mutateAsync = jest.fn().mockResolvedValue({ id: 'game123' });
+      const props: GameSettingsModalProps = {
         ...defaultProps,
         seasons: [
           { id: 'season-100', name: 'Elite League', location: 'North Dome', startDate: '2024-08-01', periodCount: 2, periodDuration: 30, ageGroup: 'u13' },
+          { id: 'season-bare', name: 'Bare League', location: 'Bare Field', startDate: '2024-05-01', periodCount: 2, periodDuration: 25 },
         ],
-        onGameLocationChange,
-        onAgeGroupChange,
-        onGameDateChange,
-        onNumPeriodsChange,
-        onPeriodDurationChange,
+        tournaments: [
+          { id: 'tour-100', name: 'Elite Cup', location: 'Cup Arena', startDate: '2024-06-01', periodCount: 1, periodDuration: 15, level: 'A', ageGroup: 'u12' },
+        ],
+        ...handlers,
+        updateGameDetailsMutation: {
+          mutate: jest.fn(),
+          mutateAsync,
+        } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
+        seasonId: '',
+        tournamentId: '',
+        ...overrides,
       };
-
-      // Start without a season, then simulate the user explicitly selecting one.
-      const { rerender } = renderModal({ ...seasonProps, seasonId: '' });
-      await user.click(screen.getByText(t('gameSettingsModal.kausi')));
-      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
-      await user.selectOptions(seasonSelect, 'season-100');
-
+      const { rerender } = renderModal(props);
+      const label = screen.getByText(t('gameSettingsModal.gameTypeLabel'));
+      const section = label.closest('div') as HTMLElement;
+      await user.click(within(section).getByText(t(kind === 'season' ? 'gameSettingsModal.kausi' : 'gameSettingsModal.turnaus')));
+      const select = document.getElementById(kind === 'season' ? 'seasonSelect' : 'tournamentSelect') as HTMLSelectElement;
+      const pick = competitionId ?? (kind === 'season' ? 'season-100' : 'tour-100');
+      await user.selectOptions(select, pick);
       rerender(
         <ToastProvider>
-          <GameSettingsModal {...seasonProps} seasonId="season-100" />
+          <GameSettingsModal {...props} {...(kind === 'season' ? { seasonId: pick } : { tournamentId: pick })} />
         </ToastProvider>
       );
+      await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
+      const updates = mutateAsync.mock.calls[0][0].updates as Partial<AppState>;
+      return { handlers, updates };
+    };
 
-      await waitFor(() => expect(onGameLocationChange).toHaveBeenCalledWith('North Dome'));
-      expect(onAgeGroupChange).toHaveBeenCalledWith('u13');
-      expect(onGameDateChange).toHaveBeenCalledWith('2024-08-01');
-      expect(onNumPeriodsChange).toHaveBeenCalledWith(2);
-      expect(onPeriodDurationChange).toHaveBeenCalledWith(30);
+    /**
+     * A game not yet started and without a venue takes the season's venue,
+     * period format and age group - but never its start date.
+     * @critical
+     */
+    test('linking a season to a fresh game fills venue, periods and age group, not the date', async () => {
+      const { handlers, updates } = await linkCompetition('season', { gameLocation: '', hasGameStarted: false });
+
+      expect(handlers.onGameLocationChange).toHaveBeenCalledWith('North Dome');
+      expect(handlers.onLocationCoordsChange).toHaveBeenCalledWith({ lat: undefined, lng: undefined, address: undefined });
+      expect(handlers.onAgeGroupChange).toHaveBeenCalledWith('u13');
+      expect(handlers.onNumPeriodsChange).toHaveBeenCalledWith(2);
+      expect(handlers.onPeriodDurationChange).toHaveBeenCalledWith(30);
+      expect(handlers.onGameDateChange).not.toHaveBeenCalled();
+      expect(updates).toMatchObject({ gameLocation: 'North Dome', ageGroup: 'u13', numberOfPeriods: 2, periodDurationMinutes: 30 });
+      expect(updates).not.toHaveProperty('gameDate');
+      expect('locationLat' in updates && updates.locationLat).toBeUndefined();
+    });
+
+    /**
+     * Review 1.5: linking a season to a game that was already played must not
+     * rewrite its date, venue or period format, and a season without an age
+     * group must not blank the game's.
+     * @critical
+     */
+    test('linking a season to a played game keeps its date, venue, periods and age group', async () => {
+      const { handlers, updates } = await linkCompetition('season', {
+        gameLocation: 'Central Park',
+        ageGroup: 'u11',
+        hasGameStarted: true,
+      }, 'season-bare');
+
+      expect(handlers.onGameDateChange).not.toHaveBeenCalled();
+      expect(handlers.onGameLocationChange).not.toHaveBeenCalled();
+      expect(handlers.onLocationCoordsChange).not.toHaveBeenCalled();
+      expect(handlers.onNumPeriodsChange).not.toHaveBeenCalled();
+      expect(handlers.onPeriodDurationChange).not.toHaveBeenCalled();
+      expect(handlers.onAgeGroupChange).not.toHaveBeenCalled();
+      for (const key of ['gameDate', 'gameLocation', 'locationLat', 'numberOfPeriods', 'periodDurationMinutes', 'ageGroup']) {
+        expect(updates).not.toHaveProperty(key);
+      }
+    });
+
+    /**
+     * Review 1.5, tournament side: a played game keeps its date, venue and
+     * format; the tournament's level and age group still classify it.
+     * @critical
+     */
+    test('linking a tournament to a played game keeps date, venue and periods, takes level and age group', async () => {
+      const { handlers, updates } = await linkCompetition('tournament', { gameLocation: 'Central Park', hasGameStarted: true });
+
+      expect(handlers.onGameDateChange).not.toHaveBeenCalled();
+      expect(handlers.onGameLocationChange).not.toHaveBeenCalled();
+      expect(handlers.onNumPeriodsChange).not.toHaveBeenCalled();
+      expect(handlers.onPeriodDurationChange).not.toHaveBeenCalled();
+      expect(handlers.onTournamentLevelChange).toHaveBeenCalledWith('A');
+      expect(handlers.onAgeGroupChange).toHaveBeenCalledWith('u12');
+      expect(updates).toMatchObject({ tournamentLevel: 'A', ageGroup: 'u12' });
+      for (const key of ['gameDate', 'gameLocation', 'numberOfPeriods', 'periodDurationMinutes']) {
+        expect(updates).not.toHaveProperty(key);
+      }
     });
 
     test('does not reapply season start date when an existing game roster selection changes', async () => {
