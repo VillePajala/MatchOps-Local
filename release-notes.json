@@ -4,6 +4,15 @@
     {
       "date": "2026-11-11",
       "en": [
+        "When the connection comes back during a match, the app now reconnects in the background instead of jumping to the loading screen, so the running clock keeps going."
+      ],
+      "fi": [
+        "Kun verkkoyhteys palaa kesken ottelun, sovellus yhdistää nyt taustalla eikä hyppää latausnäkymään, joten käynnissä oleva kello jatkaa kulkuaan."
+      ]
+    },
+    {
+      "date": "2026-11-11",
+      "en": [
         "When the app has no connection, the orange offline notice now stays a thin strip at the top instead of covering the whole screen, so you can keep using the app at a pitch without signal."
       ],
       "fi": [
