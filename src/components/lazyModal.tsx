@@ -95,6 +95,9 @@ interface ModalLikeProps {
  * on the same button changes nothing and the modal can't be retried.
  */
 export function lazyModal<P extends object>(loader: ModalLoader<P>): ComponentType<P> {
+  // Shared by every mounted instance of this modal. Replacing it after a failure is
+  // safe even with two instances: both then render a lazy over the same import(),
+  // which the bundler caches, so neither can see a stale or half-loaded module.
   const current = { Lazy: lazy(loader) };
   loaders.push(loader);
 
@@ -133,6 +136,7 @@ const warmed = new Set<() => Promise<unknown>>();
 /** Retries after failures while still online (flaky signal, server blip). */
 const RETRY_DELAYS_MS = [30_000, 120_000, 600_000];
 let retryCount = 0;
+let onlineListenerAdded = false;
 
 /**
  * Fetches every lazy modal's code in the background, one at a time, once the browser
@@ -149,8 +153,19 @@ export function warmLazyModals(): void {
   const tryAgainLater = () => {
     warmState = 'idle';
     // 'online' only fires after the device was offline; a failure while it still
-    // reports online needs the timer.
-    window.addEventListener('online', () => warmLazyModals(), { once: true });
+    // reports online needs the timer. One listener at a time.
+    if (!onlineListenerAdded) {
+      onlineListenerAdded = true;
+      window.addEventListener(
+        'online',
+        () => {
+          onlineListenerAdded = false;
+          warmLazyModals();
+        },
+        { once: true },
+      );
+    }
+    if (!navigator.onLine) return; // the 'online' listener covers it
     const delay = RETRY_DELAYS_MS[retryCount];
     if (delay !== undefined) {
       retryCount++;
@@ -173,6 +188,7 @@ export function warmLazyModals(): void {
     }
     if (failed) return tryAgainLater();
     warmState = 'done';
+    retryCount = 0;
   };
 
   if (typeof window.requestIdleCallback === 'function') {
