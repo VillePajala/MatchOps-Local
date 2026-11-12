@@ -4,10 +4,10 @@
     {
       "date": "2026-11-12",
       "en": [
-        "If the clock says half-time or game over too early because the game was set up shorter than it is played, fixing the period length or count in Match details now lets you continue the clock from where it stopped."
+        "Clock stopped too early? Correct the period length or count in Match details and you can continue from where it stopped."
       ],
       "fi": [
-        "Jos kello näyttää puoliaikaa tai pelin päättyneeksi liian aikaisin, koska ottelu oli asetettu lyhyemmäksi kuin se pelataan, jakson keston tai määrän korjaaminen Ottelun tiedoissa antaa nyt jatkaa kelloa siitä mihin se pysähtyi."
+        "Pysähtyikö kello liian aikaisin? Korjaa jakson kesto tai määrä Ottelun tiedoissa, niin voit jatkaa siitä mihin kello jäi."
       ]
     },
     {

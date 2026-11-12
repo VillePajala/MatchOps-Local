@@ -201,14 +201,19 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // Calculate time since last substitution
   const timeSinceLastSub = lastSubTime === null ? timeElapsedInSeconds : timeElapsedInSeconds - lastSubTime;
   
-  // Determine button text based on game status using translations
   // Full time came early and the period length/count has since been corrected:
   // Start continues the clock instead of staying disabled (review 1.11).
   const continueAfterEnd =
     gameStatus === 'gameEnd'
       ? clockContinuation({ numberOfPeriods, periodDurationMinutes, timeElapsedInSeconds })
       : null;
-  const startDisabled = (gameStatus === 'gameEnd' && continueAfterEnd === null) || !isLoaded;
+  // Nothing to start: the game is over, or a break with no period after it.
+  const startDisabled =
+    (gameStatus === 'gameEnd' && continueAfterEnd === null) ||
+    (gameStatus === 'periodEnd' && currentPeriod >= numberOfPeriods) ||
+    !isLoaded;
+
+  // Determine button text based on game status using translations
   let startPauseButtonText = t('timerOverlay.startButton', 'Start'); // Default to Start
   if (gameStatus === 'inProgress') {
     startPauseButtonText = isTimerRunning ? t('timerOverlay.pauseButton', 'Pause') : t('timerOverlay.resumeButton', 'Resume');
