@@ -72,6 +72,7 @@ export const HISTORY_SAVING_ACTIONS = new Set([
   'DELETE_GAME_EVENT_WITH_SCORE',
   // Game flow (user-initiated)
   'START_PERIOD',
+  'CONTINUE_CLOCK',
   'END_PERIOD_OR_GAME',
   'CONFIRM_SUBSTITUTION',
   // Timer (pause is user-initiated and should save timer state)

@@ -303,6 +303,66 @@ describe('useGameTimer', () => {
       expect(result.current.isTimerRunning).toBe(true);
     });
 
+    /** Review 1.11: full time came early; the structure was corrected afterwards. */
+    it('continues a finished game from its clock when the corrected structure leaves time', () => {
+      const initialState = createInitialState({
+        gameStatus: 'gameEnd',
+        currentPeriod: 2,
+        periodDurationMinutes: 25, // was 2 x 20: full time came at 40:00
+        timeElapsedInSeconds: 2400,
+      });
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, initialState);
+        return { timer: useGameTimer({ state, dispatch, currentGameId: 'game-1' }), state };
+      });
+
+      act(() => {
+        result.current.timer.startPause();
+      });
+
+      expect(result.current.state.gameStatus).toBe('inProgress');
+      expect(result.current.timer.isTimerRunning).toBe(true);
+      expect(result.current.state.timeElapsedInSeconds).toBe(2400);
+      expect(result.current.state.currentPeriod).toBe(2);
+    });
+
+    it('starts period 2 of a finished one-period game corrected to two periods', () => {
+      const initialState = createInitialState({
+        gameStatus: 'gameEnd',
+        numberOfPeriods: 2,
+        currentPeriod: 1,
+        periodDurationMinutes: 15,
+        timeElapsedInSeconds: 900,
+      });
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, initialState);
+        return { timer: useGameTimer({ state, dispatch, currentGameId: 'game-1' }), state };
+      });
+
+      act(() => {
+        result.current.timer.startPause();
+      });
+
+      expect(result.current.state.gameStatus).toBe('inProgress');
+      expect(result.current.state.currentPeriod).toBe(2);
+      expect(result.current.state.timeElapsedInSeconds).toBe(900);
+    });
+
+    it('does nothing for a game that really is over', () => {
+      const initialState = createInitialState({ gameStatus: 'gameEnd', currentPeriod: 2, timeElapsedInSeconds: 1800 });
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, initialState);
+        return { timer: useGameTimer({ state, dispatch, currentGameId: 'game-1' }), state };
+      });
+
+      act(() => {
+        result.current.timer.startPause();
+      });
+
+      expect(result.current.state.gameStatus).toBe('gameEnd');
+      expect(result.current.timer.isTimerRunning).toBe(false);
+    });
+
     it('should pause timer when running', () => {
       const initialState = createInitialState({
         gameStatus: 'inProgress',

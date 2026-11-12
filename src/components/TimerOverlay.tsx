@@ -12,6 +12,7 @@ import ConfirmationModal from './ConfirmationModal';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { HiOutlineMicrophone } from 'react-icons/hi2';
 import type { DictationControls } from '@/hooks/useDictationCapture';
+import { clockContinuation } from '@/utils/clockContinuation';
 
 
 interface TimerOverlayProps {
@@ -200,6 +201,18 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // Calculate time since last substitution
   const timeSinceLastSub = lastSubTime === null ? timeElapsedInSeconds : timeElapsedInSeconds - lastSubTime;
   
+  // Full time came early and the period length/count has since been corrected:
+  // Start continues the clock instead of staying disabled (review 1.11).
+  const continueAfterEnd =
+    gameStatus === 'gameEnd'
+      ? clockContinuation({ numberOfPeriods, periodDurationMinutes, timeElapsedInSeconds })
+      : null;
+  // Nothing to start: the game is over, or a break with no period after it.
+  const startDisabled =
+    (gameStatus === 'gameEnd' && continueAfterEnd === null) ||
+    (gameStatus === 'periodEnd' && currentPeriod >= numberOfPeriods) ||
+    !isLoaded;
+
   // Determine button text based on game status using translations
   let startPauseButtonText = t('timerOverlay.startButton', 'Start'); // Default to Start
   if (gameStatus === 'inProgress') {
@@ -209,7 +222,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
       ? t('timerOverlay.startPeriodButton', 'Start Period {{period}}', { period: currentPeriod + 1 })
       : t('timerOverlay.gameOverButton', 'Game Over');
   } else if (gameStatus === 'gameEnd') {
-    startPauseButtonText = t('timerOverlay.gameOverButton', 'Game Over');
+    startPauseButtonText =
+      continueAfterEnd?.kind === 'resume'
+        ? t('timerOverlay.resumeButton', 'Resume')
+        : continueAfterEnd?.kind === 'nextPeriod'
+          ? t('timerOverlay.startPeriodButton', 'Start Period {{period}}', { period: continueAfterEnd.period })
+          : t('timerOverlay.gameOverButton', 'Game Over');
   }
   
   // --- Handlers for Opponent Name Editing ---
@@ -364,8 +382,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           <button
             onClick={onStartPauseTimer}
             data-testid="tour-timer-startpause"
-            disabled={gameStatus === 'gameEnd' || !isLoaded} // Disable when game ended OR NOT LOADED
-            className={`${timerButtonStyle} ${isTimerRunning ? 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-400' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'} ${gameStatus === 'gameEnd' || !isLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={startDisabled} // Game over (nothing left to play) OR not loaded
+            className={`${timerButtonStyle} ${isTimerRunning ? 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-400' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'} ${startDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-label={isTimerRunning ? t('timerOverlay.pauseButton', 'Pause') : t('timerOverlay.startButton', 'Start')}
           >
             {isTimerRunning ? <FaPause size={16}/> : <FaPlay size={16}/>} 
