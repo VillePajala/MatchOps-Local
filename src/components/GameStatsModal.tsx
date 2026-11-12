@@ -875,6 +875,24 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     setIsEditingNotes(false);
   }, [gameNotes]);
 
+  // A report being typed must survive the modal closing (review 1.12). Tallenna
+  // sits under the text box, often behind the keyboard, so the coach presses back
+  // (or the header close) and the paragraph was thrown away. Hardware back closes
+  // by unmounting this component without calling onClose, so the save runs in an
+  // effect cleanup: whenever the modal closes or unmounts while the report is being
+  // edited with changes, it is saved exactly as Tallenna would.
+  const notesDraftRef = useRef({ editing: isEditingNotes, draft: editGameNotes, saved: gameNotes, save: onGameNotesChange });
+  notesDraftRef.current = { editing: isEditingNotes, draft: editGameNotes, saved: gameNotes, save: onGameNotesChange };
+  useEffect(() => {
+    if (!isOpen) return;
+    return () => {
+      const pending = notesDraftRef.current;
+      if (pending.editing && pending.draft !== pending.saved) {
+        pending.save(pending.draft);
+      }
+    };
+  }, [isOpen]);
+
   const handleSort = (column: SortableColumn) => {
     if (sortColumn === column) {
       setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
