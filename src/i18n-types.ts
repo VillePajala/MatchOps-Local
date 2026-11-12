@@ -460,6 +460,7 @@ export type TranslationKey =
   | 'common.time'
   | 'common.totalScoreShort'
   | 'common.tournament'
+  | 'common.viewNeedsConnection'
   | 'common.winPercentage'
   | 'common.winPercentageShort'
   | 'common.wins'

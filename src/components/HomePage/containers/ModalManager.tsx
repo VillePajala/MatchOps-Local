@@ -2,19 +2,19 @@ import React from 'react';
 import { useKnownVenues } from '@/hooks/useKnownVenues';
 import type { AiMeta, GameNoteInput } from '@/types/game';
 import type { DictationControls } from '@/hooks/useDictationCapture';
-import dynamic from 'next/dynamic';
+import { lazyModal } from '@/components/lazyModal';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import GoalLogModal from '@/components/GoalLogModal';
-const GameSettingsModal = dynamic(() => import('@/components/GameSettingsModal'));
+const GameSettingsModal = lazyModal(() => import('@/components/GameSettingsModal'));
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
 // Lazy-loaded modals: these pull in heavy dependencies (recharts, xlsx, etc.)
 // and are not visible on initial render
-const GameStatsModal = dynamic(() => import('@/components/GameStatsModal'));
+const GameStatsModal = lazyModal(() => import('@/components/GameStatsModal'));
 import type {
   Player,
   GameEvent,

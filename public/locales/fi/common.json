@@ -425,6 +425,7 @@
     "updateError": "Joukkueen päivittäminen epäonnistui. Yritä uudelleen."
   },
   "common": {
+    "viewNeedsConnection": "Näkymää ei voitu avata ilman verkkoyhteyttä. Yritä uudelleen, kun olet verkossa.",
     "moreOpponents": "+{{count}} muuta. Kirjoita hakeaksesi kaikista.",
     "notSet": "Ei asetettu",
     "actions": "Toiminnot",
