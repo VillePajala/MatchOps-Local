@@ -3,6 +3,16 @@
   "releases": [
     {
       "date": "2026-11-12",
+      "internal": true,
+      "en": [
+        "Removed developer test pages that were reachable on the app's address."
+      ],
+      "fi": [
+        "Poistettiin sovelluksen osoitteessa näkyneet kehittäjien testisivut."
+      ]
+    },
+    {
+      "date": "2026-11-12",
       "en": [
         "A match report you are typing in Finish game is no longer lost if you close the window without tapping Save. It is saved when the window closes."
       ],
