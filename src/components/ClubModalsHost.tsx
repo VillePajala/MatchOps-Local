@@ -52,7 +52,7 @@
  * A future lifted modal without that styling would clip inside this host.
  */
 import React from 'react';
-import dynamic from 'next/dynamic';
+import { lazyModal, warmLazyModals } from '@/components/lazyModal';
 import { useTranslation } from 'react-i18next';
 import { preferredRulesContext } from '@/utils/rulesContext';
 import { useModalContext } from '@/contexts/ModalProvider';
@@ -70,19 +70,19 @@ import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import { useOpponentRename } from '@/hooks/useOpponentRename';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
-const TrainingResourcesModal = dynamic(() => import('@/components/TrainingResourcesModal'));
-const RulesDirectoryModal = dynamic(() => import('@/components/RulesDirectoryModal'));
-const SettingsModal = dynamic(() => import('@/components/SettingsModal'));
-const InstructionsModal = dynamic(() => import('@/components/InstructionsModal'));
-const SeasonTournamentManagementModal = dynamic(() => import('@/components/SeasonTournamentManagementModal'));
-const PersonnelManagerModal = dynamic(() => import('@/components/PersonnelManagerModal'));
-const RosterSettingsModal = dynamic(() => import('@/components/RosterSettingsModal'));
-const TeamManagerModal = dynamic(() => import('@/components/TeamManagerModal'));
-const ExternalGamesModal = dynamic(() => import('@/components/ExternalGamesModal'));
-const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
-const NewGameSetupModal = dynamic(() => import('@/components/NewGameSetupModal'));
-const PlaytimePlannerModal = dynamic(() => import('@/components/PlaytimePlannerModal'));
-const GameStatsModal = dynamic(() => import('@/components/GameStatsModal'));
+const TrainingResourcesModal = lazyModal(() => import('@/components/TrainingResourcesModal'));
+const RulesDirectoryModal = lazyModal(() => import('@/components/RulesDirectoryModal'));
+const SettingsModal = lazyModal(() => import('@/components/SettingsModal'));
+const InstructionsModal = lazyModal(() => import('@/components/InstructionsModal'));
+const SeasonTournamentManagementModal = lazyModal(() => import('@/components/SeasonTournamentManagementModal'));
+const PersonnelManagerModal = lazyModal(() => import('@/components/PersonnelManagerModal'));
+const RosterSettingsModal = lazyModal(() => import('@/components/RosterSettingsModal'));
+const TeamManagerModal = lazyModal(() => import('@/components/TeamManagerModal'));
+const ExternalGamesModal = lazyModal(() => import('@/components/ExternalGamesModal'));
+const LoadGameModal = lazyModal(() => import('@/components/LoadGameModal'));
+const NewGameSetupModal = lazyModal(() => import('@/components/NewGameSetupModal'));
+const PlaytimePlannerModal = lazyModal(() => import('@/components/PlaytimePlannerModal'));
+const GameStatsModal = lazyModal(() => import('@/components/GameStatsModal'));
 
 export interface ClubModalsHostProps {
   /** The page's level crossing: freshly mount the match view (its boot path
@@ -138,6 +138,13 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     selectedPlayerForStats,
     setSelectedPlayerForStats,
   } = useModalContext();
+
+  // After an update the modals' new code is only on the device once fetched. Fetch it
+  // in the background (idle + online) so the service worker has it for offline use.
+  // Production only: in dev it would compile every modal up front.
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'production') warmLazyModals();
+  }, []);
 
   const settings = useAppSettingsController();
   const seasonTournament = useSeasonTournamentManagement();
