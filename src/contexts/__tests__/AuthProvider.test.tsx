@@ -1352,6 +1352,44 @@ describe('AuthProvider', () => {
         expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
       });
 
+      it('completes a deferred sign-out even when init only finishes after the 20 s timeout', async () => {
+        setOnLine(false);
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('sign-out-btn'));
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(20000);
+        });
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+
+        const service = createMockCloudAuthService(true);
+        await act(async () => {
+          finishInit(service);
+        });
+        await waitFor(() => expect(service.signOut).toHaveBeenCalled());
+        expect(screen.getByTestId('has-session')).toHaveTextContent('no');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+      });
+
+      it('leaves a timeout grace period (trigger 2) when init later ends with no user', async () => {
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(20100); // online, no failure signal: the timeout enters grace
+        });
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+
+        localStorage.removeItem(STORAGE_KEY); // the server rejected the refresh token
+        await act(async () => {
+          finishInit(createMockCloudAuthService(false));
+        });
+        await waitFor(() => expect(screen.getByTestId('grace-period')).toHaveTextContent('no'));
+        expect(screen.getByTestId('user-id')).toHaveTextContent('none');
+      });
+
       it('does nothing without a cached identity (lands on sign-in as before)', async () => {
         localStorage.removeItem(STORAGE_KEY);
         setOnLine(false);
