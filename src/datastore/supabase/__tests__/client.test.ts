@@ -202,4 +202,61 @@ describe('Supabase Client', () => {
       expect(isSupabaseClientInitialized()).toBe(false);
     });
   });
+
+  /**
+   * Review 1.10: a network-level failure of an auth request is reported, so an offline
+   * start doesn't wait out Supabase's 30 s token-renewal retries.
+   */
+  describe('custom fetch: auth server unreachable signal', () => {
+    const originalFetch = global.fetch;
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    async function setup(fetchImpl: jest.Mock) {
+      process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+      global.fetch = fetchImpl as unknown as typeof fetch;
+      const { createClient } = await import('@supabase/supabase-js');
+      const { getSupabaseClient } = await import('../client');
+      const reachability = await import('@/auth/authReachability');
+      getSupabaseClient();
+      const options = (createClient as jest.Mock).mock.calls[0][2];
+      const listener = jest.fn();
+      const stop = reachability.onAuthServerUnreachable(listener);
+      return { customFetch: options.global.fetch as typeof fetch, listener, stop };
+    }
+
+    it('reports a failed token renewal and still rejects with the original error', async () => {
+      const failure = new TypeError('Failed to fetch');
+      const { customFetch, listener, stop } = await setup(jest.fn().mockRejectedValue(failure));
+      await expect(customFetch('https://test.supabase.co/auth/v1/token?grant_type=refresh_token', { method: 'POST' })).rejects.toBe(failure);
+      expect(listener).toHaveBeenCalledTimes(1);
+      stop();
+    });
+
+    it('does not report failures of data requests', async () => {
+      const { customFetch, listener, stop } = await setup(jest.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+      await expect(customFetch('https://test.supabase.co/rest/v1/games', {})).rejects.toThrow('Failed to fetch');
+      expect(listener).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('does not report a request the caller cancelled itself', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      const { customFetch, listener, stop } = await setup(jest.fn().mockRejectedValue(new DOMException('aborted', 'AbortError')));
+      await expect(customFetch('https://test.supabase.co/auth/v1/user', { signal: controller.signal })).rejects.toThrow('aborted');
+      expect(listener).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('does not report successful auth requests', async () => {
+      const ok = { ok: true, status: 200 } as Response;
+      const { customFetch, listener, stop } = await setup(jest.fn().mockResolvedValue(ok));
+      await expect(customFetch('https://test.supabase.co/auth/v1/user', {})).resolves.toBe(ok);
+      expect(listener).not.toHaveBeenCalled();
+      stop();
+    });
+  });
 });
