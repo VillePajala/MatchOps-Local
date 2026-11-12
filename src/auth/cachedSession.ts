@@ -32,7 +32,8 @@ export interface CachedSupabaseSession {
   };
 }
 
-/** Supabase's localStorage key for the session, or null without config/storage. */
+/** Supabase's localStorage key for the session, or null without config/storage.
+ *  The single place that derives it (reader and clearer must agree). */
 function supabaseSessionStorageKey(): string | null {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   // eslint-disable-next-line no-restricted-globals -- Supabase's internal auth token storage
@@ -66,11 +67,8 @@ export function clearCachedSupabaseSession(): void {
  */
 export function readCachedSupabaseSession(): CachedSupabaseSession | null {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    // eslint-disable-next-line no-restricted-globals -- Reading Supabase's internal auth token storage
-    if (!supabaseUrl || typeof localStorage === 'undefined') return null;
-    const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
-    const storageKey = `sb-${projectRef}-auth-token`;
+    const storageKey = supabaseSessionStorageKey();
+    if (!storageKey) return null;
     // eslint-disable-next-line no-restricted-globals -- Reading Supabase's internal auth token storage
     const storedData = localStorage.getItem(storageKey);
     if (!storedData) return null;

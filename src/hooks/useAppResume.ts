@@ -44,7 +44,6 @@ const PAGESHOW_DEBOUNCE_MS = 1000;
 // Debounce app-resume events across handlers (prevents duplicate events from pageshow + visibilitychange race)
 const RESUME_DEBOUNCE_MS = 100;
 
-
 /** True only when the browser is sure there is no connection (onLine === false).
  *  onLine === true doesn't prove reachability, so it never blocks anything here. */
 function isDeviceOffline(): boolean {
