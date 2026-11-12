@@ -64,6 +64,7 @@ public/example_data/
 # App backup exports hold real team data: never commit them (review 1.13).
 MatchOpsLocal_Backup_*.json
 data-snapshots/
+site/public/testdata/testdata.json
 
 # site/ (marketing website)
 site/.next/
