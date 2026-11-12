@@ -1,0 +1,98 @@
+# Nightly encrypted backup of the PRODUCTION Supabase database (review item 1.14).
+#
+# The production project is on Supabase's free plan, which has no restorable backups.
+# Until it moves to Pro, this job takes Supabase's recommended CLI dump (roles, schema,
+# data), encrypts it with age to the owner's public key, and uploads it to a private
+# Cloudflare R2 bucket in the EU jurisdiction. Only the owner's private key, kept off
+# GitHub, can decrypt it. R2 deletes copies after 30 days (bucket lifecycle rule).
+#
+# Never triggered by pull requests, so forks cannot reach the secrets.
+# Restore procedure: docs/02-technical/supabase-implementation-guide.md, section 10.11.
+#
+# Secrets:
+#   PROD_DB_PASSWORD     database password of the production project
+#   R2_ACCESS_KEY_ID     R2 API token (Object Read & Write, this bucket only)
+#   R2_SECRET_ACCESS_KEY
+#   R2_ENDPOINT          the bucket's EU-jurisdiction S3 endpoint (https://<account>.eu.r2.cloudflarestorage.com)
+
+name: Nightly database backup
+
+on:
+  schedule:
+    - cron: '17 2 * * *' # 02:17 UTC, outside Finnish match hours
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    if: github.repository == 'VillePajala/MatchOps-Local'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PROJECT_REF: aybjmnxxtgspqesdiqxd
+      # Session-mode pooler: reachable over IPv4 (GitHub runners), and pg_dump needs session mode.
+      DB_HOST: aws-1-eu-north-1.pooler.supabase.com
+      DB_PORT: '5432'
+      BUCKET: matchops-backups-eu
+      # The owner's age PUBLIC key (the lock, not the key) - safe to publish.
+      BACKUP_RECIPIENT: age15ugy92n0x4a4dj6phd57jhhg499vzffyn40ukl9l00sjvczm9uusrwz00a
+      SUPABASE_CLI: supabase@3.1.0
+    steps:
+      - name: Install age
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+
+      - name: Dump the database (roles, schema, data)
+        env:
+          PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          DB_URL="$(python3 -c 'import os, urllib.parse as u; print("postgresql://postgres.%s:%s@%s:%s/postgres" % (os.environ["PROJECT_REF"], u.quote(os.environ["PROD_DB_PASSWORD"], safe=""), os.environ["DB_HOST"], os.environ["DB_PORT"]))')"
+          echo "::add-mask::$DB_URL"
+          mkdir -p dump
+          npx -y "$SUPABASE_CLI" db dump --db-url "$DB_URL" -f dump/roles.sql --role-only
+          npx -y "$SUPABASE_CLI" db dump --db-url "$DB_URL" -f dump/schema.sql
+          npx -y "$SUPABASE_CLI" db dump --db-url "$DB_URL" -f dump/data.sql --use-copy --data-only
+          # A dump that is empty or misses the core tables must fail loudly, not upload quietly.
+          for f in roles schema data; do test -s "dump/$f.sql" || { echo "dump/$f.sql is empty"; exit 1; }; done
+          for t in games players seasons; do
+            grep -q "CREATE TABLE IF NOT EXISTS \"public\".\"$t\"" dump/schema.sql || { echo "schema is missing public.$t"; exit 1; }
+            grep -q "COPY \"public\".\"$t\"" dump/data.sql || { echo "data is missing public.$t"; exit 1; }
+          done
+          ls -l dump | awk 'NR>1 {print $5, $NF}'
+
+      - name: Encrypt
+        run: |
+          set -euo pipefail
+          umask 077
+          STAMP="$(date -u +%Y-%m-%dT%H%MZ)"
+          echo "OBJECT=matchops-prod-$STAMP.tar.gz.age" >> "$GITHUB_ENV"
+          tar -czf - -C dump . | age -r "$BACKUP_RECIPIENT" -o backup.tar.gz.age
+          rm -rf dump
+          test -s backup.tar.gz.age
+          head -c 21 backup.tar.gz.age | grep -q 'age-encryption.org/v1' || { echo "not an age file"; exit 1; }
+          ls -l backup.tar.gz.age | awk '{print $5, $NF}'
+
+      - name: Upload to R2 (EU)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          AWS_DEFAULT_REGION: auto
+          # R2 does not accept the newer default request checksums of AWS CLI v2.
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: |
+          set -euo pipefail
+          aws s3 cp backup.tar.gz.age "s3://$BUCKET/$OBJECT" --endpoint-url "$R2_ENDPOINT" --only-show-errors
+          local_size=$(stat -c %s backup.tar.gz.age)
+          remote_size=$(aws s3api head-object --bucket "$BUCKET" --key "$OBJECT" --endpoint-url "$R2_ENDPOINT" --query ContentLength --output text)
+          [ "$local_size" = "$remote_size" ] || { echo "upload size mismatch: $local_size vs $remote_size"; exit 1; }
+          echo "Uploaded $OBJECT ($remote_size bytes)"
+          rm -f backup.tar.gz.age

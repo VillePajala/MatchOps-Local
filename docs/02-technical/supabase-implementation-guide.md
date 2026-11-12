@@ -5039,6 +5039,42 @@ If issues occur:
 2. Users can disable cloud in settings → revert to local
 3. Local data is always preserved (cloud is optional layer)
 
+### 10.11 Restoring production from a backup
+
+Production runs on the free plan, which has no restorable Supabase backups. Until it moves
+to Pro, `.github/workflows/db-backup.yml` takes a nightly encrypted dump. The dump holds
+roles, schema and data, made with `supabase db dump` (Supabase's recommended CLI backup).
+Copies go to the private Cloudflare R2 bucket `matchops-backups-eu` (EU jurisdiction),
+which deletes them after 30 days.
+
+- **Key:** only the owner's age private key, `~/.config/matchops-backup/backup-key.txt`,
+  decrypts a backup. Keep a second copy of it in the password manager. If it is lost,
+  every backup is unreadable.
+- **When to move to Pro:** when active marketing starts, or when about 10 coaches outside
+  the owner's team use cloud mode. Pro brings daily restorable backups (7 days).
+
+**Restore steps** (data never goes to staging or anywhere public):
+
+1. Download a backup. Use R2 → `matchops-backups-eu` in the Cloudflare dashboard, or
+   `aws s3 cp s3://matchops-backups-eu/<file> . --endpoint-url <EU endpoint>`.
+2. Decrypt and unpack it into a private folder:
+   `age -d -i ~/.config/matchops-backup/backup-key.txt <file> | tar -xz -C <folder>`.
+   This gives `roles.sql`, `schema.sql` and `data.sql`.
+3. Restore into an EMPTY target first: a new Supabase project, or a local throwaway Postgres
+   17 (`docker run ... public.ecr.aws/supabase/postgres:17...`). Never restore straight over
+   the live production database.
+   ```bash
+   psql --single-transaction --variable ON_ERROR_STOP=1 \
+     --file roles.sql --file schema.sql \
+     --command 'SET session_replication_role = replica' \
+     --file data.sql --dbname "$TARGET_DB_URL"
+   ```
+4. Recover what was lost. For a few deleted or broken rows, copy them from the restored
+   copy back into production. For a full loss, point the app at the restored project
+   (`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel), or restore the
+   three files into the emptied production database the same way.
+5. Delete the decrypted files when done; they contain children's personal data.
+
 ---
 
 ## Future Enhancements (Post-MVP)
