@@ -243,6 +243,11 @@ describe('TimerOverlay', () => {
       expect(baseProps.onStartPauseTimer).toHaveBeenCalled();
     });
 
+    it('is disabled at a break with no period after it', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="periodEnd" numberOfPeriods={1} currentPeriod={1} timeElapsedInSeconds={600} />);
+      expect(startButton()).toBeDisabled();
+    });
+
     it('offers the next period when a one-period game is corrected to two', () => {
       render(
         <TimerOverlay {...baseProps} gameStatus="gameEnd" numberOfPeriods={2} currentPeriod={1} timeElapsedInSeconds={600} />,

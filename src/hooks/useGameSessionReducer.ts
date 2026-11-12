@@ -162,9 +162,10 @@ export type GameSessionAction =
   | { type: 'LOAD_GAME_SESSION_STATE'; payload: Partial<GameSessionState> }
   | { type: 'RESET_GAME_SESSION_STATE'; payload: GameSessionState } // Action to reset to a specific state
   | { type: 'LOAD_PERSISTED_GAME_DATA'; payload: Partial<GameSessionState> } // For loading GameData-like objects
-  | { type: 'RESUME_GAME' }
-  /** Continue a clock stopped at full time after the structure was corrected (review 1.11). */
-  | { type: 'CONTINUE_CLOCK'; payload: { period: number } }; // Resume a loaded in-progress game at its saved clock/period
+  | { type: 'RESUME_GAME' } // Resume a loaded in-progress game at its saved clock/period
+  /** Continue a clock that reached full time too early, after the period length or
+   *  count was corrected (the game was set up shorter than it was played). */
+  | { type: 'CONTINUE_CLOCK'; payload: { period: number } };
 
 const safeElapsedSeconds = (value: unknown, fallback: number): number => {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
