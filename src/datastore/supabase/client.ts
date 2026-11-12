@@ -14,6 +14,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import logger from '@/utils/logger';
+import { isAuthRequestUrl, notifyAuthServerUnreachable } from '@/auth/authReachability';
 
 let supabaseClient: SupabaseClient<Database> | null = null;
 
@@ -59,14 +60,23 @@ export function getSupabaseClient(): SupabaseClient<Database> {
       },
       // Custom fetch with timeout to prevent requests from hanging indefinitely
       fetch: (input, init) => {
+        // A network-level failure of an auth request (no connection, DNS, server down)
+        // is reported so startup can stop waiting on Supabase's 30 s renewal retries.
+        // A request the caller cancelled itself says nothing about the connection.
+        const reportAuthFailure = (error: unknown) => {
+          if (isAuthRequestUrl(input) && !init?.signal?.aborted) notifyAuthServerUnreachable();
+          throw error;
+        };
         // If caller already provided a signal, respect it and skip our timeout
         // (the caller is managing their own abort lifecycle)
         if (init?.signal) {
-          return fetch(input, init);
+          return fetch(input, init).catch(reportAuthFailure);
         }
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-        return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeout));
+        return fetch(input, { ...init, signal: controller.signal })
+          .catch(reportAuthFailure)
+          .finally(() => clearTimeout(timeout));
       },
     },
     // Realtime configured but not used (rate-limited to 2 events/sec if enabled later)

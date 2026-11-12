@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from '../AuthProvider';
 import type { AuthService } from '@/interfaces/AuthService';
 import type { AuthState, Session } from '@/interfaces/AuthTypes';
 import { POLICY_VERSION } from '@/config/constants';
+import { notifyAuthServerUnreachable } from '@/auth/authReachability';
 
 // Track auth callbacks for testing
 let authCallbacks: ((state: AuthState, session: Session | null) => void)[] = [];
@@ -1180,6 +1181,225 @@ describe('AuthProvider', () => {
     afterEach(() => {
       jest.useRealTimers();
       delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    });
+
+    /**
+     * Review 1.10 (trigger 5): with an expired access token, init waits on Supabase's
+     * token renewal, which retries for ~30 s without a connection. The offline user
+     * must get their local data at once, not after the 20 s init timeout.
+     */
+    describe('early grace period (trigger 5)', () => {
+      const expiredButRenewable = {
+        expires_at: Math.floor(Date.now() / 1000) - 600, // access token expired 10 min ago
+        refresh_token: 'refresh_abc',
+        user: { id: 'cached-user-early', email: 'pitch@example.com' },
+      };
+      const setOnLine = (value: boolean) =>
+        Object.defineProperty(navigator, 'onLine', { value, configurable: true });
+      /** getAuthService stuck on the renewal; resolve it later to finish init. */
+      let finishInit: (service: AuthService) => void;
+
+      beforeEach(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(expiredButRenewable));
+        const factory = require('@/datastore/factory');
+        factory.getAuthService.mockImplementation(
+          () => new Promise<AuthService>((resolve) => { finishInit = resolve; }),
+        );
+      });
+      afterEach(() => setOnLine(true));
+
+      /** @critical */
+      it('enters the grace period at once when the device is offline at start', async () => {
+        setOnLine(false);
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+        expect(screen.getByTestId('user-id')).toHaveTextContent('cached-user-early');
+        expect(screen.getByTestId('has-session')).toHaveTextContent('no');
+
+        // The 20 s timeout later is the expected offline outcome: stay, no retry screen, no Sentry.
+        await act(async () => {
+          jest.advanceTimersByTime(20000);
+        });
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+        expect(screen.getByTestId('timed-out')).toHaveTextContent('no');
+        expect(require('@sentry/nextjs').captureMessage).not.toHaveBeenCalled();
+        expect(require('@/utils/logger').default.error).not.toHaveBeenCalledWith(
+          expect.stringContaining('Init timeout'),
+          expect.anything(),
+        );
+      });
+
+      /** @critical */
+      it('enters the grace period when the first auth request fails at the network level', async () => {
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+        expect(screen.getByTestId('loading')).toHaveTextContent('loading');
+
+        await act(async () => {
+          notifyAuthServerUnreachable();
+        });
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+        expect(screen.getByTestId('user-id')).toHaveTextContent('cached-user-early');
+      });
+
+      it('keeps waiting while online with no failure signal (a slow start is not offline)', async () => {
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(19000);
+        });
+        expect(screen.getByTestId('loading')).toHaveTextContent('loading');
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+      });
+
+      it('hands over to the real session when init finishes after the early grace period', async () => {
+        setOnLine(false);
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+
+        await act(async () => {
+          finishInit(createMockCloudAuthService(true));
+        });
+        await waitFor(() => expect(screen.getByTestId('has-session')).toHaveTextContent('yes'));
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+      });
+
+      it('ignores a failed auth request after init has finished with a real session', async () => {
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          finishInit(createMockCloudAuthService(true));
+        });
+        await waitFor(() => expect(screen.getByTestId('has-session')).toHaveTextContent('yes'));
+
+        await act(async () => {
+          notifyAuthServerUnreachable();
+        });
+        expect(screen.getByTestId('has-session')).toHaveTextContent('yes');
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+      });
+
+      /** @critical review finding: grace must not outlive a rejected refresh token. */
+      it('leaves the early grace period when init ends with no session and no cached identity', async () => {
+        setOnLine(false);
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+
+        // Connection back, server rejects the refresh token: auth-js drops the stored session.
+        localStorage.removeItem(STORAGE_KEY);
+        await act(async () => {
+          finishInit(createMockCloudAuthService(false));
+        });
+        await waitFor(() => expect(screen.getByTestId('grace-period')).toHaveTextContent('no'));
+        expect(screen.getByTestId('user-id')).toHaveTextContent('none');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+      });
+
+      /** @critical CR-M5 #4: a reload during a password reset never signs in on the recovery session. */
+      it('does not enter early grace while a password reset is in progress', async () => {
+        localStorage.setItem('matchops-password-reset-in-progress', '1');
+        setOnLine(false);
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+        expect(screen.getByTestId('user-id')).toHaveTextContent('none');
+
+        await act(async () => {
+          finishInit(createMockCloudAuthService(false));
+        });
+        await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('ready'));
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+      });
+
+      /** @critical review finding: sign out works before the auth service exists. */
+      it('signs out during early grace, and init then completes the sign-out', async () => {
+        setOnLine(false);
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('sign-out-btn'));
+        });
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+        expect(screen.getByTestId('user-id')).toHaveTextContent('none');
+        expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+
+        // Init finishes later (the service still holds the session in memory).
+        const service = createMockCloudAuthService(true);
+        await act(async () => {
+          finishInit(service);
+        });
+        await waitFor(() => expect(service.signOut).toHaveBeenCalled());
+        expect(screen.getByTestId('has-session')).toHaveTextContent('no');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+      });
+
+      it('completes a deferred sign-out even when init only finishes after the 20 s timeout', async () => {
+        setOnLine(false);
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('sign-out-btn'));
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(20000);
+        });
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+
+        const service = createMockCloudAuthService(true);
+        await act(async () => {
+          finishInit(service);
+        });
+        await waitFor(() => expect(service.signOut).toHaveBeenCalled());
+        expect(screen.getByTestId('has-session')).toHaveTextContent('no');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+      });
+
+      it('leaves a timeout grace period (trigger 2) when init later ends with no user', async () => {
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(20100); // online, no failure signal: the timeout enters grace
+        });
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+
+        localStorage.removeItem(STORAGE_KEY); // the server rejected the refresh token
+        await act(async () => {
+          finishInit(createMockCloudAuthService(false));
+        });
+        await waitFor(() => expect(screen.getByTestId('grace-period')).toHaveTextContent('no'));
+        expect(screen.getByTestId('user-id')).toHaveTextContent('none');
+      });
+
+      it('does nothing without a cached identity (lands on sign-in as before)', async () => {
+        localStorage.removeItem(STORAGE_KEY);
+        setOnLine(false);
+        render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+        await act(async () => {
+          jest.advanceTimersByTime(100);
+        });
+        expect(screen.getByTestId('loading')).toHaveTextContent('loading');
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+      });
     });
 
     /**

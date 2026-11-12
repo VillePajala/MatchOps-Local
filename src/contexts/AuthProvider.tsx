@@ -30,7 +30,8 @@ import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import * as Sentry from '@sentry/nextjs';
 import type { AuthService } from '@/interfaces/AuthService';
 import logger from '@/utils/logger';
-import { getCachedUserIdentity } from '@/auth/cachedSession';
+import { getCachedUserIdentity, clearCachedSupabaseSession } from '@/auth/cachedSession';
+import { onAuthServerUnreachable } from '@/auth/authReachability';
 import { deleteUserLocalDatabases } from '@/datastore/userDatabase';
 import { markDeviceHasSignedIn } from '@/utils/deviceSignInMemory';
 
@@ -231,6 +232,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // While this is set, onAuthStateChange defers user/session setting to signIn().
   const isInteractiveSignInRef = useRef(false);
 
+  // Set when signOut() runs before the auth service exists (early grace period
+  // offline): init finishes the sign-out once the service is ready.
+  const signOutBeforeInitRef = useRef(false);
+
   // Record a successful sign-in: locks the session against spurious post-sign-in
   // signed_out events AND stamps the time, so a later signed_out can be recognized
   // as a genuine server-side revocation. Use this everywhere a real sign-in lands.
@@ -259,6 +264,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Both initAuth() and the safety timeout use this value consistently.
     // On retryAuthInit (online event), the effect re-runs and re-captures.
     const currentMode = getBackendMode();
+    // Set once this init has finished (success, error or timeout).
+    let initSettled = false;
+    // Set when the grace period was entered before init finished (see enterGraceEarly).
+    let enteredGraceEarly = false;
+
+    /**
+     * Grace period trigger 5 (review 1.10): don't make an offline user wait for init.
+     * With an expired access token, init waits on Supabase's token renewal, which
+     * retries for up to 30 s with no connection - so an offline cold start used to sit
+     * on 'Loading...' until the 20 s timeout (trigger 2). When the device reports
+     * offline, or the first auth request fails at the network level, enter the grace
+     * period with the cached identity right away. Init keeps running and settles the
+     * state as before: a real session ends the grace period, anything else keeps it.
+     */
+    const enterGraceEarly = (reason: string) => {
+      if (!mounted || initSettled || enteredGraceEarly) return;
+      if (currentMode !== 'cloud' || !isCloudAvailable()) return;
+      // A reload during a password reset must land on login, never in the app on the
+      // recovery session (CR-M5 #4); init handles that case itself.
+      if (isPasswordResetInProgress() || signOutBeforeInitRef.current) return;
+      const cached = getCachedUserIdentity();
+      if (!cached) return;
+      enteredGraceEarly = true;
+      logger.info(`[AuthProvider] Grace period: ${reason}, not waiting for init - cached session for`, cached.email);
+      setIsAuthGracePeriod(true);
+      setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
+      setSession(null); // grace-period invariant: user from cache, no live session
+      setIsLoading(false);
+    };
+    const stopListeningForUnreachable = onAuthServerUnreachable(() => enterGraceEarly('sign-in server unreachable'));
 
     async function initAuth() {
       // CRITICAL: Set mode FIRST, before any async operations that might fail.
@@ -299,6 +334,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // below by forcing the no-session path), so a signOut failure can't leak
             // an unwanted login.
             logger.warn('[AuthProvider] Failed to clear recovery session on reload (will retry next load):', e);
+          }
+          if (!mounted) return;
+        }
+
+        // The user signed out while init was still waiting (possible since the early
+        // grace period shows the app before init finishes). Finish that sign-out on the
+        // real service and take the no-session path, same as a cleared recovery session.
+        if (signOutBeforeInitRef.current) {
+          signOutBeforeInitRef.current = false;
+          recoverySessionCleared = true;
+          try {
+            await service.signOut();
+          } catch (e) {
+            logger.warn('[AuthProvider] Deferred sign-out failed (local session already cleared):', e);
           }
           if (!mounted) return;
         }
@@ -385,9 +434,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // signed in. Always clear on a successful init.
         setInitTimedOut(false);
 
-        // Exit grace period if init succeeded with a real session.
-        // Always call setIsAuthGracePeriod(false) when we have a session — safe even if not in grace period.
-        if (currentSession) {
+        // Exit grace period if init succeeded with a real session - or with no user at
+        // all. Grace means "signed in from the cache"; with no session and no cached
+        // identity (refresh token rejected, recovery session cleared) it must not stay
+        // on, or the app shows a signed-in shell with no user and never offers login.
+        if (currentSession || !resolvedUser) {
           setIsAuthGracePeriod(false);
         }
 
@@ -630,6 +681,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setInitTimedOut(true);
         }
       } finally {
+        initSettled = true;
+        stopListeningForUnreachable();
         if (mounted) {
           setIsLoading(false);
           onlineRevalidationInFlightRef.current = false;
@@ -645,6 +698,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // acquisition, session validation with getUser() (5s timeout), and subsequent getSession()
     // calls. On slow networks or cold starts, 10s was too aggressive and caused false timeouts.
     timeoutId = setTimeout(() => {
+      initSettled = true;
+      stopListeningForUnreachable();
       if (mounted) {
         // This init has settled (timed out): release the online-revalidation guard on
         // every branch below so a later 'online' event can try again.
@@ -656,8 +711,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // below would replace the whole tree and unmount a running match. Stay in grace
         // (even if the cached identity has meanwhile disappeared); the next 'online'
         // event re-validates again.
-        if (wasBackgroundRevalidation && isAuthGracePeriodRef.current) {
-          logger.info('[AuthProvider] Background re-validation timed out; staying in grace period');
+        // Same when the grace period was already entered early (trigger 5): the user
+        // is in their data; a timeout here is the expected offline outcome, not a hang.
+        if ((wasBackgroundRevalidation || enteredGraceEarly) && isAuthGracePeriodRef.current) {
+          logger.info('[AuthProvider] Init timed out while in the grace period; staying in it');
           setIsLoading(false);
           return;
         }
@@ -712,9 +769,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 20000);
 
     initAuth();
+    // Known offline (onLine === false is reliable; true is not, see trigger 1): no need
+    // to wait for the first failed request.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      enterGraceEarly('device offline at start');
+    }
 
     return () => {
       mounted = false;
+      stopListeningForUnreachable();
       unsubscribe?.();
       if (timeoutId) {
         clearTimeout(timeoutId);
@@ -893,11 +956,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [authService, markSignedInThisSession]);
 
   const signOut = useCallback(async () => {
-    if (!authService) {
-      // This shouldn't happen in normal flow - log for debugging
-      logger.warn('[AuthProvider] signOut called but authService is null');
-      return;
-    }
+    // No service yet: the early grace period shows the app while init is still
+    // waiting on the token renewal (offline). Sign out locally now; init completes it.
+    const deferToInit = !authService;
 
     // Show loading state during sign-out to prevent UI interaction
     setIsSigningOut(true);
@@ -919,7 +980,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      await authService.signOut();
+      if (deferToInit) {
+        signOutBeforeInitRef.current = true;
+        clearCachedSupabaseSession();
+        logger.info('[AuthProvider] Signed out before auth init finished; completing when it does');
+      } else {
+        await authService.signOut();
+      }
     } catch (error) {
       // Log but don't throw - user should be signed out locally regardless
       logger.warn('[AuthProvider] Sign out error:', error);
