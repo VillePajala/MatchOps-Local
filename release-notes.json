@@ -4,6 +4,15 @@
     {
       "date": "2026-11-12",
       "en": [
+        "Clock stopped too early? Correct the period length or count in Match details and you can continue from where it stopped."
+      ],
+      "fi": [
+        "Pysähtyikö kello liian aikaisin? Korjaa jakson kesto tai määrä Ottelun tiedoissa, niin voit jatkaa siitä mihin kello jäi."
+      ]
+    },
+    {
+      "date": "2026-11-12",
+      "en": [
         "Signed-in users no longer wait 20 seconds on the loading screen when opening the app without a connection. Your games open straight away, and returning to the app at half-time no longer restarts it while offline."
       ],
       "fi": [

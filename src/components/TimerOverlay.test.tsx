@@ -223,6 +223,40 @@ describe('TimerOverlay', () => {
   });
 
 
+  /** Review 1.11: full time came early and the period length/count was corrected. */
+  describe('Start at full time', () => {
+    const startButton = () => screen.getByTestId('tour-timer-startpause');
+
+    it('stays disabled ("Game Over") when the game really is over', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" currentPeriod={2} timeElapsedInSeconds={1200} />);
+      expect(startButton()).toBeDisabled();
+      expect(startButton()).toHaveTextContent(/Game Over|Peli ohi/);
+    });
+
+    it('offers to continue when the corrected length leaves time to play', () => {
+      render(
+        <TimerOverlay {...baseProps} gameStatus="gameEnd" currentPeriod={2} periodDurationMinutes={15} timeElapsedInSeconds={1200} />,
+      );
+      expect(startButton()).toBeEnabled();
+      expect(startButton()).toHaveTextContent(/Resume|Jatka/);
+      fireEvent.click(startButton());
+      expect(baseProps.onStartPauseTimer).toHaveBeenCalled();
+    });
+
+    it('is disabled at a break with no period after it', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="periodEnd" numberOfPeriods={1} currentPeriod={1} timeElapsedInSeconds={600} />);
+      expect(startButton()).toBeDisabled();
+    });
+
+    it('offers the next period when a one-period game is corrected to two', () => {
+      render(
+        <TimerOverlay {...baseProps} gameStatus="gameEnd" numberOfPeriods={2} currentPeriod={1} timeElapsedInSeconds={600} />,
+      );
+      expect(startButton()).toBeEnabled();
+      expect(startButton()).toHaveTextContent(/2/);
+    });
+  });
+
   describe('game end hand-off (Phase 1b 7c)', () => {
     it('offers Finish this game, which closes the overlay and opens the spine', () => {
       const onFinishGame = jest.fn();
