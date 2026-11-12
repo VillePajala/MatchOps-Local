@@ -44,6 +44,13 @@ const PAGESHOW_DEBOUNCE_MS = 1000;
 // Debounce app-resume events across handlers (prevents duplicate events from pageshow + visibilitychange race)
 const RESUME_DEBOUNCE_MS = 100;
 
+
+/** True only when the browser is sure there is no connection (onLine === false).
+ *  onLine === true doesn't prove reachability, so it never blocks anything here. */
+function isDeviceOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
 export function useAppResume(options: UseAppResumeOptions = {}) {
   const { onResume, onBeforeForceReload, minBackgroundTime = 30000, forceReloadTime = 300000 } = options;
   const queryClient = useQueryClient();
@@ -180,7 +187,9 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
       // BUT never during a live match: the wall-clock timer reanchors itself on
       // foreground (useGameTimer), and reloading would drop the user to the start
       // screen with a paused clock. Fall through to the soft refresh instead.
-      if (backgroundDuration > forceReloadTime && !isMatchTimerRunning() && !isRecordingSessionActive()) {
+      // Never offline either: a reload with no connection can't fetch anything new
+      // and (in cloud mode) restarts the sign-in, which can't finish without signal.
+      if (backgroundDuration > forceReloadTime && !isMatchTimerRunning() && !isRecordingSessionActive() && !isDeviceOffline()) {
         forceReloadWithNotification(backgroundDuration, 'visibilitychange');
         return;
       }
@@ -231,8 +240,8 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
 
         const backgroundDuration = now - backgroundStartRef.current;
 
-        // Skip the force-reload during a live match (see visibilitychange note).
-        if (backgroundDuration > forceReloadTime && !isMatchTimerRunning() && !isRecordingSessionActive()) {
+        // Skip the force-reload during a live match or offline (see visibilitychange note).
+        if (backgroundDuration > forceReloadTime && !isMatchTimerRunning() && !isRecordingSessionActive() && !isDeviceOffline()) {
           forceReloadWithNotification(backgroundDuration, 'pageshow_bfcache');
           return;
         }

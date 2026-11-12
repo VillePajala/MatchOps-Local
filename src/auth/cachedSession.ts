@@ -32,6 +32,29 @@ export interface CachedSupabaseSession {
   };
 }
 
+/** Supabase's localStorage key for the session, or null without config/storage. */
+function supabaseSessionStorageKey(): string | null {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // eslint-disable-next-line no-restricted-globals -- Supabase's internal auth token storage
+  if (!supabaseUrl || typeof localStorage === 'undefined') return null;
+  return `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`;
+}
+
+/**
+ * Removes Supabase's cached session from localStorage. Used when the user signs out
+ * before the auth service exists (offline start), so a later reload doesn't let them
+ * back in from the cache.
+ */
+export function clearCachedSupabaseSession(): void {
+  try {
+    const key = supabaseSessionStorageKey();
+    // eslint-disable-next-line no-restricted-globals -- Supabase's internal auth token storage
+    if (key) localStorage.removeItem(key);
+  } catch (error) {
+    logger.warn('[cachedSession] Failed to clear cached session:', error);
+  }
+}
+
 /**
  * Read and parse Supabase's cached session from localStorage.
  *
