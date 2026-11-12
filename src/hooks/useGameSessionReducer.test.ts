@@ -270,6 +270,71 @@ describe('gameSessionReducer', () => {
     });
   });
 
+  /**
+   * Review 1.11: the clock stopped at half-time or full time before the real match
+   * did. Correcting the period length/count at a BREAK puts the game back in play;
+   * a FINISHED game is left finished (Start offers to continue - CONTINUE_CLOCK).
+   * @critical
+   */
+  describe('period length/count changed after the clock stopped', () => {
+    const stopped = (overrides: Partial<GameSessionState>) =>
+      createBaseState({ numberOfPeriods: 2, periodDurationMinutes: 20, ...overrides });
+
+    it('false half-time: lengthening the period continues period 1, paused at the same minute', () => {
+      const state = stopped({ gameStatus: 'periodEnd', currentPeriod: 1, timeElapsedInSeconds: 1200 });
+      const result = gameSessionReducer(state, { type: 'SET_PERIOD_DURATION', payload: 25 });
+      expect(result.gameStatus).toBe('inProgress');
+      expect(result.isTimerRunning).toBe(false);
+      expect(result.currentPeriod).toBe(1);
+      expect(result.timeElapsedInSeconds).toBe(1200);
+    });
+
+    it('reducing to one period at half-time ends the game', () => {
+      const state = stopped({ gameStatus: 'periodEnd', currentPeriod: 1, timeElapsedInSeconds: 1200 });
+      expect(gameSessionReducer(state, { type: 'SET_NUMBER_OF_PERIODS', payload: 1 }).gameStatus).toBe('gameEnd');
+    });
+
+    it('re-saving the same structure leaves half-time alone', () => {
+      const state = stopped({ gameStatus: 'periodEnd', currentPeriod: 1, timeElapsedInSeconds: 1200 });
+      const result = gameSessionReducer(state, { type: 'SET_PERIOD_DURATION', payload: 20 });
+      expect(result.gameStatus).toBe('periodEnd');
+      expect(result.currentPeriod).toBe(1);
+    });
+
+    it('a finished game stays finished when its structure is corrected (no surprise live match)', () => {
+      const state = stopped({ gameStatus: 'gameEnd', currentPeriod: 2, timeElapsedInSeconds: 2400 });
+      const longer = gameSessionReducer(state, { type: 'SET_PERIOD_DURATION', payload: 25 });
+      expect(longer.gameStatus).toBe('gameEnd');
+      expect(longer.periodDurationMinutes).toBe(25);
+      const onePeriod = gameSessionReducer(state, { type: 'SET_NUMBER_OF_PERIODS', payload: 1 });
+      expect(onePeriod.gameStatus).toBe('gameEnd');
+    });
+
+    it('a running clock or a game not yet started is left alone', () => {
+      const running = stopped({ gameStatus: 'inProgress', isTimerRunning: true, timeElapsedInSeconds: 600 });
+      expect(gameSessionReducer(running, { type: 'SET_PERIOD_DURATION', payload: 25 }).gameStatus).toBe('inProgress');
+      const fresh = stopped({ gameStatus: 'notStarted' });
+      expect(gameSessionReducer(fresh, { type: 'SET_PERIOD_DURATION', payload: 25 }).gameStatus).toBe('notStarted');
+    });
+  });
+
+  describe('CONTINUE_CLOCK', () => {
+    it('continues a finished game in the given period, keeping the clock', () => {
+      const state = createBaseState({ gameStatus: 'gameEnd', currentPeriod: 2, timeElapsedInSeconds: 2400, isTimerRunning: false });
+      const result = gameSessionReducer(state, { type: 'CONTINUE_CLOCK', payload: { period: 1 } });
+      expect(result.gameStatus).toBe('inProgress');
+      expect(result.isTimerRunning).toBe(true);
+      expect(result.currentPeriod).toBe(1);
+      expect(result.timeElapsedInSeconds).toBe(2400);
+      expect(result.startTimestamp).not.toBeNull();
+    });
+
+    it('is ignored unless the game is finished and stopped', () => {
+      const state = createBaseState({ gameStatus: 'periodEnd', timeElapsedInSeconds: 1200 });
+      expect(gameSessionReducer(state, { type: 'CONTINUE_CLOCK', payload: { period: 1 } })).toBe(state);
+    });
+  });
+
   describe('SET_GAME_STATUS', () => {
     it('should update game status to inProgress', () => {
       const state = createBaseState();

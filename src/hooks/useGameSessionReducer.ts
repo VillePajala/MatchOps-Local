@@ -2,6 +2,7 @@ import { GameEvent, SubAlertLevel, GameType, Gender, IntervalLog, ShootoutKick }
 import type { AiMeta } from '@/types/game';
 import logger from '@/utils/logger';
 import { todayIso } from '@/utils/todayIso';
+import { clockContinuation } from '@/utils/clockContinuation';
 
 // --- State Definition ---
 export interface GameSessionState {
@@ -161,13 +162,35 @@ export type GameSessionAction =
   | { type: 'LOAD_GAME_SESSION_STATE'; payload: Partial<GameSessionState> }
   | { type: 'RESET_GAME_SESSION_STATE'; payload: GameSessionState } // Action to reset to a specific state
   | { type: 'LOAD_PERSISTED_GAME_DATA'; payload: Partial<GameSessionState> } // For loading GameData-like objects
-  | { type: 'RESUME_GAME' }; // Resume a loaded in-progress game at its saved clock/period
+  | { type: 'RESUME_GAME' }
+  /** Continue a clock stopped at full time after the structure was corrected (review 1.11). */
+  | { type: 'CONTINUE_CLOCK'; payload: { period: number } }; // Resume a loaded in-progress game at its saved clock/period
 
 const safeElapsedSeconds = (value: unknown, fallback: number): number => {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
 };
 
 // --- Reducer Function ---
+/**
+ * Re-checks a clock stopped at a PERIOD BREAK after the period length or count
+ * changes (review 1.11). At a false half-time (period set up shorter than played),
+ * lengthening the period puts the game back in play, paused at the same minute, so
+ * Start continues the period; reducing the game to one period at half-time ends it.
+ *
+ * A finished game ('gameEnd') is deliberately NOT changed here: reopening it would
+ * make it the live match the app opens into at launch, and hide the wrap-up, even
+ * when the coach is only correcting the length for the record. Instead the timer's
+ * Start button offers to continue when the corrected structure leaves time to play
+ * (see clockContinuation, useGameTimer.startPause and TimerOverlay).
+ */
+function reconcilePeriodBreak(state: GameSessionState): GameSessionState {
+  if (state.isTimerRunning || state.gameStatus !== 'periodEnd') return state;
+  const next = clockContinuation(state);
+  if (next === null) return { ...state, gameStatus: 'gameEnd' };
+  if (next.kind === 'resume') return { ...state, gameStatus: 'inProgress', currentPeriod: next.period };
+  return { ...state, currentPeriod: next.period - 1 };
+}
+
 export const gameSessionReducer = (state: GameSessionState, action: GameSessionAction): GameSessionState => {
   logger.debug('[gameSessionReducer] action type:', action.type);
   switch (action.type) {
@@ -227,9 +250,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return state;
     }
     case 'SET_NUMBER_OF_PERIODS':
-      return { ...state, numberOfPeriods: action.payload };
+      return reconcilePeriodBreak({ ...state, numberOfPeriods: action.payload });
     case 'SET_PERIOD_DURATION':
-      return { ...state, periodDurationMinutes: action.payload };
+      return reconcilePeriodBreak({ ...state, periodDurationMinutes: action.payload });
     case 'SET_GAME_STATUS':
       return { ...state, gameStatus: action.payload };
     case 'START_PERIOD': {
@@ -264,6 +287,18 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       if (state.isTimerRunning) return state;
       return {
         ...state,
+        isTimerRunning: true,
+        startTimestamp: Date.now(),
+      };
+    }
+    case 'CONTINUE_CLOCK': {
+      // Only from a finished game whose corrected structure leaves time to play;
+      // the caller checks clockContinuation. Keeps the clock and sub tracking.
+      if (state.isTimerRunning || state.gameStatus !== 'gameEnd') return state;
+      return {
+        ...state,
+        gameStatus: 'inProgress',
+        currentPeriod: action.payload.period,
         isTimerRunning: true,
         startTimestamp: Date.now(),
       };

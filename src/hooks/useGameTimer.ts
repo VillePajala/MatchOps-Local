@@ -7,6 +7,7 @@ import { useWakeLock } from './useWakeLock';
 import { useRecordingSessionActive } from '@/utils/recordingSessionSignal';
 import { usePrecisionTimer } from './usePrecisionTimer';
 import { GameSessionState, GameSessionAction } from './useGameSessionReducer';
+import { clockContinuation } from '@/utils/clockContinuation';
 
 interface UseGameTimerArgs {
   state: GameSessionState;
@@ -33,7 +34,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   const hiddenWhileRunningRef = useRef<{ elapsedAtHide: number; hiddenAt: number } | null>(null);
 
   // Destructure only the fields used by startPause to avoid recreation on every tick
-  const { gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes } = state;
+  const { gameStatus, isTimerRunning, currentPeriod, numberOfPeriods, periodDurationMinutes, subIntervalMinutes } = state;
 
   const stateRef = useRef(state);
 
@@ -68,6 +69,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         });
       }
     } else if (gameStatus === 'periodEnd') {
+      if (currentPeriod >= numberOfPeriods) return; // nothing left to start
       dispatch({
         type: 'START_PERIOD',
         payload: {
@@ -76,6 +78,22 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
           subIntervalMinutes,
         },
       });
+    } else if (gameStatus === 'gameEnd') {
+      // Full time came early and the coach has since corrected the period length
+      // or count (review 1.11): continue from where the clock stopped.
+      const next = clockContinuation({
+        numberOfPeriods,
+        periodDurationMinutes,
+        timeElapsedInSeconds: stateRef.current.timeElapsedInSeconds,
+      });
+      if (next?.kind === 'resume') {
+        dispatch({ type: 'CONTINUE_CLOCK', payload: { period: next.period } });
+      } else if (next?.kind === 'nextPeriod') {
+        dispatch({
+          type: 'START_PERIOD',
+          payload: { nextPeriod: next.period, periodDurationMinutes, subIntervalMinutes },
+        });
+      }
     } else if (gameStatus === 'inProgress') {
       // Use proper START_TIMER/PAUSE_TIMER actions instead of SET_TIMER_RUNNING
       // to ensure startTimestamp is correctly managed
@@ -90,7 +108,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         dispatch({ type: 'START_TIMER' });
       }
     }
-  }, [dispatch, gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes]);
+  }, [dispatch, gameStatus, isTimerRunning, currentPeriod, numberOfPeriods, periodDurationMinutes, subIntervalMinutes]);
 
   const reset = useCallback(async () => {
     // Clear timer state from IndexedDB
@@ -160,7 +178,8 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
       clearTimerState();
       // Period/game ended — drop the anchor so boot won't resume past the end.
       clearTimerAnchor();
-      if (s.currentPeriod === s.numberOfPeriods) {
+      // >= : a corrected structure must never leave a period past the last one.
+      if (s.currentPeriod >= s.numberOfPeriods) {
         dispatch({ type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'gameEnd', finalTime: periodEnd } });
       } else {
         dispatch({ type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'periodEnd', finalTime: periodEnd } });
