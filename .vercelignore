@@ -1,0 +1,23 @@
+# Keeps local-only files out of a deploy made with the Vercel CLI from this folder.
+# Git-based deploys only see committed files; the CLI uploads the whole folder
+# except Vercel's defaults (.env.local, .env.*.local, node_modules, .next, .git, ...),
+# and it does not read .gitignore. Review item 1.13.
+
+# Real-data exports and local test material - never part of the app.
+public/example_data/
+**/*Backup*.json
+review-2026-11/
+playwright-report/
+test-results/
+tests/e2e/captures/
+scripts/promo-video/out/
+
+# Pulled env files holding tokens (not covered by Vercel's .env.*.local default).
+.env.preview
+.env.vercel-preview
+.env.development.local
+.env.production.local
+
+# Local Supabase CLI state and tool settings.
+supabase/.temp/
+.claude/settings.local.json
