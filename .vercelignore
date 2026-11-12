@@ -5,7 +5,8 @@
 
 # Real-data exports and local test material - never part of the app.
 public/example_data/
-**/*Backup*.json
+**/MatchOpsLocal_Backup_*.json
+data-snapshots/
 review-2026-11/
 playwright-report/
 test-results/
