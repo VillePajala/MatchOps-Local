@@ -860,6 +860,83 @@ describe('GameStatsModal', () => {
     });
 
     /**
+     * Review 1.12: a report being typed is saved when the modal closes, by any path.
+     * Tallenna is often behind the keyboard; hardware back unmounts the modal.
+     * @critical
+     */
+    describe('report being typed survives closing', () => {
+      const startTyping = async (text: string) => {
+        const notesHeading = await screen.findByText(i18n.t('gameStatsModal.notesTitle', 'Game Notes'));
+        const notesSection = notesHeading.closest('div') as HTMLElement;
+        await act(async () => {
+          fireEvent.click(within(notesSection).getByText('Original notes'));
+        });
+        const textarea = within(notesSection).getByRole('textbox');
+        await act(async () => {
+          fireEvent.change(textarea, { target: { value: text } });
+        });
+      };
+      const wrap = (props: TestProps) => (
+        <div style={{ width: 800, height: 600 }}>
+          <I18nextProvider i18n={i18n}>
+            <GameStatsModal {...props} />
+          </I18nextProvider>
+        </div>
+      );
+
+      test('hardware back (modal unmounted) saves the draft', async () => {
+        const onGameNotesChange = jest.fn();
+        const props = { ...getDefaultProps(), gameNotes: 'Original notes', onGameNotesChange };
+        const { unmount } = await act(async () => renderComponent(props));
+        await startTyping('Strong first half, tired after the break.');
+
+        await act(async () => {
+          unmount();
+        });
+        expect(onGameNotesChange).toHaveBeenCalledTimes(1);
+        expect(onGameNotesChange).toHaveBeenCalledWith('Strong first half, tired after the break.');
+      });
+
+      test('the close button (parent sets isOpen false) saves the draft', async () => {
+        const onGameNotesChange = jest.fn();
+        const props = { ...getDefaultProps(), gameNotes: 'Original notes', onGameNotesChange };
+        const { rerender } = await act(async () => renderComponent(props));
+        await startTyping('Pressing worked.');
+
+        await act(async () => {
+          rerender(wrap({ ...props, isOpen: false }));
+        });
+        expect(onGameNotesChange).toHaveBeenCalledWith('Pressing worked.');
+      });
+
+      test('an emptied report is saved as empty (deliberate delete, like Tallenna)', async () => {
+        const onGameNotesChange = jest.fn();
+        const props = { ...getDefaultProps(), gameNotes: 'Original notes', onGameNotesChange };
+        const { unmount } = await act(async () => renderComponent(props));
+        await startTyping('');
+        await act(async () => {
+          unmount();
+        });
+        expect(onGameNotesChange).toHaveBeenCalledWith('');
+      });
+
+      test('no save when the text did not change, or when not editing', async () => {
+        const onGameNotesChange = jest.fn();
+        const props = { ...getDefaultProps(), gameNotes: 'Original notes', onGameNotesChange };
+        const first = await act(async () => renderComponent(props));
+        await startTyping('Original notes');
+        await act(async () => {
+          first.unmount();
+        });
+        const second = await act(async () => renderComponent(props));
+        await act(async () => {
+          second.unmount();
+        });
+        expect(onGameNotesChange).not.toHaveBeenCalled();
+      });
+    });
+
+    /**
      * Tests that view mode shows updated notes after prop change
      * @critical - Bug fix: Notes should reflect prop updates, not stale internal state
      *

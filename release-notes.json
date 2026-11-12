@@ -4,6 +4,15 @@
     {
       "date": "2026-11-12",
       "en": [
+        "A match report you are typing in Finish game is no longer lost if you close the window without tapping Save. It is saved when the window closes."
+      ],
+      "fi": [
+        "Viimeistele ottelu -näkymässä kirjoitettava otteluraportti ei enää katoa, jos suljet ikkunan painamatta Tallenna. Se tallentuu, kun ikkuna sulkeutuu."
+      ]
+    },
+    {
+      "date": "2026-11-12",
+      "en": [
         "Clock stopped too early? Correct the period length or count in Match details and you can continue from where it stopped."
       ],
       "fi": [
