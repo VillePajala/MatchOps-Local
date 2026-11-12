@@ -425,6 +425,7 @@
     "updateError": "Failed to update team. Please try again."
   },
   "common": {
+    "viewNeedsConnection": "This view couldn't be opened without a connection. Try again when you're online.",
     "moreOpponents": "+{{count}} more. Type to search them all.",
     "notSet": "Not Set",
     "actions": "Actions",

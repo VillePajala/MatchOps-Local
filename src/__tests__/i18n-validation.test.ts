@@ -721,7 +721,7 @@ describe('Translation File Validation', () => {
       // +4 timerOverlay.plannedSubsEarlier_one/_other/plannedSubsOn/Off,
       //     -3 plannedSubInOut/plannedSubIn/plannedSubDismiss: planned subs
       //     show as one group per moment with no dismiss. Lands at 3376.
-      expect(enKeys.length).toBe(3376);
+      expect(enKeys.length).toBe(3377);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -911,7 +911,7 @@ describe('Translation File Validation', () => {
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
       // +1 grouped planned subs (see EN above). Lands at 3376.
-      expect(fiKeys.length).toBe(3376);
+      expect(fiKeys.length).toBe(3377);
     });
   });
 });
