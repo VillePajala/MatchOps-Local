@@ -4,6 +4,15 @@
     {
       "date": "2026-11-12",
       "en": [
+        "If the clock says half-time or game over too early because the game was set up shorter than it is played, fixing the period length or count in Match details now lets you continue the clock from where it stopped."
+      ],
+      "fi": [
+        "Jos kello näyttää puoliaikaa tai pelin päättyneeksi liian aikaisin, koska ottelu oli asetettu lyhyemmäksi kuin se pelataan, jakson keston tai määrän korjaaminen Ottelun tiedoissa antaa nyt jatkaa kelloa siitä mihin se pysähtyi."
+      ]
+    },
+    {
+      "date": "2026-11-12",
+      "en": [
         "Signed-in users no longer wait 20 seconds on the loading screen when opening the app without a connection. Your games open straight away, and returning to the app at half-time no longer restarts it while offline."
       ],
       "fi": [
