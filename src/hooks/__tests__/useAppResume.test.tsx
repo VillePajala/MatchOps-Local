@@ -591,6 +591,64 @@ describe('useAppResume', () => {
     expect(reloadMock).not.toHaveBeenCalled();
   });
 
+  describe('offline (review 1.10)', () => {
+    // window.location.reload can't be observed in JSDOM; the force-reload path is
+    // detected through its log line, as in the tests above.
+    const FORCED_VIS = ['[useAppResume] App was in background for', 360, 'seconds - forcing page reload'];
+    const FORCED_BF = ['[useAppResume] bfcache restore for', 360, 'seconds - forcing page reload'];
+    const setOnLine = (value: boolean) =>
+      Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => value });
+    const backgroundSixMinutes = async () => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+      mockNow += 360000;
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+      act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+      await act(async () => {});
+      await act(async () => {});
+    };
+    afterEach(() => {
+      delete (navigator as unknown as { onLine?: boolean }).onLine;
+    });
+
+    /**
+     * @critical - Offline, a reload can't fetch anything and restarts a cloud sign-in
+     * that can't finish (20 s loading at half-time). Soft-resume instead.
+     */
+    it('does NOT force reload after forceReloadTime while offline (visibilitychange)', async () => {
+      const logger = require('@/utils/logger').default;
+      setOnLine(false);
+      const onResume = jest.fn();
+      renderHook(() => useAppResume({ forceReloadTime: 300000, onResume }), { wrapper });
+      await backgroundSixMinutes();
+
+      expect(logger.debug).not.toHaveBeenCalledWith(...FORCED_VIS);
+      expect(onResume).toHaveBeenCalled();
+    });
+
+    it('does NOT force reload on pageshow after forceReloadTime while offline', async () => {
+      const logger = require('@/utils/logger').default;
+      setOnLine(false);
+      renderHook(() => useAppResume({ forceReloadTime: 300000 }), { wrapper });
+
+      act(() => { window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })); });
+      mockNow += 360000;
+      act(() => { window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); });
+      await act(async () => {});
+
+      expect(logger.debug).not.toHaveBeenCalledWith(...FORCED_BF);
+    });
+
+    it('still force reloads after forceReloadTime when online', async () => {
+      const logger = require('@/utils/logger').default;
+      setOnLine(true);
+      renderHook(() => useAppResume({ forceReloadTime: 300000 }), { wrapper });
+      await backgroundSixMinutes();
+
+      expect(logger.debug).toHaveBeenCalledWith(...FORCED_VIS);
+    });
+  });
+
   /**
    * Tests custom app-resume event dispatch
    * @integration - Allows components to perform their own recovery
