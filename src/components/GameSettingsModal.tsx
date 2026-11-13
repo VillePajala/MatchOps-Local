@@ -222,6 +222,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   selectedPersonnelIds,
   onSelectedPlayersChange,
   onAddPlayerToRoster,
+  masterRoster,
   initialScrollSection,
   canReapplyPlan = false,
   onReapplyPlan,
@@ -266,7 +267,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   updateGameDetailsMutation,
   seasons,
   tournaments,
-  // masterRoster removed - was only used in sync useEffect which is now removed
   teams,
   onTeamIdChange,
 }) => {
@@ -1351,9 +1351,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         // The game's list includes every club player (new ones are merged in,
                         // unselected - mergeClubRosterIntoGamePlayers). A name that is already
                         // there is that existing player: select her instead of creating a
-                        // duplicate club player with the same name.
+                        // duplicate club player with the same name. Only CURRENT club players
+                        // count: the list also keeps players who left the club (the game's
+                        // record), and a returning player must be created in the club roster
+                        // again, not resurrected only in this game.
+                        const clubIds = masterRoster && masterRoster.length > 0
+                          ? new Set(masterRoster.map((p) => p.id))
+                          : null;
                         const existing = availablePlayers.find(
-                          (p) => p.name.trim().toLowerCase() === name.trim().toLowerCase(),
+                          (p) => p.name.trim().toLowerCase() === name.trim().toLowerCase()
+                            && (!clubIds || clubIds.has(p.id)),
                         );
                         if (existing) {
                           if (selectedPlayerIds.includes(existing.id)) {

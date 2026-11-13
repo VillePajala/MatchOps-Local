@@ -767,6 +767,27 @@ describe('<GameSettingsModal />', () => {
       expect(JSON.stringify(mutate.mock.calls)).toContain('"selectedPlayerIds":["p1","p2","p3"]');
     });
 
+    it('a name that only matches a player who left the club creates her in the club roster again', async () => {
+      const user = userEvent.setup();
+      const saved = { id: 'new-p3', name: 'Player Three', isGoalie: false, receivedFairPlayCard: false };
+      const onAddPlayerToRoster = jest.fn().mockResolvedValue(saved);
+      const onSelectedPlayersChange = jest.fn();
+      // p3 is in this game's list as history, but no longer in the club roster.
+      renderModal({
+        ...defaultProps,
+        masterRoster: mockPlayers.filter((p) => p.id !== 'p3'),
+        onAddPlayerToRoster,
+        onSelectedPlayersChange,
+      });
+
+      await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
+      await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), 'Player Three');
+      await user.click(screen.getByRole('button', { name: t('common.add') }));
+
+      await waitFor(() => expect(onAddPlayerToRoster).toHaveBeenCalledWith('Player Three', undefined));
+      await waitFor(() => expect(onSelectedPlayersChange).toHaveBeenCalledWith(['p1', 'p2', 'new-p3']));
+    });
+
     it('renders no add affordance without the bridge handler', async () => {
       renderModal();
       expect(await screen.findByText(t('gameSettingsModal.selectPlayers'))).toBeInTheDocument();
