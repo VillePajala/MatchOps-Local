@@ -698,6 +698,7 @@ describe('reverseMigrationService', () => {
       // This device has game-1 (also in the cloud) and game-2 (deleted elsewhere).
       mockLocalDataStore.getGames.mockResolvedValue({ 'game-1': gameA, 'game-2': { ...gameA } });
       Object.assign(mockLocalDataStore, {
+        getSettings: jest.fn().mockResolvedValue({ language: 'fi', currentGameId: null }),
         getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
         deleteGame: jest.fn().mockResolvedValue(true),
         deletePlayer: jest.fn().mockResolvedValue(true),
@@ -797,11 +798,44 @@ describe('reverseMigrationService', () => {
     });
 
     it('settings edited while the pull runs are not overwritten by the cloud copy', async () => {
-      (mockSupabaseDataStore.getSettings as jest.Mock).mockResolvedValue({ language: 'en' });
-      // Read 1 (before the pull): nothing queued. Read 2 (before settings are written): an edit.
-      mockQueueReads.push([], [{ entityType: 'settings', entityId: 'app' }]);
+      (mockSupabaseDataStore.getSettings as jest.Mock).mockResolvedValue({ language: 'en', updatedAt: '2030-01-01T00:00:00Z' });
+      // Read 1 (before the pull): nothing queued. Later reads: an edit made during the pull.
+      mockQueueReads.push([]);
+      mockQueuedOps.push({ entityType: 'settings', entityId: 'app' });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.getSettings).toHaveBeenCalledTimes(0); // skipped before reading
+      expect(mockLocalDataStore.saveSettings).not.toHaveBeenCalled();
+    });
+
+    it('a roster or adjustment edited while the pull runs is not overwritten', async () => {
+      mockSupabaseDataStore.getAllPlayerAdjustments.mockResolvedValue(new Map([['player-1', [
+        { id: 'adj-1', playerId: 'player-1', appliedAt: OLD, gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0 },
+      ]]]));
+      mockQueueReads.push([]);
+      mockQueuedOps.push({ entityType: 'teamRoster', entityId: 'team-1' }, { entityType: 'playerAdjustment', entityId: 'adj-1' });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.setTeamRoster).not.toHaveBeenCalled();
+      expect(mockLocalDataStore.upsertPlayerAdjustment).not.toHaveBeenCalled();
+    });
+
+    it('settings: the cloud copy only when newer, and this device keeps its own open game', async () => {
+      const local = { language: 'fi', currentGameId: 'game-on-this-device', updatedAt: '2026-06-01T00:00:00Z' };
+      mockLocalDataStore.getSettings.mockResolvedValue(local as never);
+      // Older cloud copy: not applied.
+      (mockSupabaseDataStore.getSettings as jest.Mock).mockResolvedValue({ language: 'en', currentGameId: 'other-device-game', updatedAt: '2026-05-01T00:00:00Z' });
       await hydrateLocalFromCloudWithRetry('test-user-id');
       expect(mockLocalDataStore.saveSettings).not.toHaveBeenCalled();
+      // Newer cloud copy: applied, but the open game stays this device's.
+      (mockSupabaseDataStore.getSettings as jest.Mock).mockResolvedValue({ language: 'en', currentGameId: 'other-device-game', updatedAt: '2026-07-01T00:00:00Z' });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ language: 'en', currentGameId: 'game-on-this-device' }));
+    });
+
+    it('a device without settings of its own starts from the cloud copy, open game included', async () => {
+      mockLocalDataStore.getSettings.mockResolvedValue({ language: 'fi', currentGameId: null } as never);
+      (mockSupabaseDataStore.getSettings as jest.Mock).mockResolvedValue({ language: 'en', currentGameId: 'game-1', updatedAt: '2026-07-01T00:00:00Z' });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ currentGameId: 'game-1' }));
     });
 
     it('the first run only records what the cloud has', async () => {
