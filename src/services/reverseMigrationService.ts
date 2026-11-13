@@ -2178,11 +2178,12 @@ export async function hydrateLocalFromCloud(
         if (shouldWriteBasedOnTimestamp(cloudData.settings.updatedAt, localSettings.updatedAt)) {
           // The open game is this device's own: another device's last-opened game must
           // not replace it (the wrong game opened after reconnecting, and a running
-          // clock for this device's game was discarded). A device with no settings yet
-          // starts from the cloud's.
+          // clock for this device's game was discarded). Decided by whether this device
+          // HAS an open game - not by its settings' updatedAt, which settings saved by
+          // older versions lack. A device with no open game starts from the cloud's.
           await localStore.saveSettings({
             ...cloudData.settings,
-            currentGameId: localSettings.updatedAt ? localSettings.currentGameId : cloudData.settings.currentGameId,
+            currentGameId: localSettings.currentGameId || cloudData.settings.currentGameId,
           });
           counts.settings = true;
         } else {

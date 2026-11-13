@@ -831,6 +831,13 @@ describe('reverseMigrationService', () => {
       expect(mockLocalDataStore.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ language: 'en', currentGameId: 'game-on-this-device' }));
     });
 
+    it('a device whose older settings have no date keeps its open game', async () => {
+      mockLocalDataStore.getSettings.mockResolvedValue({ language: 'fi', currentGameId: 'game-on-this-device' } as never);
+      (mockSupabaseDataStore.getSettings as jest.Mock).mockResolvedValue({ language: 'en', currentGameId: 'other-device-game', updatedAt: '2026-07-01T00:00:00Z' });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ language: 'en', currentGameId: 'game-on-this-device' }));
+    });
+
     it('a device without settings of its own starts from the cloud copy, open game included', async () => {
       mockLocalDataStore.getSettings.mockResolvedValue({ language: 'fi', currentGameId: null } as never);
       (mockSupabaseDataStore.getSettings as jest.Mock).mockResolvedValue({ language: 'en', currentGameId: 'game-1', updatedAt: '2026-07-01T00:00:00Z' });
