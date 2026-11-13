@@ -992,6 +992,7 @@ export class SupabaseDataStore implements DataStore {
       color: updatedPlayer.color ?? null,
       notes: updatedPlayer.notes ?? null,
       received_fair_play_card: false, // per-game only - never stored on a roster row (old flags read as false)
+      archived: updatedPlayer.archived ?? false,
       updated_at: now,
     };
 
@@ -1045,6 +1046,8 @@ export class SupabaseDataStore implements DataStore {
       color: row.color ?? undefined,
       notes: row.notes ?? undefined,
       receivedFairPlayCard: false, // per-game only - never stored on a roster row (old flags read as false)
+      // Only set when true, like Team.archived: an active player has no flag.
+      ...(row.archived ? { archived: true } : {}),
       createdAt: row.created_at ?? undefined,
       updatedAt: row.updated_at ?? undefined,
     };
@@ -1061,6 +1064,7 @@ export class SupabaseDataStore implements DataStore {
       color: player.color ?? null,
       notes: player.notes ?? null,
       received_fair_play_card: false, // per-game only - never stored on a roster row (old flags read as false)
+      archived: player.archived ?? false,
       // Preserve the original creation time on sync push / upsert (only default to
       // now for genuinely new rows) — matches teams/personnel. updated_at is always now.
       created_at: player.createdAt ?? now,

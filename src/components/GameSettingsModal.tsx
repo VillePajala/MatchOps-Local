@@ -33,7 +33,7 @@ import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { HiOutlineMapPin } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
-import { teamMemberIds } from '@/utils/gamePlayerList';
+import { teamMemberIds, activePlayers } from '@/utils/gamePlayerList';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -1150,7 +1150,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
           if (teamRoster && teamRoster.length > 0) {
             // Pre-select the team's players: by id, with a name fallback for old rosters
-            const selectedIds = teamMemberIds(teamRoster, availablePlayers);
+            const selectedIds = teamMemberIds(teamRoster, activePlayers(availablePlayers));
 
             onSelectedPlayersChange(selectedIds);
           } else {
@@ -1368,6 +1368,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                           }
                           selectIntoGame(existing.id);
                           return true as const;
+                        }
+                        // An archived club player is not on this game's list (archived players
+                        // are not offered), but her name must not create a second player.
+                        const archivedMatch = masterRoster?.find(
+                          (p) => p.archived && p.name.trim().toLowerCase() === name.trim().toLowerCase(),
+                        );
+                        if (archivedMatch) {
+                          return t('gameSettingsModal.playerIsArchived', '{{name}} is archived - restore them in the player list first.', { name: archivedMatch.name });
                         }
                         const saved = await onAddPlayerToRoster(name, nickname);
                         if (!saved) {

@@ -364,6 +364,25 @@ describe('LocalDataStore', () => {
      * Upsert operations - used by reverse migration
      * @integration
      */
+    /** Archiving keeps the player; restoring clears the flag. @critical */
+    describe('archive and restore', () => {
+      const lastSavedRoster = () => {
+        const call = [...mockSetStorageItem.mock.calls].reverse().find((c) => c[0] === MASTER_ROSTER_KEY);
+        return JSON.parse(call![1]) as Player[];
+      };
+      it('stores archived: true, and archived: false restores', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([mockPlayer]));
+        const archived = await dataStore.updatePlayer(mockPlayer.id, { archived: true });
+        expect(archived?.archived).toBe(true);
+        expect(lastSavedRoster()[0].archived).toBe(true);
+
+        mockGetStorageItem.mockResolvedValue(JSON.stringify(lastSavedRoster()));
+        const restored = await dataStore.updatePlayer(mockPlayer.id, { archived: false });
+        expect(restored?.archived).toBe(false);
+        expect(lastSavedRoster()[0].archived).toBe(false);
+      });
+    });
+
     describe('upsertPlayer', () => {
       it('should insert new player when not exists', async () => {
         mockGetStorageItem.mockResolvedValue(JSON.stringify([]));

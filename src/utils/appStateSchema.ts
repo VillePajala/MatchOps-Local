@@ -26,6 +26,7 @@ export const playerSchema = z.object({
     .optional(),
   notes: z.string().max(1000, 'Notes cannot exceed 1000 characters').optional(),
   receivedFairPlayCard: z.boolean().optional(),
+  archived: z.boolean().optional(),
 });
 
 export const gameEventSchema = z.object({

@@ -33,7 +33,7 @@ import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { HiOutlineMapPin } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
-import { teamMemberIds } from '@/utils/gamePlayerList';
+import { teamMemberIds, activePlayers } from '@/utils/gamePlayerList';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -264,8 +264,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // Gender state - optional, can be prefilled from season/tournament
   const [gender, setGender] = useState<Gender | undefined>(undefined);
 
+  // Players offered for a new game: the club roster without archived players. Used
+  // everywhere this form lists or pre-selects players; the duplicate-name check below
+  // still uses the full roster (an archived player's name is taken).
+  const pickableRoster = useMemo(() => activePlayers(masterRoster), [masterRoster]);
+
   // Player selection state - start with empty selection (no players pre-selected)
-  const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>(masterRoster);
+  const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>(pickableRoster);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   // The wizard's Pelimuoto answer (store-fed userId - context-free,
   // test-safe) beats the player-count guess for the DEFAULT formation
@@ -388,9 +393,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setGameType(lastGame.gameType ?? 'soccer');
     if (typeof lastGame.demandFactor === 'number') onDemandFactorChange(lastGame.demandFactor);
     // Only carry over players who are still in the master roster.
-    setSelectedPlayerIds((lastGame.selectedPlayerIds ?? []).filter(id => masterRoster.some(p => p.id === id)));
+    setSelectedPlayerIds((lastGame.selectedPlayerIds ?? []).filter(id => pickableRoster.some(p => p.id === id)));
     showToast(t('newGameSetupModal.repeatedLastGame', 'Filled from your last game'), 'success');
-  }, [lastGame, masterRoster, onDemandFactorChange, showToast, t]);
+  }, [lastGame, pickableRoster, onDemandFactorChange, showToast, t]);
 
   // Memoize reset function
   const resetForm = useCallback(() => {
@@ -406,9 +411,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setLocalNumPeriods(2);
     setLocalPeriodDurationString('15');
     setLocalHomeOrAway('home');
-    setAvailablePlayersForSetup(masterRoster);
+    setAvailablePlayersForSetup(pickableRoster);
     if (initialPlayerSelection && initialPlayerSelection.length > 0) {
-      setSelectedPlayerIds(initialPlayerSelection);
+      // Only players the form offers: an archived player from the previous game's
+      // line-up would be counted but not shown (like handleRepeatLastGame).
+      setSelectedPlayerIds(initialPlayerSelection.filter(id => pickableRoster.some(p => p.id === id)));
     } else {
       // No team selected - start with no players pre-selected
       setSelectedPlayerIds([]);
@@ -427,7 +434,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setCustomLeagueName('');
     setGameType('soccer'); // Reset to default
     setGender(undefined); // Reset to not set
-  }, [masterRoster, initialPlayerSelection]);
+  }, [pickableRoster, initialPlayerSelection]);
 
   // Initialize form when modal opens - using layout effect to avoid setState in regular effect
   React.useLayoutEffect(() => {
@@ -820,11 +827,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         }
 
         // Always show master roster from props, but pre-select only team players
-        setAvailablePlayersForSetup(masterRoster);
+        setAvailablePlayersForSetup(pickableRoster);
 
         if (teamRoster && teamRoster.length > 0) {
           // Pre-select the team's players: by id, with a name fallback for old rosters
-          const selectedIds = teamMemberIds(teamRoster, masterRoster);
+          const selectedIds = teamMemberIds(teamRoster, pickableRoster);
 
           setSelectedPlayerIds(selectedIds);
         } else {
@@ -874,12 +881,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         }
 
         // Fallback to master roster on error
-        setAvailablePlayersForSetup(masterRoster);
+        setAvailablePlayersForSetup(pickableRoster);
         setSelectedPlayerIds([]); // No players selected on error
       }
     } else {
       // No team selected - use master roster with no players pre-selected
-      setAvailablePlayersForSetup(masterRoster);
+      setAvailablePlayersForSetup(pickableRoster);
       setSelectedPlayerIds([]);
 
       // Clear team name only if it was auto-filled (preserve manual input)

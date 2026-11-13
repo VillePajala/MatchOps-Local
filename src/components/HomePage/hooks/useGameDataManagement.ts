@@ -43,7 +43,7 @@ import type { Personnel } from '@/types/personnel';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import logger from '@/utils/logger';
 import { withoutFairPlayCard } from '@/utils/playerStats';
-import { mergeClubRosterIntoGamePlayers } from '@/utils/gamePlayerList';
+import { mergeClubRosterIntoGamePlayers, activePlayers } from '@/utils/gamePlayerList';
 
 /**
  * Parameters for useGameDataManagement hook
@@ -182,7 +182,7 @@ export function useGameDataManagement(
         // Default game: use master roster directly (minus the per-game fair-play flag,
         // which older app versions also wrote to the roster)
         logger.log('[TanStack Query] Syncing master roster to availablePlayers (default game)');
-        setAvailablePlayers(withoutFairPlayCard(masterRosterQueryResultData));
+        setAvailablePlayers(withoutFairPlayCard(activePlayers(masterRosterQueryResultData)));
       } else {
         // Active game: merge player details while preserving per-game goalie status
         // and the per-game fair-play card

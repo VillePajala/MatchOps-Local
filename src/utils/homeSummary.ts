@@ -348,7 +348,8 @@ export function buildHomeSummary(
     });
 
   const counts: HomeCounts = {
-    players: opts.roster?.length ?? 0,
+    // Active players only: archived ones (players who left) are not part of today's squad.
+    players: opts.roster?.filter((p) => !p.archived).length ?? 0,
     teams: opts.teamsCount ?? 0,
     personnel: opts.personnelCount ?? 0,
     seasons: opts.seasonsCount ?? 0,

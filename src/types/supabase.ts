@@ -686,6 +686,7 @@ export type Database = {
       }
       players: {
         Row: {
+          archived: boolean
           color: string | null
           created_at: string | null
           id: string
@@ -699,6 +700,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived?: boolean
           color?: string | null
           created_at?: string | null
           id: string
@@ -712,6 +714,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived?: boolean
           color?: string | null
           created_at?: string | null
           id?: string

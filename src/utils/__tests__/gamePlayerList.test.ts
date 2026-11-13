@@ -4,7 +4,7 @@
  * picked for that game, and team pre-selection matched by name only.
  * @critical
  */
-import { mergeClubRosterIntoGamePlayers, teamMemberIds } from '@/utils/gamePlayerList';
+import { mergeClubRosterIntoGamePlayers, teamMemberIds, activePlayers } from '@/utils/gamePlayerList';
 import type { Player } from '@/types';
 
 const p = (id: string, name: string, extra: Partial<Player> = {}): Player => ({ id, name, isGoalie: false, ...extra });
@@ -35,6 +35,14 @@ describe('mergeClubRosterIntoGamePlayers', () => {
     expect(merged.map((x) => x.id)).toEqual(['a', 'old']);
   });
 
+  it('never adds an archived club player to a game, but keeps one who is already in it', () => {
+    const game = [p('a', 'Aino'), p('old', 'Archived But Played')];
+    const club = [p('a', 'Aino'), p('old', 'Archived But Played', { archived: true }), p('gone', 'Left', { archived: true })];
+    const merged = mergeClubRosterIntoGamePlayers(game, club);
+    expect(merged.map((x) => x.id)).toEqual(['a', 'old']);
+    expect(merged.find((x) => x.id === 'old')?.archived).toBe(true);
+  });
+
   it('an empty club roster (not loaded yet) leaves the game list as it is', () => {
     const game = [p('a', 'Aino'), p('b', 'Eetu')];
     expect(mergeClubRosterIntoGamePlayers(game, [])).toEqual(game);
@@ -59,5 +67,15 @@ describe('teamMemberIds', () => {
 
   it('keeps club roster order and ignores unknown names', () => {
     expect(teamMemberIds([{ id: 'b', name: 'Eetu' }, { id: 'a', name: 'Aino' }, { id: 'x', name: 'Nobody' }], club)).toEqual(['a', 'b']);
+  });
+});
+
+describe('activePlayers', () => {
+  it('leaves archived players out, keeping order', () => {
+    expect(activePlayers([p('a', 'A'), p('b', 'B', { archived: true }), p('c', 'C')]).map((x) => x.id)).toEqual(['a', 'c']);
+  });
+  it('returns the same array when nobody is archived', () => {
+    const list = [p('a', 'A')];
+    expect(activePlayers(list)).toBe(list);
   });
 });

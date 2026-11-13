@@ -43,3 +43,16 @@ describe('PlayerSelectionSection - inline add-form disabled gate (3.2)', () => {
     expect(onAddPlayer).not.toHaveBeenCalled();
   });
 });
+
+describe('PlayerSelectionSection - archived players', () => {
+  it('marks an archived player that is listed (already in this game, team or plan)', () => {
+    render(
+      <PlayerSelectionSection
+        {...baseProps}
+        availablePlayers={[...players, { id: 'p2', name: 'Lähtenyt', archived: true } as Player]}
+      />,
+    );
+    expect(screen.getByText('Lähtenyt')).toBeInTheDocument();
+    expect(screen.getAllByText('archived')).toHaveLength(1);
+  });
+});

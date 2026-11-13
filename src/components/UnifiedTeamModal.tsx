@@ -81,6 +81,9 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
   // Query for existing roster (edit mode only)
   const { data: existingRoster = [] } = useTeamRosterQuery(teamId || null);
+  // The team's saved members. An archived member stays listed (and re-tickable) in the
+  // picker even after an accidental untick; other archived players are not offered.
+  const savedMemberIds = React.useMemo(() => new Set(existingRoster.map(p => p.id)), [existingRoster]);
 
   // Queries for tournaments and seasons (needed for context binding selectors)
   // Note: Loading states omitted intentionally - IndexedDB queries complete in <10ms
@@ -890,6 +893,11 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                   <span className="text-base text-slate-100">
                                     {player.name}
                                     {player.nickname ? <span className="text-slate-400"> ({player.nickname})</span> : ''}
+                                    {player.archived && (
+                                      <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-slate-600/60 text-slate-300">
+                                        {t('rosterSettingsModal.archivedBadge', 'archived')}
+                                      </span>
+                                    )}
                                   </span>
                                 </div>
                               </div>
@@ -912,7 +920,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                       {/* Player Selection - Flexible height to stretch to buttons */}
                       <div className="flex-1 min-h-0 flex flex-col">
                         <PlayerSelectionSection
-                          availablePlayers={masterRoster}
+                          availablePlayers={masterRoster.filter(p => !p.archived || savedMemberIds.has(p.id))}
                           selectedPlayerIds={selectedPlayerIds}
                           onSelectedPlayersChange={setSelectedPlayerIds}
                           title={t('unifiedTeamModal.selectPlayers', 'Select Players for Team')}

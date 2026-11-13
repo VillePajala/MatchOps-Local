@@ -4,6 +4,15 @@
     {
       "date": "2026-11-13",
       "en": [
+        "Players who have left can now be archived in the club roster (player menu → Archive). They disappear from new games, teams and plans but stay in old games and stats, and can be restored any time."
+      ],
+      "fi": [
+        "Lopettaneet pelaajat voi nyt arkistoida pelaajalistassa (pelaajan valikko → Arkistoi). He eivät näy uusissa otteluissa, joukkueissa tai suunnitelmissa, mutta pysyvät vanhoissa otteluissa ja tilastoissa, ja heidät voi palauttaa milloin tahansa."
+      ]
+    },
+    {
+      "date": "2026-11-13",
+      "en": [
         "A player you add to the club roster can now be picked for games that already exist. Typing an existing player's name in Match details selects that player instead of creating a duplicate.",
         "Teams keep their players after a player is renamed, and the team view has a clear \"Add players\" button."
       ],

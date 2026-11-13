@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
 
 export interface PlayerSelectionSectionProps {
@@ -80,6 +81,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
   addPlayerPlaceholder,
   addPlayerNicknamePlaceholder,
 }) => {
+  const { t } = useTranslation();
   const [newPlayerNickname, setNewPlayerNickname] = useState('');
   const [isAddingOpen, setIsAddingOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -161,6 +163,13 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
                   <span className="ml-2 text-slate-200">
                     {player.name}
                     {player.nickname && <span className="text-slate-400 ml-1">({player.nickname})</span>}
+                    {/* Archived players are only listed where they already belong (this
+                        game, team or plan); the badge says why they are not offered elsewhere. */}
+                    {player.archived && (
+                      <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-slate-600/60 text-slate-300">
+                        {t('rosterSettingsModal.archivedBadge', 'archived')}
+                      </span>
+                    )}
                   </span>
                 </label>
               </div>

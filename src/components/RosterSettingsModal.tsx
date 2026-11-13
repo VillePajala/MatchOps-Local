@@ -15,6 +15,8 @@ import {
     HiOutlineChartBar,
     HiOutlineEllipsisVertical,
     HiOutlineGlobeAlt,
+  HiOutlineArchiveBox,
+  HiOutlineArrowUturnLeft,
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import ConfirmationModal from './ConfirmationModal';
@@ -83,12 +85,16 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   void onSetPlayerNotes;
 
   // Premium limit check for player creation
-  const { checkAndPrompt: checkPlayerLimitAndPrompt } = useResourceLimit('player', availablePlayers.length);
+  // Archived players have left the squad: they do not count toward the player limit.
+  const { checkAndPrompt: checkPlayerLimitAndPrompt } = useResourceLimit('player', availablePlayers.filter((p) => !p.archived).length);
 
   const [createPlayerModalOpen, setCreatePlayerModalOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   const [searchText, setSearchText] = useState('');
+  // Archived players (arkistoidut) are hidden by default; the toggle under the list shows them.
+  const [showArchived, setShowArchived] = useState(false);
+  const archivedCount = useMemo(() => availablePlayers.filter((p) => p.archived).length, [availablePlayers]);
   const [sortBy, setSortBy] = useState<'lastName' | 'creationNewest' | 'creationOldest'>('lastName');
 
   // State for the actions menu
@@ -164,7 +170,8 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   // Memoized sorted and filtered players to prevent recalculation on every render
   const filteredPlayers = useMemo(() => {
     // Sort players based on selected sort option
-    const sorted = [...availablePlayers].sort((a, b) => {
+    const listed = showArchived ? availablePlayers : availablePlayers.filter((p) => !p.archived);
+    const sorted = [...listed].sort((a, b) => {
       switch (sortBy) {
         case 'lastName':
           return getLastName(a.name).localeCompare(getLastName(b.name), undefined, { sensitivity: 'base' });
@@ -190,7 +197,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
       p.name.toLowerCase().includes(search) ||
       (p.nickname && p.nickname.toLowerCase().includes(search))
     );
-  }, [availablePlayers, sortBy, searchText]);
+  }, [availablePlayers, sortBy, searchText, showArchived]);
 
   useEscapeToClose(isOpen, onClose, !showDeleteConfirm);
 
@@ -257,7 +264,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                 {filteredPlayers.map((player) => (
                   <div
                     key={player.id}
-                    className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer"
+                    className={`p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer ${player.archived ? 'opacity-60' : ''}`}
                     onClick={() => handleEditPlayer(player.id)}
                   >
                     <div className="flex items-center gap-3">
@@ -268,6 +275,11 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                         >
                           {player.name}{player.nickname ? <span className="text-slate-400"> ({player.nickname})</span> : ''}
                         </span>
+                        {player.archived && (
+                          <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-xs bg-slate-600/60 text-slate-300">
+                            {t('rosterSettingsModal.archivedBadge', 'archived')}
+                          </span>
+                        )}
                       </div>
                       <div className="relative" ref={actionsMenuPlayerId === player.id ? actionsMenuRef : null}>
                         <button
@@ -304,6 +316,22 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                                 {t('playerStats.addToStats', 'Add to stats')}
                               </button>
                             )}
+                            {onUpdatePlayer && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActionsMenuPlayerId(null);
+                                  // Archive keeps every game, stat and export; it only stops
+                                  // offering the player for new games, teams and plans.
+                                  void onUpdatePlayer(player.id, { archived: !player.archived });
+                                }}
+                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
+                              >
+                                {player.archived
+                                  ? <><HiOutlineArrowUturnLeft className="w-4 h-4" />{t('rosterSettingsModal.restorePlayer', 'Restore')}</>
+                                  : <><HiOutlineArchiveBox className="w-4 h-4" />{t('rosterSettingsModal.archivePlayer', 'Archive')}</>}
+                              </button>
+                            )}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -323,6 +351,18 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                   </div>
                 ))}
               </div>
+              {archivedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowArchived((v) => !v)}
+                  data-testid="roster-toggle-archived"
+                  className="w-full mt-3 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  {showArchived
+                    ? t('rosterSettingsModal.hideArchived', 'Hide archived players')
+                    : t('rosterSettingsModal.showArchived', 'Show archived players ({{count}})', { count: archivedCount })}
+                </button>
+              )}
               {rosterError && <div className="mt-3 text-sm text-red-400">{rosterError}</div>}
             </div>
           </div>
