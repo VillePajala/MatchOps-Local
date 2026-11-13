@@ -18,6 +18,7 @@ import ClubModalsHost from '@/components/ClubModalsHost';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { useLaunchPullGate } from '@/hooks/useLaunchPullGate';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
@@ -203,6 +204,12 @@ export default function Home() {
   tRef.current = t;
   const isReturningDevice = useDeviceHasSignedIn();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod, signOut } = useAuth();
+  // In cloud mode a match waits for the launch-time cloud pull (review 3.5): a match
+  // opened before it kept the stale copy and its first autosave overwrote newer data.
+  const launchPullGate = useLaunchPullGate(
+    screen === 'home' && mode === 'cloud' && isAuthenticated,
+    postLoginCheckComplete,
+  );
   // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
   const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
   // Cloud subscription status - fetched from Supabase (NOT local storage)
@@ -543,6 +550,9 @@ export default function Home() {
         getAllPersonnel(userId),
       ]);
       if (roster) setHasPlayers(roster.length > 0);
+      // Also refreshed here so a cloud pull that brought or removed games updates
+      // first-time mode and the stats rows (the scratch workspace is not a game).
+      setHasSavedGames(Object.keys(games).filter((id) => id !== 'unsaved_game').length > 0);
       // The venue book learns here, and only here: every match that exists
       // adds or refreshes an entry, and a deleted match takes nothing away.
       // Written only when something moved, then the settings query is
@@ -591,6 +601,9 @@ export default function Home() {
       logger.warn('Failed to refresh setup signals', { error: err });
     }
   }, [userId, applyTeamScope, queryClient]);
+  // For the background cloud pull (an effect that must not re-run when this changes).
+  const refreshSetupSignalsRef = useRef(refreshSetupSignals);
+  useEffect(() => { refreshSetupSignalsRef.current = refreshSetupSignals; }, [refreshSetupSignals]);
 
   // 3.1: hardware back mirrors "Koti" - with the match on screen and no
   // modal open, back returns to Home instead of leaving the app. Registered
@@ -990,6 +1003,9 @@ export default function Home() {
           //
           // The tradeoff: if local is empty (new device), user briefly sees empty state
           // before data loads. But this is rare and better than making ALL users wait.
+          // Mark the pull as running BEFORE releasing the post-login check, so the
+          // launch-pull gate does not open in between (review 3.5).
+          launchPullGate.pullStarted();
           setPostLoginCheckComplete(true);
 
           // Refetch queries to load LOCAL data immediately
@@ -1002,7 +1018,7 @@ export default function Home() {
           // Run cloud check + hydration entirely in background (fire and forget)
           (async () => {
             try {
-              const { hasCloudData, hydrateLocalFromCloudWithRetry } = await import('@/services/reverseMigrationService');
+              const { hasCloudData, hydrateLocalFromCloudWithRetry, hydrationChangedAnything } = await import('@/services/reverseMigrationService');
               const cloudResult = await hasCloudData();
               if (cloudResult.checkFailed) {
                 logger.warn('[page.tsx] Background cloud check failed:', cloudResult.error);
@@ -1019,12 +1035,6 @@ export default function Home() {
               const hydrationResult = await hydrateLocalFromCloudWithRetry(userId);
 
               if (hydrationResult.success) {
-                // Items removed because they were deleted on another device count
-                // too: the lists on screen must drop them (review 3.3).
-                const totalImported = hydrationResult.counts.games +
-                  hydrationResult.counts.players +
-                  hydrationResult.counts.teams +
-                  (hydrationResult.removed ?? 0);
                 const totalSkipped = (hydrationResult.skipped?.games || 0) +
                   (hydrationResult.skipped?.players || 0) +
                   (hydrationResult.skipped?.teams || 0);
@@ -1038,11 +1048,18 @@ export default function Home() {
                 // Background sync should be seamless; the user doesn't need to be notified
                 // NOTE: Only call refetchQueries(), NOT setRefreshTrigger() - the latter
                 // triggers checkAppState which shows a loading screen, breaking the seamless UX
-                if (totalImported > 0) {
+                //
+                // Any changed type counts, removals included (reviews 3.3, 3.5). Awaited and
+                // including inactive queries: a match held by the launch-pull gate mounts
+                // after this and must read the pulled data, not a stale cache.
+                if (hydrationChangedAnything(hydrationResult)) {
                   logger.info('[page.tsx] Background hydration: imported data, refreshing queries silently');
-                  queryClient.refetchQueries().catch(err => {
+                  await queryClient.refetchQueries({ type: 'all' }).catch(err => {
                     logger.warn('[page.tsx] Background hydration refetch failed:', err);
                   });
+                  // Start/Home also show page-owned state (setup signals, dashboard
+                  // summary) that is computed from storage, not from the queries.
+                  await refreshSetupSignalsRef.current();
                 } else if (totalSkipped > 0) {
                   logger.info('[page.tsx] Background hydration: no new data (local was already up-to-date)');
                 }
@@ -1055,6 +1072,7 @@ export default function Home() {
               // Lowered however hydration ended. Leaving it raised on failure
               // would hide onboarding from a coach who genuinely has nothing.
               setIsHydratingFromCloud(false);
+              launchPullGate.pullFinished();
             }
           })();
 
@@ -1658,8 +1676,10 @@ export default function Home() {
     return t('page.loading', 'Loading...');
   }, [isSigningOut, isPostLoginLoading, t]);
 
+
   // Compute whether to show loading screen
-  const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut;
+  const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut
+    || launchPullGate.matchWaits;
 
   // Onboarding v2: first-sign-in setup wizard (CLOUD ONLY, owner decision).
   // Shows exactly once per account, on the same readiness terms the app screens

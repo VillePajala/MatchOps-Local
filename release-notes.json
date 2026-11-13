@@ -2,6 +2,17 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user. Two exceptions to the prompt: a PR that touches nothing in the app (docs, CI, tests, tooling - see scripts/vercel-ignore-build.mjs) does not deploy and needs no entry; a PR that changes the app but nothing a coach can see (deps, refactors) adds an entry with \"internal\": true, which ships without the update banner and applies on the next launch.",
   "releases": [
     {
+      "date": "2026-11-14",
+      "en": [
+        "When you open a match, it now shows the latest changes made on your other devices, and no longer saves an older copy over them.",
+        "Season, tournament, staff and settings changes from your other devices now show up as soon as the app has loaded them, not only on the next launch."
+      ],
+      "fi": [
+        "Kun avaat ottelun, se näyttää nyt muilla laitteillasi tehdyt viimeisimmät muutokset eikä enää tallenna vanhempaa versiota niiden päälle.",
+        "Muilla laitteillasi tehdyt kausien, turnausten, henkilökunnan ja asetusten muutokset näkyvät nyt heti, kun sovellus on ladannut ne, eikä vasta seuraavalla käynnistyskerralla."
+      ]
+    },
+    {
       "date": "2026-11-13",
       "en": [
         "Each device now keeps the game it had open: opening a game on another device no longer switches it on this one.",

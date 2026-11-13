@@ -2297,6 +2297,16 @@ export function isAuthNotReadyError(error: string | string[] | undefined): boole
 const HYDRATION_RETRY_DELAYS_MS = [400, 1200];
 
 /**
+ * Whether a hydration changed anything on this device - any entity type, not only games,
+ * players and teams (review 3.5: a pull that brought only seasons, tournaments, staff,
+ * external games or settings left the Home lists stale until the next launch).
+ */
+export function hydrationChangedAnything(result: HydrationResult): boolean {
+  const counted = Object.values(result.counts).some((v) => (typeof v === 'number' ? v > 0 : v === true));
+  return counted || (result.removed ?? 0) > 0;
+}
+
+/**
  * `hydrateLocalFromCloud` with retries, which is what every caller wants.
  *
  * WHY THIS EXISTS. A first load on a new origin - a fresh preview URL, or a
