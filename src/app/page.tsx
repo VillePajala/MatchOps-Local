@@ -1019,9 +1019,12 @@ export default function Home() {
               const hydrationResult = await hydrateLocalFromCloudWithRetry(userId);
 
               if (hydrationResult.success) {
+                // Items removed because they were deleted on another device count
+                // too: the lists on screen must drop them (review 3.3).
                 const totalImported = hydrationResult.counts.games +
                   hydrationResult.counts.players +
-                  hydrationResult.counts.teams;
+                  hydrationResult.counts.teams +
+                  (hydrationResult.removed ?? 0);
                 const totalSkipped = (hydrationResult.skipped?.games || 0) +
                   (hydrationResult.skipped?.players || 0) +
                   (hydrationResult.skipped?.teams || 0);

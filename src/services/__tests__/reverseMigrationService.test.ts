@@ -49,6 +49,28 @@ jest.mock('@/datastore/factory', () => ({
   }),
 }));
 
+// The sync queue (read by hydration: queued changes are never overwritten or removed)
+const mockQueuedOps: Array<{ entityType: string; entityId: string }> = [];
+// Per-read snapshots, used first (read 1 = before the pull, read 2 = after the listing).
+const mockQueueReads: Array<Array<{ entityType: string; entityId: string }>> = [];
+let mockQueueUnreadable = false;
+jest.mock('@/sync/SyncQueue', () => ({
+  SyncQueue: jest.fn().mockImplementation(() => ({
+    initialize: jest.fn(async () => { if (mockQueueUnreadable) throw new Error('queue unavailable'); }),
+    getAllOperations: jest.fn(async () => mockQueueReads.shift() ?? [...mockQueuedOps]),
+    close: jest.fn(async () => {}),
+  })),
+}));
+
+// The account's own storage, where hydration records the cloud ids it has seen.
+const mockUserStore: Record<string, string> = {};
+jest.mock('@/utils/storage', () => ({
+  getUserStorageAdapter: jest.fn(async () => ({
+    getItem: jest.fn(async (k: string) => mockUserStore[k] ?? null),
+    setItem: jest.fn(async (k: string, v: string) => { mockUserStore[k] = v; }),
+  })),
+}));
+
 // Mock backendConfig
 jest.mock('@/config/backendConfig', () => ({
   disableCloudMode: jest.fn(() => ({ success: true })),
@@ -638,6 +660,194 @@ describe('reverseMigrationService', () => {
 
       // After completion, should allow new migration
       expect(isReverseMigrationRunning()).toBe(false);
+    });
+  });
+
+  /**
+   * Review 3.3: deletions made on another device reach this one - and only when the
+   * picture is certain. Anything uncertain keeps the local item.
+   * @critical
+   */
+  describe('hydration removes what was deleted on another device', () => {
+    const OLD = '2025-01-01T00:00:00.000Z';
+    const gameA = { ...mockGame, updatedAt: OLD };
+    const ids = (over: Partial<Record<string, string[]>> = {}) => {
+      const base: Record<string, string[]> = {
+        players: ['player-1'], teams: ['team-1'], seasons: ['season-1'], tournaments: ['tournament-1'],
+        personnel: ['personnel-1'], games: ['game-1'], playerAdjustments: [],
+      };
+      const merged = { ...base, ...over } as Record<string, string[]>;
+      return Object.fromEntries(Object.entries(merged).map(([k, v]) => [k, new Set(v)]));
+    };
+    let getAllEntityIds: jest.Mock;
+
+    const seenBefore = (over: Partial<Record<string, string[]>> = {}) => {
+      // What this device saw in the cloud last time: everything it has, incl. game-2.
+      mockUserStore.matchops_cloud_ids_seen = JSON.stringify({
+        players: ['player-1', 'player-2'], teams: ['team-1'], seasons: ['season-1'], tournaments: ['tournament-1'],
+        personnel: ['personnel-1'], games: ['game-1', 'game-2'], playerAdjustments: ['adj-1'], ...over,
+      });
+    };
+
+    beforeEach(() => {
+      mockQueuedOps.length = 0;
+      mockQueueReads.length = 0;
+      mockQueueUnreadable = false;
+      for (const k of Object.keys(mockUserStore)) delete mockUserStore[k];
+      seenBefore();
+      // This device has game-1 (also in the cloud) and game-2 (deleted elsewhere).
+      mockLocalDataStore.getGames.mockResolvedValue({ 'game-1': gameA, 'game-2': { ...gameA } });
+      Object.assign(mockLocalDataStore, {
+        getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
+        deleteGame: jest.fn().mockResolvedValue(true),
+        deletePlayer: jest.fn().mockResolvedValue(true),
+        deleteTeam: jest.fn().mockResolvedValue(true),
+        deleteSeason: jest.fn().mockResolvedValue(true),
+        deleteTournament: jest.fn().mockResolvedValue(true),
+        removePersonnelMember: jest.fn().mockResolvedValue(true),
+        deletePlayerAdjustment: jest.fn().mockResolvedValue(true),
+      });
+      getAllEntityIds = jest.fn().mockResolvedValue(ids());
+      Object.assign(mockSupabaseDataStore, { getAllEntityIds });
+    });
+
+    it('removes a game the cloud no longer has, and reports it', async () => {
+      const result = await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(result.success).toBe(true);
+      expect(mockLocalDataStore.deleteGame).toHaveBeenCalledWith('game-2');
+      expect(mockLocalDataStore.deleteGame).toHaveBeenCalledTimes(1);
+      expect(result.removed).toBe(1);
+    });
+
+    it('keeps a game with a change still waiting to be sent (e.g. created offline)', async () => {
+      mockQueuedOps.push({ entityType: 'game', entityId: 'game-2' });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+    });
+
+    it('keeps a game changed on this device since the pull started', async () => {
+      mockLocalDataStore.getGames.mockResolvedValue({
+        'game-1': gameA, 'game-2': { ...gameA, updatedAt: new Date().toISOString() },
+      });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+    });
+
+    it('removes nothing when the cloud list cannot be read completely', async () => {
+      getAllEntityIds.mockRejectedValue(new Error('Incomplete id list for games: 999 of 1200'));
+      const result = await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(result.success).toBe(true); // the pull itself worked
+      expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+    });
+
+    it('removes nothing of a type the cloud has none of while this device has some', async () => {
+      getAllEntityIds.mockResolvedValue(ids({ games: [] }));
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+    });
+
+    it('removes nothing when the sync queue cannot be read', async () => {
+      mockQueueUnreadable = true;
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+    });
+
+    it('removes nothing after a pull with errors', async () => {
+      mockLocalDataStore.upsertPlayer.mockRejectedValue(new Error('IDB write failed'));
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(getAllEntityIds).not.toHaveBeenCalled();
+      expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+    });
+
+    it('a game deleted offline is not written back before the delete is sent', async () => {
+      // Deleted here while offline: gone locally, still in the cloud, delete queued.
+      mockLocalDataStore.getGames.mockResolvedValue({});
+      mockQueuedOps.push({ entityType: 'game', entityId: 'game-1' });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.saveGame).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when the signed-in account is not this one (account switch)', async () => {
+      mockSupabaseClient.auth.getSession.mockResolvedValue({
+        data: { session: { user: { id: 'someone-else' } } }, error: null,
+      });
+      try {
+        const result = await hydrateLocalFromCloudWithRetry('test-user-id');
+        expect(result.success).toBe(false);
+        expect(mockLocalDataStore.saveGame).not.toHaveBeenCalled();
+        expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+      } finally {
+        mockSupabaseClient.auth.getSession.mockResolvedValue({
+          data: { session: { user: { id: 'test-user-id' } } }, error: null,
+        });
+      }
+    });
+
+    it('never removes an item it has not seen in the cloud (created offline, queue cleared by sign-out)', async () => {
+      seenBefore({ games: ['game-1'] }); // game-2 never reached the cloud
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+    });
+
+    it('a damaged record is replaced, not a permanent stop', async () => {
+      mockUserStore.matchops_cloud_ids_seen = '{not json';
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+      expect(JSON.parse(mockUserStore.matchops_cloud_ids_seen).games).toEqual(['game-1']);
+    });
+
+    it('settings edited while the pull runs are not overwritten by the cloud copy', async () => {
+      (mockSupabaseDataStore.getSettings as jest.Mock).mockResolvedValue({ language: 'en' });
+      // Read 1 (before the pull): nothing queued. Read 2 (before settings are written): an edit.
+      mockQueueReads.push([], [{ entityType: 'settings', entityId: 'app' }]);
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.saveSettings).not.toHaveBeenCalled();
+    });
+
+    it('the first run only records what the cloud has', async () => {
+      delete mockUserStore.matchops_cloud_ids_seen;
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+      expect(JSON.parse(mockUserStore.matchops_cloud_ids_seen).games).toEqual(['game-1']);
+    });
+
+    it('keeps an item whose queued change was pushed between the listing and the queue read', async () => {
+      // Read 1 (before the pull): game-2 queued. Read 2 (after the listing): already pushed.
+      mockQueueReads.push([{ entityType: 'game', entityId: 'game-2' }], []);
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+    });
+
+    it('an item kept by a guard is decided again next launch', async () => {
+      mockQueuedOps.push({ entityType: 'game', entityId: 'game-2' });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(JSON.parse(mockUserStore.matchops_cloud_ids_seen).games).toEqual(['game-1', 'game-2']);
+      mockQueuedOps.length = 0;
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.deleteGame).toHaveBeenCalledWith('game-2');
+    });
+
+    it('a team roster with a waiting change is not overwritten by the cloud copy', async () => {
+      mockQueuedOps.push({ entityType: 'teamRoster', entityId: 'team-1' });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.setTeamRoster).not.toHaveBeenCalled();
+    });
+
+    it('a removed personnel member is removed through the cascading delete', async () => {
+      mockLocalDataStore.getAllPersonnel.mockResolvedValue([mockPersonnel, { ...mockPersonnel, id: 'personnel-2', updatedAt: OLD }]);
+      seenBefore({ personnel: ['personnel-1', 'personnel-2'] });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect((mockLocalDataStore as unknown as { removePersonnelMember: jest.Mock }).removePersonnelMember).toHaveBeenCalledWith('personnel-2');
+    });
+
+    it('removes other types too: a player and an adjustment deleted elsewhere', async () => {
+      mockLocalDataStore.getPlayers.mockResolvedValue([mockPlayer, { ...mockPlayer, id: 'player-2', updatedAt: OLD }]);
+      (mockLocalDataStore as unknown as { getAllPlayerAdjustments: jest.Mock }).getAllPlayerAdjustments
+        .mockResolvedValue(new Map([['player-1', [{ id: 'adj-1', playerId: 'player-1', appliedAt: OLD, gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0 }]]]));
+      getAllEntityIds.mockResolvedValue(ids({ playerAdjustments: ['adj-other'] }));
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.deletePlayer).toHaveBeenCalledWith('player-2');
+      expect(mockLocalDataStore.deletePlayerAdjustment).toHaveBeenCalledWith('player-1', 'adj-1');
     });
   });
 
