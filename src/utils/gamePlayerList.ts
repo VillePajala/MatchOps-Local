@@ -95,7 +95,7 @@ export function teamMemberIds(
 /**
  * Every player id this game refers to: picked, on the field, in an event (scorer,
  * assister, carded/noted player), a shootout kick, an assessment, a position, the
- * captain. A player outside this set has no part in the game's record.
+ * captain, the fair-play card holder. A player outside this set has no part in the game's record.
  */
 export function playerIdsReferencedByGame(game: Partial<AppState>): Set<string> {
   const ids = new Set<string>(game.selectedPlayerIds ?? []);
@@ -109,6 +109,8 @@ export function playerIdsReferencedByGame(game: Partial<AppState>): Set<string> 
   for (const id of Object.keys(game.assessments ?? {})) ids.add(id);
   for (const id of Object.keys(game.playerPositions ?? {})) ids.add(id);
   if (game.captainId) ids.add(game.captainId);
+  // The fair-play award lives only on the holder's entry in the game's own list.
+  for (const p of game.availablePlayers ?? []) if (p.receivedFairPlayCard) ids.add(p.id);
   return ids;
 }
 

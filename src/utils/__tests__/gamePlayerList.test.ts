@@ -94,6 +94,18 @@ describe('mergeClubRosterIntoGamePlayers - removed players when a game is opened
     expect(merged.map((x) => x.id)).toContain('s2');
   });
 
+  it('keeps removed players the game records, even when not selected (goal, fair-play card)', () => {
+    const players = [p('a', 'Aino'), p('scorer', 'Scored Once'), p('fp', 'Card Holder', { receivedFairPlayCard: true }), p('unused', 'Unused')];
+    const gameRecord = {
+      availablePlayers: players,
+      selectedPlayerIds: ['a'],
+      gameEvents: [{ id: 'g1', type: 'goal' as const, time: 60, scorerId: 'scorer' }],
+    };
+    const merged = mergeClubRosterIntoGamePlayers(players, [p('a', 'Aino')], playerIdsReferencedByGame(gameRecord));
+    expect(merged.map((x) => x.id)).toEqual(['a', 'scorer', 'fp']);
+    expect(merged.find((x) => x.id === 'fp')?.receivedFairPlayCard).toBe(true);
+  });
+
   it('never drops anyone while the club roster is not loaded', () => {
     expect(mergeClubRosterIntoGamePlayers(game, [], new Set()).map((x) => x.id)).toEqual(['a', 's1', 's2', 'old']);
   });
@@ -112,8 +124,9 @@ describe('playerIdsReferencedByGame', () => {
       assessments: { assessed: {} as never },
       playerPositions: { positioned: ['ST'] },
       captainId: 'captain',
+      availablePlayers: [p('fp', 'Fair Play', { receivedFairPlayCard: true }), p('plain', 'Plain')],
     });
-    expect([...ids].sort()).toEqual(['assessed', 'assist', 'captain', 'carded', 'field', 'kicker', 'positioned', 'scorer', 'sel']);
+    expect([...ids].sort()).toEqual(['assessed', 'assist', 'captain', 'carded', 'field', 'fp', 'kicker', 'positioned', 'scorer', 'sel']);
   });
 });
 
