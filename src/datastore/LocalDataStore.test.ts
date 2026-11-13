@@ -16,7 +16,7 @@ import type { WarmupPlan } from '@/types/warmupPlan';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { AppSettings } from '@/types/settings';
 import { TestFixtures } from '../../tests/fixtures';
-import { SAVED_GAMES_KEY } from '@/config/storageKeys';
+import { SAVED_GAMES_KEY, MASTER_ROSTER_KEY, TEAMS_INDEX_KEY, TEAM_ROSTERS_KEY } from '@/config/storageKeys';
 
 // Create mock functions BEFORE jest.mock (so they can be referenced in mocks)
 const mockGetStorageItem = jest.fn();
@@ -215,6 +215,61 @@ describe('LocalDataStore', () => {
         mockGetStorageItem.mockResolvedValue('invalid json');
         const players = await dataStore.getPlayers();
         expect(players).toEqual([]);
+      });
+    });
+
+    /**
+     * Review 1.16: the fair-play card is per-game only. Older app versions stored it
+     * on roster rows; a roster read must never hand it out again, and roster writes
+     * must save it as false (which also cleans old rows on their next save).
+     * @critical
+     */
+    describe('roster rows never carry the fair-play card', () => {
+      const staleWinner: Player = { id: 'player_old', name: 'Old Winner', isGoalie: false, receivedFairPlayCard: true };
+      const storedRoster = () => {
+        const call = [...mockSetStorageItem.mock.calls].reverse().find((c) => c[0] === MASTER_ROSTER_KEY);
+        return call ? (JSON.parse(call[1]) as Player[]) : null;
+      };
+
+      it('getPlayers reads a stale flag as false', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([staleWinner]));
+        const players = await dataStore.getPlayers();
+        expect(players[0].receivedFairPlayCard).toBe(false);
+      });
+
+      it('the next roster write saves every row without the flag', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([staleWinner]));
+        await dataStore.createPlayer({ name: 'Newcomer', receivedFairPlayCard: true });
+        const saved = storedRoster();
+        expect(saved).toHaveLength(2);
+        expect(saved!.every((p) => p.receivedFairPlayCard === false)).toBe(true);
+      });
+
+      it('updatePlayer and upsertPlayer never store the flag', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([{ ...staleWinner, receivedFairPlayCard: false }]));
+        const updated = await dataStore.updatePlayer('player_old', { receivedFairPlayCard: true });
+        expect(updated?.receivedFairPlayCard).toBe(false);
+        expect(storedRoster()![0].receivedFairPlayCard).toBe(false);
+
+        const upserted = await dataStore.upsertPlayer({ ...staleWinner });
+        expect(upserted.receivedFairPlayCard).toBe(false);
+        expect(storedRoster()!.every((p) => p.receivedFairPlayCard === false)).toBe(true);
+      });
+
+      it('team rosters: read as false, and setTeamRoster stores false', async () => {
+        mockGetStorageItem.mockImplementation(async (key: string) => {
+          if (key === TEAM_ROSTERS_KEY) return JSON.stringify({ team_1: [staleWinner] });
+          if (key === TEAMS_INDEX_KEY) return JSON.stringify({});
+          return null;
+        });
+        const roster = await dataStore.getTeamRoster('team_1');
+        expect(roster[0].receivedFairPlayCard).toBe(false);
+
+        await dataStore.setTeamRoster('team_2', [staleWinner]);
+        const call = [...mockSetStorageItem.mock.calls].reverse().find((c) => c[0] === TEAM_ROSTERS_KEY);
+        const saved = JSON.parse(call![1]) as Record<string, Player[]>;
+        expect(saved.team_2[0].receivedFairPlayCard).toBe(false);
+        expect(saved.team_1[0].receivedFairPlayCard).toBe(false);
       });
     });
 

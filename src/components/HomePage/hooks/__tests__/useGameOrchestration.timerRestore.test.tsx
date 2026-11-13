@@ -64,7 +64,6 @@ jest.mock('@/utils/timerStateManager', () => ({
 
 // Mock masterRoster
 jest.mock('@/utils/masterRoster', () => ({
-  setPlayerFairPlayCardStatus: jest.fn().mockResolvedValue({}),
 }));
 
 // Mock teams utilities

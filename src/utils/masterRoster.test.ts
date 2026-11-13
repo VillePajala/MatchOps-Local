@@ -85,7 +85,6 @@ const {
   updatePlayerInRoster,
   removePlayerFromRoster,
   setPlayerGoalieStatus,
-  setPlayerFairPlayCardStatus
 } = require('./masterRoster');
 
 describe('Master Roster Utilities', () => {
@@ -411,40 +410,4 @@ describe('Master Roster Utilities', () => {
     });
   });
 
-  describe('setPlayerFairPlayCardStatus', () => {
-    it('should update player fair play status and return the player object', async () => {
-      mockRoster = [...mockPlayers];
-
-      const result = await setPlayerFairPlayCardStatus('player_2', true);
-      expect(result).not.toBeNull();
-      expect(result?.receivedFairPlayCard).toBe(true);
-      expect(result?.id).toBe('player_2');
-      expect(mockDataStore.updatePlayer).toHaveBeenCalledWith('player_2', { receivedFairPlayCard: true });
-    });
-
-    it('should return null if player not found', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      mockDataStore.updatePlayer.mockResolvedValueOnce(null);
-
-      const result = await setPlayerFairPlayCardStatus('non_existent_id', true);
-      expect(result).toBeNull();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Player with ID non_existent_id not found'));
-      consoleSpy.mockRestore();
-    });
-
-    it('should return null if DataStore fails', async () => {
-      const saveError = new Error('Update failed!');
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      mockDataStore.updatePlayer.mockRejectedValueOnce(saveError);
-
-      const result = await setPlayerFairPlayCardStatus('player_1', true);
-
-      expect(result).toBeNull();
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[updatePlayerInRoster] Unexpected error'),
-        expect.objectContaining({ playerId: 'player_1', error: saveError })
-      );
-      consoleSpy.mockRestore();
-    });
-  });
 });

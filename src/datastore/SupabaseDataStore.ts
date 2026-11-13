@@ -910,7 +910,7 @@ export class SupabaseDataStore implements DataStore {
       name: trimmedName,
       nickname: player.nickname?.trim() || undefined,
       isGoalie: player.isGoalie ?? false,
-      receivedFairPlayCard: player.receivedFairPlayCard ?? false,
+      receivedFairPlayCard: false, // per-game only - never stored on a roster row (old flags read as false)
     };
 
     const userId = await this.getUserId();
@@ -980,7 +980,8 @@ export class SupabaseDataStore implements DataStore {
       return null;
     }
 
-    const updatedPlayer = { ...this.transformPlayerFromDb(existing), ...updates };
+    // receivedFairPlayCard is per-game only; an update must not put it back on the roster row.
+    const updatedPlayer = { ...this.transformPlayerFromDb(existing), ...updates, receivedFairPlayCard: false };
     const now = new Date().toISOString();
 
     const updatePayload: PlayerUpdate = {
@@ -990,7 +991,7 @@ export class SupabaseDataStore implements DataStore {
       is_goalie: updatedPlayer.isGoalie ?? false,
       color: updatedPlayer.color ?? null,
       notes: updatedPlayer.notes ?? null,
-      received_fair_play_card: updatedPlayer.receivedFairPlayCard ?? false,
+      received_fair_play_card: false, // per-game only - never stored on a roster row (old flags read as false)
       updated_at: now,
     };
 
@@ -1043,7 +1044,7 @@ export class SupabaseDataStore implements DataStore {
       isGoalie: row.is_goalie ?? false,
       color: row.color ?? undefined,
       notes: row.notes ?? undefined,
-      receivedFairPlayCard: row.received_fair_play_card ?? false,
+      receivedFairPlayCard: false, // per-game only - never stored on a roster row (old flags read as false)
       createdAt: row.created_at ?? undefined,
       updatedAt: row.updated_at ?? undefined,
     };
@@ -1059,7 +1060,7 @@ export class SupabaseDataStore implements DataStore {
       is_goalie: player.isGoalie ?? false,
       color: player.color ?? null,
       notes: player.notes ?? null,
-      received_fair_play_card: player.receivedFairPlayCard ?? false,
+      received_fair_play_card: false, // per-game only - never stored on a roster row (old flags read as false)
       // Preserve the original creation time on sync push / upsert (only default to
       // now for genuinely new rows) — matches teams/personnel. updated_at is always now.
       created_at: player.createdAt ?? now,
@@ -1098,7 +1099,7 @@ export class SupabaseDataStore implements DataStore {
       name: trimmedName,
       nickname: player.nickname?.trim() || undefined,
       isGoalie: player.isGoalie ?? false,
-      receivedFairPlayCard: player.receivedFairPlayCard ?? false,
+      receivedFairPlayCard: false, // per-game only - never stored on a roster row (old flags read as false)
     };
 
     const { error } = await this.withRetry(async () => {
@@ -1636,7 +1637,7 @@ export class SupabaseDataStore implements DataStore {
       isGoalie: row.is_goalie ?? false,
       color: row.color ?? undefined,
       notes: row.notes ?? undefined,
-      receivedFairPlayCard: row.received_fair_play_card ?? false,
+      receivedFairPlayCard: false, // per-game only - never stored on a roster row (old flags read as false)
     };
   }
 
@@ -1652,7 +1653,7 @@ export class SupabaseDataStore implements DataStore {
       is_goalie: player.isGoalie ?? false,
       color: player.color ?? null,
       notes: player.notes ?? null,
-      received_fair_play_card: player.receivedFairPlayCard ?? false,
+      received_fair_play_card: false, // per-game only - never stored on a roster row (old flags read as false)
       created_at: now,
       updated_at: now,
     };

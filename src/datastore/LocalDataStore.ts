@@ -71,6 +71,7 @@ import { generateId } from '@/utils/idGenerator';
 import logger from '@/utils/logger';
 import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
+import { withoutFairPlayCard } from '@/utils/playerStats';
 // Club season defaults are accessed via DEFAULT_APP_SETTINGS from '@/types/settings'
 
 // Team index storage format: { [teamId: string]: Team }
@@ -700,7 +701,7 @@ export class LocalDataStore implements DataStore {
         name: trimmedName,
         nickname: player.nickname?.trim() || undefined,
         isGoalie: player.isGoalie ?? false,
-        receivedFairPlayCard: player.receivedFairPlayCard ?? false,
+        receivedFairPlayCard: false, // per-game only - never stored on a roster row
       };
 
       roster.push(newPlayer);
@@ -733,6 +734,7 @@ export class LocalDataStore implements DataStore {
       const updatedPlayer: Player = {
         ...roster[playerIndex],
         ...updates,
+        receivedFairPlayCard: false, // per-game only - never stored on a roster row
       };
 
       if (updatedPlayer.name) {
@@ -793,7 +795,7 @@ export class LocalDataStore implements DataStore {
         name: trimmedName,
         nickname: player.nickname?.trim() || undefined,
         isGoalie: player.isGoalie ?? false,
-        receivedFairPlayCard: player.receivedFairPlayCard ?? false,
+        receivedFairPlayCard: false, // per-game only - never stored on a roster row
         // Set timestamps: preserve createdAt if exists, always update updatedAt
         createdAt: player.createdAt ?? (existingIndex !== -1 ? roster[existingIndex].createdAt : now),
         updatedAt: now,
@@ -1074,7 +1076,7 @@ export class LocalDataStore implements DataStore {
         logger.warn('[LocalDataStore] Cannot update roster timestamp - team not found', { teamId });
       }
 
-      rostersIndex[teamId] = roster;
+      rostersIndex[teamId] = withoutFairPlayCard(roster);
 
       // Save both atomically under the same lock
       await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
@@ -2708,7 +2710,9 @@ export class LocalDataStore implements DataStore {
 
     try {
       const parsed = JSON.parse(rosterJson);
-      return Array.isArray(parsed) ? (parsed as Player[]) : [];
+      // Older app versions stored the fair-play award on the roster; it is per-game only.
+      // Cleared on read, and the cleared value is what the next roster write saves.
+      return Array.isArray(parsed) ? withoutFairPlayCard(parsed as Player[]) : [];
     } catch (error) {
       logger.error('[LocalDataStore] Corrupted master roster JSON - treating as empty', error);
       return [];
@@ -2746,7 +2750,12 @@ export class LocalDataStore implements DataStore {
         return {};
       }
 
-      return parsed as TeamRostersIndex;
+      // Same stale fair-play flag as the master roster (see loadPlayers).
+      const rosters = parsed as TeamRostersIndex;
+      for (const teamId of Object.keys(rosters)) {
+        if (Array.isArray(rosters[teamId])) rosters[teamId] = withoutFairPlayCard(rosters[teamId]);
+      }
+      return rosters;
     } catch (error) {
       logger.warn('[LocalDataStore] Corrupted team rosters JSON - treating as empty', { error });
       return {};

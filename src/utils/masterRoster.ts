@@ -259,19 +259,3 @@ export const setPlayerGoalieStatus = async (
     return null;
   }
 };
-
-/**
- * Sets the fair play card status for a player in the master roster.
- * Delegates to updatePlayerInRoster which routes through DataStore.
- * @param playerId - The ID of the player to update.
- * @param receivedFairPlayCard - Whether the player should be marked as having received the fair play card.
- * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
- * @returns The updated Player object, or null if player not found or operation failed.
- */
-export const setPlayerFairPlayCardStatus = async (
-  playerId: string,
-  receivedFairPlayCard: boolean,
-  userId?: string
-): Promise<Player | null> => {
-  return updatePlayerInRoster(playerId, { receivedFairPlayCard }, userId);
-}; 
