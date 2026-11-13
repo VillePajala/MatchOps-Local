@@ -972,6 +972,11 @@ export default function Home() {
             logger.debug('[page.tsx] Legacy migration skipped - no legacy data');
             break;
 
+          case 'claimed_by_other_account':
+            // Silent - the anonymous data belongs to another account on this browser
+            logger.debug('[page.tsx] Legacy migration skipped - taken by another account');
+            break;
+
           case 'migration_error':
             // Show error toast
             logger.error('[page.tsx] Legacy migration failed', { error: result.error });

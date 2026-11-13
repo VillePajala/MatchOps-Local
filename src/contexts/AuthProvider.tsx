@@ -1187,6 +1187,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           logger.warn('[AuthProvider] Failed to delete local databases on account deletion:', error);
         }
+        // The anonymous (pre-sign-in) data on this browser may be claimed by the deleted
+        // account; release it so a new account can receive it (never throws).
+        try {
+          const { releaseLegacyMigrationClaim } = await import('@/services/legacyMigrationService');
+          await releaseLegacyMigrationClaim(deletedUserId);
+        } catch (error) {
+          logger.warn('[AuthProvider] Failed to release the anonymous-data claim on account deletion:', error);
+        }
         // Also erase this user's automatic restore points (a separate DB, kept
         // isolated from clears/restores). Account deletion is the ONE place these
         // must be removed, for GDPR erasure.

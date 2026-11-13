@@ -4,6 +4,15 @@
     {
       "date": "2026-11-13",
       "en": [
+        "Games and players you delete no longer come back the next time you open the app, if you used the app before signing in. A second account on the same device no longer receives a copy of the first one's data."
+      ],
+      "fi": [
+        "Poistamasi ottelut ja pelaajat eivät enää palaa, kun avaat sovelluksen uudelleen, jos käytit sovellusta ennen kirjautumista. Toinen tili samalla laitteella ei enää saa kopiota ensimmäisen tilin tiedoista."
+      ]
+    },
+    {
+      "date": "2026-11-13",
+      "en": [
         "Player lists in game setup, Match details, teams and plans are now in alphabetical order (by last name), like the player list.",
         "A player who has been removed from the player list is marked in a game's list, and dropped from it when the game didn't use them."
       ],
