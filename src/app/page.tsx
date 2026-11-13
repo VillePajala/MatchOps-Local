@@ -18,6 +18,7 @@ import ClubModalsHost from '@/components/ClubModalsHost';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { useLaunchPullGate } from '@/hooks/useLaunchPullGate';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
@@ -78,8 +79,6 @@ import { reloadApp, claimReloadAttempt, clearReloadOnce } from '@/utils/reloadAp
 
 // Toast display duration before force reload - allows user to see the notification
 const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
-/** Longest a match waits for the launch-time cloud pull (review 3.5). */
-const LAUNCH_PULL_MAX_WAIT_MS = 8000;
 
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
@@ -187,15 +186,6 @@ export default function Home() {
   // State to track if post-login data loading has completed (migration/hydration check)
   // Using state instead of ref so changes trigger re-renders
   const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
-  // Review 3.5 - the launch-time cloud pull runs in the background, but a match opened
-  // before it finished kept the stale copy and its first autosave (seconds after
-  // mounting, before the pull even read the games) overwrote the newer version from
-  // another device - in the cloud too. So in cloud mode the MATCH waits (loading screen)
-  // until that pull has settled; Start and Home do not. Settled when the pull ends and
-  // the lists have reloaded, when the launch check ends without starting one, or after
-  // LAUNCH_PULL_MAX_WAIT_MS at most.
-  const [launchPullSettled, setLaunchPullSettled] = useState(false);
-  const launchPullRunningRef = useRef(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
   /**
@@ -214,6 +204,12 @@ export default function Home() {
   tRef.current = t;
   const isReturningDevice = useDeviceHasSignedIn();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod, signOut } = useAuth();
+  // In cloud mode a match waits for the launch-time cloud pull (review 3.5): a match
+  // opened before it kept the stale copy and its first autosave overwrote newer data.
+  const launchPullGate = useLaunchPullGate(
+    screen === 'home' && mode === 'cloud' && isAuthenticated,
+    postLoginCheckComplete,
+  );
   // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
   const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
   // Cloud subscription status - fetched from Supabase (NOT local storage)
@@ -602,6 +598,9 @@ export default function Home() {
       logger.warn('Failed to refresh setup signals', { error: err });
     }
   }, [userId, applyTeamScope, queryClient]);
+  // For the background cloud pull (an effect that must not re-run when this changes).
+  const refreshSetupSignalsRef = useRef(refreshSetupSignals);
+  useEffect(() => { refreshSetupSignalsRef.current = refreshSetupSignals; }, [refreshSetupSignals]);
 
   // 3.1: hardware back mirrors "Koti" - with the match on screen and no
   // modal open, back returns to Home instead of leaving the app. Registered
@@ -1002,8 +1001,8 @@ export default function Home() {
           // The tradeoff: if local is empty (new device), user briefly sees empty state
           // before data loads. But this is rare and better than making ALL users wait.
           // Mark the pull as running BEFORE releasing the post-login check, so the
-          // launch-pull gate below does not settle in between (review 3.5).
-          launchPullRunningRef.current = true;
+          // launch-pull gate does not open in between (review 3.5).
+          launchPullGate.pullStarted();
           setPostLoginCheckComplete(true);
 
           // Refetch queries to load LOCAL data immediately
@@ -1055,6 +1054,9 @@ export default function Home() {
                   await queryClient.refetchQueries({ type: 'all' }).catch(err => {
                     logger.warn('[page.tsx] Background hydration refetch failed:', err);
                   });
+                  // Start/Home also show page-owned state (setup signals, dashboard
+                  // summary) that is computed from storage, not from the queries.
+                  await refreshSetupSignalsRef.current();
                 } else if (totalSkipped > 0) {
                   logger.info('[page.tsx] Background hydration: no new data (local was already up-to-date)');
                 }
@@ -1067,8 +1069,7 @@ export default function Home() {
               // Lowered however hydration ended. Leaving it raised on failure
               // would hide onboarding from a coach who genuinely has nothing.
               setIsHydratingFromCloud(false);
-              launchPullRunningRef.current = false;
-              setLaunchPullSettled(true);
+              launchPullGate.pullFinished();
             }
           })();
 
@@ -1672,22 +1673,10 @@ export default function Home() {
     return t('page.loading', 'Loading...');
   }, [isSigningOut, isPostLoginLoading, t]);
 
-  // Settle the launch-pull gate when the post-login check ends without starting a pull,
-  // and in any case after LAUNCH_PULL_MAX_WAIT_MS (offline, slow network, a path that
-  // never reports back). See launchPullSettled.
-  useEffect(() => {
-    if (postLoginCheckComplete && !launchPullRunningRef.current) setLaunchPullSettled(true);
-  }, [postLoginCheckComplete]);
-  useEffect(() => {
-    if (launchPullSettled) return;
-    const timer = setTimeout(() => setLaunchPullSettled(true), LAUNCH_PULL_MAX_WAIT_MS);
-    return () => clearTimeout(timer);
-  }, [launchPullSettled]);
-  const matchWaitsForLaunchPull = screen === 'home' && mode === 'cloud' && isAuthenticated && !launchPullSettled;
 
   // Compute whether to show loading screen
   const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut
-    || matchWaitsForLaunchPull;
+    || launchPullGate.matchWaits;
 
   // Onboarding v2: first-sign-in setup wizard (CLOUD ONLY, owner decision).
   // Shows exactly once per account, on the same readiness terms the app screens
