@@ -301,6 +301,37 @@ export function hasMigrationCompleted(userId: string): boolean {
 }
 
 /**
+ * An explicit "import my local data" from Settings -> Cloud sync. That import works by
+ * reloading so the migration wizard is offered again; this one-shot request lets it be
+ * offered even when the pre-sign-in data is recorded as already taken (review 3.2).
+ */
+const ANONYMOUS_IMPORT_REQUEST_KEY = 'matchops_anonymous_import_requested_for';
+
+/** The import reloads right away; a request older than this was never used and is ignored. */
+const ANONYMOUS_IMPORT_REQUEST_TTL_MS = 10 * 60 * 1000;
+
+export function requestAnonymousDataImport(userId: string): void {
+  if (typeof window === 'undefined' || !userId) return;
+  safeSetItem(ANONYMOUS_IMPORT_REQUEST_KEY, JSON.stringify({ userId, at: Date.now() }));
+}
+
+/** Read and clear the request; true only for the account that asked, and only while fresh. */
+export function consumeAnonymousDataImportRequest(userId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  const raw = safeGetItem(ANONYMOUS_IMPORT_REQUEST_KEY);
+  if (raw === null) return false;
+  safeRemoveItem(ANONYMOUS_IMPORT_REQUEST_KEY);
+  try {
+    const request = JSON.parse(raw) as { userId?: unknown; at?: unknown };
+    return request.userId === userId
+      && typeof request.at === 'number'
+      && Date.now() - request.at < ANONYMOUS_IMPORT_REQUEST_TTL_MS;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Mark migration as completed for a specific user.
  *
  * Called after:

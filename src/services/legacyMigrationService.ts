@@ -250,6 +250,10 @@ function hasLegacyContent(data: LegacyData): boolean {
 // =============================================================================
 
 /**
+ * Not called by the app since review 3.2: the migration wizard is the one path for the
+ * pre-sign-in data, and it asks first. Kept (with its tests) because the claim records it
+ * wrote are still honoured - see anonymousDataStatus in migrationService.
+ *
  * Migrate data from the legacy `MatchOpsLocal` database to the user-scoped database.
  *
  * This function runs at most once per browser's anonymous data (claim key):

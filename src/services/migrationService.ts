@@ -20,6 +20,7 @@ import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import { getAuthService } from '@/datastore/factory';
+import { consumeAnonymousDataImportRequest } from '@/config/backendConfig';
 import { getSupabaseClient } from '@/datastore/supabase/client';
 import type { AuthService } from '@/interfaces/AuthService';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
@@ -444,6 +445,7 @@ async function performMigration(
 
     localStore = new LocalDataStore();
     cloudStore = new SupabaseDataStore();
+    let movingUserId: string | undefined;
 
     await localStore.initialize();
     await cloudStore.initialize();
@@ -460,6 +462,7 @@ async function performMigration(
           errors: ['Session expired. Please sign in again and retry the migration.'],
         };
       }
+      movingUserId = session.user?.id;
       logger.debug('[MigrationService] Session refreshed successfully before migration');
     } catch (refreshError) {
       // AuthError or NetworkError from refreshSession
@@ -594,7 +597,8 @@ async function performMigration(
       sanitizedLocalData,
       cloudStore,
       authService,
-      safeProgress
+      safeProgress,
+      mode
     );
     if (uploadWarnings.length > 0) {
       warnings.push(...uploadWarnings);
@@ -669,6 +673,15 @@ async function performMigration(
     safeProgress({ stage: 'complete', progress: PROGRESS_RANGES.VERIFYING.end, message });
 
     logger.info('[MigrationService] Migration completed', { uploadedCounts, success: overallSuccess, failureCount: uploadFailures.length });
+
+    // Record it now, not when the coach taps Done: closing the app on the completion
+    // screen must not bring the question back (review 3.2). Only when NOTHING failed -
+    // a non-critical failure (settings, a roster) still counts as success above, and
+    // sealing then would mean those items are never offered again. Unsealed, the coach
+    // is asked again and the retry is safe (newer cloud copies are kept).
+    if (overallSuccess && uploadFailures.length === 0 && movingUserId) {
+      await markAnonymousDataMoved(movingUserId);
+    }
 
     return {
       success: overallSuccess,
@@ -1173,6 +1186,65 @@ function sanitizeGamesForMigration(
 // =============================================================================
 
 /**
+ * Whether the cloud's copy of an item must be kept instead of uploading the local one
+ * (review 3.2). The wizard uploads the anonymous (pre-sign-in) store, which can be
+ * months old: unconditional upserts replaced newer cloud games, players and teams, and
+ * the next hydration copied the old versions onto every device.
+ *
+ * Upload only what the cloud does not have, or where the local copy is STRICTLY newer.
+ * When either date is missing the age cannot be compared, and the cloud copy wins.
+ */
+export function cloudCopyWins(inCloud: boolean, cloudUpdatedAt?: string, localUpdatedAt?: string): boolean {
+  if (!inCloud) return false;
+  const cloud = cloudUpdatedAt ? Date.parse(cloudUpdatedAt) : NaN;
+  const local = localUpdatedAt ? Date.parse(localUpdatedAt) : NaN;
+  if (Number.isNaN(cloud) || Number.isNaN(local)) return true;
+  return cloud >= local;
+}
+
+interface CloudVersions {
+  players: Map<string, string | undefined>;
+  seasons: Map<string, string | undefined>;
+  tournaments: Map<string, string | undefined>;
+  teams: Map<string, string | undefined>;
+  personnel: Map<string, string | undefined>;
+  games: Map<string, string | undefined>;
+  adjustments: Map<string, string | undefined>;
+}
+
+function emptyCloudVersions(): CloudVersions {
+  return {
+    players: new Map(), seasons: new Map(), tournaments: new Map(), teams: new Map(),
+    personnel: new Map(), games: new Map(), adjustments: new Map(),
+  };
+}
+
+/** The ids already in the cloud, with their last-updated times. Throws if unreadable:
+ *  without it the upload cannot tell what it would overwrite, so it must not run. */
+async function loadCloudVersions(cloudStore: SupabaseDataStore): Promise<CloudVersions> {
+  const [players, seasons, tournaments, teams, personnel, games, adjustments] = await Promise.all([
+    cloudStore.getPlayers(),
+    cloudStore.getSeasons(true),
+    cloudStore.getTournaments(true),
+    cloudStore.getTeams(true),
+    cloudStore.getAllPersonnel(),
+    cloudStore.getGames(),
+    cloudStore.getAllPlayerAdjustments(),
+  ]);
+  const byId = <T extends { id: string; updatedAt?: string }>(list: T[]) =>
+    new Map(list.map((x) => [x.id, x.updatedAt] as [string, string | undefined]));
+  return {
+    players: byId(players),
+    seasons: byId(seasons),
+    tournaments: byId(tournaments),
+    teams: byId(teams),
+    personnel: byId(personnel),
+    games: new Map(Object.entries(games).map(([id, g]) => [id, g.updatedAt] as [string, string | undefined])),
+    adjustments: byId([...adjustments.values()].flat()),
+  };
+}
+
+/**
  * Upload all data to cloud using upserts.
  *
  * Order matters due to foreign key constraints:
@@ -1196,7 +1268,8 @@ async function uploadToCloud(
   data: LocalDataSnapshot,
   cloudStore: SupabaseDataStore,
   authService: AuthService,
-  onProgress: MigrationProgressCallback
+  onProgress: MigrationProgressCallback,
+  mode: MigrationMode
 ): Promise<UploadToCloudResult> {
   const counts: MigrationCounts = {
     players: 0,
@@ -1234,9 +1307,27 @@ async function uploadToCloud(
     onProgress({ stage: 'uploading', progress, currentEntity: entity });
   };
 
+  // What the cloud already has (merge mode: never overwrite a newer cloud copy).
+  // In replace mode the cloud was cleared first, so nothing is skipped.
+  const cloud = mode === 'merge' ? await loadCloudVersions(cloudStore) : emptyCloudVersions();
+  let keptCloudCopies = 0;
+  /** True when the cloud's copy is kept; its id still counts as present for references. */
+  const keepCloud = (
+    kind: keyof CloudVersions,
+    id: string,
+    localUpdatedAt: string | undefined,
+    present?: Set<string>,
+  ): boolean => {
+    if (!cloudCopyWins(cloud[kind].has(id), cloud[kind].get(id), localUpdatedAt)) return false;
+    keptCloudCopies++;
+    present?.add(id);
+    return true;
+  };
+
   // 1. Players - upsert preserves original IDs (critical for references)
   updateProgress('players');
   for (const player of data.players) {
+    if (keepCloud('players', player.id, player.updatedAt, uploadedIds.players)) continue;
     try {
       await cloudStore.upsertPlayer(player);
       counts.players++;
@@ -1255,6 +1346,7 @@ async function uploadToCloud(
   // 2. Seasons - upsert preserves original IDs
   updateProgress('seasons');
   for (const season of data.seasons) {
+    if (keepCloud('seasons', season.id, season.updatedAt, uploadedIds.seasons)) continue;
     try {
       await cloudStore.upsertSeason(season);
       counts.seasons++;
@@ -1273,6 +1365,7 @@ async function uploadToCloud(
   // 3. Tournaments - upsert preserves original IDs
   updateProgress('tournaments');
   for (const tournament of data.tournaments) {
+    if (keepCloud('tournaments', tournament.id, tournament.updatedAt, uploadedIds.tournaments)) continue;
     try {
       await cloudStore.upsertTournament(tournament);
       counts.tournaments++;
@@ -1290,7 +1383,12 @@ async function uploadToCloud(
 
   // 4. Teams - upsert preserves original IDs (must come after seasons/tournaments for FK refs)
   updateProgress('teams');
+  const teamsKeptInCloud = new Set<string>();
   for (const team of data.teams) {
+    if (keepCloud('teams', team.id, team.updatedAt, uploadedIds.teams)) {
+      teamsKeptInCloud.add(team.id);
+      continue;
+    }
     try {
       await cloudStore.upsertTeam(team);
       counts.teams++;
@@ -1309,6 +1407,8 @@ async function uploadToCloud(
   // 5. Team rosters (must come after players and teams)
   updateProgress('team rosters');
   for (const [teamId, roster] of data.teamRosters) {
+    // A team whose newer cloud copy was kept keeps its cloud roster too.
+    if (teamsKeptInCloud.has(teamId)) continue;
     if (!uploadedIds.teams.has(teamId)) {
       warnings.push(`Team roster for ${teamId}: skipped because team failed to upload`);
       continue;
@@ -1330,6 +1430,7 @@ async function uploadToCloud(
   // 6. Personnel - upsert preserves original IDs
   updateProgress('personnel');
   for (const member of data.personnel) {
+    if (keepCloud('personnel', member.id, member.updatedAt, uploadedIds.personnel)) continue;
     try {
       await cloudStore.upsertPersonnelMember(member);
       counts.personnel++;
@@ -1389,6 +1490,7 @@ async function uploadToCloud(
 
     const gameId = gameIds[i];
     const game = data.games[gameId];
+    if (keepCloud('games', gameId, game.updatedAt, uploadedIds.games)) continue;
     let gameToUpload = game;
 
     if (gameToUpload.seasonId && !uploadedIds.seasons.has(gameToUpload.seasonId)) {
@@ -1442,6 +1544,8 @@ async function uploadToCloud(
   updateProgress('player adjustments');
   for (const [playerId, adjustments] of data.playerAdjustments) {
     for (const adjustment of adjustments) {
+      // Adjustments carry no updatedAt: one already in the cloud is kept.
+      if (keepCloud('adjustments', adjustment.id, undefined)) continue;
       let adjustmentToUpload = adjustment;
       let adjustmentModified = false;
       if (adjustmentToUpload.seasonId && !uploadedIds.seasons.has(adjustmentToUpload.seasonId)) {
@@ -1545,6 +1649,10 @@ async function uploadToCloud(
     }
   }
 
+  if (keptCloudCopies > 0) {
+    logger.info(`[MigrationService] Kept ${keptCloudCopies} newer cloud copies instead of uploading older local ones`);
+    warnings.push(`${keptCloudCopies} item(s) already newer in the cloud were kept`);
+  }
   return { counts, failures, warnings, uploadedIds };
 }
 
@@ -1759,6 +1867,180 @@ function normalizePersonnelArray(
 // =============================================================================
 // PUBLIC HELPER FUNCTIONS
 // =============================================================================
+
+/**
+ * Accounts that moved the anonymous (pre-sign-in) store to the cloud through the wizard,
+ * kept IN the anonymous store so it survives sign-out (review 3.2). Signing out clears
+ * the per-user "migration completed" flag, so without this the wizard was offered again
+ * after every sign-in - and "Sync to Cloud" re-uploaded the months-old anonymous copy.
+ */
+const ANONYMOUS_DATA_MOVED_KEY = 'matchops_anonymous_data_moved_for';
+
+async function anonymousAdapter() {
+  const { createLegacyAdapter } = await import('@/utils/storageFactory');
+  return createLegacyAdapter();
+}
+
+/** Placeholder for a damaged record: it still counts as "taken" (never offered on a guess). */
+const CORRUPT_RECORD = '(unreadable record)';
+
+/**
+ * The accounts in the record. A damaged record reads as taken - the same direction as a
+ * damaged claim - so the data is never offered to anyone on a guess.
+ * Throws when unreadable: callers must not decide anything on a failed read.
+ */
+async function readMovedFor(): Promise<string[]> {
+  const raw = await (await anonymousAdapter()).getItem(ANONYMOUS_DATA_MOVED_KEY);
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string');
+  } catch {
+    // fall through
+  }
+  logger.warn('[MigrationService] The moved-data record is unreadable - treating the data as taken');
+  return [CORRUPT_RECORD];
+}
+
+/** One writer at a time, across tabs, for the record's read-modify-write. */
+async function withMovedRecordLock<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
+  return locks?.request ? locks.request('matchops-anonymous-data-moved', fn) : fn();
+}
+
+/**
+ * Who has the anonymous (pre-sign-in) data on this browser, for this signing-in account:
+ * - 'taken': an account already has it - moved it through the wizard, or received it
+ *   through the earlier automatic copy. Never offered again: not to the same account
+ *   after a sign-out, and not to a different account on this browser.
+ * - 'resume': the earlier automatic copy started for THIS account and never finished.
+ *   Offer it, so the rest can still be moved (merge mode keeps what is already there).
+ * - 'unclaimed': nobody has taken it.
+ * Throws when the records cannot be read.
+ */
+export async function anonymousDataStatus(userId: string): Promise<'taken' | 'resume' | 'unclaimed'> {
+  if ((await readMovedFor()).length > 0) return 'taken';
+  const { LEGACY_MIGRATION_CLAIM_KEY } = await import('@/services/legacyMigrationService');
+  const raw = await (await anonymousAdapter()).getItem(LEGACY_MIGRATION_CLAIM_KEY);
+  if (raw === null) return 'unclaimed';
+  let claim: { userId?: unknown; state?: unknown } | null = null;
+  try {
+    claim = JSON.parse(raw) as { userId?: unknown; state?: unknown };
+  } catch {
+    return 'taken'; // unreadable claim: keep the data away from everyone rather than guess
+  }
+  if (claim?.userId === userId && claim.state === 'in_progress') return 'resume';
+  return 'taken';
+}
+
+export type PreSignInDecision = 'offer' | 'none' | 'retry-quietly';
+
+/** The checks behind {@link decidePreSignInOffer}; injectable for tests. */
+export interface PreSignInChecks {
+  migratableCount: () => Promise<number>;
+  importRequested: (userId: string) => boolean;
+  status: (userId: string) => Promise<'taken' | 'resume' | 'unclaimed'>;
+  ownStoreHasData: (userId: string) => Promise<LocalDataCheckResult>;
+  cloudHasData: () => Promise<{ hasData: boolean; checkFailed: boolean; error?: string }>;
+  markTaken: (userId: string) => Promise<void>;
+}
+
+const defaultPreSignInChecks: PreSignInChecks = {
+  migratableCount: async () => {
+    const summary = await getLocalDataSummary();
+    return Object.values(summary).reduce((acc: number, v) => acc + (typeof v === 'number' ? v : 0), 0);
+  },
+  importRequested: consumeAnonymousDataImportRequest,
+  status: (userId) => anonymousDataStatus(userId),
+  ownStoreHasData: (userId) => hasLocalDataToMigrate(userId),
+  cloudHasData: async () => (await import('@/services/reverseMigrationService')).hasCloudData(),
+  markTaken: (userId) => markAnonymousDataMoved(userId),
+};
+
+/**
+ * Whether the migration wizard offers the anonymous (pre-sign-in) data to the account
+ * signing in (review 3.2). The wizard is the only path into an account, and it asks first.
+ * - 'offer': nobody has the data yet and the account is empty; or the coach asked for an
+ *   import from Settings; or an interrupted automatic copy for this account can finish.
+ * - 'none': nothing there, or an account already has it. An account that already has data
+ *   most likely received it from the automatic copy before it left records - offering it
+ *   again would bring back what was deleted since - so it is recorded as taken instead
+ *   (Settings -> Cloud sync can still import it).
+ * - 'retry-quietly': the cloud check could not run yet (session not ready, request
+ *   aborted by an account switch); decide on the next pass.
+ * Throws when a check fails otherwise: the caller must not decide anything then.
+ */
+export async function decidePreSignInOffer(
+  userId: string,
+  checks: PreSignInChecks = defaultPreSignInChecks,
+): Promise<PreSignInDecision> {
+  const count = await checks.migratableCount(); // a failure here keeps the request for the retry
+  const importRequested = checks.importRequested(userId);
+  if (count === 0) return 'none';
+  if (importRequested) return 'offer';
+  const status = await checks.status(userId);
+  if (status === 'resume') return 'offer';
+  if (status === 'taken') return 'none';
+
+  const own = await checks.ownStoreHasData(userId);
+  if (own.checkFailed) throw new Error(own.error ?? 'Could not check the account store');
+  let accountHasData = own.hasData;
+  if (!accountHasData) {
+    const cloud = await checks.cloudHasData();
+    if (cloud.checkFailed) {
+      const { isAuthNotReadyError } = await import('@/services/reverseMigrationService');
+      const e = cloud.error ?? '';
+      if (isAuthNotReadyError(e) || e.includes('AbortError') || e.includes('signal is aborted')) {
+        return 'retry-quietly';
+      }
+      throw new Error(e || 'Could not check the cloud');
+    }
+    accountHasData = cloud.hasData;
+  }
+  if (accountHasData) {
+    await checks.markTaken(userId);
+    // Silent by design: the coach can still bring it in explicitly from
+    // Settings -> Cloud sync -> "Import local data" (requestAnonymousDataImport).
+    logger.info('[MigrationService] Account already has data - pre-sign-in data recorded as taken, not offered');
+    return 'none';
+  }
+  return 'offer';
+}
+
+/**
+ * Record that this account moved (or discarded) the anonymous store. Never throws: a
+ * failed write is logged and nothing else - the move itself already succeeded, and the
+ * worst outcome is that the question is asked again on the next sign-in, where answering
+ * again is safe (newer cloud copies are kept). The same holds for the release below.
+ */
+export async function markAnonymousDataMoved(userId: string): Promise<void> {
+  try {
+    await withMovedRecordLock(async () => {
+      const list = await readMovedFor();
+      if (!list.includes(userId)) {
+        await (await anonymousAdapter()).setItem(ANONYMOUS_DATA_MOVED_KEY, JSON.stringify([...list, userId]));
+      }
+    });
+  } catch (error) {
+    logger.warn('[MigrationService] Could not record the moved anonymous data', { error });
+  }
+}
+
+/** On account deletion: the anonymous data can be offered to a new account again. Never throws. */
+export async function releaseAnonymousDataMoved(userId: string): Promise<void> {
+  try {
+    await withMovedRecordLock(async () => {
+      const list = await readMovedFor();
+      if (!list.includes(userId)) return;
+      const rest = list.filter((id) => id !== userId);
+      const adapter = await anonymousAdapter();
+      if (rest.length > 0) await adapter.setItem(ANONYMOUS_DATA_MOVED_KEY, JSON.stringify(rest));
+      else await adapter.removeItem(ANONYMOUS_DATA_MOVED_KEY);
+    });
+  } catch (error) {
+    logger.warn('[MigrationService] Could not release the moved anonymous data', { error });
+  }
+}
 
 /**
  * Check if user has local data that can be migrated.

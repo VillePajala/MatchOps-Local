@@ -42,6 +42,7 @@ jest.mock('@/config/backendConfig', () => ({
   getCloudAccountInfo: jest.fn(() => null),
   clearCloudAccountInfo: jest.fn(),
   clearMigrationCompleted: jest.fn(),
+  requestAnonymousDataImport: jest.fn(),
 }));
 
 jest.mock('@/utils/platform', () => ({

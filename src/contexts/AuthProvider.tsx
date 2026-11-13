@@ -1192,6 +1192,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const { releaseLegacyMigrationClaim } = await import('@/services/legacyMigrationService');
           await releaseLegacyMigrationClaim(deletedUserId);
+          const { releaseAnonymousDataMoved } = await import('@/services/migrationService');
+          await releaseAnonymousDataMoved(deletedUserId);
         } catch (error) {
           logger.warn('[AuthProvider] Failed to release the anonymous-data claim on account deletion:', error);
         }

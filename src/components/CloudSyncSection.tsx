@@ -11,6 +11,7 @@ import {
   disableCloudMode,
   getCloudAccountInfo,
   clearMigrationCompleted,
+  requestAnonymousDataImport,
   hasMigrationCompleted,
   clearWelcomeSeen,
   type CloudAccountInfo,
@@ -436,7 +437,10 @@ export default function CloudSyncSection({
       }
 
       // Local data exists - clear migration completed flag and reload to trigger wizard
-      // This allows the user to re-run migration even if they've migrated before
+      // This allows the user to re-run migration even if they've migrated before.
+      // The explicit request also lets the wizard through when the data is recorded
+      // as already taken (review 3.2).
+      requestAnonymousDataImport(user.id);
       if (hasMigrationCompleted(user.id)) {
         clearMigrationCompleted(user.id);
         logger.info('[CloudSyncSection] Cleared migration completed flag to allow re-migration');
