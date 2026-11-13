@@ -353,6 +353,49 @@ describe('SupabaseDataStore', () => {
     });
   });
 
+  describe('archived players (players.archived, migration 054)', () => {
+    const row = {
+      id: 'player_a', name: 'Left Club', nickname: null, jersey_number: null, is_goalie: false,
+      color: null, notes: null, received_fair_play_card: false, archived: true,
+      created_at: '2024-01-01T00:00:00.000Z', updated_at: '2024-01-01T00:00:00.000Z', user_id: 'user_123',
+    };
+
+    it('reads archived: true, and leaves an active player without the flag', async () => {
+      mockQueryBuilder.order = jest.fn().mockResolvedValue({ data: [row, { ...row, id: 'player_b', archived: false }], error: null });
+      const players = await dataStore.getPlayers();
+      expect(players[0].archived).toBe(true);
+      expect(players[1].archived).toBeUndefined();
+    });
+
+    it('archiving and restoring write the column', async () => {
+      mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: { ...row, archived: false }, error: null });
+      const update = jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ data: null, error: null }) }),
+      });
+      mockQueryBuilder.update = update;
+      const archived = await dataStore.updatePlayer('player_a', { archived: true });
+      expect(update.mock.calls[0][0]).toEqual(expect.objectContaining({ archived: true }));
+      expect(archived?.archived).toBe(true);
+
+      mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: row, error: null });
+      await dataStore.updatePlayer('player_a', { archived: false });
+      expect(update.mock.calls[1][0]).toEqual(expect.objectContaining({ archived: false }));
+    });
+
+    it('the sync path (upsertPlayer) carries the flag to the cloud', async () => {
+      mockQueryBuilder.select = jest.fn().mockReturnThis();
+      mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: row, error: null });
+      await dataStore.upsertPlayer({ id: 'player_a', name: 'Left Club', isGoalie: false, archived: true });
+      expect(mockQueryBuilder.upsert.mock.calls[0][0]).toEqual(expect.objectContaining({ archived: true }));
+    });
+
+    it('a new player is stored active', async () => {
+      mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+      await dataStore.createPlayer({ name: 'New', isGoalie: false });
+      expect(mockQueryBuilder.insert.mock.calls[0][0]).toEqual(expect.objectContaining({ archived: false }));
+    });
+  });
+
   // ==========================================================================
   // FAIR-PLAY CARD IS PER-GAME ONLY (review 1.16)
   // Older app versions stored the award on roster rows; it must never come back

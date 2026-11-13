@@ -909,6 +909,11 @@
     "checkedOn": "Links checked {{date}}."
   },
   "rosterSettingsModal": {
+    "archivePlayer": "Archive",
+    "restorePlayer": "Restore",
+    "archivedBadge": "archived",
+    "showArchived": "Show archived players ({{count}})",
+    "hideArchived": "Hide archived players",
     "errors": {
       "nameRequired": "Player name cannot be empty.",
       "duplicateName": "A player with this name already exists. Please use a different name.",
@@ -1118,6 +1123,7 @@
     "friendlyHint": "Kept out of competitive stats"
   },
   "gameSettingsModal": {
+    "playerIsArchived": "{{name}} is archived - restore them in the player list first.",
     "playerAlreadyInGame": "{{name}} is already in this game.",
     "formationApply": "Place players in a formation…",
     "formationLabel": "Formation",

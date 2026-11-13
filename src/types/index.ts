@@ -11,6 +11,9 @@ export interface Player {
   jerseyNumber?: string; // Optional: Player's jersey number
   notes?: string; // Optional: Notes specific to this player
   receivedFairPlayCard?: boolean; // Optional: Did this player receive the fair play card?
+  /** Club roster only: the player has left (arkistoitu). Hidden from every picker for new
+   *  games, teams and plans; kept in old games, stats and exports. Undefined = active. */
+  archived?: boolean;
   createdAt?: string; // ISO timestamp - optional for backwards compatibility with legacy data
   updatedAt?: string; // ISO timestamp - optional for backwards compatibility with legacy data
 }

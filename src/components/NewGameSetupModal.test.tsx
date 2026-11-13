@@ -332,6 +332,39 @@ describe('NewGameSetupModal', () => {
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
   });
 
+  /**
+   * Archived players (players who left) are not offered for a new game.
+   * @critical
+   */
+  test('an archived player in the starting selection is not counted', async () => {
+    render(
+      <ToastProvider>
+        <NewGameSetupModal
+          {...defaultProps}
+          masterRoster={[...defaultProps.masterRoster, { id: 'player9', name: 'Left Club', archived: true }]}
+          initialPlayerSelection={['player1', 'player9']}
+        />
+      </ToastProvider>
+    );
+    expect(await screen.findByText('Jane Smith')).toBeInTheDocument();
+    // Only John Doe is ticked; the archived player is neither listed nor counted.
+    const ticked = screen.getAllByRole('checkbox').filter((c) => (c as HTMLInputElement).checked);
+    expect(ticked).toHaveLength(1);
+  });
+
+  test('does not offer archived club players', async () => {
+    render(
+      <ToastProvider>
+        <NewGameSetupModal
+          {...defaultProps}
+          masterRoster={[...defaultProps.masterRoster, { id: 'player9', name: 'Left Club', archived: true }]}
+        />
+      </ToastProvider>
+    );
+    expect(await screen.findByText('Jane Smith')).toBeInTheDocument();
+    expect(screen.queryByText('Left Club')).not.toBeInTheDocument();
+  });
+
   describe('Tournament Series Selection', () => {
     const tournamentWithSeries = {
       id: 'tournament-series',

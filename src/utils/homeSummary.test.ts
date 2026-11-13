@@ -243,3 +243,17 @@ describe('buildHomeSummary - scoped to one team', () => {
     expect(topScorer).toEqual({ name: 'Emma', goals: 1 });
   });
 });
+
+describe('buildHomeSummary — player count', () => {
+  it('counts only active players (archived ones have left the squad)', () => {
+    const { counts } = buildHomeSummary({}, {
+      ...opts,
+      roster: [
+        { id: 'a', name: 'Aino' },
+        { id: 'b', name: 'Eetu' },
+        { id: 'c', name: 'Left Club', archived: true },
+      ],
+    });
+    expect(counts.players).toBe(2);
+  });
+});

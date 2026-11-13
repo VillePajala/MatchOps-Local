@@ -788,6 +788,23 @@ describe('<GameSettingsModal />', () => {
       await waitFor(() => expect(onSelectedPlayersChange).toHaveBeenCalledWith(['p1', 'p2', 'new-p3']));
     });
 
+    it('an archived club player\'s name is refused with a hint - no duplicate created', async () => {
+      const user = userEvent.setup();
+      const onAddPlayerToRoster = jest.fn();
+      renderModal({
+        ...defaultProps,
+        masterRoster: [...mockPlayers, { id: 'p9', name: 'Aino Arkistoitu', archived: true }],
+        onAddPlayerToRoster,
+      });
+      await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
+      await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), 'aino arkistoitu');
+      await user.click(screen.getByRole('button', { name: t('common.add') }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        t('gameSettingsModal.playerIsArchived', { name: 'Aino Arkistoitu' }),
+      );
+      expect(onAddPlayerToRoster).not.toHaveBeenCalled();
+    });
+
     it('renders no add affordance without the bridge handler', async () => {
       renderModal();
       expect(await screen.findByText(t('gameSettingsModal.selectPlayers'))).toBeInTheDocument();

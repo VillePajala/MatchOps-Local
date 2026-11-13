@@ -1,5 +1,11 @@
 import type { Player } from '@/types';
 
+/** Players not archived: the ones offered when picking players for new games, teams
+ *  and plans. Archived players (arkistoidut) stay in history: old games, stats, exports. */
+export function activePlayers<T extends { archived?: boolean }>(players: T[]): T[] {
+  return players.some((p) => p.archived) ? players.filter((p) => !p.archived) : players;
+}
+
 /**
  * A game's own player list (`availablePlayers`), brought up to date with the club roster.
  *
@@ -11,8 +17,8 @@ import type { Player } from '@/types';
  * - **Club players** come from the club roster, so name, number and so on are current.
  *   Per-game state is kept: the game's own goalie flag and its fair-play holder. The
  *   roster's fair-play flag is never taken; the card is per game.
- * - **Club players not yet in this game** are added, unselected. Selection lives in
- *   `selectedPlayerIds`, which this does not touch.
+ * - **Club players not yet in this game** are added, unselected, unless archived.
+ *   Selection lives in `selectedPlayerIds`, which this does not touch.
  * - **Players no longer in the club roster** stay. The list is the game's historical
  *   record; dropping them broke stats name resolution.
  */
@@ -26,7 +32,8 @@ export function mergeClubRosterIntoGamePlayers(gamePlayers: Player[], clubRoster
     if (p.isGoalie !== undefined) perGameGoalie.set(p.id, p.isGoalie);
   }
 
-  const merged = clubRoster.map((clubPlayer) => {
+  // An archived club player is offered to no new game; one already in this game stays.
+  const merged = clubRoster.filter((clubPlayer) => inGame.has(clubPlayer.id) || !clubPlayer.archived).map((clubPlayer) => {
     const receivedFairPlayCard = inGame.has(clubPlayer.id) ? clubPlayer.id === fairPlayHolder : false;
     return perGameGoalie.has(clubPlayer.id)
       ? { ...clubPlayer, isGoalie: perGameGoalie.get(clubPlayer.id), receivedFairPlayCard }

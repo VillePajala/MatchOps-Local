@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 
@@ -301,6 +301,61 @@ describe('<RosterSettingsModal />', () => {
     expect(screen.getByText('Player Two')).toBeInTheDocument();
   });
 
+});
+
+/**
+ * Archiving (arkistoi): a player who left stays in history but is hidden from the
+ * roster list by default, with a toggle to show archived players and restore them.
+ * @critical
+ */
+describe('RosterSettingsModal - archived players', () => {
+  const withArchived: Player[] = [
+    ...mockPlayers,
+    { id: 'p3', name: 'Left Club', archived: true },
+  ];
+  const renderWith = (players: Player[]) =>
+    render(
+      <TestWrapper>
+        <RosterSettingsModal {...defaultProps} availablePlayers={players} />
+      </TestWrapper>
+    );
+
+  beforeEach(() => jest.clearAllMocks());
+
+  test('hides archived players until the toggle shows them, marked as archived', () => {
+    renderWith(withArchived);
+    expect(screen.queryByText('Left Club')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('roster-toggle-archived'));
+    expect(screen.getByText('Left Club')).toBeInTheDocument();
+    expect(screen.getByText('archived')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('roster-toggle-archived'));
+    expect(screen.queryByText('Left Club')).not.toBeInTheDocument();
+  });
+
+  test('shows no toggle when nobody is archived', () => {
+    renderWith(mockPlayers);
+    expect(screen.queryByTestId('roster-toggle-archived')).not.toBeInTheDocument();
+  });
+
+  test('Archive sets archived: true through onUpdatePlayer (nothing is deleted)', async () => {
+    renderWith(withArchived);
+    fireEvent.click(screen.getAllByTitle('Actions')[0]);
+    fireEvent.click(screen.getByRole('button', { name: /Archive/ }));
+    await waitFor(() => expect(mockOnUpdatePlayer).toHaveBeenCalledWith('p1', { archived: true }));
+    expect(mockOnRemovePlayer).not.toHaveBeenCalled();
+  });
+
+  test('Restore clears the flag', async () => {
+    renderWith(withArchived);
+    fireEvent.click(screen.getByTestId('roster-toggle-archived'));
+    // The list sorts by last name; open the menu on Left Club's own row.
+    const row = screen.getByText('Left Club').closest('.p-4') as HTMLElement;
+    fireEvent.click(within(row).getByTitle('Actions'));
+    fireEvent.click(screen.getByRole('button', { name: /Restore/ }));
+    await waitFor(() => expect(mockOnUpdatePlayer).toHaveBeenCalledWith('p3', { archived: false }));
+  });
 });
 
 /**

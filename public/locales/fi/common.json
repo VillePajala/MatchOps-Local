@@ -780,6 +780,11 @@
     "checkedOn": "Linkit tarkistettu {{date}}."
   },
   "rosterSettingsModal": {
+    "archivePlayer": "Arkistoi",
+    "restorePlayer": "Palauta",
+    "archivedBadge": "arkistoitu",
+    "showArchived": "Näytä arkistoidut pelaajat ({{count}})",
+    "hideArchived": "Piilota arkistoidut pelaajat",
     "errors": {
       "nameRequired": "Pelaajan nimi ei voi olla tyhjä.",
       "duplicateName": "Pelaaja tällä nimellä on jo olemassa. Käytä eri nimeä.",
@@ -1675,6 +1680,7 @@
     "roster": "Kokoonpano"
   },
   "gameSettingsModal": {
+    "playerIsArchived": "{{name}} on arkistoitu – palauta hänet ensin pelaajalistasta.",
     "playerAlreadyInGame": "{{name}} on jo tässä ottelussa.",
     "formationApply": "Aseta pelaajat muodostelmaan…",
     "formationLabel": "Muodostelma",

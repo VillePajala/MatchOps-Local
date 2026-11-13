@@ -101,7 +101,7 @@ import PlanBalanceView from '@/components/PlanBalanceView';
 import type { PlaytimePlan, PlanSub, PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 import type { Player } from '@/types';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { teamMemberIds } from '@/utils/gamePlayerList';
+import { teamMemberIds, activePlayers } from '@/utils/gamePlayerList';
 
 interface PlaytimePlannerModalProps {
   isOpen: boolean;
@@ -159,6 +159,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   const [view, setView] = useState<View>('loading');
   const [roster, setRoster] = useState<Player[]>([]);
+  // Players OFFERED for a plan: the roster without archived players. The full roster
+  // stays in use to show players already in a plan.
+  const pickableRoster = useMemo(() => activePlayers(roster), [roster]);
   const [activePlan, setActivePlan] = useState<PlaytimePlan | null>(null);
   const [editingGameId, setEditingGameId] = useState<string | null>(null);
   const [planList, setPlanList] = useState<PlaytimePlan[]>([]);
@@ -304,7 +307,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         // Back to freehand: full roster and the planner's default durations, so a
         // team's inherited durations don't linger after you deselect it.
         setTeamId('');
-        setSelectedIds(new Set(roster.map((p) => p.id)));
+        setSelectedIds(new Set(pickableRoster.map((p) => p.id)));
         setNumberOfPeriods(2);
         setPeriodMinutes(12);
         return;
@@ -323,7 +326,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         // failed/slow load never leaves teamId stamped on a stale roster (which would
         // break the "lossless" invariant later prefill relies on).
         setTeamId(nextTeamId);
-        setSelectedIds(new Set(teamMemberIds(teamRoster, roster)));
+        setSelectedIds(new Set(teamMemberIds(teamRoster, pickableRoster)));
         // Apply durations only after the roster load succeeds, so a failure never
         // leaves a half-applied state (durations changed, selection stale). Always
         // set them from the selected team's competition, or fall back to the planner
@@ -342,7 +345,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         showToast(t('playtimePlanner.setup.teamLoadError', "Could not load that team's roster."), 'error');
       }
     },
-    [roster, teams, seasons, tournaments, user, showToast, t],
+    [pickableRoster, teams, seasons, tournaments, user, showToast, t],
   );
 
   // Keep a stable handle to resetSetupForm so the load effect does not depend on
@@ -1144,21 +1147,24 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const rosterCandidates = useMemo(() => {
     if (!activePlan) return [] as { id: string; name: string }[];
     const inPlan = new Set(activePlan.players.map((p) => p.id));
-    return roster
+    return pickableRoster
       .filter((p) => !inPlan.has(p.id))
       .map((p) => ({ id: p.id, name: p.nickname?.trim() || p.name }));
-  }, [roster, activePlan]);
+  }, [pickableRoster, activePlan]);
 
   // Overview roster checkboxes (same gradient picker as creation): the full
   // master roster, plus any plan players no longer on it (imported plans),
   // with the plan's members checked.
   const overviewRoster = useMemo((): Player[] => {
     if (!activePlan) return [];
+    const inPlan = new Set(activePlan.players.map((p) => p.id));
+    // Archived players are not offered, but one already in this plan stays, checked.
+    const shown = roster.filter((p) => !p.archived || inPlan.has(p.id));
     const known = new Set(roster.map((p) => p.id));
     const extras: Player[] = activePlan.players
       .filter((pp) => !known.has(pp.id))
       .map((pp) => ({ id: pp.id, name: pp.name }));
-    return [...roster, ...extras];
+    return [...shown, ...extras];
   }, [roster, activePlan]);
 
   // Live fairness read for the lineup view: cumulative planned minutes per player
@@ -1276,8 +1282,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       try {
         const teamRoster = await getTeamRoster(nextTeamId, user?.id);
         if (teamSelectRef.current !== requestId) return;
-        const matchedIds = new Set(teamMemberIds(teamRoster, roster));
-        const matched = roster.filter((p) => matchedIds.has(p.id));
+        const matchedIds = new Set(teamMemberIds(teamRoster, pickableRoster));
+        const matched = pickableRoster.filter((p) => matchedIds.has(p.id));
         const current = new Set(activePlan.players.map((p) => p.id));
         const additions = matched
           .filter((p) => !current.has(p.id))
@@ -1306,7 +1312,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         showToast(t('playtimePlanner.setup.teamLoadError', "Could not load that team's roster."), 'error');
       }
     },
-    [activePlan, roster, updateActivePlan, user, showToast, t],
+    [activePlan, pickableRoster, updateActivePlan, user, showToast, t],
   );
 
   // Overview format edits apply to EVERY game, like creation's single format.
@@ -1458,7 +1464,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     } else {
       setActivePlan(null);
       seedHistory(null);
-      resetSetupForm(roster);
+      resetSetupForm(pickableRoster);
       setView('setup');
     }
   };
@@ -1598,7 +1604,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
 
   const startNewPlan = () => {
-    resetSetupForm(roster);
+    resetSetupForm(pickableRoster);
     setView('setup');
   };
 
@@ -1809,7 +1815,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
         {view === 'setup' && (
           <div className="space-y-4">
-            {roster.length === 0 ? (
+            {pickableRoster.length === 0 ? (
               <div className="text-center py-8">
                 <HiOutlineUsers className="w-12 h-12 mx-auto mb-3 text-slate-600" aria-hidden="true" />
                 <p className="text-lg font-medium text-slate-300 mb-1">
@@ -1856,7 +1862,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 {/* House roster picker - the same component new-game setup and
                     game settings use (gradient card, Select All, yellow counter). */}
                 <PlayerSelectionSection
-                  availablePlayers={roster}
+                  availablePlayers={pickableRoster}
                   selectedPlayerIds={[...selectedIds]}
                   onSelectedPlayersChange={(ids) => setSelectedIds(new Set(ids))}
                   title={t('playtimePlanner.setup.rosterLabel', 'Players')}
