@@ -13,6 +13,7 @@ import {
   hasCloudData,
   isReverseMigrationRunning,
   hydrateLocalFromCloudWithRetry,
+  hydrationChangedAnything,
   isAuthNotReadyError,
   type ReverseMigrationProgress,
 } from '../reverseMigrationService';
@@ -896,6 +897,28 @@ describe('reverseMigrationService', () => {
       await hydrateLocalFromCloudWithRetry('test-user-id');
       expect(mockLocalDataStore.deletePlayer).toHaveBeenCalledWith('player-2');
       expect(mockLocalDataStore.deletePlayerAdjustment).toHaveBeenCalledWith('player-1', 'adj-1');
+    });
+  });
+
+  /** Review 3.5: Home refreshes after a pull that changed any entity type. */
+  describe('hydrationChangedAnything', () => {
+    const zero = {
+      players: 0, teams: 0, teamRosters: 0, seasons: 0, tournaments: 0, games: 0,
+      personnel: 0, playerAdjustments: 0, warmupPlan: false, settings: false,
+    };
+    const result = (counts: Partial<typeof zero>, removed = 0) =>
+      ({ success: true, counts: { ...zero, ...counts }, skipped: zero, removed, errors: [] });
+    it('is false when nothing changed', () => {
+      expect(hydrationChangedAnything(result({}))).toBe(false);
+    });
+    it('counts types beyond games, players and teams', () => {
+      expect(hydrationChangedAnything(result({ seasons: 1 }))).toBe(true);
+      expect(hydrationChangedAnything(result({ personnel: 2 }))).toBe(true);
+      expect(hydrationChangedAnything(result({ playerAdjustments: 1 }))).toBe(true);
+      expect(hydrationChangedAnything(result({ settings: true }))).toBe(true);
+    });
+    it('counts removals', () => {
+      expect(hydrationChangedAnything(result({}, 1))).toBe(true);
     });
   });
 

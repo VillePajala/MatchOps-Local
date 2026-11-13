@@ -78,6 +78,8 @@ import { reloadApp, claimReloadAttempt, clearReloadOnce } from '@/utils/reloadAp
 
 // Toast display duration before force reload - allows user to see the notification
 const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
+/** Longest a match waits for the launch-time cloud pull (review 3.5). */
+const LAUNCH_PULL_MAX_WAIT_MS = 8000;
 
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
@@ -185,6 +187,15 @@ export default function Home() {
   // State to track if post-login data loading has completed (migration/hydration check)
   // Using state instead of ref so changes trigger re-renders
   const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
+  // Review 3.5 - the launch-time cloud pull runs in the background, but a match opened
+  // before it finished kept the stale copy and its first autosave (seconds after
+  // mounting, before the pull even read the games) overwrote the newer version from
+  // another device - in the cloud too. So in cloud mode the MATCH waits (loading screen)
+  // until that pull has settled; Start and Home do not. Settled when the pull ends and
+  // the lists have reloaded, when the launch check ends without starting one, or after
+  // LAUNCH_PULL_MAX_WAIT_MS at most.
+  const [launchPullSettled, setLaunchPullSettled] = useState(false);
+  const launchPullRunningRef = useRef(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
   /**
@@ -990,6 +1001,9 @@ export default function Home() {
           //
           // The tradeoff: if local is empty (new device), user briefly sees empty state
           // before data loads. But this is rare and better than making ALL users wait.
+          // Mark the pull as running BEFORE releasing the post-login check, so the
+          // launch-pull gate below does not settle in between (review 3.5).
+          launchPullRunningRef.current = true;
           setPostLoginCheckComplete(true);
 
           // Refetch queries to load LOCAL data immediately
@@ -1002,7 +1016,7 @@ export default function Home() {
           // Run cloud check + hydration entirely in background (fire and forget)
           (async () => {
             try {
-              const { hasCloudData, hydrateLocalFromCloudWithRetry } = await import('@/services/reverseMigrationService');
+              const { hasCloudData, hydrateLocalFromCloudWithRetry, hydrationChangedAnything } = await import('@/services/reverseMigrationService');
               const cloudResult = await hasCloudData();
               if (cloudResult.checkFailed) {
                 logger.warn('[page.tsx] Background cloud check failed:', cloudResult.error);
@@ -1019,12 +1033,6 @@ export default function Home() {
               const hydrationResult = await hydrateLocalFromCloudWithRetry(userId);
 
               if (hydrationResult.success) {
-                // Items removed because they were deleted on another device count
-                // too: the lists on screen must drop them (review 3.3).
-                const totalImported = hydrationResult.counts.games +
-                  hydrationResult.counts.players +
-                  hydrationResult.counts.teams +
-                  (hydrationResult.removed ?? 0);
                 const totalSkipped = (hydrationResult.skipped?.games || 0) +
                   (hydrationResult.skipped?.players || 0) +
                   (hydrationResult.skipped?.teams || 0);
@@ -1038,9 +1046,13 @@ export default function Home() {
                 // Background sync should be seamless; the user doesn't need to be notified
                 // NOTE: Only call refetchQueries(), NOT setRefreshTrigger() - the latter
                 // triggers checkAppState which shows a loading screen, breaking the seamless UX
-                if (totalImported > 0) {
+                //
+                // Any changed type counts, removals included (reviews 3.3, 3.5). Awaited and
+                // including inactive queries: a match held by the launch-pull gate mounts
+                // after this and must read the pulled data, not a stale cache.
+                if (hydrationChangedAnything(hydrationResult)) {
                   logger.info('[page.tsx] Background hydration: imported data, refreshing queries silently');
-                  queryClient.refetchQueries().catch(err => {
+                  await queryClient.refetchQueries({ type: 'all' }).catch(err => {
                     logger.warn('[page.tsx] Background hydration refetch failed:', err);
                   });
                 } else if (totalSkipped > 0) {
@@ -1055,6 +1067,8 @@ export default function Home() {
               // Lowered however hydration ended. Leaving it raised on failure
               // would hide onboarding from a coach who genuinely has nothing.
               setIsHydratingFromCloud(false);
+              launchPullRunningRef.current = false;
+              setLaunchPullSettled(true);
             }
           })();
 
@@ -1658,8 +1672,22 @@ export default function Home() {
     return t('page.loading', 'Loading...');
   }, [isSigningOut, isPostLoginLoading, t]);
 
+  // Settle the launch-pull gate when the post-login check ends without starting a pull,
+  // and in any case after LAUNCH_PULL_MAX_WAIT_MS (offline, slow network, a path that
+  // never reports back). See launchPullSettled.
+  useEffect(() => {
+    if (postLoginCheckComplete && !launchPullRunningRef.current) setLaunchPullSettled(true);
+  }, [postLoginCheckComplete]);
+  useEffect(() => {
+    if (launchPullSettled) return;
+    const timer = setTimeout(() => setLaunchPullSettled(true), LAUNCH_PULL_MAX_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [launchPullSettled]);
+  const matchWaitsForLaunchPull = screen === 'home' && mode === 'cloud' && isAuthenticated && !launchPullSettled;
+
   // Compute whether to show loading screen
-  const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut;
+  const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut
+    || matchWaitsForLaunchPull;
 
   // Onboarding v2: first-sign-in setup wizard (CLOUD ONLY, owner decision).
   // Shows exactly once per account, on the same readiness terms the app screens
