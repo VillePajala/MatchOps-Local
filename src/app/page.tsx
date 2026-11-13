@@ -550,6 +550,9 @@ export default function Home() {
         getAllPersonnel(userId),
       ]);
       if (roster) setHasPlayers(roster.length > 0);
+      // Also refreshed here so a cloud pull that brought or removed games updates
+      // first-time mode and the stats rows (the scratch workspace is not a game).
+      setHasSavedGames(Object.keys(games).filter((id) => id !== 'unsaved_game').length > 0);
       // The venue book learns here, and only here: every match that exists
       // adds or refreshes an entry, and a deleted match takes nothing away.
       // Written only when something moved, then the settings query is
