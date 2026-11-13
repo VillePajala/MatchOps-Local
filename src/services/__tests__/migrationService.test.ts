@@ -11,6 +11,10 @@ import {
   getLocalDataSummary,
   isMigrationRunning,
   MIGRATION_MESSAGES,
+  cloudCopyWins,
+  anonymousDataStatus,
+  markAnonymousDataMoved,
+  releaseAnonymousDataMoved,
   type MigrationProgress,
 } from '../migrationService';
 import { LocalDataStore } from '@/datastore/LocalDataStore';
@@ -20,6 +24,16 @@ import type { AppState } from '@/types';
 
 // Mock the data stores
 jest.mock('@/datastore/LocalDataStore');
+
+// The anonymous store, for the "already moved" record (stateful like the real one).
+const mockAnonStore: Record<string, string> = {};
+jest.mock('@/utils/storageFactory', () => ({
+  createLegacyAdapter: jest.fn(async () => ({
+    getItem: jest.fn(async (k: string) => mockAnonStore[k] ?? null),
+    setItem: jest.fn(async (k: string, v: string) => { mockAnonStore[k] = v; }),
+    removeItem: jest.fn(async (k: string) => { delete mockAnonStore[k]; }),
+  })),
+}));
 jest.mock('@/datastore/SupabaseDataStore');
 
 // Mock the Supabase client for getCloudCounts (uses direct client access)
@@ -33,7 +47,7 @@ const mockSupabaseClient = {
       error: null,
     }),
   },
-  from: jest.fn(() => ({
+  from: jest.fn((_table: string) => ({
     select: jest.fn().mockImplementation(() => {
       cloudCountsCallCount++;
       // Each migration cycle has 12 calls: first 6 (pre) return 0, next 6 (post) return 1
@@ -191,13 +205,15 @@ function createMockCloudStore() {
     upsertPlayerAdjustment: jest.fn().mockResolvedValue(undefined),
     saveWarmupPlan: jest.fn().mockResolvedValue(true),
     saveSettings: jest.fn().mockResolvedValue(undefined),
-    // Verification methods
-    getPlayers: jest.fn().mockResolvedValue([mockPlayer]),
-    getTeams: jest.fn().mockResolvedValue([mockTeam]),
-    getSeasons: jest.fn().mockResolvedValue([mockSeason]),
-    getTournaments: jest.fn().mockResolvedValue([mockTournament]),
-    getGames: jest.fn().mockResolvedValue({ 'game-1': mockGame }),
-    getAllPersonnel: jest.fn().mockResolvedValue([mockPersonnel]),
+    // First read = the pre-upload check of what the cloud already has (a fresh account:
+    // nothing); later reads = verification after the upload.
+    getPlayers: jest.fn().mockResolvedValueOnce([]).mockResolvedValue([mockPlayer]),
+    getTeams: jest.fn().mockResolvedValueOnce([]).mockResolvedValue([mockTeam]),
+    getSeasons: jest.fn().mockResolvedValueOnce([]).mockResolvedValue([mockSeason]),
+    getTournaments: jest.fn().mockResolvedValueOnce([]).mockResolvedValue([mockTournament]),
+    getGames: jest.fn().mockResolvedValueOnce({}).mockResolvedValue({ 'game-1': mockGame }),
+    getAllPersonnel: jest.fn().mockResolvedValueOnce([]).mockResolvedValue([mockPersonnel]),
+    getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
     // Replace mode methods
     clearAllUserData: jest.fn().mockResolvedValue(undefined),
     // Cleanup
@@ -225,6 +241,110 @@ describe('migrationService', () => {
         return Promise.resolve({ count, error: null });
       }),
     }));
+  });
+
+  /**
+   * Review 3.2: the pre-sign-in data is offered once - not again after a sign-out, and
+   * not to a different account on the same browser (their data must not leak into it).
+   * @critical
+   */
+  describe('the pre-sign-in data is offered until an account takes it', () => {
+    beforeEach(() => { for (const k of Object.keys(mockAnonStore)) delete mockAnonStore[k]; });
+    const claim = (userId: string, state: string) =>
+      (mockAnonStore.matchops_legacy_migration_claim = JSON.stringify({ userId, state, updatedAt: 'x' }));
+
+    it('is unclaimed until moved, then taken for every account', async () => {
+      expect(await anonymousDataStatus('coach-a')).toBe('unclaimed');
+      await markAnonymousDataMoved('coach-a');
+      await markAnonymousDataMoved('coach-a');
+      expect(await anonymousDataStatus('coach-a')).toBe('taken');
+      expect(await anonymousDataStatus('coach-b')).toBe('taken');
+      expect(JSON.parse(mockAnonStore.matchops_anonymous_data_moved_for)).toEqual(['coach-a']);
+    });
+
+    it('a finished automatic copy counts as taken; an unfinished one resumes only for its own account', async () => {
+      claim('coach-a', 'done');
+      expect(await anonymousDataStatus('coach-a')).toBe('taken');
+      claim('coach-a', 'in_progress');
+      expect(await anonymousDataStatus('coach-a')).toBe('resume');
+      expect(await anonymousDataStatus('coach-b')).toBe('taken');
+    });
+
+    it('deleting the account that took it frees it again', async () => {
+      await markAnonymousDataMoved('coach-a');
+      await releaseAnonymousDataMoved('coach-b');
+      expect(await anonymousDataStatus('coach-b')).toBe('taken');
+      await releaseAnonymousDataMoved('coach-a');
+      expect(await anonymousDataStatus('coach-b')).toBe('unclaimed');
+    });
+
+    it('an unreadable record throws instead of answering', async () => {
+      const { createLegacyAdapter } = jest.requireMock('@/utils/storageFactory') as { createLegacyAdapter: jest.Mock };
+      createLegacyAdapter.mockRejectedValueOnce(new Error('IDB unavailable'));
+      await expect(anonymousDataStatus('coach-a')).rejects.toThrow('IDB unavailable');
+    });
+
+    it('a successful move records the account at once (not when Done is tapped)', async () => {
+      createMockLocalStore();
+      createMockCloudStore();
+      const result = await migrateLocalToCloud(() => {});
+      expect(result.success).toBe(true);
+      expect(JSON.parse(mockAnonStore.matchops_anonymous_data_moved_for)).toEqual(['test-user-id']);
+    });
+  });
+
+  /**
+   * Review 3.2: the wizard uploads the anonymous store, which can be months old. A newer
+   * cloud copy must never be replaced by it (the next hydration then spread the old
+   * version to every device).
+   * @critical
+   */
+  describe('never overwrites a newer cloud copy', () => {
+    it('cloudCopyWins: upload only when absent from the cloud or strictly newer locally', () => {
+      expect(cloudCopyWins(false)).toBe(false);
+      expect(cloudCopyWins(true, '2026-11-10T00:00:00Z', '2026-05-01T00:00:00Z')).toBe(true);
+      expect(cloudCopyWins(true, '2026-05-01T00:00:00Z', '2026-11-10T00:00:00Z')).toBe(false);
+      expect(cloudCopyWins(true, '2026-05-01T00:00:00Z', '2026-05-01T00:00:00Z')).toBe(true);
+      expect(cloudCopyWins(true, undefined, '2026-05-01T00:00:00Z')).toBe(true);
+      expect(cloudCopyWins(true, '2026-05-01T00:00:00Z', undefined)).toBe(true);
+    });
+
+    it('keeps a game the cloud has newer, uploads one the cloud has older; links to a kept team survive', async () => {
+      const oldLocal = { ...mockGame, teamId: 'team-1', updatedAt: '2026-05-01T00:00:00Z' };
+      const local = createMockLocalStore();
+      local.getGames.mockResolvedValue({ 'game-1': oldLocal, 'game-2': { ...oldLocal } });
+      local.getTeams.mockResolvedValue([{ ...mockTeam, updatedAt: '2026-05-01T00:00:00Z' }]);
+      const cloud = createMockCloudStore();
+      cloud.getGames.mockReset().mockResolvedValueOnce({
+        'game-1': { ...mockGame, updatedAt: '2026-11-10T00:00:00Z' }, // edited since: keep
+        'game-2': { ...mockGame, updatedAt: '2026-01-01T00:00:00Z' }, // older: replace
+      }).mockResolvedValue({ 'game-1': mockGame, 'game-2': mockGame });
+      cloud.getTeams.mockReset().mockResolvedValueOnce([{ ...mockTeam, updatedAt: '2026-11-10T00:00:00Z' }])
+        .mockResolvedValue([mockTeam]);
+
+      // The cloud already holds 2 games and 1 team before the move, and still does after.
+      const pre: Record<string, number> = { players: 0, teams: 1, seasons: 0, tournaments: 0, games: 2, personnel: 0 };
+      const post: Record<string, number> = { players: 1, teams: 1, seasons: 1, tournaments: 1, games: 2, personnel: 1 };
+      let calls = 0;
+      mockSupabaseClient.from.mockImplementation((table: string) => ({
+        select: jest.fn().mockImplementation(() => {
+          calls++;
+          return Promise.resolve({ count: (calls <= 6 ? pre : post)[table], error: null });
+        }),
+      }));
+      const result = await migrateLocalToCloud(() => {});
+
+      expect(result.errors).toEqual([]);
+      expect(result.success).toBe(true);
+      expect(result.migrated.games).toBe(1);
+      expect(result.warnings).toContain('2 item(s) already newer in the cloud were kept');
+      const uploadedGameIds = cloud.saveGame.mock.calls.map((c: unknown[]) => c[0]);
+      expect(uploadedGameIds).toEqual(['game-2']);
+      // The kept cloud team is still a valid reference: the uploaded game keeps it.
+      expect((cloud.saveGame.mock.calls[0][1] as AppState).teamId).toBe('team-1');
+      expect(cloud.upsertTeam).not.toHaveBeenCalled();
+      expect(cloud.setTeamRoster).not.toHaveBeenCalled();
+    });
   });
 
   describe('migrateLocalToCloud', () => {
@@ -573,8 +693,10 @@ describe('migrationService', () => {
       const result1 = await migrateLocalToCloud(() => {});
       expect(result1.success).toBe(false);
 
-      // Promise should be reset - second migration should start fresh
+      // Promise should be reset - second migration should start fresh. The failed run
+      // uploaded nothing, so the cloud is still empty when the retry checks it.
       mockCloud.upsertPlayer.mockResolvedValue(mockPlayer);
+      createMockCloudStore();
       const result2 = await migrateLocalToCloud(() => {});
 
       // Second migration should succeed (new migration, not waiting for old one)

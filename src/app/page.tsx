@@ -68,7 +68,6 @@ import {
 } from '@/config/backendConfig';
 // Migration services are dynamically imported at call sites to avoid pulling
 // Supabase into the bundle for local-mode users (code-splitting optimization)
-import { migrateLegacyData } from '@/services/legacyMigrationService';
 import { resetFactory } from '@/datastore/factory';
 import { importFromFilePicker } from '@/utils/importHelper';
 import { isPlayStoreContext } from '@/utils/platform';
@@ -175,8 +174,6 @@ export default function Home() {
   const [pendingPostLoginCheckState, setPendingPostLoginCheckState] = useState(() => hasPendingPostLoginCheck());
   // Ref to track if migration check has been initiated (prevents race conditions)
   const migrationCheckInitiatedRef = useRef(false);
-  // Ref to track if legacy database migration has been checked this session
-  const legacyMigrationCheckedRef = useRef(false);
   // Ref to track if checkAppState has been triggered post-login (prevents premature postLoginCheckComplete)
   const checkAppStateTriggeredRef = useRef(false);
   // Ref so we auto-enter an in-progress game only on the first state check (a
@@ -922,91 +919,10 @@ export default function Home() {
   // ============================================================================
   // LEGACY DATABASE MIGRATION (MatchOpsLocal → User-Scoped Database)
   // ============================================================================
-  // When a user signs in, check if they have data in the legacy global database
-  // that needs to be migrated to their user-scoped database.
-  // This runs once per session when userId becomes available.
-  useEffect(() => {
-    // Skip if no userId (user not signed in)
-    if (!userId) {
-      // Reset ref when user signs out to allow re-check on next sign-in
-      legacyMigrationCheckedRef.current = false;
-      return;
-    }
-
-    // Skip if auth is still loading
-    if (isAuthLoading) {
-      return;
-    }
-
-    // Skip if already checked this session
-    if (legacyMigrationCheckedRef.current) {
-      return;
-    }
-
-    // Mark as checked before async work to prevent re-runs
-    let cancelled = false;
-    legacyMigrationCheckedRef.current = true;
-
-    const checkLegacyMigration = async () => {
-      try {
-        logger.info('[page.tsx] Checking for legacy database migration', { userId });
-        const result = await migrateLegacyData(userId);
-
-        // Don't update state if effect was cleaned up (component unmounted or deps changed)
-        if (cancelled) return;
-
-        switch (result.status) {
-          case 'migrated':
-            logger.info('[page.tsx] Legacy migration completed', result);
-            // Trigger app state refresh to pick up migrated data
-            setRefreshTrigger(prev => prev + 1);
-            break;
-
-          case 'already_migrated':
-            // Silent - user already has data
-            logger.debug('[page.tsx] Legacy migration skipped - user already has data');
-            break;
-
-          case 'no_legacy_data':
-            // Silent - no legacy database
-            logger.debug('[page.tsx] Legacy migration skipped - no legacy data');
-            break;
-
-          case 'claimed_by_other_account':
-            // Silent - the anonymous data belongs to another account on this browser
-            logger.debug('[page.tsx] Legacy migration skipped - taken by another account');
-            break;
-
-          case 'migration_error':
-            // Show error toast
-            logger.error('[page.tsx] Legacy migration failed', { error: result.error });
-            showToast(
-              t('page.legacyMigrationFailed', 'Could not migrate your data. Please try again later.'),
-              'error'
-            );
-            // Reset ref to allow retry on next effect run (respect cancelled flag)
-            if (!cancelled) {
-              legacyMigrationCheckedRef.current = false;
-            }
-            break;
-        }
-      } catch (error) {
-        if (cancelled) return;
-        logger.error('[page.tsx] Legacy migration check failed', { error });
-        // Reset ref to allow retry
-        legacyMigrationCheckedRef.current = false;
-      }
-    };
-
-    checkLegacyMigration();
-
-    // Cleanup: prevent state updates if effect re-runs or component unmounts
-    return () => {
-      cancelled = true;
-    };
-    // Deps: t, showToast, setRefreshTrigger are stable (from hooks/context) and intentionally omitted
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, isAuthLoading]);
+  // Review 3.2: the automatic copy of the anonymous (pre-sign-in) data into a signed-in
+  // account (migrateLegacyData) no longer runs. It uploaded that data before the
+  // migration wizard asked, so the wizard's "Discard" could not keep it out of the
+  // account. The wizard below is now the one path, and it asks first.
 
   // Check if migration wizard should be shown (cloud mode only, post-authentication)
   // This runs once when the user first authenticates in cloud mode
@@ -1145,34 +1061,68 @@ export default function Home() {
           return;
         }
 
-        // Check if there's local data to migrate (user-scoped storage)
-        const { hasLocalDataToMigrate } = await import('@/services/migrationService');
-        const result = await hasLocalDataToMigrate(userId);
-        if (result.checkFailed) {
-          // Storage check failed - notify user and allow retry on next effect cycle
-          logger.warn('[page.tsx] Failed to check local data:', result.error);
-          showToast(
-            t('page.couldNotCheckLocalData', 'Could not check for local data. Please refresh the page to try again.'),
-            'info'
-          );
-          // Reset to allow retry on next effect run
-          migrationCheckInitiatedRef.current = false;
-          // Mark post-login check complete even on failure (user can use app)
-          setPostLoginCheckComplete(true);
-        } else if (result.hasData) {
-          // W11 guard: the gate reads the USER-scoped local store, which
-          // after a sign-out still holds this user's own already-synced
-          // local-first cache - but the wizard MIGRATES the anonymous
-          // (local-mode) store and previews ITS counts. Offer the wizard
-          // only when the store it would migrate actually has something;
-          // otherwise fall through to the cloud-hydration path.
-          const { getLocalDataSummary } = await import('@/services/migrationService');
-          const summary = await getLocalDataSummary().catch(() => null);
-          if (summary === null) {
-            // M8: a failed anonymous-store read must not silently decide
-            // anything - same treatment as the local-data check failing:
-            // tell the user, allow retry, set no flag.
-            logger.warn('[page.tsx] Migratable-count summary read failed - will retry');
+        // Review 3.2: the wizard decides what happens to the anonymous (pre-sign-in)
+        // data on this browser - nothing reaches the account without the coach's yes.
+        // Read the anonymous store directly: the old gate read the account's own store,
+        // which only had data because an automatic copy had already uploaded it.
+        {
+          const { getLocalDataSummary, anonymousDataStatus, markAnonymousDataMoved, hasLocalDataToMigrate } =
+            await import('@/services/migrationService');
+          // true = offer; false = nothing to offer; null = could not tell (retry later).
+          let offer: boolean | null = null;
+          let retryQuietly = false;
+          try {
+            const summary = await getLocalDataSummary();
+            const migratableCount = Object.values(summary).reduce(
+              (acc: number, v) => acc + (typeof v === 'number' ? v : 0), 0);
+            const status = migratableCount > 0 ? await anonymousDataStatus(userId) : 'taken';
+            if (status === 'resume') {
+              // An automatic copy for this account was interrupted on an older build.
+              offer = true;
+            } else if (status === 'taken') {
+              offer = false;
+            } else {
+              // Nobody has claimed it. Until today the automatic copy ran without leaving
+              // a record, so an account that already has data most likely received this
+              // data back then - offering it again would bring back what was deleted
+              // since. Record it as taken by this account instead (the same rule the
+              // automatic copy used; Settings -> Cloud sync can still import it).
+              const own = await hasLocalDataToMigrate(userId);
+              if (own.checkFailed) throw new Error(own.error ?? 'own-store check failed');
+              let accountHasData = own.hasData;
+              if (!accountHasData) {
+                const { hasCloudData } = await import('@/services/reverseMigrationService');
+                const cloudCheck = await hasCloudData();
+                if (cloudCheck.checkFailed) {
+                  // Same transient cases as the cloud check below: the session is not
+                  // ready yet, or a request was aborted by an account switch.
+                  const e = cloudCheck.error ?? '';
+                  if (/Not authenticated|auth|sign in|AbortError|signal is aborted/.test(e)) {
+                    retryQuietly = true;
+                    throw new Error(e);
+                  }
+                  throw new Error(e || 'cloud check failed');
+                }
+                accountHasData = cloudCheck.hasData;
+              }
+              if (accountHasData) {
+                await markAnonymousDataMoved(userId);
+                logger.info('[page.tsx] Account already has data - pre-sign-in data recorded as taken, not offered');
+              }
+              offer = !accountHasData;
+            }
+          } catch (error) {
+            logger.warn('[page.tsx] Failed to check the pre-sign-in data:', error);
+          }
+          if (offer === null && retryQuietly) {
+            logger.info('[page.tsx] Pre-sign-in data check: cloud not ready - will retry when ready');
+            migrationCheckInitiatedRef.current = false; // Allow retry
+            // Don't set postLoginCheckComplete - keep loading screen visible (as below)
+            return;
+          }
+          if (offer === null) {
+            // M8: a failed read must not silently decide anything - tell the user,
+            // allow a retry, set no flag.
             showToast(
               t('page.couldNotCheckLocalData', 'Could not check for local data. Please refresh the page to try again.'),
               'info'
@@ -1181,26 +1131,16 @@ export default function Home() {
             setPostLoginCheckComplete(true);
             return;
           }
-          const migratableCount = Object.values(summary).reduce(
-            (acc: number, v) => acc + (typeof v === 'number' ? v : 0), 0);
-          if (migratableCount > 0) {
-            logger.info('[page.tsx] Local data found, showing migration wizard');
+          if (offer) {
+            logger.info('[page.tsx] Pre-sign-in data found, showing migration wizard');
             setShowMigrationWizard(true);
             // Mark post-login check complete - wizard handles its own loading
             setPostLoginCheckComplete(true);
             return;
           }
-          // Deep-review B1: the skip branch must still run the cloud check -
-          // sync is push-only, so this hydration is the ONLY cloud->local
-          // pull. Skipping it here (and never re-setting the migration flag)
-          // left a device permanently blind to changes made elsewhere after
-          // a sign-out. Hydration is merge-safe (skips entities whose local
-          // version is newer), so falling through with a synced local cache
-          // is correct.
-          logger.info('[page.tsx] Local store hit was already-synced user data (nothing migratable) - running cloud check instead of the wizard');
-        } else {
-          // No local data - check if cloud has data that needs to be loaded
-          logger.info('[page.tsx] No local data, checking if cloud has data...');
+          // Deep-review B1: otherwise always run the cloud check - sync is push-only,
+          // so this hydration is the ONLY cloud->local pull.
+          logger.info('[page.tsx] Nothing to offer from pre-sign-in data - checking the cloud');
         }
         {
           const { hasCloudData, hydrateLocalFromCloudWithRetry, isAuthNotReadyError } = await import('@/services/reverseMigrationService');
@@ -1449,6 +1389,9 @@ export default function Home() {
   const handleMigrationComplete = useCallback(async () => {
     if (userId) {
       setMigrationCompleted(userId);
+      // Never offer this anonymous data again, even after sign-out (review 3.2).
+      const { markAnonymousDataMoved } = await import('@/services/migrationService');
+      await markAnonymousDataMoved(userId);
     }
     setShowMigrationWizard(false);
 
@@ -1517,8 +1460,11 @@ export default function Home() {
   const handleMigrationDiscard = useCallback(async () => {
     logger.info('[page.tsx] Discarding local data from migration wizard');
     try {
+      // The wizard offered the ANONYMOUS store (pre-sign-in data), so that is what is
+      // discarded. Clearing the user's own store (as before) wiped their synced cache
+      // and left the offered data in place to be offered again (review 3.2).
       const { LocalDataStore } = await import('@/datastore/LocalDataStore');
-      const localStore = new LocalDataStore(userId ?? undefined);
+      const localStore = new LocalDataStore();
       await localStore.initialize();
       await localStore.clearAllUserData();
       logger.info('[page.tsx] Local data cleared successfully');

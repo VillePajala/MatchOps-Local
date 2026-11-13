@@ -4,6 +4,17 @@
     {
       "date": "2026-11-13",
       "en": [
+        "If you used the app before creating an account, it now asks what to do with that data, and your answer is respected: \"Discard\" keeps it out of your account, and the question is not asked again after you sign out and back in.",
+        "Moving that data to the cloud no longer replaces games, players or teams you have edited since."
+      ],
+      "fi": [
+        "Jos käytit sovellusta ennen tilin luomista, se kysyy nyt, mitä niille tiedoille tehdään, ja vastaustasi noudatetaan: \"Hylkää\" pitää ne poissa tililtäsi, eikä kysymystä esitetä uudelleen, kun kirjaudut ulos ja takaisin.",
+        "Tietojen siirto pilveen ei enää korvaa otteluita, pelaajia tai joukkueita, joita olet muokannut sen jälkeen."
+      ]
+    },
+    {
+      "date": "2026-11-13",
+      "en": [
         "Games and players you delete no longer come back the next time you open the app, if you used the app before signing in. A second account on the same device no longer receives a copy of the first one's data."
       ],
       "fi": [
