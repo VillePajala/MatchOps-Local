@@ -16,7 +16,7 @@ import { clearTimerState } from '@/utils/timerStateManager';
 import { clearTimerAnchor } from '@/utils/timerAnchor';
 import logger from '@/utils/logger';
 import { withoutFairPlayCard } from '@/utils/playerStats';
-import { mergeClubRosterIntoGamePlayers } from '@/utils/gamePlayerList';
+import { mergeClubRosterIntoGamePlayers, playerIdsReferencedByGame } from '@/utils/gamePlayerList';
 
 interface UseSavedGameManagerOptions {
   savedGames: SavedGamesCollection;
@@ -193,7 +193,7 @@ export function useSavedGameManager({
       // players added unselected); the fair-play card is per-game, so a roster
       // fallback must not bring a stale award.
       setAvailablePlayers(gameData?.availablePlayers
-        ? mergeClubRosterIntoGamePlayers(gameData.availablePlayers, masterRoster || [])
+        ? mergeClubRosterIntoGamePlayers(gameData.availablePlayers, masterRoster || [], playerIdsReferencedByGame(gameData))
         : withoutFairPlayCard(masterRoster || availablePlayers));
 
       // CRITICAL: Reset undo/redo history to match loaded game state

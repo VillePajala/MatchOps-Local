@@ -4,6 +4,17 @@
     {
       "date": "2026-11-13",
       "en": [
+        "Player lists in game setup, Match details, teams and plans are now in alphabetical order (by last name), like the player list.",
+        "A player who has been removed from the player list is marked in a game's list, and dropped from it when the game didn't use them."
+      ],
+      "fi": [
+        "Ottelun luonnin, Ottelun tietojen, joukkueiden ja suunnitelmien pelaajalistat ovat nyt aakkosjärjestyksessä (sukunimen mukaan), kuten pelaajalista.",
+        "Pelaajalistasta poistettu pelaaja merkitään ottelun listaan, ja hänet poistetaan siitä, jos ottelu ei häntä käyttänyt."
+      ]
+    },
+    {
+      "date": "2026-11-13",
+      "en": [
         "Players who have left can now be archived in the club roster (player menu → Archive). They disappear from new games, teams and plans but stay in old games and stats, and can be restored any time."
       ],
       "fi": [

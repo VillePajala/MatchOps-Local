@@ -26,7 +26,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
-import { teamMemberIds } from '@/utils/gamePlayerList';
+import { teamMemberIds, sortPlayersByLastName } from '@/utils/gamePlayerList';
 
 interface UnifiedTeamModalProps {
   isOpen: boolean;
@@ -882,8 +882,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             {t('unifiedTeamModal.noPlayersSelected', 'No players selected. Click "Edit Roster" to add players.')}
                           </div>
                         ) : (
-                          masterRoster
-                            .filter(p => selectedPlayerIds.includes(p.id))
+                          sortPlayersByLastName(masterRoster.filter(p => selectedPlayerIds.includes(p.id)))
                             .map((player) => (
                               <div
                                 key={player.id}

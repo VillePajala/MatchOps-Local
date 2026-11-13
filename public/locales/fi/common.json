@@ -780,6 +780,7 @@
     "checkedOn": "Linkit tarkistettu {{date}}."
   },
   "rosterSettingsModal": {
+    "removedBadge": "poistettu pelaajalistasta",
     "archivePlayer": "Arkistoi",
     "restorePlayer": "Palauta",
     "archivedBadge": "arkistoitu",

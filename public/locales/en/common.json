@@ -909,6 +909,7 @@
     "checkedOn": "Links checked {{date}}."
   },
   "rosterSettingsModal": {
+    "removedBadge": "removed from player list",
     "archivePlayer": "Archive",
     "restorePlayer": "Restore",
     "archivedBadge": "archived",

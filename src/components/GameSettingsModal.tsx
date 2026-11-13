@@ -272,6 +272,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
+  // Players in this game's list who are no longer in the club roster (the game keeps
+  // them as its record); marked in the picker so same-named players can be told apart.
+  // Needs the club roster loaded - otherwise nobody is marked.
+  const removedPlayerIds = React.useMemo(() => {
+    if (!masterRoster || masterRoster.length === 0) return undefined;
+    const clubIds = new Set(masterRoster.map((p) => p.id));
+    const removed = availablePlayers.filter((p) => !clubIds.has(p.id)).map((p) => p.id);
+    return removed.length > 0 ? new Set(removed) : undefined;
+  }, [masterRoster, availablePlayers]);
 
   // R3: land scrolled to the wrap-up section the coach tapped.
   useEffect(() => {
@@ -1321,6 +1330,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               <div data-wrapup-section="roster" />
               <PlayerSelectionSection
                 availablePlayers={availablePlayers}
+                removedPlayerIds={removedPlayerIds}
                 selectedPlayerIds={selectedPlayerIds}
                 onSelectedPlayersChange={(playerIds: string[]) => {
                   onSelectedPlayersChange(playerIds);
