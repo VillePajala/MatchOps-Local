@@ -715,14 +715,14 @@ describe('<GameSettingsModal />', () => {
       await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
     });
 
-    it('blocks a case-insensitive duplicate name BEFORE the club write (parity with PlayerDetailsModal)', async () => {
+    it('a name already selected in this game is refused BEFORE any club write', async () => {
       const user = userEvent.setup();
       const onAddPlayerToRoster = jest.fn();
       const onSelectedPlayersChange = jest.fn();
       renderModal({ ...defaultProps, onAddPlayerToRoster, onSelectedPlayersChange });
 
       await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
-      // defaultProps.availablePlayers contains 'Player One' (id p1).
+      // 'Player One' (p1) is selected in defaultProps; matched case-insensitively and trimmed.
       await user.type(
         screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')),
         `  ${defaultProps.availablePlayers[0].name.toUpperCase()}  `,
@@ -730,10 +730,41 @@ describe('<GameSettingsModal />', () => {
       await user.click(screen.getByRole('button', { name: t('common.add') }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent(
-        t('playerDetailsModal.duplicateNameError'),
+        t('gameSettingsModal.playerAlreadyInGame', { name: 'Player One' }),
       );
       expect(onAddPlayerToRoster).not.toHaveBeenCalled();
       expect(onSelectedPlayersChange).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Owner bug (Sanni Lahti): the player existed in the club roster but not in the game's
+     * selection; typing her name created a SECOND club player. An existing player with
+     * that name is selected instead - no club write, no duplicate.
+     * @critical
+     */
+    it('a name that is in the game list but not selected selects that player - no duplicate created', async () => {
+      const user = userEvent.setup();
+      const onAddPlayerToRoster = jest.fn();
+      const onSelectedPlayersChange = jest.fn();
+      const mutate = jest.fn();
+      renderModal({
+        ...defaultProps,
+        onAddPlayerToRoster,
+        onSelectedPlayersChange,
+        updateGameDetailsMutation: {
+          mutate,
+          mutateAsync: jest.fn().mockResolvedValue({ id: 'game123' }),
+        } as unknown as typeof defaultProps.updateGameDetailsMutation,
+      });
+
+      await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
+      await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), 'player three');
+      await user.click(screen.getByRole('button', { name: t('common.add') }));
+
+      await waitFor(() => expect(onSelectedPlayersChange).toHaveBeenCalledWith(['p1', 'p2', 'p3']));
+      expect(onAddPlayerToRoster).not.toHaveBeenCalled();
+      // Persisted with the new selection, through the same path as the checkboxes.
+      expect(JSON.stringify(mutate.mock.calls)).toContain('"selectedPlayerIds":["p1","p2","p3"]');
     });
 
     it('renders no add affordance without the bridge handler', async () => {

@@ -54,6 +54,7 @@ import { getMasterRoster } from '@/utils/masterRosterManager';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { getPlan } from '@/utils/playtimePlanner/storage';
 import { getPlanLink, type PlanLink } from '@/utils/playtimePlanner/planLinks';
+import { mergeClubRosterIntoGamePlayers } from '@/utils/gamePlayerList';
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
@@ -1376,10 +1377,15 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
     setIsPlayed(gameData?.isPlayed === false ? false : true);
 
-    // Load per-game availablePlayers (with per-game goalie status)
-    // Prioritize saved game data, fall back to master roster for new games
-    // (the fair-play card is per-game: a roster fallback must not bring a stale award)
-    setAvailablePlayers(gameData?.availablePlayers || withoutFairPlayCard(gameDataManagement.masterRoster || availablePlayers));
+    // Load per-game availablePlayers (with per-game goalie status). A saved game's own
+    // list is brought up to date with the club roster, so a player added there after
+    // the game was created can be picked for it (mergeClubRosterIntoGamePlayers).
+    // A game without its own list falls back to the roster; the fair-play card is
+    // per-game, so that copy must not bring a stale award.
+    const loadedAvailablePlayers = gameData?.availablePlayers
+      ? mergeClubRosterIntoGamePlayers(gameData.availablePlayers, gameDataManagement.masterRoster || [])
+      : withoutFairPlayCard(gameDataManagement.masterRoster || availablePlayers);
+    setAvailablePlayers(loadedAvailablePlayers);
     
     // History state should be based on the new gameSessionState + other states
     // For simplicity, we'll form history state AFTER the reducer has processed the load.
@@ -1429,9 +1435,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       tacticalDrawings: gameData?.tacticalDrawings || [],
       tacticalBallPosition: gameData?.tacticalBallPosition ?? { relX: 0.5, relY: 0.5 },
       formationSnapPoints: gameData?.formationSnapPoints || [],
-      // A game without its own player list falls back to the roster; the fair-play
-      // card is per-game, so a roster copy must not bring a stale award along.
-      availablePlayers: gameData?.availablePlayers || withoutFairPlayCard(gameDataManagement.masterRoster || availablePlayers),
+      // Same list as set above, so undo starts from what the coach sees.
+      availablePlayers: loadedAvailablePlayers,
     };
     resetHistory(newHistoryState);
     logger.log('[LOAD GAME STATE] Finished dispatching. Reducer will update gameSessionState.');

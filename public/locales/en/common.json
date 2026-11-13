@@ -1118,6 +1118,7 @@
     "friendlyHint": "Kept out of competitive stats"
   },
   "gameSettingsModal": {
+    "playerAlreadyInGame": "{{name}} is already in this game.",
     "formationApply": "Place players in a formation…",
     "formationLabel": "Formation",
     "reapplyPlan": {
@@ -1674,6 +1675,7 @@
     "noTeamsNudge": "Teams let you reuse a roster and link games to a competition, so your stats add up by team and competition."
   },
   "unifiedTeamModal": {
+    "addPlayers": "Add players",
     "createTitle": "Create Team",
     "editTitle": "Edit Team",
     "detailsTab": "Details",

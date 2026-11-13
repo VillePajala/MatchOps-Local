@@ -261,11 +261,10 @@ export const duplicateTeam = async (teamId: string, userId?: string): Promise<Te
     notes: originalTeam.notes,
   }, userId);
 
-  // Duplicate roster with new player IDs (per plan: globally unique IDs)
-  const newRoster: TeamPlayer[] = originalRoster.map((player, index) => ({
-    ...player,
-    id: `player_${Date.now()}_${Math.random().toString(36).slice(2, 11)}_${index}`, // More unique ID with index
-  }));
+  // Same players: a team roster entry's id IS the club player's id (the cloud keys
+  // team members by team + player, so one player can be on several teams). New ids
+  // here broke every id match - the copy showed 0 players and saving emptied it.
+  const newRoster: TeamPlayer[] = originalRoster.map((player) => ({ ...player }));
 
   await setTeamRoster(newTeam.id, newRoster, userId);
   return newTeam;

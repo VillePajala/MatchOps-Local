@@ -101,6 +101,7 @@ import PlanBalanceView from '@/components/PlanBalanceView';
 import type { PlaytimePlan, PlanSub, PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 import type { Player } from '@/types';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
+import { teamMemberIds } from '@/utils/gamePlayerList';
 
 interface PlaytimePlannerModalProps {
   isOpen: boolean;
@@ -322,10 +323,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         // failed/slow load never leaves teamId stamped on a stale roster (which would
         // break the "lossless" invariant later prefill relies on).
         setTeamId(nextTeamId);
-        const names = new Set(teamRoster.map((tp) => tp.name.trim().toLowerCase()));
-        setSelectedIds(
-          new Set(roster.filter((p) => names.has(p.name.trim().toLowerCase())).map((p) => p.id)),
-        );
+        setSelectedIds(new Set(teamMemberIds(teamRoster, roster)));
         // Apply durations only after the roster load succeeds, so a failure never
         // leaves a half-applied state (durations changed, selection stale). Always
         // set them from the selected team's competition, or fall back to the planner
@@ -1278,9 +1276,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       try {
         const teamRoster = await getTeamRoster(nextTeamId, user?.id);
         if (teamSelectRef.current !== requestId) return;
-        const names = new Set(teamRoster.map((tp) => tp.name.trim().toLowerCase()));
-        const matched = roster.filter((p) => names.has(p.name.trim().toLowerCase()));
-        const matchedIds = new Set(matched.map((p) => p.id));
+        const matchedIds = new Set(teamMemberIds(teamRoster, roster));
+        const matched = roster.filter((p) => matchedIds.has(p.id));
         const current = new Set(activePlan.players.map((p) => p.id));
         const additions = matched
           .filter((p) => !current.has(p.id))

@@ -26,6 +26,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
+import { teamMemberIds } from '@/utils/gamePlayerList';
 
 interface UnifiedTeamModalProps {
   isOpen: boolean;
@@ -150,15 +151,11 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     }
   }, [isOpen, mode, team]);
 
-  // Pre-select existing roster players when in edit mode
-  // Match by ID since team roster stores the same player IDs as master roster
+  // Pre-select existing roster players when in edit mode: by id, with a name
+  // fallback for old team rosters whose ids never matched the club roster (teamMemberIds)
   React.useLayoutEffect(() => {
     if (mode === 'edit' && existingRoster.length > 0 && masterRoster.length > 0) {
-      const teamPlayerIds = new Set(existingRoster.map(p => p.id));
-      const matchedMasterIds = masterRoster
-        .filter(p => teamPlayerIds.has(p.id))
-        .map(p => p.id);
-      setSelectedPlayerIds(matchedMasterIds);
+      setSelectedPlayerIds(teamMemberIds(existingRoster, masterRoster));
     }
   }, [mode, existingRoster, masterRoster]);
 
@@ -899,6 +896,16 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             ))
                         )}
                       </div>
+                      {/* The add path, visible without first finding "Edit Roster": a player
+                          added to the club roster is picked into the team from here. */}
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingRoster(true)}
+                        data-testid="team-add-players"
+                        className={`${secondaryButtonStyle} w-full mt-3 py-2 text-sm`}
+                      >
+                        + {t('unifiedTeamModal.addPlayers', 'Add players')}
+                      </button>
                     </>
                   ) : (
                     <>

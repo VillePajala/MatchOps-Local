@@ -1529,6 +1529,7 @@
     "noTeamsNudge": "Joukkueiden avulla voit käyttää samaa kokoonpanoa uudelleen ja liittää ottelut kilpailuun, jolloin tilastosi kertyvät joukkue- ja kilpailutasolla."
   },
   "unifiedTeamModal": {
+    "addPlayers": "Lisää pelaajia",
     "createTitle": "Luo joukkue",
     "editTitle": "Muokkaa joukkuetta",
     "detailsTab": "Tiedot",
@@ -1674,6 +1675,7 @@
     "roster": "Kokoonpano"
   },
   "gameSettingsModal": {
+    "playerAlreadyInGame": "{{name}} on jo tässä ottelussa.",
     "formationApply": "Aseta pelaajat muodostelmaan…",
     "formationLabel": "Muodostelma",
     "reapplyPlan": {
