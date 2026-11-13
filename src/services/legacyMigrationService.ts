@@ -140,10 +140,20 @@ async function readClaim(adapter: StorageAdapter): Promise<LegacyMigrationClaim 
  */
 async function writeClaim(adapter: StorageAdapter, userId: string, state: LegacyMigrationClaim['state']): Promise<void> {
   const claim: LegacyMigrationClaim = { userId, state, updatedAt: new Date().toISOString() };
-  try {
-    await adapter.setItem(LEGACY_MIGRATION_CLAIM_KEY, JSON.stringify(claim));
-  } catch (error) {
-    logger.warn('[LegacyMigration] Could not record the claim (retried next launch)', { state, error });
+  // A few tries: a 'done' that never lands leaves the claim 'in_progress', and the next
+  // launch would resume - copying back anything deleted meanwhile, once. Mobile IndexedDB
+  // writes fail transiently, so retrying makes that rare.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await adapter.setItem(LEGACY_MIGRATION_CLAIM_KEY, JSON.stringify(claim));
+      return;
+    } catch (error) {
+      if (attempt === 3) {
+        logger.error('[LegacyMigration] Could not record the claim after 3 tries', { state, error });
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+    }
   }
 }
 
@@ -274,6 +284,19 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
     return { status: 'migration_error', error: 'Invalid user ID' };
   }
 
+  // One run at a time on this browser, across tabs too: the claim is read, then written,
+  // and two overlapping runs (two tabs, a quick account switch) could otherwise both see
+  // "no claim" and both copy. Web Locks are atomic; without them, run directly.
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
+  if (locks?.request) {
+    return locks.request(LEGACY_MIGRATION_LOCK, () => migrateLegacyDataUnlocked(userId));
+  }
+  return migrateLegacyDataUnlocked(userId);
+}
+
+const LEGACY_MIGRATION_LOCK = 'matchops-legacy-migration';
+
+async function migrateLegacyDataUnlocked(userId: string): Promise<LegacyMigrationResult> {
   logger.info('[LegacyMigration] Starting migration check', { userId });
 
   try {

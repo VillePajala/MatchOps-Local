@@ -487,6 +487,35 @@ describe('legacyMigrationService', () => {
       expect(otherStore.upsertPlayer).not.toHaveBeenCalled();
     });
 
+    it('runs inside the browser lock, so two overlapping runs cannot both copy', async () => {
+      const request = jest.fn((_name: string, cb: () => Promise<unknown>) => cb());
+      Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } });
+      try {
+        mockLegacyDatabaseExists.mockResolvedValue(true);
+        mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter(legacyData()));
+        mockGetDataStore.mockResolvedValue(createMockDataStore([]));
+        expect((await migrateLegacyData(TEST_USER_ID)).status).toBe('migrated');
+        expect(request).toHaveBeenCalledWith('matchops-legacy-migration', expect.any(Function));
+      } finally {
+        delete (navigator as unknown as { locks?: unknown }).locks;
+      }
+    });
+
+    it('a transient claim-write failure is retried, so the claim still ends up done', async () => {
+      const data = legacyData();
+      const adapter = createMockLegacyAdapter(data);
+      const realSet = adapter.setItem as jest.Mock;
+      const stored = realSet.getMockImplementation()!;
+      let failures = 1;
+      realSet.mockImplementation((key: string, value: string) => (failures-- > 0 ? Promise.reject(new Error('AbortError')) : stored(key, value)));
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(adapter);
+      mockGetDataStore.mockResolvedValue(createMockDataStore([]));
+
+      expect((await migrateLegacyData(TEST_USER_ID)).status).toBe('migrated');
+      expect(claimIn(data).state).toBe('done');
+    });
+
     it('a failed claim write after a successful copy still reports "migrated"', async () => {
       const data = legacyData();
       const adapter = createMockLegacyAdapter(data);
@@ -537,6 +566,16 @@ describe('legacyMigrationService', () => {
   });
 
   describe('isLegacyMigrationNeeded', () => {
+    it('is false once any account has taken the anonymous data', async () => {
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        soccerMasterRoster: JSON.stringify([mockPlayer]),
+        [LEGACY_MIGRATION_CLAIM_KEY]: JSON.stringify({ userId: 'someone-else', state: 'done', updatedAt: 'x' }),
+      }));
+      mockGetDataStore.mockResolvedValue(createMockDataStore([]));
+      expect(await isLegacyMigrationNeeded(TEST_USER_ID)).toBe(false);
+    });
+
     it('should return false when legacy database does not exist', async () => {
       mockLegacyDatabaseExists.mockResolvedValue(false);
 
