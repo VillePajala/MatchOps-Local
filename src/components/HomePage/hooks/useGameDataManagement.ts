@@ -43,6 +43,7 @@ import type { Personnel } from '@/types/personnel';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import logger from '@/utils/logger';
 import { withoutFairPlayCard } from '@/utils/playerStats';
+import { mergeClubRosterIntoGamePlayers } from '@/utils/gamePlayerList';
 
 /**
  * Parameters for useGameDataManagement hook
@@ -186,48 +187,11 @@ export function useGameDataManagement(
         // Active game: merge player details while preserving per-game goalie status
         // and the per-game fair-play card
         logger.log('[TanStack Query] Merging master roster updates (preserving per-game goalie and fair-play status)');
-        setAvailablePlayers((currentPlayers: Player[]) => {
-          // Build lookup maps of current per-game goalie assignments and the game's
-          // own fair-play award
-          const perGameGoalieMap = new Map<string, boolean>();
-          const perGamePlayerIds = new Set<string>();
-          // The card is unique per game (the award handler clears the previous holder),
-          // so the first holder is THE holder.
-          const perGameFairPlayHolder = currentPlayers.find((p: Player) => p.receivedFairPlayCard)?.id;
-          currentPlayers.forEach((p: Player) => {
-            perGamePlayerIds.add(p.id);
-            if (p.isGoalie !== undefined) {
-              perGameGoalieMap.set(p.id, p.isGoalie);
-            }
-          });
-
-          // Merge: use master roster data but preserve per-game isGoalie and the
-          // per-game fair-play card. The roster's receivedFairPlayCard is never taken:
-          // the card is awarded per game, and older app versions also wrote it to the
-          // roster, which leaked the award into whichever game was open.
-          const merged = masterRosterQueryResultData.map(masterPlayer => {
-            const hasPerGameGoalie = perGameGoalieMap.has(masterPlayer.id);
-            const receivedFairPlayCard = perGamePlayerIds.has(masterPlayer.id)
-              ? masterPlayer.id === perGameFairPlayHolder
-              : false;
-            // If player exists in current game with explicit goalie status, preserve it
-            if (hasPerGameGoalie) {
-              return { ...masterPlayer, isGoalie: perGameGoalieMap.get(masterPlayer.id), receivedFairPlayCard };
-            }
-            // New player from master roster - use master's isGoalie
-            return { ...masterPlayer, receivedFairPlayCard };
-          });
-          // Deep-review I3: PRESERVE per-game players who are no longer in
-          // the club roster. The per-game availablePlayers is this game's
-          // HISTORICAL record - mapping only over the master roster silently
-          // deleted departed players from old games on load (breaking stats
-          // name resolution and writing selectedPlayerIds ⊄ availablePlayers
-          // back to storage). Live deletions still prune field/selection via
-          // rosterRemovalDiff; the roster snapshot keeps the name.
-          const masterIds = new Set(masterRosterQueryResultData.map(p => p.id));
-          const departed = currentPlayers.filter((p: Player) => !masterIds.has(p.id));
-          return departed.length > 0 ? [...merged, ...departed] : merged;
-        });
+        // Same merge a game gets when it is opened (mergeClubRosterIntoGamePlayers):
+        // current club details, the game's own goalie and fair-play state, new club
+        // players added unselected, departed players kept as the game's record.
+        setAvailablePlayers((currentPlayers: Player[]) =>
+          mergeClubRosterIntoGamePlayers(currentPlayers, masterRosterQueryResultData));
       }
     }
   }, [

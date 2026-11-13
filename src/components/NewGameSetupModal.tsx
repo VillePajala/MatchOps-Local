@@ -33,6 +33,7 @@ import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { HiOutlineMapPin } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
+import { teamMemberIds } from '@/utils/gamePlayerList';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -822,15 +823,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setAvailablePlayersForSetup(masterRoster);
 
         if (teamRoster && teamRoster.length > 0) {
-          // Create a set of team player names for comparison (since IDs differ)
-          const teamPlayerNames = new Set(
-            teamRoster.map((p: Player) => p.name.toLowerCase().trim())
-          );
-
-          // Select master roster players that match team roster names
-          const selectedIds = masterRoster
-            .filter((p: Player) => teamPlayerNames.has(p.name.toLowerCase().trim()))
-            .map((p: Player) => p.id);
+          // Pre-select the team's players: by id, with a name fallback for old rosters
+          const selectedIds = teamMemberIds(teamRoster, masterRoster);
 
           setSelectedPlayerIds(selectedIds);
         } else {

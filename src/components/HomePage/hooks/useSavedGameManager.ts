@@ -16,6 +16,7 @@ import { clearTimerState } from '@/utils/timerStateManager';
 import { clearTimerAnchor } from '@/utils/timerAnchor';
 import logger from '@/utils/logger';
 import { withoutFairPlayCard } from '@/utils/playerStats';
+import { mergeClubRosterIntoGamePlayers } from '@/utils/gamePlayerList';
 
 interface UseSavedGameManagerOptions {
   savedGames: SavedGamesCollection;
@@ -188,8 +189,12 @@ export function useSavedGameManager({
       setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
       setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
       setIsPlayed(gameData?.isPlayed === false ? false : true);
-      // The fair-play card is per-game: a roster fallback must not bring a stale award.
-      setAvailablePlayers(gameData?.availablePlayers || withoutFairPlayCard(masterRoster || availablePlayers));
+      // A saved game's list is brought up to date with the club roster (new club
+      // players added unselected); the fair-play card is per-game, so a roster
+      // fallback must not bring a stale award.
+      setAvailablePlayers(gameData?.availablePlayers
+        ? mergeClubRosterIntoGamePlayers(gameData.availablePlayers, masterRoster || [])
+        : withoutFairPlayCard(masterRoster || availablePlayers));
 
       // CRITICAL: Reset undo/redo history to match loaded game state
       // Without this, pressing Undo after loading will revert to the previous game's state

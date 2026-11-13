@@ -33,6 +33,7 @@ import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { HiOutlineMapPin } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
+import { teamMemberIds } from '@/utils/gamePlayerList';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -221,6 +222,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   selectedPersonnelIds,
   onSelectedPlayersChange,
   onAddPlayerToRoster,
+  masterRoster,
   initialScrollSection,
   canReapplyPlan = false,
   onReapplyPlan,
@@ -265,7 +267,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   updateGameDetailsMutation,
   seasons,
   tournaments,
-  // masterRoster removed - was only used in sync useEffect which is now removed
   teams,
   onTeamIdChange,
 }) => {
@@ -1148,15 +1149,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           }
 
           if (teamRoster && teamRoster.length > 0) {
-            // Create a set of team player names for comparison (since IDs differ)
-            const teamPlayerNames = new Set(
-              teamRoster.map((p: Player) => p.name.toLowerCase().trim())
-            );
-
-            // Select master roster players that match team roster names
-            const selectedIds = availablePlayers
-              .filter((p: Player) => teamPlayerNames.has(p.name.toLowerCase().trim()))
-              .map((p: Player) => p.id);
+            // Pre-select the team's players: by id, with a name fallback for old rosters
+            const selectedIds = teamMemberIds(teamRoster, availablePlayers);
 
             onSelectedPlayersChange(selectedIds);
           } else {
@@ -1342,28 +1336,44 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 onAddPlayer={
                   onAddPlayerToRoster
                     ? async (name: string, nickname?: string) => {
-                        /* Roster bridge (3.2): duplicate gate first (same
-                           case-insensitive rule as PlayerDetailsModal - the
-                           two add-player paths must not diverge), then the
-                           club write; on success select the new player into
-                           THIS game through the same persist path the
-                           checkboxes use. */
-                        const isDuplicate = availablePlayers.some(
-                          (p) => p.name.trim().toLowerCase() === name.toLowerCase(),
+                        /* Roster bridge (3.2): name check first (same
+                           case-insensitive rule as PlayerDetailsModal), then the
+                           club write; on success select the player into THIS game
+                           through the same persist path the checkboxes use. */
+                        const selectIntoGame = (playerId: string) => {
+                          const nextIds = [...selectedPlayerIds, playerId];
+                          onSelectedPlayersChange(nextIds);
+                          mutateGameDetails(
+                            { selectedPlayerIds: nextIds, gameDate },
+                            { source: 'stateSync', expectedState: { selectedPlayerIds: nextIds, gameDate } }
+                          );
+                        };
+                        // The game's list includes every club player (new ones are merged in,
+                        // unselected - mergeClubRosterIntoGamePlayers). A name that is already
+                        // there is that existing player: select her instead of creating a
+                        // duplicate club player with the same name. Only CURRENT club players
+                        // count: the list also keeps players who left the club (the game's
+                        // record), and a returning player must be created in the club roster
+                        // again, not resurrected only in this game.
+                        const clubIds = masterRoster && masterRoster.length > 0
+                          ? new Set(masterRoster.map((p) => p.id))
+                          : null;
+                        const existing = availablePlayers.find(
+                          (p) => p.name.trim().toLowerCase() === name.trim().toLowerCase()
+                            && (!clubIds || clubIds.has(p.id)),
                         );
-                        if (isDuplicate) {
-                          return t('playerDetailsModal.duplicateNameError', 'A player with this name already exists');
+                        if (existing) {
+                          if (selectedPlayerIds.includes(existing.id)) {
+                            return t('gameSettingsModal.playerAlreadyInGame', '{{name}} is already in this game.', { name: existing.name });
+                          }
+                          selectIntoGame(existing.id);
+                          return true as const;
                         }
                         const saved = await onAddPlayerToRoster(name, nickname);
                         if (!saved) {
                           return t('gameSettingsModal.addToClubRosterFailed', 'Adding the player failed. Please try again.');
                         }
-                        const nextIds = [...selectedPlayerIds, saved.id];
-                        onSelectedPlayersChange(nextIds);
-                        mutateGameDetails(
-                          { selectedPlayerIds: nextIds, gameDate },
-                          { source: 'stateSync', expectedState: { selectedPlayerIds: nextIds, gameDate } }
-                        );
+                        selectIntoGame(saved.id);
                         return true as const;
                       }
                     : undefined

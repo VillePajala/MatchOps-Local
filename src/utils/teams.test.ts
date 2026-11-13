@@ -305,6 +305,25 @@ describe('Team metadata fields', () => {
   });
 
   /**
+   * A team roster entry's id is the club player's id; a duplicated team must keep them,
+   * or every id match fails (the copy showed 0 players and saving emptied it).
+   * @critical
+   */
+  it('duplicating a team keeps the same player ids', async () => {
+    const original = await addTeam({ name: 'Roster Team' });
+    await setTeamRoster(original.id, [
+      { id: 'player_a', name: 'Aino', isGoalie: false },
+      { id: 'player_b', name: 'Eetu', isGoalie: true },
+    ]);
+
+    const duplicate = await duplicateTeam(original.id);
+    const copied = await getTeamRoster(duplicate!.id);
+
+    expect(copied.map((p) => p.id)).toEqual(['player_a', 'player_b']);
+    expect(copied[1].isGoalie).toBe(true);
+  });
+
+  /**
    * Tests handling of undefined ageGroup and notes
    * @edge-case
    */
