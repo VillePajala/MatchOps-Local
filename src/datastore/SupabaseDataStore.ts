@@ -432,12 +432,6 @@ const checkOnline = (): void => {
   }
 };
 
-/**
- * SupabaseDataStore - Cloud backend implementation.
- *
- * IMPORTANT: PR #3 implements core CRUD methods (players, teams, seasons,
- * tournaments, personnel, settings). Game methods are added in PR #4.
- */
 /** Ids per cloud table, each list complete (see getAllEntityIds). */
 export interface CloudEntityIds {
   players: Set<string>;
@@ -449,6 +443,12 @@ export interface CloudEntityIds {
   playerAdjustments: Set<string>;
 }
 
+/**
+ * SupabaseDataStore - Cloud backend implementation.
+ *
+ * IMPORTANT: PR #3 implements core CRUD methods (players, teams, seasons,
+ * tournaments, personnel, settings). Game methods are added in PR #4.
+ */
 export class SupabaseDataStore implements DataStore {
   private supabase: SupabaseClient<Database> | null = null;
   private initialized = false;
@@ -4176,7 +4176,8 @@ export class SupabaseDataStore implements DataStore {
         return throwIfTransient(
           await this.getClient()
             .from(table)
-            .select('id', { count: 'exact' })
+            // The exact count is only needed once (first page).
+            .select('id', from === 0 ? { count: 'exact' } : undefined)
             .order('id', { ascending: true })
             .range(from, from + PAGE - 1)
         );

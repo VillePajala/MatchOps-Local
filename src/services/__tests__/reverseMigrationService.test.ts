@@ -789,6 +789,21 @@ describe('reverseMigrationService', () => {
       expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
     });
 
+    it('a damaged record is replaced, not a permanent stop', async () => {
+      mockUserStore.matchops_cloud_ids_seen = '{not json';
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.deleteGame).not.toHaveBeenCalled();
+      expect(JSON.parse(mockUserStore.matchops_cloud_ids_seen).games).toEqual(['game-1']);
+    });
+
+    it('settings edited while the pull runs are not overwritten by the cloud copy', async () => {
+      (mockSupabaseDataStore.getSettings as jest.Mock).mockResolvedValue({ language: 'en' });
+      // Read 1 (before the pull): nothing queued. Read 2 (before settings are written): an edit.
+      mockQueueReads.push([], [{ entityType: 'settings', entityId: 'app' }]);
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(mockLocalDataStore.saveSettings).not.toHaveBeenCalled();
+    });
+
     it('the first run only records what the cloud has', async () => {
       delete mockUserStore.matchops_cloud_ids_seen;
       await hydrateLocalFromCloudWithRetry('test-user-id');

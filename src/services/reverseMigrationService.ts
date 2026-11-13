@@ -1546,19 +1546,6 @@ function withRestorableAgeGroup<T extends { ageGroup?: string; name?: string }>(
   return { ...entity, ageGroup: undefined };
 }
 
-/**
- * Hydrate local storage from cloud data.
- *
- * This is used when a user signs in to cloud mode but has no local data.
- * Unlike migrateCloudToLocal, this function:
- * - Does NOT switch modes (stays in cloud mode)
- * - Does NOT delete cloud data
- * - Is designed for initial seeding of local storage in local-first sync
- *
- * @param userId - The authenticated user's ID (for user-scoped storage)
- * @param onProgress - Optional callback for progress updates
- * @returns HydrationResult with counts of imported entities
- */
 /** Ids with a change still waiting in this account's sync queue, per entity type. */
 type QueuedIds = Map<string, Set<string>>;
 
@@ -1610,7 +1597,15 @@ async function readSeenCloudIds(userId: string): Promise<SeenIds> {
   const { getUserStorageAdapter } = await import('@/utils/storage');
   const raw = await (await getUserStorageAdapter(userId)).getItem(CLOUD_IDS_SEEN_KEY);
   if (!raw) return {};
-  const parsed = JSON.parse(raw) as Partial<Record<EntityKind, unknown>>;
+  let parsed: Partial<Record<EntityKind, unknown>>;
+  try {
+    parsed = JSON.parse(raw) as Partial<Record<EntityKind, unknown>>;
+  } catch {
+    // A damaged record is treated as a first run: nothing is removed this launch, and a
+    // valid record replaces it (otherwise every launch would fail the same way).
+    logger.warn('[ReverseMigrationService] The cloud-ids record is unreadable - starting over');
+    return {};
+  }
   const seen: SeenIds = {};
   for (const [kind, ids] of Object.entries(parsed)) {
     if (Array.isArray(ids)) seen[kind as EntityKind] = new Set(ids.filter((x): x is string => typeof x === 'string'));
@@ -1757,6 +1752,19 @@ async function removeItemsDeletedElsewhere(
   return removed;
 }
 
+/**
+ * Hydrate local storage from cloud data.
+ *
+ * This is used when a user signs in to cloud mode but has no local data.
+ * Unlike migrateCloudToLocal, this function:
+ * - Does NOT switch modes (stays in cloud mode)
+ * - Does NOT delete cloud data
+ * - Is designed for initial seeding of local storage in local-first sync
+ *
+ * @param userId - The authenticated user's ID (for user-scoped storage)
+ * @param onProgress - Optional callback for progress updates
+ * @returns HydrationResult with counts of imported entities
+ */
 export async function hydrateLocalFromCloud(
   userId: string,
   onProgress?: (message: string, progress: number) => void
@@ -2137,7 +2145,10 @@ export async function hydrateLocalFromCloud(
     safeProgress('Saving adjustments...', 92);
 
     // Save warmup plan
-    if (cloudData.warmupPlan && !anyQueued(queued, 'warmupPlan')) {
+    // Settings and the warmup plan have no timestamp check, and the coach may edit them
+    // while this pull runs: re-read the queue right before writing them.
+    const queuedNow = (await readQueuedIds(userId)) ?? queued;
+    if (cloudData.warmupPlan && !anyQueued(queued, 'warmupPlan') && !anyQueued(queuedNow, 'warmupPlan')) {
       try {
         await localStore.saveWarmupPlan(cloudData.warmupPlan);
         counts.warmupPlan = true;
@@ -2149,7 +2160,7 @@ export async function hydrateLocalFromCloud(
     }
 
     // Save settings
-    if (cloudData.settings && !anyQueued(queued, 'settings')) {
+    if (cloudData.settings && !anyQueued(queued, 'settings') && !anyQueued(queuedNow, 'settings')) {
       try {
         await localStore.saveSettings(cloudData.settings);
         counts.settings = true;
