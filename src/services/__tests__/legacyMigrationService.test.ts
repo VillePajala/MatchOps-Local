@@ -9,6 +9,8 @@ import {
   migrateLegacyData,
   isLegacyMigrationNeeded,
   deleteLegacyDatabase,
+  LEGACY_MIGRATION_CLAIM_KEY,
+  releaseLegacyMigrationClaim,
 } from '../legacyMigrationService';
 import { legacyDatabaseExists } from '@/datastore/userDatabase';
 import { createLegacyAdapter } from '@/utils/storageFactory';
@@ -91,7 +93,8 @@ const mockGame = {
 function createMockLegacyAdapter(data: Record<string, string | null>): StorageAdapter {
   return {
     getItem: jest.fn().mockImplementation((key: string) => Promise.resolve(data[key] ?? null)),
-    setItem: jest.fn().mockResolvedValue(undefined),
+    // Stateful like the real store, so the claim persists between runs.
+    setItem: jest.fn().mockImplementation((key: string, value: string) => { data[key] = value; return Promise.resolve(); }),
     removeItem: jest.fn().mockResolvedValue(undefined),
     clear: jest.fn().mockResolvedValue(undefined),
     keys: jest.fn().mockResolvedValue(Object.keys(data)),
@@ -223,6 +226,8 @@ describe('legacyMigrationService', () => {
     it('resumes a partial migration — completes missing entities without re-writing existing ones', async () => {
       mockLegacyDatabaseExists.mockResolvedValue(true);
       mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        // An interrupted first copy for this account (claim in progress) resumes.
+        [LEGACY_MIGRATION_CLAIM_KEY]: JSON.stringify({ userId: TEST_USER_ID, state: 'in_progress', updatedAt: '2026-01-01T00:00:00Z' }),
         soccerMasterRoster: JSON.stringify([mockPlayer]),
         soccerSeasons: JSON.stringify([mockSeason]),
         savedSoccerGames: JSON.stringify({ 'game-1': mockGame }),
@@ -253,6 +258,8 @@ describe('legacyMigrationService', () => {
     it('does not overwrite an entity that already exists in the user database', async () => {
       mockLegacyDatabaseExists.mockResolvedValue(true);
       mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        // An interrupted first copy for this account (claim in progress) resumes.
+        [LEGACY_MIGRATION_CLAIM_KEY]: JSON.stringify({ userId: TEST_USER_ID, state: 'in_progress', updatedAt: '2026-01-01T00:00:00Z' }),
         soccerMasterRoster: JSON.stringify([mockPlayer]),
         soccerSeasons: JSON.stringify([mockSeason]), // new → should migrate
         savedSoccerGames: JSON.stringify({ 'game-1': mockGame }), // already present → skip
@@ -280,6 +287,8 @@ describe('legacyMigrationService', () => {
     it('does not migrate settings on a resume run', async () => {
       mockLegacyDatabaseExists.mockResolvedValue(true);
       mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        // An interrupted first copy for this account (claim in progress) resumes.
+        [LEGACY_MIGRATION_CLAIM_KEY]: JSON.stringify({ userId: TEST_USER_ID, state: 'in_progress', updatedAt: '2026-01-01T00:00:00Z' }),
         soccerMasterRoster: JSON.stringify([mockPlayer]),
         soccerSeasons: JSON.stringify([mockSeason]), // new → forces a 'migrated' run
         soccerAppSettings: JSON.stringify({ currentGameId: 'whatever' }),
@@ -305,6 +314,8 @@ describe('legacyMigrationService', () => {
       const adjB = { id: 'adj-2', playerId: 'player-1', value: 2 };
       mockLegacyDatabaseExists.mockResolvedValue(true);
       mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        // An interrupted first copy for this account (claim in progress) resumes.
+        [LEGACY_MIGRATION_CLAIM_KEY]: JSON.stringify({ userId: TEST_USER_ID, state: 'in_progress', updatedAt: '2026-01-01T00:00:00Z' }),
         soccerMasterRoster: JSON.stringify([mockPlayer]),
         soccerPlayerAdjustments: JSON.stringify({ 'player-1': [adjA, adjB] }),
       }));
@@ -424,7 +435,147 @@ describe('legacyMigrationService', () => {
     });
   });
 
+  /**
+   * Review 3.1: the anonymous data is copied ONCE, into the first account that takes it.
+   * Before, every launch copied "whatever the account was missing": deleted items came
+   * back, an emptied account got everything again, and a second account received a copy.
+   * @critical
+   */
+  describe('runs once per browser - the claim', () => {
+    const legacyData = () => ({
+      soccerMasterRoster: JSON.stringify([mockPlayer]),
+      savedSoccerGames: JSON.stringify({ 'game-1': mockGame }),
+    } as Record<string, string | null>);
+    const claimIn = (data: Record<string, string | null>) => JSON.parse(data[LEGACY_MIGRATION_CLAIM_KEY] as string);
+
+    it('a first copy into an empty account records the claim as done', async () => {
+      const data = legacyData();
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter(data));
+      mockGetDataStore.mockResolvedValue(createMockDataStore([]));
+
+      expect((await migrateLegacyData(TEST_USER_ID)).status).toBe('migrated');
+      expect(claimIn(data)).toEqual(expect.objectContaining({ userId: TEST_USER_ID, state: 'done' }));
+    });
+
+    it('a deleted item does not come back on the next launch', async () => {
+      const data = legacyData();
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter(data));
+      mockGetDataStore.mockResolvedValue(createMockDataStore([]));
+      await migrateLegacyData(TEST_USER_ID);
+
+      // The coach deleted game-1 (and the player); next launch sees them "missing".
+      const storeAfterDelete = createMockDataStore([]);
+      mockGetDataStore.mockResolvedValue(storeAfterDelete);
+      expect((await migrateLegacyData(TEST_USER_ID)).status).toBe('already_migrated');
+      expect(storeAfterDelete.saveGame).not.toHaveBeenCalled();
+      expect(storeAfterDelete.upsertPlayer).not.toHaveBeenCalled();
+    });
+
+    it('a second account on the same browser gets nothing', async () => {
+      const data = legacyData();
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter(data));
+      mockGetDataStore.mockResolvedValue(createMockDataStore([]));
+      await migrateLegacyData(TEST_USER_ID);
+
+      const otherStore = createMockDataStore([]);
+      mockGetDataStore.mockResolvedValue(otherStore);
+      expect((await migrateLegacyData('another-coach')).status).toBe('claimed_by_other_account');
+      expect(otherStore.saveGame).not.toHaveBeenCalled();
+      expect(otherStore.upsertPlayer).not.toHaveBeenCalled();
+    });
+
+    it('runs inside the browser lock, so two overlapping runs cannot both copy', async () => {
+      const request = jest.fn((_name: string, cb: () => Promise<unknown>) => cb());
+      Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } });
+      try {
+        mockLegacyDatabaseExists.mockResolvedValue(true);
+        mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter(legacyData()));
+        mockGetDataStore.mockResolvedValue(createMockDataStore([]));
+        expect((await migrateLegacyData(TEST_USER_ID)).status).toBe('migrated');
+        expect(request).toHaveBeenCalledWith('matchops-legacy-migration', expect.any(Function));
+      } finally {
+        delete (navigator as unknown as { locks?: unknown }).locks;
+      }
+    });
+
+    it('a transient claim-write failure is retried, so the claim still ends up done', async () => {
+      const data = legacyData();
+      const adapter = createMockLegacyAdapter(data);
+      const realSet = adapter.setItem as jest.Mock;
+      const stored = realSet.getMockImplementation()!;
+      let failures = 1;
+      realSet.mockImplementation((key: string, value: string) => (failures-- > 0 ? Promise.reject(new Error('AbortError')) : stored(key, value)));
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(adapter);
+      mockGetDataStore.mockResolvedValue(createMockDataStore([]));
+
+      expect((await migrateLegacyData(TEST_USER_ID)).status).toBe('migrated');
+      expect(claimIn(data).state).toBe('done');
+    });
+
+    it('a failed claim write after a successful copy still reports "migrated"', async () => {
+      const data = legacyData();
+      const adapter = createMockLegacyAdapter(data);
+      (adapter.setItem as jest.Mock).mockRejectedValue(new Error('QuotaExceededError'));
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(adapter);
+      mockGetDataStore.mockResolvedValue(createMockDataStore([]));
+
+      expect((await migrateLegacyData(TEST_USER_ID)).status).toBe('migrated');
+    });
+
+    it('deleting the account releases its claim, so a new account can take the data', async () => {
+      const data = legacyData();
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter(data));
+      mockGetDataStore.mockResolvedValue(createMockDataStore([]));
+      await migrateLegacyData(TEST_USER_ID);
+
+      // Another account's release does nothing...
+      await releaseLegacyMigrationClaim('someone-else');
+      expect(claimIn(data).userId).toBe(TEST_USER_ID);
+
+      // ...the owner's deletion releases it, and the next account gets the data.
+      const adapter = createMockLegacyAdapter(data);
+      (adapter.removeItem as jest.Mock).mockImplementation((key: string) => { delete data[key]; return Promise.resolve(); });
+      mockCreateLegacyAdapter.mockResolvedValue(adapter);
+      await releaseLegacyMigrationClaim(TEST_USER_ID);
+      expect(data[LEGACY_MIGRATION_CLAIM_KEY]).toBeUndefined();
+
+      const newStore = createMockDataStore([]);
+      mockGetDataStore.mockResolvedValue(newStore);
+      expect((await migrateLegacyData('new-account')).status).toBe('migrated');
+      expect(newStore.saveGame).toHaveBeenCalled();
+    });
+
+    it('an account that already has data and no claim takes the claim without copying', async () => {
+      const data = legacyData();
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter(data));
+      const store = createMockDataStore([{ ...mockPlayer, id: 'someone-else' }]);
+      mockGetDataStore.mockResolvedValue(store);
+
+      expect((await migrateLegacyData(TEST_USER_ID)).status).toBe('already_migrated');
+      expect(store.saveGame).not.toHaveBeenCalled();
+      expect(store.upsertPlayer).not.toHaveBeenCalled();
+      expect(claimIn(data)).toEqual(expect.objectContaining({ userId: TEST_USER_ID, state: 'done' }));
+    });
+  });
+
   describe('isLegacyMigrationNeeded', () => {
+    it('is false once any account has taken the anonymous data', async () => {
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        soccerMasterRoster: JSON.stringify([mockPlayer]),
+        [LEGACY_MIGRATION_CLAIM_KEY]: JSON.stringify({ userId: 'someone-else', state: 'done', updatedAt: 'x' }),
+      }));
+      mockGetDataStore.mockResolvedValue(createMockDataStore([]));
+      expect(await isLegacyMigrationNeeded(TEST_USER_ID)).toBe(false);
+    });
+
     it('should return false when legacy database does not exist', async () => {
       mockLegacyDatabaseExists.mockResolvedValue(false);
 

@@ -60,7 +60,8 @@ import logger from '@/utils/logger';
  */
 export type LegacyMigrationStatus =
   | 'no_legacy_data'     // No legacy database or empty
-  | 'already_migrated'   // User already has data
+  | 'already_migrated'   // This account already took the anonymous data (or already had data)
+  | 'claimed_by_other_account' // Another account on this browser took it; never copied twice
   | 'migrated'           // Successfully migrated
   | 'migration_error';   // Error during migration
 
@@ -105,6 +106,76 @@ interface LegacyData {
 // =============================================================================
 // HELPERS
 // =============================================================================
+
+/**
+ * Which account took the anonymous data, kept IN the anonymous (legacy) database itself
+ * so it survives the account's own Re-sync from Cloud / Factory Reset (review 3.1).
+ *
+ * Without it the copy re-ran on every launch, adding whatever the account seemed to be
+ * missing: deleted items came back, an emptied account got all the old data again, and
+ * a second account signing in on the same browser received a full copy.
+ *
+ * - `in_progress`: the first copy started for this account (lets an interrupted copy resume).
+ * - `done`: this account has it; the copy never runs again, for anyone.
+ */
+export const LEGACY_MIGRATION_CLAIM_KEY = 'matchops_legacy_migration_claim';
+
+interface LegacyMigrationClaim {
+  userId: string;
+  state: 'in_progress' | 'done';
+  updatedAt: string;
+}
+
+async function readClaim(adapter: StorageAdapter): Promise<LegacyMigrationClaim | null> {
+  const claim = safeParseJSON<LegacyMigrationClaim>(await adapter.getItem(LEGACY_MIGRATION_CLAIM_KEY));
+  return claim && typeof claim.userId === 'string' && (claim.state === 'in_progress' || claim.state === 'done')
+    ? claim
+    : null;
+}
+
+/**
+ * Record the claim. A failed write is logged, not thrown: the copy itself already
+ * succeeded (or, for the claim-without-copy branches, nothing needed copying), so it
+ * must not be reported to the coach as "could not migrate". The next launch retries.
+ */
+async function writeClaim(adapter: StorageAdapter, userId: string, state: LegacyMigrationClaim['state']): Promise<void> {
+  const claim: LegacyMigrationClaim = { userId, state, updatedAt: new Date().toISOString() };
+  // A few tries: a 'done' that never lands leaves the claim 'in_progress', and the next
+  // launch would resume - copying back anything deleted meanwhile, once. Mobile IndexedDB
+  // writes fail transiently, so retrying makes that rare.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await adapter.setItem(LEGACY_MIGRATION_CLAIM_KEY, JSON.stringify(claim));
+      return;
+    } catch (error) {
+      if (attempt === 3) {
+        logger.error('[LegacyMigration] Could not record the claim after 3 tries', { state, error });
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+    }
+  }
+}
+
+/**
+ * Release this account's claim on the anonymous data, so a later account on this
+ * browser can take it. Called when the account is deleted: otherwise the claim would
+ * name an account that no longer exists and lock every new account out for good.
+ * Never throws.
+ */
+export async function releaseLegacyMigrationClaim(userId: string): Promise<void> {
+  try {
+    if (!(await legacyDatabaseExists())) return;
+    const adapter = await createLegacyAdapter();
+    const claim = await readClaim(adapter);
+    if (claim && claim.userId === userId) {
+      await adapter.removeItem(LEGACY_MIGRATION_CLAIM_KEY);
+      logger.info('[LegacyMigration] Released the claim of a deleted account');
+    }
+  } catch (error) {
+    logger.warn('[LegacyMigration] Could not release the claim', { error });
+  }
+}
 
 /**
  * Safely parse JSON from storage.
@@ -181,9 +252,10 @@ function hasLegacyContent(data: LegacyData): boolean {
 /**
  * Migrate data from the legacy `MatchOpsLocal` database to the user-scoped database.
  *
- * This function is idempotent:
+ * This function runs at most once per browser's anonymous data (claim key):
  * - If no legacy database exists: Returns 'no_legacy_data'
- * - If user already has data: Returns 'already_migrated' (does not overwrite)
+ * - If another account took it: Returns 'claimed_by_other_account'
+ * - If this account took it, or already had data: Returns 'already_migrated' (no copy)
  * - If migration succeeds: Returns 'migrated' with entity count
  * - If error occurs: Returns 'migration_error' with message
  *
@@ -212,6 +284,19 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
     return { status: 'migration_error', error: 'Invalid user ID' };
   }
 
+  // One run at a time on this browser, across tabs too: the claim is read, then written,
+  // and two overlapping runs (two tabs, a quick account switch) could otherwise both see
+  // "no claim" and both copy. Web Locks are atomic; without them, run directly.
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
+  if (locks?.request) {
+    return locks.request(LEGACY_MIGRATION_LOCK, () => migrateLegacyDataUnlocked(userId));
+  }
+  return migrateLegacyDataUnlocked(userId);
+}
+
+const LEGACY_MIGRATION_LOCK = 'matchops-legacy-migration';
+
+async function migrateLegacyDataUnlocked(userId: string): Promise<LegacyMigrationResult> {
   logger.info('[LegacyMigration] Starting migration check', { userId });
 
   try {
@@ -236,6 +321,17 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
     if (!hasLegacyContent(legacyData)) {
       logger.debug('[LegacyMigration] Legacy database exists but is empty');
       return { status: 'no_legacy_data' };
+    }
+
+    // Who owns the anonymous data (see LEGACY_MIGRATION_CLAIM_KEY).
+    const claim = await readClaim(legacyAdapter);
+    if (claim && claim.userId !== userId) {
+      logger.info('[LegacyMigration] Anonymous data was taken by another account on this browser - not copying');
+      return { status: 'claimed_by_other_account' };
+    }
+    if (claim?.state === 'done') {
+      logger.debug('[LegacyMigration] Already migrated for this account (claim done)');
+      return { status: 'already_migrated' };
     }
 
     // Step 3: Resumable, NON-DESTRUCTIVE idempotency (CR-H8c).
@@ -314,9 +410,30 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
       adjustmentsToMigrate.length +
       (warmupPlanToMigrate ? 1 : 0);
 
+    if (!claim && !isFreshMigration) {
+      // The account already has data and nothing records a copy. Either it was copied
+      // before this claim existed, or the account was set up elsewhere. Copying "what is
+      // missing" here is what brought deleted items back on every launch, so the first
+      // account to see the data claims it WITHOUT copying. The anonymous database is
+      // left untouched, so nothing is lost.
+      // Known trade-off: a first copy that was interrupted BEFORE the claim existed
+      // looks the same as an account whose owner deleted items, and is sealed here
+      // instead of completed. Rare (a copy failing midway); its data stays in the
+      // anonymous database for manual recovery.
+      await writeClaim(legacyAdapter, userId, 'done');
+      logger.info('[LegacyMigration] Account already has data - claimed the anonymous data without copying', { userId });
+      return { status: 'already_migrated' };
+    }
+
     if (migratedEntityCount === 0 && !isFreshMigration) {
+      await writeClaim(legacyAdapter, userId, 'done');
       logger.info('[LegacyMigration] All legacy data already present in user database, nothing to migrate', { userId });
       return { status: 'already_migrated' };
+    }
+
+    // Claim before copying, so an interrupted copy resumes for THIS account only.
+    if (!claim) {
+      await writeClaim(legacyAdapter, userId, 'in_progress');
     }
 
     // Step 4: Migrate the MISSING data to the user's database.
@@ -434,6 +551,9 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
       });
     }
 
+    // Done: the copy never runs again for this account, and never for another one.
+    await writeClaim(legacyAdapter, userId, 'done');
+
     // Report what was ACTUALLY migrated this run (migratedEntityCount, not the full
     // legacy totals) so a resume reflects only the entities it completed.
     logger.info('[LegacyMigration] Migration completed successfully', {
@@ -490,9 +610,11 @@ export async function isLegacyMigrationNeeded(userId: string): Promise<boolean> 
       return false;
     }
 
-    // Check if legacy has content
+    // Check if legacy has content, and that no account has already taken it
     const legacyAdapter = await createLegacyAdapter();
     const legacyData = await readLegacyData(legacyAdapter);
+    const claim = await readClaim(legacyAdapter);
+    if (claim && (claim.userId !== userId || claim.state === 'done')) return false;
 
     return hasLegacyContent(legacyData);
   } catch (error) {
