@@ -253,6 +253,16 @@ describe('migrationService', () => {
    */
   describe('the pre-sign-in data is offered until an account takes it', () => {
     beforeEach(() => { for (const k of Object.keys(mockAnonStore)) delete mockAnonStore[k]; });
+
+    it('a damaged record counts as taken - never offered on a guess', async () => {
+      mockAnonStore.matchops_anonymous_data_moved_for = '{not json';
+      expect(await anonymousDataStatus('coach-a')).toBe('taken');
+      mockAnonStore.matchops_anonymous_data_moved_for = '{"an":"object"}';
+      expect(await anonymousDataStatus('coach-a')).toBe('taken');
+      mockAnonStore.matchops_legacy_migration_claim = '{not json';
+      delete mockAnonStore.matchops_anonymous_data_moved_for;
+      expect(await anonymousDataStatus('coach-a')).toBe('taken');
+    });
     const claim = (userId: string, state: string) =>
       (mockAnonStore.matchops_legacy_migration_claim = JSON.stringify({ userId, state, updatedAt: 'x' }));
 
@@ -282,6 +292,7 @@ describe('migrationService', () => {
     });
 
     it('an unreadable record throws instead of answering', async () => {
+      // (see below for a record that is readable but damaged)
       const { createLegacyAdapter } = jest.requireMock('@/utils/storageFactory') as { createLegacyAdapter: jest.Mock };
       createLegacyAdapter.mockRejectedValueOnce(new Error('IDB unavailable'));
       await expect(anonymousDataStatus('coach-a')).rejects.toThrow('IDB unavailable');
@@ -361,6 +372,18 @@ describe('migrationService', () => {
       expect(consumeAnonymousDataImportRequest('coach-a')).toBe(true);
       expect(consumeAnonymousDataImportRequest('coach-a')).toBe(false);
     });
+    it('an import request that was never used expires', () => {
+      const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
+      requestAnonymousDataImport('coach-a');
+      now.mockReturnValue(1_000_000 + 11 * 60 * 1000);
+      expect(consumeAnonymousDataImportRequest('coach-a')).toBe(false);
+      now.mockRestore();
+    });
+    it('a failed count keeps the Settings import request for the retry', async () => {
+      const importRequested = jest.fn(() => true);
+      await expect(decidePreSignInOffer('u', checks({ migratableCount: async () => { throw new Error('IDB'); }, importRequested }))).rejects.toThrow('IDB');
+      expect(importRequested).not.toHaveBeenCalled();
+    });
   });
 
   /**
@@ -370,6 +393,19 @@ describe('migrationService', () => {
    * @critical
    */
   describe('never overwrites a newer cloud copy', () => {
+    it('if the cloud cannot be read first, nothing is uploaded', async () => {
+      createMockLocalStore();
+      const cloud = createMockCloudStore();
+      cloud.getAllPlayerAdjustments.mockRejectedValue(new Error('cloud read failed'));
+      const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const result = await migrateLocalToCloud(() => {});
+      expect(errorLog).toHaveBeenCalled(); // logged, not hidden
+      errorLog.mockRestore();
+      expect(result.success).toBe(false);
+      expect(cloud.upsertPlayer).not.toHaveBeenCalled();
+      expect(cloud.saveGame).not.toHaveBeenCalled();
+    });
+
     it('cloudCopyWins: upload only when absent from the cloud or strictly newer locally', () => {
       expect(cloudCopyWins(false)).toBe(false);
       expect(cloudCopyWins(true, '2026-11-10T00:00:00Z', '2026-05-01T00:00:00Z')).toBe(true);
@@ -805,6 +841,13 @@ describe('migrationService', () => {
   });
 
   describe('replace mode', () => {
+    it('does not read the cloud versions: the cloud was just cleared', async () => {
+      createMockLocalStore();
+      const mockCloud = createMockCloudStore();
+      await migrateLocalToCloud(() => {}, 'replace');
+      expect(mockCloud.getAllPlayerAdjustments).not.toHaveBeenCalled();
+    });
+
     it('should clear cloud data before upload in replace mode', async () => {
       createMockLocalStore();
       const mockCloud = createMockCloudStore();

@@ -307,17 +307,28 @@ export function hasMigrationCompleted(userId: string): boolean {
  */
 const ANONYMOUS_IMPORT_REQUEST_KEY = 'matchops_anonymous_import_requested_for';
 
+/** The import reloads right away; a request older than this was never used and is ignored. */
+const ANONYMOUS_IMPORT_REQUEST_TTL_MS = 10 * 60 * 1000;
+
 export function requestAnonymousDataImport(userId: string): void {
   if (typeof window === 'undefined' || !userId) return;
-  safeSetItem(ANONYMOUS_IMPORT_REQUEST_KEY, userId);
+  safeSetItem(ANONYMOUS_IMPORT_REQUEST_KEY, JSON.stringify({ userId, at: Date.now() }));
 }
 
-/** Read and clear the request; true only for the account that asked. */
+/** Read and clear the request; true only for the account that asked, and only while fresh. */
 export function consumeAnonymousDataImportRequest(userId: string): boolean {
   if (typeof window === 'undefined') return false;
-  const requested = safeGetItem(ANONYMOUS_IMPORT_REQUEST_KEY);
-  if (requested !== null) safeRemoveItem(ANONYMOUS_IMPORT_REQUEST_KEY);
-  return requested === userId;
+  const raw = safeGetItem(ANONYMOUS_IMPORT_REQUEST_KEY);
+  if (raw === null) return false;
+  safeRemoveItem(ANONYMOUS_IMPORT_REQUEST_KEY);
+  try {
+    const request = JSON.parse(raw) as { userId?: unknown; at?: unknown };
+    return request.userId === userId
+      && typeof request.at === 'number'
+      && Date.now() - request.at < ANONYMOUS_IMPORT_REQUEST_TTL_MS;
+  } catch {
+    return false;
+  }
 }
 
 /**

@@ -1212,8 +1212,6 @@ interface CloudVersions {
   adjustments: Map<string, string | undefined>;
 }
 
-/** The ids already in the cloud, with their last-updated times. Throws if unreadable:
- *  without it the upload cannot tell what it would overwrite, so it must not run. */
 function emptyCloudVersions(): CloudVersions {
   return {
     players: new Map(), seasons: new Map(), tournaments: new Map(), teams: new Map(),
@@ -1221,6 +1219,8 @@ function emptyCloudVersions(): CloudVersions {
   };
 }
 
+/** The ids already in the cloud, with their last-updated times. Throws if unreadable:
+ *  without it the upload cannot tell what it would overwrite, so it must not run. */
 async function loadCloudVersions(cloudStore: SupabaseDataStore): Promise<CloudVersions> {
   const [players, seasons, tournaments, teams, personnel, games, adjustments] = await Promise.all([
     cloudStore.getPlayers(),
@@ -1881,16 +1881,31 @@ async function anonymousAdapter() {
   return createLegacyAdapter();
 }
 
-/** Throws when unreadable: callers must not decide anything on a failed read. */
+/** Placeholder for a damaged record: it still counts as "taken" (never offered on a guess). */
+const CORRUPT_RECORD = '(unreadable record)';
+
+/**
+ * The accounts in the record. A damaged record reads as taken - the same direction as a
+ * damaged claim - so the data is never offered to anyone on a guess.
+ * Throws when unreadable: callers must not decide anything on a failed read.
+ */
 async function readMovedFor(): Promise<string[]> {
   const raw = await (await anonymousAdapter()).getItem(ANONYMOUS_DATA_MOVED_KEY);
-  let parsed: unknown = [];
+  if (!raw) return [];
   try {
-    parsed = raw ? JSON.parse(raw) : [];
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string');
   } catch {
-    parsed = []; // a corrupt record is treated as absent
+    // fall through
   }
-  return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  logger.warn('[MigrationService] The moved-data record is unreadable - treating the data as taken');
+  return [CORRUPT_RECORD];
+}
+
+/** One writer at a time, across tabs, for the record's read-modify-write. */
+async function withMovedRecordLock<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
+  return locks?.request ? locks.request('matchops-anonymous-data-moved', fn) : fn();
 }
 
 /**
@@ -1959,8 +1974,9 @@ export async function decidePreSignInOffer(
   userId: string,
   checks: PreSignInChecks = defaultPreSignInChecks,
 ): Promise<PreSignInDecision> {
+  const count = await checks.migratableCount(); // a failure here keeps the request for the retry
   const importRequested = checks.importRequested(userId);
-  if ((await checks.migratableCount()) === 0) return 'none';
+  if (count === 0) return 'none';
   if (importRequested) return 'offer';
   const status = await checks.status(userId);
   if (status === 'resume') return 'offer';
@@ -1992,10 +2008,12 @@ export async function decidePreSignInOffer(
 /** Record that this account moved the anonymous store to the cloud. Never throws. */
 export async function markAnonymousDataMoved(userId: string): Promise<void> {
   try {
-    const list = await readMovedFor();
-    if (!list.includes(userId)) {
-      await (await anonymousAdapter()).setItem(ANONYMOUS_DATA_MOVED_KEY, JSON.stringify([...list, userId]));
-    }
+    await withMovedRecordLock(async () => {
+      const list = await readMovedFor();
+      if (!list.includes(userId)) {
+        await (await anonymousAdapter()).setItem(ANONYMOUS_DATA_MOVED_KEY, JSON.stringify([...list, userId]));
+      }
+    });
   } catch (error) {
     logger.warn('[MigrationService] Could not record the moved anonymous data', { error });
   }
@@ -2004,12 +2022,14 @@ export async function markAnonymousDataMoved(userId: string): Promise<void> {
 /** On account deletion: the anonymous data can be offered to a new account again. Never throws. */
 export async function releaseAnonymousDataMoved(userId: string): Promise<void> {
   try {
-    const list = await readMovedFor();
-    if (!list.includes(userId)) return;
-    const rest = list.filter((id) => id !== userId);
-    const adapter = await anonymousAdapter();
-    if (rest.length > 0) await adapter.setItem(ANONYMOUS_DATA_MOVED_KEY, JSON.stringify(rest));
-    else await adapter.removeItem(ANONYMOUS_DATA_MOVED_KEY);
+    await withMovedRecordLock(async () => {
+      const list = await readMovedFor();
+      if (!list.includes(userId)) return;
+      const rest = list.filter((id) => id !== userId);
+      const adapter = await anonymousAdapter();
+      if (rest.length > 0) await adapter.setItem(ANONYMOUS_DATA_MOVED_KEY, JSON.stringify(rest));
+      else await adapter.removeItem(ANONYMOUS_DATA_MOVED_KEY);
+    });
   } catch (error) {
     logger.warn('[MigrationService] Could not release the moved anonymous data', { error });
   }
