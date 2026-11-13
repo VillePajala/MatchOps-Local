@@ -224,6 +224,8 @@ export class TransientSupabaseError extends Error {
 interface SupabaseResult<T> {
   data: T | null;
   error: { message: string; code?: string; status?: number } | null;
+  /** Present when the query asked for a row count ({ count: 'exact' }). */
+  count?: number | null;
 }
 
 /**

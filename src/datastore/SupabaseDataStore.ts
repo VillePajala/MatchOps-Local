@@ -438,6 +438,17 @@ const checkOnline = (): void => {
  * IMPORTANT: PR #3 implements core CRUD methods (players, teams, seasons,
  * tournaments, personnel, settings). Game methods are added in PR #4.
  */
+/** Ids per cloud table, each list complete (see getAllEntityIds). */
+export interface CloudEntityIds {
+  players: Set<string>;
+  teams: Set<string>;
+  seasons: Set<string>;
+  tournaments: Set<string>;
+  personnel: Set<string>;
+  games: Set<string>;
+  playerAdjustments: Set<string>;
+}
+
 export class SupabaseDataStore implements DataStore {
   private supabase: SupabaseClient<Database> | null = null;
   private initialized = false;
@@ -4129,6 +4140,64 @@ export class SupabaseDataStore implements DataStore {
     }
 
     return (result.data || []).map((row: PlayerAdjustmentRow) => this.transformAdjustmentFromDb(row));
+  }
+
+  /**
+   * Every id this account has in the cloud, per table - the authority for "deleted on
+   * another device" (review 3.3). Unlike the getters above, which return what loaded
+   * (getGames returns the games that loaded even when some fail) and are capped by the
+   * API's max-rows, this pages through each table and checks the total against the exact
+   * row count. Throws if any table cannot be listed completely: an incomplete list must
+   * never be read as "not in the cloud".
+   */
+  async getAllEntityIds(): Promise<CloudEntityIds> {
+    this.ensureInitialized();
+    checkOnline();
+    const [players, teams, seasons, tournaments, personnel, games, playerAdjustments] = await Promise.all([
+      this.listAllIds('players'),
+      this.listAllIds('teams'),
+      this.listAllIds('seasons'),
+      this.listAllIds('tournaments'),
+      this.listAllIds('personnel'),
+      this.listAllIds('games'),
+      this.listAllIds('player_adjustments'),
+    ]);
+    return { players, teams, seasons, tournaments, personnel, games, playerAdjustments };
+  }
+
+  private async listAllIds(
+    table: 'players' | 'teams' | 'seasons' | 'tournaments' | 'personnel' | 'games' | 'player_adjustments',
+  ): Promise<Set<string>> {
+    const PAGE = 1000; // the API's default max-rows; pages are requested explicitly
+    const ids = new Set<string>();
+    let total: number | null = null;
+    for (let from = 0; ; from += PAGE) {
+      const result = await this.withRetry(async () => {
+        return throwIfTransient(
+          await this.getClient()
+            .from(table)
+            .select('id', { count: 'exact' })
+            .order('id', { ascending: true })
+            .range(from, from + PAGE - 1)
+        );
+      }, `listAllIds:${table}`);
+      if (result.error) {
+        this.classifyAndThrowError(result.error, `Failed to list ${table}`);
+      }
+      if (total === null) {
+        if (typeof result.count !== 'number') {
+          throw new Error(`No row count for ${table}`);
+        }
+        total = result.count;
+      }
+      const rows = (result.data ?? []) as unknown as Array<{ id: string }>;
+      for (const row of rows) ids.add(row.id);
+      if (rows.length === 0 || ids.size >= (total ?? 0)) break;
+    }
+    if (ids.size !== total) {
+      throw new Error(`Incomplete id list for ${table}: ${ids.size} of ${total}`);
+    }
+    return ids;
   }
 
   /**

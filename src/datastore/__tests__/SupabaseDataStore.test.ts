@@ -459,6 +459,45 @@ describe('SupabaseDataStore', () => {
   // ==========================================================================
 
   describe('Players', () => {
+    /**
+     * Review 3.3: the authority for "deleted on another device". It must page past the
+     * API's max-rows and refuse a list that does not match the exact row count.
+     * @critical
+     */
+    describe('getAllEntityIds', () => {
+      const tableWith = (ids: string[], count: number | null = ids.length) => {
+        const range = jest.fn((from: number, to: number) =>
+          Promise.resolve({ data: ids.slice(from, to + 1).map((id) => ({ id })), error: null, count }));
+        return { select: jest.fn().mockReturnThis(), order: jest.fn().mockReturnThis(), range };
+      };
+      const useTables = (tables: Record<string, ReturnType<typeof tableWith>>) => {
+        (mockSupabaseClient.from as unknown as jest.Mock).mockImplementation((t: string) => tables[t] ?? tableWith([]));
+      };
+      afterEach(() => {
+        (mockSupabaseClient.from as unknown as jest.Mock).mockImplementation(() => mockQueryBuilder);
+      });
+
+      it('pages past 1000 rows and returns every id', async () => {
+        const many = Array.from({ length: 2500 }, (_, i) => `game_${String(i).padStart(4, '0')}`);
+        const games = tableWith(many);
+        useTables({ games });
+        const result = await dataStore.getAllEntityIds();
+        expect(result.games.size).toBe(2500);
+        expect(games.range).toHaveBeenCalledTimes(3);
+        expect(games.range).toHaveBeenNthCalledWith(2, 1000, 1999);
+      });
+
+      it('throws when the rows returned do not add up to the count', async () => {
+        useTables({ games: tableWith(['a', 'b'], 3) });
+        await expect(dataStore.getAllEntityIds()).rejects.toThrow('Incomplete id list for games');
+      });
+
+      it('throws when the count is missing', async () => {
+        useTables({ players: tableWith(['a'], null) });
+        await expect(dataStore.getAllEntityIds()).rejects.toThrow('No row count for players');
+      });
+    });
+
     describe('getPlayers', () => {
       it('should fetch all players', async () => {
         const mockRow = {

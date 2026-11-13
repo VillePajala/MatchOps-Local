@@ -20,7 +20,7 @@ import { LocalDataStore } from '@/datastore/LocalDataStore';
 import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
-import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
+import { SupabaseDataStore, type CloudEntityIds } from '@/datastore/SupabaseDataStore';
 import { getAuthService } from '@/datastore/factory';
 import { NetworkError, AuthError } from '@/interfaces/DataStoreErrors';
 import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGamesCollection, PlayerStatAdjustment, AppSettings } from '@/types';
@@ -1509,6 +1509,8 @@ export interface HydrationResult {
   counts: ReverseMigrationCounts;
   /** Counts of entities skipped because local version was newer */
   skipped: ReverseMigrationCounts;
+  /** Local items removed because they were deleted on another device (review 3.3) */
+  removed?: number;
   errors: string[];
 }
 
@@ -1557,6 +1559,204 @@ function withRestorableAgeGroup<T extends { ageGroup?: string; name?: string }>(
  * @param onProgress - Optional callback for progress updates
  * @returns HydrationResult with counts of imported entities
  */
+/** Ids with a change still waiting in this account's sync queue, per entity type. */
+type QueuedIds = Map<string, Set<string>>;
+
+/**
+ * Read the sync queue. Anything in it has not reached the cloud yet (completed operations
+ * are removed), so hydration must not overwrite or delete it. Null when unreadable.
+ */
+async function readQueuedIds(userId: string): Promise<QueuedIds | null> {
+  try {
+    const { SyncQueue } = await import('@/sync/SyncQueue');
+    const queue = new SyncQueue(userId);
+    await queue.initialize();
+    try {
+      const queued: QueuedIds = new Map();
+      for (const op of await queue.getAllOperations()) {
+        let ids = queued.get(op.entityType);
+        if (!ids) queued.set(op.entityType, (ids = new Set()));
+        ids.add(op.entityId);
+      }
+      return queued;
+    } finally {
+      await queue.close();
+    }
+  } catch (error) {
+    logger.warn('[ReverseMigrationService] Could not read the sync queue', { error });
+    return null;
+  }
+}
+
+const isQueued = (queued: QueuedIds | null, type: string, id: string): boolean =>
+  queued?.get(type)?.has(id) ?? false;
+const anyQueued = (queued: QueuedIds | null, type: string): boolean =>
+  (queued?.get(type)?.size ?? 0) > 0;
+
+/**
+ * Margin before the hydration start: a local item changed after it is never removed. It
+ * covers the moment between a local save and its sync-queue entry (the same call, so
+ * milliseconds apart). Kept short: hydration itself re-stamps what it writes, so a long
+ * margin would also spare items pulled moments earlier and delay their removal.
+ */
+const RECENT_LOCAL_CHANGE_MARGIN_MS = 10_000;
+
+/** Ids this device has seen in a complete cloud listing, per type (user-scoped storage). */
+const CLOUD_IDS_SEEN_KEY = 'matchops_cloud_ids_seen';
+type EntityKind = keyof CloudEntityIds;
+type SeenIds = Partial<Record<EntityKind, Set<string>>>;
+
+async function readSeenCloudIds(userId: string): Promise<SeenIds> {
+  const { getUserStorageAdapter } = await import('@/utils/storage');
+  const raw = await (await getUserStorageAdapter(userId)).getItem(CLOUD_IDS_SEEN_KEY);
+  if (!raw) return {};
+  const parsed = JSON.parse(raw) as Partial<Record<EntityKind, unknown>>;
+  const seen: SeenIds = {};
+  for (const [kind, ids] of Object.entries(parsed)) {
+    if (Array.isArray(ids)) seen[kind as EntityKind] = new Set(ids.filter((x): x is string => typeof x === 'string'));
+  }
+  return seen;
+}
+
+async function writeSeenCloudIds(userId: string, seen: SeenIds): Promise<void> {
+  try {
+    const { getUserStorageAdapter } = await import('@/utils/storage');
+    const plain = Object.fromEntries(Object.entries(seen).map(([k, v]) => [k, [...(v ?? [])]]));
+    await (await getUserStorageAdapter(userId)).setItem(CLOUD_IDS_SEEN_KEY, JSON.stringify(plain));
+  } catch (error) {
+    // Not recording only delays removals to a later launch; it never causes one.
+    logger.warn('[ReverseMigrationService] Could not record the cloud ids seen', { error });
+  }
+}
+
+function unionQueued(a: QueuedIds, b: QueuedIds): QueuedIds {
+  const out: QueuedIds = new Map();
+  for (const source of [a, b]) {
+    for (const [type, ids] of source) {
+      const set = out.get(type) ?? new Set<string>();
+      ids.forEach((id) => set.add(id));
+      out.set(type, set);
+    }
+  }
+  return out;
+}
+
+/**
+ * Remove local items that were deleted on another device (review 3.3). Hydration only
+ * adds and updates, so a deletion made elsewhere never reached this device - its season
+ * stats kept a deleted game, and saving that game re-created it in the cloud.
+ *
+ * The rule: remove only an item this device has SEEN in the cloud before (in a complete
+ * listing, recorded per account) that the cloud no longer has. Absence alone proves
+ * nothing - an item created offline, whose sync failed or was discarded, or whose queue
+ * entry was cleared (sign-out and account switch clear the queue) was never in the cloud
+ * and must stay. The first run with this code only records what the cloud has.
+ *
+ * Extra guards - anything uncertain means "keep":
+ * - the cloud lists come from getAllEntityIds, which is complete or throws;
+ * - an item with a change in the sync queue is kept (the queue is read before the pull
+ *   and again after the listing: an op that completes in between was already pushed);
+ * - an item changed on this device since shortly before hydration started is kept;
+ * - when the cloud has none of a type but this device has some, nothing of that type is
+ *   removed, and it is reported.
+ * Items kept by a guard stay in the "seen" record, so a later launch decides again.
+ */
+async function removeItemsDeletedElsewhere(
+  localStore: LocalDataStore,
+  cloudStore: SupabaseDataStore,
+  userId: string,
+  startedAt: number,
+  queuedBefore: QueuedIds,
+): Promise<number> {
+  const cloud = await cloudStore.getAllEntityIds();
+  const queuedAfter = await readQueuedIds(userId);
+  if (queuedAfter === null) {
+    logger.warn('[ReverseMigrationService] Skipping deletion pass: sync queue unreadable');
+    return 0;
+  }
+  const queued = unionQueued(queuedBefore, queuedAfter);
+  const seen = await readSeenCloudIds(userId); // throws when unreadable: no removals
+  const nextSeen: SeenIds = {};
+  const cutoff = startedAt - RECENT_LOCAL_CHANGE_MARGIN_MS;
+  const isRecent = (iso?: string) => {
+    const t = iso ? Date.parse(iso) : NaN;
+    return !Number.isNaN(t) && t >= cutoff;
+  };
+
+  const [players, teams, seasons, tournaments, personnel, games, adjustments] = await Promise.all([
+    localStore.getPlayers(),
+    localStore.getTeams(true),
+    localStore.getSeasons(true),
+    localStore.getTournaments(true),
+    localStore.getAllPersonnel(),
+    localStore.getGames(),
+    localStore.getAllPlayerAdjustments(),
+  ]);
+
+  let removed = 0;
+  const pass = async <T>(
+    kind: EntityKind,
+    queueType: string,
+    local: T[],
+    idOf: (x: T) => string,
+    changedAt: (x: T) => string | undefined,
+    remove: (x: T) => Promise<unknown>,
+  ) => {
+    const cloudIds = cloud[kind];
+    const seenIds = seen[kind] ?? new Set<string>();
+    const next = new Set(cloudIds);
+    nextSeen[kind] = next;
+    const candidates = local.filter((x) => seenIds.has(idOf(x)) && !cloudIds.has(idOf(x)));
+    if (candidates.length === 0) return;
+    if (cloudIds.size === 0) {
+      candidates.forEach((x) => next.add(idOf(x)));
+      logger.warn(`[ReverseMigrationService] Cloud has no ${kind} but this device has ${local.length} - not removing any`);
+      try {
+        Sentry.captureMessage('Hydration deletion pass skipped: cloud type empty', {
+          level: 'warning',
+          tags: { component: 'ReverseMigrationService', action: 'deletion-pass-empty-cloud' },
+          extra: { type: kind, localCount: local.length },
+        });
+      } catch {
+        // reporting must not break hydration
+      }
+      return;
+    }
+    let removedHere = 0;
+    for (const x of candidates) {
+      if (isQueued(queued, queueType, idOf(x)) || isRecent(changedAt(x))) {
+        next.add(idOf(x)); // kept by a guard: decide again next launch
+        continue;
+      }
+      try {
+        await remove(x);
+        removedHere++;
+      } catch (error) {
+        next.add(idOf(x));
+        logger.warn(`[ReverseMigrationService] Could not remove a ${kind} item deleted elsewhere`, { id: idOf(x), error });
+      }
+    }
+    removed += removedHere;
+    if (removedHere > 0) {
+      logger.info(`[ReverseMigrationService] Removed ${removedHere} ${kind} deleted on another device`);
+    }
+  };
+
+  await pass('games', 'game', Object.entries(games), ([id]) => id,
+    ([, g]) => g.updatedAt, ([id]) => localStore.deleteGame(id));
+  await pass('playerAdjustments', 'playerAdjustment', [...adjustments.values()].flat(), (a) => a.id,
+    (a) => a.appliedAt, (a) => localStore.deletePlayerAdjustment(a.playerId, a.id));
+  await pass('personnel', 'personnel', personnel, (p) => p.id, (p) => p.updatedAt,
+    (p) => localStore.removePersonnelMember(p.id));
+  await pass('teams', 'team', teams, (t) => t.id, (t) => t.updatedAt, (t) => localStore.deleteTeam(t.id));
+  await pass('tournaments', 'tournament', tournaments, (t) => t.id, (t) => t.updatedAt,
+    (t) => localStore.deleteTournament(t.id));
+  await pass('seasons', 'season', seasons, (x) => x.id, (x) => x.updatedAt, (x) => localStore.deleteSeason(x.id));
+  await pass('players', 'player', players, (p) => p.id, (p) => p.updatedAt, (p) => localStore.deletePlayer(p.id));
+  await writeSeenCloudIds(userId, nextSeen);
+  return removed;
+}
+
 export async function hydrateLocalFromCloud(
   userId: string,
   onProgress?: (message: string, progress: number) => void
@@ -1600,6 +1800,7 @@ export async function hydrateLocalFromCloud(
     settings: false,
   };
 
+  const startedAt = Date.now();
   logger.info('[ReverseMigrationService] Starting hydration from cloud', { userId });
   safeProgress('Connecting to cloud...', 0);
 
@@ -1625,9 +1826,22 @@ export async function hydrateLocalFromCloud(
       errors.push('No active session. Please sign in again.');
       return { success: false, counts, skipped, errors };
     }
+    // The cloud reads below are scoped by the SESSION's account, the local writes by
+    // userId - during an account switch they can differ, and this account's store would
+    // receive (and, with the deletion pass, lose to) another account's data.
+    if (sessionData.session.user?.id !== userId) {
+      logger.warn('[ReverseMigrationService] Hydration aborted: signed-in account does not match');
+      errors.push('Not authenticated as this account yet.');
+      return { success: false, counts, skipped, errors };
+    }
 
     localStore = new LocalDataStore(userId);
     await localStore.initialize();
+
+    // Changes still waiting to be sent: never overwritten by the (older) cloud copy -
+    // e.g. a game deleted offline would otherwise be written back before the delete
+    // reaches the cloud (review 3.3). Unreadable queue: writes as before, no deletions.
+    const queued = await readQueuedIds(userId);
 
     safeProgress('Downloading data from cloud...', 10);
 
@@ -1727,6 +1941,7 @@ export async function hydrateLocalFromCloud(
 
     for (const player of cloudData.players) {
       try {
+        if (isQueued(queued, 'player', player.id)) { skipped.players++; continue; }
         const existingPlayer = existingPlayerMap.get(player.id);
         if (shouldWriteBasedOnTimestamp(player.updatedAt, existingPlayer?.updatedAt)) {
           await localStore.upsertPlayer(player);
@@ -1754,6 +1969,7 @@ export async function hydrateLocalFromCloud(
 
     for (const team of cloudData.teams) {
       try {
+        if (isQueued(queued, 'team', team.id)) { skipped.teams++; continue; }
         const existingTeam = existingTeamMap.get(team.id);
         if (shouldWriteBasedOnTimestamp(team.updatedAt, existingTeam?.updatedAt)) {
           await localStore.upsertTeam(withRestorableAgeGroup(team, 'team'));
@@ -1776,6 +1992,7 @@ export async function hydrateLocalFromCloud(
     // Save team rosters
     for (const [teamId, roster] of cloudData.teamRosters) {
       try {
+        if (isQueued(queued, 'teamRoster', teamId) || isQueued(queued, 'team', teamId)) continue;
         await localStore.setTeamRoster(teamId, roster);
         counts.teamRosters += roster.length;
       } catch (err) {
@@ -1792,6 +2009,7 @@ export async function hydrateLocalFromCloud(
 
     for (const season of cloudData.seasons) {
       try {
+        if (isQueued(queued, 'season', season.id)) { skipped.seasons++; continue; }
         const existingSeason = existingSeasonMap.get(season.id);
         if (shouldWriteBasedOnTimestamp(season.updatedAt, existingSeason?.updatedAt)) {
           await localStore.upsertSeason(withRestorableAgeGroup(season, 'season'));
@@ -1817,6 +2035,7 @@ export async function hydrateLocalFromCloud(
 
     for (const tournament of cloudData.tournaments) {
       try {
+        if (isQueued(queued, 'tournament', tournament.id)) { skipped.tournaments++; continue; }
         const existingTournament = existingTournamentMap.get(tournament.id);
         if (shouldWriteBasedOnTimestamp(tournament.updatedAt, existingTournament?.updatedAt)) {
           await localStore.upsertTournament(withRestorableAgeGroup(tournament, 'tournament'));
@@ -1844,6 +2063,7 @@ export async function hydrateLocalFromCloud(
 
     for (const person of cloudData.personnel) {
       try {
+        if (isQueued(queued, 'personnel', person.id)) { skipped.personnel++; continue; }
         const existingPerson = existingPersonnelMap.get(person.id);
         if (shouldWriteBasedOnTimestamp(person.updatedAt, existingPerson?.updatedAt)) {
           await localStore.upsertPersonnelMember(person);
@@ -1877,6 +2097,7 @@ export async function hydrateLocalFromCloud(
     for (let i = 0; i < gameEntries.length; i++) {
       const [gameId, game] = gameEntries[i];
       try {
+        if (isQueued(queued, 'game', gameId)) { skipped.games++; continue; }
         const existingGame = existingGames[gameId];
         if (shouldWriteBasedOnTimestamp(game.updatedAt, existingGame?.updatedAt)) {
           await localStore.saveGame(gameId, withRestorableAgeGroup(game, 'game'));
@@ -1903,6 +2124,7 @@ export async function hydrateLocalFromCloud(
     for (const [playerId, adjustments] of cloudData.playerAdjustments) {
       for (const adj of adjustments) {
         try {
+          if (isQueued(queued, 'playerAdjustment', adj.id)) { skipped.playerAdjustments++; continue; }
           await localStore.upsertPlayerAdjustment(adj);
           counts.playerAdjustments++;
         } catch (err) {
@@ -1915,7 +2137,7 @@ export async function hydrateLocalFromCloud(
     safeProgress('Saving adjustments...', 92);
 
     // Save warmup plan
-    if (cloudData.warmupPlan) {
+    if (cloudData.warmupPlan && !anyQueued(queued, 'warmupPlan')) {
       try {
         await localStore.saveWarmupPlan(cloudData.warmupPlan);
         counts.warmupPlan = true;
@@ -1927,7 +2149,7 @@ export async function hydrateLocalFromCloud(
     }
 
     // Save settings
-    if (cloudData.settings) {
+    if (cloudData.settings && !anyQueued(queued, 'settings')) {
       try {
         await localStore.saveSettings(cloudData.settings);
         counts.settings = true;
@@ -1957,6 +2179,19 @@ export async function hydrateLocalFromCloud(
       logger.error('[ReverseMigrationService] ' + msg);
       errors.push(msg);
     }
+    // Deletions made on other devices: only after a fully clean pull, and never on an
+    // uncertain picture (see removeItemsDeletedElsewhere). A failure here is not a
+    // hydration failure - nothing was removed, and the next launch tries again.
+    let removed = 0;
+    if (errors.length === 0 && queued !== null) {
+      try {
+        removed = await removeItemsDeletedElsewhere(localStore, cloudStore, userId, startedAt, queued);
+      } catch (err) {
+        logger.warn('[ReverseMigrationService] Deletion pass skipped', {
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
     safeProgress('Finalizing...', 98);
 
     const success = errors.length === 0;
@@ -1968,7 +2203,7 @@ export async function hydrateLocalFromCloud(
     });
     safeProgress('Complete', 100);
 
-    return { success, counts, skipped, errors };
+    return { success, counts, skipped, removed, errors };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[ReverseMigrationService] Hydration failed:', error);
