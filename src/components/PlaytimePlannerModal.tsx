@@ -479,7 +479,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             seedHistory(null);
             setView('manager');
           } else {
-            resetSetupFormRef.current(players);
+            // Seed the new plan with active players only: archived ones are not shown
+            // in the picker, so they must not be pre-selected into the plan either.
+            resetSetupFormRef.current(activePlayers(players));
             setView('setup');
           }
         };

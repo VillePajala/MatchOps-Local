@@ -530,6 +530,27 @@ describe('RosterSettingsModal - Premium Limit Enforcement', () => {
     mockCheckAndPrompt = jest.fn();
   });
 
+  /** Archived players have left the squad: they do not count toward the limit. */
+  test('counts only active players toward the player limit', () => {
+    const usePremiumModule = require('@/hooks/usePremium');
+    const original = usePremiumModule.useResourceLimit;
+    const spy = jest.fn(() => ({ canAdd: true, remaining: 1, limit: 18, current: 2, checkAndPrompt: mockCheckAndPrompt }));
+    usePremiumModule.useResourceLimit = spy;
+    try {
+      render(
+        <TestWrapper>
+          <RosterSettingsModal
+            {...defaultProps}
+            availablePlayers={[...mockPlayers, { id: 'p3', name: 'Left Club', archived: true }]}
+          />
+        </TestWrapper>
+      );
+      expect(spy).toHaveBeenCalledWith('player', 2);
+    } finally {
+      usePremiumModule.useResourceLimit = original;
+    }
+  });
+
   /**
    * Tests player creation blocked when limit reached
    * @critical - Monetization: free users cannot exceed 18 player limit

@@ -235,6 +235,20 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.getByText('Export JSON')).toBeInTheDocument(); // footer export
   });
 
+  it('a new plan neither shows nor includes archived players', async () => {
+    const { getMasterRoster } = jest.requireMock('@/utils/masterRosterManager') as { getMasterRoster: jest.Mock };
+    getMasterRoster.mockResolvedValueOnce([...roster, { id: 'p9', name: 'Left Club', isGoalie: false, archived: true }]);
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Create plan')).toBeInTheDocument());
+    expect(screen.queryByText('Left Club')).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create plan'));
+    });
+    await waitFor(() => expect(mockSavePlan).toHaveBeenCalledTimes(1));
+    expect(mockSavePlan.mock.calls[0][0].players.map((p: { id: string }) => p.id)).toEqual(['p1', 'p2']);
+  });
+
   it('disables create when no players are selected', async () => {
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await waitFor(() => expect(screen.getByText('Create plan')).toBeInTheDocument());

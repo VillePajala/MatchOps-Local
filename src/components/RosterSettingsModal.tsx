@@ -85,7 +85,8 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   void onSetPlayerNotes;
 
   // Premium limit check for player creation
-  const { checkAndPrompt: checkPlayerLimitAndPrompt } = useResourceLimit('player', availablePlayers.length);
+  // Archived players have left the squad: they do not count toward the player limit.
+  const { checkAndPrompt: checkPlayerLimitAndPrompt } = useResourceLimit('player', availablePlayers.filter((p) => !p.archived).length);
 
   const [createPlayerModalOpen, setCreatePlayerModalOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
