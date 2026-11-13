@@ -4,6 +4,17 @@
     {
       "date": "2026-11-13",
       "en": [
+        "Each device now keeps the game it had open: opening a game on another device no longer switches it on this one.",
+        "Changes you make right after opening the app (a team's players, settings) are no longer undone when the app finishes loading from the cloud."
+      ],
+      "fi": [
+        "Jokainen laite pitää nyt oman avoimen ottelunsa: ottelun avaaminen toisella laitteella ei enää vaihda sitä tällä laitteella.",
+        "Heti sovelluksen avaamisen jälkeen tekemäsi muutokset (joukkueen pelaajat, asetukset) eivät enää kumoudu, kun sovellus lataa tiedot pilvestä."
+      ]
+    },
+    {
+      "date": "2026-11-13",
+      "en": [
         "Games, players and other items you delete on one device are now removed from your other devices too, the next time you open the app there.",
         "A game you delete while offline no longer comes back when the connection returns."
       ],

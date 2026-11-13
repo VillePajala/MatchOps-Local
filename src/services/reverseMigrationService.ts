@@ -1997,10 +1997,18 @@ export async function hydrateLocalFromCloud(
       }
     }
 
-    // Save team rosters
+    // Save team rosters. Rosters have no timestamp check, and a roster edited while this
+    // pull runs is queued after the snapshot above: re-read the queue right before.
+    // (Best effort: an unreadable queue falls back to that snapshot, and a few ms remain
+    // between this read and each write - last-write-wins either way, see Rule 17.)
+    const queuedBeforeRosters = (await readQueuedIds(userId)) ?? queued;
     for (const [teamId, roster] of cloudData.teamRosters) {
       try {
-        if (isQueued(queued, 'teamRoster', teamId) || isQueued(queued, 'team', teamId)) continue;
+        if (isQueued(queued, 'teamRoster', teamId) || isQueued(queued, 'team', teamId)
+          || isQueued(queuedBeforeRosters, 'teamRoster', teamId) || isQueued(queuedBeforeRosters, 'team', teamId)) {
+          skipped.teamRosters += roster.length;
+          continue;
+        }
         await localStore.setTeamRoster(teamId, roster);
         counts.teamRosters += roster.length;
       } catch (err) {
@@ -2128,11 +2136,15 @@ export async function hydrateLocalFromCloud(
       }
     }
 
-    // Save player adjustments
+    // Save player adjustments (no timestamp check either - same fresh queue read).
+    const queuedBeforeAdjustments = (await readQueuedIds(userId)) ?? queued;
     for (const [playerId, adjustments] of cloudData.playerAdjustments) {
       for (const adj of adjustments) {
         try {
-          if (isQueued(queued, 'playerAdjustment', adj.id)) { skipped.playerAdjustments++; continue; }
+          if (isQueued(queued, 'playerAdjustment', adj.id) || isQueued(queuedBeforeAdjustments, 'playerAdjustment', adj.id)) {
+            skipped.playerAdjustments++;
+            continue;
+          }
           await localStore.upsertPlayerAdjustment(adj);
           counts.playerAdjustments++;
         } catch (err) {
@@ -2162,8 +2174,23 @@ export async function hydrateLocalFromCloud(
     // Save settings
     if (cloudData.settings && !anyQueued(queued, 'settings') && !anyQueued(queuedNow, 'settings')) {
       try {
-        await localStore.saveSettings(cloudData.settings);
-        counts.settings = true;
+        // Same rule as the other entities: the cloud copy only when it is newer. A device
+        // without its own settings yet (no updatedAt) takes the cloud's.
+        const localSettings = await localStore.getSettings();
+        if (shouldWriteBasedOnTimestamp(cloudData.settings.updatedAt, localSettings.updatedAt)) {
+          // The open game is this device's own: another device's last-opened game must
+          // not replace it (the wrong game opened after reconnecting, and a running
+          // clock for this device's game was discarded). Decided by whether this device
+          // HAS an open game - not by its settings' updatedAt, which settings saved by
+          // older versions lack. A device with no open game starts from the cloud's.
+          await localStore.saveSettings({
+            ...cloudData.settings,
+            currentGameId: localSettings.currentGameId || cloudData.settings.currentGameId,
+          });
+          counts.settings = true;
+        } else {
+          skipped.settings = true;
+        }
       } catch (err) {
         const msg = `Failed to save settings: ${err instanceof Error ? err.message : 'Unknown error'}`;
         logger.error('[ReverseMigrationService] ' + msg);
