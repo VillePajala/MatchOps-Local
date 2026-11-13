@@ -39,7 +39,7 @@ jobs:
       # Session-mode pooler: reachable over IPv4 (GitHub runners), and pg_dump needs session mode.
       DB_HOST: aws-1-eu-north-1.pooler.supabase.com
       DB_PORT: '5432'
-      BUCKET: matchops-backups-eu
+      BUCKET: matchops-backup-store
       # The owner's age PUBLIC key (the lock, not the key) - safe to publish.
       BACKUP_RECIPIENT: age15ugy92n0x4a4dj6phd57jhhg499vzffyn40ukl9l00sjvczm9uusrwz00a
       SUPABASE_CLI: supabase@3.1.0

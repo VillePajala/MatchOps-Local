@@ -5044,7 +5044,7 @@ If issues occur:
 Production runs on the free plan, which has no restorable Supabase backups. Until it moves
 to Pro, `.github/workflows/db-backup.yml` takes a nightly encrypted dump. The dump holds
 roles, schema and data, made with `supabase db dump` (Supabase's recommended CLI backup).
-Copies go to the private Cloudflare R2 bucket `matchops-backups-eu` (EU jurisdiction),
+Copies go to the private Cloudflare R2 bucket `matchops-backup-store` (EU jurisdiction),
 which deletes them after 30 days.
 
 - **Key:** only the owner's age private key, `~/.config/matchops-backup/backup-key.txt`,
@@ -5055,8 +5055,8 @@ which deletes them after 30 days.
 
 **Restore steps** (data never goes to staging or anywhere public):
 
-1. Download a backup. Use R2 → `matchops-backups-eu` in the Cloudflare dashboard, or
-   `aws s3 cp s3://matchops-backups-eu/<file> . --endpoint-url <EU endpoint>`.
+1. Download a backup. Use R2 → `matchops-backup-store` in the Cloudflare dashboard, or
+   `aws s3 cp s3://matchops-backup-store/<file> . --endpoint-url <EU endpoint>`.
 2. Decrypt and unpack it into a private folder:
    `age -d -i ~/.config/matchops-backup/backup-key.txt <file> | tar -xz -C <folder>`.
    This gives `roles.sql`, `schema.sql` and `data.sql`.
