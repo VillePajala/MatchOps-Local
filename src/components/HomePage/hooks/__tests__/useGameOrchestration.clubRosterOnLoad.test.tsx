@@ -292,4 +292,26 @@ describe('useGameOrchestration - opening a game brings in new club players', () 
     // Sanni is offered, not selected.
     expect(result.current.modalManagerProps.data.gameSessionState.selectedPlayerIds).toEqual(['a', 'b']);
   });
+
+  /**
+   * Owner case: a duplicate Sanni was deleted from the club roster but stayed in the
+   * game's list, identical to the real one. An unpicked removed player with nothing
+   * recorded is dropped when the game opens; one that is still picked stays.
+   */
+  it('drops a removed player the game never used; keeps one that is still selected', async () => {
+    const dupe: Player = { id: 's2', name: 'Sanni Lahti', isGoalie: false, receivedFairPlayCard: false };
+    const old: Player = { id: 'o', name: 'Old Selected', isGoalie: false, receivedFairPlayCard: false };
+    const game = createInProgressGame({
+      availablePlayers: [aino, sanni, dupe, old],
+      selectedPlayerIds: ['a', 'o'],
+    });
+    mockGetSavedGames.mockResolvedValue({ [GAME_ID]: game });
+    mockUseGameDataQueries.mockReturnValue(gameDataQueriesResult({ [GAME_ID]: game }, GAME_ID, [aino, sanni]));
+
+    const result = await renderOrchestration();
+
+    await waitFor(() =>
+      expect(result.current.modalManagerProps.data.availablePlayers.map((p: Player) => p.id)).toEqual(['a', 's', 'o']),
+    );
+  });
 });

@@ -54,7 +54,7 @@ import { getMasterRoster } from '@/utils/masterRosterManager';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { getPlan } from '@/utils/playtimePlanner/storage';
 import { getPlanLink, type PlanLink } from '@/utils/playtimePlanner/planLinks';
-import { mergeClubRosterIntoGamePlayers } from '@/utils/gamePlayerList';
+import { mergeClubRosterIntoGamePlayers, playerIdsReferencedByGame } from '@/utils/gamePlayerList';
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
@@ -1383,7 +1383,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // A game without its own list falls back to the roster; the fair-play card is
     // per-game, so that copy must not bring a stale award.
     const loadedAvailablePlayers = gameData?.availablePlayers
-      ? mergeClubRosterIntoGamePlayers(gameData.availablePlayers, gameDataManagement.masterRoster || [])
+      ? mergeClubRosterIntoGamePlayers(gameData.availablePlayers, gameDataManagement.masterRoster || [], playerIdsReferencedByGame(gameData))
       : withoutFairPlayCard(gameDataManagement.masterRoster || availablePlayers);
     setAvailablePlayers(loadedAvailablePlayers);
     

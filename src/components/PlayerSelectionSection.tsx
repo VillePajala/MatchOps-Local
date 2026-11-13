@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
+import { sortPlayersByLastName } from '@/utils/gamePlayerList';
 
 export interface PlayerSelectionSectionProps {
   availablePlayers: Player[];
@@ -13,6 +14,11 @@ export interface PlayerSelectionSectionProps {
   selectAllText: string;
   noPlayersText: string;
   disabled?: boolean;
+  /**
+   * Players no longer in the club roster (kept in a game's list as its record). They are
+   * marked, so a removed player can be told apart from a current one with the same name.
+   */
+  removedPlayerIds?: ReadonlySet<string>;
   /**
    * Enable flexible height to fill parent container.
    *
@@ -66,6 +72,7 @@ export interface PlayerSelectionSectionProps {
 
 const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
   availablePlayers,
+  removedPlayerIds,
   selectedPlayerIds,
   onSelectedPlayersChange,
   title,
@@ -82,6 +89,8 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
   addPlayerNicknamePlaceholder,
 }) => {
   const { t } = useTranslation();
+  // Same order as the club roster list: by last name.
+  const sortedPlayers = React.useMemo(() => sortPlayersByLastName(availablePlayers), [availablePlayers]);
   const [newPlayerNickname, setNewPlayerNickname] = useState('');
   const [isAddingOpen, setIsAddingOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -144,7 +153,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
           <div
             className={`space-y-1 overflow-y-auto pl-1 pr-1 pb-2 ${useFlexHeight ? 'flex-1 min-h-0' : 'max-h-60'}`}
           >
-            {availablePlayers.map((player) => (
+            {sortedPlayers.map((player) => (
               <div key={player.id} className="flex items-center py-1.5 px-1 rounded hover:bg-slate-800/40 transition-colors">
                 <label className="flex items-center flex-1 cursor-pointer">
                   <input
@@ -165,6 +174,11 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
                     {player.nickname && <span className="text-slate-400 ml-1">({player.nickname})</span>}
                     {/* Archived players are only listed where they already belong (this
                         game, team or plan); the badge says why they are not offered elsewhere. */}
+                    {removedPlayerIds?.has(player.id) && (
+                      <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-amber-700/40 text-amber-200">
+                        {t('rosterSettingsModal.removedBadge', 'removed from player list')}
+                      </span>
+                    )}
                     {player.archived && (
                       <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-slate-600/60 text-slate-300">
                         {t('rosterSettingsModal.archivedBadge', 'archived')}

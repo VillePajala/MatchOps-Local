@@ -4,7 +4,7 @@
  * picked for that game, and team pre-selection matched by name only.
  * @critical
  */
-import { mergeClubRosterIntoGamePlayers, teamMemberIds, activePlayers } from '@/utils/gamePlayerList';
+import { mergeClubRosterIntoGamePlayers, teamMemberIds, activePlayers, playerIdsReferencedByGame, sortPlayersByLastName } from '@/utils/gamePlayerList';
 import type { Player } from '@/types';
 
 const p = (id: string, name: string, extra: Partial<Player> = {}): Player => ({ id, name, isGoalie: false, ...extra });
@@ -77,5 +77,49 @@ describe('activePlayers', () => {
   it('returns the same array when nobody is archived', () => {
     const list = [p('a', 'A')];
     expect(activePlayers(list)).toBe(list);
+  });
+});
+
+describe('mergeClubRosterIntoGamePlayers - removed players when a game is opened', () => {
+  const club = [p('a', 'Aino'), p('s1', 'Sanni Lahti')];
+  const game = [p('a', 'Aino'), p('s1', 'Sanni Lahti'), p('s2', 'Sanni Lahti'), p('old', 'Scored Once')];
+
+  it('drops a removed player the game never picked and has nothing recorded for', () => {
+    const merged = mergeClubRosterIntoGamePlayers(game, club, new Set(['a', 'old']));
+    expect(merged.map((x) => x.id)).toEqual(['a', 's1', 'old']);
+  });
+
+  it('keeps a removed player who is still selected (the coach decides)', () => {
+    const merged = mergeClubRosterIntoGamePlayers(game, club, new Set(['a', 's2']));
+    expect(merged.map((x) => x.id)).toContain('s2');
+  });
+
+  it('never drops anyone while the club roster is not loaded', () => {
+    expect(mergeClubRosterIntoGamePlayers(game, [], new Set()).map((x) => x.id)).toEqual(['a', 's1', 's2', 'old']);
+  });
+});
+
+describe('playerIdsReferencedByGame', () => {
+  it('collects every way a game refers to a player', () => {
+    const ids = playerIdsReferencedByGame({
+      selectedPlayerIds: ['sel'],
+      playersOnField: [p('field', 'F')],
+      gameEvents: [
+        { id: 'e1', type: 'goal', time: 1, scorerId: 'scorer', assisterId: 'assist' },
+        { id: 'e2', type: 'fairPlayCard', time: 2, entityId: 'carded' },
+      ],
+      shootoutKicks: [{ id: 'k', team: 'home', scorerId: 'kicker', scored: true, order: 1 }],
+      assessments: { assessed: {} as never },
+      playerPositions: { positioned: ['ST'] },
+      captainId: 'captain',
+    });
+    expect([...ids].sort()).toEqual(['assessed', 'assist', 'captain', 'carded', 'field', 'kicker', 'positioned', 'scorer', 'sel']);
+  });
+});
+
+describe('sortPlayersByLastName', () => {
+  it('sorts like the club roster: last name, then full name', () => {
+    const sorted = sortPlayersByLastName([p('1', 'Väinö Virtanen'), p('2', 'Aino Lahti'), p('3', 'Eetu Aho'), p('4', 'Sanni Lahti')]);
+    expect(sorted.map((x) => x.name)).toEqual(['Eetu Aho', 'Aino Lahti', 'Sanni Lahti', 'Väinö Virtanen']);
   });
 });

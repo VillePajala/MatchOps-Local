@@ -56,3 +56,27 @@ describe('PlayerSelectionSection - archived players', () => {
     expect(screen.getAllByText('archived')).toHaveLength(1);
   });
 });
+
+describe('PlayerSelectionSection - order and removed players', () => {
+  it('lists players by last name, like the club roster', () => {
+    render(
+      <PlayerSelectionSection
+        {...baseProps}
+        availablePlayers={[{ id: 'a', name: 'Väinö Virtanen' }, { id: 'b', name: 'Eetu Aho' }] as Player[]}
+      />,
+    );
+    const names = screen.getAllByRole('checkbox').slice(1).map((c) => c.closest('label')?.textContent?.trim());
+    expect(names).toEqual(['Eetu Aho', 'Väinö Virtanen']);
+  });
+
+  it('marks a player removed from the club roster', () => {
+    render(
+      <PlayerSelectionSection
+        {...baseProps}
+        availablePlayers={[{ id: 's1', name: 'Sanni Lahti' }, { id: 's2', name: 'Sanni Lahti' }] as Player[]}
+        removedPlayerIds={new Set(['s2'])}
+      />,
+    );
+    expect(screen.getAllByText('removed from player list')).toHaveLength(1);
+  });
+});

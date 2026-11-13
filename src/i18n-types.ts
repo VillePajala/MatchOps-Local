@@ -2407,6 +2407,7 @@ export type TranslationKey =
   | 'rosterSettingsModal.notesPlaceholder'
   | 'rosterSettingsModal.playerNamePlaceholder'
   | 'rosterSettingsModal.playerNotes'
+  | 'rosterSettingsModal.removedBadge'
   | 'rosterSettingsModal.restorePlayer'
   | 'rosterSettingsModal.searchPlaceholder'
   | 'rosterSettingsModal.selectedPlayersShort'

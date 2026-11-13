@@ -1,4 +1,4 @@
-import type { Player } from '@/types';
+import type { AppState, Player } from '@/types';
 
 /** Players not archived: the ones offered when picking players for new games, teams
  *  and plans. Archived players (arkistoidut) stay in history: old games, stats, exports. */
@@ -19,10 +19,21 @@ export function activePlayers<T extends { archived?: boolean }>(players: T[]): T
  *   roster's fair-play flag is never taken; the card is per game.
  * - **Club players not yet in this game** are added, unselected, unless archived.
  *   Selection lives in `selectedPlayerIds`, which this does not touch.
- * - **Players no longer in the club roster** stay. The list is the game's historical
- *   record; dropping them broke stats name resolution.
+ * - **Players no longer in the club roster** stay when the game references them (it is
+ *   the game's historical record; dropping them broke stats name resolution). With
+ *   `keepDepartedIds`, unreferenced ones are dropped.
  */
-export function mergeClubRosterIntoGamePlayers(gamePlayers: Player[], clubRoster: Player[]): Player[] {
+export function mergeClubRosterIntoGamePlayers(
+  gamePlayers: Player[],
+  clubRoster: Player[],
+  /**
+   * When given (a game being opened), a player who has left the club roster is kept
+   * only if this game references her (playerIdsReferencedByGame). One who was never
+   * picked and has nothing recorded is dropped: she only made the list confusing, for
+   * example a deleted duplicate with the same name as the real player.
+   */
+  keepDepartedIds?: ReadonlySet<string>,
+): Player[] {
   const perGameGoalie = new Map<string, boolean>();
   const inGame = new Set<string>();
   // The card is unique per game (awarding it clears the previous holder).
@@ -41,7 +52,10 @@ export function mergeClubRosterIntoGamePlayers(gamePlayers: Player[], clubRoster
   });
 
   const clubIds = new Set(clubRoster.map((p) => p.id));
-  const departed = gamePlayers.filter((p) => !clubIds.has(p.id));
+  // With no club roster (not loaded yet) nothing counts as departed - never drop then.
+  const departed = gamePlayers.filter(
+    (p) => !clubIds.has(p.id) && (!keepDepartedIds || clubRoster.length === 0 || keepDepartedIds.has(p.id)),
+  );
   return departed.length > 0 ? [...merged, ...departed] : merged;
 }
 
@@ -76,4 +90,39 @@ export function teamMemberIds(
     if (byName && byName.length === 1) result.add(byName[0]);
   }
   return clubPlayers.filter((p) => result.has(p.id)).map((p) => p.id);
+}
+
+/**
+ * Every player id this game refers to: picked, on the field, in an event (scorer,
+ * assister, carded/noted player), a shootout kick, an assessment, a position, the
+ * captain. A player outside this set has no part in the game's record.
+ */
+export function playerIdsReferencedByGame(game: Partial<AppState>): Set<string> {
+  const ids = new Set<string>(game.selectedPlayerIds ?? []);
+  for (const p of game.playersOnField ?? []) ids.add(p.id);
+  for (const e of game.gameEvents ?? []) {
+    if (e.scorerId) ids.add(e.scorerId);
+    if (e.assisterId) ids.add(e.assisterId);
+    if (e.entityId) ids.add(e.entityId);
+  }
+  for (const k of game.shootoutKicks ?? []) if (k.scorerId) ids.add(k.scorerId);
+  for (const id of Object.keys(game.assessments ?? {})) ids.add(id);
+  for (const id of Object.keys(game.playerPositions ?? {})) ids.add(id);
+  if (game.captainId) ids.add(game.captainId);
+  return ids;
+}
+
+/** Last name for sorting (last word of the full name), like the club roster list. */
+const lastName = (fullName: string) => {
+  const parts = fullName.trim().split(/\s+/);
+  return parts[parts.length - 1] || fullName;
+};
+
+/** Players in the club roster's default order: by last name, then full name. */
+export function sortPlayersByLastName<T extends { name: string }>(players: T[]): T[] {
+  return [...players].sort(
+    (a, b) =>
+      lastName(a.name).localeCompare(lastName(b.name), undefined, { sensitivity: 'base' }) ||
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+  );
 }
