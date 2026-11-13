@@ -1999,6 +1999,8 @@ export async function hydrateLocalFromCloud(
 
     // Save team rosters. Rosters have no timestamp check, and a roster edited while this
     // pull runs is queued after the snapshot above: re-read the queue right before.
+    // (Best effort: an unreadable queue falls back to that snapshot, and a few ms remain
+    // between this read and each write - last-write-wins either way, see Rule 17.)
     const queuedBeforeRosters = (await readQueuedIds(userId)) ?? queued;
     for (const [teamId, roster] of cloudData.teamRosters) {
       try {
