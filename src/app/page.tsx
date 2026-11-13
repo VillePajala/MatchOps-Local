@@ -1399,6 +1399,9 @@ export default function Home() {
   }, [userId, queryClient, showToast, t]);
 
   // Handle migration wizard skip - set flag so wizard doesn't reappear, continue in cloud mode
+  // "Not now" is deliberately NOT recorded in the anonymous store (review 3.2): unlike
+  // moving or discarding, it is no answer, so the question returns on the next sign-in.
+  // Within this sign-in the completion flag below keeps it away.
   const handleMigrationSkip = useCallback(async () => {
     logger.info('[page.tsx] Migration skipped permanently');
     if (userId) {

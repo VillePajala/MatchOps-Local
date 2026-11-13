@@ -1999,13 +1999,20 @@ export async function decidePreSignInOffer(
   }
   if (accountHasData) {
     await checks.markTaken(userId);
+    // Silent by design: the coach can still bring it in explicitly from
+    // Settings -> Cloud sync -> "Import local data" (requestAnonymousDataImport).
     logger.info('[MigrationService] Account already has data - pre-sign-in data recorded as taken, not offered');
     return 'none';
   }
   return 'offer';
 }
 
-/** Record that this account moved the anonymous store to the cloud. Never throws. */
+/**
+ * Record that this account moved (or discarded) the anonymous store. Never throws: a
+ * failed write is logged and nothing else - the move itself already succeeded, and the
+ * worst outcome is that the question is asked again on the next sign-in, where answering
+ * again is safe (newer cloud copies are kept). The same holds for the release below.
+ */
 export async function markAnonymousDataMoved(userId: string): Promise<void> {
   try {
     await withMovedRecordLock(async () => {
