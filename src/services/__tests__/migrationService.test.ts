@@ -13,11 +13,14 @@ import {
   MIGRATION_MESSAGES,
   cloudCopyWins,
   anonymousDataStatus,
+  decidePreSignInOffer,
+  type PreSignInChecks,
   markAnonymousDataMoved,
   releaseAnonymousDataMoved,
   type MigrationProgress,
 } from '../migrationService';
 import { LocalDataStore } from '@/datastore/LocalDataStore';
+import { requestAnonymousDataImport, consumeAnonymousDataImportRequest } from '@/config/backendConfig';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
 import type { Player, Team, TeamPlayer, Season, Tournament, Personnel } from '@/types';
 import type { AppState } from '@/types';
@@ -284,12 +287,79 @@ describe('migrationService', () => {
       await expect(anonymousDataStatus('coach-a')).rejects.toThrow('IDB unavailable');
     });
 
+    it('a move where something non-critical failed is not recorded, so it can be retried', async () => {
+      createMockLocalStore();
+      const cloud = createMockCloudStore();
+      cloud.saveSettings.mockRejectedValueOnce(new Error('settings write failed'));
+      const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const result = await migrateLocalToCloud(() => {});
+      expect(result.success).toBe(true); // settings are non-critical
+      expect(errorLog).toHaveBeenCalled(); // the failure was logged, not hidden
+      errorLog.mockRestore();
+      expect(mockAnonStore.matchops_anonymous_data_moved_for).toBeUndefined();
+    });
+
     it('a successful move records the account at once (not when Done is tapped)', async () => {
       createMockLocalStore();
       createMockCloudStore();
       const result = await migrateLocalToCloud(() => {});
       expect(result.success).toBe(true);
       expect(JSON.parse(mockAnonStore.matchops_anonymous_data_moved_for)).toEqual(['test-user-id']);
+    });
+  });
+
+  /**
+   * Review 3.2: whether the wizard offers the pre-sign-in data at sign-in. The wizard is
+   * the only path into an account, so these rules decide what reaches it.
+   * @critical
+   */
+  describe('decidePreSignInOffer', () => {
+    const checks = (over: Partial<PreSignInChecks> = {}): PreSignInChecks & { markTaken: jest.Mock } => ({
+      migratableCount: async () => 5,
+      importRequested: () => false,
+      status: async () => 'unclaimed',
+      ownStoreHasData: async () => ({ hasData: false, checkFailed: false }),
+      cloudHasData: async () => ({ hasData: false, checkFailed: false }),
+      markTaken: jest.fn(async () => {}),
+      ...over,
+    } as PreSignInChecks & { markTaken: jest.Mock });
+
+    it('offers unclaimed data to an empty account', async () => {
+      expect(await decidePreSignInOffer('u', checks())).toBe('offer');
+    });
+    it('offers nothing when there is nothing', async () => {
+      expect(await decidePreSignInOffer('u', checks({ migratableCount: async () => 0 }))).toBe('none');
+    });
+    it('does not offer data an account has taken', async () => {
+      expect(await decidePreSignInOffer('u', checks({ status: async () => 'taken' }))).toBe('none');
+    });
+    it('offers an interrupted automatic copy to its own account', async () => {
+      expect(await decidePreSignInOffer('u', checks({ status: async () => 'resume' }))).toBe('offer');
+    });
+    it('an explicit Settings import is offered even when the data is taken', async () => {
+      expect(await decidePreSignInOffer('u', checks({ status: async () => 'taken', importRequested: () => true }))).toBe('offer');
+    });
+    it('an account with data locally or in the cloud records it as taken instead of being offered', async () => {
+      const local = checks({ ownStoreHasData: async () => ({ hasData: true, checkFailed: false }) });
+      expect(await decidePreSignInOffer('u', local)).toBe('none');
+      expect(local.markTaken).toHaveBeenCalledWith('u');
+      const cloud = checks({ cloudHasData: async () => ({ hasData: true, checkFailed: false }) });
+      expect(await decidePreSignInOffer('u', cloud)).toBe('none');
+      expect(cloud.markTaken).toHaveBeenCalledWith('u');
+    });
+    it('retries quietly while the session is not ready; throws on other failures', async () => {
+      expect(await decidePreSignInOffer('u', checks({ cloudHasData: async () => ({ hasData: false, checkFailed: true, error: 'Not authenticated' }) }))).toBe('retry-quietly');
+      expect(await decidePreSignInOffer('u', checks({ cloudHasData: async () => ({ hasData: false, checkFailed: true, error: 'AbortError: x' }) }))).toBe('retry-quietly');
+      await expect(decidePreSignInOffer('u', checks({ cloudHasData: async () => ({ hasData: false, checkFailed: true, error: 'Network down' }) }))).rejects.toThrow('Network down');
+      await expect(decidePreSignInOffer('u', checks({ ownStoreHasData: async () => ({ hasData: false, checkFailed: true, error: 'IDB' }) }))).rejects.toThrow('IDB');
+    });
+    it('the Settings import request is one-shot and per account', () => {
+      requestAnonymousDataImport('coach-a');
+      expect(consumeAnonymousDataImportRequest('coach-b')).toBe(false); // another account: not theirs
+      expect(consumeAnonymousDataImportRequest('coach-a')).toBe(false); // and it was used up
+      requestAnonymousDataImport('coach-a');
+      expect(consumeAnonymousDataImportRequest('coach-a')).toBe(true);
+      expect(consumeAnonymousDataImportRequest('coach-a')).toBe(false);
     });
   });
 

@@ -20,6 +20,7 @@ import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import { getAuthService } from '@/datastore/factory';
+import { consumeAnonymousDataImportRequest } from '@/config/backendConfig';
 import { getSupabaseClient } from '@/datastore/supabase/client';
 import type { AuthService } from '@/interfaces/AuthService';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
@@ -674,8 +675,11 @@ async function performMigration(
     logger.info('[MigrationService] Migration completed', { uploadedCounts, success: overallSuccess, failureCount: uploadFailures.length });
 
     // Record it now, not when the coach taps Done: closing the app on the completion
-    // screen must not bring the question back (review 3.2).
-    if (overallSuccess && movingUserId) {
+    // screen must not bring the question back (review 3.2). Only when NOTHING failed -
+    // a non-critical failure (settings, a roster) still counts as success above, and
+    // sealing then would mean those items are never offered again. Unsealed, the coach
+    // is asked again and the retry is safe (newer cloud copies are kept).
+    if (overallSuccess && uploadFailures.length === 0 && movingUserId) {
       await markAnonymousDataMoved(movingUserId);
     }
 
@@ -1912,6 +1916,77 @@ export async function anonymousDataStatus(userId: string): Promise<'taken' | 're
   }
   if (claim?.userId === userId && claim.state === 'in_progress') return 'resume';
   return 'taken';
+}
+
+export type PreSignInDecision = 'offer' | 'none' | 'retry-quietly';
+
+/** The checks behind {@link decidePreSignInOffer}; injectable for tests. */
+export interface PreSignInChecks {
+  migratableCount: () => Promise<number>;
+  importRequested: (userId: string) => boolean;
+  status: (userId: string) => Promise<'taken' | 'resume' | 'unclaimed'>;
+  ownStoreHasData: (userId: string) => Promise<LocalDataCheckResult>;
+  cloudHasData: () => Promise<{ hasData: boolean; checkFailed: boolean; error?: string }>;
+  markTaken: (userId: string) => Promise<void>;
+}
+
+const defaultPreSignInChecks: PreSignInChecks = {
+  migratableCount: async () => {
+    const summary = await getLocalDataSummary();
+    return Object.values(summary).reduce((acc: number, v) => acc + (typeof v === 'number' ? v : 0), 0);
+  },
+  importRequested: consumeAnonymousDataImportRequest,
+  status: (userId) => anonymousDataStatus(userId),
+  ownStoreHasData: (userId) => hasLocalDataToMigrate(userId),
+  cloudHasData: async () => (await import('@/services/reverseMigrationService')).hasCloudData(),
+  markTaken: (userId) => markAnonymousDataMoved(userId),
+};
+
+/**
+ * Whether the migration wizard offers the anonymous (pre-sign-in) data to the account
+ * signing in (review 3.2). The wizard is the only path into an account, and it asks first.
+ * - 'offer': nobody has the data yet and the account is empty; or the coach asked for an
+ *   import from Settings; or an interrupted automatic copy for this account can finish.
+ * - 'none': nothing there, or an account already has it. An account that already has data
+ *   most likely received it from the automatic copy before it left records - offering it
+ *   again would bring back what was deleted since - so it is recorded as taken instead
+ *   (Settings -> Cloud sync can still import it).
+ * - 'retry-quietly': the cloud check could not run yet (session not ready, request
+ *   aborted by an account switch); decide on the next pass.
+ * Throws when a check fails otherwise: the caller must not decide anything then.
+ */
+export async function decidePreSignInOffer(
+  userId: string,
+  checks: PreSignInChecks = defaultPreSignInChecks,
+): Promise<PreSignInDecision> {
+  const importRequested = checks.importRequested(userId);
+  if ((await checks.migratableCount()) === 0) return 'none';
+  if (importRequested) return 'offer';
+  const status = await checks.status(userId);
+  if (status === 'resume') return 'offer';
+  if (status === 'taken') return 'none';
+
+  const own = await checks.ownStoreHasData(userId);
+  if (own.checkFailed) throw new Error(own.error ?? 'Could not check the account store');
+  let accountHasData = own.hasData;
+  if (!accountHasData) {
+    const cloud = await checks.cloudHasData();
+    if (cloud.checkFailed) {
+      const { isAuthNotReadyError } = await import('@/services/reverseMigrationService');
+      const e = cloud.error ?? '';
+      if (isAuthNotReadyError(e) || e.includes('AbortError') || e.includes('signal is aborted')) {
+        return 'retry-quietly';
+      }
+      throw new Error(e || 'Could not check the cloud');
+    }
+    accountHasData = cloud.hasData;
+  }
+  if (accountHasData) {
+    await checks.markTaken(userId);
+    logger.info('[MigrationService] Account already has data - pre-sign-in data recorded as taken, not offered');
+    return 'none';
+  }
+  return 'offer';
 }
 
 /** Record that this account moved the anonymous store to the cloud. Never throws. */

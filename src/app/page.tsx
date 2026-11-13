@@ -916,9 +916,6 @@ export default function Home() {
     }
   }, [mode, isCheckingState]);
 
-  // ============================================================================
-  // LEGACY DATABASE MIGRATION (MatchOpsLocal → User-Scoped Database)
-  // ============================================================================
   // Review 3.2: the automatic copy of the anonymous (pre-sign-in) data into a signed-in
   // account (migrateLegacyData) no longer runs. It uploaded that data before the
   // migration wizard asked, so the wizard's "Discard" could not keep it out of the
@@ -1063,64 +1060,22 @@ export default function Home() {
 
         // Review 3.2: the wizard decides what happens to the anonymous (pre-sign-in)
         // data on this browser - nothing reaches the account without the coach's yes.
-        // Read the anonymous store directly: the old gate read the account's own store,
-        // which only had data because an automatic copy had already uploaded it.
+        // The rules live in decidePreSignInOffer (unit-tested).
         {
-          const { getLocalDataSummary, anonymousDataStatus, markAnonymousDataMoved, hasLocalDataToMigrate } =
-            await import('@/services/migrationService');
-          // true = offer; false = nothing to offer; null = could not tell (retry later).
-          let offer: boolean | null = null;
-          let retryQuietly = false;
+          const { decidePreSignInOffer } = await import('@/services/migrationService');
+          let decision: Awaited<ReturnType<typeof decidePreSignInOffer>> | null = null;
           try {
-            const summary = await getLocalDataSummary();
-            const migratableCount = Object.values(summary).reduce(
-              (acc: number, v) => acc + (typeof v === 'number' ? v : 0), 0);
-            const status = migratableCount > 0 ? await anonymousDataStatus(userId) : 'taken';
-            if (status === 'resume') {
-              // An automatic copy for this account was interrupted on an older build.
-              offer = true;
-            } else if (status === 'taken') {
-              offer = false;
-            } else {
-              // Nobody has claimed it. Until today the automatic copy ran without leaving
-              // a record, so an account that already has data most likely received this
-              // data back then - offering it again would bring back what was deleted
-              // since. Record it as taken by this account instead (the same rule the
-              // automatic copy used; Settings -> Cloud sync can still import it).
-              const own = await hasLocalDataToMigrate(userId);
-              if (own.checkFailed) throw new Error(own.error ?? 'own-store check failed');
-              let accountHasData = own.hasData;
-              if (!accountHasData) {
-                const { hasCloudData } = await import('@/services/reverseMigrationService');
-                const cloudCheck = await hasCloudData();
-                if (cloudCheck.checkFailed) {
-                  // Same transient cases as the cloud check below: the session is not
-                  // ready yet, or a request was aborted by an account switch.
-                  const e = cloudCheck.error ?? '';
-                  if (/Not authenticated|auth|sign in|AbortError|signal is aborted/.test(e)) {
-                    retryQuietly = true;
-                    throw new Error(e);
-                  }
-                  throw new Error(e || 'cloud check failed');
-                }
-                accountHasData = cloudCheck.hasData;
-              }
-              if (accountHasData) {
-                await markAnonymousDataMoved(userId);
-                logger.info('[page.tsx] Account already has data - pre-sign-in data recorded as taken, not offered');
-              }
-              offer = !accountHasData;
-            }
+            decision = await decidePreSignInOffer(userId);
           } catch (error) {
             logger.warn('[page.tsx] Failed to check the pre-sign-in data:', error);
           }
-          if (offer === null && retryQuietly) {
+          if (decision === 'retry-quietly') {
             logger.info('[page.tsx] Pre-sign-in data check: cloud not ready - will retry when ready');
             migrationCheckInitiatedRef.current = false; // Allow retry
             // Don't set postLoginCheckComplete - keep loading screen visible (as below)
             return;
           }
-          if (offer === null) {
+          if (decision === null) {
             // M8: a failed read must not silently decide anything - tell the user,
             // allow a retry, set no flag.
             showToast(
@@ -1131,7 +1086,7 @@ export default function Home() {
             setPostLoginCheckComplete(true);
             return;
           }
-          if (offer) {
+          if (decision === 'offer') {
             logger.info('[page.tsx] Pre-sign-in data found, showing migration wizard');
             setShowMigrationWizard(true);
             // Mark post-login check complete - wizard handles its own loading
@@ -1468,6 +1423,12 @@ export default function Home() {
       await localStore.initialize();
       await localStore.clearAllUserData();
       logger.info('[page.tsx] Local data cleared successfully');
+      // Record the decision as well, so "Discard" holds even if something refills
+      // that store later (the record lives in it, written after the clear).
+      if (userId) {
+        const { markAnonymousDataMoved } = await import('@/services/migrationService');
+        await markAnonymousDataMoved(userId);
+      }
     } catch (error) {
       logger.error('[page.tsx] Failed to clear local data:', error);
       showToast(t('page.failedToClearLocalData', 'Failed to clear local data. Please try again.'), 'error');
