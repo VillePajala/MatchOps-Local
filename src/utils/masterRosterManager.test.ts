@@ -1,11 +1,10 @@
-import { getMasterRoster, addPlayer, updatePlayer, removePlayer, setGoalieStatus, setFairPlayCardStatus } from './masterRosterManager';
+import { getMasterRoster, addPlayer, updatePlayer, removePlayer, setGoalieStatus } from './masterRosterManager';
 import {
   getMasterRoster as utilGetMasterRoster,
   addPlayerToRoster,
   updatePlayerInRoster,
   removePlayerFromRoster,
   setPlayerGoalieStatus,
-  setPlayerFairPlayCardStatus
 } from './masterRoster';
 import type { Player } from '@/types';
 import { QueryClient } from '@tanstack/react-query';
@@ -39,7 +38,6 @@ const mockedAdd = addPlayerToRoster as jest.MockedFunction<typeof addPlayerToRos
 const mockedUpdate = updatePlayerInRoster as jest.MockedFunction<typeof updatePlayerInRoster>;
 const mockedRemove = removePlayerFromRoster as jest.MockedFunction<typeof removePlayerFromRoster>;
 const mockedSetGoalie = setPlayerGoalieStatus as jest.MockedFunction<typeof setPlayerGoalieStatus>;
-const mockedSetFP = setPlayerFairPlayCardStatus as jest.MockedFunction<typeof setPlayerFairPlayCardStatus>;
 
 beforeEach(() => {
   jest.resetAllMocks();
@@ -121,13 +119,3 @@ it('returns null when set goalie fails', async () => {
   await expect(setGoalieStatus('1', true)).resolves.toBeNull();
 });
 
-it('sets fair play via util', async () => {
-  const player = mockRoster[0];
-  mockedSetFP.mockResolvedValue(player);
-  await expect(setFairPlayCardStatus('1', true)).resolves.toBe(player);
-});
-
-it('returns null when set fair play fails', async () => {
-  mockedSetFP.mockRejectedValue(new Error('err'));
-  await expect(setFairPlayCardStatus('1', true)).resolves.toBeNull();
-});

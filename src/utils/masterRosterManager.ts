@@ -5,7 +5,6 @@ import {
     updatePlayerInRoster as utilUpdatePlayerInRoster,
     removePlayerFromRoster as utilRemovePlayerFromRoster,
     setPlayerGoalieStatus as utilSetPlayerGoalieStatus,
-    setPlayerFairPlayCardStatus as utilSetPlayerFairPlayCardStatus
 } from '@/utils/masterRoster';
 import logger from '@/utils/logger';
 
@@ -107,27 +106,3 @@ export const setGoalieStatus = async (
         return null;
     }
 };
-
-/**
- * Sets the fair play card status for a player in the master roster.
- * Calls the underlying async utility from masterRoster.ts.
- * @param {string} playerId The ID of the player to update.
- * @param {boolean} receivedFairPlayCard Whether the player has received the card.
- * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
- * @returns {Promise<Player | null>} The updated player object, or null if player not found or operation failed.
- */
-export const setFairPlayCardStatus = async (
-    playerId: string,
-    receivedFairPlayCard: boolean,
-    userId?: string
-): Promise<Player | null> => {
-    // logger.log('[masterRosterManager] setFairPlayCardStatus called for ID:', playerId, 'to:', receivedFairPlayCard);
-    try {
-        const updatedPlayer = await utilSetPlayerFairPlayCardStatus(playerId, receivedFairPlayCard, userId);
-        // logger.log('[masterRosterManager] Fair play status updated by util:', updatedPlayer);
-        return updatedPlayer;
-    } catch (error) {
-        logger.error(`[masterRosterManager] Error in setFairPlayCardStatus for ID ${playerId}:`, error);
-        return null;
-    }
-}; 

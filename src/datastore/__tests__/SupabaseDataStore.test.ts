@@ -354,6 +354,64 @@ describe('SupabaseDataStore', () => {
   });
 
   // ==========================================================================
+  // FAIR-PLAY CARD IS PER-GAME ONLY (review 1.16)
+  // Older app versions stored the award on roster rows; it must never come back
+  // from a roster read nor be written to one again.
+  // ==========================================================================
+
+  describe('roster rows never carry the fair-play card', () => {
+    const stalePlayerRow = {
+      id: 'player_old', name: 'Old Winner', nickname: null, jersey_number: '9', is_goalie: false,
+      color: null, notes: null, received_fair_play_card: true,
+      created_at: '2024-01-01T00:00:00.000Z', updated_at: '2024-01-01T00:00:00.000Z', user_id: 'user_123',
+    };
+
+    it('getPlayers reads a stale flag as false', async () => {
+      mockQueryBuilder.order = jest.fn().mockResolvedValue({ data: [stalePlayerRow], error: null });
+      const players = await dataStore.getPlayers();
+      expect(players[0].receivedFairPlayCard).toBe(false);
+    });
+
+    it('updatePlayer writes false and returns false, even when asked to set it', async () => {
+      mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: stalePlayerRow, error: null });
+      const update = jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ data: null, error: null }) }),
+      });
+      mockQueryBuilder.update = update;
+      const updated = await dataStore.updatePlayer('player_old', { name: 'Renamed', receivedFairPlayCard: true });
+      expect(update.mock.calls[0][0]).toEqual(expect.objectContaining({ received_fair_play_card: false }));
+      expect(updated?.receivedFairPlayCard).toBe(false);
+    });
+
+    it('createPlayer and upsertPlayer store false', async () => {
+      mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
+      const created = await dataStore.createPlayer({ name: 'New', isGoalie: false, receivedFairPlayCard: true });
+      expect(created.receivedFairPlayCard).toBe(false);
+      expect(mockQueryBuilder.insert.mock.calls[0][0]).toEqual(expect.objectContaining({ received_fair_play_card: false }));
+
+      mockQueryBuilder.select = jest.fn().mockReturnThis();
+      mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: stalePlayerRow, error: null });
+      await dataStore.upsertPlayer({ id: 'player_old', name: 'Old Winner', isGoalie: false, receivedFairPlayCard: true });
+      expect(mockQueryBuilder.upsert.mock.calls[0][0]).toEqual(expect.objectContaining({ received_fair_play_card: false }));
+    });
+
+    it('team roster: read as false, and setTeamRoster sends false', async () => {
+      mockQueryBuilder.eq = jest.fn().mockReturnThis();
+      mockQueryBuilder.order = jest.fn().mockResolvedValue({
+        data: [{ ...stalePlayerRow, id: 'team_1_player_old', team_id: 'team_1', player_id: 'player_old' }],
+        error: null,
+      });
+      const roster = await dataStore.getTeamRoster('team_1');
+      expect(roster[0].receivedFairPlayCard).toBe(false);
+
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
+      await dataStore.setTeamRoster('team_1', [{ id: 'player_old', name: 'Old Winner', isGoalie: false, receivedFairPlayCard: true }]);
+      const call = (mockSupabaseClient.rpc as jest.Mock).mock.calls.find((c) => c[0] === 'set_team_roster');
+      expect(call[1].p_roster[0]).toEqual(expect.objectContaining({ received_fair_play_card: false }));
+    });
+  });
+
+  // ==========================================================================
   // PLAYER TESTS
   // ==========================================================================
 
