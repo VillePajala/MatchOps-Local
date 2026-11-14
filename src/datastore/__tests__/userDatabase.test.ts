@@ -7,6 +7,7 @@ import {
   isUserScopedDatabase,
   extractUserIdFromDatabaseName,
   deleteUserLocalDatabases,
+  userLocalDatabaseExists,
   LEGACY_DATABASE_NAME,
   validateUserId,
   MAX_USER_ID_LENGTH,
@@ -259,6 +260,96 @@ describe('userDatabase', () => {
       const deleteDatabase = installMockIndexedDB('success');
       await deleteUserLocalDatabases('');
       expect(deleteDatabase).not.toHaveBeenCalled();
+    });
+  });
+
+  /** Review 3.14: "Delete All Data" checks the account's data is really gone. */
+  describe('userLocalDatabaseExists', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
+    const install = (names: () => string[] | undefined) => {
+      Object.defineProperty(globalThis, 'indexedDB', {
+        configurable: true,
+        value: names() === undefined ? {} : { databases: jest.fn(async () => (names() ?? []).map((name) => ({ name, version: 1 }))) },
+      });
+    };
+    afterEach(() => {
+      if (original) Object.defineProperty(globalThis, 'indexedDB', original);
+      else delete (globalThis as { indexedDB?: unknown }).indexedDB;
+    });
+
+    it('is false once the account database is gone', async () => {
+      install(() => ['MatchOpsLocal']);
+      await expect(userLocalDatabaseExists('u1', 0)).resolves.toBe(false);
+    });
+
+    it('is true while the account database is still there', async () => {
+      install(() => ['matchops_user_u1']);
+      await expect(userLocalDatabaseExists('u1', 0)).resolves.toBe(true);
+    });
+
+    it('waits for a pending delete to finish', async () => {
+      let calls = 0;
+      install(() => (++calls < 3 ? ['matchops_user_u1'] : []));
+      await expect(userLocalDatabaseExists('u1', 2000)).resolves.toBe(false);
+    });
+
+    describe('without indexedDB.databases() (opens without creating)', () => {
+      const installOpen = (mode: 'missing' | 'present' | 'pending') => {
+        const created: string[] = [];
+        const close = jest.fn();
+        Object.defineProperty(globalThis, 'indexedDB', {
+          configurable: true,
+          value: {
+            open: jest.fn((name: string) => {
+              const request: Record<string, unknown> = { result: { close } };
+              const abort = jest.fn(() => { request.error = { name: 'AbortError' }; (request.onerror as () => void)?.(); });
+              request.transaction = { abort };
+              setTimeout(() => {
+                if (mode === 'pending') return; // a blocked delete: the open never completes
+                if (mode === 'missing') {
+                  (request.onupgradeneeded as (e: { oldVersion: number }) => void)({ oldVersion: 0 });
+                  if (!abort.mock.calls.length) created.push(name);
+                } else {
+                  (request.onsuccess as () => void)();
+                }
+              }, 0);
+              return request;
+            }),
+          },
+        });
+        return { created, close };
+      };
+
+      it('reports gone, without creating the database', async () => {
+        const { created } = installOpen('missing');
+        await expect(userLocalDatabaseExists('u1', 500)).resolves.toBe(false);
+        expect(created).toEqual([]);
+      });
+
+      it('reports present (and closes it) when it exists', async () => {
+        const { close } = installOpen('present');
+        await expect(userLocalDatabaseExists('u1', 500)).resolves.toBe(true);
+        expect(close).toHaveBeenCalled();
+      });
+
+      it('an open error other than our abort is not proof it is gone', async () => {
+        Object.defineProperty(globalThis, 'indexedDB', {
+          configurable: true,
+          value: {
+            open: jest.fn(() => {
+              const request: Record<string, unknown> = { error: { name: 'UnknownError' } };
+              setTimeout(() => (request.onerror as () => void)(), 0);
+              return request;
+            }),
+          },
+        });
+        await expect(userLocalDatabaseExists('u1', 500)).resolves.toBe(true);
+      });
+
+      it('never claims gone while a delete is still blocked', async () => {
+        installOpen('pending');
+        await expect(userLocalDatabaseExists('u1', 50)).resolves.toBe(true);
+      });
     });
   });
 });

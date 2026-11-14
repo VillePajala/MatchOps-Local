@@ -4,6 +4,15 @@
     {
       "date": "2026-11-14",
       "en": [
+        "\"Delete All Data\" now also removes a signed-in coach's data from the device; before, signing in again could bring it back. The cloud copy is not affected."
+      ],
+      "fi": [
+        "\"Poista kaikki tiedot\" poistaa nyt myös kirjautuneen valmentajan tiedot laitteelta; aiemmin ne saattoivat palata, kun kirjautui uudelleen sisään. Pilvessä olevaan kopioon tämä ei vaikuta."
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "en": [
         "Changes not yet sent to the cloud are no longer lost when you sign out or someone else signs in on the same device: they are sent the next time you sign in there. Signing out with unsent changes now warns you first and offers to sync them."
       ],
       "fi": [

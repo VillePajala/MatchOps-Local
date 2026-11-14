@@ -26,6 +26,38 @@ import { setMigrationCompleted } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 import { reloadApp } from '@/utils/reloadApp';
 
+/**
+ * Delete everything this account keeps on this device (data, sync queue, audio clips,
+ * backup snapshots) - the cloud copy is untouched. Throws if the data database is
+ * still there afterwards, so "Delete All Data" never reports success while the data
+ * would come back at the next sign-in.
+ */
+async function eraseSignedInUserDataOnDevice(userId: string): Promise<void> {
+  const { closeDataStore } = await import('@/datastore/factory');
+  const { closeUserStorageAdapter } = await import('@/utils/storage');
+  const { deleteUserLocalDatabases, userLocalDatabaseExists } = await import('@/datastore/userDatabase');
+  const { deleteAudioDatabase } = await import('@/utils/audioClipStore');
+  const { deleteBackupsDatabase } = await import('@/utils/backupSnapshots');
+  try {
+    await closeDataStore({ force: true });
+  } catch (error) {
+    logger.warn('[useAppSettingsController] Could not close the data store before erasing', { error });
+  }
+  try {
+    await closeUserStorageAdapter(userId);
+  } catch (error) {
+    logger.warn('[useAppSettingsController] Could not close the account storage before erasing', { error });
+  }
+  await Promise.all([
+    deleteUserLocalDatabases(userId),
+    deleteAudioDatabase(userId),
+    deleteBackupsDatabase(userId),
+  ]);
+  if (await userLocalDatabaseExists(userId)) {
+    throw new Error('The account data on this device could not be deleted');
+  }
+}
+
 export interface UseAppSettingsControllerReturn {
   appLanguage: string;
   setAppLanguage: (language: string) => void;
@@ -119,6 +151,15 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
       // shared flag) so no in-flight timer/autosave touches storage mid-wipe
       setIsResetting(true);
 
+      // Signed in (e.g. local data mode after downloading the cloud data): this
+      // account's data lives in its own databases, which the clear below never
+      // touched - the app looked empty, and signing in again brought it all back
+      // (review 3.14). Erase them first: close the open connections (an open one
+      // blocks the delete), delete, and check the data database is really gone.
+      if (userId) {
+        await eraseSignedInUserDataOnDevice(userId);
+      }
+
       // Clear storage completely (hard reset clears all user data)
       await utilResetAppSettings();
 
@@ -135,7 +176,7 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
     } finally {
       setShowHardResetConfirm(false);
     }
-  }, [showToast, t, setIsResetting]);
+  }, [showToast, t, setIsResetting, userId]);
 
   // Handler for Re-sync from Cloud (cloud mode)
   // Clears local data and migration flag - on reload, migration wizard will reimport from cloud
