@@ -658,3 +658,44 @@ describe('App Settings Utilities', () => {
     });
   });
 }); 
+
+/**
+ * Review 3.15: the backup reminder's state is per signed-in account - stored once per
+ * device, coach B's reminder ran on coach A's backup history.
+ */
+describe('backup reminder state per account', () => {
+  beforeEach(() => {
+    Object.keys(mockKeyStore).forEach((key) => delete mockKeyStore[key]);
+  });
+
+  it("one account's backup and snooze do not count for another account, or for no account", async () => {
+    await appSettingsModule.markOffDeviceBackupNow('coach-a');
+    await appSettingsModule.setBackupReminderDismissed('coach-a');
+    expect(await appSettingsModule.getLastOffDeviceBackupTime('coach-a')).toEqual(expect.any(Number));
+    expect(await appSettingsModule.getLastOffDeviceBackupTime('coach-b')).toBeNull();
+    expect(await appSettingsModule.getBackupReminderDismissedTime('coach-b')).toBeNull();
+    expect(await appSettingsModule.getLastOffDeviceBackupTime()).toBeNull();
+  });
+
+  it("local mode ('local' id) keeps the device-wide history", async () => {
+    mockKeyStore['lastOffDeviceBackupAt'] = '1000';
+    await appSettingsModule.markOffDeviceBackupNow('local');
+    expect(Object.keys(mockKeyStore).some((k) => k.endsWith('_local'))).toBe(false);
+  });
+
+  it("an account without its own history yet reads the device-wide one (updating does not restart the reminder)", async () => {
+    await appSettingsModule.markOffDeviceBackupNow(); // pre-update, device-wide
+    const deviceWide = await appSettingsModule.getLastOffDeviceBackupTime();
+    expect(await appSettingsModule.getLastOffDeviceBackupTime('coach-a')).toBe(deviceWide);
+  });
+
+  it("account deletion removes that account's reminder state only", async () => {
+    await appSettingsModule.markOffDeviceBackupNow('coach-a');
+    await appSettingsModule.markDataFirstSeen('coach-a');
+    await appSettingsModule.markOffDeviceBackupNow('coach-b');
+    await appSettingsModule.forgetBackupReminderState('coach-a');
+    expect(await appSettingsModule.getLastOffDeviceBackupTime('coach-a')).toBeNull();
+    expect(await appSettingsModule.getDataFirstSeenTime('coach-a')).toBeNull();
+    expect(await appSettingsModule.getLastOffDeviceBackupTime('coach-b')).toEqual(expect.any(Number));
+  });
+});

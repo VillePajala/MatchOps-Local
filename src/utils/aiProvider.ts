@@ -28,10 +28,22 @@ const CONSENT = 'matchops_ai_consent';
 const PSEUDONYMIZE = 'matchops_ai_pseudonymize';
 const MODEL = 'matchops_ai_model';
 
+const ALL_KEYS = [KEY, PROVIDER, CONSENT, PSEUDONYMIZE, MODEL];
+
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((listener) => listener());
 
-function read(name: string): string | null {
+/*
+ * Per ACCOUNT (review 3.15). Stored once per device, coach A's key and consent
+ * carried over to whoever signed in next on that device: B's requests went out
+ * under A's key - billed to A - and B never saw the consent gate; and the key
+ * outlived A's account deletion. Signed in, every value lives under the account's
+ * id; without an account (local mode) the plain device keys are used as before.
+ */
+let accountId: string | null = null;
+const storageName = (name: string) => (accountId ? `${name}_${accountId}` : name);
+
+function rawRead(name: string): string | null {
   try {
     // eslint-disable-next-line no-restricted-globals -- device-local secret/preference, never synced or backed up
     return localStorage.getItem(name);
@@ -40,7 +52,7 @@ function read(name: string): string | null {
   }
 }
 
-function write(name: string, value: string | null): void {
+function rawWrite(name: string, value: string | null): void {
   try {
     // eslint-disable-next-line no-restricted-globals -- device-local secret/preference, never synced or backed up
     if (value === null) localStorage.removeItem(name);
@@ -49,6 +61,53 @@ function write(name: string, value: string | null): void {
   } catch {
     // Not persistable on this device - the UI simply stays disconnected.
   }
+}
+
+const read = (name: string) => rawRead(storageName(name));
+const write = (name: string, value: string | null) => rawWrite(storageName(name), value);
+
+// One-time upgrade bookkeeping. The plain keys are ALSO local mode's live setup, so
+// "plain keys exist" is not evidence of a pre-update setup: only what existed when
+// this code first ran on the device may ever be handed to an account.
+const SCOPED_MARKER = 'matchops_ai_scoped_v1';
+const LEGACY_PENDING = 'matchops_ai_legacy_pending';
+
+function noteUpgradeOnce(): void {
+  if (rawRead(SCOPED_MARKER) !== null) return;
+  rawWrite(SCOPED_MARKER, '1');
+  if (rawRead(KEY) !== null || rawRead(CONSENT) !== null) rawWrite(LEGACY_PENDING, '1');
+}
+
+/**
+ * Whose AI setup to use: the signed-in account's id, or null without an account.
+ * Called by AuthProvider whenever the signed-in account changes.
+ *
+ * Upgrade: a setup stored device-wide before this change belonged to whoever was
+ * using the device then. It is handed over only to an account whose session was
+ * RESTORED (`restored`: it was already signed in here), never to one signing in
+ * interactively - that may be another coach on a shared device. Only once, and only
+ * to an account without a setup of its own.
+ */
+export function setAiAccount(userId: string | null, options: { restored?: boolean } = {}): void {
+  noteUpgradeOnce();
+  if (userId === accountId) return;
+  accountId = userId;
+  if (userId && options.restored && rawRead(LEGACY_PENDING) !== null
+    && rawRead(`${KEY}_${userId}`) === null && rawRead(`${CONSENT}_${userId}`) === null) {
+    for (const name of ALL_KEYS) {
+      const value = rawRead(name);
+      if (value !== null) rawWrite(`${name}_${userId}`, value);
+      rawWrite(name, null);
+    }
+    rawWrite(LEGACY_PENDING, null);
+  }
+  refresh();
+}
+
+/** Remove an account's AI setup from this device (account deletion). */
+export function forgetAiAccount(userId: string): void {
+  for (const name of ALL_KEYS) rawWrite(`${name}_${userId}`, null);
+  if (accountId === userId) refresh();
 }
 
 export interface AiProviderState {
@@ -203,6 +262,9 @@ export function useAiProviderState(): AiProviderState {
 /** Test-only: drop the cached snapshot after the test cleared storage. */
 export function resetAiProviderStateForTests(): void {
   snapshot = null;
+  accountId = null;
+  rawWrite(SCOPED_MARKER, null);
+  rawWrite(LEGACY_PENDING, null);
 }
 
 export type AiKeyTestResult = 'ok' | 'unauthorized' | 'rateLimited' | 'network';

@@ -31,6 +31,8 @@ import * as Sentry from '@sentry/nextjs';
 import type { AuthService } from '@/interfaces/AuthService';
 import logger from '@/utils/logger';
 import { getCachedUserIdentity, clearCachedSupabaseSession } from '@/auth/cachedSession';
+import { setAiAccount, forgetAiAccount } from '@/utils/aiProvider';
+import { forgetReplacedReport } from '@/utils/reportUndo';
 import { onAuthServerUnreachable } from '@/auth/authReachability';
 import { deleteUserLocalDatabases } from '@/datastore/userDatabase';
 import { markDeviceHasSignedIn } from '@/utils/deviceSignInMemory';
@@ -247,6 +249,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Device memory: from now on this device opens on Sign in, not Create account.
     markDeviceHasSignedIn();
   }, []);
+
+  // Device-local settings that belong to an ACCOUNT follow the signed-in account
+  // (review 3.15): Kirjuri's AI key/consent/model, and the report-undo slot.
+  const accountIdForDeviceSettings = user && !user.isAnonymous ? user.id : null;
+  const previousAccountIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    // Restored = not established by a sign-in in this page load (a restored session
+    // or the cached identity of the grace period): the account already using this
+    // device, which may take over a pre-update device-wide AI setup.
+    setAiAccount(accountIdForDeviceSettings, { restored: !hasSignedInThisSessionRef.current });
+    const previous = previousAccountIdRef.current;
+    // Another account on this device must not be offered this one's replaced report.
+    if (previous && previous !== accountIdForDeviceSettings) forgetReplacedReport();
+    if (accountIdForDeviceSettings) previousAccountIdRef.current = accountIdForDeviceSettings;
+  }, [accountIdForDeviceSettings]);
 
   // Clean up password reset timeout on unmount
   useEffect(() => {
@@ -1174,6 +1191,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem(`matchops_marketing_prompt_seen_${deletedUserId}`);
         } catch {
           // non-critical
+        }
+        // The account's device-local leftovers (review 3.15): AI key and consent,
+        // the replaced-report undo slot, backup-reminder state, and conflict backups
+        // written to the device-wide store before they moved into the account's own.
+        try {
+          forgetAiAccount(deletedUserId);
+          forgetReplacedReport();
+          const { forgetBackupReminderState } = await import('@/utils/appSettings');
+          await forgetBackupReminderState(deletedUserId);
+          const { getAllStorageData, removeStorageItem } = await import('@/utils/storage');
+          const legacy = await getAllStorageData({ keyPrefix: 'conflict_backup_' });
+          await Promise.allSettled(Object.keys(legacy).map((key) => removeStorageItem(key)));
+        } catch (error) {
+          logger.warn('[AuthProvider] Could not remove some device-local leftovers on account deletion', { error });
         }
       }
 

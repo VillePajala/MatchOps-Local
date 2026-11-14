@@ -70,7 +70,7 @@ import {
   getGameBaseVersion, setGameBaseVersion, clearGameBaseVersion,
   addPendingWrite, isPendingWrite, clearPendingWrites,
 } from './gameBaseVersions';
-import { setStorageItem, removeStorageItem, getAllStorageData } from '@/utils/storage';
+import { getUserStorageAdapter } from '@/utils/storage';
 import * as Sentry from '@sentry/nextjs';
 import { withRetry, throwIfTransient, TransientSupabaseError, isTransientError, type RetryConfig } from '@/datastore/supabase/retry';
 import { addOpponentToList } from '@/utils/opponentNames';
@@ -3944,7 +3944,10 @@ export class SupabaseDataStore implements DataStore {
             timestamp: new Date().toISOString(),
             expectedVersion,
           };
-          await setStorageItem(backupKey, JSON.stringify(backup));
+          // In the ACCOUNT's own storage (review 3.15): in the device-wide store a
+          // copy of this coach's game outlived account deletion and was there for the
+          // next account on the device.
+          await (await getUserStorageAdapter(userId)).setItem(backupKey, JSON.stringify(backup));
           logger.info('[SupabaseDataStore] Conflict backup saved for recovery', { gameId: id });
         } catch (backupErr) {
           // Backup failure is non-critical - log but continue with conflict handling
@@ -4028,7 +4031,7 @@ export class SupabaseDataStore implements DataStore {
     });
 
     // Clear any stale conflict backup for this game (from a previous ConflictError)
-    SupabaseDataStore.clearConflictBackup(id).catch(() => {
+    SupabaseDataStore.clearConflictBackup(id, userId).catch(() => {
       // Non-critical — don't block save on cleanup failure
     });
 
@@ -5282,7 +5285,7 @@ export class SupabaseDataStore implements DataStore {
    *
    * @returns Array of conflict backups with game data and metadata
    */
-  static async getConflictBackups(): Promise<Array<{
+  static async getConflictBackups(userId: string): Promise<Array<{
     gameId: string;
     gameData: AppState;
     timestamp: string;
@@ -5296,8 +5299,10 @@ export class SupabaseDataStore implements DataStore {
     }> = [];
 
     try {
-      const allBackupData = await getAllStorageData({ keyPrefix: 'conflict_backup_' });
-      for (const [_key, value] of Object.entries(allBackupData)) {
+      const adapter = await getUserStorageAdapter(userId);
+      const keys = (await adapter.getKeys()).filter((key) => key.startsWith('conflict_backup_'));
+      for (const key of keys) {
+        const value = await adapter.getItem(key);
         if (value) {
           try {
             const backup = JSON.parse(value);
@@ -5321,9 +5326,9 @@ export class SupabaseDataStore implements DataStore {
    *
    * @param gameId - The game ID whose backup should be cleared
    */
-  static async clearConflictBackup(gameId: string): Promise<void> {
+  static async clearConflictBackup(gameId: string, userId: string): Promise<void> {
     try {
-      await removeStorageItem(`conflict_backup_${gameId}`);
+      await (await getUserStorageAdapter(userId)).removeItem(`conflict_backup_${gameId}`);
       logger.info('[SupabaseDataStore] Conflict backup cleared', { gameId });
     } catch (err) {
       logger.warn('[SupabaseDataStore] Failed to clear conflict backup:', err);
@@ -5333,12 +5338,12 @@ export class SupabaseDataStore implements DataStore {
   /**
    * Clear all conflict backups.
    */
-  static async clearAllConflictBackups(): Promise<void> {
+  static async clearAllConflictBackups(userId: string): Promise<void> {
     try {
-      const allBackupData = await getAllStorageData({ keyPrefix: 'conflict_backup_' });
-      const keysToRemove = Object.keys(allBackupData);
+      const adapter = await getUserStorageAdapter(userId);
+      const keysToRemove = (await adapter.getKeys()).filter((key) => key.startsWith('conflict_backup_'));
       for (const key of keysToRemove) {
-        await removeStorageItem(key);
+        await adapter.removeItem(key);
       }
       logger.info('[SupabaseDataStore] All conflict backups cleared', { count: keysToRemove.length });
     } catch (err) {

@@ -501,7 +501,7 @@ export const trySharePrewarmedBackup = (
   navigator.share({ files: [file], title: 'MatchOps Backup' })
     .then(async () => {
       // Await the timestamp write before re-evaluating so the banner sees it.
-      await markOffDeviceBackupNow().catch(() => { /* timestamp best-effort */ });
+      await markOffDeviceBackupNow(userId).catch(() => { /* timestamp best-effort */ });
       onComplete?.();
     })
     .catch(async (err: unknown) => {
@@ -510,7 +510,7 @@ export const trySharePrewarmedBackup = (
       // Even a synchronous share failed → save via download so data isn't lost.
       logger.warn('[fullBackup] synchronous Web Share failed, downloading:', err);
       downloadJson(json, downloadName);
-      await markOffDeviceBackupNow().catch(() => { /* timestamp best-effort */ });
+      await markOffDeviceBackupNow(userId).catch(() => { /* timestamp best-effort */ });
       if (showToast) showToast(i18n.t("fullBackup.exportDownloaded"), 'success');
       onComplete?.();
     });
@@ -535,7 +535,7 @@ export const downloadFullBackup = async (
       ? (prewarm.json ?? await prewarm.promise)
       : await generateFullBackupJson(userId);
     downloadJson(jsonString, makeBackupFilename());
-    await markOffDeviceBackupNow();
+    await markOffDeviceBackupNow(userId);
     if (showToast) showToast(i18n.t("fullBackup.exportDownloaded"), 'success');
     return jsonString;
   } catch (error) {
@@ -588,7 +588,7 @@ export const exportFullBackup = async (
       logger.log('Full backup export cancelled by user (share dismissed)');
     } else {
       // Record this off-device backup so the periodic reminder resets (Layer 2).
-      await markOffDeviceBackupNow();
+      await markOffDeviceBackupNow(userId);
       // When we fall back to a plain download, the share sheet never appeared,
       // so tell the user exactly where the file landed (avoids "where did it go?").
       if (delivery === 'downloaded' && showToast) {
