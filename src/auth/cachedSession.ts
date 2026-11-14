@@ -56,6 +56,17 @@ export function clearCachedSupabaseSession(): void {
   }
 }
 
+/** Whether Supabase's session key is present at all (parseable or not). False if unreadable. */
+export function hasCachedSupabaseSessionEntry(): boolean {
+  try {
+    const key = supabaseSessionStorageKey();
+    // eslint-disable-next-line no-restricted-globals -- Supabase's internal auth token storage
+    return key !== null && localStorage.getItem(key) !== null;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Read and parse Supabase's cached session from localStorage.
  *

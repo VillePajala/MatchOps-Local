@@ -26,7 +26,7 @@ import type { Database } from '@/types/supabase';
 import { POLICY_VERSION } from '@/config/constants';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
-import { getCachedFullSession, readCachedSupabaseSession, clearCachedSupabaseSession } from '@/auth/cachedSession';
+import { getCachedFullSession, hasCachedSupabaseSessionEntry, clearCachedSupabaseSession } from '@/auth/cachedSession';
 import { AUTH_SESSION_REFRESHED_EVENT } from '@/sync/syncEvents';
 
 /**
@@ -46,6 +46,15 @@ import { AUTH_SESSION_REFRESHED_EVENT } from '@/sync/syncEvents';
  */
 const PASSWORD_MIN_LENGTH = 8;
 
+/** Sign-out calls cannot take an AbortSignal: race them against a 10 s limit. */
+function withSignOutTimeout<T>(call: Promise<T>, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), 10000);
+  });
+  return Promise.race([call, timeout]).finally(() => { if (timeoutId) clearTimeout(timeoutId); });
+}
+
 /**
  * Map Supabase auth events to our AuthState type.
  *
@@ -62,15 +71,6 @@ const PASSWORD_MIN_LENGTH = 8;
  * - USER_UPDATED: User profile was updated
  * - MFA_CHALLENGE_VERIFIED: MFA challenge completed
  */
-/** Sign-out calls cannot take an AbortSignal: race them against a 10 s limit. */
-function withSignOutTimeout<T>(call: Promise<T>, message: string): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_resolve, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(message)), 10000);
-  });
-  return Promise.race([call, timeout]).finally(() => { if (timeoutId) clearTimeout(timeoutId); });
-}
-
 function mapAuthEvent(event: AuthChangeEvent): AuthState {
   switch (event) {
     case 'SIGNED_IN':
@@ -762,17 +762,18 @@ export class SupabaseAuthService implements AuthService {
     // No SIGNED_OUT is broadcast to other tabs this way; AuthProvider clears its own
     // state regardless (multi-tab is a documented limitation).
     // Unconditionally (idempotent): a stored entry that does not even parse must go too.
+    // The check looks for the key itself, so an unparseable leftover is caught as well.
+    // supabase-js may still hold the session in memory (and its refresh timer); the
+    // AuthProvider ignores any session it delivers after sign-out.
     clearCachedSupabaseSession();
-    {
-      if (readCachedSupabaseSession() !== null) {
-        logger.error('[SupabaseAuthService] Could not remove the stored session on sign out');
-        try {
-          Sentry.captureMessage('Sign out could not remove the stored session', { level: 'error', tags: { flow: 'sign-out' } });
-        } catch {
-          // Sentry failure acceptable
-        }
-        throw new AuthError('Sign out could not be completed on this device.');
+    if (hasCachedSupabaseSessionEntry()) {
+      logger.error('[SupabaseAuthService] Could not remove the stored session on sign out');
+      try {
+        Sentry.captureMessage('Sign out could not remove the stored session', { level: 'error', tags: { flow: 'sign-out' } });
+      } catch {
+        // Sentry failure acceptable
       }
+      throw new AuthError('Sign out could not be completed on this device.');
     }
 
     logger.info('[SupabaseAuthService] Signed out');
