@@ -489,8 +489,6 @@ export class SyncEngine {
    * Returns a safe default if queue is not yet initialized.
    */
   async getStatus(): Promise<SyncStatusInfo> {
-    // Check if queue is initialized to avoid throwing during early lifecycle
-    // (e.g., when doEmitStatus is called via queueMicrotask during engine creation)
     // The browser closed the queue database mid-session: reopen it. If that fails, say
     // so - "synced" would hide that changes are not being queued (review 3.9).
     if (!this.queue.isInitialized() && this.queue.wasClosedUnexpectedly()
@@ -508,6 +506,8 @@ export class SyncEngine {
         hasServerFailure: this.isServerPaused,
       };
     }
+    // Check if queue is initialized to avoid throwing during early lifecycle
+    // (e.g., when doEmitStatus is called via queueMicrotask during engine creation)
     if (!this.queue.isInitialized()) {
       logger.debug('[SyncEngine] getStatus called before queue initialized, returning initializing state');
       return {

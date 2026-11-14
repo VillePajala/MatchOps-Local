@@ -40,7 +40,7 @@ export async function recordMissedSyncOp(userId: string, op: SyncOperationInput)
   try {
     await persist(userId);
   } catch (error) {
-    logger.warn('[missedSyncOps] Could not store a missed change (kept in memory)', { error });
+    logger.warn('[missedSyncOps] Could not store a missed change - kept in memory only, so it is lost if the app closes before the queue works again', { error });
   }
 }
 
@@ -53,13 +53,29 @@ export async function loadMissedSyncOps(userId: string): Promise<void> {
     if (!Array.isArray(parsed)) return;
     const forUser = memory.get(userId) ?? new Map<string, SyncOperationInput>();
     for (const op of parsed as SyncOperationInput[]) {
-      if (op && typeof op.entityType === 'string' && typeof op.entityId === 'string' && !forUser.has(entityKey(op))) {
+      if (op && typeof op.entityType === 'string' && typeof op.entityId === 'string'
+        && typeof op.operation === 'string' && typeof op.timestamp === 'number' && Number.isFinite(op.timestamp)
+        && !forUser.has(entityKey(op))) {
         forUser.set(entityKey(op), op);
       }
     }
     memory.set(userId, forUser);
   } catch (error) {
     logger.warn('[missedSyncOps] Could not read missed changes', { error });
+  }
+}
+
+/**
+ * A newer change to this entity was queued: an older missed snapshot must never be
+ * replayed over it (it would replace the newer op, or undo a delete).
+ */
+export async function discardMissedSyncOp(userId: string, entityType: string, entityId: string): Promise<void> {
+  const forUser = memory.get(userId);
+  if (!forUser?.delete(entityKey({ entityType: entityType as SyncOperationInput['entityType'], entityId }))) return;
+  try {
+    await persist(userId);
+  } catch (error) {
+    logger.warn('[missedSyncOps] Could not update stored missed changes', { error });
   }
 }
 
@@ -81,7 +97,7 @@ export async function replayMissedSyncOps(
   let replayed = 0;
   for (const op of ops) {
     try {
-      await enqueue({ ...op, timestamp: Date.now() });
+      await enqueue(op); // original timestamp: it is older than anything queued since
       forUser.delete(entityKey(op));
       replayed++;
     } catch (error) {

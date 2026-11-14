@@ -1,4 +1,4 @@
-import { recordMissedSyncOp, loadMissedSyncOps, hasMissedSyncOps, replayMissedSyncOps, clearMissedSyncOps } from '../missedSyncOps';
+import { recordMissedSyncOp, loadMissedSyncOps, hasMissedSyncOps, replayMissedSyncOps, clearMissedSyncOps, discardMissedSyncOp } from '../missedSyncOps';
 import type { SyncOperationInput } from '../types';
 
 const store: Record<string, string> = {};
@@ -48,6 +48,22 @@ describe('missedSyncOps', () => {
     expect(await replayMissedSyncOps(u, async () => { throw new Error('queue still closed'); })).toBe(0);
     warn.mockRestore();
     expect(hasMissedSyncOps(u)).toBe(true);
+  });
+
+  it('replays with the original timestamp', async () => {
+    await recordMissedSyncOp(u, op('g1', 42));
+    const queued: SyncOperationInput[] = [];
+    await replayMissedSyncOps(u, async (o) => { queued.push(o); });
+    expect(queued[0].timestamp).toBe(42);
+  });
+
+  it('a newer queued change discards the missed snapshot of that item only', async () => {
+    await recordMissedSyncOp(u, op('g1', 1));
+    await recordMissedSyncOp(u, op('g2', 2));
+    await discardMissedSyncOp(u, 'game', 'g1');
+    const queued: SyncOperationInput[] = [];
+    await replayMissedSyncOps(u, async (o) => { queued.push(o); });
+    expect(queued.map((o) => o.entityId)).toEqual(['g2']);
   });
 
   it('is cleared with the account data', async () => {

@@ -1153,6 +1153,15 @@ describe('SyncQueue', () => {
       expect(warnings()).toHaveBeenCalled();
     });
 
+    it('a close() during the reopen (sign-out) keeps it closed', async () => {
+      closeAsBrowser();
+      const pending = queue.enqueue({ entityType: 'player', entityId: 'p4', operation: 'update', data: { id: 'p4' }, timestamp: Date.now() });
+      await queue.close();
+      await expect(pending).rejects.toThrow();
+      expect(queue.isInitialized()).toBe(false);
+      await queue.initialize(); // for afterEach cleanup
+    });
+
     it('stays closed after a deliberate close()', async () => {
       await queue.close();
       expect(queue.wasClosedUnexpectedly()).toBe(false);

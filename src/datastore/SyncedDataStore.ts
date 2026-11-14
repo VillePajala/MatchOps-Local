@@ -34,7 +34,7 @@ import { LocalDataStore } from './LocalDataStore';
 import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
 import type { SyncEntityType, SyncOperationType, SyncStatusInfo } from '@/sync';
-import { recordMissedSyncOp, loadMissedSyncOps, hasMissedSyncOps, replayMissedSyncOps, clearMissedSyncOps } from '@/sync/missedSyncOps';
+import { recordMissedSyncOp, loadMissedSyncOps, hasMissedSyncOps, replayMissedSyncOps, clearMissedSyncOps, discardMissedSyncOp } from '@/sync/missedSyncOps';
 import logger from '@/utils/logger';
 import { retryWithBackoff, chunkArray, countPushFailures } from '@/utils/retry';
 import * as Sentry from '@sentry/nextjs';
@@ -232,8 +232,15 @@ export class SyncedDataStore implements DataStore {
     }
   }
 
-  /** Queue changes that missed the sync queue (review 3.9). Never throws. */
-  private async replayMissedSyncOps(): Promise<void> {
+  /** Queue changes that missed the sync queue (review 3.9). One run at a time. Never throws. */
+  private replayInFlight: Promise<void> | null = null;
+  private replayMissedSyncOps(): Promise<void> {
+    if (this.replayInFlight) return this.replayInFlight;
+    this.replayInFlight = this.doReplayMissedSyncOps().finally(() => { this.replayInFlight = null; });
+    return this.replayInFlight;
+  }
+
+  private async doReplayMissedSyncOps(): Promise<void> {
     if (!this.userId || !hasMissedSyncOps(this.userId) || !this.initialized || this.closed) return;
     try {
       const replayed = await replayMissedSyncOps(this.userId, (op) => this.syncQueue.enqueue(op));
@@ -552,8 +559,12 @@ export class SyncedDataStore implements DataStore {
       if (this.syncEngine) {
         this.syncEngine.nudge();
       }
-      // The queue works: changes that missed it earlier can go in now.
-      if (this.userId && hasMissedSyncOps(this.userId)) void this.replayMissedSyncOps();
+      // The queue works. A missed (older) snapshot of THIS entity is superseded by what
+      // was just queued; other entities' missed changes can go in now.
+      if (this.userId && hasMissedSyncOps(this.userId)) {
+        await discardMissedSyncOp(this.userId, entityType, entityId);
+        void this.replayMissedSyncOps();
+      }
     } catch (error) {
       // Local write succeeded, but failed to queue sync operation.
       // This is not fatal - log and continue. The operation will be

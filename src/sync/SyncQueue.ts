@@ -99,6 +99,8 @@ export class SyncQueue {
   private closedUnexpectedly = false;
   /** close() was called: stays closed (sign-out, account switch). */
   private closedDeliberately = false;
+  /** Bumped by close(), so a reopen that raced it is undone. */
+  private closeGeneration = 0;
   private initPromise: Promise<void> | null = null;
   private maxRetries: number;
   private backoffBaseMs: number;
@@ -259,8 +261,10 @@ export class SyncQueue {
           }
         };
 
-        // Handle unexpected close
+        // Handle unexpected close (of THIS connection - a newer one may be open by then)
+        const thisDb = this.db;
         this.db.onclose = () => {
+          if (this.db !== thisDb) return;
           logger.warn('[SyncQueue] Database connection closed unexpectedly');
           // Track in Sentry - unexpected close could indicate storage pressure or corruption
           try {
@@ -319,9 +323,27 @@ export class SyncQueue {
   private async ensureOpen(): Promise<IDBDatabase> {
     if (!this.db && this.closedUnexpectedly && !this.closedDeliberately) {
       logger.info('[SyncQueue] Reopening the queue database after it was closed');
-      await this.initialize();
+      const generation = this.closeGeneration;
+      await this.reopen();
+      if (generation !== this.closeGeneration) {
+        // close() ran while reopening (sign-out, account switch): stay closed.
+        (this.db as IDBDatabase | null)?.close();
+        this.db = null;
+      }
     }
     return this.ensureInitialized();
+  }
+
+  /** Reopen without lifting a deliberate close (unlike initialize()). */
+  private async reopen(): Promise<void> {
+    if (this.initPromise) return this.initPromise;
+    if (this.db) return;
+    this.initPromise = this.openDatabase();
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
   }
 
   /**
@@ -1516,6 +1538,7 @@ export class SyncQueue {
    */
   async close(): Promise<void> {
     this.closedDeliberately = true;
+    this.closeGeneration++;
     if (this.db) {
       this.db.close();
       this.db = null;

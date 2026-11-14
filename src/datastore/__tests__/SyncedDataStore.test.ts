@@ -190,6 +190,29 @@ describe('SyncedDataStore', () => {
    * @critical
    */
   describe('changes that miss the sync queue', () => {
+    it('never replace a newer change to the same item queued since', async () => {
+      resetSyncEngine();
+      const userStore = new SyncedDataStore('missed-ops-user-2');
+      await userStore.initialize();
+      const queue = (userStore as unknown as { syncQueue: SyncQueue }).syncQueue;
+      const realEnqueue = queue.enqueue.bind(queue);
+      const enqueue = jest.spyOn(queue, 'enqueue').mockRejectedValueOnce(new Error('queue database closed'));
+      const quiet = jest.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        await userStore.upsertPlayer({ id: 'p_same', name: 'Old name', isGoalie: false, receivedFairPlayCard: false });
+        enqueue.mockImplementation(realEnqueue);
+        await userStore.upsertPlayer({ id: 'p_same', name: 'New name', isGoalie: false, receivedFairPlayCard: false });
+        for (let i = 0; i < 20; i++) await new Promise<void>((r) => queueMicrotask(r));
+        const ops = (await queue.getAllOperations()).filter((o) => o.entityId === 'p_same');
+        expect(ops).toHaveLength(1);
+        expect((ops[0].data as { name: string }).name).toBe('New name');
+      } finally {
+        quiet.mockRestore();
+        await userStore.clearAllUserData().catch(() => {});
+        await userStore.close();
+      }
+    });
+
     it('are queued with the next successful save', async () => {
       resetSyncEngine();
       const userStore = new SyncedDataStore('missed-ops-user');
