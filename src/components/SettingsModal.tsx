@@ -398,8 +398,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           setBackupRestoreResult(result);
           setShowRestoreResults(true);
         } else {
-          // importFullBackup returned falsy - show error toast
-          showToast(t('fullBackup.restoreFailed', 'Failed to restore backup. The file may be corrupted or invalid.'), 'error');
+          // importFullBackup already showed the precise reason through showToast (it
+          // reports every failure itself). A second, generic "file may be corrupted"
+          // toast here contradicted it - e.g. "could not reach the cloud, nothing was
+          // changed" (review 3.16).
           logger.warn('[SettingsModal] importFullBackup returned falsy result');
         }
       } catch (error) {

@@ -1625,6 +1625,19 @@ async function writeSeenCloudIds(userId: string, seen: SeenIds): Promise<void> {
   }
 }
 
+/**
+ * Forget which ids this device has seen in the cloud (review 3.16). Called BEFORE the
+ * cloud is cleared for a restore: if the restore then stops with the cloud already
+ * empty (a lost reply, or a failure after the clear), the old record would make the
+ * next sync treat every local item as "deleted elsewhere" once anything reaches the
+ * cloud again. Without the record the next sync only records. Throws if it cannot be
+ * removed (the restore must not clear the cloud then).
+ */
+export async function forgetSeenCloudIds(userId: string): Promise<void> {
+  const { getUserStorageAdapter } = await import('@/utils/storage');
+  await (await getUserStorageAdapter(userId)).removeItem(CLOUD_IDS_SEEN_KEY);
+}
+
 function unionQueued(a: QueuedIds, b: QueuedIds): QueuedIds {
   const out: QueuedIds = new Map();
   for (const source of [a, b]) {

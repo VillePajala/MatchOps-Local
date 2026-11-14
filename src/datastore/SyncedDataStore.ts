@@ -21,6 +21,7 @@ import type {
   Tournament,
   PlayerStatAdjustment,
 } from '@/types';
+import { NetworkError } from '@/interfaces/DataStoreErrors';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
@@ -63,6 +64,18 @@ export interface SyncQueueErrorInfo {
 }
 
 /**
+ * A strict (restore) clear failed. `cloudCleared`: 'no' = nothing changed anywhere;
+ * 'maybe' = the cloud call failed in a way that may still have cleared it; 'yes' = the
+ * cloud was cleared and a later step failed (review 3.16).
+ */
+export class RestoreClearError extends Error {
+  constructor(cause: unknown, public readonly cloudCleared: 'no' | 'maybe' | 'yes') {
+    super(cause instanceof Error ? cause.message : String(cause), { cause });
+    this.name = 'RestoreClearError';
+  }
+}
+
+/**
  * Result of pushAllToCloud operation.
  * Includes counts of successfully pushed entities and tracking of failures.
  */
@@ -89,6 +102,11 @@ export interface PushAllToCloudResult {
   playtimePlanLinks: number;
   /** Number of successfully pushed playtime game-sub entries */
   playtimeGameSubs: number;
+  /**
+   * How many of the failed items were handed to the sync queue, so the engine keeps
+   * retrying them like any other unsent change (review 3.16).
+   */
+  requeued?: number;
   /** Tracking of failed entities */
   failures: {
     /** IDs of players that failed to push */
@@ -1613,6 +1631,48 @@ export class SyncedDataStore implements DataStore {
         }
       }
 
+      // Items that failed after their retries go to the sync queue (review 3.16). The
+      // queue was cleared for this bulk push, so before this they existed only on this
+      // device: "Sync now" had nothing to do, the status read "synced", and they were
+      // lost on a reinstall or "Re-sync from Cloud". Queued, the engine retries them.
+      const f = summary.failures;
+      const requeue: Array<[SyncEntityType, string, unknown]> = [];
+      const byId = <T extends { id: string }>(list: T[], ids: string[], type: SyncEntityType) => {
+        for (const id of ids) {
+          const item = list.find((x) => x.id === id);
+          if (item) requeue.push([type, id, item]);
+        }
+      };
+      byId(players, f.players, 'player');
+      byId(teams, f.teams, 'team');
+      byId(seasons, f.seasons, 'season');
+      byId(tournaments, f.tournaments, 'tournament');
+      byId(personnel, f.personnel, 'personnel');
+      for (const teamId of f.rosters) {
+        if (teamRosters[teamId]) requeue.push(['teamRoster', teamId, teamRosters[teamId]]);
+      }
+      for (const gameId of f.games) {
+        if (games[gameId]) requeue.push(['game', gameId, games[gameId]]);
+      }
+      const allAdjustments = [...adjustmentsMap.values()].flat();
+      byId(allAdjustments, f.adjustments, 'playerAdjustment');
+      if (f.settings) requeue.push(['settings', 'app', settings]);
+      if (f.warmupPlan && warmupPlan) requeue.push(['warmupPlan', 'default', warmupPlan]);
+      for (const id of f.playtimePlans) {
+        if (plans[id]) requeue.push(['playtimePlan', id, plans[id]]);
+      }
+      for (const gameId of f.playtimePlanLinks) {
+        if (planLinks[gameId]) requeue.push(['playtimePlanLink', gameId, planLinks[gameId]]);
+      }
+      for (const gameId of f.playtimeGameSubs) {
+        if (allGameSubs[gameId]) requeue.push(['playtimeGameSubs', gameId, allGameSubs[gameId]]);
+      }
+      for (const [type, id, data] of requeue) {
+        // queueSync never throws; a change it cannot queue is kept as a missed op (3.9).
+        await this.queueSync(type, id, 'update', data);
+      }
+      summary.requeued = requeue.length;
+
       // Log summary
       const totalFailures = countPushFailures(summary.failures);
       if (totalFailures > 0) {
@@ -1634,9 +1694,22 @@ export class SyncedDataStore implements DataStore {
     }
   }
 
-  async clearAllUserData(): Promise<void> {
+  /**
+   * Clear the account's data, local and cloud.
+   *
+   * `requireCloud` (backup restore, review 3.16): the cloud must be cleared, and it is
+   * cleared FIRST - if it cannot be (no connection, or the cloud store is not
+   * attached), this throws with NOTHING changed on the device. Without it, a restore
+   * emptied the device, kept going, and the old cloud data stayed behind to come back
+   * later. Other callers (factory reset) keep clearing the device even when the cloud
+   * fails.
+   */
+  async clearAllUserData(options: { requireCloud?: boolean } = {}): Promise<void> {
+    if (options.requireCloud && !this.remoteStore) {
+      throw new NetworkError('Cloud is not available - nothing was cleared');
+    }
     // Changes that missed the queue belong to the data being cleared (review 3.9).
-    if (this.userId) await clearMissedSyncOps(this.userId);
+    if (this.userId && !options.requireCloud) await clearMissedSyncOps(this.userId);
     // Pause sync engine (not stop) so new operations can be queued after clear.
     // Stopping the engine prevents nudge() from triggering processing,
     // which breaks backup import flow where operations are queued after clear.
@@ -1653,6 +1726,40 @@ export class SyncedDataStore implements DataStore {
         logger.warn('[SyncedDataStore] Proceeding with data clear despite in-flight sync (waitForIdle timed out)');
       }
       logger.info('[SyncedDataStore] Sync engine paused and idle, proceeding with data clear');
+    }
+
+    if (options.requireCloud) {
+      try {
+        // Before the cloud may change: see forgetSeenCloudIds.
+        if (this.userId) {
+          const { forgetSeenCloudIds } = await import('@/services/reverseMigrationService');
+          await forgetSeenCloudIds(this.userId);
+        }
+        let cloudCleared: RestoreClearError['cloudCleared'] = 'no';
+        try {
+          logger.info('[SyncedDataStore] Clearing remote (cloud) data first...');
+          await this.remoteStore!.clearAllUserData();
+          cloudCleared = 'yes';
+          if (this.userId) await clearMissedSyncOps(this.userId);
+          await this.syncQueue.clear();
+          await this.localStore.clearAllUserData();
+        } catch (error) {
+          // Offline before anything was sent (SupabaseDataStore's checkOnline): the
+          // cloud is certainly unchanged. Anything else may have cleared it despite the
+          // failure (a lost reply). Matching the message errs safe: unrecognised means
+          // 'maybe', i.e. "repeat the restore", never a false "nothing changed".
+          // (The seen-in-cloud record is already forgotten either way; that only makes
+          // the next sync record ids again, which is harmless.)
+          if (cloudCleared === 'no' && !(error instanceof NetworkError && /offline/i.test(error.message))) {
+            cloudCleared = 'maybe';
+          }
+          throw new RestoreClearError(error, cloudCleared);
+        }
+        logger.info('[SyncedDataStore] All user data cleared (cloud first, then local)');
+        return;
+      } finally {
+        if (wasRunning && !wasPaused && engine) engine.resume();
+      }
     }
 
     // Clear the sync queue (pending operations will be discarded)

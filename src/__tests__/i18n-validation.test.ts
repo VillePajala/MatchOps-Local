@@ -723,7 +723,11 @@ describe('Translation File Validation', () => {
       //     show as one group per moment with no dismiss. Lands at 3376.
       // +3 cloudSync.pendingSync.signOutConsequence/signOutAnyway/signOutSyncFailed:
       //     the sign-out variant of the unsynced-changes warning (review 3.13).
-      expect(enKeys.length).toBe(3390);
+      // +3 fullBackup.cloudUnreachableNothingChanged/cloudPushQueued/cloudPushFailed:
+      //     honest cloud-mode restore messages (review 3.16). Lands at 3393.
+      // +1 fullBackup.restoreInterruptedRepeat: the cloud may already be cleared. 3394.
+      // +1 fullBackup.cloudPushQueued split into _one/_other (singular wording). 3395.
+      expect(enKeys.length).toBe(3395);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -914,7 +918,10 @@ describe('Translation File Validation', () => {
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
       // +1 grouped planned subs (see EN above). Lands at 3376.
       // +3 sign-out unsynced-changes warning (see EN above). Lands at 3390.
-      expect(fiKeys.length).toBe(3390);
+      // +3 cloud-mode restore messages (see EN above). Lands at 3393.
+      // +1 restoreInterruptedRepeat (see EN above). Lands at 3394.
+      // +1 cloudPushQueued _one/_other (see EN above). Lands at 3395.
+      expect(fiKeys.length).toBe(3395);
     });
   });
 });

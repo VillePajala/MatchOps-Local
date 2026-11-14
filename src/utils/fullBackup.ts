@@ -926,20 +926,57 @@ export const importFullBackup = async (
     // Android Chrome is particularly prone to this issue on repeated imports.
     // 5 retries with 1000ms initial = up to ~31s total wait (1+2+4+8+16s)
     //
-    // NOTE: SyncedDataStore.clearAllUserData() always clears local data even if
-    // cloud clear fails. So if this throws, local is still cleared and we can
-    // proceed with the import — cloud data will be overwritten during sync.
-    try {
-      await retryWithBackoff(
-        () => dataStore.clearAllUserData(),
-        { operationName: 'clearAllUserData', maxRetries: 5, initialDelayMs: 1000 }
-      );
-      logger.log("Cleared existing app data for clean restore");
-    } catch (error) {
-      // Local data is always cleared by SyncedDataStore, even if cloud clear fails.
-      // Continue with import — cloud data will be overwritten during subsequent sync.
-      logger.warn('clearAllUserData had issues (local cleared, cloud may have failed):', error);
-      logger.log("Proceeding with restore despite cloud clear failure — data will sync after import");
+    // Local mode: clearAllUserData() clears the device; a failure is logged and the
+    // import proceeds. Cloud mode (review 3.16): the cloud is cleared FIRST, and if that cannot be done
+    // the restore stops with nothing changed on the device. Before, the device was
+    // emptied anyway, the restore carried on, and the old cloud data stayed behind to
+    // come back on other devices or after "Re-sync from Cloud".
+    const isCloudSynced = 'pushAllToCloud' in dataStore && typeof dataStore.pushAllToCloud === 'function';
+    if (isCloudSynced) {
+      // Across ALL attempts: one attempt may have cleared the cloud (a lost reply) even
+      // if the last one failed offline before sending anything.
+      let cloudMayBeCleared = false;
+      try {
+        await retryWithBackoff(
+          async () => {
+            try {
+              await (dataStore as unknown as { clearAllUserData(o: { requireCloud: boolean }): Promise<void> })
+                .clearAllUserData({ requireCloud: true });
+            } catch (attemptError) {
+              const cleared = (attemptError as { cloudCleared?: string }).cloudCleared;
+              if (cleared === 'maybe' || cleared === 'yes') cloudMayBeCleared = true;
+              throw attemptError;
+            }
+          },
+          { operationName: 'clearAllUserData(requireCloud)', maxRetries: 5, initialDelayMs: 1000 }
+        );
+        logger.log("Cleared existing app data (cloud first) for clean restore");
+      } catch (error) {
+        logger.warn('[importFullBackup] Restore stopped while clearing', { cloudMayBeCleared, error });
+        // Never say "nothing was changed" unless that is certain.
+        const message = cloudMayBeCleared
+          ? i18n.t('fullBackup.restoreInterruptedRepeat',
+            'The restore did not finish. Repeat it with a good connection - your backup file has everything.')
+          : i18n.t('fullBackup.cloudUnreachableNothingChanged',
+            'Could not reach the cloud, so nothing was changed. Try again with a better connection.');
+        if (showToast) showToast(message, 'error');
+        else alert(message);
+        errorAlreadyReported = true;
+        throw error;
+      }
+    } else {
+      try {
+        await retryWithBackoff(
+          () => dataStore.clearAllUserData(),
+          { operationName: 'clearAllUserData', maxRetries: 5, initialDelayMs: 1000 }
+        );
+        logger.log("Cleared existing app data for clean restore");
+      } catch (error) {
+        // Local data is always cleared by SyncedDataStore, even if cloud clear fails.
+        // Continue with import — cloud data will be overwritten during subsequent sync.
+        logger.warn('clearAllUserData had issues (local cleared, cloud may have failed):', error);
+        logger.log("Proceeding with restore despite cloud clear failure — data will sync after import");
+      }
     }
 
     // Normalize legacy keys (best-effort). Some old exports might use different names.
@@ -1211,7 +1248,12 @@ export const importFullBackup = async (
             const detailStr = failureDetails.length > 0
               ? ` (${failureDetails.join(', ')})`
               : '';
-            warnings.push(`${totalFailures} items failed to sync to cloud${detailStr}. You can retry from Settings.`);
+            // They are queued for normal sync (pushAllToCloud, review 3.16): say so.
+            warnings.push(i18n.t('fullBackup.cloudPushQueued', {
+              count: totalFailures,
+              defaultValue: '{{count}} items could not be sent to the cloud yet. They will be sent automatically when the connection allows.',
+            }));
+            logger.warn(`[importFullBackup] ${totalFailures} items queued for retry${detailStr}`);
 
             // Log detailed failure IDs for debugging (visible in browser console)
             logger.warn('[importFullBackup] Failed item IDs:', {
@@ -1237,7 +1279,8 @@ export const importFullBackup = async (
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         logger.error('[importFullBackup] Bulk push failed after retries:', errorMsg);
-        warnings.push('Some data might not have synced to cloud. You can manually sync from Settings.');
+        warnings.push(i18n.t('fullBackup.cloudPushFailed',
+          'Some data may not have reached the cloud. It is safe on this device; make a backup and try the restore again with a better connection.'));
         // Don't throw - local data is safe, user can retry sync manually
       }
     }
