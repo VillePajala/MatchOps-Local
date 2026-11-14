@@ -116,6 +116,32 @@ describe('useSignOutWithPendingSyncWarning', () => {
     expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error');
   });
 
+  it.each([
+    ['offline', { isOnline: false }],
+    ['the queue is broken', { state: 'error' }],
+  ])('"Sync first" stops at once and keeps the warning when %s', async (_label, extra) => {
+    unsent(2);
+    Object.assign(mockEngineStatus, extra);
+    const signOut = jest.fn();
+    render(<Harness signOut={signOut} />);
+    await act(async () => { fireEvent.click(screen.getByText('sign out')); });
+    mockGetStatus.mockClear();
+    await act(async () => { fireEvent.click(screen.getByText('Sync First')); });
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalled());
+    expect(signOut).not.toHaveBeenCalled();
+    expect(mockGetStatus.mock.calls.length).toBeLessThanOrEqual(2); // no 20 s polling
+  });
+
+  it('a double tap signs out once', async () => {
+    const signOut = jest.fn();
+    render(<Harness signOut={signOut} />);
+    await act(async () => {
+      fireEvent.click(screen.getByText('sign out'));
+      fireEvent.click(screen.getByText('sign out'));
+    });
+    expect(signOut).toHaveBeenCalledTimes(1);
+  });
+
   it('Cancel neither signs out nor syncs', async () => {
     unsent(1);
     const signOut = jest.fn();

@@ -62,6 +62,9 @@ export interface UseSyncStatusResult {
   /** Clear failed operations */
   clearFailed: () => Promise<void>;
 
+  /** Discard every unsent change (pending and failed). */
+  discardAllUnsent: () => Promise<void>;
+
   /** Force retry ALL stuck operations (ignores backoff) */
   forceRetryAll: () => Promise<void>;
 
@@ -89,6 +92,7 @@ const LOCAL_MODE_STATUS: UseSyncStatusResult = {
   syncNow: async () => {},
   retryFailed: async () => {},
   clearFailed: async () => {},
+  discardAllUnsent: async () => {},
   forceRetryAll: async () => {},
   pause: async () => {},
   resume: async () => {},
@@ -385,6 +389,17 @@ export function useSyncStatus(): UseSyncStatusResult {
     }
   }, [mode]);
 
+  // Discard every unsent change (the user chose "Discard & Continue")
+  const discardAllUnsent = useCallback(async () => {
+    if (mode !== 'cloud') return;
+    try {
+      const { getSyncEngine } = await import('@/sync');
+      await getSyncEngine().discardAllUnsent();
+    } catch (error) {
+      logger.error('[useSyncStatus] Discard unsent failed:', error);
+    }
+  }, [mode]);
+
   // Force retry ALL stuck operations (ignores backoff)
   const forceRetryAll = useCallback(async () => {
     if (mode !== 'cloud') return;
@@ -460,6 +475,7 @@ export function useSyncStatus(): UseSyncStatusResult {
         syncNow,
         retryFailed,
         clearFailed,
+        discardAllUnsent,
         forceRetryAll,
         pause,
         resume,
@@ -483,9 +499,10 @@ export function useSyncStatus(): UseSyncStatusResult {
       syncNow,
       retryFailed,
       clearFailed,
+      discardAllUnsent,
       forceRetryAll,
       pause,
       resume,
     };
-  }, [mode, isInitialized, status, syncNow, retryFailed, clearFailed, forceRetryAll, pause, resume]);
+  }, [mode, isInitialized, status, syncNow, retryFailed, clearFailed, discardAllUnsent, forceRetryAll, pause, resume]);
 }

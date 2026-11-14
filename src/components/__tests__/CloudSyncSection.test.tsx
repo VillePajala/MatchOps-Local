@@ -155,6 +155,7 @@ const mockSyncStatus = {
   syncNow: jest.fn().mockResolvedValue(undefined),
   retryFailed: jest.fn().mockResolvedValue(undefined),
   clearFailed: jest.fn().mockResolvedValue(undefined),
+  discardAllUnsent: jest.fn().mockResolvedValue(undefined),
 };
 
 jest.mock('@/hooks/useSyncStatus', () => ({
@@ -280,6 +281,7 @@ describe('CloudSyncSection', () => {
     mockSyncStatus.syncNow = jest.fn().mockResolvedValue(undefined);
     mockSyncStatus.retryFailed = jest.fn().mockResolvedValue(undefined);
     mockSyncStatus.clearFailed = jest.fn().mockResolvedValue(undefined);
+    mockSyncStatus.discardAllUnsent = jest.fn().mockResolvedValue(undefined);
   });
 
   describe('local mode display', () => {
@@ -750,9 +752,15 @@ describe('CloudSyncSection', () => {
       }
     });
 
-    it('clears failed items when Discard & Continue is clicked', async () => {
+    /**
+     * Review 3.13 (Codex): closing the store no longer clears an account's queue, so
+     * Discard must drop PENDING changes too - or they upload later, over newer data.
+     * @critical
+     */
+    it('discards every unsent change (pending and failed) when Discard & Continue is clicked', async () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
       mockSyncStatus.failedCount = 2;
 
       renderWithQueryClient(<CloudSyncSection />);
@@ -767,7 +775,7 @@ describe('CloudSyncSection', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Discard & Continue' }));
 
       await waitFor(() => {
-        expect(mockSyncStatus.clearFailed).toHaveBeenCalled();
+        expect(mockSyncStatus.discardAllUnsent).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -817,6 +825,7 @@ describe('CloudSyncSection', () => {
       expect(screen.queryByTestId('reverse-migration-wizard')).not.toBeInTheDocument();
       expect(mockSyncStatus.syncNow).not.toHaveBeenCalled();
       expect(mockSyncStatus.clearFailed).not.toHaveBeenCalled();
+      expect(mockSyncStatus.discardAllUnsent).not.toHaveBeenCalled();
     });
 
     it('passes isOnline and isSyncing props to modal', async () => {

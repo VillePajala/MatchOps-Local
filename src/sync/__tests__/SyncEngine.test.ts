@@ -124,6 +124,27 @@ describe('SyncEngine', () => {
     jest.useRealTimers();
   });
 
+  /**
+   * Review 3.13 (Codex): "Discard & Continue" must drop every unsent change - closing
+   * the store no longer clears an account's queue.
+   * @critical
+   */
+  describe('discardAllUnsent', () => {
+    it('removes pending and failed operations alike', async () => {
+      await queue.enqueue(createTestOperation({ entityId: 'p_pending' }));
+      const failedId = await queue.enqueue(createTestOperation({ entityId: 'p_failed' }));
+      await queue.markFailed(failedId, 'Error');
+      expect((await queue.getAllOperations()).length).toBeGreaterThan(0);
+
+      await engine.discardAllUnsent();
+
+      expect(await queue.getAllOperations()).toHaveLength(0);
+      const after = await engine.getStatus();
+      expect(after.pendingCount).toBe(0);
+      expect(after.failedCount).toBe(0);
+    });
+  });
+
   describe('lifecycle', () => {
     it('should start and stop correctly', () => {
       expect(engine.isEngineRunning()).toBe(false);

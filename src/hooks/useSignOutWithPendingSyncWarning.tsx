@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import PendingSyncWarningModal from '@/components/PendingSyncWarningModal';
 import { useSyncStatus } from '@/hooks/useSyncStatus';
@@ -32,11 +32,11 @@ const SYNC_FIRST_POLL_MS = 300;
  */
 export async function syncUntilEmpty(syncNow: () => Promise<unknown>): Promise<boolean> {
   await syncNow();
+  const { getSyncEngine, isSyncEngineInitialized } = await import('@/sync');
   const deadline = Date.now() + SYNC_FIRST_TIMEOUT_MS;
   for (;;) {
     let status;
     try {
-      const { getSyncEngine, isSyncEngineInitialized } = await import('@/sync');
       if (!isSyncEngineInitialized()) return false;
       status = await getSyncEngine().getStatus();
     } catch (error) {
@@ -65,21 +65,29 @@ export function useSignOutWithPendingSyncWarning(signOut: () => unknown) {
   const { t } = useTranslation();
   const [counts, setCounts] = useState<{ pendingCount: number; failedCount: number } | null>(null);
   const [busy, setBusy] = useState(false);
+  // A second tap while the first is still checking must not sign out twice.
+  const checkingRef = useRef(false);
 
   const requestSignOut = useCallback(async () => {
     if (syncStatus.mode !== 'cloud') {
       void signOut();
       return;
     }
-    // Ask the engine now: the hook's own counts read 0 until it has connected (the
-    // first second after a sign-in, when this account's kept changes are queued).
-    const fresh = (await readUnsyncedCounts())
-      ?? { pendingCount: syncStatus.pendingCount, failedCount: syncStatus.failedCount };
-    if (fresh.pendingCount + fresh.failedCount > 0) {
-      setCounts(fresh);
-      return;
+    if (checkingRef.current) return;
+    checkingRef.current = true;
+    try {
+      // Ask the engine now: the hook's own counts read 0 until it has connected (the
+      // first second after a sign-in, when this account's kept changes are queued).
+      const fresh = (await readUnsyncedCounts())
+        ?? { pendingCount: syncStatus.pendingCount, failedCount: syncStatus.failedCount };
+      if (fresh.pendingCount + fresh.failedCount > 0) {
+        setCounts(fresh);
+        return;
+      }
+      void signOut();
+    } finally {
+      checkingRef.current = false;
     }
-    void signOut();
   }, [syncStatus.mode, syncStatus.pendingCount, syncStatus.failedCount, signOut]);
 
   const onAction = useCallback(async (action: 'sync' | 'discard' | 'cancel') => {
