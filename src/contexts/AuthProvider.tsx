@@ -563,7 +563,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // the app fires SIGNED_IN with whatever supabase-js still had): never let it
           // sign the account back in without a password (review 3.11). The flag is
           // cleared only by an interactive sign-in.
-          if (newSession && isIntentionalSignOutRef.current) {
+          // (Not during an interactive sign-in: that session is the one being typed in.)
+          if (newSession && isIntentionalSignOutRef.current && !isInteractiveSignInRef.current) {
             logger.warn('[AuthProvider] Ignoring a session delivered after sign-out', { state });
             return;
           }
