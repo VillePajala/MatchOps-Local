@@ -64,21 +64,21 @@ export interface SyncQueueErrorInfo {
 }
 
 /**
- * Result of pushAllToCloud operation.
- * Includes counts of successfully pushed entities and tracking of failures.
- */
-/**
  * A strict (restore) clear failed. `cloudCleared`: 'no' = nothing changed anywhere;
  * 'maybe' = the cloud call failed in a way that may still have cleared it; 'yes' = the
  * cloud was cleared and a later step failed (review 3.16).
  */
 export class RestoreClearError extends Error {
-  constructor(public readonly cause: unknown, public readonly cloudCleared: 'no' | 'maybe' | 'yes') {
-    super(cause instanceof Error ? cause.message : String(cause));
+  constructor(cause: unknown, public readonly cloudCleared: 'no' | 'maybe' | 'yes') {
+    super(cause instanceof Error ? cause.message : String(cause), { cause });
     this.name = 'RestoreClearError';
   }
 }
 
+/**
+ * Result of pushAllToCloud operation.
+ * Includes counts of successfully pushed entities and tracking of failures.
+ */
 export interface PushAllToCloudResult {
   /** Number of successfully pushed players */
   players: number;
@@ -1744,8 +1744,12 @@ export class SyncedDataStore implements DataStore {
           await this.syncQueue.clear();
           await this.localStore.clearAllUserData();
         } catch (error) {
-          // Offline before anything was sent: certainly unchanged. Otherwise the cloud
-          // may have been cleared even though the call failed (a lost reply).
+          // Offline before anything was sent (SupabaseDataStore's checkOnline): the
+          // cloud is certainly unchanged. Anything else may have cleared it despite the
+          // failure (a lost reply). Matching the message errs safe: unrecognised means
+          // 'maybe', i.e. "repeat the restore", never a false "nothing changed".
+          // (The seen-in-cloud record is already forgotten either way; that only makes
+          // the next sync record ids again, which is harmless.)
           if (cloudCleared === 'no' && !(error instanceof NetworkError && /offline/i.test(error.message))) {
             cloudCleared = 'maybe';
           }

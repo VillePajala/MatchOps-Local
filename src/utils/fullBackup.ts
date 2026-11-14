@@ -926,10 +926,8 @@ export const importFullBackup = async (
     // Android Chrome is particularly prone to this issue on repeated imports.
     // 5 retries with 1000ms initial = up to ~31s total wait (1+2+4+8+16s)
     //
-    // NOTE: SyncedDataStore.clearAllUserData() always clears local data even if
-    // cloud clear fails. So if this throws, local is still cleared and we can
-    // proceed with the import — cloud data will be overwritten during sync.
-    // Cloud mode (review 3.16): the cloud is cleared FIRST, and if that cannot be done
+    // Local mode: clearAllUserData() clears the device; a failure is logged and the
+    // import proceeds. Cloud mode (review 3.16): the cloud is cleared FIRST, and if that cannot be done
     // the restore stops with nothing changed on the device. Before, the device was
     // emptied anyway, the restore carried on, and the old cloud data stayed behind to
     // come back on other devices or after "Re-sync from Cloud".
@@ -966,17 +964,19 @@ export const importFullBackup = async (
         errorAlreadyReported = true;
         throw error;
       }
-    } else try {
-      await retryWithBackoff(
-        () => dataStore.clearAllUserData(),
-        { operationName: 'clearAllUserData', maxRetries: 5, initialDelayMs: 1000 }
-      );
-      logger.log("Cleared existing app data for clean restore");
-    } catch (error) {
-      // Local data is always cleared by SyncedDataStore, even if cloud clear fails.
-      // Continue with import — cloud data will be overwritten during subsequent sync.
-      logger.warn('clearAllUserData had issues (local cleared, cloud may have failed):', error);
-      logger.log("Proceeding with restore despite cloud clear failure — data will sync after import");
+    } else {
+      try {
+        await retryWithBackoff(
+          () => dataStore.clearAllUserData(),
+          { operationName: 'clearAllUserData', maxRetries: 5, initialDelayMs: 1000 }
+        );
+        logger.log("Cleared existing app data for clean restore");
+      } catch (error) {
+        // Local data is always cleared by SyncedDataStore, even if cloud clear fails.
+        // Continue with import — cloud data will be overwritten during subsequent sync.
+        logger.warn('clearAllUserData had issues (local cleared, cloud may have failed):', error);
+        logger.log("Proceeding with restore despite cloud clear failure — data will sync after import");
+      }
     }
 
     // Normalize legacy keys (best-effort). Some old exports might use different names.

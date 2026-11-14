@@ -1435,17 +1435,15 @@ describe("importFullBackup", () => {
     it("cloud mode: never says 'nothing was changed' when the cloud may already be cleared", async () => {
       const cloudLike = mockDataStore as DataStore & { pushAllToCloud?: jest.Mock };
       cloudLike.pushAllToCloud = jest.fn();
-      (mockDataStore.clearAllUserData as jest.Mock).mockRejectedValueOnce(
-        Object.assign(new Error('Failed to fetch'), { cloudCleared: 'maybe' }));
+      // A failure that may have cleared the cloud (non-transient message: no retry).
+      (mockDataStore.clearAllUserData as jest.Mock).mockRejectedValue(
+        Object.assign(new Error('rejected'), { cloudCleared: 'maybe' }));
       const showToast = jest.fn();
       try {
         const backupData = {
           meta: { schema: 1, exportedAt: new Date().toISOString() },
           localStorage: { [MASTER_ROSTER_KEY]: [{ id: "player-9", name: "Restored", isGoalie: false, jerseyNumber: "9", notes: "" }] },
         };
-        // 'Failed to fetch' is transient: the retries run; make them fail offline (certain 'no')
-        (mockDataStore.clearAllUserData as jest.Mock).mockRejectedValue(
-          Object.assign(new Error('rejected'), { cloudCleared: 'no' }));
         const result = await importFullBackup(JSON.stringify(backupData), undefined, showToast, true);
         expect(result).toBeNull();
         expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/did not finish/i), 'error');
