@@ -445,6 +445,9 @@ const checkOnline = (): void => {
 function isUnreachableAuthError(error: { name?: string; status?: number; message?: string }): boolean {
   if (error.name === 'AuthRetryableFetchError') return true;
   if (error.status === 0 || (typeof error.status === 'number' && error.status >= 500)) return true;
+  // Message fallback for errors without a status. If a real rejection were ever misread
+  // here, the write itself is still refused server-side (RLS / 401) and handled by the
+  // sync engine's auth-failure path - this only decides what getUserId returns.
   return isNetworkLikeMessage(error.message ?? '');
 }
 
@@ -847,7 +850,8 @@ export class SupabaseDataStore implements DataStore {
           // keep the known id (re-checked on the next call) instead of reporting
           // "session expired" - that false expiry paused sync on bad signal at a match
           // and never cleared (review 3.10). Only a definite answer counts.
-          let result: Awaited<ReturnType<ReturnType<typeof this.getClient>['auth']['getUser']>>;
+          type GetUserResult = Awaited<ReturnType<ReturnType<typeof this.getClient>['auth']['getUser']>>;
+          let result: GetUserResult;
           try {
             result = await this.getClient().auth.getUser();
           } catch {

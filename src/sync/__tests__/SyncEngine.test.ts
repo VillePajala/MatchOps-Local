@@ -543,7 +543,7 @@ describe('SyncEngine', () => {
    * @critical
    */
   describe('auth pause lifts itself', () => {
-    const pauseOnAuth = async () => {
+    const pauseOnAuth = () => {
       const internal = engine as unknown as { isAuthPaused: boolean; consecutiveAuthFailures: number };
       internal.isAuthPaused = true;
       internal.consecutiveAuthFailures = 3;
@@ -553,7 +553,7 @@ describe('SyncEngine', () => {
     it('when the connection returns', async () => {
       engine.start();
       await flushAllAsync();
-      const internal = await pauseOnAuth();
+      const internal = pauseOnAuth();
       window.dispatchEvent(new Event('online'));
       await flushAllAsync();
       expect(internal.isAuthPaused).toBe(false);
@@ -562,7 +562,7 @@ describe('SyncEngine', () => {
     it('when the session is refreshed', async () => {
       engine.start();
       await flushAllAsync();
-      const internal = await pauseOnAuth();
+      const internal = pauseOnAuth();
       window.dispatchEvent(new Event(AUTH_SESSION_REFRESHED_EVENT));
       await flushAllAsync();
       expect(internal.isAuthPaused).toBe(false);
@@ -572,7 +572,7 @@ describe('SyncEngine', () => {
     it('when the app resumes', async () => {
       engine.start();
       await flushAllAsync();
-      const internal = await pauseOnAuth();
+      const internal = pauseOnAuth();
       window.dispatchEvent(new Event('app-resume'));
       await flushAllAsync();
       expect(internal.isAuthPaused).toBe(false);

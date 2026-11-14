@@ -259,6 +259,14 @@ describe('SupabaseDataStore', () => {
       await expect(internal.getUserId()).resolves.toBe('user_known');
     });
 
+    it('a server error (5xx) or a network-like message keeps the known user', async () => {
+      for (const error of [{ status: 503, message: 'Service Unavailable' }, { message: 'TypeError: Failed to fetch' }]) {
+        const internal = expireCache();
+        (mockSupabaseClient.auth.getUser as jest.Mock).mockResolvedValueOnce({ data: { user: null }, error });
+        await expect(internal.getUserId()).resolves.toBe('user_known');
+      }
+    });
+
     it('a definite rejection is a session expiry', async () => {
       const internal = expireCache();
       (mockSupabaseClient.auth.getUser as jest.Mock).mockResolvedValueOnce({
