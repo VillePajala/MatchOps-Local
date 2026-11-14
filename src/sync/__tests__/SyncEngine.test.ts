@@ -18,6 +18,7 @@ if (typeof structuredClone === 'undefined') {
 // Mock IndexedDB using fake-indexeddb - must be before other imports
 import 'fake-indexeddb/auto';
 
+import { AUTH_SESSION_REFRESHED_EVENT } from '../syncEvents';
 import { SyncEngine, SyncOperationExecutor, resetSyncEngine } from '../SyncEngine';
 import { SyncQueue } from '../SyncQueue';
 import { SyncStatusInfo } from '../types';
@@ -533,6 +534,48 @@ describe('SyncEngine', () => {
   describe('waitForIdle', () => {
     it('resolves true immediately when the engine is idle (nothing syncing)', async () => {
       await expect(engine.waitForIdle()).resolves.toBe(true);
+    });
+  });
+
+  /**
+   * Review 3.10: a pause caused by auth failures (which may be false on bad signal)
+   * lifts itself when the connection returns, the app resumes, or the session refreshes.
+   * @critical
+   */
+  describe('auth pause lifts itself', () => {
+    const pauseOnAuth = () => {
+      const internal = engine as unknown as { isAuthPaused: boolean; consecutiveAuthFailures: number };
+      internal.isAuthPaused = true;
+      internal.consecutiveAuthFailures = 3;
+      return internal;
+    };
+
+    it('when the connection returns', async () => {
+      engine.start();
+      await flushAllAsync();
+      const internal = pauseOnAuth();
+      window.dispatchEvent(new Event('online'));
+      await flushAllAsync();
+      expect(internal.isAuthPaused).toBe(false);
+    });
+
+    it('when the session is refreshed', async () => {
+      engine.start();
+      await flushAllAsync();
+      const internal = pauseOnAuth();
+      window.dispatchEvent(new Event(AUTH_SESSION_REFRESHED_EVENT));
+      await flushAllAsync();
+      expect(internal.isAuthPaused).toBe(false);
+      expect((await engine.getStatus()).hasAuthFailure).toBe(false);
+    });
+
+    it('when the app resumes', async () => {
+      engine.start();
+      await flushAllAsync();
+      const internal = pauseOnAuth();
+      window.dispatchEvent(new Event('app-resume'));
+      await flushAllAsync();
+      expect(internal.isAuthPaused).toBe(false);
     });
   });
 

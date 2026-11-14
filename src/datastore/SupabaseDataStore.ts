@@ -65,6 +65,7 @@ import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 import logger from '@/utils/logger';
+import { isNetworkLikeMessage } from '@/utils/transientErrors';
 import {
   getGameBaseVersion, setGameBaseVersion, clearGameBaseVersion,
   addPendingWrite, isPendingWrite, clearPendingWrites,
@@ -435,6 +436,20 @@ const checkOnline = (): void => {
     throw new NetworkError('Cannot perform operation while offline. Please check your connection.');
   }
 };
+
+/**
+ * An auth error that means "the server could not be reached", not "the session is
+ * invalid" (review 3.10): supabase-js reports network failures as
+ * AuthRetryableFetchError (status 0), and a gateway may answer 5xx.
+ */
+function isUnreachableAuthError(error: { name?: string; status?: number; message?: string }): boolean {
+  if (error.name === 'AuthRetryableFetchError') return true;
+  if (error.status === 0 || (typeof error.status === 'number' && error.status >= 500)) return true;
+  // Message fallback for errors without a status. If a real rejection were ever misread
+  // here, the write itself is still refused server-side (RLS / 401) and handled by the
+  // sync engine's auth-failure path - this only decides what getUserId returns.
+  return isNetworkLikeMessage(error.message ?? '');
+}
 
 /** Ids per cloud table, each list complete (see getAllEntityIds). */
 export interface CloudEntityIds {
@@ -830,8 +845,24 @@ export class SupabaseDataStore implements DataStore {
         const cacheExpired = this.cachedUserId && (now - this.cachedUserIdTimestamp) >= SupabaseDataStore.USER_ID_CACHE_TTL_MS;
 
         if (cacheExpired) {
-          // Re-validate with server using getUser() - this makes a network call
-          const { data: { user }, error } = await this.getClient().auth.getUser();
+          // Re-validate with server using getUser() - this makes a network call.
+          // A request that could not reach the server says nothing about the session:
+          // keep the known id (re-checked on the next call) instead of reporting
+          // "session expired" - that false expiry paused sync on bad signal at a match
+          // and never cleared (review 3.10). Only a definite answer counts.
+          type GetUserResult = Awaited<ReturnType<ReturnType<typeof this.getClient>['auth']['getUser']>>;
+          let result: GetUserResult;
+          try {
+            result = await this.getClient().auth.getUser();
+          } catch {
+            logger.info('[SupabaseDataStore] Could not re-check the session (network) - keeping the known user');
+            return this.cachedUserId as string;
+          }
+          const { data: { user }, error } = result;
+          if (error && isUnreachableAuthError(error)) {
+            logger.info('[SupabaseDataStore] Could not re-check the session (network) - keeping the known user');
+            return this.cachedUserId as string;
+          }
           if (error || !user) {
             // Session was revoked - clear cache and throw
             this.cachedUserId = null;

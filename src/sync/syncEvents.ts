@@ -19,3 +19,10 @@ export function markGameReplacedByCloud(gameId: string): void {
 export function gameReplacementCount(gameId: string): number {
   return replacements.get(gameId) ?? 0;
 }
+
+/**
+ * Window event: the auth session was refreshed or a user signed in (review 3.10). The
+ * sync engine lifts a pause caused by auth failures - otherwise a pause from a false
+ * "session expired" (bad signal) lasted until the coach found "Sync now".
+ */
+export const AUTH_SESSION_REFRESHED_EVENT = 'matchops:auth-session-refreshed';

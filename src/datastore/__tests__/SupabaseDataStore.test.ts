@@ -232,6 +232,50 @@ describe('SupabaseDataStore', () => {
   // AUTH FAILURE TESTS
   // ==========================================================================
 
+  /**
+   * Review 3.10: re-checking an expired user-id cache with no signal must not report
+   * "session expired" (it paused sync and never cleared); only a definite answer does.
+   * @critical
+   */
+  describe('session re-check (cached user id expired)', () => {
+    const expireCache = () => {
+      const internal = dataStore as unknown as { cachedUserId: string; cachedUserIdTimestamp: number; getUserId: () => Promise<string> };
+      internal.cachedUserId = 'user_known';
+      internal.cachedUserIdTimestamp = 1; // long ago
+      return internal;
+    };
+
+    it('a network failure keeps the known user', async () => {
+      const internal = expireCache();
+      (mockSupabaseClient.auth.getUser as jest.Mock).mockResolvedValueOnce({
+        data: { user: null }, error: { name: 'AuthRetryableFetchError', status: 0, message: 'Failed to fetch' },
+      });
+      await expect(internal.getUserId()).resolves.toBe('user_known');
+    });
+
+    it('a thrown fetch error keeps the known user', async () => {
+      const internal = expireCache();
+      (mockSupabaseClient.auth.getUser as jest.Mock).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      await expect(internal.getUserId()).resolves.toBe('user_known');
+    });
+
+    it('a server error (5xx) or a network-like message keeps the known user', async () => {
+      for (const error of [{ status: 503, message: 'Service Unavailable' }, { message: 'TypeError: Failed to fetch' }]) {
+        const internal = expireCache();
+        (mockSupabaseClient.auth.getUser as jest.Mock).mockResolvedValueOnce({ data: { user: null }, error });
+        await expect(internal.getUserId()).resolves.toBe('user_known');
+      }
+    });
+
+    it('a definite rejection is a session expiry', async () => {
+      const internal = expireCache();
+      (mockSupabaseClient.auth.getUser as jest.Mock).mockResolvedValueOnce({
+        data: { user: null }, error: { name: 'AuthApiError', status: 401, message: 'invalid JWT' },
+      });
+      await expect(internal.getUserId()).rejects.toThrow(AuthError);
+    });
+  });
+
   describe('Auth Failure', () => {
     it('should throw AuthError when user not authenticated on createPlayer', async () => {
       // getUserId() now uses getSession() instead of getUser() for faster, more reliable auth
