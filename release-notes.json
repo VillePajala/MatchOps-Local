@@ -4,6 +4,15 @@
     {
       "date": "2026-11-14",
       "en": [
+        "Opening a match no longer saves it when you have not changed anything, so a match you only looked at can no longer replace newer changes made on another device."
+      ],
+      "fi": [
+        "Ottelun avaaminen ei enää tallenna sitä, jos et muuttanut mitään, joten pelkästään katsomasi ottelu ei enää voi korvata toisella laitteella tehtyjä uudempia muutoksia."
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "en": [
         "When you open a match, it now shows the latest changes made on your other devices, and no longer saves an older copy over them.",
         "Season, tournament, staff and settings changes from your other devices now show up as soon as the app has loaded them, not only on the next launch."
       ],

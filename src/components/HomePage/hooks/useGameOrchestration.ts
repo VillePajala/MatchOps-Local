@@ -446,6 +446,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const gameIdRef = useRef(currentGameId);
   // Track which game has been successfully loaded to prevent reload on auto-save
   const loadedGameIdRef = useRef<string | null>(null);
+  // The game whose data has been APPLIED to the session (set after the load resolves,
+  // so the next render shows it). Autosave waits for this - see useGamePersistence.
+  const [appliedGameId, setAppliedGameId] = useState<string | null>(null);
   // Clock correction consumed from the persisted timer record at boot,
   // applied one-shot when the corresponding game loads (see loadGameStateFromData).
   // `resume` is set when the timer was running at hide time (wasRunning), so the
@@ -1500,6 +1503,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         loadedGameIdRef.current = currentGameId;
         try {
           await loadGameStateFromData(gameToLoad);
+          setAppliedGameId(currentGameId);
         } catch (err) {
           // If the load failed, clear the guard so the effect can retry this game
           // rather than leaving it permanently "loaded" but unapplied.
@@ -1577,6 +1581,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     playerAssessments,
     isPlayed,
     initialLoadComplete,
+    appliedGameId,
 
     // From useGameDataManagement
     savedGames: gameDataManagement.savedGames || {},

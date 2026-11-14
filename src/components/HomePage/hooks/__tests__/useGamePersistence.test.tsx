@@ -154,6 +154,7 @@ const createMockParams = (overrides?: Partial<UseGamePersistenceParams>): UseGam
     playerAssessments: {} as Record<string, PlayerAssessment>,
     isPlayed: true,
     initialLoadComplete: true,
+    appliedGameId: 'game123',
     savedGames: {},
     setSavedGames: jest.fn(),
     resetHistory: jest.fn(),
@@ -608,6 +609,39 @@ describe('useGamePersistence', () => {
         expect(setSavedGames).toHaveBeenCalled();
       });
 
+      jest.useRealTimers();
+    });
+
+    /**
+     * Review 3.5b: opening a match is not an edit. The session shows defaults until the
+     * saved game's data lands; autosave must take its baseline from the loaded game, or
+     * merely opening a match saves it (offline, that save then beat newer edits made on
+     * another device).
+     * @critical
+     */
+    it('does not save when a game is opened, only when the coach then changes it', async () => {
+      jest.useFakeTimers();
+      const setSavedGames = jest.fn();
+      const before = createMockParams({
+        currentGameId: 'game123',
+        appliedGameId: null, // the load has not landed yet: session shows defaults
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        gameSessionState: createMockGameSessionState({ homeScore: 0, opponentName: 'Opponent' }),
+      });
+      const { rerender } = renderHook((props) => useGamePersistence(props), { initialProps: before, wrapper: createWrapper() });
+
+      // The saved game's data lands (score, names...) and is marked applied.
+      const loaded = { ...before, appliedGameId: 'game123', gameSessionState: createMockGameSessionState({ homeScore: 2, opponentName: 'Kuusiston Kiri' }) };
+      act(() => { rerender(loaded); });
+      // Let any (async) save run to completion before asserting none happened.
+      await act(async () => { await jest.runAllTimersAsync(); });
+      expect(setSavedGames).not.toHaveBeenCalled();
+
+      // A real change by the coach is saved.
+      act(() => { rerender({ ...loaded, gameSessionState: createMockGameSessionState({ homeScore: 3, opponentName: 'Kuusiston Kiri' }) }); });
+      act(() => { jest.runAllTimers(); });
+      await waitFor(() => expect(setSavedGames).toHaveBeenCalled());
       jest.useRealTimers();
     });
 
