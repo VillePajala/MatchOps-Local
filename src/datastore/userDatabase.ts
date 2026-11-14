@@ -217,17 +217,57 @@ export function deleteUserLocalDatabases(userId: string): Promise<void> {
 }
 
 /**
- * Whether the user's data database (`matchops_user_{id}`) still exists on this device.
- * Waits up to `waitMs` for a pending delete to finish. Returns null when the browser
- * cannot list databases (indexedDB.databases unsupported): unknown, not "gone".
+ * Whether a database exists, for browsers without indexedDB.databases(): open it and
+ * abort at once if the open would CREATE it (oldVersion 0), so nothing is created.
+ * An open queues behind a pending delete, so this also waits for the delete; if that
+ * takes longer than `waitMs` (a blocked delete), the database still counts as present.
  */
-export async function userLocalDatabaseExists(userId: string, waitMs = 2000): Promise<boolean | null> {
-  if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return null;
+function databaseExistsByOpening(name: string, waitMs: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (exists: boolean) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(exists);
+      }
+    };
+    const timer = setTimeout(() => finish(true), waitMs);
+    try {
+      const request = indexedDB.open(name);
+      request.onupgradeneeded = (event) => {
+        if ((event as IDBVersionChangeEvent).oldVersion === 0) {
+          request.transaction?.abort(); // it did not exist: do not create it
+          finish(false);
+        }
+      };
+      request.onsuccess = () => {
+        request.result.close();
+        finish(true);
+      };
+      request.onerror = () => finish(false); // aborted creation (or unusable): not there
+      request.onblocked = () => undefined; // keep waiting until the timer
+    } catch {
+      finish(true); // cannot tell: never claim it is gone
+    }
+  });
+}
+
+/**
+ * Whether the user's data database (`matchops_user_{id}`) still exists on this device.
+ * Waits up to `waitMs` for a pending delete to finish. Uses indexedDB.databases() where
+ * available, otherwise opens the database without creating it.
+ */
+export async function userLocalDatabaseExists(userId: string, waitMs = 2000): Promise<boolean> {
+  if (typeof indexedDB === 'undefined') return false;
   let name: string;
   try {
     name = getUserDatabaseName(userId);
   } catch {
     return false;
+  }
+  if (typeof indexedDB.databases !== 'function') {
+    return databaseExistsByOpening(name, waitMs);
   }
   const deadline = Date.now() + waitMs;
   for (;;) {

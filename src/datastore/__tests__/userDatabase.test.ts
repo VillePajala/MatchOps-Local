@@ -293,9 +293,49 @@ describe('userDatabase', () => {
       await expect(userLocalDatabaseExists('u1', 2000)).resolves.toBe(false);
     });
 
-    it('is unknown (null) when the browser cannot list databases', async () => {
-      install(() => undefined);
-      await expect(userLocalDatabaseExists('u1', 0)).resolves.toBeNull();
+    describe('without indexedDB.databases() (opens without creating)', () => {
+      const installOpen = (mode: 'missing' | 'present' | 'pending') => {
+        const created: string[] = [];
+        const close = jest.fn();
+        Object.defineProperty(globalThis, 'indexedDB', {
+          configurable: true,
+          value: {
+            open: jest.fn((name: string) => {
+              const request: Record<string, unknown> = { result: { close } };
+              const abort = jest.fn(() => { (request.onerror as () => void)?.(); });
+              request.transaction = { abort };
+              setTimeout(() => {
+                if (mode === 'pending') return; // a blocked delete: the open never completes
+                if (mode === 'missing') {
+                  (request.onupgradeneeded as (e: { oldVersion: number }) => void)({ oldVersion: 0 });
+                  if (!abort.mock.calls.length) created.push(name);
+                } else {
+                  (request.onsuccess as () => void)();
+                }
+              }, 0);
+              return request;
+            }),
+          },
+        });
+        return { created, close };
+      };
+
+      it('reports gone, without creating the database', async () => {
+        const { created } = installOpen('missing');
+        await expect(userLocalDatabaseExists('u1', 500)).resolves.toBe(false);
+        expect(created).toEqual([]);
+      });
+
+      it('reports present (and closes it) when it exists', async () => {
+        const { close } = installOpen('present');
+        await expect(userLocalDatabaseExists('u1', 500)).resolves.toBe(true);
+        expect(close).toHaveBeenCalled();
+      });
+
+      it('never claims gone while a delete is still blocked', async () => {
+        installOpen('pending');
+        await expect(userLocalDatabaseExists('u1', 50)).resolves.toBe(true);
+      });
     });
   });
 });
