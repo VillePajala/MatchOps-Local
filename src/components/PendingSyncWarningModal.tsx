@@ -3,9 +3,9 @@
 /**
  * Pending Sync Warning Modal
  *
- * Shown when user tries to switch from cloud to local mode while
- * there are pending or failed sync operations. Prevents data loss
- * by giving user options to sync, discard, or cancel.
+ * Shown when user tries to switch from cloud to local mode - or to sign out
+ * (review 3.13) - while there are pending or failed sync operations. Gives the user
+ * options to sync first, continue anyway, or cancel.
  *
  * @see docs/03-active-plans/local-first-sync-plan.md
  */
@@ -42,8 +42,13 @@ export interface PendingSyncWarningModalProps {
   isSyncing: boolean;
   /** Whether device is online */
   isOnline: boolean;
-  /** Callback when user makes a choice */
+  /** Callback when user makes a choice ('discard' = continue anyway) */
   onAction: (action: 'sync' | 'discard' | 'cancel') => void;
+  /**
+   * What the user is about to do. 'signOut': the changes are NOT lost (they stay on
+   * this device and are sent at the next sign-in here), so continuing is not a discard.
+   */
+  purpose?: 'switchToLocal' | 'signOut';
 }
 
 /**
@@ -55,7 +60,9 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
   isSyncing,
   isOnline,
   onAction,
+  purpose = 'switchToLocal',
 }) => {
+  const isSignOut = purpose === 'signOut';
   const { t } = useTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -139,10 +146,9 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
             </ul>
 
             <p className="text-amber-200 font-medium">
-              {t(
-                'cloudSync.pendingSync.consequence',
-                'Switching to local mode now will abandon these changes.'
-              )}
+              {isSignOut
+                ? t('cloudSync.pendingSync.signOutConsequence', 'If you sign out now, they stay on this device and are sent the next time you sign in here.')
+                : t('cloudSync.pendingSync.consequence', 'Switching to local mode now will abandon these changes.')}
             </p>
           </div>
 
@@ -177,15 +183,25 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
               </p>
             )}
 
-            {/* Discard Button */}
-            <button
-              onClick={() => onAction('discard')}
-              disabled={isSyncing}
-              className={`${dangerButtonStyle} w-full flex items-center justify-center gap-2 py-3 !bg-red-600/20 hover:!bg-red-600/30 !text-red-400`}
-            >
-              <HiOutlineTrash className="h-5 w-5" />
-              {t('cloudSync.pendingSync.discardAndContinue', 'Discard & Continue')}
-            </button>
+            {/* Continue anyway: discards on a mode switch; just signs out on sign-out */}
+            {isSignOut ? (
+              <button
+                onClick={() => onAction('discard')}
+                disabled={isSyncing}
+                className={`${secondaryButtonStyle} w-full py-3`}
+              >
+                {t('cloudSync.pendingSync.signOutAnyway', 'Sign out anyway')}
+              </button>
+            ) : (
+              <button
+                onClick={() => onAction('discard')}
+                disabled={isSyncing}
+                className={`${dangerButtonStyle} w-full flex items-center justify-center gap-2 py-3 !bg-red-600/20 hover:!bg-red-600/30 !text-red-400`}
+              >
+                <HiOutlineTrash className="h-5 w-5" />
+                {t('cloudSync.pendingSync.discardAndContinue', 'Discard & Continue')}
+              </button>
+            )}
 
             {/* Cancel Button */}
             <button

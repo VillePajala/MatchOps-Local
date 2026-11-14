@@ -1645,7 +1645,7 @@ function unionQueued(a: QueuedIds, b: QueuedIds): QueuedIds {
  * The rule: remove only an item this device has SEEN in the cloud before (in a complete
  * listing, recorded per account) that the cloud no longer has. Absence alone proves
  * nothing - an item created offline, whose sync failed or was discarded, or whose queue
- * entry was cleared (sign-out and account switch clear the queue) was never in the cloud
+ * entry was cleared (e.g. "discard" when switching to local mode) was never in the cloud
  * and must stay. The first run with this code only records what the cloud has.
  *
  * Extra guards - anything uncertain means "keep":

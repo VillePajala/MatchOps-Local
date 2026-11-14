@@ -239,6 +239,59 @@ describe('SyncedDataStore', () => {
     });
   });
 
+  /**
+   * Review 3.13: closing an account's store (sign-out, or someone else signing in on
+   * this device) cleared its queue, so its unsent changes never reached the cloud.
+   * @critical
+   */
+  describe('unsent changes across close', () => {
+    const pendingIds = async (st: SyncedDataStore) =>
+      (await (st as unknown as { syncQueue: SyncQueue }).syncQueue.getAllOperations()).map((o) => o.entityId);
+
+    it("keep an account's queued changes for its next sign-in, and never show them to another account", async () => {
+      resetSyncEngine();
+      const a = new SyncedDataStore('queue-keep-user-a');
+      await a.initialize();
+      await a.upsertPlayer({ id: 'p_offline_edit', name: 'Offline edit', isGoalie: false, receivedFairPlayCard: false });
+      expect(await pendingIds(a)).toContain('p_offline_edit');
+      await a.close();
+
+      resetSyncEngine();
+      const b = new SyncedDataStore('queue-keep-user-b');
+      await b.initialize();
+      expect(await pendingIds(b)).not.toContain('p_offline_edit');
+      await b.close();
+
+      resetSyncEngine();
+      const aAgain = new SyncedDataStore('queue-keep-user-a');
+      await aAgain.initialize();
+      try {
+        expect(await pendingIds(aAgain)).toContain('p_offline_edit');
+      } finally {
+        await aAgain.clearAllUserData().catch(() => {});
+        await aAgain.close();
+      }
+    });
+
+    it('still clear the shared no-account queue on close', async () => {
+      resetSyncEngine();
+      const shared = new SyncedDataStore();
+      await shared.initialize();
+      await shared.upsertPlayer({ id: 'p_shared', name: 'Shared', isGoalie: false, receivedFairPlayCard: false });
+      expect(await pendingIds(shared)).toContain('p_shared');
+      await shared.close();
+
+      resetSyncEngine();
+      const sharedAgain = new SyncedDataStore();
+      await sharedAgain.initialize();
+      try {
+        expect(await pendingIds(sharedAgain)).not.toContain('p_shared');
+      } finally {
+        await sharedAgain.close();
+      }
+    });
+  });
+
   describe('Lifecycle', () => {
     it('should initialize successfully', async () => {
       const newStore = new SyncedDataStore();

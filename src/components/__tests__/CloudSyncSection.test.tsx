@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor, RenderOptions } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CloudSyncSection from '../CloudSyncSection';
 
@@ -58,9 +58,10 @@ jest.mock('@/contexts/AuthProvider', () => ({
   }),
 }));
 
+const mockShowToast = jest.fn();
 jest.mock('@/contexts/ToastProvider', () => ({
   useToast: () => ({
-    showToast: jest.fn(),
+    showToast: mockShowToast,
   }),
 }));
 
@@ -158,6 +159,13 @@ const mockSyncStatus = {
 
 jest.mock('@/hooks/useSyncStatus', () => ({
   useSyncStatus: () => mockSyncStatus,
+}));
+
+// The sync engine as "Sync first" sees it while waiting for the queue to empty.
+const mockEngineStatus = { pendingCount: 0, failedCount: 0, isOnline: true, state: 'synced' };
+jest.mock('@/sync', () => ({
+  isSyncEngineInitialized: () => true,
+  getSyncEngine: () => ({ getStatus: async () => ({ ...mockEngineStatus }) }),
 }));
 
 // Mock PendingSyncWarningModal for testing pending sync flow
@@ -719,6 +727,27 @@ describe('CloudSyncSection', () => {
       await waitFor(() => {
         expect(screen.getByTestId('reverse-migration-wizard')).toBeInTheDocument();
       });
+    });
+
+    /** Review 3.13: "Sync first" must not proceed while changes are still unsent. @critical */
+    it('stays on the warning when changes remain after Sync First', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
+      Object.assign(mockEngineStatus, { pendingCount: 0, failedCount: 2, state: 'pending' });
+      const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        renderWithQueryClient(<CloudSyncSection />);
+        fireEvent.click(screen.getByRole('button', { name: /switch to local mode/i }));
+        await waitFor(() => expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument());
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Sync First' })); });
+        await waitFor(() => expect(mockShowToast).toHaveBeenCalled());
+        expect(screen.queryByTestId('reverse-migration-wizard')).not.toBeInTheDocument();
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+      } finally {
+        error.mockRestore();
+        Object.assign(mockEngineStatus, { pendingCount: 0, failedCount: 0, state: 'synced' });
+      }
     });
 
     it('clears failed items when Discard & Continue is clicked', async () => {

@@ -310,16 +310,19 @@ export class SyncedDataStore implements DataStore {
     await this.localStore.close();
     logger.info('[SyncedDataStore] Local store closed', { elapsedMs: Date.now() - closeStartTime });
 
-    // CRITICAL: Clear the sync queue before closing to prevent stale operations
-    // from being processed when a new user signs in. Without this, operations
-    // queued by User A would be processed when User B signs in, causing:
-    // 1. Auth errors (getSession() returns null or different user's session)
-    // 2. Potential data leakage (User A's data synced to User B's cloud storage)
-    // 3. "Cannot close DataStore: X pending sync operation(s)" blocking user transitions
-    // See: MATCHOPS-LOCAL-23 (186+ settings sync failures)
-    logger.info('[SyncedDataStore] Clearing sync queue...');
-    await this.syncQueue.clear();
-    logger.info('[SyncedDataStore] Sync queue cleared', { elapsedMs: Date.now() - closeStartTime });
+    // An account's queue lives in its own database (matchops_sync_queue_<userId>), so
+    // another user never sees it: KEEP it. Its unsent changes then go out the next time
+    // this account signs in on this device. Clearing it here lost them - a coach who
+    // signed out (or whose tablet someone else signed in to) with offline edits had
+    // them stay local forever while the app showed "synced" (review 3.13).
+    // Only the shared queue without an account (no userId) is cleared, so operations
+    // queued there can never be processed for whoever signs in next (MATCHOPS-LOCAL-23).
+    // Deleting an account or clearing its data still clears its queue explicitly.
+    if (!this.userId) {
+      logger.info('[SyncedDataStore] Clearing the shared (no-account) sync queue...');
+      await this.syncQueue.clear();
+      logger.info('[SyncedDataStore] Sync queue cleared', { elapsedMs: Date.now() - closeStartTime });
+    }
 
     // Close sync queue (releases IndexedDB connection)
     await this.syncQueue.close();

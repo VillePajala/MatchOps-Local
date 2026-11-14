@@ -214,7 +214,8 @@ async function closeDataStoreInternal(
           const engine = getSyncEngine();
           const status = await engine.getStatus();
           if (status.pendingCount > 0) {
-            log.warn(`[factory] Force-closing DataStore with ${status.pendingCount} pending sync operations (user confirmed data loss).`);
+            // An account's queue is kept (review 3.13): these resume at its next sign-in here.
+            log.warn(`[factory] Force-closing DataStore with ${status.pendingCount} pending sync operations (kept in the account's queue).`);
           }
         } catch (e) {
           // Check for "not initialized" error using SyncError type and error code
@@ -445,9 +446,9 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
     });
     // Clear pending init promises to prevent stale completions from interfering
     dataStoreInitPromises.clear();
-    // Force close on user change - sync operations were for a different user
-    // and blocking the new user's login would be a worse UX than losing the
-    // previous user's pending operations
+    // Force close on user change: blocking the new user's login would be worse UX.
+    // The previous account's pending operations are NOT lost - its queue database is
+    // kept and resumes the next time that account signs in here (review 3.13).
     await closeDataStoreInternal('user change', { force: true });
   }
 
