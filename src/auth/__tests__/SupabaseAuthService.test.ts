@@ -506,6 +506,54 @@ describe('SupabaseAuthService', () => {
       // Should still be logged out locally
       expect(authService.isAuthenticated()).toBe(false);
     });
+
+    /**
+     * Review 3.11: signing out offline must remove the stored session, or switching back
+     * to the app / a reload signs the account back in without a password. supabase-js's
+     * local signout can fail offline before removing it.
+     * @critical
+     */
+    it('a normal sign-out with no stored session left does not throw', async () => {
+      mockAuth.signOut.mockResolvedValue({ error: null });
+      await expect(authService.signOut()).resolves.toBeUndefined();
+    });
+
+    it('reports an error when the stored session cannot be removed', async () => {
+      const projectRef = 'stuckref';
+      const key = `sb-${projectRef}-auth-token`;
+      process.env.NEXT_PUBLIC_SUPABASE_URL = `https://${projectRef}.supabase.co`;
+      localStorage.setItem(key, JSON.stringify({ access_token: 'a', refresh_token: 'r', expires_at: 1, user: { id: 'u1', email: 'x@example.com' } }));
+      // The device refuses to remove it (swap the function in place: this test setup's
+      // localStorage is itself a mock, and a jest spy's restore would clear its behaviour).
+      const realRemoveItem = localStorage.removeItem;
+      localStorage.removeItem = () => {};
+      try {
+        mockAuth.signOut.mockResolvedValue({ error: { message: 'Failed to fetch' } });
+        await expect(authService.signOut()).rejects.toThrow(AuthError);
+      } finally {
+        localStorage.removeItem = realRemoveItem;
+        localStorage.removeItem(key);
+        delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+      }
+    });
+
+    it('removes the stored session even when both the API and the local signout fail', async () => {
+      const projectRef = 'signoutref';
+      const key = `sb-${projectRef}-auth-token`;
+      process.env.NEXT_PUBLIC_SUPABASE_URL = `https://${projectRef}.supabase.co`;
+      localStorage.setItem(key, JSON.stringify({ access_token: 'a', refresh_token: 'r', expires_at: 1, user: { id: 'u1', email: 'x@example.com' } }));
+      try {
+        mockAuth.signOut
+          .mockResolvedValueOnce({ error: { message: 'Failed to fetch' } }) // global: no network
+          .mockResolvedValueOnce({ error: { message: 'Failed to fetch' } }); // local: also needs the network
+        await authService.signOut();
+        expect(localStorage.getItem(key)).toBeNull();
+        expect(authService.isAuthenticated()).toBe(false);
+      } finally {
+        localStorage.removeItem(key);
+        delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+      }
+    });
   });
 
   // ==========================================================================
