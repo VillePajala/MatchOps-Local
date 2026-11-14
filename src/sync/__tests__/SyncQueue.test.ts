@@ -1014,6 +1014,17 @@ describe('SyncQueue', () => {
       expect((ops[0].data as { homeScore: number }).homeScore).toBe(3);
     });
 
+    it('an in-flight delete stays retryable when the queued create it was followed by is cancelled', async () => {
+      const del = (): SyncOperationInput => ({ entityType: 'game', entityId: 'game_1', operation: 'delete', data: null, timestamp: Date.now() });
+      const a = await queue.enqueue(del());
+      await queue.markSyncing(a);
+      await queue.enqueue({ ...game(1), operation: 'create' });
+      await queue.enqueue(del()); // CREATE + DELETE cancel: nothing remains queued
+      await queue.markFailed(a, 'network');
+      const ops = await opsFor();
+      expect(ops.map((o) => [o.id, o.operation, o.status])).toEqual([[a, 'delete', 'pending']]);
+    });
+
     it('an op in flight with no newer change is retried as before', async () => {
       const a = await queue.enqueue(game(1));
       await queue.markSyncing(a);

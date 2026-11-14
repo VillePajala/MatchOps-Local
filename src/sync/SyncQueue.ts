@@ -320,6 +320,8 @@ export class SyncQueue {
 
       let existingOp: SyncOperation | null = null;
       let resultId: string | null = null;
+      // In-flight ops for this entity; marked superseded once we know a newer op remains.
+      const inFlight: SyncOperation[] = [];
       const entityInfo = `${input.entityType}/${input.entityId}`;
 
       cursorRequest.onsuccess = () => {
@@ -361,11 +363,10 @@ export class SyncQueue {
             }
             cursor.continue();
           } else {
-            // In flight ('syncing'): left to the executor, but the change queued now is
-            // newer - mark it so a failure drops it instead of replaying its older
-            // snapshot over this one (review 3.6).
-            if (existing.status === 'syncing' && !existing.superseded) {
-              cursor.update({ ...existing, superseded: true });
+            // In flight ('syncing'): left to the executor; marked below if a newer op
+            // remains for this entity.
+            if (existing.status === 'syncing') {
+              inFlight.push(existing);
             }
             cursor.continue();
           }
@@ -374,6 +375,17 @@ export class SyncQueue {
           // Guard: skip if already performed during cursor iteration (dedup found pending op)
           if (!resultId) {
             resultId = this.performWriteInTransaction(store, input, existingOp);
+          }
+          // The change queued now is newer than any in-flight op: mark those so a
+          // failure drops them instead of replaying an older snapshot over it
+          // (review 3.6). Re-decided on every enqueue: when the new change cancelled
+          // the queued replacement (CREATE + DELETE = nothing queued), nothing would
+          // replace the in-flight op any more, so it must be retryable again.
+          // Same transaction: atomic with the write.
+          const cancelled = existingOp !== null
+            && this.getMergedOperation((existingOp as SyncOperation).operation, input.operation) === null;
+          for (const op of inFlight) {
+            if (Boolean(op.superseded) !== !cancelled) store.put({ ...op, superseded: !cancelled });
           }
         }
       };
