@@ -95,6 +95,10 @@ function generateId(): string {
  */
 export class SyncQueue {
   private db: IDBDatabase | null = null;
+  /** The browser closed the database (not close()): reopened on the next operation. */
+  private closedUnexpectedly = false;
+  /** close() was called: stays closed (sign-out, account switch). */
+  private closedDeliberately = false;
   private initPromise: Promise<void> | null = null;
   private maxRetries: number;
   private backoffBaseMs: number;
@@ -134,6 +138,7 @@ export class SyncQueue {
    * Must be called before any other operations.
    */
   async initialize(): Promise<void> {
+    this.closedDeliberately = false;
     // Return existing promise if initialization is in progress
     if (this.initPromise) {
       return this.initPromise;
@@ -158,6 +163,27 @@ export class SyncQueue {
    */
   isInitialized(): boolean {
     return this.db !== null;
+  }
+
+  /** Whether the browser (not close()) closed the database, so it should be reopened. */
+  wasClosedUnexpectedly(): boolean {
+    return !this.db && this.closedUnexpectedly && !this.closedDeliberately;
+  }
+
+  /**
+   * Reopen the database if the browser closed it (review 3.9). True when it is open
+   * afterwards. Never throws.
+   */
+  async reopenIfClosed(): Promise<boolean> {
+    if (this.db) return true;
+    if (!this.wasClosedUnexpectedly()) return false;
+    try {
+      await this.ensureOpen();
+      return this.db !== null;
+    } catch (error) {
+      logger.warn('[SyncQueue] Could not reopen the queue database', { error });
+      return false;
+    }
   }
 
   /**
@@ -197,6 +223,7 @@ export class SyncQueue {
 
       request.onsuccess = () => {
         this.db = request.result;
+        this.closedUnexpectedly = false;
         logger.info('[SyncQueue] Database opened successfully');
 
         // DIAGNOSTIC: Log existing operations in the queue to debug account switching issues
@@ -245,6 +272,7 @@ export class SyncQueue {
             // Sentry failure must not affect database state handling
           }
           this.db = null;
+          this.closedUnexpectedly = true; // the next operation reopens it (ensureOpen)
         };
 
         resolve();
@@ -282,6 +310,21 @@ export class SyncQueue {
   }
 
   /**
+   * The database for an operation, reopening it if the BROWSER closed it (storage
+   * pressure, a backing-store error). It used to stay closed for the rest of the session:
+   * every save was written locally but never queued, and the status still said
+   * "synced" (review 3.9). Not after close(): that close is deliberate (sign-out,
+   * account switch) and must stay closed.
+   */
+  private async ensureOpen(): Promise<IDBDatabase> {
+    if (!this.db && this.closedUnexpectedly && !this.closedDeliberately) {
+      logger.info('[SyncQueue] Reopening the queue database after it was closed');
+      await this.initialize();
+    }
+    return this.ensureInitialized();
+  }
+
+  /**
    * Ensure database is initialized before operations.
    */
   private ensureInitialized(): IDBDatabase {
@@ -311,7 +354,7 @@ export class SyncQueue {
    * @returns Promise resolving to the operation ID
    */
   async enqueue(input: SyncOperationInput): Promise<string> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
@@ -555,7 +598,7 @@ export class SyncQueue {
    * @returns Operations ready for sync, oldest first
    */
   async getPending(limit: number = 10): Promise<SyncOperation[]> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readonly');
@@ -677,7 +720,7 @@ export class SyncQueue {
    * @param error - Error message
    */
   async markFailed(id: string, error: string): Promise<void> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
@@ -756,7 +799,7 @@ export class SyncQueue {
    * succeed. A superseded op is dropped, as in markFailed.
    */
   async markRetryLater(id: string, error: string): Promise<void> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
       const store = transaction.objectStore(SYNC_STORE_NAME);
@@ -801,7 +844,7 @@ export class SyncQueue {
    * Failures for other reasons stay failed (the user can still retry them).
    */
   async reviveNetworkFailed(): Promise<number> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
       const store = transaction.objectStore(SYNC_STORE_NAME);
@@ -846,7 +889,7 @@ export class SyncQueue {
    * Mark an operation as completed and remove it from the queue.
    */
   async markCompleted(id: string): Promise<void> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
@@ -884,7 +927,7 @@ export class SyncQueue {
    * @returns Number of operations reset
    */
   async resetStaleSyncing(): Promise<number> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
@@ -981,7 +1024,7 @@ export class SyncQueue {
    * @returns true if operation was found and reset, false if not found
    */
   async resetOperationToPending(id: string, options?: { incrementRetry?: boolean }): Promise<boolean> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
     const incrementRetry = options?.incrementRetry ?? true;
 
     return new Promise((resolve, reject) => {
@@ -1061,7 +1104,7 @@ export class SyncQueue {
    * Get an operation by ID.
    */
   async getById(id: string): Promise<SyncOperation | null> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readonly');
@@ -1097,7 +1140,7 @@ export class SyncQueue {
     }
 
     logger.debug('[SyncQueue] getStats: reading from database', { dbName: this.dbName, userId: this.userId });
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readonly');
@@ -1169,7 +1212,7 @@ export class SyncQueue {
    * Get all failed operations.
    */
   async getFailed(): Promise<SyncOperation[]> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readonly');
@@ -1197,7 +1240,7 @@ export class SyncQueue {
    * Returns operations sorted by timestamp (oldest first).
    */
   async getAllOperations(): Promise<SyncOperation[]> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readonly');
@@ -1249,7 +1292,7 @@ export class SyncQueue {
    * @returns Number of operations reset
    */
   async forceRetryPending(): Promise<number> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
@@ -1322,7 +1365,7 @@ export class SyncQueue {
    */
   async retryFailed(): Promise<number> {
     const failed = await this.getFailed();
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     if (failed.length === 0) {
       return 0;
@@ -1364,7 +1407,7 @@ export class SyncQueue {
    */
   async discardFailed(): Promise<number> {
     const failed = await this.getFailed();
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     if (failed.length === 0) {
       return 0;
@@ -1404,7 +1447,7 @@ export class SyncQueue {
     entityType: SyncEntityType,
     entityId: string,
   ): Promise<{ removed: number; deleteQueued: boolean }> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
       const store = transaction.objectStore(SYNC_STORE_NAME);
@@ -1441,7 +1484,7 @@ export class SyncQueue {
    * Clear all operations from the queue.
    */
   async clear(): Promise<void> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
@@ -1472,6 +1515,7 @@ export class SyncQueue {
    * Close the database connection.
    */
   async close(): Promise<void> {
+    this.closedDeliberately = true;
     if (this.db) {
       this.db.close();
       this.db = null;
@@ -1484,7 +1528,7 @@ export class SyncQueue {
    * Returns true if the operation was found and updated, false if not found.
    */
   private async updateStatus(id: string, status: SyncOperationStatus): Promise<boolean> {
-    const db = this.ensureInitialized();
+    const db = await this.ensureOpen();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');

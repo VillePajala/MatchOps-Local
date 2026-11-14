@@ -34,6 +34,7 @@ import { LocalDataStore } from './LocalDataStore';
 import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
 import type { SyncEntityType, SyncOperationType, SyncStatusInfo } from '@/sync';
+import { recordMissedSyncOp, loadMissedSyncOps, hasMissedSyncOps, replayMissedSyncOps, clearMissedSyncOps } from '@/sync/missedSyncOps';
 import logger from '@/utils/logger';
 import { retryWithBackoff, chunkArray, countPushFailures } from '@/utils/retry';
 import * as Sentry from '@sentry/nextjs';
@@ -223,6 +224,29 @@ export class SyncedDataStore implements DataStore {
 
     this.initialized = true;
     logger.info('[SyncedDataStore] Initialized');
+
+    // Changes saved locally that could not be queued in an earlier session (review 3.9).
+    if (this.userId) {
+      await loadMissedSyncOps(this.userId);
+      void this.replayMissedSyncOps();
+    }
+  }
+
+  /** Queue changes that missed the sync queue (review 3.9). Never throws. */
+  private async replayMissedSyncOps(): Promise<void> {
+    if (!this.userId || !hasMissedSyncOps(this.userId) || !this.initialized || this.closed) return;
+    try {
+      const replayed = await replayMissedSyncOps(this.userId, (op) => this.syncQueue.enqueue(op));
+      if (replayed > 0) this.syncEngine?.nudge();
+    } catch (error) {
+      logger.warn('[SyncedDataStore] Could not replay missed changes', { error });
+    }
+  }
+
+  /** The local write succeeded but the change could not be queued: keep it (review 3.9). */
+  private async recordMissed(entityType: SyncEntityType, entityId: string, operation: SyncOperationType, data: unknown) {
+    if (!this.userId) return;
+    await recordMissedSyncOp(this.userId, { entityType, entityId, operation, data, timestamp: Date.now() });
   }
 
   async close(): Promise<void> {
@@ -511,6 +535,7 @@ export class SyncedDataStore implements DataStore {
         operation,
         error: 'Sync queue unavailable (store closing)',
       });
+      await this.recordMissed(entityType, entityId, operation, data);
       return;
     }
 
@@ -527,6 +552,8 @@ export class SyncedDataStore implements DataStore {
       if (this.syncEngine) {
         this.syncEngine.nudge();
       }
+      // The queue works: changes that missed it earlier can go in now.
+      if (this.userId && hasMissedSyncOps(this.userId)) void this.replayMissedSyncOps();
     } catch (error) {
       // Local write succeeded, but failed to queue sync operation.
       // This is not fatal - log and continue. The operation will be
@@ -561,6 +588,8 @@ export class SyncedDataStore implements DataStore {
         operation,
         error: errorMessage,
       });
+      // Keep it, so it is queued once the queue works again (review 3.9).
+      await this.recordMissed(entityType, entityId, operation, data);
     }
   }
 
@@ -1572,6 +1601,8 @@ export class SyncedDataStore implements DataStore {
   }
 
   async clearAllUserData(): Promise<void> {
+    // Changes that missed the queue belong to the data being cleared (review 3.9).
+    if (this.userId) await clearMissedSyncOps(this.userId);
     // Pause sync engine (not stop) so new operations can be queued after clear.
     // Stopping the engine prevents nudge() from triggering processing,
     // which breaks backup import flow where operations are queued after clear.

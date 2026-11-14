@@ -184,6 +184,38 @@ describe('SyncedDataStore', () => {
   // LIFECYCLE TESTS
   // ==========================================================================
 
+  /**
+   * Review 3.9: a save whose queue write fails is kept and queued once the queue works
+   * again - it used to stay local until that item was edited again.
+   * @critical
+   */
+  describe('changes that miss the sync queue', () => {
+    it('are queued with the next successful save', async () => {
+      resetSyncEngine();
+      const userStore = new SyncedDataStore('missed-ops-user');
+      await userStore.initialize();
+      const queue = (userStore as unknown as { syncQueue: SyncQueue }).syncQueue;
+      const realEnqueue = queue.enqueue.bind(queue);
+      const enqueue = jest.spyOn(queue, 'enqueue').mockRejectedValueOnce(new Error('queue database closed'));
+      const quiet = jest.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        await userStore.upsertPlayer({ id: 'p_missed', name: 'Missed', isGoalie: false, receivedFairPlayCard: false });
+        enqueue.mockImplementation(realEnqueue);
+        await userStore.upsertPlayer({ id: 'p_next', name: 'Next', isGoalie: false, receivedFairPlayCard: false });
+        for (let i = 0; i < 20; i++) {
+          const ids = (await queue.getAllOperations()).map((o) => o.entityId);
+          if (ids.includes('p_missed')) break;
+          await new Promise<void>((r) => queueMicrotask(r));
+        }
+        expect((await queue.getAllOperations()).map((o) => o.entityId).sort()).toEqual(['p_missed', 'p_next']);
+      } finally {
+        quiet.mockRestore();
+        await userStore.clearAllUserData().catch(() => {});
+        await userStore.close();
+      }
+    });
+  });
+
   describe('Lifecycle', () => {
     it('should initialize successfully', async () => {
       const newStore = new SyncedDataStore();

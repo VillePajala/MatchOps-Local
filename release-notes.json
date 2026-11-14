@@ -4,6 +4,15 @@
     {
       "date": "2026-11-14",
       "en": [
+        "If the phone closes the app's storage in the middle of use, for example when it is low on space, your changes are still synced to the cloud. Before, they could stay on that device only."
+      ],
+      "fi": [
+        "Jos puhelin sulkee sovelluksen tallennustilan kesken käytön, esimerkiksi tilan käydessä vähiin, muutoksesi synkronoidaan silti pilveen. Aiemmin ne saattoivat jäädä vain tälle laitteelle."
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "en": [
         "Changes saved where the signal was bad no longer get stuck as \"failed\": they are sent automatically once the connection works again, including ones that got stuck before this update."
       ],
       "fi": [
