@@ -1554,9 +1554,15 @@ export default function Home() {
   // (review 3.7, decision: cloud wins). Tell the coach, reload the lists, and remount an
   // open match so it shows - and goes on saving from - the kept version, not the
   // outdated one still in memory.
+  const lastReplacedNoticeRef = useRef<{ gameId: string; at: number } | null>(null);
   useEffect(() => {
-    const onGameReplaced = async () => {
-      showToast(t('page.gameReplacedByCloud', 'This game was changed on another device - showing the latest version.'), 'info');
+    const onGameReplaced = async (event: Event) => {
+      // One notice and reload per game at a time: a blocked match can ask repeatedly.
+      const gameId = (event as CustomEvent<{ gameId?: string }>).detail?.gameId ?? '';
+      const last = lastReplacedNoticeRef.current;
+      if (last && last.gameId === gameId && Date.now() - last.at < 5000) return;
+      lastReplacedNoticeRef.current = { gameId, at: Date.now() };
+      showToast(t('page.gameReplacedByCloud', 'This game was changed on another device. Showing the latest version - the changes made on this device were not saved.'), 'info');
       try {
         await queryClient.refetchQueries({ type: 'all' }, { throwOnError: true });
       } catch {

@@ -3860,6 +3860,11 @@ export class SupabaseDataStore implements DataStore {
         .eq('user_id', userId)
         .eq('id', id)
         .maybeSingle();
+      if (checkError?.code === '42703') {
+        // last_write_id does not exist yet (migration 055 not applied here): the writer
+        // is unknown, which is handled as another device's save, as before 055.
+        break;
+      }
       if (checkError) {
         logger.warn('[SupabaseDataStore] Could not check who wrote the game last - will retry the save', { gameId: id, code: checkError.code });
         throw new NetworkError('Could not verify the game save. It will be retried.');

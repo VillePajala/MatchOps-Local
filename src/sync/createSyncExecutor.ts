@@ -46,6 +46,7 @@ import logger from '@/utils/logger';
 import { ConflictError } from '@/interfaces/DataStoreErrors';
 
 import { GAME_REPLACED_BY_CLOUD_EVENT, markGameReplacedByCloud, unmarkGameReplacedByCloud } from './syncEvents';
+import * as Sentry from '@sentry/nextjs';
 
 /** Optional hooks into the queue that owns the executor. */
 export interface SyncExecutorHooks {
@@ -66,7 +67,6 @@ const isVersionAware = (store: unknown): store is VersionAwareGameStore =>
   typeof (store as Partial<VersionAwareGameStore>)?.fetchCloudGameWithVersion === 'function'
   && typeof (store as Partial<VersionAwareGameStore>)?.recordGameBaseVersion === 'function';
 
-import * as Sentry from '@sentry/nextjs';
 
 /**
  * Validate that data is a non-null object before type assertion.

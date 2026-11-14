@@ -21,7 +21,7 @@ import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import { SupabaseDataStore, type CloudEntityIds } from '@/datastore/SupabaseDataStore';
-import { setGameBaseVersion } from '@/datastore/gameBaseVersions';
+import { getGameBaseVersion, setGameBaseVersion } from '@/datastore/gameBaseVersions';
 import { getAuthService } from '@/datastore/factory';
 import { NetworkError, AuthError } from '@/interfaces/DataStoreErrors';
 import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGamesCollection, PlayerStatAdjustment, AppSettings } from '@/types';
@@ -2127,6 +2127,15 @@ export async function hydrateLocalFromCloud(
           if (typeof cloudVersion === 'number') await setGameBaseVersion(userId, gameId, cloudVersion, { exact: true });
         } else {
           skipped.games++;
+          // Seed the base for a device that had this game before the record existed
+          // (review 3.7, else it would never be protected: the pull stamps what it writes,
+          // so an unchanged local copy always looks newer). Sound here because nothing is
+          // queued for it (checked above) and the cloud is not newer - had the cloud
+          // changed since this copy was written, it would have been written instead.
+          if (await getGameBaseVersion(userId, gameId) === undefined) {
+            const cloudVersion = cloudStore.getCachedGameVersion(gameId);
+            if (typeof cloudVersion === 'number') await setGameBaseVersion(userId, gameId, cloudVersion);
+          }
           logger.info('[ReverseMigrationService] Skipping game (local is newer)', {
             gameId,
             cloudUpdatedAt: game.updatedAt,

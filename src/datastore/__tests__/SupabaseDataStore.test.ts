@@ -5922,6 +5922,13 @@ describe('SupabaseDataStore', () => {
         expect(error).not.toBeInstanceOf(ConflictError);
       });
 
+      it('before migration 055 (no last_write_id column) the writer is unknown: a conflict, not a retry loop', async () => {
+        (getGameBaseVersion as jest.Mock).mockResolvedValueOnce(4);
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue(refusal);
+        mockQueryBuilder.maybeSingle.mockResolvedValueOnce({ data: null, error: { code: '42703', message: 'column games.last_write_id does not exist' } });
+        await expect(dataStore.saveGame('game_1', mockGameData, { useRecordedBase: true })).rejects.toThrow(ConflictError);
+      });
+
       it('another device\'s save: a conflict, not retried', async () => {
         (getGameBaseVersion as jest.Mock).mockResolvedValueOnce(4);
         (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue(refusal);

@@ -316,7 +316,8 @@ export function useGamePersistence({
     const loadedWith = loadedReplacementRef.current;
     if (currentGameId && loadedWith?.id === currentGameId && gameReplacementCount(currentGameId) !== loadedWith.count) {
       logger.warn('[handleQuickSaveGame] Skipping save: this game was replaced by the cloud version since it was opened');
-      // Never silently: ask the page to reload the match on the current copy.
+      // Never silently: ask the page to reload the match on the current copy (the page
+      // de-duplicates repeated requests).
       try {
         window.dispatchEvent(new CustomEvent(GAME_REPLACED_BY_CLOUD_EVENT, { detail: { gameId: currentGameId } }));
       } catch {

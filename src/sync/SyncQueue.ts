@@ -1296,9 +1296,6 @@ export class SyncQueue {
   }
 
   /**
-   * Clear all operations from the queue.
-   */
-  /**
    * Remove every queued (pending or failed) operation for one entity. In-flight
    * ('syncing') ones are left to the executor. Used when a refused game save adopted
    * the cloud copy: the queued changes were made on the same outdated copy (review 3.7).
@@ -1332,6 +1329,9 @@ export class SyncQueue {
     });
   }
 
+  /**
+   * Clear all operations from the queue.
+   */
   async clear(): Promise<void> {
     const db = this.ensureInitialized();
 
