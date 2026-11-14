@@ -1501,9 +1501,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         // LOAD_PERSISTED_GAME_DATA that re-pauses the game after the first run already
         // consumed the one-shot resume — leaving the timer paused.
         loadedGameIdRef.current = currentGameId;
+        // Autosave stays off until THIS game's data is applied (a fresh mount per game
+        // makes switches rare, but a stale id must never enable it early).
+        setAppliedGameId(null);
         try {
           await loadGameStateFromData(gameToLoad);
-          setAppliedGameId(currentGameId);
+          // A load that finishes after the game changed must not mark the new one.
+          if (loadedGameIdRef.current === currentGameId) setAppliedGameId(currentGameId);
         } catch (err) {
           // If the load failed, clear the guard so the effect can retry this game
           // rather than leaving it permanently "loaded" but unapplied.
@@ -1515,6 +1519,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
       // Default game or no game - reset the loaded game tracker
       loadedGameIdRef.current = null;
+      setAppliedGameId(null);
       logger.log('[EFFECT game load] No specific game to load or ID is default. Skipping default load to avoid overwriting state.');
     };
 
