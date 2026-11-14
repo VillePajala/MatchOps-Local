@@ -217,6 +217,27 @@ export function deleteUserLocalDatabases(userId: string): Promise<void> {
 }
 
 /**
+ * Whether the user's data database (`matchops_user_{id}`) still exists on this device.
+ * Waits up to `waitMs` for a pending delete to finish. Returns null when the browser
+ * cannot list databases (indexedDB.databases unsupported): unknown, not "gone".
+ */
+export async function userLocalDatabaseExists(userId: string, waitMs = 2000): Promise<boolean | null> {
+  if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return null;
+  let name: string;
+  try {
+    name = getUserDatabaseName(userId);
+  } catch {
+    return false;
+  }
+  const deadline = Date.now() + waitMs;
+  for (;;) {
+    const present = (await indexedDB.databases()).some((db) => db.name === name);
+    if (!present || Date.now() >= deadline) return present;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
+/**
  * Check if a database name is user-scoped (vs legacy).
  *
  * @param databaseName - The database name to check

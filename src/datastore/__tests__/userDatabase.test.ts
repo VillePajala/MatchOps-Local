@@ -7,6 +7,7 @@ import {
   isUserScopedDatabase,
   extractUserIdFromDatabaseName,
   deleteUserLocalDatabases,
+  userLocalDatabaseExists,
   LEGACY_DATABASE_NAME,
   validateUserId,
   MAX_USER_ID_LENGTH,
@@ -259,6 +260,42 @@ describe('userDatabase', () => {
       const deleteDatabase = installMockIndexedDB('success');
       await deleteUserLocalDatabases('');
       expect(deleteDatabase).not.toHaveBeenCalled();
+    });
+  });
+
+  /** Review 3.14: "Delete All Data" checks the account's data is really gone. */
+  describe('userLocalDatabaseExists', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
+    const install = (names: () => string[] | undefined) => {
+      Object.defineProperty(globalThis, 'indexedDB', {
+        configurable: true,
+        value: names() === undefined ? {} : { databases: jest.fn(async () => (names() ?? []).map((name) => ({ name, version: 1 }))) },
+      });
+    };
+    afterEach(() => {
+      if (original) Object.defineProperty(globalThis, 'indexedDB', original);
+      else delete (globalThis as { indexedDB?: unknown }).indexedDB;
+    });
+
+    it('is false once the account database is gone', async () => {
+      install(() => ['MatchOpsLocal']);
+      await expect(userLocalDatabaseExists('u1', 0)).resolves.toBe(false);
+    });
+
+    it('is true while the account database is still there', async () => {
+      install(() => ['matchops_user_u1']);
+      await expect(userLocalDatabaseExists('u1', 0)).resolves.toBe(true);
+    });
+
+    it('waits for a pending delete to finish', async () => {
+      let calls = 0;
+      install(() => (++calls < 3 ? ['matchops_user_u1'] : []));
+      await expect(userLocalDatabaseExists('u1', 2000)).resolves.toBe(false);
+    });
+
+    it('is unknown (null) when the browser cannot list databases', async () => {
+      install(() => undefined);
+      await expect(userLocalDatabaseExists('u1', 0)).resolves.toBeNull();
     });
   });
 });

@@ -14,8 +14,9 @@ const mockShowToast = jest.fn();
 jest.mock('@/contexts/ToastProvider', () => ({
   useToast: () => ({ showToast: mockShowToast }),
 }));
+let mockUserId: string | undefined = 'user-1';
 jest.mock('@/hooks/useDataStore', () => ({
-  useDataStore: () => ({ userId: 'user-1' }),
+  useDataStore: () => ({ userId: mockUserId }),
 }));
 jest.mock('@/utils/appSettings', () => ({
   resetAppSettings: jest.fn().mockResolvedValue(undefined),
@@ -30,8 +31,22 @@ jest.mock('@/datastore', () => ({
 jest.mock('@/config/backendConfig', () => ({
   setMigrationCompleted: jest.fn(),
 }));
+// Order of the erase steps for the signed-in hard reset (review 3.14).
+const mockEraseSteps: string[] = [];
+// A function declaration (hoisted): jest.mock factories run before `const`s exist.
+function mockStep(name: string) {
+  return jest.fn(async () => { mockEraseSteps.push(name); });
+}
 jest.mock('@/utils/backupSnapshots', () => ({
   createSnapshot: jest.fn().mockResolvedValue(undefined),
+  deleteBackupsDatabase: mockStep('deleteBackups'),
+}));
+jest.mock('@/datastore/factory', () => ({ closeDataStore: mockStep('closeDataStore') }));
+jest.mock('@/utils/storage', () => ({ closeUserStorageAdapter: mockStep('closeAdapter') }));
+jest.mock('@/utils/audioClipStore', () => ({ deleteAudioDatabase: mockStep('deleteAudio') }));
+jest.mock('@/datastore/userDatabase', () => ({
+  deleteUserLocalDatabases: mockStep('deleteUserDatabases'),
+  userLocalDatabaseExists: jest.fn(),
 }));
 // JSDOM's window.location can't be replaced or redefined in this environment,
 // so the controller reloads through this mockable indirection instead.
@@ -57,6 +72,9 @@ import { setMigrationCompleted } from '@/config/backendConfig';
 import { createSnapshot } from '@/utils/backupSnapshots';
 
 
+const mockUserDbExists = () =>
+  (jest.requireMock('@/datastore/userDatabase') as { userLocalDatabaseExists: jest.Mock }).userLocalDatabaseExists;
+
 // Harness exposing both the controller and the modal context it drives.
 function useHarness() {
   const controller = useAppSettingsController();
@@ -79,6 +97,52 @@ describe('useAppSettingsController (L.0b)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockClearAllUserData.mockResolvedValue(undefined);
+    mockEraseSteps.length = 0;
+    mockUserId = 'user-1';
+    mockUserDbExists().mockResolvedValue(false);
+  });
+
+  /**
+   * Review 3.14: signed in (e.g. local data mode), the account's data lives in its own
+   * databases - "Delete All Data" left them, and signing in again brought it all back.
+   * @critical
+   */
+  it("confirmed hard reset also erases the signed-in account's databases, after closing them", async () => {
+    const { result } = await renderHarness();
+    await act(async () => {
+      await result.current.controller.handleHardResetConfirmed();
+    });
+    expect(mockEraseSteps.slice(0, 2)).toEqual(['closeDataStore', 'closeAdapter']);
+    expect(mockEraseSteps).toEqual(expect.arrayContaining(['deleteUserDatabases', 'deleteAudio', 'deleteBackups']));
+    const { deleteUserLocalDatabases } = jest.requireMock('@/datastore/userDatabase');
+    expect(deleteUserLocalDatabases).toHaveBeenCalledWith('user-1');
+    expect(mockUserDbExists()).toHaveBeenCalledWith('user-1');
+    expect(resetAppSettings).toHaveBeenCalledTimes(1);
+    expect(reloadMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('a coach who is not signed in: no account erase, the normal reset runs', async () => {
+    mockUserId = undefined;
+    const { result } = await renderHarness();
+    await act(async () => {
+      await result.current.controller.handleHardResetConfirmed();
+    });
+    expect(mockEraseSteps).toEqual([]);
+    expect(mockUserDbExists()).not.toHaveBeenCalled();
+    expect(resetAppSettings).toHaveBeenCalledTimes(1);
+    expect(reloadMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports failure (no reload, no 'success') when the account's data is still on the device", async () => {
+    mockUserDbExists().mockResolvedValue(true);
+    const { result } = await renderHarness();
+    await act(async () => {
+      await result.current.controller.handleHardResetConfirmed();
+    });
+    expect(reloadMock).not.toHaveBeenCalled();
+    expect(resetAppSettings).not.toHaveBeenCalled();
+    expect(result.current.modal.isAppResetting).toBe(false);
+    expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error');
   });
 
   it('hard reset request opens the confirm flag; cancel clears it', async () => {
