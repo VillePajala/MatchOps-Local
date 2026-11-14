@@ -232,11 +232,18 @@ export default function CloudSyncSection({
         break;
 
       case 'discard':
-        setShowPendingSyncWarning(false);
         // Discard every unsent change, pending AND failed: the store's close no longer
         // clears an account's queue (review 3.13), so pending ones would otherwise be
         // uploaded later - over newer cloud data - after the coach chose to discard them.
-        await syncStatus.discardAllUnsent();
+        // If that fails, stay on the warning rather than continue as if discarded.
+        try {
+          await syncStatus.discardAllUnsent();
+        } catch (error) {
+          logger.error('[CloudSyncSection] Discarding unsent changes failed:', error);
+          showToast(t('cloudSync.pendingSync.syncFailed', 'Sync failed. Please try again or discard changes.'), 'error');
+          break;
+        }
+        setShowPendingSyncWarning(false);
         // Proceed to reverse migration wizard
         setShowReverseMigrationWizard(true);
         break;

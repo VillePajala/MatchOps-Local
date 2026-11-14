@@ -318,6 +318,9 @@ export class SyncedDataStore implements DataStore {
     // Only the shared queue without an account (no userId) is cleared, so operations
     // queued there can never be processed for whoever signs in next (MATCHOPS-LOCAL-23).
     // Deleting an account or clearing its data still clears its queue explicitly.
+    // Trade-off: kept non-game changes are last-write-wins when they go out later, so
+    // they can overwrite a newer edit made elsewhere meanwhile (games are protected by
+    // base versions) - follow-up 3.13b. Still better than silently losing them.
     if (!this.userId) {
       logger.info('[SyncedDataStore] Clearing the shared (no-account) sync queue...');
       await this.syncQueue.clear();

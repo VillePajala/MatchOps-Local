@@ -31,7 +31,12 @@ const SYNC_FIRST_POLL_MS = 300;
  * when changes remain (offline, failures backing off, or the time limit).
  */
 export async function syncUntilEmpty(syncNow: () => Promise<unknown>): Promise<boolean> {
-  await syncNow();
+  try {
+    await syncNow();
+  } catch (error) {
+    logger.warn('[PendingSyncWarning] Sync could not start', { error });
+    return false;
+  }
   const { getSyncEngine, isSyncEngineInitialized } = await import('@/sync');
   const deadline = Date.now() + SYNC_FIRST_TIMEOUT_MS;
   for (;;) {
@@ -67,6 +72,8 @@ export function useSignOutWithPendingSyncWarning(signOut: () => unknown) {
   const [busy, setBusy] = useState(false);
   // A second tap while the first is still checking must not sign out twice.
   const checkingRef = useRef(false);
+  // Same for "Sync first": state updates too late to stop a second tap.
+  const syncingRef = useRef(false);
 
   const requestSignOut = useCallback(async () => {
     if (syncStatus.mode !== 'cloud') {
@@ -91,17 +98,19 @@ export function useSignOutWithPendingSyncWarning(signOut: () => unknown) {
   }, [syncStatus.mode, syncStatus.pendingCount, syncStatus.failedCount, signOut]);
 
   const onAction = useCallback(async (action: 'sync' | 'discard' | 'cancel') => {
-    if (busy) return;
+    if (syncingRef.current) return;
     if (action === 'cancel') {
       setCounts(null);
       return;
     }
     if (action === 'sync') {
+      syncingRef.current = true;
       setBusy(true);
       let empty = false;
       try {
         empty = await syncUntilEmpty(syncStatus.syncNow);
       } finally {
+        syncingRef.current = false;
         setBusy(false);
       }
       if (!empty) {
@@ -113,7 +122,7 @@ export function useSignOutWithPendingSyncWarning(signOut: () => unknown) {
     }
     setCounts(null);
     void signOut();
-  }, [busy, counts, syncStatus.syncNow, signOut, showToast, t]);
+  }, [counts, syncStatus.syncNow, signOut, showToast, t]);
 
   const signOutWarning = counts ? (
     <PendingSyncWarningModal

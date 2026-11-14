@@ -779,6 +779,25 @@ describe('CloudSyncSection', () => {
       });
     });
 
+    it('stays on the warning when discarding fails (does not continue as if discarded)', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
+      mockSyncStatus.discardAllUnsent = jest.fn().mockRejectedValue(new Error('queue database closed'));
+      const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        renderWithQueryClient(<CloudSyncSection />);
+        fireEvent.click(screen.getByRole('button', { name: /switch to local mode/i }));
+        await waitFor(() => expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument());
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Discard & Continue' })); });
+        await waitFor(() => expect(mockShowToast).toHaveBeenCalled());
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+        expect(screen.queryByTestId('reverse-migration-wizard')).not.toBeInTheDocument();
+      } finally {
+        error.mockRestore();
+      }
+    });
+
     it('shows wizard after discard', async () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);

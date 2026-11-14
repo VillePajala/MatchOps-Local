@@ -62,7 +62,7 @@ export interface UseSyncStatusResult {
   /** Clear failed operations */
   clearFailed: () => Promise<void>;
 
-  /** Discard every unsent change (pending and failed). */
+  /** Discard every unsent change (pending and failed). Throws if it could not. */
   discardAllUnsent: () => Promise<void>;
 
   /** Force retry ALL stuck operations (ignores backoff) */
@@ -389,15 +389,13 @@ export function useSyncStatus(): UseSyncStatusResult {
     }
   }, [mode]);
 
-  // Discard every unsent change (the user chose "Discard & Continue")
+  // Discard every unsent change (the user chose "Discard & Continue").
+  // THROWS on failure: the caller must not proceed as if the changes were discarded
+  // (a kept queue would upload them later).
   const discardAllUnsent = useCallback(async () => {
     if (mode !== 'cloud') return;
-    try {
-      const { getSyncEngine } = await import('@/sync');
-      await getSyncEngine().discardAllUnsent();
-    } catch (error) {
-      logger.error('[useSyncStatus] Discard unsent failed:', error);
-    }
+    const { getSyncEngine } = await import('@/sync');
+    await getSyncEngine().discardAllUnsent();
   }, [mode]);
 
   // Force retry ALL stuck operations (ignores backoff)
