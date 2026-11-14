@@ -389,7 +389,7 @@ describe('createSyncExecutor', () => {
       const recordGameBaseVersion = jest.fn().mockResolvedValue(undefined);
       Object.assign(mockStore, { fetchCloudGameWithVersion, recordGameBaseVersion });
       mockStore.saveGame.mockRejectedValue(new ConflictError('game', 'game-1', 'modified elsewhere'));
-      const discardQueuedChanges = jest.fn().mockResolvedValue(undefined);
+      const discardQueuedChanges = jest.fn().mockResolvedValue({ deleteQueued: false });
       const exec = createSyncExecutor(mockStore, localStore, { discardQueuedChanges });
       return { exec, localStore, fetchCloudGameWithVersion, recordGameBaseVersion, discardQueuedChanges };
     };
@@ -407,7 +407,7 @@ describe('createSyncExecutor', () => {
       const { exec, localStore, recordGameBaseVersion, discardQueuedChanges } = setup();
       const order: string[] = [];
       localStore.saveGame.mockImplementation(async () => { order.push('local'); return cloudGame; });
-      discardQueuedChanges.mockImplementation(async () => { order.push('discard'); });
+      discardQueuedChanges.mockImplementation(async () => { order.push('discard'); return { deleteQueued: false }; });
       recordGameBaseVersion.mockImplementation(async () => { order.push('record'); });
       const before = gameReplacementCount('game-1');
       const events: unknown[] = [];
@@ -419,20 +419,42 @@ describe('createSyncExecutor', () => {
         window.removeEventListener(GAME_REPLACED_BY_CLOUD_EVENT, listener);
       }
       expect(localStore.saveGame).toHaveBeenCalledWith('game-1', cloudGame);
-      expect(order).toEqual(['local', 'discard', 'record']);
+      expect(order).toEqual(['discard', 'local', 'record']);
       expect(recordGameBaseVersion).toHaveBeenCalledWith('game-1', 6);
       expect(gameReplacementCount('game-1')).toBe(before + 1); // the open match's copy is blocked
       expect(mockStore.saveGame).toHaveBeenCalledTimes(1); // never retried over the cloud copy
       expect(events).toEqual([{ gameId: 'game-1' }]);
     });
 
-    it('a failure while replacing does not record the version and lifts the block on the open match', async () => {
+    it('a failure while replacing does not record the version, and reloads the open match', async () => {
       const { exec, localStore, recordGameBaseVersion } = setup();
       localStore.saveGame.mockRejectedValue(new Error('IDB write failed'));
-      const before = gameReplacementCount('game-1');
-      await expect(exec(staleOp())).rejects.toThrow();
+      const events: unknown[] = [];
+      const listener = (e: Event) => events.push((e as CustomEvent).detail);
+      window.addEventListener(GAME_REPLACED_BY_CLOUD_EVENT, listener);
+      try {
+        await expect(exec(staleOp())).rejects.toThrow();
+      } finally {
+        window.removeEventListener(GAME_REPLACED_BY_CLOUD_EVENT, listener);
+      }
       expect(recordGameBaseVersion).not.toHaveBeenCalled(); // the retry is refused again
-      expect(gameReplacementCount('game-1')).toBe(before); // the match keeps saving locally
+      expect(events).toEqual([{ gameId: 'game-1' }]); // the match reloads instead of staying blocked
+    });
+
+    it('a queued delete survives: the cloud copy is not stored locally, no notice', async () => {
+      const { exec, localStore, discardQueuedChanges, recordGameBaseVersion } = setup();
+      discardQueuedChanges.mockResolvedValue({ deleteQueued: true });
+      const events: unknown[] = [];
+      const listener = (e: Event) => events.push((e as CustomEvent).detail);
+      window.addEventListener(GAME_REPLACED_BY_CLOUD_EVENT, listener);
+      try {
+        await expect(exec(staleOp())).resolves.toBeUndefined();
+      } finally {
+        window.removeEventListener(GAME_REPLACED_BY_CLOUD_EVENT, listener);
+      }
+      expect(localStore.saveGame).not.toHaveBeenCalled(); // the deleted game does not come back
+      expect(recordGameBaseVersion).toHaveBeenCalledWith('game-1', 6);
+      expect(events).toEqual([]);
     });
 
     it('fails as before when the cloud no longer has the game', async () => {

@@ -1044,9 +1044,17 @@ describe('SyncQueue', () => {
       await queue.markSyncing(inFlight);
       await queue.enqueue(game('g1', 2));
       const other = await queue.enqueue(game('g2', 1));
-      expect(await queue.discardQueuedForEntity('game', 'g1')).toBe(1);
+      expect(await queue.discardQueuedForEntity('game', 'g1')).toEqual({ removed: 1, deleteQueued: false });
       const ids = (await queue.getAllOperations()).map((o) => o.id).sort();
       expect(ids).toEqual([inFlight, other].sort());
+    });
+
+    it('keeps a queued delete (explicit intent) and reports it', async () => {
+      const inFlight = await queue.enqueue({ entityType: 'game', entityId: 'g1', operation: 'update', data: { id: 'g1' }, timestamp: Date.now() });
+      await queue.markSyncing(inFlight);
+      const del = await queue.enqueue({ entityType: 'game', entityId: 'g1', operation: 'delete', data: null, timestamp: Date.now() });
+      expect(await queue.discardQueuedForEntity('game', 'g1')).toEqual({ removed: 0, deleteQueued: true });
+      expect((await queue.getAllOperations()).map((o) => o.id)).toContain(del);
     });
   });
 

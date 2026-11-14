@@ -364,11 +364,12 @@ export class SyncedDataStore implements DataStore {
   }
 
   /** Drop queued (not in-flight) changes for one entity (review 3.7; see SyncQueue). */
-  async discardQueuedChanges(entityType: SyncEntityType, entityId: string): Promise<void> {
-    const removed = await this.syncQueue.discardQueuedForEntity(entityType, entityId);
+  async discardQueuedChanges(entityType: SyncEntityType, entityId: string): Promise<{ deleteQueued: boolean }> {
+    const { removed, deleteQueued } = await this.syncQueue.discardQueuedForEntity(entityType, entityId);
     if (removed > 0) {
       logger.info('[SyncedDataStore] Discarded changes queued on an outdated copy', { entityType, entityId, removed });
     }
+    return { deleteQueued };
   }
 
   /**

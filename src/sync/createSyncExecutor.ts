@@ -45,7 +45,7 @@ import {
 import logger from '@/utils/logger';
 import { ConflictError } from '@/interfaces/DataStoreErrors';
 
-import { GAME_REPLACED_BY_CLOUD_EVENT, markGameReplacedByCloud, unmarkGameReplacedByCloud } from './syncEvents';
+import { GAME_REPLACED_BY_CLOUD_EVENT, markGameReplacedByCloud } from './syncEvents';
 import * as Sentry from '@sentry/nextjs';
 
 /** Optional hooks into the queue that owns the executor. */
@@ -54,7 +54,7 @@ export interface SyncExecutorHooks {
    * A refused save adopted the cloud copy (review 3.7): every other queued change to
    * this entity was made on the same outdated copy and must not be pushed.
    */
-  discardQueuedChanges?: (entityType: SyncEntityType, entityId: string) => Promise<void>;
+  discardQueuedChanges?: (entityType: SyncEntityType, entityId: string) => Promise<{ deleteQueued: boolean }>;
 }
 
 /** The SupabaseDataStore methods used for game version checks (review 3.7). */
@@ -63,6 +63,7 @@ interface VersionAwareGameStore {
   fetchCloudGameWithVersion(gameId: string): Promise<{ game: AppState; version: number } | null>;
   recordGameBaseVersion(gameId: string, version: number): Promise<void>;
 }
+let warnedNotVersionAware = false;
 const isVersionAware = (store: unknown): store is VersionAwareGameStore =>
   typeof (store as Partial<VersionAwareGameStore>)?.fetchCloudGameWithVersion === 'function'
   && typeof (store as Partial<VersionAwareGameStore>)?.recordGameBaseVersion === 'function';
@@ -204,30 +205,40 @@ export function createSyncExecutor(
         // (reply lost) is recognised and retried inside saveGame (last_write_id).
         const cloud = await cloudStore.fetchCloudGameWithVersion(entityId);
         if (cloud) {
+          const notify = () => {
+            try {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent(GAME_REPLACED_BY_CLOUD_EVENT, { detail: { gameId: entityId } }));
+              }
+            } catch {
+              // best effort
+            }
+          };
           // Block the outdated copy still in memory (an open match) FIRST: it must not
           // write over the cloud copy stored below, and once the base version is
-          // updated its pushes would pass the check.
+          // updated its pushes would pass the check. Never lifted: the page remounts
+          // the match on the current copy (a lifted block left a match that loaded in
+          // between wrongly blocked). The block is per tab (single-tab model).
           markGameReplacedByCloud(entityId);
+          let deleteQueued = false;
           try {
-            await localStore.saveGame(entityId, cloud.game);
-            await hooks.discardQueuedChanges?.(entityType, entityId);
+            // Edits queued on the outdated copy go; a queued DELETE stays - it is the
+            // coach's explicit intent, and the cloud copy is then not stored locally
+            // (it would bring the deleted game back).
+            deleteQueued = (await hooks.discardQueuedChanges?.(entityType, entityId))?.deleteQueued ?? false;
+            if (!deleteQueued) {
+              await localStore.saveGame(entityId, cloud.game);
+            }
             // Last: if anything above fails, the old base stays, a retry is refused
             // again, and the resolution simply repeats.
             await cloudStore.recordGameBaseVersion(entityId, cloud.version);
           } catch (resolveError) {
-            // Not resolved: lift the block so the open match can keep saving locally
-            // (its pushes are still refused by the unchanged base version).
-            unmarkGameReplacedByCloud(entityId);
+            notify(); // reload the match on whatever the device now holds; still guarded
             throw resolveError;
           }
-          logger.warn('[SyncExecutor] Save refused (another device saved first): kept the cloud version of the game', { entityId });
-          try {
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent(GAME_REPLACED_BY_CLOUD_EVENT, { detail: { gameId: entityId } }));
-            }
-          } catch {
-            // the notice is best effort
-          }
+          logger.warn('[SyncExecutor] Save refused (another device saved first): kept the cloud version of the game', { entityId, deleteQueued });
+          // No "showing the latest version" notice for a game the coach is deleting.
+          if (!deleteQueued) notify();
           return;
         }
       }
@@ -525,6 +536,10 @@ async function syncGame(
     if (isVersionAware(store)) {
       await store.saveGame(entityId, data as AppState, { useRecordedBase: true });
     } else {
+      if (!warnedNotVersionAware) {
+        warnedNotVersionAware = true;
+        logger.warn('[SyncExecutor] Cloud store has no version-checked game save; outdated copies are not refused');
+      }
       await store.saveGame(entityId, data as AppState);
     }
   }
