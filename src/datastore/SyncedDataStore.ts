@@ -34,7 +34,7 @@ import { LocalDataStore } from './LocalDataStore';
 import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
 import type { SyncEntityType, SyncOperationType, SyncStatusInfo } from '@/sync';
-import { recordMissedSyncOp, loadMissedSyncOps, hasMissedSyncOps, replayMissedSyncOps, clearMissedSyncOps, discardMissedSyncOp } from '@/sync/missedSyncOps';
+import { recordMissedSyncOp, loadMissedSyncOps, hasMissedSyncOps, replayMissedSyncOps, clearMissedSyncOps, discardMissedSyncOp, isCurrentMissedSyncOp } from '@/sync/missedSyncOps';
 import logger from '@/utils/logger';
 import { retryWithBackoff, chunkArray, countPushFailures } from '@/utils/retry';
 import * as Sentry from '@sentry/nextjs';
@@ -232,6 +232,14 @@ export class SyncedDataStore implements DataStore {
     }
   }
 
+  /** Enqueues of saves and of replayed missed changes never interleave (review 3.9). */
+  private enqueueChain: Promise<unknown> = Promise.resolve();
+  private enqueueSerial<T>(fn: () => Promise<T>): Promise<T> {
+    const next = this.enqueueChain.then(fn, fn);
+    this.enqueueChain = next.catch(() => undefined);
+    return next;
+  }
+
   /** Queue changes that missed the sync queue (review 3.9). One run at a time. Never throws. */
   private replayInFlight: Promise<void> | null = null;
   private replayMissedSyncOps(): Promise<void> {
@@ -243,7 +251,13 @@ export class SyncedDataStore implements DataStore {
   private async doReplayMissedSyncOps(): Promise<void> {
     if (!this.userId || !hasMissedSyncOps(this.userId) || !this.initialized || this.closed) return;
     try {
-      const replayed = await replayMissedSyncOps(this.userId, (op) => this.syncQueue.enqueue(op));
+      const userId = this.userId;
+      const replayed = await replayMissedSyncOps(userId, (op) => this.enqueueSerial(async () => {
+        // Re-checked inside the serial section: a save of this entity may have
+        // discarded the snapshot since the replay started.
+        if (!isCurrentMissedSyncOp(userId, op)) return;
+        await this.syncQueue.enqueue(op);
+      }));
       if (replayed > 0) this.syncEngine?.nudge();
     } catch (error) {
       logger.warn('[SyncedDataStore] Could not replay missed changes', { error });
@@ -547,24 +561,27 @@ export class SyncedDataStore implements DataStore {
     }
 
     try {
-      await this.syncQueue.enqueue({
-        entityType,
-        entityId,
-        operation,
-        data,
-        timestamp: Date.now(),
+      // Serialised with replays of missed changes, and the older missed snapshot of this
+      // entity is dropped FIRST, so a replay can never send it after this newer change.
+      await this.enqueueSerial(async () => {
+        if (this.userId && hasMissedSyncOps(this.userId)) {
+          await discardMissedSyncOp(this.userId, entityType, entityId);
+        }
+        await this.syncQueue.enqueue({
+          entityType,
+          entityId,
+          operation,
+          data,
+          timestamp: Date.now(),
+        });
       });
 
       // Nudge the engine to process soon
       if (this.syncEngine) {
         this.syncEngine.nudge();
       }
-      // The queue works. A missed (older) snapshot of THIS entity is superseded by what
-      // was just queued; other entities' missed changes can go in now.
-      if (this.userId && hasMissedSyncOps(this.userId)) {
-        await discardMissedSyncOp(this.userId, entityType, entityId);
-        void this.replayMissedSyncOps();
-      }
+      // The queue works: other entities' missed changes can go in now.
+      if (this.userId && hasMissedSyncOps(this.userId)) void this.replayMissedSyncOps();
     } catch (error) {
       // Local write succeeded, but failed to queue sync operation.
       // This is not fatal - log and continue. The operation will be

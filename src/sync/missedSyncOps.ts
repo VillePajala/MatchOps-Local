@@ -79,6 +79,11 @@ export async function discardMissedSyncOp(userId: string, entityType: string, en
   }
 }
 
+/** Whether this exact snapshot is still the one kept for its entity. */
+export function isCurrentMissedSyncOp(userId: string, op: SyncOperationInput): boolean {
+  return memory.get(userId)?.get(entityKey(op)) === op;
+}
+
 export function hasMissedSyncOps(userId: string): boolean {
   return (memory.get(userId)?.size ?? 0) > 0;
 }
@@ -97,8 +102,11 @@ export async function replayMissedSyncOps(
   let replayed = 0;
   for (const op of ops) {
     try {
+      // Skipped if a newer change to this entity was queued or recorded meanwhile.
+      if (forUser.get(entityKey(op)) !== op) continue;
       await enqueue(op); // original timestamp: it is older than anything queued since
-      forUser.delete(entityKey(op));
+      // Only if still this snapshot: a newer one recorded during the await must stay.
+      if (forUser.get(entityKey(op)) === op) forUser.delete(entityKey(op));
       replayed++;
     } catch (error) {
       logger.warn('[missedSyncOps] Still cannot queue a missed change; will retry', { entityType: op.entityType, error });

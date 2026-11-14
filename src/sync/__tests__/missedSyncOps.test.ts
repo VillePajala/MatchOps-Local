@@ -66,6 +66,18 @@ describe('missedSyncOps', () => {
     expect(queued.map((o) => o.entityId)).toEqual(['g2']);
   });
 
+  it('a newer snapshot recorded while the older one is being queued is kept, not deleted', async () => {
+    await recordMissedSyncOp(u, op('g1', 1));
+    const queued: SyncOperationInput[] = [];
+    await replayMissedSyncOps(u, async (o) => {
+      queued.push(o);
+      await recordMissedSyncOp(u, op('g1', 2)); // a save of g1 failed to queue meanwhile
+    });
+    expect(hasMissedSyncOps(u)).toBe(true);
+    await replayMissedSyncOps(u, async (o) => { queued.push(o); });
+    expect(queued.map((o) => (o.data as { n: number }).n)).toEqual([1, 2]);
+  });
+
   it('is cleared with the account data', async () => {
     await recordMissedSyncOp(u, op('g1', 1));
     await clearMissedSyncOps(u);
