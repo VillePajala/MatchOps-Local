@@ -721,7 +721,9 @@ describe('Translation File Validation', () => {
       // +4 timerOverlay.plannedSubsEarlier_one/_other/plannedSubsOn/Off,
       //     -3 plannedSubInOut/plannedSubIn/plannedSubDismiss: planned subs
       //     show as one group per moment with no dismiss. Lands at 3376.
-      expect(enKeys.length).toBe(3387);
+      // +3 cloudSync.pendingSync.signOutConsequence/signOutAnyway/signOutSyncFailed:
+      //     the sign-out variant of the unsynced-changes warning (review 3.13).
+      expect(enKeys.length).toBe(3390);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -911,7 +913,8 @@ describe('Translation File Validation', () => {
       // +1 kitColorCustom (see EN above). Lands at 3267.
       // -1 startScreen.dashRecent (see EN above). Lands at 3266.
       // +1 grouped planned subs (see EN above). Lands at 3376.
-      expect(fiKeys.length).toBe(3387);
+      // +3 sign-out unsynced-changes warning (see EN above). Lands at 3390.
+      expect(fiKeys.length).toBe(3390);
     });
   });
 });

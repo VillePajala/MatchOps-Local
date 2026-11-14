@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor, RenderOptions } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CloudSyncSection from '../CloudSyncSection';
 
@@ -58,9 +58,10 @@ jest.mock('@/contexts/AuthProvider', () => ({
   }),
 }));
 
+const mockShowToast = jest.fn();
 jest.mock('@/contexts/ToastProvider', () => ({
   useToast: () => ({
-    showToast: jest.fn(),
+    showToast: mockShowToast,
   }),
 }));
 
@@ -154,10 +155,18 @@ const mockSyncStatus = {
   syncNow: jest.fn().mockResolvedValue(undefined),
   retryFailed: jest.fn().mockResolvedValue(undefined),
   clearFailed: jest.fn().mockResolvedValue(undefined),
+  discardAllUnsent: jest.fn().mockResolvedValue(undefined),
 };
 
 jest.mock('@/hooks/useSyncStatus', () => ({
   useSyncStatus: () => mockSyncStatus,
+}));
+
+// The sync engine as "Sync first" sees it while waiting for the queue to empty.
+const mockEngineStatus = { pendingCount: 0, failedCount: 0, isOnline: true, state: 'synced' };
+jest.mock('@/sync', () => ({
+  isSyncEngineInitialized: () => true,
+  getSyncEngine: () => ({ getStatus: async () => ({ ...mockEngineStatus }) }),
 }));
 
 // Mock PendingSyncWarningModal for testing pending sync flow
@@ -272,6 +281,7 @@ describe('CloudSyncSection', () => {
     mockSyncStatus.syncNow = jest.fn().mockResolvedValue(undefined);
     mockSyncStatus.retryFailed = jest.fn().mockResolvedValue(undefined);
     mockSyncStatus.clearFailed = jest.fn().mockResolvedValue(undefined);
+    mockSyncStatus.discardAllUnsent = jest.fn().mockResolvedValue(undefined);
   });
 
   describe('local mode display', () => {
@@ -721,9 +731,36 @@ describe('CloudSyncSection', () => {
       });
     });
 
-    it('clears failed items when Discard & Continue is clicked', async () => {
+    /** Review 3.13: "Sync first" must not proceed while changes are still unsent. @critical */
+    it('stays on the warning when changes remain after Sync First', async () => {
       mockGetBackendMode.mockReturnValue('cloud');
       mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
+      Object.assign(mockEngineStatus, { pendingCount: 0, failedCount: 2, state: 'pending' });
+      const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        renderWithQueryClient(<CloudSyncSection />);
+        fireEvent.click(screen.getByRole('button', { name: /switch to local mode/i }));
+        await waitFor(() => expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument());
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Sync First' })); });
+        await waitFor(() => expect(mockShowToast).toHaveBeenCalled());
+        expect(screen.queryByTestId('reverse-migration-wizard')).not.toBeInTheDocument();
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+      } finally {
+        error.mockRestore();
+        Object.assign(mockEngineStatus, { pendingCount: 0, failedCount: 0, state: 'synced' });
+      }
+    });
+
+    /**
+     * Review 3.13 (Codex): closing the store no longer clears an account's queue, so
+     * Discard must drop PENDING changes too - or they upload later, over newer data.
+     * @critical
+     */
+    it('discards every unsent change (pending and failed) when Discard & Continue is clicked', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
       mockSyncStatus.failedCount = 2;
 
       renderWithQueryClient(<CloudSyncSection />);
@@ -738,8 +775,27 @@ describe('CloudSyncSection', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Discard & Continue' }));
 
       await waitFor(() => {
-        expect(mockSyncStatus.clearFailed).toHaveBeenCalled();
+        expect(mockSyncStatus.discardAllUnsent).toHaveBeenCalledTimes(1);
       });
+    });
+
+    it('stays on the warning when discarding fails (does not continue as if discarded)', async () => {
+      mockGetBackendMode.mockReturnValue('cloud');
+      mockIsCloudAvailable.mockReturnValue(true);
+      mockSyncStatus.pendingCount = 3;
+      mockSyncStatus.discardAllUnsent = jest.fn().mockRejectedValue(new Error('queue database closed'));
+      const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        renderWithQueryClient(<CloudSyncSection />);
+        fireEvent.click(screen.getByRole('button', { name: /switch to local mode/i }));
+        await waitFor(() => expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument());
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Discard & Continue' })); });
+        await waitFor(() => expect(mockShowToast).toHaveBeenCalled());
+        expect(screen.getByTestId('pending-sync-warning-modal')).toBeInTheDocument();
+        expect(screen.queryByTestId('reverse-migration-wizard')).not.toBeInTheDocument();
+      } finally {
+        error.mockRestore();
+      }
     });
 
     it('shows wizard after discard', async () => {
@@ -788,6 +844,7 @@ describe('CloudSyncSection', () => {
       expect(screen.queryByTestId('reverse-migration-wizard')).not.toBeInTheDocument();
       expect(mockSyncStatus.syncNow).not.toHaveBeenCalled();
       expect(mockSyncStatus.clearFailed).not.toHaveBeenCalled();
+      expect(mockSyncStatus.discardAllUnsent).not.toHaveBeenCalled();
     });
 
     it('passes isOnline and isSyncing props to modal', async () => {

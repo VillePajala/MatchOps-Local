@@ -32,6 +32,7 @@ import type { AppAction } from '@/hooks/useDeepLinkHandler';
 import { usePremium } from '@/hooks/usePremium';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
+import { useSignOutWithPendingSyncWarning } from '@/hooks/useSignOutWithPendingSyncWarning';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { learnVenues } from '@/utils/venueBook';
@@ -205,6 +206,8 @@ export default function Home() {
   tRef.current = t;
   const isReturningDevice = useDeviceHasSignedIn();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod, signOut } = useAuth();
+  // Sign-out warns first when this account has changes not yet in the cloud (review 3.13).
+  const { requestSignOut, signOutWarning } = useSignOutWithPendingSyncWarning(signOut);
   // In cloud mode a match waits for the launch-time cloud pull (review 3.5): a match
   // opened before it kept the stale copy and its first autosave overwrote newer data.
   const launchPullGate = useLaunchPullGate(
@@ -1904,7 +1907,7 @@ export default function Home() {
               onEnableCloudSync={handleEnableCloudSync}
               onSignInExistingSubscriber={handleSignInExistingSubscriber}
               onShowWelcome={() => setShowWelcome(true)}
-              onSignOut={signOut}
+              onSignOut={requestSignOut}
               isCloudAvailable={isCloudAvailable()}
               homeView={homeView}
               homeSummary={homeSummary}
@@ -1917,6 +1920,7 @@ export default function Home() {
               onAdjustTravel={handleAdjustTravel}
               onSetupModalsClosed={refreshSetupSignals}
             />
+            {signOutWarning}
           </ErrorBoundary>
         ) : (
           <>

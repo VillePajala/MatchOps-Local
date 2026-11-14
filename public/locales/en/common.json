@@ -3226,7 +3226,10 @@
       "syncing": "Syncing...",
       "discardAndContinue": "Discard & Continue",
       "offlineNotice": "Cannot sync while offline",
-      "syncFailed": "Sync failed. Please try again or discard changes."
+      "syncFailed": "Sync failed. Please try again or discard changes.",
+      "signOutConsequence": "If you sign out now, they stay on this device and are sent the next time you sign in here.",
+      "signOutAnyway": "Sign out anyway",
+      "signOutSyncFailed": "Sync failed. You can still sign out - the changes stay on this device."
     }
   },
   "cloudAuth": {

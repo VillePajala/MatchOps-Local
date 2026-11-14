@@ -668,6 +668,18 @@ export class SyncEngine {
   }
 
   /**
+   * Discard EVERY unsent operation (pending and failed) - the user chose to abandon
+   * them. Waits for an in-flight push first, so it cannot land after the discard.
+   * (Closing the store no longer clears an account's queue - review 3.13.)
+   */
+  async discardAllUnsent(): Promise<void> {
+    await this.waitForIdle();
+    await this.queue.clear();
+    logger.info('[SyncEngine] Discarded all unsent operations');
+    this.emitStatusChange();
+  }
+
+  /**
    * Force retry ALL stuck operations (both failed and pending in backoff).
    * Use this when user wants immediate sync without waiting for backoff.
    */

@@ -77,6 +77,7 @@ describe('SyncStatusIndicator', () => {
     syncNow: jest.fn(),
     retryFailed: jest.fn(),
     clearFailed: jest.fn(),
+    discardAllUnsent: jest.fn(),
     forceRetryAll: jest.fn(),
     pause: jest.fn(),
     resume: jest.fn(),

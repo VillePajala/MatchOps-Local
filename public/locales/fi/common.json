@@ -3226,7 +3226,10 @@
       "syncing": "Synkronoidaan...",
       "discardAndContinue": "Hylkää ja jatka",
       "offlineNotice": "Synkronointi ei ole mahdollista offline-tilassa",
-      "syncFailed": "Synkronointi epäonnistui. Yritä uudelleen tai hylkää muutokset."
+      "syncFailed": "Synkronointi epäonnistui. Yritä uudelleen tai hylkää muutokset.",
+      "signOutConsequence": "Jos kirjaudut nyt ulos, muutokset säilyvät tällä laitteella ja lähetetään, kun kirjaudut seuraavan kerran sisään tällä laitteella.",
+      "signOutAnyway": "Kirjaudu silti ulos",
+      "signOutSyncFailed": "Synkronointi epäonnistui. Voit silti kirjautua ulos - muutokset säilyvät tällä laitteella."
     }
   },
   "cloudAuth": {

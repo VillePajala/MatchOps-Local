@@ -30,6 +30,7 @@ import CloudAuthModal from './CloudAuthModal';
 import ReverseMigrationWizard from './ReverseMigrationWizard';
 import UpgradePromptModal from './UpgradePromptModal';
 import PendingSyncWarningModal from './PendingSyncWarningModal';
+import { useSignOutWithPendingSyncWarning, syncUntilEmpty } from '@/hooks/useSignOutWithPendingSyncWarning';
 import TransitionOverlay from './TransitionOverlay';
 
 interface CloudSyncSectionProps {
@@ -213,8 +214,11 @@ export default function CloudSyncSection({
         // Keep modal open during sync to show isSyncing state via syncStatus prop
         // This gives user visual feedback that sync is in progress
         try {
-          await syncStatus.syncNow();
-          // Sync completed - close modal and proceed to wizard
+          // Wait until the queue is really empty: syncNow only starts processing, and
+          // proceeding while the push runs abandoned what had not gone yet (review 3.13).
+          if (!(await syncUntilEmpty(syncStatus.syncNow))) {
+            throw new Error('Unsynced changes remain');
+          }
           setShowPendingSyncWarning(false);
           setShowReverseMigrationWizard(true);
         } catch (error) {
@@ -228,11 +232,18 @@ export default function CloudSyncSection({
         break;
 
       case 'discard':
-        setShowPendingSyncWarning(false);
-        // Clear the failed items and proceed
-        if (syncStatus.failedCount > 0) {
-          await syncStatus.clearFailed();
+        // Discard every unsent change, pending AND failed: the store's close no longer
+        // clears an account's queue (review 3.13), so pending ones would otherwise be
+        // uploaded later - over newer cloud data - after the coach chose to discard them.
+        // If that fails, stay on the warning rather than continue as if discarded.
+        try {
+          await syncStatus.discardAllUnsent();
+        } catch (error) {
+          logger.error('[CloudSyncSection] Discarding unsent changes failed:', error);
+          showToast(t('cloudSync.pendingSync.syncFailed', 'Sync failed. Please try again or discard changes.'), 'error');
+          break;
         }
+        setShowPendingSyncWarning(false);
         // Proceed to reverse migration wizard
         setShowReverseMigrationWizard(true);
         break;
@@ -331,6 +342,8 @@ export default function CloudSyncSection({
       }
     }
   };
+  // Warns first when this account has changes not yet in the cloud (review 3.13).
+  const { requestSignOut, signOutWarning } = useSignOutWithPendingSyncWarning(handleSignOut);
 
   /**
    * Handle "Start Over" - sign out, disable cloud mode, return to WelcomeScreen.
@@ -709,7 +722,7 @@ export default function CloudSyncSection({
       {currentMode === 'cloud' && (
         <div className="pt-2 space-y-2">
           <button
-            onClick={handleSignOut}
+            onClick={requestSignOut}
             disabled={isSigningOut || isChangingMode}
             className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
           >
@@ -929,6 +942,7 @@ export default function CloudSyncSection({
       />
 
       {/* Pending sync warning modal - shown when trying to switch to local with unsynced changes */}
+      {signOutWarning}
       {showPendingSyncWarning && (
         <PendingSyncWarningModal
           pendingCount={syncStatus.pendingCount}

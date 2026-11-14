@@ -4,6 +4,15 @@
     {
       "date": "2026-11-14",
       "en": [
+        "Changes not yet sent to the cloud are no longer lost when you sign out or someone else signs in on the same device: they are sent the next time you sign in there. Signing out with unsent changes now warns you first and offers to sync them."
+      ],
+      "fi": [
+        "Pilveen vielä lähettämättömät muutokset eivät enää katoa, kun kirjaudut ulos tai joku muu kirjautuu samalle laitteelle: ne lähetetään, kun kirjaudut seuraavan kerran sisään sillä laitteella. Uloskirjautuminen lähettämättömien muutosten kanssa varoittaa nyt ensin ja tarjoaa niiden synkronointia."
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "en": [
         "Signing out on one device no longer signs you out of your other devices. Changing your password through a reset still signs out everywhere."
       ],
       "fi": [
