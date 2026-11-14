@@ -547,6 +547,15 @@ describe('SyncEngine', () => {
       expect(status.failedCount).toBe(0);
     });
 
+    /** Review 3.9: never "synced" while changes cannot be queued. @critical */
+    it('reports an error, not synced, when the queue database was closed and cannot be reopened', async () => {
+      jest.spyOn(queue, 'isInitialized').mockReturnValue(false);
+      jest.spyOn(queue, 'wasClosedUnexpectedly').mockReturnValue(true);
+      jest.spyOn(queue, 'reopenIfClosed').mockResolvedValue(false);
+      const status = await engine.getStatus();
+      expect(status.state).toBe('error');
+    });
+
     it('should report pending when operations are queued', async () => {
       await queue.enqueue(createTestOperation());
 

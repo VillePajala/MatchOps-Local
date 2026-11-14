@@ -489,6 +489,23 @@ export class SyncEngine {
    * Returns a safe default if queue is not yet initialized.
    */
   async getStatus(): Promise<SyncStatusInfo> {
+    // The browser closed the queue database mid-session: reopen it. If that fails, say
+    // so - "synced" would hide that changes are not being queued (review 3.9).
+    if (!this.queue.isInitialized() && this.queue.wasClosedUnexpectedly()
+      && !(await this.queue.reopenIfClosed())) {
+      return {
+        state: 'error',
+        pendingCount: 0,
+        failedCount: 0,
+        lastSyncedAt: this.lastSyncedAt,
+        isOnline: this.isOnline,
+        hasStaleResetFailure: false,
+        cloudConnected: this.executor !== null,
+        isPaused: this.isPaused,
+        hasAuthFailure: this.isAuthPaused,
+        hasServerFailure: this.isServerPaused,
+      };
+    }
     // Check if queue is initialized to avoid throwing during early lifecycle
     // (e.g., when doEmitStatus is called via queueMicrotask during engine creation)
     if (!this.queue.isInitialized()) {
@@ -938,7 +955,11 @@ export class SyncEngine {
       return;
     }
 
-    // Check queue is initialized (guards against race condition during dispose)
+    // Check queue is initialized (guards against race condition during dispose). A queue
+    // the browser closed mid-session is reopened first (review 3.9).
+    if (!this.queue.isInitialized()) {
+      await this.queue.reopenIfClosed();
+    }
     if (!this.queue.isInitialized()) {
       logger.warn('[SyncEngine] Queue not initialized, skipping sync');
       return;

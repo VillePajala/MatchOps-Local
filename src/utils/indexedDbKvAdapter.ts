@@ -52,6 +52,7 @@ export class IndexedDBKvAdapter implements StorageAdapter {
   private db: IDBPDatabase | null = null;
   private initPromise: Promise<void> | null = null;
   private connectionTerminated = false;
+  private terminationCleanup: Promise<void> | null = null;
   private pendingOperations = new Set<Promise<unknown>>();
 
   // Storage usage caching
@@ -81,6 +82,12 @@ export class IndexedDBKvAdapter implements StorageAdapter {
    * Uses singleton pattern to ensure only one initialization occurs.
    */
   private async ensureInitialized(): Promise<void> {
+    // The browser closed the connection (storage pressure, a backing-store error):
+    // wait for its cleanup, then reopen below (review 3.9). It used to stay
+    // 'terminated' for good - every read and write failed until a page reload.
+    if (this.connectionTerminated && this.terminationCleanup) {
+      await this.terminationCleanup;
+    }
     if (this.connectionTerminated) {
       throw new StorageError(
         StorageErrorType.ACCESS_DENIED,
@@ -136,16 +143,7 @@ export class IndexedDBKvAdapter implements StorageAdapter {
         blocking: () => {
           this.logger.warn('IndexedDB database blocking another connection');
         },
-        terminated: () => {
-          this.logger.error('IndexedDB database connection terminated unexpectedly');
-          // Mark connection as terminated to prevent new operations
-          this.connectionTerminated = true;
-          // Wait for pending operations to complete before cleanup
-          // Note: Cannot await in synchronous callback, so handle errors explicitly
-          this.handleConnectionTermination().catch(error => {
-            this.logger.error('Failed to complete connection termination cleanup', { error });
-          });
-        }
+        terminated: () => this.onConnectionTerminated()
       });
 
       this.logger.debug('IndexedDB database opened successfully');
@@ -157,6 +155,25 @@ export class IndexedDBKvAdapter implements StorageAdapter {
       // Convert IndexedDB errors to standardized StorageError
       throw this.convertError(error, 'Failed to initialize IndexedDB');
     }
+  }
+
+  /**
+   * The browser closed the connection unexpectedly. New operations wait for the cleanup
+   * and then reopen the database (review 3.9).
+   */
+  private onConnectionTerminated(): void {
+    this.logger.error('IndexedDB database connection terminated unexpectedly');
+    this.connectionTerminated = true;
+    // Wait for pending operations to complete before cleanup
+    // Note: Cannot await in synchronous callback, so handle errors explicitly
+    this.terminationCleanup = this.handleConnectionTermination()
+      .catch(error => {
+        this.logger.error('Failed to complete connection termination cleanup', { error });
+      })
+      .finally(() => {
+        this.connectionTerminated = false;
+        this.terminationCleanup = null;
+      });
   }
 
   /**

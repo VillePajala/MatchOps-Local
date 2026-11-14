@@ -1129,6 +1129,49 @@ describe('SyncQueue', () => {
     });
   });
 
+  /**
+   * Review 3.9: if the browser closes the queue database mid-session, the next
+   * operation reopens it - saves kept being written locally but never queued.
+   * @critical
+   */
+  describe('database closed by the browser', () => {
+    const closeAsBrowser = () => {
+      const db = (queue as unknown as { db: IDBDatabase }).db;
+      db.close();
+      (db.onclose as (() => void))();
+    };
+    const warnings = () => jest.requireMock('@/utils/logger').default.warn as jest.Mock;
+
+    it('reopens on the next operation; queued data survives', async () => {
+      const before = await queue.enqueue({ entityType: 'player', entityId: 'p1', operation: 'update', data: { id: 'p1' }, timestamp: Date.now() });
+      closeAsBrowser();
+      expect(queue.isInitialized()).toBe(false);
+      expect(queue.wasClosedUnexpectedly()).toBe(true);
+      const after = await queue.enqueue({ entityType: 'player', entityId: 'p2', operation: 'update', data: { id: 'p2' }, timestamp: Date.now() });
+      expect(queue.isInitialized()).toBe(true);
+      expect((await queue.getAllOperations()).map((o) => o.id).sort()).toEqual([before, after].sort());
+      expect(warnings()).toHaveBeenCalled();
+    });
+
+    it('a close() during the reopen (sign-out) keeps it closed', async () => {
+      closeAsBrowser();
+      const pending = queue.enqueue({ entityType: 'player', entityId: 'p4', operation: 'update', data: { id: 'p4' }, timestamp: Date.now() });
+      await queue.close();
+      await expect(pending).rejects.toThrow();
+      expect(queue.isInitialized()).toBe(false);
+      await queue.initialize(); // for afterEach cleanup
+    });
+
+    it('stays closed after a deliberate close()', async () => {
+      await queue.close();
+      expect(queue.wasClosedUnexpectedly()).toBe(false);
+      expect(await queue.reopenIfClosed()).toBe(false);
+      await expect(queue.enqueue({ entityType: 'player', entityId: 'p3', operation: 'update', data: { id: 'p3' }, timestamp: Date.now() }))
+        .rejects.toThrow();
+      await queue.initialize(); // for afterEach cleanup
+    });
+  });
+
   describe('edge cases', () => {
     it('should gracefully handle marking non-existent operation as syncing', async () => {
       // Suppress debug log from updateStatus when operation not found

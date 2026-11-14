@@ -345,6 +345,25 @@ describe('IndexedDBKvAdapter', () => {
     });
   });
 
+  /**
+   * Review 3.9: after the browser terminates the connection, the next operation reopens
+   * the database - it used to fail every read and write until a page reload.
+   * @critical
+   */
+  describe('unexpected termination', () => {
+    it('reopens on the next operation', async () => {
+      const adapter = new IndexedDBKvAdapter({ mode: 'indexedDB', dbName: 'TerminationRecoveryDB' });
+      await adapter.setItem('before', '1');
+      const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
+      (adapter as unknown as { onConnectionTerminated: () => void }).onConnectionTerminated();
+      await expect(adapter.setItem('after', '2')).resolves.not.toThrow();
+      expect(await adapter.getItem('after')).toBe('2');
+      expect(await adapter.getItem('before')).toBe('1');
+      errorLog.mockRestore();
+      await adapter.close();
+    });
+  });
+
   describe('Storage Integration', () => {
     it('should persist data across adapter instances', async () => {
       const dbName = 'PersistenceTestDB';
