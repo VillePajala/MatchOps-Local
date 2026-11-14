@@ -528,6 +528,22 @@ describe('SupabaseAuthService', () => {
       expect(mockAuth.signOut).toHaveBeenNthCalledWith(2, { scope: 'local' });
     });
 
+    it('a global sign-out offline (both calls fail) still removes the stored session', async () => {
+      const projectRef = 'globalref';
+      const key = `sb-${projectRef}-auth-token`;
+      process.env.NEXT_PUBLIC_SUPABASE_URL = `https://${projectRef}.supabase.co`;
+      localStorage.setItem(key, JSON.stringify({ access_token: 'a', refresh_token: 'r', expires_at: 1, user: { id: 'u1', email: 'x@example.com' } }));
+      try {
+        mockAuth.signOut.mockResolvedValue({ error: { message: 'Failed to fetch' } });
+        await authService.signOut({ scope: 'global' });
+        expect(mockAuth.signOut).toHaveBeenCalledTimes(2);
+        expect(localStorage.getItem(key)).toBeNull();
+      } finally {
+        localStorage.removeItem(key);
+        delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+      }
+    });
+
     it('a normal sign-out with no stored session left does not throw', async () => {
       mockAuth.signOut.mockResolvedValue({ error: null });
       await expect(authService.signOut()).resolves.toBeUndefined();

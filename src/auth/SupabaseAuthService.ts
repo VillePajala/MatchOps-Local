@@ -746,11 +746,18 @@ export class SupabaseAuthService implements AuthService {
       logger.warn('[SupabaseAuthService] Sign out API error:', error instanceof Error ? error.message : String(error));
     }
     if (error && scope === 'global') {
-      // API call failed (network error), but we still need to clear local session.
-      // Try the local-scope signout (a failed local one is not worth repeating). Note: it still POSTs /logout?scope=local whenever an
-      // access token exists, so offline it fails too - the direct removal below is what
-      // actually works then. Same 10 s limit as above (a hung network would otherwise
-      // keep the sign-out spinner up for its own 30 s fetch).
+      // The other devices' logins were NOT ended (after a password reset, they should
+      // be): make that visible.
+      try {
+        Sentry.captureMessage('Sign out of all devices failed', { level: 'warning', tags: { flow: 'sign-out-global' } });
+      } catch {
+        // Sentry failure acceptable
+      }
+      // Still end this device's login. (A failed local sign-out is not retried.)
+      // The local sign-out still POSTs /logout?scope=local when an access token
+      // exists, so offline it fails too; the direct removal below is what works then.
+      // Same 10 s limit as above: a hung network would otherwise keep the sign-out
+      // spinner up for its own 30 s fetch.
       try {
         const { error: localError } = await withSignOutTimeout(
           this.client!.auth.signOut({ scope: 'local' }), 'Local sign out timed out');
