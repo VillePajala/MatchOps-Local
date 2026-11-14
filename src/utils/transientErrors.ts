@@ -73,21 +73,43 @@ export const TRANSIENT_STATUS_CODES = new Set([
 ]);
 
 /**
- * Extract error message from various error types.
- *
- * Shared between retry modules to ensure consistent error message extraction.
+ * Messages of genuine connection failures: the request never got a response (no
+ * network, a failed fetch, a reset or refused connection). Deliberately narrower than
+ * TRANSIENT_ERROR_PATTERNS: a "timeout" or "try again" can also come from a server
+ * that will keep failing the same request (e.g. a statement timeout), and such errors
+ * must keep their retry budget so they surface as failed (review 3.8).
  */
+const CONNECTION_FAILURE_PATTERNS = [
+  'failed to fetch',
+  'fetch failed',
+  'load failed',
+  'network error',
+  'networkerror',
+  'network request failed',
+  'connection refused',
+  'connection reset',
+  'econnrefused',
+  'econnreset',
+  'socket hang up',
+  // Left by the 3.7 save check when it could not reach the server (#921).
+  'could not verify the game save',
+] as const;
+
 /**
- * Whether an error message describes a connection problem (no network, a failed or
- * timed-out request, an unreachable or overloaded server) rather than a problem with
- * the request itself. Such failures say nothing about whether the request can
+ * Whether an error message describes a genuine connection failure (see
+ * CONNECTION_FAILURE_PATTERNS). Such failures say nothing about whether the request can
  * succeed, so they must not use up a retry budget (review 3.8).
  */
 export function isNetworkLikeMessage(message: string): boolean {
   const m = message.toLowerCase();
-  return TRANSIENT_ERROR_PATTERNS.some((pattern) => m.includes(pattern));
+  return CONNECTION_FAILURE_PATTERNS.some((pattern) => m.includes(pattern));
 }
 
+/**
+ * Extract error message from various error types.
+ *
+ * Shared between retry modules to ensure consistent error message extraction.
+ */
 export function getErrorMessage(error: unknown): string {
   if (!error) return 'Unknown error';
   if (typeof error === 'string') return error;

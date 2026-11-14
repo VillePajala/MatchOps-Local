@@ -1356,8 +1356,9 @@ export class SyncEngine {
           logger.warn(`[SyncEngine] Could not reschedule ${opInfo} after a connection problem:`, rescheduleError);
           try {
             await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
-          } catch {
+          } catch (resetError) {
             // the stale-syncing reset on next start recovers it
+            logger.warn(`[SyncEngine] Could not reset ${opInfo} either; recovered on next start`, resetError);
           }
         }
         this.emitStatusChange();

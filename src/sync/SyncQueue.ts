@@ -36,6 +36,8 @@ const SYNC_DB_VERSION = 1;
 
 /** Object store name */
 const SYNC_STORE_NAME = 'operations';
+/** Connection failures after which an op is marked failed after all (review 3.8). */
+export const MAX_NETWORK_FAILURES = 200;
 
 /** Index names */
 const INDEX_STATUS = 'by_status';
@@ -716,6 +718,8 @@ export class SyncQueue {
           ...op,
           status: newStatus,
           retryCount: newRetryCount,
+          // A real failure: earlier connection failures no longer set the backoff.
+          networkFailures: 0,
           lastError: error,
           lastAttempt: Date.now(),
         };
@@ -764,10 +768,15 @@ export class SyncQueue {
           store.delete(id);
           return;
         }
+        const networkFailures = (op.networkFailures ?? 0) + 1;
+        // Ceiling: ~16 hours of failing attempts at the capped backoff while the device
+        // says it is online. Past it the op is marked failed as before, so something
+        // that never succeeds still surfaces (and is not revived again).
+        const givenUp = networkFailures >= MAX_NETWORK_FAILURES;
         store.put({
           ...op,
-          status: 'pending',
-          networkFailures: (op.networkFailures ?? 0) + 1,
+          status: givenUp ? 'failed' : 'pending',
+          networkFailures,
           lastError: error,
           lastAttempt: Date.now(),
         } satisfies SyncOperation);
@@ -805,7 +814,8 @@ export class SyncQueue {
         if (op.superseded) {
           // A newer change to this entity replaced it: never revive its older snapshot.
           cursor.delete();
-        } else if (op.lastError && isNetworkLikeMessage(op.lastError)) {
+        } else if (op.lastError && isNetworkLikeMessage(op.lastError)
+          && (op.networkFailures ?? 0) < MAX_NETWORK_FAILURES) {
           cursor.update({
             ...op,
             status: 'pending',

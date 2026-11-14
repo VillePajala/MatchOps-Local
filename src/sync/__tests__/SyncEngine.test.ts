@@ -286,6 +286,24 @@ describe('SyncEngine', () => {
       expect(await queue.getById(id)).toBeNull(); // completed and removed
     });
 
+    it('revives a save that failed on connection problems when the connection returns', async () => {
+      engine.start();
+      await flushAllAsync();
+      const id = await queue.enqueue(createTestOperation());
+      for (let i = 0; i < 20; i++) {
+        const op = await queue.getById(id);
+        if (op?.status === 'failed') break;
+        await queue.markSyncing(id);
+        await queue.markFailed(id, 'TypeError: Failed to fetch');
+      }
+      mockExecutor.mockClear();
+      mockExecutor.mockResolvedValue(undefined);
+      window.dispatchEvent(new Event('online'));
+      await flushAllAsync();
+      expect(mockExecutor).toHaveBeenCalled();
+      expect(await queue.getById(id)).toBeNull();
+    });
+
     it('does not use up retries on connection failures', async () => {
       mockExecutor.mockRejectedValue(new Error('Failed to fetch'));
       const id = await queue.enqueue(createTestOperation());

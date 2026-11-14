@@ -13,7 +13,7 @@
  * - No accidental HTTP status code strings (avoids false positives)
  */
 
-import { TRANSIENT_ERROR_PATTERNS } from '../transientErrors';
+import { isNetworkLikeMessage, TRANSIENT_ERROR_PATTERNS } from '../transientErrors';
 
 describe('TRANSIENT_ERROR_PATTERNS', () => {
   describe('array integrity', () => {
@@ -207,5 +207,20 @@ describe('TRANSIENT_ERROR_PATTERNS', () => {
         expect(matched).toBe(false);
       }
     });
+  });
+});
+
+/** Review 3.8: only genuine connection failures skip the retry budget. */
+describe('isNetworkLikeMessage', () => {
+  it('recognises connection failures, including the 3.7 save-check message', () => {
+    for (const m of ['TypeError: Failed to fetch', 'Load failed', 'NetworkError when attempting to fetch resource.',
+      'ECONNRESET', 'Could not verify the game save. It will be retried.']) {
+      expect(isNetworkLikeMessage(m)).toBe(true);
+    }
+  });
+  it('does not treat server-side timeouts or "try again" as connection failures', () => {
+    for (const m of ['canceling statement due to statement timeout', 'Request timeout', 'please try again', 'Service Unavailable']) {
+      expect(isNetworkLikeMessage(m)).toBe(false);
+    }
   });
 });
