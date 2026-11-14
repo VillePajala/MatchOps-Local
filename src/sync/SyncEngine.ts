@@ -20,7 +20,8 @@ import {
   SyncError,
   SyncErrorCode,
 } from './types';
-import { AuthError, StorageError } from '@/interfaces/DataStoreErrors';
+import { AuthError, StorageError, NetworkError } from '@/interfaces/DataStoreErrors';
+import { isNetworkLikeMessage } from '@/utils/transientErrors';
 
 /**
  * Callback type for sync operations.
@@ -185,6 +186,9 @@ export class SyncEngine {
     this.staleResetFailed = false;
     this.queue
       .resetStaleSyncing()
+      // Then revive saves that ended 'failed' on connection problems (review 3.8);
+      // its own errors are swallowed, so they never count as a failed stale reset.
+      .then(() => this.reviveNetworkFailedOps())
       .catch((e) => {
         logger.error('[SyncEngine] Failed to reset stale syncing operations:', e);
         // Report to Sentry - stale reset failure may leave operations stuck
@@ -715,15 +719,26 @@ export class SyncEngine {
 
   // ---- Private Methods ----
 
+  /** Give saves that failed on connection problems a fresh start (review 3.8). Never throws. */
+  private async reviveNetworkFailedOps(): Promise<void> {
+    try {
+      const revived = await this.queue.reviveNetworkFailed();
+      if (revived > 0) this.emitStatusChange();
+    } catch (e) {
+      logger.warn('[SyncEngine] Could not revive operations that failed on connection problems:', e);
+    }
+  }
+
   private handleOnline = (): void => {
     logger.info('[SyncEngine] Online');
     this.isOnline = true;
     this.emitStatusChange();
 
-    // Trigger sync when coming back online
+    // Trigger sync when coming back online (after reviving saves that failed on
+    // connection problems while the signal was bad)
     if (this.isRunning) {
       // CRITICAL: Must have .catch() to prevent unhandled rejection
-      this.doProcessQueue().catch((e) => {
+      this.reviveNetworkFailedOps().then(() => this.doProcessQueue()).catch((e) => {
         logger.error('[SyncEngine] Error processing queue after coming online:', e);
         try {
           Sentry.captureException(e, {
@@ -809,7 +824,8 @@ export class SyncEngine {
     // isServerPaused is cleared above, but check it explicitly so this guard
     // stays correct if the clearing logic changes (e.g., min-pause-on-resume).
     if (this.isRunning && this.isOnline && !this.isPaused && !this.isAuthPaused && !this.isServerPaused) {
-      this.nudge();
+      // Revive saves that failed on connection problems first (review 3.8).
+      void this.reviveNetworkFailedOps().then(() => this.nudge());
     }
   };
 
@@ -1321,6 +1337,30 @@ export class SyncEngine {
           logger.info(`[SyncEngine] Could not reset server-error operation ${opInfo}:`, resetError);
         }
 
+        this.emitStatusChange();
+        return;
+      }
+
+      // Connection failures (no signal, failed/timed-out request): retried with a
+      // growing, capped backoff WITHOUT using up maxRetries (review 3.8). Counting them
+      // made a save permanently 'failed' after ~10 minutes of bad signal at a field, and
+      // it never retried on its own once back on Wi-Fi.
+      const isNetworkFailure = error instanceof NetworkError ||
+        (error instanceof Error && error.name === 'NetworkError') ||
+        isNetworkLikeMessage(errorMessage);
+      if (isNetworkFailure) {
+        logger.info(`[SyncEngine] Connection problem: ${opInfo} - will retry (${errorMessage})`);
+        try {
+          await this.queue.markRetryLater(op.id, errorMessage);
+        } catch (rescheduleError) {
+          logger.warn(`[SyncEngine] Could not reschedule ${opInfo} after a connection problem:`, rescheduleError);
+          try {
+            await this.queue.resetOperationToPending(op.id, { incrementRetry: false });
+          } catch (resetError) {
+            // the stale-syncing reset on next start recovers it
+            logger.warn(`[SyncEngine] Could not reset ${opInfo} either; recovered on next start`, resetError);
+          }
+        }
         this.emitStatusChange();
         return;
       }

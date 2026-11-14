@@ -4,6 +4,15 @@
     {
       "date": "2026-11-14",
       "en": [
+        "Changes saved where the signal was bad no longer get stuck as \"failed\": they are sent automatically once the connection works again, including ones that got stuck before this update."
+      ],
+      "fi": [
+        "Huonolla yhteydellä tallennetut muutokset eivät enää jää jumiin \"epäonnistuneina\": ne lähetetään automaattisesti, kun yhteys taas toimii, myös ennen tätä päivitystä jumiin jääneet."
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "en": [
         "A device with an older copy of a game can no longer overwrite the newer version, such as a match recorded on another device. If that happens, the app keeps the newer version and tells you."
       ],
       "fi": [
