@@ -446,6 +446,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const gameIdRef = useRef(currentGameId);
   // Track which game has been successfully loaded to prevent reload on auto-save
   const loadedGameIdRef = useRef<string | null>(null);
+  // The game whose data has been APPLIED to the session (set after the load resolves,
+  // so the next render shows it). Autosave waits for this - see useGamePersistence.
+  const [appliedGameId, setAppliedGameId] = useState<string | null>(null);
   // Clock correction consumed from the persisted timer record at boot,
   // applied one-shot when the corresponding game loads (see loadGameStateFromData).
   // `resume` is set when the timer was running at hide time (wasRunning), so the
@@ -1498,8 +1501,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         // LOAD_PERSISTED_GAME_DATA that re-pauses the game after the first run already
         // consumed the one-shot resume — leaving the timer paused.
         loadedGameIdRef.current = currentGameId;
+        // Autosave stays off until THIS game's data is applied (a fresh mount per game
+        // makes switches rare, but a stale id must never enable it early).
+        setAppliedGameId(null);
         try {
           await loadGameStateFromData(gameToLoad);
+          // A load that finishes after the game changed must not mark the new one.
+          if (loadedGameIdRef.current === currentGameId) setAppliedGameId(currentGameId);
         } catch (err) {
           // If the load failed, clear the guard so the effect can retry this game
           // rather than leaving it permanently "loaded" but unapplied.
@@ -1511,6 +1519,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
       // Default game or no game - reset the loaded game tracker
       loadedGameIdRef.current = null;
+      setAppliedGameId(null);
       logger.log('[EFFECT game load] No specific game to load or ID is default. Skipping default load to avoid overwriting state.');
     };
 
@@ -1577,6 +1586,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     playerAssessments,
     isPlayed,
     initialLoadComplete,
+    appliedGameId,
 
     // From useGameDataManagement
     savedGames: gameDataManagement.savedGames || {},

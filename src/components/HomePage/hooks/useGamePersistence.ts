@@ -86,6 +86,13 @@ export interface UseGamePersistenceParams {
   playerAssessments: Record<string, PlayerAssessment>;
   isPlayed: boolean;
   initialLoadComplete: boolean;
+  /**
+   * The game whose saved data has been applied to the session (null until then).
+   * Autosave waits for it: its change baseline must be the loaded game, not the
+   * default session shown before the load landed - otherwise merely opening a match
+   * saved it as if the coach had edited it (review 3.5b).
+   */
+  appliedGameId: string | null;
 
   // From useGameDataManagement
   savedGames: Record<string, AppState>;
@@ -160,6 +167,7 @@ export function useGamePersistence({
   playerAssessments,
   isPlayed,
   initialLoadComplete,
+  appliedGameId,
   savedGames,
   setSavedGames,
   resetHistory,
@@ -628,7 +636,7 @@ export function useGamePersistence({
       delay: 2000,
     },
     saveFunction: () => autoSaveFnRef.current(), // Ref-based to prevent stale closures
-    enabled: initialLoadComplete && currentGameId !== DEFAULT_GAME_ID,
+    enabled: initialLoadComplete && currentGameId !== DEFAULT_GAME_ID && appliedGameId === currentGameId,
     currentGameId,
   });
 
