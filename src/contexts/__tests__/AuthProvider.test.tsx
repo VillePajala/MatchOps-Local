@@ -2022,6 +2022,95 @@ describe('AuthProvider', () => {
       }
     });
 
+    /** Review 3.11: a session the user establishes after a sign-out is accepted again. @critical */
+    it('after signing out and creating an account, session refreshes are accepted again', async () => {
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+      function InOutComponent() {
+        const { isAuthenticated, session, signUp, signOut } = useAuth();
+        return (
+          <div>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <span data-testid="token">{session?.accessToken ?? 'none'}</span>
+            <button data-testid="out" onClick={() => { void signOut(); }}>out</button>
+            <button data-testid="in" onClick={() => { void signUp('new@example.com', 'pw-Long-123'); }}>in</button>
+          </div>
+        );
+      }
+      render(<AuthProvider><InOutComponent /></AuthProvider>);
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+      await act(async () => { fireEvent.click(screen.getByTestId('out')); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('no'));
+      await act(async () => { fireEvent.click(screen.getByTestId('in')); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+      await act(async () => {
+        authCallbacks.forEach(cb => cb('token_refreshed', { ...mockSession, accessToken: 'refreshed-token' }));
+      });
+      await waitFor(() => expect(screen.getByTestId('token')).toHaveTextContent('refreshed-token'));
+    });
+
+    it('after signing out, an interactive sign-in works even though its SIGNED_IN event arrives first', async () => {
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+      // supabase-js fires SIGNED_IN inside signIn(), before the provider marks the session
+      (mockAuthService.signIn as jest.Mock).mockImplementation(async () => {
+        authCallbacks.forEach(cb => cb('signed_in', mockSession));
+        return { user: mockCloudUser, session: mockSession };
+      });
+      function InComponent() {
+        const { isAuthenticated, signIn, signOut } = useAuth();
+        return (
+          <div>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <button data-testid="out" onClick={() => { void signOut(); }}>out</button>
+            <button data-testid="in" onClick={() => { void signIn('test@example.com', 'pw'); }}>in</button>
+          </div>
+        );
+      }
+      render(<AuthProvider><InComponent /></AuthProvider>);
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+      await act(async () => { fireEvent.click(screen.getByTestId('out')); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('no'));
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      await act(async () => { fireEvent.click(screen.getByTestId('in')); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+      warn.mockRestore();
+    });
+
+    /**
+     * Review 3.11: after signing out (offline), switching back to the app fires
+     * SIGNED_IN with the old session - it must not sign the account back in.
+     * @critical
+     */
+    it('ignores a session delivered after sign-out', async () => {
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+
+      await act(async () => { fireEvent.click(screen.getByTestId('sign-out-btn')); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('no'));
+
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      await act(async () => {
+        authCallbacks.forEach(cb => cb('signed_in', mockSession));
+      });
+      warn.mockRestore();
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+      expect(screen.getByTestId('has-session')).toHaveTextContent('no');
+    });
+
     /**
      * Mid-session token expiry while offline should enter grace period (trigger 3).
      * When onAuthStateChange fires signed_out with null session while offline and

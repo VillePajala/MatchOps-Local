@@ -4,6 +4,15 @@
     {
       "date": "2026-11-14",
       "en": [
+        "Signing out without a connection now really signs you out: the account can no longer reopen by itself when you switch back to the app or reload it."
+      ],
+      "fi": [
+        "Uloskirjautuminen ilman verkkoyhteyttä kirjaa nyt todella ulos: tili ei enää avaudu itsestään, kun palaat sovellukseen tai lataat sen uudelleen."
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "en": [
         "Weak signal no longer shows a false \"Session expired\" and stops syncing. Syncing also resumes by itself when the connection returns or the app is reopened."
       ],
       "fi": [

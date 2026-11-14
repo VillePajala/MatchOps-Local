@@ -242,6 +242,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const markSignedInThisSession = useCallback(() => {
     hasSignedInThisSessionRef.current = true;
     lastSignInAtRef.current = Date.now();
+    // A session the user established (sign-in, sign-up...): sessions are accepted again.
+    isIntentionalSignOutRef.current = false;
     // Device memory: from now on this device opens on Sign in, not Create account.
     markDeviceHasSignedIn();
   }, []);
@@ -557,6 +559,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // modal isn't bypassed. Setting them here first would briefly show the app
           // logged-in during signIn's consent await (the re-consent race). signIn()
           // sets the authoritative state right after; a later event re-sets it idempotently.
+          // After a sign-out, a session arriving here is the OLD one (switching back to
+          // the app fires SIGNED_IN with whatever supabase-js still had): never let it
+          // sign the account back in without a password (review 3.11). The flag is
+          // cleared by every user-established session: signIn, signUp and OTP
+          // verification (markSignedInThisSession). Password recovery returns earlier
+          // (isPasswordResetFlowRef), and there are no link callbacks
+          // (detectSessionInUrl: false).
+          // (Not during an interactive sign-in: that session is the one being typed in.)
+          if (newSession && isIntentionalSignOutRef.current && !isInteractiveSignInRef.current) {
+            logger.warn('[AuthProvider] Ignoring a session delivered after sign-out', { state });
+            return;
+          }
           if (!isInteractiveSignInRef.current) {
             setSession(newSession);
             setUser(newSession?.user ?? null);

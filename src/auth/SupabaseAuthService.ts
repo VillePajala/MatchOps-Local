@@ -26,7 +26,7 @@ import type { Database } from '@/types/supabase';
 import { POLICY_VERSION } from '@/config/constants';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
-import { getCachedFullSession } from '@/auth/cachedSession';
+import { getCachedFullSession, hasCachedSupabaseSessionEntry, clearCachedSupabaseSession } from '@/auth/cachedSession';
 import { AUTH_SESSION_REFRESHED_EVENT } from '@/sync/syncEvents';
 
 /**
@@ -45,6 +45,15 @@ import { AUTH_SESSION_REFRESHED_EVENT } from '@/sync/syncEvents';
  * @see docs/03-active-plans/supabase-implementation-guide.md Section 6
  */
 const PASSWORD_MIN_LENGTH = 8;
+
+/** Sign-out calls cannot take an AbortSignal: race them against a 10 s limit. */
+function withSignOutTimeout<T>(call: Promise<T>, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), 10000);
+  });
+  return Promise.race([call, timeout]).finally(() => { if (timeoutId) clearTimeout(timeoutId); });
+}
 
 /**
  * Map Supabase auth events to our AuthState type.
@@ -717,14 +726,7 @@ export class SupabaseAuthService implements AuthService {
     // does not accept an AbortSignal, so we race against a timeout promise.
     let error;
     try {
-      let timeoutId: ReturnType<typeof setTimeout> | undefined;
-      const timeoutPromise = new Promise<never>((_resolve, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('Sign out timed out')), 10000);
-      });
-      const result = await Promise.race([
-        this.client!.auth.signOut(),
-        timeoutPromise,
-      ]).finally(() => { if (timeoutId) clearTimeout(timeoutId); });
+      const result = await withSignOutTimeout(this.client!.auth.signOut(), 'Sign out timed out');
       error = result.error;
     } catch (e) {
       // Timeout or network error — treat as failed API signout
@@ -739,16 +741,39 @@ export class SupabaseAuthService implements AuthService {
     if (error) {
       logger.warn('[SupabaseAuthService] Sign out API error:', error instanceof Error ? error.message : String(error));
       // API call failed (network error), but we still need to clear local session.
-      // Supabase client should clear local storage on signOut(), but to be safe,
-      // explicitly try local-scope signout which doesn't require network.
+      // Try the local-scope signout. Note: it still POSTs /logout?scope=local whenever an
+      // access token exists, so offline it fails too - the direct removal below is what
+      // actually works then. Same 10 s limit as above (a hung network would otherwise
+      // keep the sign-out spinner up for its own 30 s fetch).
       try {
-        await this.client!.auth.signOut({ scope: 'local' });
-        logger.info('[SupabaseAuthService] Local session cleared after API failure');
+        const { error: localError } = await withSignOutTimeout(
+          this.client!.auth.signOut({ scope: 'local' }), 'Local sign out timed out');
+        if (localError) {
+          logger.warn('[SupabaseAuthService] Local signout returned an error:', localError.message);
+        }
       } catch (localError) {
-        // Both API and local signout failed - this is unusual and should be tracked
-        // Session state is cleared in memory, but localStorage may still have stale data
-        logger.error('[SupabaseAuthService] Both API and local signout failed - auth state may be inconsistent:', localError);
+        logger.warn('[SupabaseAuthService] Local signout threw:', localError);
       }
+    }
+
+    // The stored session is what reopens the account (switching back to the app fires
+    // SIGNED_IN with it; a reload restores it). Offline, supabase-js's signouts both fail
+    // before removing it (they need the network), so remove it directly (review 3.11).
+    // No SIGNED_OUT is broadcast to other tabs this way; AuthProvider clears its own
+    // state regardless (multi-tab is a documented limitation).
+    // Unconditionally (idempotent): a stored entry that does not even parse must go too.
+    // The check looks for the key itself, so an unparseable leftover is caught as well.
+    // supabase-js may still hold the session in memory (and its refresh timer); the
+    // AuthProvider ignores any session it delivers after sign-out.
+    clearCachedSupabaseSession();
+    if (hasCachedSupabaseSessionEntry()) {
+      logger.error('[SupabaseAuthService] Could not remove the stored session on sign out');
+      try {
+        Sentry.captureMessage('Sign out could not remove the stored session', { level: 'error', tags: { flow: 'sign-out' } });
+      } catch {
+        // Sentry failure acceptable
+      }
+      throw new AuthError('Sign out could not be completed on this device.');
     }
 
     logger.info('[SupabaseAuthService] Signed out');
