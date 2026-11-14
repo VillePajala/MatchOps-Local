@@ -4,6 +4,15 @@
     {
       "date": "2026-11-14",
       "en": [
+        "Weak signal no longer shows a false \"Session expired\" and stops syncing. Syncing also resumes by itself when the connection returns or the app is reopened."
+      ],
+      "fi": [
+        "Heikko yhteys ei enää näytä virheellistä \"Istunto vanhentunut\" -ilmoitusta eikä pysäytä synkronointia. Synkronointi myös jatkuu itsestään, kun yhteys palaa tai sovellus avataan uudelleen."
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "en": [
         "If the phone closes the app's storage in the middle of use, for example when it is low on space, your changes are still synced to the cloud. Before, they could stay on that device only."
       ],
       "fi": [

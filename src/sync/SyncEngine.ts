@@ -22,6 +22,7 @@ import {
 } from './types';
 import { AuthError, StorageError, NetworkError } from '@/interfaces/DataStoreErrors';
 import { isNetworkLikeMessage } from '@/utils/transientErrors';
+import { AUTH_SESSION_REFRESHED_EVENT } from './syncEvents';
 
 /**
  * Callback type for sync operations.
@@ -97,6 +98,7 @@ export class SyncEngine {
   private boundOnlineHandler: (() => void) | null = null;
   private boundOfflineHandler: (() => void) | null = null;
   private boundAppResumeHandler: (() => void) | null = null;
+  private boundAuthRefreshedHandler: (() => void) | null = null;
   private boundVisibilityChangeHandler: (() => void) | null = null;
 
   // Event listeners
@@ -172,10 +174,12 @@ export class SyncEngine {
       this.boundOnlineHandler = this.handleOnline;
       this.boundOfflineHandler = this.handleOffline;
       this.boundAppResumeHandler = this.handleAppResume;
+      this.boundAuthRefreshedHandler = this.handleAuthRefreshed;
       this.boundVisibilityChangeHandler = this.handleVisibilityChange;
       window.addEventListener('online', this.boundOnlineHandler);
       window.addEventListener('offline', this.boundOfflineHandler);
       window.addEventListener('app-resume', this.boundAppResumeHandler);
+      window.addEventListener(AUTH_SESSION_REFRESHED_EVENT, this.boundAuthRefreshedHandler);
       document.addEventListener('visibilitychange', this.boundVisibilityChangeHandler);
     }
 
@@ -262,6 +266,10 @@ export class SyncEngine {
       if (this.boundOfflineHandler) {
         window.removeEventListener('offline', this.boundOfflineHandler);
         this.boundOfflineHandler = null;
+      }
+      if (this.boundAuthRefreshedHandler) {
+        window.removeEventListener(AUTH_SESSION_REFRESHED_EVENT, this.boundAuthRefreshedHandler);
+        this.boundAuthRefreshedHandler = null;
       }
       if (this.boundAppResumeHandler) {
         window.removeEventListener('app-resume', this.boundAppResumeHandler);
@@ -746,8 +754,28 @@ export class SyncEngine {
     }
   }
 
+  /**
+   * Lift a pause caused by auth failures so the next attempt re-checks (review 3.10).
+   * Those failures can be false (no signal); a real expiry pauses again after the same
+   * three failures. Called when the connection returns, the app resumes, or the session
+   * is refreshed.
+   */
+  private liftAuthPause(reason: string): boolean {
+    if (!this.isAuthPaused) return false;
+    logger.info(`[SyncEngine] Lifting the auth pause (${reason})`);
+    this.isAuthPaused = false;
+    this.consecutiveAuthFailures = 0;
+    this.emitStatusChange();
+    return true;
+  }
+
+  private handleAuthRefreshed = (): void => {
+    if (this.liftAuthPause('session refreshed') && this.isRunning) this.nudge();
+  };
+
   private handleOnline = (): void => {
     logger.info('[SyncEngine] Online');
+    this.liftAuthPause('connection returned');
     this.isOnline = true;
     this.emitStatusChange();
 
@@ -813,6 +841,8 @@ export class SyncEngine {
     // Safety net: also clear here for browsers where visibilitychange doesn't fire
     // before app-resume (e.g., Safari bfcache restore via pageshow without
     // preceding visibilitychange, or edge cases in WebView containers).
+    this.liftAuthPause('app resumed');
+
     if (this.consecutiveAbortFailures > 0) {
       this.consecutiveAbortFailures = 0;
     }

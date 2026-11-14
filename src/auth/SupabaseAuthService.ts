@@ -27,6 +27,7 @@ import { POLICY_VERSION } from '@/config/constants';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 import { getCachedFullSession } from '@/auth/cachedSession';
+import { AUTH_SESSION_REFRESHED_EVENT } from '@/sync/syncEvents';
 
 /**
  * Password complexity requirements.
@@ -903,6 +904,15 @@ export class SupabaseAuthService implements AuthService {
         } else {
           this.currentSession = null;
           this.currentUser = null;
+        }
+
+        // A refreshed or new session: let the sync engine lift a login pause (review 3.10).
+        if ((authState === 'token_refreshed' || authState === 'signed_in') && session && typeof window !== 'undefined') {
+          try {
+            window.dispatchEvent(new Event(AUTH_SESSION_REFRESHED_EVENT));
+          } catch {
+            // best effort
+          }
         }
 
         // Call the callback
