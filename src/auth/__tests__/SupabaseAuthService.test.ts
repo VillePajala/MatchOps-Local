@@ -508,11 +508,26 @@ describe('SupabaseAuthService', () => {
     });
 
     /**
-     * Review 3.11: signing out offline must remove the stored session, or switching back
-     * to the app / a reload signs the account back in without a password. supabase-js's
-     * local signout can fail offline before removing it.
+     * Review 3.12: signing out on one device must not end the account's other logins
+     * (supabase-js's default scope is 'global').
      * @critical
      */
+    it('signs out this device only by default', async () => {
+      mockAuth.signOut.mockResolvedValue({ error: null });
+      await authService.signOut();
+      expect(mockAuth.signOut).toHaveBeenCalledTimes(1);
+      expect(mockAuth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    });
+
+    it('ends every login on the account when asked (global), falling back to this device on failure', async () => {
+      mockAuth.signOut
+        .mockResolvedValueOnce({ error: { message: 'Failed to fetch' } })
+        .mockResolvedValueOnce({ error: null });
+      await authService.signOut({ scope: 'global' });
+      expect(mockAuth.signOut).toHaveBeenNthCalledWith(1, { scope: 'global' });
+      expect(mockAuth.signOut).toHaveBeenNthCalledWith(2, { scope: 'local' });
+    });
+
     it('a normal sign-out with no stored session left does not throw', async () => {
       mockAuth.signOut.mockResolvedValue({ error: null });
       await expect(authService.signOut()).resolves.toBeUndefined();
@@ -537,16 +552,22 @@ describe('SupabaseAuthService', () => {
       }
     });
 
-    it('removes the stored session even when both the API and the local signout fail', async () => {
+    /**
+     * Review 3.11: signing out offline must remove the stored session, or switching back
+     * to the app / a reload signs the account back in without a password. supabase-js's
+     * local signout can fail offline before removing it.
+     * @critical
+     */
+    it('removes the stored session even when the sign-out call fails (offline)', async () => {
       const projectRef = 'signoutref';
       const key = `sb-${projectRef}-auth-token`;
       process.env.NEXT_PUBLIC_SUPABASE_URL = `https://${projectRef}.supabase.co`;
       localStorage.setItem(key, JSON.stringify({ access_token: 'a', refresh_token: 'r', expires_at: 1, user: { id: 'u1', email: 'x@example.com' } }));
       try {
-        mockAuth.signOut
-          .mockResolvedValueOnce({ error: { message: 'Failed to fetch' } }) // global: no network
-          .mockResolvedValueOnce({ error: { message: 'Failed to fetch' } }); // local: also needs the network
+        // Offline: the sign-out call needs the network and fails
+        mockAuth.signOut.mockResolvedValue({ error: { message: 'Failed to fetch' } });
         await authService.signOut();
+        expect(mockAuth.signOut).toHaveBeenCalledTimes(1); // a failed local sign-out is not retried
         expect(localStorage.getItem(key)).toBeNull();
         expect(authService.isAuthenticated()).toBe(false);
       } finally {

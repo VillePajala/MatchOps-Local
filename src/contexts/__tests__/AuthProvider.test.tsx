@@ -2022,6 +2022,38 @@ describe('AuthProvider', () => {
       }
     });
 
+    /**
+     * Review 3.12: a normal sign-out ends this device's login only; a completed
+     * password reset ends every login on the account.
+     * @critical
+     */
+    it('normal sign-out is this device only; after a password reset it is every device', async () => {
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+      function ScopeComponent() {
+        const { isAuthenticated, signOut, updatePassword } = useAuth();
+        return (
+          <div>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <button data-testid="out" onClick={() => { void signOut(); }}>out</button>
+            <button data-testid="newpw" onClick={() => { void updatePassword('New-Password-123'); }}>pw</button>
+          </div>
+        );
+      }
+      render(<AuthProvider><ScopeComponent /></AuthProvider>);
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+
+      await act(async () => { fireEvent.click(screen.getByTestId('newpw')); });
+      await waitFor(() => expect(mockAuthService.signOut).toHaveBeenCalledWith({ scope: 'global' }));
+
+      (mockAuthService.signOut as jest.Mock).mockClear();
+      await act(async () => { fireEvent.click(screen.getByTestId('out')); });
+      await waitFor(() => expect(mockAuthService.signOut).toHaveBeenCalledTimes(1));
+      expect(mockAuthService.signOut).toHaveBeenCalledWith(); // default: this device only
+    });
+
     /** Review 3.11: a session the user establishes after a sign-out is accepted again. @critical */
     it('after signing out and creating an account, session refreshes are accepted again', async () => {
       mockAuthService = createMockCloudAuthService(true);

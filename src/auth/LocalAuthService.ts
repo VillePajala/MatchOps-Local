@@ -10,7 +10,7 @@
  * @see docs/03-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md
  */
 
-import type { AuthService } from '@/interfaces/AuthService';
+import type { AuthService, SignOutOptions } from '@/interfaces/AuthService';
 import type { User, Session, AuthResult, AuthStateCallback } from '@/interfaces/AuthTypes';
 import { LOCAL_USER } from '@/interfaces/AuthTypes';
 import { NotSupportedError } from '@/interfaces/DataStoreErrors';
@@ -64,7 +64,7 @@ export class LocalAuthService implements AuthService {
     throw new NotSupportedError('signIn', 'local');
   }
 
-  async signOut(): Promise<void> {
+  async signOut(_options?: SignOutOptions): Promise<void> {
     // No-op in local mode - user is always "signed in"
     logger.debug('[LocalAuthService] signOut called (no-op in local mode)');
   }

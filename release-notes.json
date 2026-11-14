@@ -4,6 +4,15 @@
     {
       "date": "2026-11-14",
       "en": [
+        "Signing out on one device no longer signs you out of your other devices. Changing your password through a reset still signs out everywhere."
+      ],
+      "fi": [
+        "Uloskirjautuminen yhdellä laitteella ei enää kirjaa sinua ulos muilta laitteiltasi. Salasanan vaihto palautuksen kautta kirjaa edelleen ulos kaikkialta."
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "en": [
         "Signing out without a connection now really signs you out: the account can no longer reopen by itself when you switch back to the app or reload it."
       ],
       "fi": [
