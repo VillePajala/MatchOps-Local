@@ -88,6 +88,14 @@ export interface SyncOperation {
 
   /** Timestamp when the queue entry was created (ms since epoch). Preserved during deduplication. */
   createdAt: number;
+
+  /**
+   * Set while this operation is in flight ('syncing') and a newer change to the same
+   * entity was queued as a separate operation. The newer one carries newer data, so
+   * if this one fails or is interrupted it is dropped instead of retried - a retry
+   * would replay this older snapshot over the newer one (review 3.6).
+   */
+  superseded?: boolean;
 }
 
 /**

@@ -293,8 +293,11 @@ export class SyncQueue {
   /**
    * Add an operation to the sync queue.
    *
-   * Deduplication: If an operation for the same entity+entityId exists with
-   * status 'pending', it will be replaced with the new operation.
+   * Deduplication: an existing 'pending' or 'failed' operation for the same
+   * entityType+entityId is merged with the new one (neither is in flight). An
+   * in-flight ('syncing') one is left to the executor but marked `superseded`, so
+   * if it fails or is interrupted it is dropped rather than replaying its older
+   * snapshot over the newer change (review 3.6).
    *
    * **Note:** Deduplication is not atomic in multi-tab scenarios. This is
    * acceptable per the app's single-tab usage model. See CLAUDE.md
@@ -358,6 +361,12 @@ export class SyncQueue {
             }
             cursor.continue();
           } else {
+            // In flight ('syncing'): left to the executor, but the change queued now is
+            // newer - mark it so a failure drops it instead of replaying its older
+            // snapshot over this one (review 3.6).
+            if (existing.status === 'syncing' && !existing.superseded) {
+              cursor.update({ ...existing, superseded: true });
+            }
             cursor.continue();
           }
         } else {
@@ -673,6 +682,16 @@ export class SyncQueue {
           return;
         }
 
+        if (op.superseded) {
+          // A newer change to this entity was queued while this was in flight: a retry
+          // would replay this older snapshot over it (review 3.6).
+          store.delete(id);
+          logger.info('[SyncQueue] Dropped failed operation superseded by a newer change', {
+            id, entityType: op.entityType, entityId: op.entityId,
+          });
+          return;
+        }
+
         const newRetryCount = op.retryCount + 1;
         const newStatus: SyncOperationStatus =
           newRetryCount >= op.maxRetries ? 'failed' : 'pending';
@@ -769,6 +788,17 @@ export class SyncQueue {
         if (cursor) {
           const op = cursor.value as SyncOperation;
 
+          if (op.superseded) {
+            // Interrupted, and a newer change to this entity is queued (or already
+            // synced): never replay this older snapshot (review 3.6).
+            cursor.delete();
+            logger.info('[SyncQueue] Dropped interrupted operation superseded by a newer change', {
+              id: op.id, entityType: op.entityType, entityId: op.entityId,
+            });
+            cursor.continue();
+            return;
+          }
+
           // Reset to pending for retry WITHOUT incrementing retry count or setting lastAttempt.
           //
           // CRITICAL FIX: Previously we incremented retryCount and set lastAttempt = Date.now(),
@@ -858,6 +888,15 @@ export class SyncQueue {
         }
 
         found = true;
+
+        if (op.superseded) {
+          // A newer change to this entity was queued while this was in flight (review 3.6).
+          store.delete(id);
+          logger.info('[SyncQueue] Dropped reset operation superseded by a newer change', {
+            id, entityType: op.entityType, entityId: op.entityId,
+          });
+          return;
+        }
 
         // Optionally increment retryCount to prevent infinite loops.
         // For emergency resets (markFailed failure), we increment.

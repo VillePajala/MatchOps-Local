@@ -936,6 +936,93 @@ describe('SyncQueue', () => {
     });
   });
 
+  /**
+   * Review 3.6: an op in flight ('syncing') when a newer change to the same entity is
+   * queued must never replay its older snapshot after failing or being interrupted -
+   * whether the newer op is still queued or already synced.
+   * @critical
+   */
+  describe('superseded in-flight operations', () => {
+    const game = (n: number): SyncOperationInput => ({
+      entityType: 'game', entityId: 'game_1', operation: 'update', data: { id: 'game_1', homeScore: n }, timestamp: Date.now(),
+    });
+    const opsFor = async () => (await queue.getAllOperations()).filter((o) => o.entityId === 'game_1');
+
+    it('a failed older op is dropped while the newer one is still queued', async () => {
+      const a = await queue.enqueue(game(1));
+      await queue.markSyncing(a);
+      const b = await queue.enqueue(game(2)); // A is in flight: B is a separate op
+      expect(b).not.toBe(a);
+      await queue.markFailed(a, 'network');
+      const ops = await opsFor();
+      expect(ops.map((o) => o.id)).toEqual([b]);
+      expect((ops[0].data as { homeScore: number }).homeScore).toBe(2);
+    });
+
+    it('a failed older op is dropped even when the newer one already synced', async () => {
+      const a = await queue.enqueue(game(1));
+      await queue.markSyncing(a);
+      const b = await queue.enqueue(game(2));
+      await queue.markSyncing(b);
+      await queue.markCompleted(b); // newer state is in the cloud
+      await queue.markFailed(a, 'network'); // older one fails afterwards
+      expect(await opsFor()).toEqual([]);
+    });
+
+    it('an update in flight is not replayed after a delete was queued', async () => {
+      const a = await queue.enqueue(game(1));
+      await queue.markSyncing(a);
+      await queue.enqueue({ entityType: 'game', entityId: 'game_1', operation: 'delete', data: null, timestamp: Date.now() });
+      await queue.markFailed(a, 'timeout');
+      const ops = await opsFor();
+      expect(ops.map((o) => o.operation)).toEqual(['delete']);
+    });
+
+    it('an interrupted superseded op is dropped on restart (stale syncing reset)', async () => {
+      const a = await queue.enqueue(game(1));
+      await queue.markSyncing(a);
+      const b = await queue.enqueue(game(2));
+      await queue.resetStaleSyncing();
+      expect((await opsFor()).map((o) => o.id)).toEqual([b]);
+    });
+
+    it('an aborted superseded op is dropped, not reset to pending', async () => {
+      const a = await queue.enqueue(game(1));
+      await queue.markSyncing(a);
+      const b = await queue.enqueue(game(2));
+      await queue.resetOperationToPending(a, { incrementRetry: false });
+      expect((await opsFor()).map((o) => o.id)).toEqual([b]);
+    });
+
+    it('a superseded op that succeeds completes normally, and the newer op still runs', async () => {
+      const a = await queue.enqueue(game(1));
+      await queue.markSyncing(a);
+      const b = await queue.enqueue(game(2));
+      await queue.markCompleted(a);
+      expect((await opsFor()).map((o) => o.id)).toEqual([b]);
+    });
+
+    it('a third change while the first is in flight merges into the second', async () => {
+      const a = await queue.enqueue(game(1));
+      await queue.markSyncing(a);
+      const b = await queue.enqueue(game(2));
+      const c = await queue.enqueue(game(3));
+      expect(c).toBe(b);
+      await queue.markFailed(a, 'network');
+      const ops = await opsFor();
+      expect(ops.map((o) => o.id)).toEqual([b]);
+      expect((ops[0].data as { homeScore: number }).homeScore).toBe(3);
+    });
+
+    it('an op in flight with no newer change is retried as before', async () => {
+      const a = await queue.enqueue(game(1));
+      await queue.markSyncing(a);
+      await queue.markFailed(a, 'network');
+      const ops = await opsFor();
+      expect(ops.map((o) => [o.id, o.status])).toEqual([[a, 'pending']]);
+    });
+  });
+
   describe('edge cases', () => {
     it('should gracefully handle marking non-existent operation as syncing', async () => {
       // Suppress debug log from updateStatus when operation not found

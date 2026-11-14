@@ -4,6 +4,15 @@
     {
       "date": "2026-11-14",
       "en": [
+        "On a patchy connection, a save that failed and was retried could later overwrite a newer one, or bring back a deleted game. The newer change now always wins."
+      ],
+      "fi": [
+        "Heikolla yhteydellä epäonnistunut ja uudelleen yritetty tallennus saattoi myöhemmin korvata uudemman tallennuksen tai palauttaa poistetun ottelun. Nyt uudempi muutos voittaa aina."
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "en": [
         "Opening a match no longer saves it when you have not changed anything, so a match you only looked at can no longer replace newer changes made on another device."
       ],
       "fi": [
