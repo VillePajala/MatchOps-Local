@@ -13,9 +13,11 @@ if (typeof structuredClone === 'undefined') {
 }
 
 import 'fake-indexeddb/auto';
-import { SyncedDataStore } from '../SyncedDataStore';
+import { RestoreClearError, SyncedDataStore } from '../SyncedDataStore';
 import { LocalDataStore } from '../LocalDataStore';
 import { SyncQueue, SyncEngine, resetSyncEngine } from '@/sync';
+import type { DataStore } from '@/interfaces/DataStore';
+import { NetworkError } from '@/interfaces/DataStoreErrors';
 import type { Player, Team, Season, Tournament, TeamPlayer, PlayerStatAdjustment } from '@/types';
 import type { AppState } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
@@ -289,6 +291,111 @@ describe('SyncedDataStore', () => {
       } finally {
         await sharedAgain.close();
       }
+    });
+  });
+
+  /**
+   * Review 3.16: a backup restore in cloud mode must clear the cloud FIRST and stop with
+   * nothing changed if it cannot; items that fail the bulk upload go to the sync queue.
+   * @critical
+   */
+  describe('backup restore in cloud mode', () => {
+    const queuedIds = async (st: SyncedDataStore) =>
+      (await (st as unknown as { syncQueue: SyncQueue }).syncQueue.getAllOperations()).map((o) => o.entityId);
+    const localPlayers = async (st: SyncedDataStore) =>
+      (await (st as unknown as { localStore: LocalDataStore }).localStore.getPlayers()).map((p) => p.id);
+    // A cloud store where every call succeeds unless overridden.
+    const cloudStore = (overrides: Record<string, jest.Mock> = {}) => new Proxy({} as Record<string, unknown>, {
+      get: (target, prop: string) => {
+        if (overrides[prop]) return overrides[prop];
+        if (!target[prop]) target[prop] = jest.fn().mockResolvedValue(undefined);
+        return target[prop];
+      },
+    }) as unknown as DataStore;
+
+    it('stops with nothing changed when the cloud cannot be cleared', async () => {
+      await store.upsertPlayer({ id: 'p_keep', name: 'Keep', isGoalie: false, receivedFairPlayCard: false });
+      store.setRemoteStore(cloudStore({ clearAllUserData: jest.fn().mockRejectedValue(new Error('Failed to fetch')) }));
+      await expect(store.clearAllUserData({ requireCloud: true })).rejects.toThrow('Failed to fetch');
+      expect(await localPlayers(store)).toContain('p_keep');
+      expect(await queuedIds(store)).toContain('p_keep');
+    });
+
+    it('stops with nothing changed when no cloud store is attached', async () => {
+      await store.upsertPlayer({ id: 'p_keep2', name: 'Keep', isGoalie: false, receivedFairPlayCard: false });
+      await expect(store.clearAllUserData({ requireCloud: true })).rejects.toThrow();
+      expect(await localPlayers(store)).toContain('p_keep2');
+    });
+
+    it('clears the cloud before the device', async () => {
+      const order: string[] = [];
+      await store.upsertPlayer({ id: 'p_old', name: 'Old', isGoalie: false, receivedFairPlayCard: false });
+      const localStore = (store as unknown as { localStore: LocalDataStore }).localStore;
+      localStoreSpy.clearAllUserData.mockImplementation(async () => { order.push('device'); });
+      store.setRemoteStore(cloudStore({ clearAllUserData: jest.fn(async () => { order.push('cloud'); }) }));
+      await store.clearAllUserData({ requireCloud: true });
+      expect(order).toEqual(['cloud', 'device']);
+      void localStore;
+    });
+
+    it.each([
+      ['no', new NetworkError('Cannot perform operation while offline. Please check your connection.')],
+      ['maybe', new Error('Failed to fetch')], // the clear may have committed (lost reply)
+    ])('reports whether the cloud may have been cleared (%s)', async (expected, cloudError) => {
+      store.setRemoteStore(cloudStore({ clearAllUserData: jest.fn().mockRejectedValue(cloudError) }));
+      await expect(store.clearAllUserData({ requireCloud: true })).rejects.toMatchObject({ cloudCleared: expected });
+    });
+
+    it("reports 'yes' when a step after the cloud clear fails", async () => {
+      store.setRemoteStore(cloudStore());
+      localStoreSpy.clearAllUserData.mockRejectedValueOnce(new Error('IndexedDB UnknownError'));
+      await expect(store.clearAllUserData({ requireCloud: true })).rejects.toBeInstanceOf(RestoreClearError);
+      localStoreSpy.clearAllUserData.mockRejectedValueOnce(new Error('IndexedDB UnknownError'));
+      await expect(store.clearAllUserData({ requireCloud: true })).rejects.toMatchObject({ cloudCleared: 'yes' });
+    });
+
+    it("forgets the account's seen-in-cloud record before the cloud is cleared", async () => {
+      resetSyncEngine();
+      const userStore = new SyncedDataStore('restore-seen-user');
+      await userStore.initialize();
+      const { getUserStorageAdapter } = await import('@/utils/storage');
+      const adapter = await getUserStorageAdapter('restore-seen-user');
+      await adapter.setItem('matchops_cloud_ids_seen', JSON.stringify({ player: ['p_old'] }));
+      let seenAtCloudClear: string | null = 'not called';
+      userStore.setRemoteStore(cloudStore({
+        clearAllUserData: jest.fn(async () => { seenAtCloudClear = await adapter.getItem('matchops_cloud_ids_seen'); throw new Error('Failed to fetch'); }),
+      }));
+      try {
+        await expect(userStore.clearAllUserData({ requireCloud: true })).rejects.toMatchObject({ cloudCleared: 'maybe' });
+        expect(seenAtCloudClear).toBeNull();
+      } finally {
+        await userStore.close();
+      }
+    });
+
+    it('without requireCloud (factory reset) still clears the device when the cloud fails', async () => {
+      await store.upsertPlayer({ id: 'p_gone', name: 'Gone', isGoalie: false, receivedFairPlayCard: false });
+      store.setRemoteStore(cloudStore({ clearAllUserData: jest.fn().mockRejectedValue(new Error('Failed to fetch')) }));
+      await expect(store.clearAllUserData()).rejects.toThrow('Failed to fetch');
+      expect(await localPlayers(store)).not.toContain('p_gone');
+    });
+
+    it('queues items that fail the bulk upload, so sync keeps retrying them', async () => {
+      const localStore = (store as unknown as { localStore: LocalDataStore }).localStore;
+      await localStore.upsertPlayer({ id: 'p_ok', name: 'Ok', isGoalie: false, receivedFairPlayCard: false });
+      await localStore.upsertPlayer({ id: 'p_fail', name: 'Fail', isGoalie: false, receivedFairPlayCard: false });
+      store.setRemoteStore(cloudStore({
+        // Not a transient error: fails at once, no retry delays.
+        upsertPlayer: jest.fn(async (p: { id: string }) => {
+          if (p.id === 'p_fail') throw new Error('rejected by server');
+          return p;
+        }),
+      }));
+      const summary = await store.pushAllToCloud();
+      expect(summary.failures.players).toEqual(['p_fail']);
+      expect(summary.requeued).toBe(1);
+      const ops = await (store as unknown as { syncQueue: SyncQueue }).syncQueue.getAllOperations();
+      expect(ops.map((o) => [o.entityType, o.entityId])).toEqual([['player', 'p_fail']]);
     });
   });
 
