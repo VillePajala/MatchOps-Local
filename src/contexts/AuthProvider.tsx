@@ -1195,16 +1195,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // The account's device-local leftovers (review 3.15): AI key and consent,
         // the replaced-report undo slot, backup-reminder state, and conflict backups
         // written to the device-wide store before they moved into the account's own.
-        try {
-          forgetAiAccount(deletedUserId);
-          forgetReplacedReport();
-          const { forgetBackupReminderState } = await import('@/utils/appSettings');
-          await forgetBackupReminderState(deletedUserId);
-          const { getAllStorageData, removeStorageItem } = await import('@/utils/storage');
-          const legacy = await getAllStorageData({ keyPrefix: 'conflict_backup_' });
-          await Promise.allSettled(Object.keys(legacy).map((key) => removeStorageItem(key)));
-        } catch (error) {
-          logger.warn('[AuthProvider] Could not remove some device-local leftovers on account deletion', { error });
+        // Each step on its own: one failing must not skip the others. The legacy
+        // device-wide conflict backups are unread since they moved into account
+        // storage, so removing all of them (any account's) is safe.
+        const leftovers = await Promise.allSettled([
+          (async () => forgetAiAccount(deletedUserId))(),
+          (async () => forgetReplacedReport())(),
+          (async () => (await import('@/utils/appSettings')).forgetBackupReminderState(deletedUserId))(),
+          (async () => {
+            const { getAllStorageData, removeStorageItem } = await import('@/utils/storage');
+            const legacy = await getAllStorageData({ keyPrefix: 'conflict_backup_' });
+            await Promise.allSettled(Object.keys(legacy).map((key) => removeStorageItem(key)));
+          })(),
+        ]);
+        if (leftovers.some((r) => r.status === 'rejected')) {
+          logger.warn('[AuthProvider] Could not remove some device-local leftovers on account deletion');
         }
       }
 

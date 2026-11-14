@@ -3522,6 +3522,20 @@ describe('SupabaseDataStore', () => {
         expect(mockAccountStore.removeItem).toHaveBeenCalledWith('conflict_backup_game_clear_test');
       });
 
+      it("reads conflict backups from the account's own storage only", async () => {
+        mockAccountStore.getKeys.mockResolvedValueOnce(['conflict_backup_g1', 'unrelated']);
+        mockAccountStore.getItem.mockImplementation(async (key: string) => key === 'conflict_backup_g1'
+          ? JSON.stringify({ gameId: 'g1', gameData: { teamName: 'X' }, timestamp: '2026-11-14T10:00:00Z', expectedVersion: 3 })
+          : 'not a backup');
+        try {
+          const backups = await SupabaseDataStore.getConflictBackups('user-1');
+          expect(backups.map((b) => b.gameId)).toEqual(['g1']);
+          expect(mockAccountStore.getItem).not.toHaveBeenCalledWith('unrelated');
+        } finally {
+          mockAccountStore.getItem.mockResolvedValue(null);
+        }
+      });
+
       /**
        * Issue #330: Conflict backup utilities - clear all backups
        * @critical - Must be able to clear all backups

@@ -2059,6 +2059,35 @@ describe('AuthProvider', () => {
      * replaced-report undo slot never crosses to another account.
      * @critical
      */
+    it('a coach signing in fresh never takes a pre-update device-wide AI setup', async () => {
+      const ai = jest.requireActual('@/utils/aiProvider') as typeof import('@/utils/aiProvider');
+      ai.resetAiProviderStateForTests();
+      // The device holds a setup from before the update; nobody is signed in.
+      localStorage.setItem('matchops_ai_key', 'sk-pre-update-owner-1234');
+      localStorage.setItem('matchops_ai_consent', ai.AI_CONSENT_VERSION);
+      mockAuthService = createMockCloudAuthService(false);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+      (mockAuthService.signIn as jest.Mock).mockResolvedValue({ user: mockCloudUser, session: mockSession });
+      function FreshComponent() {
+        const { isAuthenticated, signIn } = useAuth();
+        return (
+          <div>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <button data-testid="in" onClick={() => { void signIn('b@example.com', 'pw'); }}>in</button>
+          </div>
+        );
+      }
+      render(<AuthProvider><FreshComponent /></AuthProvider>);
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('no'));
+      await act(async () => { fireEvent.click(screen.getByTestId('in')); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+      expect(ai.getAiProviderKey()).toBeNull();
+      expect(ai.getAiProviderState().hasConsent).toBe(false);
+      expect(localStorage.getItem('matchops_ai_key')).toBe('sk-pre-update-owner-1234'); // kept for its owner
+    });
+
     it("the AI setup follows the signed-in account; signing out hides it; another account starts clean", async () => {
       const ai = jest.requireActual('@/utils/aiProvider') as typeof import('@/utils/aiProvider');
       const undo = jest.requireActual('@/utils/reportUndo') as typeof import('@/utils/reportUndo');

@@ -683,10 +683,14 @@ describe('backup reminder state per account', () => {
     expect(Object.keys(mockKeyStore).some((k) => k.endsWith('_local'))).toBe(false);
   });
 
-  it("an account without its own history yet reads the device-wide one (updating does not restart the reminder)", async () => {
+  it('the pre-update device-wide history goes to the first account that reads it, and to no other', async () => {
     await appSettingsModule.markOffDeviceBackupNow(); // pre-update, device-wide
     const deviceWide = await appSettingsModule.getLastOffDeviceBackupTime();
     expect(await appSettingsModule.getLastOffDeviceBackupTime('coach-a')).toBe(deviceWide);
+    expect(await appSettingsModule.getLastOffDeviceBackupTime('coach-b')).toBeNull();
+    // B's own first-seen is recorded (not satisfied by someone else's)
+    await appSettingsModule.markDataFirstSeen('coach-b');
+    expect(await appSettingsModule.getDataFirstSeenTime('coach-b')).toEqual(expect.any(Number));
   });
 
   it("account deletion removes that account's reminder state only", async () => {

@@ -313,13 +313,29 @@ export const setInstallPromptDismissed = async (): Promise<void> => {
  * Per account when signed in (review 3.15): stored once per device, coach B's
  * reminder ran on coach A's backup history. No account - `userId` undefined, or
  * 'local' (local mode's id when cloud is configured) - keeps the device-wide keys.
- * An account without its own value yet reads the device-wide one, so updating does
- * not wipe the history and restart the reminder for everyone.
+ *
+ * Upgrade: the device-wide history from before this change is handed ONCE to the
+ * first account that reads it (moved, not shared), so updating does not restart
+ * the reminder - and no second account ever sees it.
  */
+const REMINDER_KEYS = () => [LAST_OFF_DEVICE_BACKUP_KEY, DATA_FIRST_SEEN_KEY, BACKUP_REMINDER_DISMISSED_KEY];
 const hasAccount = (userId?: string): userId is string => !!userId && userId !== 'local';
 const reminderKey = (key: string, userId?: string) => (hasAccount(userId) ? `${key}_${userId}` : key);
-const readReminder = async (key: string, userId?: string): Promise<string | null> =>
-  (await getStorageItem(reminderKey(key, userId))) ?? (hasAccount(userId) ? await getStorageItem(key) : null);
+
+async function adoptDeviceWideReminderHistory(userId: string): Promise<void> {
+  const { removeStorageItem } = await import('./storage');
+  for (const key of REMINDER_KEYS()) {
+    const deviceWide = await getStorageItem(key);
+    if (deviceWide === null) continue;
+    if ((await getStorageItem(`${key}_${userId}`)) === null) await setStorageItem(`${key}_${userId}`, deviceWide);
+    await removeStorageItem(key);
+  }
+}
+
+const readReminder = async (key: string, userId?: string): Promise<string | null> => {
+  if (hasAccount(userId)) await adoptDeviceWideReminderHistory(userId);
+  return getStorageItem(reminderKey(key, userId));
+};
 
 /** Timestamp (ms) of the last off-device backup (export/share), or null. */
 export const getLastOffDeviceBackupTime = async (userId?: string): Promise<number | null> => {
@@ -403,8 +419,7 @@ export const setBackupReminderDismissed = async (userId?: string): Promise<void>
 /** Remove an account's backup-reminder state from this device (account deletion). */
 export const forgetBackupReminderState = async (userId: string): Promise<void> => {
   const { removeStorageItem } = await import('./storage');
-  await Promise.allSettled([LAST_OFF_DEVICE_BACKUP_KEY, DATA_FIRST_SEEN_KEY, BACKUP_REMINDER_DISMISSED_KEY]
-    .map((key) => removeStorageItem(reminderKey(key, userId))));
+  await Promise.allSettled(REMINDER_KEYS().map((key) => removeStorageItem(reminderKey(key, userId))));
 };
 
 /**
