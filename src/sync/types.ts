@@ -96,6 +96,13 @@ export interface SyncOperation {
    * would replay this older snapshot over the newer one (review 3.6).
    */
   superseded?: boolean;
+
+  /**
+   * Consecutive connection failures (review 3.8). They set the retry backoff but never
+   * use up maxRetries: a save made with bad signal must still reach the cloud once the
+   * connection works, without the coach having to press "retry".
+   */
+  networkFailures?: number;
 }
 
 /**

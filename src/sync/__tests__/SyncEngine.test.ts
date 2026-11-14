@@ -250,7 +250,8 @@ describe('SyncEngine', () => {
     });
 
     it('should mark failed operations', async () => {
-      mockExecutor.mockRejectedValue(new Error('Network error'));
+      // A genuine failure (the request itself was rejected) uses up a retry.
+      mockExecutor.mockRejectedValue(new Error('Invalid game data'));
 
       const id = await queue.enqueue(createTestOperation());
 
@@ -262,6 +263,38 @@ describe('SyncEngine', () => {
       const op = await queue.getById(id);
       expect(op).not.toBeNull();
       expect(op?.retryCount).toBe(1);
+    });
+
+    /**
+     * Review 3.8: a connection failure must not use up the retry budget - otherwise
+     * ~10 minutes of bad signal made a save permanently failed.
+     * @critical
+     */
+    it('on start, retries a save that ended failed on connection problems (older version)', async () => {
+      const id = await queue.enqueue(createTestOperation());
+      for (let i = 0; i < 20; i++) {
+        const op = await queue.getById(id);
+        if (op?.status === 'failed') break;
+        await queue.markSyncing(id);
+        await queue.markFailed(id, 'TypeError: Failed to fetch');
+      }
+      expect((await queue.getById(id))?.status).toBe('failed');
+      mockExecutor.mockResolvedValue(undefined);
+      engine.start();
+      await flushAllAsync();
+      expect(mockExecutor).toHaveBeenCalledTimes(1);
+      expect(await queue.getById(id)).toBeNull(); // completed and removed
+    });
+
+    it('does not use up retries on connection failures', async () => {
+      mockExecutor.mockRejectedValue(new Error('Failed to fetch'));
+      const id = await queue.enqueue(createTestOperation());
+      engine.start();
+      await flushAllAsync();
+      const op = await queue.getById(id);
+      expect(op?.status).toBe('pending');
+      expect(op?.retryCount).toBe(0);
+      expect(op?.networkFailures).toBe(1);
     });
 
     /**

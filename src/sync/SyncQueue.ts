@@ -15,6 +15,7 @@
 
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
+import { isNetworkLikeMessage } from '@/utils/transientErrors';
 import {
   SyncOperation,
   SyncOperationInput,
@@ -641,14 +642,16 @@ export class SyncQueue {
     // operations would retry immediately and abort again, causing infinite loops.
     // See: MATCHOPS-LOCAL-18, MATCHOPS-LOCAL-1N (AbortError during account switch)
     // Build trigger: 2026-02-04
-    if (op.retryCount === 0) {
+    if (op.retryCount === 0 && !op.networkFailures) {
       const MIN_ABORT_RETRY_DELAY_MS = 2000; // 2 seconds
       return now >= op.lastAttempt + MIN_ABORT_RETRY_DELAY_MS;
     }
 
-    // Calculate exponential backoff delay for retries
+    // Calculate exponential backoff delay for retries (connection failures count
+    // toward the backoff too, capped at backoffMaxMs - review 3.8)
+    const attempts = Math.max(op.retryCount, op.networkFailures ?? 0);
     const backoffDelay = Math.min(
-      this.backoffBaseMs * Math.pow(2, op.retryCount - 1),
+      this.backoffBaseMs * Math.pow(2, attempts - 1),
       this.backoffMaxMs
     );
 
@@ -740,6 +743,92 @@ export class SyncQueue {
           transaction.error ?? undefined
         ));
       };
+    });
+  }
+
+  /**
+   * A connection failure (review 3.8): back to pending with a growing, capped backoff,
+   * WITHOUT using up maxRetries - bad signal says nothing about whether the request can
+   * succeed. A superseded op is dropped, as in markFailed.
+   */
+  async markRetryLater(id: string, error: string): Promise<void> {
+    const db = this.ensureInitialized();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(SYNC_STORE_NAME);
+      const getRequest = store.get(id);
+      getRequest.onsuccess = () => {
+        const op = getRequest.result as SyncOperation | undefined;
+        if (!op) return; // already completed/removed
+        if (op.superseded) {
+          store.delete(id);
+          return;
+        }
+        store.put({
+          ...op,
+          status: 'pending',
+          networkFailures: (op.networkFailures ?? 0) + 1,
+          lastError: error,
+          lastAttempt: Date.now(),
+        } satisfies SyncOperation);
+      };
+      transaction.oncomplete = () => {
+        this.invalidateStatsCache();
+        resolve();
+      };
+      transaction.onerror = () => reject(new SyncError(
+        SyncErrorCode.QUEUE_ERROR,
+        `Failed to reschedule operation: ${transaction.error?.message || 'Unknown error'}`,
+        transaction.error ?? undefined,
+      ));
+    });
+  }
+
+  /**
+   * Give operations that ended 'failed' because of connection problems a fresh start
+   * (review 3.8): before connection failures stopped using up maxRetries, ~10 minutes of
+   * bad signal made a save permanently failed, and it never retried on its own. Run on
+   * engine start, when the connection returns and when the app comes back.
+   * Failures for other reasons stay failed (the user can still retry them).
+   */
+  async reviveNetworkFailed(): Promise<number> {
+    const db = this.ensureInitialized();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(SYNC_STORE_NAME);
+      const request = store.index(INDEX_STATUS).openCursor(IDBKeyRange.only('failed'));
+      let revived = 0;
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        const op = cursor.value as SyncOperation;
+        if (op.superseded) {
+          // A newer change to this entity replaced it: never revive its older snapshot.
+          cursor.delete();
+        } else if (op.lastError && isNetworkLikeMessage(op.lastError)) {
+          cursor.update({
+            ...op,
+            status: 'pending',
+            retryCount: 0,
+            networkFailures: 1,
+            lastAttempt: undefined, // try now: the connection is (said to be) back
+          } satisfies SyncOperation);
+          revived++;
+        }
+        cursor.continue();
+      };
+      transaction.oncomplete = () => {
+        if (revived > 0) {
+          logger.info(`[SyncQueue] Revived ${revived} operation(s) that failed on connection problems`);
+          this.invalidateStatsCache();
+        }
+        resolve(revived);
+      };
+      transaction.onerror = () => reject(new SyncError(
+        SyncErrorCode.QUEUE_ERROR,
+        `Failed to revive failed operations: ${transaction.error?.message || 'Unknown error'}`,
+        transaction.error ?? undefined,
+      ));
     });
   }
 

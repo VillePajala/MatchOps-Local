@@ -1058,6 +1058,42 @@ describe('SyncQueue', () => {
     });
   });
 
+  /**
+   * Review 3.8: connection failures never strand a save as permanently failed.
+   * @critical
+   */
+  describe('connection failures', () => {
+    const input = (): SyncOperationInput => ({
+      entityType: 'game', entityId: 'g_net', operation: 'update', data: { id: 'g_net' }, timestamp: Date.now(),
+    });
+
+    it('markRetryLater keeps the op pending without using up maxRetries, with growing backoff', async () => {
+      const id = await queue.enqueue(input());
+      for (let i = 0; i < 12; i++) { // more than maxRetries (3 here)
+        await queue.markSyncing(id);
+        await queue.markRetryLater(id, 'Failed to fetch');
+      }
+      const op = await queue.getById(id);
+      expect(op?.status).toBe('pending');
+      expect(op?.retryCount).toBe(0);
+      expect(op?.networkFailures).toBe(12);
+      expect(await queue.getPending()).toEqual([]); // still in backoff right after the failure
+    });
+
+    it('revives ops that ended failed on connection problems; others stay failed', async () => {
+      const net = await queue.enqueue(input());
+      const real = await queue.enqueue({ ...input(), entityId: 'g_real', data: { id: 'g_real' } });
+      for (const [id, err] of [[net, 'TypeError: Failed to fetch'], [real, 'invalid input syntax']] as const) {
+        for (let i = 0; i < 3; i++) { await queue.markSyncing(id); await queue.markFailed(id, err); }
+      }
+      expect((await queue.getById(net))?.status).toBe('failed');
+      expect(await queue.reviveNetworkFailed()).toBe(1);
+      expect((await queue.getById(net))?.status).toBe('pending');
+      expect((await queue.getById(real))?.status).toBe('failed');
+      expect((await queue.getPending()).map((o) => o.id)).toContain(net); // tried now
+    });
+  });
+
   describe('edge cases', () => {
     it('should gracefully handle marking non-existent operation as syncing', async () => {
       // Suppress debug log from updateStatus when operation not found

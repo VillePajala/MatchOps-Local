@@ -77,6 +77,17 @@ export const TRANSIENT_STATUS_CODES = new Set([
  *
  * Shared between retry modules to ensure consistent error message extraction.
  */
+/**
+ * Whether an error message describes a connection problem (no network, a failed or
+ * timed-out request, an unreachable or overloaded server) rather than a problem with
+ * the request itself. Such failures say nothing about whether the request can
+ * succeed, so they must not use up a retry budget (review 3.8).
+ */
+export function isNetworkLikeMessage(message: string): boolean {
+  const m = message.toLowerCase();
+  return TRANSIENT_ERROR_PATTERNS.some((pattern) => m.includes(pattern));
+}
+
 export function getErrorMessage(error: unknown): string {
   if (!error) return 'Unknown error';
   if (typeof error === 'string') return error;
