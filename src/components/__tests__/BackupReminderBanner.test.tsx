@@ -116,4 +116,13 @@ describe('BackupReminderBanner', () => {
     await waitFor(() => expect(mockSetDismissed).toHaveBeenCalled());
     await waitFor(() => expect(container.firstChild).toBeNull());
   });
+
+  /** Review 3.15: the reminder state is the signed-in account's, not the device's. */
+  it("reads and writes the signed-in account's reminder state", async () => {
+    render(<BackupReminderBanner hasSavedGames />);
+    await waitFor(() => expect(mockGetLastOffDevice).toHaveBeenCalledWith('user-1'));
+    expect(mockGetDismissed).toHaveBeenCalledWith('user-1');
+    fireEvent.click(await screen.findByText('Dismiss'));
+    await waitFor(() => expect(mockSetDismissed).toHaveBeenCalledWith('user-1'));
+  });
 });

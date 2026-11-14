@@ -4,6 +4,15 @@
     {
       "date": "2026-11-14",
       "en": [
+        "On a shared device, each signed-in coach now has their own AI writing assistant setup: another coach no longer uses your OpenAI key or skips the consent step. Deleting your account also removes your key and other leftovers from the device."
+      ],
+      "fi": [
+        "Jaetulla laitteella jokaisella kirjautuneella valmentajalla on nyt oma tekoälykirjoitusavustajan asetuksensa: toinen valmentaja ei enää käytä OpenAI-avaintasi eikä ohita suostumusvaihetta. Tilin poistaminen poistaa nyt myös avaimesi ja muut jäänteet laitteelta."
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "en": [
         "\"Delete All Data\" now also removes a signed-in coach's data from the device; before, signing in again could bring it back. The cloud copy is not affected."
       ],
       "fi": [

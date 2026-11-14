@@ -60,19 +60,19 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
       // Stamped once, the first time this device holds anything. Doing it here
       // rather than at install time means a coach who signs in months later
       // still gets a grace period measured from THEIR data arriving.
-      await markDataFirstSeen();
-      const firstSeen = await getDataFirstSeenTime();
+      await markDataFirstSeen(userId);
+      const firstSeen = await getDataFirstSeenTime(userId);
       if (firstSeen && Date.now() - firstSeen < GRACE_PERIOD_MS) {
         setVisible(false);
         return;
       }
 
-      const dismissed = await getBackupReminderDismissedTime();
+      const dismissed = await getBackupReminderDismissedTime(userId);
       if (dismissed && Date.now() - dismissed < THIRTY_DAYS_MS) {
         setVisible(false);
         return;
       }
-      const last = await getLastOffDeviceBackupTime();
+      const last = await getLastOffDeviceBackupTime(userId);
       if (last && Date.now() - last < THIRTY_DAYS_MS) {
         setVisible(false);
         return;
@@ -82,7 +82,7 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
       logger.debug("[BackupReminderBanner] evaluate failed (non-critical)", { error });
       setVisible(false);
     }
-  }, [hasSavedGames]);
+  }, [hasSavedGames, userId]);
 
   useEffect(() => {
     evaluate();
@@ -107,12 +107,12 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
 
   const handleDismiss = useCallback(async () => {
     try {
-      await setBackupReminderDismissed();
+      await setBackupReminderDismissed(userId);
     } catch (error) {
       logger.debug("[BackupReminderBanner] dismiss persist failed (non-critical)", { error });
     }
     setVisible(false);
-  }, []);
+  }, [userId]);
 
   if (!visible) return null;
 

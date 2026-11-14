@@ -116,11 +116,19 @@ jest.mock('@/datastore/supabase/retry', () => {
 // Mock storage module for conflict backup tests
 // Note: Storage interactions are mocked to return success; detailed verification
 // requires integration tests with fake-indexeddb
+// Conflict backups live in the ACCOUNT's own storage (review 3.15).
+const mockAccountStore = {
+  setItem: jest.fn().mockResolvedValue(undefined),
+  getItem: jest.fn().mockResolvedValue(null),
+  removeItem: jest.fn().mockResolvedValue(undefined),
+  getKeys: jest.fn().mockResolvedValue([]),
+};
 jest.mock('@/utils/storage', () => ({
   setStorageItem: jest.fn().mockResolvedValue(undefined),
   getStorageItem: jest.fn().mockResolvedValue(null),
   removeStorageItem: jest.fn().mockResolvedValue(undefined),
   getAllStorageData: jest.fn().mockResolvedValue({}),
+  getUserStorageAdapter: jest.fn(async () => mockAccountStore),
 }));
 
 // The per-account record of which cloud version each local game copy is based on.
@@ -3510,7 +3518,22 @@ describe('SupabaseDataStore', () => {
        */
       it('should clear specific conflict backup without throwing', async () => {
         // Verify method doesn't throw
-        await expect(SupabaseDataStore.clearConflictBackup('game_clear_test')).resolves.toBeUndefined();
+        await expect(SupabaseDataStore.clearConflictBackup('game_clear_test', 'user-1')).resolves.toBeUndefined();
+        expect(mockAccountStore.removeItem).toHaveBeenCalledWith('conflict_backup_game_clear_test');
+      });
+
+      it("reads conflict backups from the account's own storage only", async () => {
+        mockAccountStore.getKeys.mockResolvedValueOnce(['conflict_backup_g1', 'unrelated']);
+        mockAccountStore.getItem.mockImplementation(async (key: string) => key === 'conflict_backup_g1'
+          ? JSON.stringify({ gameId: 'g1', gameData: { teamName: 'X' }, timestamp: '2026-11-14T10:00:00Z', expectedVersion: 3 })
+          : 'not a backup');
+        try {
+          const backups = await SupabaseDataStore.getConflictBackups('user-1');
+          expect(backups.map((b) => b.gameId)).toEqual(['g1']);
+          expect(mockAccountStore.getItem).not.toHaveBeenCalledWith('unrelated');
+        } finally {
+          mockAccountStore.getItem.mockResolvedValue(null);
+        }
       });
 
       /**
@@ -3520,7 +3543,10 @@ describe('SupabaseDataStore', () => {
        */
       it('should clear all conflict backups without throwing', async () => {
         // Verify method doesn't throw
-        await expect(SupabaseDataStore.clearAllConflictBackups()).resolves.toBeUndefined();
+        mockAccountStore.getKeys.mockResolvedValueOnce(['conflict_backup_g1', 'other_key']);
+        await expect(SupabaseDataStore.clearAllConflictBackups('user-1')).resolves.toBeUndefined();
+        expect(mockAccountStore.removeItem).toHaveBeenCalledWith('conflict_backup_g1');
+        expect(mockAccountStore.removeItem).not.toHaveBeenCalledWith('other_key');
       });
 
       /**
@@ -6006,10 +6032,14 @@ describe('SupabaseDataStore', () => {
         // Expected to throw
       }
 
-      expect(setStorageItem).toHaveBeenCalledWith(
+      // In the account's own storage, not the device-wide one (review 3.15)
+      const { getUserStorageAdapter } = jest.requireMock('@/utils/storage') as { getUserStorageAdapter: jest.Mock };
+      expect(getUserStorageAdapter).toHaveBeenCalledWith(expect.any(String));
+      expect(mockAccountStore.setItem).toHaveBeenCalledWith(
         'conflict_backup_game_1',
         expect.stringContaining('"gameId":"game_1"')
       );
+      expect(setStorageItem).not.toHaveBeenCalledWith('conflict_backup_game_1', expect.anything());
     });
 
     it('should still throw ConflictError even if backup fails', async () => {
@@ -6017,7 +6047,7 @@ describe('SupabaseDataStore', () => {
         data: null,
         error: { code: '40001', message: 'version mismatch' },
       });
-      setStorageItem.mockRejectedValueOnce(new Error('IndexedDB full'));
+      mockAccountStore.setItem.mockRejectedValueOnce(new Error('IndexedDB full'));
 
       await expect(dataStore.saveGame('game_1', mockGameData)).rejects.toThrow(ConflictError);
     });

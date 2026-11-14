@@ -2054,6 +2054,83 @@ describe('AuthProvider', () => {
       expect(mockAuthService.signOut).toHaveBeenCalledWith(); // default: this device only
     });
 
+    /**
+     * Review 3.15: Kirjuri's key and consent follow the signed-in account, and the
+     * replaced-report undo slot never crosses to another account.
+     * @critical
+     */
+    it('a coach signing in fresh never takes a pre-update device-wide AI setup', async () => {
+      const ai = jest.requireActual('@/utils/aiProvider') as typeof import('@/utils/aiProvider');
+      ai.resetAiProviderStateForTests();
+      // The device holds a setup from before the update; nobody is signed in.
+      localStorage.setItem('matchops_ai_key', 'sk-pre-update-owner-1234');
+      localStorage.setItem('matchops_ai_consent', ai.AI_CONSENT_VERSION);
+      mockAuthService = createMockCloudAuthService(false);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+      (mockAuthService.signIn as jest.Mock).mockResolvedValue({ user: mockCloudUser, session: mockSession });
+      function FreshComponent() {
+        const { isAuthenticated, signIn } = useAuth();
+        return (
+          <div>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <button data-testid="in" onClick={() => { void signIn('b@example.com', 'pw'); }}>in</button>
+          </div>
+        );
+      }
+      render(<AuthProvider><FreshComponent /></AuthProvider>);
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('no'));
+      await act(async () => { fireEvent.click(screen.getByTestId('in')); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+      expect(ai.getAiProviderKey()).toBeNull();
+      expect(ai.getAiProviderState().hasConsent).toBe(false);
+      expect(localStorage.getItem('matchops_ai_key')).toBe('sk-pre-update-owner-1234'); // kept for its owner
+    });
+
+    it("the AI setup follows the signed-in account; signing out hides it; another account starts clean", async () => {
+      const ai = jest.requireActual('@/utils/aiProvider') as typeof import('@/utils/aiProvider');
+      const undo = jest.requireActual('@/utils/reportUndo') as typeof import('@/utils/reportUndo');
+      ai.resetAiProviderStateForTests();
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+      function AccountComponent() {
+        const { isAuthenticated, signOut, signIn } = useAuth();
+        return (
+          <div>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <button data-testid="out" onClick={() => { void signOut(); }}>out</button>
+            <button data-testid="in" onClick={() => { void signIn('b@example.com', 'pw'); }}>in</button>
+          </div>
+        );
+      }
+      render(<AuthProvider><AccountComponent /></AuthProvider>);
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+
+      act(() => {
+        ai.setAiProviderKey('sk-coach-a-1234');
+        ai.acceptAiConsent();
+        undo.rememberReplacedReport('game_a', 'Coach A original report');
+      });
+      expect(ai.getAiProviderState().connected).toBe(true);
+
+      await act(async () => { fireEvent.click(screen.getByTestId('out')); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('no'));
+      expect(ai.getAiProviderKey()).toBeNull();
+
+      // Coach B signs in on the same device
+      (mockAuthService.signIn as jest.Mock).mockResolvedValue({
+        user: { id: 'coach-b-456', email: 'b@example.com', isAnonymous: false },
+        session: { ...mockSession, user: { id: 'coach-b-456', email: 'b@example.com', isAnonymous: false } },
+      });
+      await act(async () => { fireEvent.click(screen.getByTestId('in')); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+      expect(ai.getAiProviderState()).toMatchObject({ hasKey: false, hasConsent: false });
+      expect(undo.readReplacedReport('game_a')).toBeNull();
+    });
+
     /** Review 3.11: a session the user establishes after a sign-out is accepted again. @critical */
     it('after signing out and creating an account, session refreshes are accepted again', async () => {
       mockAuthService = createMockCloudAuthService(true);

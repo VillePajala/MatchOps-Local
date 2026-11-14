@@ -10,6 +10,8 @@ import {
   AI_CONSENT_VERSION,
   acceptAiConsent,
   clearAiProviderKey,
+  forgetAiAccount,
+  setAiAccount,
   getAiProviderKey,
   getAiProviderState,
   resetAiProviderStateForTests,
@@ -28,6 +30,79 @@ jest.mock('@/utils/logger', () => ({
 beforeEach(() => {
   localStorage.clear();
   resetAiProviderStateForTests();
+});
+
+/**
+ * Review 3.15: the key, consent and model belong to the signed-in ACCOUNT. Stored per
+ * device, coach B used coach A's key (billed to A) and never saw the consent gate.
+ * @critical
+ */
+describe('per-account AI setup', () => {
+  it("another account on this device does not see or use the first account's key or consent", () => {
+    setAiAccount('coach-a');
+    setAiProviderKey('sk-coach-a-1234');
+    acceptAiConsent();
+    expect(getAiProviderState().connected).toBe(true);
+
+    setAiAccount(null); // A signs out
+    setAiAccount('coach-b');
+    expect(getAiProviderKey()).toBeNull();
+    expect(getAiProviderState()).toMatchObject({ hasKey: false, hasConsent: false, connected: false });
+  });
+
+  it("an account signing back in gets its own setup back", () => {
+    setAiAccount('coach-a');
+    setAiProviderKey('sk-coach-a-1234');
+    acceptAiConsent();
+    setAiAccount(null);
+    setAiAccount('coach-a');
+    expect(getAiProviderKey()).toBe('sk-coach-a-1234');
+    expect(getAiProviderState().connected).toBe(true);
+  });
+
+  // A setup stored device-wide by the version before this change.
+  const preUpdateSetup = () => {
+    localStorage.setItem('matchops_ai_key', 'sk-device-wide-9999');
+    localStorage.setItem('matchops_ai_consent', AI_CONSENT_VERSION);
+  };
+
+  it('a pre-update device-wide setup goes to the account whose session is restored, once', () => {
+    preUpdateSetup();
+    setAiAccount('coach-a', { restored: true });
+    expect(getAiProviderKey()).toBe('sk-device-wide-9999');
+    expect(localStorage.getItem('matchops_ai_key')).toBeNull(); // no longer device-wide
+
+    setAiAccount(null);
+    setAiAccount('coach-b', { restored: true });
+    expect(getAiProviderKey()).toBeNull();
+  });
+
+  it('a coach signing in interactively never takes the pre-update device-wide setup', () => {
+    preUpdateSetup();
+    setAiAccount(null); // app start, nobody signed in
+    setAiAccount('coach-b'); // B signs in on A's device
+    expect(getAiProviderKey()).toBeNull();
+    expect(getAiProviderState().hasConsent).toBe(false);
+  });
+
+  it('a local-mode setup made after the update is never handed to an account', () => {
+    setAiAccount(null); // updated app, no account (local mode)
+    setAiProviderKey('sk-local-mode-5555');
+    acceptAiConsent();
+    setAiAccount('coach-b', { restored: true });
+    expect(getAiProviderKey()).toBeNull();
+    setAiAccount(null);
+    expect(getAiProviderKey()).toBe('sk-local-mode-5555'); // still local mode's own
+  });
+
+  it("account deletion removes that account's key and consent", () => {
+    setAiAccount('coach-a');
+    setAiProviderKey('sk-coach-a-1234');
+    acceptAiConsent();
+    forgetAiAccount('coach-a');
+    expect(getAiProviderState()).toMatchObject({ hasKey: false, hasConsent: false });
+    expect(Object.keys(localStorage).filter((k) => k.includes('coach-a'))).toEqual([]);
+  });
 });
 
 describe('aiProvider state', () => {

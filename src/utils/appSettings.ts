@@ -309,10 +309,38 @@ export const setInstallPromptDismissed = async (): Promise<void> => {
 // Off-Device Backup Reminder Utilities (Data Safety - Layer 2)
 // ============================================
 
+/*
+ * Per account when signed in (review 3.15): stored once per device, coach B's
+ * reminder ran on coach A's backup history. No account - `userId` undefined, or
+ * 'local' (local mode's id when cloud is configured) - keeps the device-wide keys.
+ *
+ * Upgrade: the device-wide history from before this change is handed ONCE to the
+ * first account that reads it (moved, not shared), so updating does not restart
+ * the reminder - and no second account ever sees it.
+ */
+const REMINDER_KEYS = () => [LAST_OFF_DEVICE_BACKUP_KEY, DATA_FIRST_SEEN_KEY, BACKUP_REMINDER_DISMISSED_KEY];
+const hasAccount = (userId?: string): userId is string => !!userId && userId !== 'local';
+const reminderKey = (key: string, userId?: string) => (hasAccount(userId) ? `${key}_${userId}` : key);
+
+async function adoptDeviceWideReminderHistory(userId: string): Promise<void> {
+  const { removeStorageItem } = await import('./storage');
+  for (const key of REMINDER_KEYS()) {
+    const deviceWide = await getStorageItem(key);
+    if (deviceWide === null) continue;
+    if ((await getStorageItem(`${key}_${userId}`)) === null) await setStorageItem(`${key}_${userId}`, deviceWide);
+    await removeStorageItem(key);
+  }
+}
+
+const readReminder = async (key: string, userId?: string): Promise<string | null> => {
+  if (hasAccount(userId)) await adoptDeviceWideReminderHistory(userId);
+  return getStorageItem(reminderKey(key, userId));
+};
+
 /** Timestamp (ms) of the last off-device backup (export/share), or null. */
-export const getLastOffDeviceBackupTime = async (): Promise<number | null> => {
+export const getLastOffDeviceBackupTime = async (userId?: string): Promise<number | null> => {
   try {
-    const value = await getStorageItem(LAST_OFF_DEVICE_BACKUP_KEY);
+    const value = await readReminder(LAST_OFF_DEVICE_BACKUP_KEY, userId);
     if (!value) return null;
     const timestamp = Number(value);
     return isNaN(timestamp) ? null : timestamp;
@@ -323,9 +351,9 @@ export const getLastOffDeviceBackupTime = async (): Promise<number | null> => {
 };
 
 /** Record that an off-device backup just happened (stores the current timestamp). */
-export const markOffDeviceBackupNow = async (): Promise<void> => {
+export const markOffDeviceBackupNow = async (userId?: string): Promise<void> => {
   try {
-    await setStorageItem(LAST_OFF_DEVICE_BACKUP_KEY, Date.now().toString());
+    await setStorageItem(reminderKey(LAST_OFF_DEVICE_BACKUP_KEY, userId), Date.now().toString());
   } catch (error) {
     logger.debug('Failed to record off-device backup time (non-critical)', { error });
   }
@@ -343,9 +371,9 @@ export const markOffDeviceBackupNow = async (): Promise<void> => {
  * Anchoring to first-seen makes the reminder mean "your data has been
  * unprotected for a while", which is the thing actually worth saying.
  */
-export const getDataFirstSeenTime = async (): Promise<number | null> => {
+export const getDataFirstSeenTime = async (userId?: string): Promise<number | null> => {
   try {
-    const value = await getStorageItem(DATA_FIRST_SEEN_KEY);
+    const value = await readReminder(DATA_FIRST_SEEN_KEY, userId);
     if (!value) return null;
     const timestamp = Number(value);
     return isNaN(timestamp) ? null : timestamp;
@@ -356,20 +384,20 @@ export const getDataFirstSeenTime = async (): Promise<number | null> => {
 };
 
 /** Stamp first-seen the first time we notice data here; later calls do nothing. */
-export const markDataFirstSeen = async (): Promise<void> => {
+export const markDataFirstSeen = async (userId?: string): Promise<void> => {
   try {
-    const existing = await getStorageItem(DATA_FIRST_SEEN_KEY);
+    const existing = await readReminder(DATA_FIRST_SEEN_KEY, userId);
     if (existing) return;
-    await setStorageItem(DATA_FIRST_SEEN_KEY, Date.now().toString());
+    await setStorageItem(reminderKey(DATA_FIRST_SEEN_KEY, userId), Date.now().toString());
   } catch (error) {
     logger.debug('Failed to record data-first-seen time (non-critical)', { error });
   }
 };
 
 /** Timestamp (ms) the backup reminder was last dismissed, or null. */
-export const getBackupReminderDismissedTime = async (): Promise<number | null> => {
+export const getBackupReminderDismissedTime = async (userId?: string): Promise<number | null> => {
   try {
-    const value = await getStorageItem(BACKUP_REMINDER_DISMISSED_KEY);
+    const value = await readReminder(BACKUP_REMINDER_DISMISSED_KEY, userId);
     if (!value) return null;
     const timestamp = Number(value);
     return isNaN(timestamp) ? null : timestamp;
@@ -380,12 +408,18 @@ export const getBackupReminderDismissedTime = async (): Promise<number | null> =
 };
 
 /** Snooze the backup reminder (stores the current timestamp). */
-export const setBackupReminderDismissed = async (): Promise<void> => {
+export const setBackupReminderDismissed = async (userId?: string): Promise<void> => {
   try {
-    await setStorageItem(BACKUP_REMINDER_DISMISSED_KEY, Date.now().toString());
+    await setStorageItem(reminderKey(BACKUP_REMINDER_DISMISSED_KEY, userId), Date.now().toString());
   } catch (error) {
     logger.debug('Failed to set backup reminder dismissed (non-critical)', { error });
   }
+};
+
+/** Remove an account's backup-reminder state from this device (account deletion). */
+export const forgetBackupReminderState = async (userId: string): Promise<void> => {
+  const { removeStorageItem } = await import('./storage');
+  await Promise.allSettled(REMINDER_KEYS().map((key) => removeStorageItem(reminderKey(key, userId))));
 };
 
 /**
