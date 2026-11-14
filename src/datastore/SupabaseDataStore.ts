@@ -65,6 +65,10 @@ import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 import logger from '@/utils/logger';
+import {
+  getGameBaseVersion, setGameBaseVersion, clearGameBaseVersion,
+  addPendingWrite, isPendingWrite, clearPendingWrites,
+} from './gameBaseVersions';
 import { setStorageItem, removeStorageItem, getAllStorageData } from '@/utils/storage';
 import * as Sentry from '@sentry/nextjs';
 import { withRetry, throwIfTransient, TransientSupabaseError, isTransientError, type RetryConfig } from '@/datastore/supabase/retry';
@@ -493,6 +497,30 @@ export class SupabaseDataStore implements DataStore {
   // ==========================================================================
   // VERSION CACHE HELPERS (Issue #330: Optimistic Locking)
   // ==========================================================================
+
+  /** The cloud version last seen for a game by this store instance (review 3.7). */
+  getCachedGameVersion(gameId: string): number | undefined {
+    return this.gameVersionCache.get(gameId);
+  }
+
+  /**
+   * The cloud copy of a game and its version, for resolving a refused save (review 3.7).
+   * Records nothing: the caller records the base version only after the local copy has
+   * been replaced, so a half-finished resolution is simply repeated. Null when the cloud
+   * no longer has the game.
+   */
+  async fetchCloudGameWithVersion(gameId: string): Promise<{ game: AppState; version: number } | null> {
+    const game = await this.getGameById(gameId); // caches the version
+    const version = this.gameVersionCache.get(gameId);
+    return game && typeof version === 'number' ? { game, version } : null;
+  }
+
+  /** Record that this device's copy of a game is now exactly this cloud version (review 3.7). */
+  async recordGameBaseVersion(gameId: string, version: number): Promise<void> {
+    const userId = await this.getUserId();
+    await setGameBaseVersion(userId, gameId, version, { exact: true });
+    await clearPendingWrites(userId, gameId);
+  }
 
   /**
    * Cache a game's version for optimistic locking.
@@ -3704,7 +3732,7 @@ export class SupabaseDataStore implements DataStore {
    *
    * @see supabase/migrations/001_rpc_functions.sql
    */
-  async saveGame(id: string, game: AppState): Promise<AppState> {
+  async saveGame(id: string, game: AppState, options: { useRecordedBase?: boolean } = {}): Promise<AppState> {
     const saveStartTime = Date.now();
     logger.info('[SupabaseDataStore] saveGame START', { gameId: id.slice(0, 20) });
 
@@ -3740,7 +3768,15 @@ export class SupabaseDataStore implements DataStore {
     // migration 030) then validates it atomically, so a concurrent change since the
     // fetch still conflicts rather than being silently clobbered. A genuinely new
     // game (no cloud row) leaves expectedVersion undefined → RPC creates it at v1.
-    let expectedVersion = this.gameVersionCache.get(id);
+    //
+    // Review 3.7: the version this device's copy is BASED ON wins over both. The cache
+    // and the fetch below hold what the cloud has now - a save made on an outdated copy
+    // (a tablet still holding the pre-match game) passed that check by construction,
+    // and the retry after a conflict re-fetched it and overwrote the finished match.
+    // Only on the sync path: an explicit backup restore or the migration upload is
+    // meant to write its copy and keeps the previous behaviour.
+    const baseVersion = options.useRecordedBase ? await getGameBaseVersion(userId, id) : undefined;
+    let expectedVersion = baseVersion ?? this.gameVersionCache.get(id);
     if (expectedVersion === undefined) {
       try {
         const { data: existing } = await this.getClient()
@@ -3773,7 +3809,16 @@ export class SupabaseDataStore implements DataStore {
     const rpcStartTime = Date.now();
     logger.info('[SupabaseDataStore] saveGame RPC START', { gameId: id.slice(0, 20) });
 
-    const rpcResult = await this.withRetry(async () => {
+    // Review 3.7: tag this save so the cloud row records who wrote it last
+    // (games.last_write_id, migration 055), and remember it as unconfirmed until the
+    // reply arrives. A retry of this call (withRetry) re-sends the same id.
+    const writeId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    (tables.game as Record<string, unknown>).last_write_id = writeId;
+    await addPendingWrite(userId, id, writeId);
+
+    const callSaveRpc = (expected: number | undefined) => this.withRetry(async () => {
       const attemptStartTime = Date.now();
       const result = await (client.rpc as unknown as (fn: string, params: unknown) => Promise<{ data: number | null; error: { message: string; code?: string } | null }>)(
         'save_game_with_relations',
@@ -3783,7 +3828,7 @@ export class SupabaseDataStore implements DataStore {
           p_events: tables.events,
           p_assessments: tables.assessments,
           p_tactical_data: tables.tacticalData,
-          p_expected_version: expectedVersion ?? null,
+          p_expected_version: expected ?? null,
         }
       );
       const attemptDuration = Date.now() - attemptStartTime;
@@ -3795,6 +3840,41 @@ export class SupabaseDataStore implements DataStore {
       });
       return throwIfTransient(result);
     }, 'saveGame');
+
+    let rpcResult = await callSaveRpc(expectedVersion);
+
+    // Refused by the version check: is the cloud row this device's OWN earlier save
+    // (committed, reply lost - common on mobile)? Then it is not a conflict: adopt that
+    // version as the base and send this save once more on top of it.
+    //
+    // Bounded: the retry's own reply can be lost too (it carries the same write id).
+    // If the check itself cannot be made, the save is NOT resolved as a conflict - that
+    // would let the cloud copy replace newer local edits - but failed as a network error,
+    // so the sync engine tries it again later.
+    const isVersionConflict = (code?: string) => code === 'PT409' || code === '40001';
+    for (let round = 0; round < 3; round++) {
+      if (!(options.useRecordedBase && rpcResult.error && isVersionConflict(rpcResult.error.code))) break;
+      const { data: row, error: checkError } = await this.getClient()
+        .from('games')
+        .select('version, last_write_id')
+        .eq('user_id', userId)
+        .eq('id', id)
+        .maybeSingle();
+      if (checkError) {
+        logger.warn('[SupabaseDataStore] Could not check who wrote the game last - will retry the save', { gameId: id, code: checkError.code });
+        throw new NetworkError('Could not verify the game save. It will be retried.');
+      }
+      const cloudRow = row as { version?: number; last_write_id?: string | null } | null;
+      if (!(cloudRow && typeof cloudRow.version === 'number' && cloudRow.last_write_id
+        && await isPendingWrite(userId, id, cloudRow.last_write_id))) {
+        break; // another device's save (or unknown writer): a real conflict
+      }
+      logger.info('[SupabaseDataStore] Refused save: the cloud holds this device\'s own earlier save - retrying on it', { gameId: id });
+      await setGameBaseVersion(userId, id, cloudRow.version, { exact: true });
+      this.cacheGameVersion(id, cloudRow.version);
+      expectedVersion = cloudRow.version;
+      rpcResult = await callSaveRpc(cloudRow.version);
+    }
 
     const rpcTotalDuration = Date.now() - rpcStartTime;
     logger.info('[SupabaseDataStore] saveGame RPC DONE', {
@@ -3889,6 +3969,10 @@ export class SupabaseDataStore implements DataStore {
     // Update version cache with new version returned from RPC (Issue #330)
     if (typeof newVersion === 'number') {
       this.gameVersionCache.set(id, newVersion);
+      // This device's copy is now based on exactly the version it just wrote, and every
+      // earlier save of it is confirmed (review 3.7).
+      await setGameBaseVersion(userId, id, newVersion, { exact: true });
+      await clearPendingWrites(userId, id);
     } else {
       // This should never happen - RPC always returns BIGINT version on success.
       // Possible causes: RPC signature mismatch, null from DB trigger bug, or type coercion issue.
@@ -4002,6 +4086,11 @@ export class SupabaseDataStore implements DataStore {
 
     // Clear version cache for deleted game (Issue #330)
     this.gameVersionCache.delete(id);
+    try {
+      await clearGameBaseVersion(await this.getUserId(), id);
+    } catch {
+      // best effort: a leftover record for a deleted game is harmless
+    }
 
     return (count ?? 0) > 0;
   }

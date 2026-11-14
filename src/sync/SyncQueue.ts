@@ -20,6 +20,7 @@ import {
   SyncOperationInput,
   SyncOperationType,
   SyncOperationStatus,
+  SyncEntityType,
   SyncQueueStats,
   SyncError,
   SyncErrorCode,
@@ -1297,6 +1298,40 @@ export class SyncQueue {
   /**
    * Clear all operations from the queue.
    */
+  /**
+   * Remove every queued (pending or failed) operation for one entity. In-flight
+   * ('syncing') ones are left to the executor. Used when a refused game save adopted
+   * the cloud copy: the queued changes were made on the same outdated copy (review 3.7).
+   */
+  async discardQueuedForEntity(entityType: SyncEntityType, entityId: string): Promise<number> {
+    const db = this.ensureInitialized();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(SYNC_STORE_NAME);
+      const request = store.index(INDEX_ENTITY).openCursor(IDBKeyRange.only([entityType, entityId]));
+      let removed = 0;
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        const op = cursor.value as SyncOperation;
+        if (op.status === 'pending' || op.status === 'failed') {
+          cursor.delete();
+          removed++;
+        }
+        cursor.continue();
+      };
+      transaction.oncomplete = () => {
+        if (removed > 0) this.invalidateStatsCache();
+        resolve(removed);
+      };
+      transaction.onerror = () => reject(new SyncError(
+        SyncErrorCode.QUEUE_ERROR,
+        `Failed to discard queued operations: ${transaction.error?.message || 'Unknown error'}`,
+        transaction.error ?? undefined,
+      ));
+    });
+  }
+
   async clear(): Promise<void> {
     const db = this.ensureInitialized();
 

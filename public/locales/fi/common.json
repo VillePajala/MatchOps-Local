@@ -3418,6 +3418,7 @@
     "localModeEnabledReloading": "Paikallinen tila käytössä. Ladataan uudelleen...",
     "failedToSwitchLocalMode": "Paikalliseen tilaan vaihtaminen epäonnistui",
     "couldNotCheckLocalData": "Paikallisia tietoja ei voitu tarkistaa. Päivitä sivu yrittääksesi uudelleen.",
+    "gameReplacedByCloud": "Tätä ottelua muutettiin toisella laitteella - näytetään uusin versio.",
     "couldNotCheckCloudData": "Pilvitietoja ei voitu tarkistaa. Tietosi latautuvat automaattisesti.",
     "unableToCheckSync": "Synkronoitavia tietoja ei voitu tarkistaa. Päivitä sivu, jos sinulla on synkronoitavia tietoja.",
     "returningToLocalMode": "Palataan paikalliseen tilaan...",

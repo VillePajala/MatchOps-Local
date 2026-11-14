@@ -3418,6 +3418,7 @@
     "localModeEnabledReloading": "Local mode enabled. Reloading...",
     "failedToSwitchLocalMode": "Failed to switch to local mode",
     "couldNotCheckLocalData": "Could not check for local data. Please refresh the page to try again.",
+    "gameReplacedByCloud": "This game was changed on another device - showing the latest version.",
     "couldNotCheckCloudData": "Could not check cloud data. Your data will load automatically.",
     "unableToCheckSync": "Unable to check data for sync. Please refresh if you have data to sync.",
     "returningToLocalMode": "Returning to local mode...",

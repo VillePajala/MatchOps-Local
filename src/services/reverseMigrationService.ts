@@ -21,6 +21,7 @@ import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import { SupabaseDataStore, type CloudEntityIds } from '@/datastore/SupabaseDataStore';
+import { setGameBaseVersion } from '@/datastore/gameBaseVersions';
 import { getAuthService } from '@/datastore/factory';
 import { NetworkError, AuthError } from '@/interfaces/DataStoreErrors';
 import type { Player, Team, TeamPlayer, Season, Tournament, Personnel, SavedGamesCollection, PlayerStatAdjustment, AppSettings } from '@/types';
@@ -2118,6 +2119,12 @@ export async function hydrateLocalFromCloud(
         if (shouldWriteBasedOnTimestamp(game.updatedAt, existingGame?.updatedAt)) {
           await localStore.saveGame(gameId, withRestorableAgeGroup(game, 'game'));
           counts.games++;
+          // This device's copy is now the cloud's: record the version it is based on,
+          // so a later save made on an outdated copy is refused (review 3.7).
+          const cloudVersion = cloudStore.getCachedGameVersion(gameId);
+          // Exact: the local copy is now exactly this cloud version, even when it is lower
+          // than a recorded one (cloud data cleared and re-uploaded restarts at 1).
+          if (typeof cloudVersion === 'number') await setGameBaseVersion(userId, gameId, cloudVersion, { exact: true });
         } else {
           skipped.games++;
           logger.info('[ReverseMigrationService] Skipping game (local is newer)', {

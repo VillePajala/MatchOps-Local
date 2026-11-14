@@ -7,6 +7,7 @@
 
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { markGameReplacedByCloud, GAME_REPLACED_BY_CLOUD_EVENT } from '@/sync/syncEvents';
 import { useGamePersistence } from '../useGamePersistence';
 import type { UseGamePersistenceParams } from '../useGamePersistence';
 import type { UseFieldCoordinationReturn } from '../useFieldCoordination';
@@ -642,6 +643,40 @@ describe('useGamePersistence', () => {
       act(() => { rerender({ ...loaded, gameSessionState: createMockGameSessionState({ homeScore: 3, opponentName: 'Kuusiston Kiri' }) }); });
       act(() => { jest.runAllTimers(); });
       await waitFor(() => expect(setSavedGames).toHaveBeenCalled());
+      jest.useRealTimers();
+    });
+
+    /**
+     * Review 3.7: once a refused save made the cloud copy replace this game, the match
+     * (opened before that) holds the outdated game: none of its saves may go out, or they
+     * would overwrite the kept version. The unmount flush goes through the same save.
+     * @critical
+     */
+    it('does not save a game that was replaced by the cloud version since it was opened', async () => {
+      jest.useFakeTimers();
+      const setSavedGames = jest.fn();
+      const params = createMockParams({
+        currentGameId: 'game_replaced',
+        appliedGameId: 'game_replaced',
+        savedGames: { 'game_replaced': {} as AppState },
+        setSavedGames,
+        gameSessionState: createMockGameSessionState({ homeScore: 0 }),
+      });
+      const { rerender, unmount } = renderHook((props) => useGamePersistence(props), { initialProps: params, wrapper: createWrapper() });
+      markGameReplacedByCloud('game_replaced');
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const reloadRequests: string[] = [];
+      const onReload = (e: Event) => reloadRequests.push((e as CustomEvent).detail.gameId);
+      window.addEventListener(GAME_REPLACED_BY_CLOUD_EVENT, onReload);
+      act(() => { rerender({ ...params, gameSessionState: createMockGameSessionState({ homeScore: 5 }) }); });
+      await act(async () => { await jest.runAllTimersAsync(); });
+      unmount();
+      await act(async () => { await jest.runAllTimersAsync(); });
+      expect(setSavedGames).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('replaced by the cloud version'));
+      expect(reloadRequests).toContain('game_replaced'); // never silent: the page reloads the match
+      warn.mockRestore();
+      window.removeEventListener(GAME_REPLACED_BY_CLOUD_EVENT, onReload);
       jest.useRealTimers();
     });
 

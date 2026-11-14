@@ -19,6 +19,7 @@ import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useLaunchPullGate } from '@/hooks/useLaunchPullGate';
+import { GAME_REPLACED_BY_CLOUD_EVENT } from '@/sync/syncEvents';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
@@ -1548,6 +1549,26 @@ export default function Home() {
     setMatchInstance((n) => n + 1);
     setScreen('home');
   }, [setAction, setScreen]);
+
+  // A save made on an outdated copy of a game was refused and the cloud version kept
+  // (review 3.7, decision: cloud wins). Tell the coach, reload the lists, and remount an
+  // open match so it shows - and goes on saving from - the kept version, not the
+  // outdated one still in memory.
+  useEffect(() => {
+    const onGameReplaced = async () => {
+      showToast(t('page.gameReplacedByCloud', 'This game was changed on another device - showing the latest version.'), 'info');
+      try {
+        await queryClient.refetchQueries({ type: 'all' }, { throwOnError: true });
+      } catch {
+        // The remount must not load the outdated copy from the cache: drop the cached
+        // data so the match reads storage (which now holds the cloud copy).
+        await queryClient.resetQueries().catch(() => {});
+      }
+      if (screen === 'home') enterMatch();
+    };
+    window.addEventListener(GAME_REPLACED_BY_CLOUD_EVENT, onGameReplaced);
+    return () => window.removeEventListener(GAME_REPLACED_BY_CLOUD_EVENT, onGameReplaced);
+  }, [showToast, t, queryClient, screen, enterMatch]);
 
   // Open a specific game (Home dashboard recent strip). Same level-crossing as
   // the Load Game modal: persist the id first, then freshly mount the match,

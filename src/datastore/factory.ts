@@ -640,7 +640,9 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
 
             const { createSyncExecutor } = await import('@/sync');
             const localStore = syncedStore.getLocalStore();
-            const executor = createSyncExecutor(cloudStore, localStore);
+            const executor = createSyncExecutor(cloudStore, localStore, {
+              discardQueuedChanges: (entityType, entityId) => syncedStore.discardQueuedChanges(entityType, entityId),
+            });
             const totalDurationMs = Date.now() - cloudSetupStartTime;
             log.info('[factory] Cloud setup complete, setting executor', { userId: initUserId, totalDurationMs, attempts: attempt + 1 });
             syncedStore.setExecutor(executor);

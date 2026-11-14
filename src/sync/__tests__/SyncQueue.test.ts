@@ -1034,6 +1034,22 @@ describe('SyncQueue', () => {
     });
   });
 
+  /** Review 3.7: changes queued on an outdated copy are dropped when the cloud copy is adopted. */
+  describe('discardQueuedForEntity', () => {
+    it('removes queued changes for the entity, leaves in-flight ones and other entities', async () => {
+      const game = (id: string, n: number): SyncOperationInput => ({
+        entityType: 'game', entityId: id, operation: 'update', data: { id, homeScore: n }, timestamp: Date.now(),
+      });
+      const inFlight = await queue.enqueue(game('g1', 1));
+      await queue.markSyncing(inFlight);
+      await queue.enqueue(game('g1', 2));
+      const other = await queue.enqueue(game('g2', 1));
+      expect(await queue.discardQueuedForEntity('game', 'g1')).toBe(1);
+      const ids = (await queue.getAllOperations()).map((o) => o.id).sort();
+      expect(ids).toEqual([inFlight, other].sort());
+    });
+  });
+
   describe('edge cases', () => {
     it('should gracefully handle marking non-existent operation as syncing', async () => {
       // Suppress debug log from updateStatus when operation not found

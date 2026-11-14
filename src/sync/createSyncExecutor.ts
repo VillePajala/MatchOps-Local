@@ -43,6 +43,29 @@ import {
   type LocalRecordWriter,
 } from './conflictResolution';
 import logger from '@/utils/logger';
+import { ConflictError } from '@/interfaces/DataStoreErrors';
+
+import { GAME_REPLACED_BY_CLOUD_EVENT, markGameReplacedByCloud, unmarkGameReplacedByCloud } from './syncEvents';
+
+/** Optional hooks into the queue that owns the executor. */
+export interface SyncExecutorHooks {
+  /**
+   * A refused save adopted the cloud copy (review 3.7): every other queued change to
+   * this entity was made on the same outdated copy and must not be pushed.
+   */
+  discardQueuedChanges?: (entityType: SyncEntityType, entityId: string) => Promise<void>;
+}
+
+/** The SupabaseDataStore methods used for game version checks (review 3.7). */
+interface VersionAwareGameStore {
+  saveGame(id: string, game: AppState, options?: { useRecordedBase?: boolean }): Promise<AppState>;
+  fetchCloudGameWithVersion(gameId: string): Promise<{ game: AppState; version: number } | null>;
+  recordGameBaseVersion(gameId: string, version: number): Promise<void>;
+}
+const isVersionAware = (store: unknown): store is VersionAwareGameStore =>
+  typeof (store as Partial<VersionAwareGameStore>)?.fetchCloudGameWithVersion === 'function'
+  && typeof (store as Partial<VersionAwareGameStore>)?.recordGameBaseVersion === 'function';
+
 import * as Sentry from '@sentry/nextjs';
 
 /**
@@ -137,7 +160,8 @@ function validateArrayData(
  */
 export function createSyncExecutor(
   cloudStore: DataStore,
-  localStore?: DataStore
+  localStore?: DataStore,
+  hooks: SyncExecutorHooks = {},
 ): SyncOperationExecutor {
   // Create conflict resolver if we have both stores
   let conflictResolver: ConflictResolver | null = null;
@@ -168,6 +192,46 @@ export function createSyncExecutor(
         operation,
       });
     } catch (error) {
+      // A game save refused because this device's copy is outdated (optimistic locking,
+      // review 3.7). Decision: the cloud version wins - it was saved by a device that had
+      // the newer game (typically the match itself). Retrying used to re-fetch the
+      // cloud's version and overwrite the match; instead adopt the cloud copy locally,
+      // drop the other changes queued on the same outdated copy, and tell the UI. (The
+      // refused copy's conflict_backup_<id> is cleared by the next successful save; no
+      // screen offers it, so the outdated edit is not recoverable in the app.)
+      if (error instanceof ConflictError && entityType === 'game' && localStore && isVersionAware(cloudStore)) {
+        // Only another device's save reaches here: this device's own earlier save
+        // (reply lost) is recognised and retried inside saveGame (last_write_id).
+        const cloud = await cloudStore.fetchCloudGameWithVersion(entityId);
+        if (cloud) {
+          // Block the outdated copy still in memory (an open match) FIRST: it must not
+          // write over the cloud copy stored below, and once the base version is
+          // updated its pushes would pass the check.
+          markGameReplacedByCloud(entityId);
+          try {
+            await localStore.saveGame(entityId, cloud.game);
+            await hooks.discardQueuedChanges?.(entityType, entityId);
+            // Last: if anything above fails, the old base stays, a retry is refused
+            // again, and the resolution simply repeats.
+            await cloudStore.recordGameBaseVersion(entityId, cloud.version);
+          } catch (resolveError) {
+            // Not resolved: lift the block so the open match can keep saving locally
+            // (its pushes are still refused by the unchanged base version).
+            unmarkGameReplacedByCloud(entityId);
+            throw resolveError;
+          }
+          logger.warn('[SyncExecutor] Save refused (another device saved first): kept the cloud version of the game', { entityId });
+          try {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent(GAME_REPLACED_BY_CLOUD_EVENT, { detail: { gameId: entityId } }));
+            }
+          } catch {
+            // the notice is best effort
+          }
+          return;
+        }
+      }
+
       // AbortError is expected during page navigation, hot reload, or user-initiated cancellation
       // Don't log as error or report to Sentry - just rethrow for normal retry handling
       const isAbortError = error instanceof Error && error.name === 'AbortError';
@@ -455,9 +519,14 @@ async function syncGame(
   if (operation === 'delete') {
     await store.deleteGame(entityId);
   } else {
-    // create/update both use saveGame with the full game data
+    // create/update both use saveGame with the full game data. Sync pushes check the
+    // version this device's copy is based on (review 3.7).
     validateObjectData(data, 'game', operation, entityId);
-    await store.saveGame(entityId, data as AppState);
+    if (isVersionAware(store)) {
+      await store.saveGame(entityId, data as AppState, { useRecordedBase: true });
+    } else {
+      await store.saveGame(entityId, data as AppState);
+    }
   }
 }
 

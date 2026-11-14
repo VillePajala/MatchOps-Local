@@ -123,6 +123,17 @@ jest.mock('@/utils/storage', () => ({
   getAllStorageData: jest.fn().mockResolvedValue({}),
 }));
 
+// The per-account record of which cloud version each local game copy is based on.
+jest.mock('../gameBaseVersions', () => ({
+  getGameBaseVersion: jest.fn().mockResolvedValue(undefined),
+  setGameBaseVersion: jest.fn().mockResolvedValue(undefined),
+  clearGameBaseVersion: jest.fn().mockResolvedValue(undefined),
+  addPendingWrite: jest.fn().mockResolvedValue(undefined),
+  isPendingWrite: jest.fn().mockResolvedValue(false),
+  clearPendingWrites: jest.fn().mockResolvedValue(undefined),
+}));
+import { getGameBaseVersion, setGameBaseVersion, isPendingWrite, addPendingWrite } from '../gameBaseVersions';
+
 // Mock navigator.onLine
 const originalNavigator = global.navigator;
 
@@ -3191,6 +3202,30 @@ describe('SupabaseDataStore', () => {
         }));
       });
 
+      /**
+       * Review 3.7: the save must send the version this device's copy is BASED ON, not
+       * what the cloud has now - otherwise an outdated copy (a tablet holding the
+       * pre-match game) passes the check and overwrites the finished match.
+       * @critical
+       */
+      it('sends the version the local copy is based on, and records the new one', async () => {
+        (getGameBaseVersion as jest.Mock).mockResolvedValueOnce(3);
+        mockQueryBuilder.maybeSingle.mockResolvedValueOnce({ data: { version: 9 }, error: null }); // what the cloud has now
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: 4, error: null });
+        const game = {
+          teamName: 'Test Team', opponentName: 'Opponent', gameDate: '2024-01-15',
+          homeOrAway: 'home' as const, numberOfPeriods: 2 as const, periodDurationMinutes: 10,
+          currentPeriod: 1, gameStatus: 'notStarted' as const, homeScore: 0, awayScore: 0,
+          gameNotes: '', showPlayerNames: true, playersOnField: [], availablePlayers: [],
+          selectedPlayerIds: [], gameEvents: [], assessments: {},
+        };
+        await dataStore.saveGame('game_based', game as unknown as AppState, { useRecordedBase: true });
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.objectContaining({
+          p_expected_version: 3,
+        }));
+        expect(setGameBaseVersion).toHaveBeenCalledWith(expect.any(String), 'game_based', 4, { exact: true });
+      });
+
       it('still saves (without a version check) when the cold-cache version fetch fails (CR-M3 #2 fallback)', async () => {
         // Cold cache + the version fetch errors (e.g. transient network): best-effort,
         // must NOT block the save — falls back to the prior behaviour (no version check).
@@ -5834,6 +5869,67 @@ describe('SupabaseDataStore', () => {
       });
 
       await expect(dataStore.saveGame('game_1', mockGameData)).rejects.toThrow(ConflictError);
+    });
+
+    /**
+     * Review 3.7: a save refused because the cloud row is this device's OWN earlier save
+     * (committed, reply lost) is not a conflict - it is sent again on that version. A
+     * save from another device stays a conflict.
+     * @critical
+     */
+    describe('refused save: own earlier save vs another device', () => {
+      const refusal = { data: null, error: { code: 'PT409', message: 'Conflict: expected 4, found 5' } };
+
+      it('tags the save with a write id remembered as unconfirmed', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: 2, error: null });
+        await dataStore.saveGame('game_1', mockGameData, { useRecordedBase: true });
+        const sent = (mockSupabaseClient.rpc as jest.Mock).mock.calls[0][1].p_game;
+        expect(typeof sent.last_write_id).toBe('string');
+        expect(addPendingWrite).toHaveBeenCalledWith(expect.any(String), 'game_1', sent.last_write_id);
+      });
+
+      it('own earlier save: retried once on the cloud version, and succeeds', async () => {
+        (getGameBaseVersion as jest.Mock).mockResolvedValueOnce(4);
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce(refusal).mockResolvedValueOnce({ data: 6, error: null });
+        mockQueryBuilder.maybeSingle.mockResolvedValueOnce({ data: { version: 5, last_write_id: 'mine' }, error: null });
+        (isPendingWrite as jest.Mock).mockResolvedValueOnce(true);
+        await expect(dataStore.saveGame('game_1', mockGameData, { useRecordedBase: true })).resolves.toBeDefined();
+        const calls = (mockSupabaseClient.rpc as jest.Mock).mock.calls;
+        expect(calls.map((c) => c[1].p_expected_version)).toEqual([4, 5]);
+        expect(isPendingWrite).toHaveBeenCalledWith(expect.any(String), 'game_1', 'mine');
+      });
+
+      it('a second lost reply in a row is recognised too', async () => {
+        (getGameBaseVersion as jest.Mock).mockResolvedValueOnce(4);
+        (mockSupabaseClient.rpc as jest.Mock)
+          .mockResolvedValueOnce(refusal).mockResolvedValueOnce(refusal).mockResolvedValueOnce({ data: 7, error: null });
+        mockQueryBuilder.maybeSingle
+          .mockResolvedValueOnce({ data: { version: 5, last_write_id: 'mine' }, error: null })
+          .mockResolvedValueOnce({ data: { version: 6, last_write_id: 'mine' }, error: null });
+        (isPendingWrite as jest.Mock).mockResolvedValueOnce(true).mockResolvedValueOnce(true);
+        await expect(dataStore.saveGame('game_1', mockGameData, { useRecordedBase: true })).resolves.toBeDefined();
+        expect((mockSupabaseClient.rpc as jest.Mock).mock.calls.map((c) => c[1].p_expected_version)).toEqual([4, 5, 6]);
+      });
+
+      it('when the check cannot be made, the save fails as retryable - never as a conflict', async () => {
+        (getGameBaseVersion as jest.Mock).mockResolvedValueOnce(4);
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue(refusal);
+        mockQueryBuilder.maybeSingle.mockResolvedValueOnce({ data: null, error: { code: '08006', message: 'connection lost' } });
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const error = await dataStore.saveGame('game_1', mockGameData, { useRecordedBase: true }).catch((e) => e);
+        warn.mockRestore();
+        expect(error).toBeInstanceOf(NetworkError);
+        expect(error).not.toBeInstanceOf(ConflictError);
+      });
+
+      it('another device\'s save: a conflict, not retried', async () => {
+        (getGameBaseVersion as jest.Mock).mockResolvedValueOnce(4);
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue(refusal);
+        mockQueryBuilder.maybeSingle.mockResolvedValueOnce({ data: { version: 5, last_write_id: 'theirs' }, error: null });
+        (isPendingWrite as jest.Mock).mockResolvedValueOnce(false);
+        await expect(dataStore.saveGame('game_1', mockGameData, { useRecordedBase: true })).rejects.toThrow(ConflictError);
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledTimes(1);
+      });
     });
 
     it('should throw ConflictError when RPC returns PT409 (CR-M3 current conflict code)', async () => {
