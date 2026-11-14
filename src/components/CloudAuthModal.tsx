@@ -138,7 +138,8 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
     if (step === 'confirm') {
       try {
         const { getSupabaseClient } = await import('@/datastore/supabase/client');
-        await getSupabaseClient().auth.signOut();
+        // This device only: supabase-js defaults to every device (review 3.12).
+        await getSupabaseClient().auth.signOut({ scope: 'local' });
       } catch (signOutErr) {
         // Best-effort cleanup — don't block cancel on sign-out failure
         logger.warn('[CloudAuthModal] Failed to sign out on cancel:', signOutErr);

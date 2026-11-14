@@ -24,6 +24,12 @@ import type { User, Session, AuthResult, AuthStateCallback } from './AuthTypes';
  * - LocalAuthService: No-op for local mode (Phase 3)
  * - SupabaseAuthService: Full auth for cloud mode (Phase 4, optional)
  */
+/** Options for AuthService.signOut. */
+export interface SignOutOptions {
+  /** 'local' (default): this device only. 'global': every login on the account. */
+  scope?: 'local' | 'global';
+}
+
 export interface AuthService {
   // ==========================================================================
   // LIFECYCLE
@@ -115,9 +121,12 @@ export interface AuthService {
 
   /**
    * Sign out the current user.
+   * By default only THIS device's login ends; the account's other devices stay signed
+   * in. `scope: 'global'` ends every login on the account - used only after a completed
+   * password reset (a new password must lock out old logins).
    * In local mode, this is a no-op.
    */
-  signOut(): Promise<void>;
+  signOut(options?: SignOutOptions): Promise<void>;
 
   /**
    * Send a password reset email.
@@ -398,9 +407,9 @@ export interface AuthService {
 //    - Consider shorter access token lifetimes (15 min recommended)
 //
 // 3. MULTI-DEVICE SIGN OUT
-//    - signOut() currently signs out current session only
-//    - Consider adding signOutAll() for all devices (requires Supabase admin API)
-//    - Useful for "sign out everywhere" security feature
+//    - signOut() signs out this device only; signOut({ scope: 'global' }) ends every
+//      login on the account (used after a completed password reset)
+//    - A user-facing "sign out everywhere" button could reuse the global scope
 //
 // 4. RATE LIMITING
 //    - Implement rate limiting for signIn, signUp, resetPassword

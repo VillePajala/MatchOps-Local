@@ -1390,8 +1390,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Sign out the recovery session — user must sign in with their new password.
       // Uses authService.signOut() directly (not AuthProvider's signOut) because this
       // is ending a recovery session, not a full user sign-out flow.
+      // Global: the password changed, so every old login on the account must end
+      // (someone else may have known the old password) - review 3.12.
       try {
-        await authService.signOut();
+        await authService.signOut({ scope: 'global' });
       } catch {
         // Non-critical: recovery session will expire naturally
       }

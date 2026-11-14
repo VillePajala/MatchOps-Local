@@ -10,7 +10,7 @@
  * @see docs/03-active-plans/supabase-implementation-guide.md Section 6
  */
 
-import type { AuthService } from '@/interfaces/AuthService';
+import type { AuthService, SignOutOptions } from '@/interfaces/AuthService';
 import type {
   User,
   Session,
@@ -718,15 +718,19 @@ export class SupabaseAuthService implements AuthService {
     return { user, session };
   }
 
-  async signOut(): Promise<void> {
+  async signOut(options: SignOutOptions = {}): Promise<void> {
     this.ensureInitialized();
+    // Default: this device only. supabase-js's own default is 'global', which revoked
+    // every device's login - a coach's tablet dropped to the login screen within the
+    // hour after signing out on the phone (review 3.12).
+    const scope = options.scope ?? 'local';
 
     // Add timeout to prevent hanging if server is unreachable.
     // Uses Promise.race to actually enforce the 10s limit — the Supabase client
     // does not accept an AbortSignal, so we race against a timeout promise.
     let error;
     try {
-      const result = await withSignOutTimeout(this.client!.auth.signOut(), 'Sign out timed out');
+      const result = await withSignOutTimeout(this.client!.auth.signOut({ scope }), 'Sign out timed out');
       error = result.error;
     } catch (e) {
       // Timeout or network error — treat as failed API signout
@@ -740,11 +744,20 @@ export class SupabaseAuthService implements AuthService {
 
     if (error) {
       logger.warn('[SupabaseAuthService] Sign out API error:', error instanceof Error ? error.message : String(error));
-      // API call failed (network error), but we still need to clear local session.
-      // Try the local-scope signout. Note: it still POSTs /logout?scope=local whenever an
-      // access token exists, so offline it fails too - the direct removal below is what
-      // actually works then. Same 10 s limit as above (a hung network would otherwise
-      // keep the sign-out spinner up for its own 30 s fetch).
+    }
+    if (error && scope === 'global') {
+      // The other devices' logins were NOT ended (after a password reset, they should
+      // be): make that visible.
+      try {
+        Sentry.captureMessage('Sign out of all devices failed', { level: 'warning', tags: { flow: 'sign-out-global' } });
+      } catch {
+        // Sentry failure acceptable
+      }
+      // Still end this device's login. (A failed local sign-out is not retried.)
+      // The local sign-out still POSTs /logout?scope=local when an access token
+      // exists, so offline it fails too; the direct removal below is what works then.
+      // Same 10 s limit as above: a hung network would otherwise keep the sign-out
+      // spinner up for its own 30 s fetch.
       try {
         const { error: localError } = await withSignOutTimeout(
           this.client!.auth.signOut({ scope: 'local' }), 'Local sign out timed out');
