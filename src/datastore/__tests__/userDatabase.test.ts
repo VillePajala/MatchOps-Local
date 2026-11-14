@@ -302,7 +302,7 @@ describe('userDatabase', () => {
           value: {
             open: jest.fn((name: string) => {
               const request: Record<string, unknown> = { result: { close } };
-              const abort = jest.fn(() => { (request.onerror as () => void)?.(); });
+              const abort = jest.fn(() => { request.error = { name: 'AbortError' }; (request.onerror as () => void)?.(); });
               request.transaction = { abort };
               setTimeout(() => {
                 if (mode === 'pending') return; // a blocked delete: the open never completes
@@ -330,6 +330,20 @@ describe('userDatabase', () => {
         const { close } = installOpen('present');
         await expect(userLocalDatabaseExists('u1', 500)).resolves.toBe(true);
         expect(close).toHaveBeenCalled();
+      });
+
+      it('an open error other than our abort is not proof it is gone', async () => {
+        Object.defineProperty(globalThis, 'indexedDB', {
+          configurable: true,
+          value: {
+            open: jest.fn(() => {
+              const request: Record<string, unknown> = { error: { name: 'UnknownError' } };
+              setTimeout(() => (request.onerror as () => void)(), 0);
+              return request;
+            }),
+          },
+        });
+        await expect(userLocalDatabaseExists('u1', 500)).resolves.toBe(true);
       });
 
       it('never claims gone while a delete is still blocked', async () => {

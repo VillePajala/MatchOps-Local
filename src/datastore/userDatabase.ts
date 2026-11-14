@@ -245,7 +245,8 @@ function databaseExistsByOpening(name: string, waitMs: number): Promise<boolean>
         request.result.close();
         finish(true);
       };
-      request.onerror = () => finish(false); // aborted creation (or unusable): not there
+      // Only OUR aborted creation proves it is not there; any other error is unknown.
+      request.onerror = () => finish(request.error?.name === 'AbortError' ? false : true);
       request.onblocked = () => undefined; // keep waiting until the timer
     } catch {
       finish(true); // cannot tell: never claim it is gone
