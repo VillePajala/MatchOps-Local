@@ -66,6 +66,7 @@ import {
   getGame as utilGetGame,
 } from '@/utils/savedGames';
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
+import { gameReplacementCount, GAME_REPLACED_BY_CLOUD_EVENT } from '@/sync/syncEvents';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
@@ -93,6 +94,8 @@ export interface UseGamePersistenceParams {
    * saved it as if the coach had edited it (review 3.5b).
    */
   appliedGameId: string | null;
+  /** Cloud replacements of that game counted when its data was read (review 3.7). */
+  appliedGameReplacements?: number;
 
   // From useGameDataManagement
   savedGames: Record<string, AppState>;
@@ -168,6 +171,7 @@ export function useGamePersistence({
   isPlayed,
   initialLoadComplete,
   appliedGameId,
+  appliedGameReplacements = 0,
   savedGames,
   setSavedGames,
   resetHistory,
@@ -296,7 +300,31 @@ export function useGamePersistence({
    */
   const blockedSaveGameIdRef = useRef<string | null>(null);
 
+  // Review 3.7: when a save made on an outdated copy is refused, the cloud copy replaces
+  // the local one, and this match (loaded before that) holds the outdated game in
+  // memory. Its saves must not go out any more - with the updated version record they
+  // would pass the check and overwrite the kept version. The page remounts the match on
+  // the cloud copy; until then (and in the unmount flush) every save is skipped.
+  const loadedReplacementRef = useRef<{ id: string; count: number } | null>(null);
+  useEffect(() => {
+    if (appliedGameId && appliedGameId === currentGameId) {
+      loadedReplacementRef.current = { id: appliedGameId, count: appliedGameReplacements };
+    }
+  }, [appliedGameId, currentGameId, appliedGameReplacements]);
+
   const handleQuickSaveGame = useCallback(async (silent = false, suppressErrorToast = false): Promise<boolean> => {
+    const loadedWith = loadedReplacementRef.current;
+    if (currentGameId && loadedWith?.id === currentGameId && gameReplacementCount(currentGameId) !== loadedWith.count) {
+      logger.warn('[handleQuickSaveGame] Skipping save: this game was replaced by the cloud version since it was opened');
+      // Never silently: ask the page to reload the match on the current copy (the page
+      // de-duplicates repeated requests).
+      try {
+        window.dispatchEvent(new CustomEvent(GAME_REPLACED_BY_CLOUD_EVENT, { detail: { gameId: currentGameId } }));
+      } catch {
+        // best effort
+      }
+      return false;
+    }
     // Create snapshot first (needed for both validation and save)
     const currentSnapshot = createGameSnapshot();
 

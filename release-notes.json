@@ -4,6 +4,15 @@
     {
       "date": "2026-11-14",
       "en": [
+        "A device with an older copy of a game can no longer overwrite the newer version, such as a match recorded on another device. If that happens, the app keeps the newer version and tells you."
+      ],
+      "fi": [
+        "Laite, jolla on ottelusta vanhempi versio, ei enää voi korvata uudempaa versiota, esimerkiksi toisella laitteella kirjattua ottelua. Jos näin käy, sovellus säilyttää uudemman version ja kertoo siitä."
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "en": [
         "On a patchy connection, a save that failed and was retried could later overwrite a newer one, or bring back a deleted game. The newer change now always wins."
       ],
       "fi": [

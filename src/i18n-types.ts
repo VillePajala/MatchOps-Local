@@ -1594,6 +1594,7 @@ export type TranslationKey =
   | 'page.failedToSwitchLocalMode'
   | 'page.failedToSwitchLocalModeRetry'
   | 'page.gameDataNotFound'
+  | 'page.gameReplacedByCloud'
   | 'page.importSucceededRefresh'
   | 'page.legacyDataMigrated_one'
   | 'page.legacyDataMigrated_other'

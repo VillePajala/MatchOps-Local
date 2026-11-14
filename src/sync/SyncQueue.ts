@@ -20,6 +20,7 @@ import {
   SyncOperationInput,
   SyncOperationType,
   SyncOperationStatus,
+  SyncEntityType,
   SyncQueueStats,
   SyncError,
   SyncErrorCode,
@@ -1291,6 +1292,49 @@ export class SyncQueue {
           transaction.error ?? undefined
         ));
       };
+    });
+  }
+
+  /**
+   * Remove queued (pending or failed) changes for one entity - not deletes, which are
+   * the user's explicit intent and stay queued. In-flight ('syncing') ops are left to
+   * the executor. Used when a refused game save adopted the cloud copy: the queued
+   * changes were made on the same outdated copy (review 3.7).
+   */
+  async discardQueuedForEntity(
+    entityType: SyncEntityType,
+    entityId: string,
+  ): Promise<{ removed: number; deleteQueued: boolean }> {
+    const db = this.ensureInitialized();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SYNC_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(SYNC_STORE_NAME);
+      const request = store.index(INDEX_ENTITY).openCursor(IDBKeyRange.only([entityType, entityId]));
+      let removed = 0;
+      let deleteQueued = false;
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        const op = cursor.value as SyncOperation;
+        if (op.status === 'pending' || op.status === 'failed') {
+          if (op.operation === 'delete') {
+            deleteQueued = true; // an explicit delete is intent, not an outdated edit: kept
+          } else {
+            cursor.delete();
+            removed++;
+          }
+        }
+        cursor.continue();
+      };
+      transaction.oncomplete = () => {
+        if (removed > 0) this.invalidateStatsCache();
+        resolve({ removed, deleteQueued });
+      };
+      transaction.onerror = () => reject(new SyncError(
+        SyncErrorCode.QUEUE_ERROR,
+        `Failed to discard queued operations: ${transaction.error?.message || 'Unknown error'}`,
+        transaction.error ?? undefined,
+      ));
     });
   }
 

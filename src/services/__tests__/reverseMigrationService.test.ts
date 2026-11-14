@@ -63,6 +63,13 @@ jest.mock('@/sync/SyncQueue', () => ({
   })),
 }));
 
+// The record of which cloud version each local game copy is based on (review 3.7).
+jest.mock('@/datastore/gameBaseVersions', () => ({
+  getGameBaseVersion: jest.fn().mockResolvedValue(undefined),
+  setGameBaseVersion: jest.fn().mockResolvedValue(undefined),
+}));
+import { getGameBaseVersion, setGameBaseVersion } from '@/datastore/gameBaseVersions';
+
 // The account's own storage, where hydration records the cloud ids it has seen.
 const mockUserStore: Record<string, string> = {};
 jest.mock('@/utils/storage', () => ({
@@ -208,6 +215,7 @@ describe('reverseMigrationService', () => {
       getPlaytimeGameSubs: jest.fn().mockResolvedValue([]),
       getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
       getSettings: jest.fn().mockResolvedValue(null),
+      getCachedGameVersion: jest.fn().mockReturnValue(undefined),
       clearAllUserData: jest.fn().mockResolvedValue(undefined),
       close: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<SupabaseDataStore>;
@@ -919,6 +927,46 @@ describe('reverseMigrationService', () => {
     });
     it('counts removals', () => {
       expect(hydrationChangedAnything(result({}, 1))).toBe(true);
+    });
+  });
+
+  /** Review 3.7: a game the pull writes locally is now based on the cloud's version. */
+  describe('records the cloud version a pulled game is based on', () => {
+    it('records it exactly for a game written; seeds it for an unchanged skipped one', async () => {
+      (mockSupabaseDataStore.getCachedGameVersion as jest.Mock).mockImplementation((id: string) => (id === 'game-1' ? 6 : 2));
+      mockSupabaseDataStore.getGames.mockResolvedValue({
+        'game-1': { ...mockGame, updatedAt: '2026-07-01T00:00:00Z' },
+        'game-2': { ...mockGame, updatedAt: '2026-01-01T00:00:00Z' },
+      });
+      mockLocalDataStore.getGames.mockResolvedValue({
+        'game-1': { ...mockGame, updatedAt: '2026-06-01T00:00:00Z' }, // older locally: written
+        'game-2': { ...mockGame, updatedAt: '2026-06-01T00:00:00Z' }, // newer locally: skipped
+      });
+      await hydrateLocalFromCloudWithRetry('test-user-id');
+      expect(setGameBaseVersion).toHaveBeenCalledWith('test-user-id', 'game-1', 6, { exact: true });
+      // Skipped (local looks newer) with nothing queued and no record yet: seeded, never-lower.
+      expect(setGameBaseVersion).toHaveBeenCalledWith('test-user-id', 'game-2', 2);
+    });
+
+    it('does not seed a skipped game that already has a record, or one with a queued change', async () => {
+      (mockSupabaseDataStore.getCachedGameVersion as jest.Mock).mockReturnValue(2);
+      mockSupabaseDataStore.getGames.mockResolvedValue({
+        'game-2': { ...mockGame, updatedAt: '2026-01-01T00:00:00Z' },
+        'game-3': { ...mockGame, updatedAt: '2026-01-01T00:00:00Z' },
+      });
+      mockLocalDataStore.getGames.mockResolvedValue({
+        'game-2': { ...mockGame, updatedAt: '2026-06-01T00:00:00Z' },
+        'game-3': { ...mockGame, updatedAt: '2026-06-01T00:00:00Z' },
+      });
+      (getGameBaseVersion as jest.Mock).mockImplementation(async (_u: string, id: string) => (id === 'game-2' ? 9 : undefined));
+      mockQueuedOps.push({ entityType: 'game', entityId: 'game-3' });
+      try {
+        await hydrateLocalFromCloudWithRetry('test-user-id');
+      } finally {
+        (getGameBaseVersion as jest.Mock).mockResolvedValue(undefined);
+        mockQueuedOps.length = 0;
+      }
+      expect(setGameBaseVersion).not.toHaveBeenCalled();
     });
   });
 

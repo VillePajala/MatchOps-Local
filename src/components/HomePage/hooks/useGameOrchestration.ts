@@ -55,6 +55,7 @@ import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { getPlan } from '@/utils/playtimePlanner/storage';
 import { getPlanLink, type PlanLink } from '@/utils/playtimePlanner/planLinks';
 import { mergeClubRosterIntoGamePlayers, playerIdsReferencedByGame } from '@/utils/gamePlayerList';
+import { gameReplacementCount } from '@/sync/syncEvents';
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
@@ -449,6 +450,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // The game whose data has been APPLIED to the session (set after the load resolves,
   // so the next render shows it). Autosave waits for this - see useGamePersistence.
   const [appliedGameId, setAppliedGameId] = useState<string | null>(null);
+  // How many cloud replacements of that game had happened when its data was READ: a
+  // match loaded from data older than a replacement must not save (review 3.7).
+  const [appliedGameReplacements, setAppliedGameReplacements] = useState(0);
   // Clock correction consumed from the persisted timer record at boot,
   // applied one-shot when the corresponding game loads (see loadGameStateFromData).
   // `resume` is set when the timer was running at hide time (wasRunning), so the
@@ -1474,6 +1478,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           return;
         }
 
+        // Read the replacement count BEFORE the data: if the cloud copy replaces this
+        // game while it loads, the match is marked as holding the older data.
+        const replacementsAtLoad = gameReplacementCount(currentGameId);
         const gameToLoad = savedGames[currentGameId] as AppState | undefined;
         if (!gameToLoad) {
           logger.warn('[EFFECT game load] Saved game not yet available for currentGameId, skipping to avoid clobbering with defaults', { currentGameId });
@@ -1507,7 +1514,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         try {
           await loadGameStateFromData(gameToLoad);
           // A load that finishes after the game changed must not mark the new one.
-          if (loadedGameIdRef.current === currentGameId) setAppliedGameId(currentGameId);
+          if (loadedGameIdRef.current === currentGameId) {
+            setAppliedGameReplacements(replacementsAtLoad);
+            setAppliedGameId(currentGameId);
+          }
         } catch (err) {
           // If the load failed, clear the guard so the effect can retry this game
           // rather than leaving it permanently "loaded" but unapplied.
@@ -1587,6 +1597,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     isPlayed,
     initialLoadComplete,
     appliedGameId,
+    appliedGameReplacements,
 
     // From useGameDataManagement
     savedGames: gameDataManagement.savedGames || {},
