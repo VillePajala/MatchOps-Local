@@ -199,6 +199,22 @@ describe('PlayerAssessmentCard', () => {
       expect(onSave).toHaveBeenCalledTimes(1);
     });
 
+    it('does not bring a deleted assessment back on close', async () => {
+      const onSave = jest.fn();
+      const onDelete = jest.fn();
+      const { unmount } = render(
+        <I18nextProvider i18n={i18n}>
+          <PlayerAssessmentCard player={player} onSave={onSave} onDelete={onDelete} assessment={createAssessment({ notes: 'original' })} />
+        </I18nextProvider>
+      );
+      fireEvent.click(screen.getByText('Test'));
+      fireEvent.change(screen.getByDisplayValue('original'), { target: { value: 'edited then deleted' } });
+      fireEvent.click(screen.getByRole('button', { name: /^(reset|nollaa|tyhjennä)$/i }));
+      expect(onDelete).toHaveBeenCalled();
+      unmount();
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
     it('saves nothing on close when nothing changed', () => {
       const onSave = jest.fn();
       const { unmount } = render(
