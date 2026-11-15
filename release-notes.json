@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "A player rating or note changed just before closing the ratings window is no longer lost."
+      ],
+      "fi": [
+        "Juuri ennen arviointi-ikkunan sulkemista muutettu pelaaja-arvio tai muistiinpano ei enää katoa."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Editing a goal that was logged while the clock was paused no longer shows a long decimal time or refuses to save."
       ],
       "fi": [
