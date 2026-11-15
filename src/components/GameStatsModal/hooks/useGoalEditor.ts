@@ -40,8 +40,12 @@ interface UseGoalEditorResult {
 }
 
 const formatTime = (timeInSeconds: number): string => {
-  const minutes = Math.floor(timeInSeconds / 60);
-  const seconds = timeInSeconds % 60;
+  // Whole seconds (review 4.15): a goal logged while paused has a fractional time
+  // (610.09 s), which prefilled "10:10.090000000000032" and Save rejected it as an
+  // invalid MM:SS until the coach retyped it.
+  const total = Math.max(0, Math.floor(timeInSeconds));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
