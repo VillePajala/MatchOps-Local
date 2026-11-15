@@ -1253,6 +1253,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         homeScore: gameData.homeScore,
         awayScore: gameData.awayScore,
         gameNotes: gameData.gameNotes,
+        // Which text came from an AI draft (review 4.7): omitted here, the reducer held
+        // undefined and the next autosave erased the stored record.
+        gameNotesAiMeta: gameData.gameNotesAiMeta,
         playerPositions: gameData.playerPositions ?? {},
         homeOrAway: gameData.homeOrAway,
         numberOfPeriods: gameData.numberOfPeriods,
