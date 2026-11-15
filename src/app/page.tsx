@@ -1599,12 +1599,18 @@ export default function Home() {
       const games = await getSavedGames(userId);
       const game = games?.[id];
       if (!game) return;
-      await utilSaveGame(id, { ...game, ...next }, userId);
+      const saved = await utilSaveGame(id, { ...game, ...next }, userId);
+      // The match's autosave carries travel from this cache (review 4.6): without the
+      // update, its next full save wrote the old values back over the coach's change.
+      queryClient.setQueryData<SavedGamesCollection>(
+        [...queryKeys.savedGames, userId],
+        (prev) => (prev ? { ...prev, [id]: saved ?? { ...game, ...next } } : prev),
+      );
       await refreshSetupSignals();
     } catch (err) {
       logger.warn('Could not save the travel adjustment', { error: err });
     }
-  }, [userId, refreshSetupSignals]);
+  }, [userId, refreshSetupSignals, queryClient]);
 
   /**
    * Venues pinned before migration 049 kept their position and lost their
