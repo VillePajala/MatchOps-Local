@@ -39,6 +39,19 @@ describe('hasBeenPlayed', () => {
     expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: [{ type: 'goal' }] })).toBe(true);
   });
 
+  /**
+   * Review 4.8: a pre-match note is not evidence the match was played - it marked a
+   * booked fixture played (a phantom 0-0 draw) and re-promoted it after "not played".
+   * @critical
+   */
+  it('a note alone does not mean it was played', () => {
+    expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: [{ type: 'note' }, { type: 'note' }] })).toBe(false);
+  });
+
+  it('a note together with a goal still means it was played', () => {
+    expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: [{ type: 'note' }, { type: 'goal' }] })).toBe(true);
+  });
+
   /** A fixture booked and not yet played has neither. */
   it('an untouched fixture has not been played', () => {
     expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: [] })).toBe(false);

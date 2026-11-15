@@ -58,5 +58,9 @@ export function hasBeenPlayed(match: {
   gameEvents?: readonly unknown[];
 }): boolean {
   if ((match.timeElapsedInSeconds ?? 0) > 0) return true;
-  return (match.gameEvents?.length ?? 0) > 0;
+  // A NOTE is not evidence the match happened (review 4.8): a pre-match note on a
+  // booked fixture ("their #9 is fast") marked it played - a phantom 0-0 draw that
+  // vanished from the next-match card, and re-promoted itself after the coach
+  // flipped it back. Goals, subs, cards and period ends still count.
+  return (match.gameEvents ?? []).some((event) => (event as { type?: unknown })?.type !== 'note');
 }
