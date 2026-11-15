@@ -478,6 +478,10 @@ export function useGameSessionCoordination({
   }, [dispatchGameSession]);
 
   // --- Apply History State Helper ---
+  // The live session for applyHistoryState (a ref: it must not re-create the callback).
+  const liveSessionRef = useRef(gameSessionState);
+  useEffect(() => { liveSessionRef.current = gameSessionState; }, [gameSessionState]);
+
   /**
    * Applies history state to restore game session
    *
@@ -503,10 +507,6 @@ export function useGameSessionCoordination({
    * @see useGameOrchestration.ts lines 1300-1337 for current wrapper implementation
    * @see docs/03-active-plans/L2-2.6-useGameOrchestration-Splitting-PLAN.md for Step 2.6.3 details
    */
-  // The live session for applyHistoryState (a ref: it must not re-create the callback).
-  const liveSessionRef = useRef(gameSessionState);
-  useEffect(() => { liveSessionRef.current = gameSessionState; }, [gameSessionState]);
-
   const applyHistoryState = useCallback((state: AppState) => {
     // Single dispatch restores all session fields at once, avoiding 8 intermediate
     // reducer passes. LOAD_STATE_FROM_HISTORY is in NO_HISTORY_ACTIONS so no
