@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "Adding the same staff member on two devices before they sync no longer leaves a sync error that never clears; both entries are kept and you can remove the duplicate."
+      ],
+      "fi": [
+        "Saman henkilökunnan jäsenen lisääminen kahdella laitteella ennen synkronointia ei enää jätä pysyvää synkronointivirhettä; molemmat merkinnät säilyvät ja voit poistaa kaksoiskappaleen."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Deleting something right after creating it, while the connection is unreliable, no longer lets it come back from the cloud later."
       ],
       "fi": [
