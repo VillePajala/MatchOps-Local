@@ -162,6 +162,17 @@ describe('gameSessionReducer', () => {
     expect(undone.subAlertLevel).toBe('due');
   });
 
+  test('LOAD_STATE_FROM_HISTORY with unchanged sub fields (an unrelated undo) leaves the reminder alone', () => {
+    // A clock-aligned due time (set when the interval changed) must not be re-derived.
+    // Last sub at 05:00; interval changed to 10 min at 07:00 -> due 10:00 (lastSub+interval would say 15:00).
+    const state = { ...baseState, timeElapsedInSeconds: 420, subIntervalMinutes: 10, lastSubConfirmationTimeSeconds: 300, nextSubDueTimeSeconds: 600, subAlertLevel: 'none' as const };
+    const next = gameSessionReducer(state, {
+      type: 'LOAD_STATE_FROM_HISTORY',
+      payload: { homeScore: 0, subIntervalMinutes: 10, lastSubConfirmationTimeSeconds: 300 },
+    });
+    expect(next.nextSubDueTimeSeconds).toBe(600);
+  });
+
   test('LOAD_STATE_FROM_HISTORY without sub fields leaves the sub reminder alone', () => {
     const state = { ...baseState, nextSubDueTimeSeconds: 905, subAlertLevel: 'warning' as const };
     const next = gameSessionReducer(state, { type: 'LOAD_STATE_FROM_HISTORY', payload: { homeScore: 1 } });

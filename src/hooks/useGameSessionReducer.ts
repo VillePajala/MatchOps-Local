@@ -201,7 +201,11 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       // confirmation restored lastSubConfirmationTimeSeconds but left the next-due time
       // of the mistaken confirmation, so a sub still owed showed no reminder. Recompute
       // both from the restored values, as loading a saved game does.
-      if (!('lastSubConfirmationTimeSeconds' in action.payload) && !('subIntervalMinutes' in action.payload)) {
+      // Only when the undo actually changes them: every entry carries these fields, and
+      // other paths (e.g. SET_SUB_INTERVAL's clock-aligned due time) compute the due
+      // time differently - undoing an unrelated goal must not move the reminder.
+      if (merged.lastSubConfirmationTimeSeconds === state.lastSubConfirmationTimeSeconds
+        && merged.subIntervalMinutes === state.subIntervalMinutes) {
         return merged;
       }
       const nextSubDueTimeSeconds = merged.lastSubConfirmationTimeSeconds + merged.subIntervalMinutes * 60;
