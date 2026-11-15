@@ -471,6 +471,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   const {
     assessments: playerAssessments,
+    loaded: assessmentsLoaded,
     saveAssessment,
     deleteAssessment,
   } = usePlayerAssessments(
@@ -1594,6 +1595,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     fieldCoordination,
     availablePlayers,
     playerAssessments,
+    assessmentsLoaded,
     isPlayed,
     initialLoadComplete,
     appliedGameId,
@@ -1801,16 +1803,28 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     const updated = await saveAssessment(playerId, data);
     if (updated) {
       setSavedGames(prev => ({ ...prev, [currentGameId]: updated }));
+      // Also the shared saved-games cache: autosave falls back to it for the stored
+      // ratings while they have not loaded (review 3.23), so it must not be stale.
+      queryClient.setQueryData<SavedGamesCollection>(
+        [...queryKeys.savedGames, userId],
+        (prev) => (prev ? { ...prev, [currentGameId]: updated } : prev),
+      );
     }
-  }, [currentGameId, saveAssessment]);
+  }, [currentGameId, saveAssessment, queryClient, userId]);
 
   const handleDeletePlayerAssessment = useCallback(async (playerId: string) => {
     if (!currentGameId) return;
     const updated = await deleteAssessment(playerId);
     if (updated) {
       setSavedGames(prev => ({ ...prev, [currentGameId]: updated }));
+      // Also the shared saved-games cache: autosave falls back to it for the stored
+      // ratings while they have not loaded (review 3.23), so it must not be stale.
+      queryClient.setQueryData<SavedGamesCollection>(
+        [...queryKeys.savedGames, userId],
+        (prev) => (prev ? { ...prev, [currentGameId]: updated } : prev),
+      );
     }
-  }, [currentGameId, deleteAssessment]);
+  }, [currentGameId, deleteAssessment, queryClient, userId]);
 
   // Roster Management handlers for RosterSettingsModal LIFTED to
   // useRosterSettingsController (L.2) - the modal renders in ClubModalsHost.

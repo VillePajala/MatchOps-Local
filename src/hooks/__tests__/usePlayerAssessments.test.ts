@@ -53,6 +53,62 @@ describe('usePlayerAssessments', () => {
     expect(mockedDelete).toHaveBeenCalled();
     expect(result.current.assessments.p1).toBeUndefined();
   });
+
+  /**
+   * Review 3.23: `loaded` tells autosave whether `assessments` is the stored set.
+   * @critical
+   */
+  describe('loaded', () => {
+    it('is false while loading, true once the stored set has loaded', async () => {
+      let resolve: (v: Record<string, typeof assessment>) => void = () => {};
+      mockedGet.mockReturnValue(new Promise((r) => { resolve = r; }));
+      const { result } = renderHook(() => usePlayerAssessments('g1'));
+      expect(result.current.loaded).toBe(false);
+      await act(async () => { resolve({ p1: assessment }); });
+      expect(result.current.loaded).toBe(true);
+    });
+
+    it('stays false when the load fails', async () => {
+      mockedGet.mockRejectedValue(new Error('IndexedDB read failed'));
+      const { result } = renderHook(() => usePlayerAssessments('g1'));
+      await act(async () => {});
+      expect(result.current.loaded).toBe(false);
+      expect(result.current.error).toBe('load');
+    });
+
+    it('becomes true after a successful save (the save returns the full stored set)', async () => {
+      mockedGet.mockRejectedValue(new Error('IndexedDB read failed'));
+      mockedSave.mockResolvedValue({ assessments: { p1: assessment, p2: assessment } } as unknown as AppState);
+      const { result } = renderHook(() => usePlayerAssessments('g1'));
+      await act(async () => {});
+      await act(async () => { await result.current.saveAssessment('p1', assessment); });
+      expect(result.current.loaded).toBe(true);
+      expect(Object.keys(result.current.assessments)).toEqual(['p1', 'p2']);
+    });
+
+    it('ignores a load for the previous game that finishes after a switch', async () => {
+      let resolveG1: (v: Record<string, typeof assessment>) => void = () => {};
+      mockedGet.mockReturnValueOnce(new Promise((r) => { resolveG1 = r; })).mockReturnValueOnce(new Promise(() => {}));
+      const { result, rerender } = renderHook(({ id }) => usePlayerAssessments(id), { initialProps: { id: 'g1' } });
+      rerender({ id: 'g2' });
+      await act(async () => { resolveG1({ p1: assessment }); });
+      expect(result.current.loaded).toBe(false);
+      expect(result.current.assessments).toEqual({});
+    });
+
+    it('resets when the game changes, including back to a game loaded before', async () => {
+      const pending = () => new Promise<never>(() => {});
+      mockedGet.mockResolvedValueOnce({ p1: assessment }).mockReturnValueOnce(pending()).mockReturnValueOnce(pending());
+      const { result, rerender } = renderHook(({ id }) => usePlayerAssessments(id), { initialProps: { id: 'g1' } });
+      await act(async () => {});
+      expect(result.current.loaded).toBe(true);
+      rerender({ id: 'g2' });
+      expect(result.current.loaded).toBe(false);
+      // Back to g1 while its ratings reload: the hook still holds g2's set.
+      rerender({ id: 'g1' });
+      expect(result.current.loaded).toBe(false);
+    });
+  });
 });
 
 describe('validateAssessment', () => {

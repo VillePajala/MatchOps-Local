@@ -324,6 +324,77 @@ describe('useGamePersistence', () => {
       );
     });
 
+    /**
+     * Review 3.23: while the assessments are not loaded (still loading, or the read
+     * failed) the hook holds an empty set - a full-overwrite autosave must keep the
+     * stored ratings, not wipe them.
+     * @critical
+     */
+    it('keeps the stored assessments when they have not been loaded', async () => {
+      const { saveGame } = jest.requireMock('@/utils/savedGames');
+      (saveGame as jest.Mock).mockClear();
+      const stored = { p1: { overall: 8, sliders: {}, createdAt: 1 } };
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { game123: { assessments: stored } as unknown as AppState },
+        playerAssessments: {},
+        assessmentsLoaded: false,
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+      await act(async () => { await result.current.handleQuickSaveGame(true); });
+      expect((saveGame as jest.Mock).mock.calls[0][1]).toEqual(expect.objectContaining({ assessments: stored }));
+    });
+
+    it('never writes the hook\'s (possibly previous game\'s) set while not loaded; a stored game without ratings stays without', async () => {
+      const { saveGame } = jest.requireMock('@/utils/savedGames');
+      (saveGame as jest.Mock).mockClear();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { game123: {} as unknown as AppState }, // legacy record: no assessments key
+        playerAssessments: { pX: { overall: 7, sliders: {}, createdAt: 1 } } as never, // another game's set
+        assessmentsLoaded: false,
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+      await act(async () => { await result.current.handleQuickSaveGame(true); });
+      expect((saveGame as jest.Mock).mock.calls[0][1]).toEqual(expect.objectContaining({ assessments: {} }));
+    });
+
+    it('skips the autosave when ratings are not loaded and there is no stored copy to keep', async () => {
+      const { saveGame } = jest.requireMock('@/utils/savedGames');
+      (saveGame as jest.Mock).mockClear();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: {},
+        playerAssessments: {},
+        assessmentsLoaded: false,
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      let saved = true;
+      try {
+        await act(async () => { saved = await result.current.handleQuickSaveGame(true); });
+      } finally {
+        warn.mockRestore();
+      }
+      expect(saved).toBe(false);
+      expect(saveGame).not.toHaveBeenCalled();
+    });
+
+    it('saves the hook\'s assessments once they are loaded', async () => {
+      const { saveGame } = jest.requireMock('@/utils/savedGames');
+      (saveGame as jest.Mock).mockClear();
+      const fresh = { p1: { overall: 9, sliders: {}, createdAt: 2 } };
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { game123: { assessments: { p1: { overall: 8, sliders: {}, createdAt: 1 } } } as unknown as AppState },
+        playerAssessments: fresh as never,
+        assessmentsLoaded: true,
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+      await act(async () => { await result.current.handleQuickSaveGame(true); });
+      expect((saveGame as jest.Mock).mock.calls[0][1]).toEqual(expect.objectContaining({ assessments: fresh }));
+    });
+
     it('keeps the saved-games cache fresh via setQueryData, not invalidateQueries (no per-save refetch)', async () => {
       const params = createMockParams();
       const invalidateSpy = jest.spyOn(params.queryClient, 'invalidateQueries');
