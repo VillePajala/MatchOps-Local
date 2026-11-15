@@ -1497,6 +1497,16 @@ export class LocalDataStore implements DataStore {
    * cloud rejected it (23503), so the edit never synced.
    */
   private async unlinkAdjustments(field: 'seasonId' | 'tournamentId', id: string): Promise<void> {
+    // The season/tournament is already deleted: a failure here must not make that
+    // delete look failed. The bulk push still repairs a dangling link later.
+    try {
+      await this.unlinkAdjustmentsLocked(field, id);
+    } catch (error) {
+      logger.warn('[LocalDataStore] Could not unlink external games from a deleted season/tournament', { field, error });
+    }
+  }
+
+  private async unlinkAdjustmentsLocked(field: 'seasonId' | 'tournamentId', id: string): Promise<void> {
     await withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
       const all = await this.loadPlayerAdjustments();
       let changed = false;
