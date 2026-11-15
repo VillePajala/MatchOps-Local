@@ -249,6 +249,55 @@ describe('SyncQueue', () => {
       expect(stats.total).toBe(0);
     });
 
+    /**
+     * Review 3.20: a create that was SENT may exist on the server even though its reply
+     * was lost - a later delete must still go out, not cancel with it.
+     * @critical
+     */
+    describe('CREATE + DELETE after the create was sent', () => {
+      const create = (data: Record<string, unknown> = { name: 'Sent' }) => ({
+        entityType: 'player' as const, entityId: 'player_sent', operation: 'create' as const, data, timestamp: Date.now(),
+      });
+      const del = () => ({ entityType: 'player' as const, entityId: 'player_sent', operation: 'delete' as const, data: null, timestamp: Date.now() + 1000 });
+      const opsFor = async () => (await queue.getAllOperations()).filter((o) => o.entityId === 'player_sent');
+
+      it('leaves a delete queued', async () => {
+        const id = await queue.enqueue(create());
+        await queue.markSyncing(id);
+        await queue.markFailed(id, 'TypeError: Failed to fetch'); // reply lost
+        await queue.enqueue(del());
+        const ops = await opsFor();
+        expect(ops.map((o) => o.operation)).toEqual(['delete']);
+      });
+
+      it('remembers the attempt through "Retry failed" (which clears the retry fields)', async () => {
+        const id = await queue.enqueue(create());
+        await queue.markSyncing(id);
+        for (let i = 0; i < 10; i++) {
+          const op = (await opsFor())[0];
+          if (op.status === 'failed') break;
+          await queue.markFailed(id, 'server rejected');
+        }
+        expect((await opsFor())[0].status).toBe('failed');
+        await queue.retryFailed();
+        const reset = (await opsFor())[0];
+        expect([reset.retryCount, reset.lastAttempt]).toEqual([0, undefined]);
+        await queue.enqueue(del());
+        expect((await opsFor()).map((o) => o.operation)).toEqual(['delete']);
+      });
+
+      it('remembers the attempt through a merge with a newer edit', async () => {
+        const id = await queue.enqueue(create());
+        await queue.markSyncing(id);
+        await queue.markFailed(id, 'TypeError: Failed to fetch');
+        await queue.enqueue({ ...create({ name: 'Edited' }), operation: 'update' }); // CREATE + UPDATE = CREATE
+        const merged = await opsFor();
+        expect(merged.map((o) => [o.operation, o.attempted])).toEqual([['create', true]]);
+        await queue.enqueue(del());
+        expect((await opsFor()).map((o) => o.operation)).toEqual(['delete']);
+      });
+    });
+
     it('should merge UPDATE + DELETE into DELETE', async () => {
       // First: update operation
       const id1 = await queue.enqueue({
