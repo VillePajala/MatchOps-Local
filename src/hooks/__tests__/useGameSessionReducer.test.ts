@@ -138,6 +138,48 @@ describe('gameSessionReducer', () => {
     });
   });
 
+  /**
+   * Review 4.4: undoing a sub confirmation must bring back the owed sub's reminder -
+   * the next-due time was left at the mistaken confirmation's value.
+   * @critical
+   */
+  test('LOAD_STATE_FROM_HISTORY recomputes the sub due time and alert from the restored values', () => {
+    // Sub due at 10:00; mis-tapped "sub made" at 10:05 -> next due 15:05, no alert.
+    const afterMistake: GameSessionState = {
+      ...baseState,
+      subIntervalMinutes: 5,
+      timeElapsedInSeconds: 610,
+      lastSubConfirmationTimeSeconds: 605,
+      nextSubDueTimeSeconds: 905,
+      subAlertLevel: 'none',
+    };
+    // Undo restores the entry from before the confirmation (last sub at 05:00).
+    const undone = gameSessionReducer(afterMistake, {
+      type: 'LOAD_STATE_FROM_HISTORY',
+      payload: { lastSubConfirmationTimeSeconds: 300, subIntervalMinutes: 5, completedIntervalDurations: [] },
+    });
+    expect(undone.nextSubDueTimeSeconds).toBe(600);
+    expect(undone.subAlertLevel).toBe('due');
+  });
+
+  test('LOAD_STATE_FROM_HISTORY with unchanged sub fields (an unrelated undo) leaves the reminder alone', () => {
+    // A clock-aligned due time (set when the interval changed) must not be re-derived.
+    // Last sub at 05:00; interval changed to 10 min at 07:00 -> due 10:00 (lastSub+interval would say 15:00).
+    const state = { ...baseState, timeElapsedInSeconds: 420, subIntervalMinutes: 10, lastSubConfirmationTimeSeconds: 300, nextSubDueTimeSeconds: 600, subAlertLevel: 'none' as const };
+    const next = gameSessionReducer(state, {
+      type: 'LOAD_STATE_FROM_HISTORY',
+      payload: { homeScore: 0, subIntervalMinutes: 10, lastSubConfirmationTimeSeconds: 300 },
+    });
+    expect(next.nextSubDueTimeSeconds).toBe(600);
+  });
+
+  test('LOAD_STATE_FROM_HISTORY without sub fields leaves the sub reminder alone', () => {
+    const state = { ...baseState, nextSubDueTimeSeconds: 905, subAlertLevel: 'warning' as const };
+    const next = gameSessionReducer(state, { type: 'LOAD_STATE_FROM_HISTORY', payload: { homeScore: 1 } });
+    expect(next.nextSubDueTimeSeconds).toBe(905);
+    expect(next.subAlertLevel).toBe('warning');
+  });
+
   test('LOAD_STATE_FROM_HISTORY restores complete session details', () => {
     const historySnapshot = {
       currentPeriod: 3 as const,

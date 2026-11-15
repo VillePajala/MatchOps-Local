@@ -195,7 +195,27 @@ function reconcilePeriodBreak(state: GameSessionState): GameSessionState {
 export const gameSessionReducer = (state: GameSessionState, action: GameSessionAction): GameSessionState => {
   logger.debug('[gameSessionReducer] action type:', action.type);
   switch (action.type) {
-    case 'LOAD_STATE_FROM_HISTORY':
+    case 'LOAD_STATE_FROM_HISTORY': {
+      const merged = { ...state, ...action.payload };
+      // The sub reminder is derived state, not in history (review 4.4): undoing a sub
+      // confirmation restored lastSubConfirmationTimeSeconds but left the next-due time
+      // of the mistaken confirmation, so a sub still owed showed no reminder. Recompute
+      // both from the restored values, as loading a saved game does.
+      // Only when the undo actually changes them: every entry carries these fields, and
+      // other paths (e.g. SET_SUB_INTERVAL's clock-aligned due time) compute the due
+      // time differently - undoing an unrelated goal must not move the reminder.
+      if (merged.lastSubConfirmationTimeSeconds === state.lastSubConfirmationTimeSeconds
+        && merged.subIntervalMinutes === state.subIntervalMinutes) {
+        return merged;
+      }
+      const nextSubDueTimeSeconds = merged.lastSubConfirmationTimeSeconds + merged.subIntervalMinutes * 60;
+      const warningTime = nextSubDueTimeSeconds - 60;
+      const elapsed = merged.timeElapsedInSeconds;
+      const subAlertLevel: SubAlertLevel = elapsed >= nextSubDueTimeSeconds
+        ? 'due'
+        : warningTime >= 0 && elapsed >= warningTime ? 'warning' : 'none';
+      return { ...merged, nextSubDueTimeSeconds, subAlertLevel };
+    }
     case 'LOAD_GAME_SESSION_STATE':
       return { ...state, ...action.payload };
     case 'RESET_TO_INITIAL_STATE':
