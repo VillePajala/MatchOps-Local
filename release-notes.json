@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Reopening the running match from Saved games no longer rewinds and pauses its clock; it continues like with the Continue card."
+      ],
+      "fi": [
+        "Käynnissä olevan ottelun avaaminen uudelleen Tallennetuista peleistä ei enää kelaa ja pysäytä sen kelloa; se jatkuu kuten Jatka-kortista."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Resetting the match clock while it is paused (or at a break) is now saved, so the old time no longer comes back after reopening the app."
       ],
       "fi": [

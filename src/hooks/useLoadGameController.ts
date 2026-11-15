@@ -29,7 +29,7 @@ import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
 } from '@/utils/appSettings';
 import { clearTimerState } from '@/utils/timerStateManager';
-import { clearTimerAnchor } from '@/utils/timerAnchor';
+import { clearTimerAnchor, readTimerAnchor } from '@/utils/timerAnchor';
 import { deleteGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { deletePlanLink } from '@/utils/playtimePlanner/planLinks';
 import { getMasterRoster } from '@/utils/masterRosterManager';
@@ -119,8 +119,14 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flush
         // timer state or a wall-clock anchor from the previous game must not
         // replay onto the newly opened one - but a failed persist must not
         // cost the STILL-CURRENT game its crash-recovery records.
-        await clearTimerState(userId);
-        clearTimerAnchor();
+        // ...except when the coach re-opens the match whose clock is running (review
+        // 4.11): its recovery anchor IS this game's live clock. Clearing it brought the
+        // match back at the last save's time, paused - 00:00 if nothing had been saved
+        // since kick-off - where the Continue card resumes it.
+        if (readTimerAnchor()?.gameId !== gameId) {
+          await clearTimerState(userId);
+          clearTimerAnchor();
+        }
         onEnterMatch();
       } catch (error) {
         logger.error('[useLoadGameController] Failed to open game:', error);
