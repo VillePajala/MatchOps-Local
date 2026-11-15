@@ -661,6 +661,38 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     );
   };
 
+  const commitPeriodDuration = () => {
+    const parsed = parseInt(periodDurationInput, 10);
+    // Empty/invalid reverts to the current value; otherwise clamp 1-999.
+    const finalDuration = isNaN(parsed)
+      ? periodDurationMinutes
+      : Math.min(999, Math.max(1, parsed));
+    setPeriodDurationInput(String(finalDuration));
+    if (finalDuration !== periodDurationMinutes) {
+      onPeriodDurationChange(finalDuration);
+      mutateGameDetails(
+        { periodDurationMinutes: finalDuration },
+        { source: 'stateSync', expectedState: { periodDurationMinutes: finalDuration } }
+      );
+    }
+  };
+
+  // Typed values are committed on blur - and also when the modal closes (review
+  // 4.17): pressing back (the usual way out on a phone, where the X is hidden) with
+  // the cursor still in the field closed the modal without a blur, so a new kick-off
+  // time or period length was never applied while the field still showed it.
+  const commitPendingRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    commitPendingRef.current = () => {
+      commitGameTime();
+      commitPeriodDuration();
+    };
+  });
+  useEffect(() => {
+    if (!isOpen) return;
+    return () => commitPendingRef.current();
+  }, [isOpen]);
+
   // Handle time changes — local state only; commit happens on blur.
   const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -2114,21 +2146,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     // intermediate values. Commit happens on blur.
                     setPeriodDurationInput(e.target.value.replace(/[^0-9]/g, ''));
                   }}
-                  onBlur={() => {
-                    const parsed = parseInt(periodDurationInput, 10);
-                    // Empty/invalid reverts to the current value; otherwise clamp 1-999.
-                    const finalDuration = isNaN(parsed)
-                      ? periodDurationMinutes
-                      : Math.min(999, Math.max(1, parsed));
-                    setPeriodDurationInput(String(finalDuration));
-                    if (finalDuration !== periodDurationMinutes) {
-                      onPeriodDurationChange(finalDuration);
-                      mutateGameDetails(
-                        { periodDurationMinutes: finalDuration },
-                        { source: 'stateSync', expectedState: { periodDurationMinutes: finalDuration } }
-                      );
-                    }
-                  }}
+                  onBlur={commitPeriodDuration}
                   className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   autoComplete="off"
                   autoCorrect="off"

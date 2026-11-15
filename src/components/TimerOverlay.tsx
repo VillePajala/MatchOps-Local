@@ -255,6 +255,16 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
     setIsEditingOpponentName(false);
   };
 
+  // An opponent name being edited is saved when the overlay closes too (review 4.17):
+  // back with the cursor in the field closed it without a blur and lost the name.
+  const saveOpponentOnCloseRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    saveOpponentOnCloseRef.current = () => {
+      if (isEditingOpponentName) handleSaveOpponentName();
+    };
+  });
+  useEffect(() => () => saveOpponentOnCloseRef.current(), []);
+
   const handleCancelEditOpponent = () => {
     setIsEditingOpponentName(false);
     setEditedOpponentName(displayAwayTeamName); // Reset to currently displayed name

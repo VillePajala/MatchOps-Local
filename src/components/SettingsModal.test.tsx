@@ -153,6 +153,32 @@ describe('<SettingsModal />', () => {
     expect(document.getElementById('assessment-template-select')).toBeInTheDocument();
   });
 
+  /**
+   * Review 4.17: a default team name typed and closed with back (no blur) is applied
+   * when the modal closes; an untouched name writes nothing.
+   * @critical
+   */
+  test('applies a typed default team name when the modal closes without leaving the field', async () => {
+    const onDefaultTeamNameChange = jest.fn();
+    const { rerender } = render(
+      <TestWrapper><SettingsModal {...defaultProps} onDefaultTeamNameChange={onDefaultTeamNameChange} /></TestWrapper>
+    );
+    await waitFor(() => expect(document.getElementById('team-name-input')).toBeInTheDocument());
+    fireEvent.change(document.getElementById('team-name-input') as HTMLInputElement, { target: { value: 'FC Typed' } });
+    rerender(<TestWrapper><SettingsModal {...defaultProps} isOpen={false} onDefaultTeamNameChange={onDefaultTeamNameChange} /></TestWrapper>);
+    expect(onDefaultTeamNameChange).toHaveBeenCalledWith('FC Typed');
+  });
+
+  test('closing with an untouched default team name changes nothing', async () => {
+    const onDefaultTeamNameChange = jest.fn();
+    const { rerender } = render(
+      <TestWrapper><SettingsModal {...defaultProps} onDefaultTeamNameChange={onDefaultTeamNameChange} /></TestWrapper>
+    );
+    await waitFor(() => expect(document.getElementById('team-name-input')).toBeInTheDocument());
+    rerender(<TestWrapper><SettingsModal {...defaultProps} isOpen={false} onDefaultTeamNameChange={onDefaultTeamNameChange} /></TestWrapper>);
+    expect(onDefaultTeamNameChange).not.toHaveBeenCalled();
+  });
+
   test('renders when open', () => {
     render(
       <TestWrapper>

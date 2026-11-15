@@ -130,6 +130,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const queryClient = useQueryClient();
   const { userId } = useDataStore();
   const [teamName, setTeamName] = useState(defaultTeamName);
+  // Committed on blur - and when the modal closes (review 4.17): back with the
+  // cursor still in the field closed it without a blur and the name was lost.
+  const pendingTeamNameRef = useRef({ teamName, defaultTeamName, onDefaultTeamNameChange });
+  useEffect(() => {
+    pendingTeamNameRef.current = { teamName, defaultTeamName, onDefaultTeamNameChange };
+  });
+  useEffect(() => {
+    if (!isOpen) return;
+    return () => {
+      const pending = pendingTeamNameRef.current;
+      if (pending.teamName !== pending.defaultTeamName) pending.onDefaultTeamNameChange(pending.teamName);
+    };
+  }, [isOpen]);
   const [resetConfirm, setResetConfirm] = useState('');
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
   const restoreFileInputRef = useRef<HTMLInputElement>(null);
