@@ -8,6 +8,7 @@ import { getShootoutTally, getShootoutWinner } from '@/utils/shootout';
 import { CollapsibleModalHeader, ModalStickyPrimary, useCollapsingHeader } from '@/styles/modalStyles';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 
 interface ShootoutModalProps {
   isOpen: boolean;
@@ -60,6 +61,10 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
   }, [isOpen]);
 
   useEscapeToClose(isOpen, onClose);
+  // Hardware back closes THIS overlay first (review 4.18). Unregistered, back went
+  // to whatever sat underneath (the timer overlay, or Match details together with
+  // the shootout), and a second back left the match. Registered last, so topmost.
+  useHardwareBackSubLevel(isOpen, onClose);
 
 
   if (!isOpen) return null;

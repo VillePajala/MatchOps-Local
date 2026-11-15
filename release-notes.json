@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Pressing back while recording a penalty shootout now closes the shootout window instead of the screen behind it, so a second back no longer takes you out of the match."
+      ],
+      "fi": [
+        "Takaisin-painike rangaistuspotkukilpailun kirjauksen aikana sulkee nyt kilpailuikkunan eikä sen takana olevaa näkymää, joten toinen painallus ei enää vie pois ottelusta."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "A kick-off time, period length, default team name or opponent name you typed is now saved even if you close the window with back before leaving the field."
       ],
       "fi": [
