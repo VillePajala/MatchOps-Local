@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "Undo no longer reverts a re-edited penalty shootout, edited positions played or an applied report draft together with the previous action."
+      ],
+      "fi": [
+        "Kumoaminen ei enää peru uudelleen muokattua rangaistuspotkukilpailua, muokattuja pelipaikkoja tai käyttöön otettua raporttiluonnosta edellisen toiminnon mukana."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Undo right after opening a saved game no longer removes the game's team, tournament level or penalty-shootout result."
       ],
       "fi": [

@@ -27,8 +27,10 @@ import {
 } from './useGameSessionReducer';
 import type { AppState } from '@/types';
 
+type ActionType = GameSessionAction['type'];
+
 // Actions that should trigger history saves (user-initiated changes)
-export const HISTORY_SAVING_ACTIONS = new Set([
+const HISTORY_SAVING_ACTION_TYPES = [
   // Team and game info
   'SET_TEAM_NAME',
   'SET_OPPONENT_NAME',
@@ -62,6 +64,12 @@ export const HISTORY_SAVING_ACTIONS = new Set([
   'SET_WENT_TO_OVERTIME',
   'SET_WENT_TO_PENALTIES',
   'SET_SHOW_POSITION_LABELS',
+  // Re-editing a recorded shootout, positions played (Game stats), and applying or
+  // reverting an AI report draft are coach edits too (review 4.2): without an entry,
+  // the next Undo reverted them along with the previous action.
+  'SET_SHOOTOUT_KICKS',
+  'SET_PLAYER_POSITIONS',
+  'APPLY_REPORT_DRAFT',
   // Players and personnel
   'SET_SELECTED_PLAYER_IDS',
   'SET_GAME_PERSONNEL',
@@ -77,10 +85,11 @@ export const HISTORY_SAVING_ACTIONS = new Set([
   'CONFIRM_SUBSTITUTION',
   // Timer (pause is user-initiated and should save timer state)
   'PAUSE_TIMER',
-]);
+] as const satisfies readonly ActionType[];
+export const HISTORY_SAVING_ACTIONS: ReadonlySet<string> = new Set<ActionType>(HISTORY_SAVING_ACTION_TYPES);
 
 // Actions that should NOT trigger history saves (state loads, system actions, timer)
-export const NO_HISTORY_ACTIONS = new Set([
+const NO_HISTORY_ACTION_TYPES = [
   // State restoration (undo/redo, load game)
   'LOAD_STATE_FROM_HISTORY',
   'LOAD_GAME_SESSION_STATE',
@@ -100,7 +109,19 @@ export const NO_HISTORY_ACTIONS = new Set([
   'RESET_TIMER_ONLY',
   // Game status (system-managed)
   'SET_GAME_STATUS',
-]);
+] as const satisfies readonly ActionType[];
+export const NO_HISTORY_ACTIONS: ReadonlySet<string> = new Set<ActionType>(NO_HISTORY_ACTION_TYPES);
+
+/**
+ * Compile-time guarantee that EVERY reducer action is categorised (review 4.2): an
+ * action added to GameSessionAction but to neither list fails the type check here,
+ * instead of silently skipping history in production (and crashing in dev).
+ */
+type UncategorizedActions = Exclude<
+  ActionType,
+  (typeof HISTORY_SAVING_ACTION_TYPES)[number] | (typeof NO_HISTORY_ACTION_TYPES)[number]
+>;
+export const ALL_ACTIONS_CATEGORIZED: [UncategorizedActions] extends [never] ? true : UncategorizedActions = true;
 
 export type GameSessionDispatch = (action: GameSessionAction) => void;
 
