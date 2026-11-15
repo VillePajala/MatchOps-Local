@@ -428,6 +428,11 @@ describe('reverseMigrationService', () => {
       expect(mockSupabaseDataStore.clearAllUserData).not.toHaveBeenCalled();
     });
 
+    it('keep-cloud mode loads games tolerantly (a broken cloud game does not block a switch that deletes nothing)', async () => {
+      await migrateCloudToLocal(mockOnProgress, 'keep-cloud');
+      expect(mockSupabaseDataStore.getGames).toHaveBeenCalledWith({ requireAll: false });
+    });
+
     it('does not delete the cloud when a cloud game is not on the device, even if the counts match', async () => {
       // The device holds a stale local-only game Y; the cloud has X that never arrived.
       (mockSupabaseDataStore as unknown as { getAllEntityIds: jest.Mock }).getAllEntityIds.mockResolvedValue({

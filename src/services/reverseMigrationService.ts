@@ -533,7 +533,9 @@ async function performReverseMigration(
     // Step 2: Download from cloud
     safeProgress({ stage: 'downloading', progress: REVERSE_PROGRESS_RANGES.DOWNLOADING.start, message: REVERSE_MIGRATION_MESSAGES.DOWNLOADING });
 
-    const cloudData = await downloadFromCloud(cloudStore, safeProgress);
+    // Strict only when the cloud will be deleted: keeping it, a game that cannot be
+    // loaded is not lost (review 3.17).
+    const cloudData = await downloadFromCloud(cloudStore, safeProgress, { requireAllGames: mode === 'delete-cloud' });
 
     // Step 3: Save to local
     safeProgress({ stage: 'saving', progress: REVERSE_PROGRESS_RANGES.SAVING.start, message: REVERSE_MIGRATION_MESSAGES.SAVING });
@@ -754,7 +756,8 @@ async function cloudItemsMissingLocally(cloudStore: SupabaseDataStore, localStor
 
 async function downloadFromCloud(
   cloudStore: SupabaseDataStore,
-  onProgress: ReverseMigrationProgressCallback
+  onProgress: ReverseMigrationProgressCallback,
+  options: { requireAllGames?: boolean } = {},
 ): Promise<CloudDataSnapshot> {
   const { start, end } = REVERSE_PROGRESS_RANGES.DOWNLOADING;
   const range = end - start;
@@ -812,9 +815,9 @@ async function downloadFromCloud(
   completeStep(REVERSE_MIGRATION_ENTITY_NAMES.PERSONNEL);
 
   reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.GAMES);
-  // Complete or nothing (review 3.17): this download may be followed by deleting the
-  // cloud copy, and a partial one used to pass verification against itself.
-  const games = await cloudStore.getGames({ requireAll: true });
+  // Complete or nothing when the cloud copy will be deleted (review 3.17): a partial
+  // download used to pass verification against itself.
+  const games = await cloudStore.getGames({ requireAll: options.requireAllGames === true });
   completeStep(REVERSE_MIGRATION_ENTITY_NAMES.GAMES);
 
   // Get all player adjustments in a single batch operation (avoids N+1 queries)
