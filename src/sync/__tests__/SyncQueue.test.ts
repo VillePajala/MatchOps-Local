@@ -286,6 +286,25 @@ describe('SyncQueue', () => {
         expect((await opsFor()).map((o) => o.operation)).toEqual(['delete']);
       });
 
+      it('an op from an older version (no attempt record) counts as possibly sent', async () => {
+        const id = await queue.enqueue(create());
+        // The stored shape the previous version left after "Retry failed".
+        const db = (queue as unknown as { db: IDBDatabase }).db;
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction('operations', 'readwrite');
+          const store = tx.objectStore('operations');
+          const get = store.get(id);
+          get.onsuccess = () => {
+            const legacy = { ...get.result, retryCount: 0, lastAttempt: undefined };
+            delete legacy.attempted;
+            store.put(legacy);
+          };
+          tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error);
+        });
+        await queue.enqueue(del());
+        expect((await opsFor()).map((o) => o.operation)).toEqual(['delete']);
+      });
+
       it('remembers the attempt through a merge with a newer edit', async () => {
         const id = await queue.enqueue(create());
         await queue.markSyncing(id);

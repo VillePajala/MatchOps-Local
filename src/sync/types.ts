@@ -78,10 +78,12 @@ export interface SyncOperation {
   retryCount: number;
 
   /**
-   * This entity's change was sent to the server at least once - set when the op is
-   * sent and kept through resets ("Retry failed" clears lastAttempt/retryCount) and
-   * through a merge with a newer edit, which starts a fresh op (review 3.20). A create that was sent may exist on the server even though its
-   * reply was lost, so a later delete must still be sent, not cancelled with it.
+   * Whether this entity's change may have been sent (review 3.20): set when the op is
+   * sent, kept through resets ("Retry failed" clears lastAttempt/retryCount) and
+   * through a merge with a newer edit, which starts a fresh op. A create that was sent
+   * may exist on the server even though its reply was lost, so a later delete must
+   * still be sent, not cancelled with it. false = queued by this version and not sent
+   * yet; undefined = an op from an older version (treated as possibly sent).
    */
   attempted?: boolean;
 

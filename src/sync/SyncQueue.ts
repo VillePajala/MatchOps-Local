@@ -554,7 +554,7 @@ export class SyncQueue {
       retryCount: 0,
       maxRetries: this.maxRetries,
       createdAt: existingOp?.createdAt ?? now,
-      ...(attempted ? { attempted: true } : {}),
+      attempted,
     };
 
     // If replacing, delete the old one first
@@ -577,18 +577,14 @@ export class SyncQueue {
   }
 
   /**
-   * Determine the merged operation type when combining existing + new operations.
-   *
-   * Merge rules:
-   * - CREATE + UPDATE → CREATE (with new data) - entity doesn't exist on server yet
-   * - CREATE + DELETE → null (remove both - entity never existed on server)
-   * - UPDATE + UPDATE → UPDATE (with new data)
-   * - UPDATE + DELETE → DELETE
-   * - DELETE + any → new operation (rare edge case, just use new)
+   * Whether a queued op may have been sent. Ops queued by this version record it
+   * (`attempted`: false at enqueue, true once sent). An op from an older version has
+   * no record - and "Retry failed" there erased every other trace of an attempt - so
+   * it counts as possibly sent: at worst one extra, harmless delete.
    */
-  /** Whether a queued op was ever sent (older ops: inferred from their retry fields). */
   private static wasAttempted(op: SyncOperation): boolean {
-    return Boolean(op.attempted || op.lastAttempt || op.retryCount > 0 || (op.networkFailures ?? 0) > 0);
+    return op.attempted !== false
+      || Boolean(op.lastAttempt || op.retryCount > 0 || (op.networkFailures ?? 0) > 0);
   }
 
   /**
@@ -603,6 +599,17 @@ export class SyncQueue {
     return merged;
   }
 
+  /**
+   * Determine the merged operation type when combining existing + new operations.
+   *
+   * Merge rules:
+   * - CREATE + UPDATE → CREATE (with new data) - entity doesn't exist on server yet
+   * - CREATE + DELETE → null (remove both - entity never existed on server); see
+   *   mergeWithExisting, which keeps a DELETE when the create may have been sent
+   * - UPDATE + UPDATE → UPDATE (with new data)
+   * - UPDATE + DELETE → DELETE
+   * - DELETE + any → new operation (rare edge case, just use new)
+   */
   private getMergedOperation(
     existingOp: SyncOperationType,
     newOp: SyncOperationType
