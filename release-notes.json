@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "The note that a match report came from an AI draft is no longer lost when you reopen and edit the match."
+      ],
+      "fi": [
+        "Tieto siitä, että ottelun raportti on peräisin tekoälyluonnoksesta, ei enää katoa, kun avaat ja muokkaat ottelua uudelleen."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "The travel time and arrival buffer you set for a match are no longer erased when the match is saved, and a paused match stays in progress so the app opens straight into it."
       ],
       "fi": [
