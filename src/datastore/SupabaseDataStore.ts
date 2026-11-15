@@ -3574,7 +3574,13 @@ export class SupabaseDataStore implements DataStore {
     };
   }
 
-  async getGames(): Promise<SavedGamesCollection> {
+  /**
+   * All the account's games. By default games that cannot be loaded (after retries)
+   * are left out so the app can still open the rest. `requireAll` (review 3.17): throw
+   * instead - a caller that is about to DELETE the cloud copy must never act on a
+   * partial download.
+   */
+  async getGames(options: { requireAll?: boolean } = {}): Promise<SavedGamesCollection> {
     this.ensureInitialized();
     checkOnline();
 
@@ -3662,6 +3668,11 @@ export class SupabaseDataStore implements DataStore {
         });
       } catch {
         // Sentry failure is acceptable - returning valid games is critical
+      }
+
+      // A caller that must not act on a partial set (review 3.17) - reported above.
+      if (options.requireAll) {
+        throw new NetworkError(`Not all games could be downloaded (${allFailedIds.length} of ${totalCount} failed)`);
       }
 
       // CRITICAL: Return valid games instead of throwing

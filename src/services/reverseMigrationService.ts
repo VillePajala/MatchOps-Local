@@ -533,7 +533,9 @@ async function performReverseMigration(
     // Step 2: Download from cloud
     safeProgress({ stage: 'downloading', progress: REVERSE_PROGRESS_RANGES.DOWNLOADING.start, message: REVERSE_MIGRATION_MESSAGES.DOWNLOADING });
 
-    const cloudData = await downloadFromCloud(cloudStore, safeProgress);
+    // Strict only when the cloud will be deleted: keeping it, a game that cannot be
+    // loaded is not lost (review 3.17).
+    const cloudData = await downloadFromCloud(cloudStore, safeProgress, { requireAllGames: mode === 'delete-cloud' });
 
     // Step 3: Save to local
     safeProgress({ stage: 'saving', progress: REVERSE_PROGRESS_RANGES.SAVING.start, message: REVERSE_MIGRATION_MESSAGES.SAVING });
@@ -625,6 +627,23 @@ async function performReverseMigration(
       safeProgress({ stage: 'deleting', progress: REVERSE_PROGRESS_RANGES.DELETING.start, message: REVERSE_MIGRATION_MESSAGES.DELETING });
 
       try {
+        // Last guard before an irreversible delete (review 3.17): EVERY item the cloud
+        // holds must now be on this device, compared by id (getAllEntityIds is complete
+        // or throws). A count could match while a cloud item is missing, e.g. when the
+        // device already held local-only items.
+        // Types without id lists (team rosters, playtime plans/links/subs, warmup plan,
+        // settings) are covered by their save results: ANY item that failed to save
+        // locally means the cloud may hold its only copy.
+        if (saveFailures.length > 0) {
+          throw new Error(`${saveFailures.length} items could not be saved on this device`);
+        }
+        // Only cloud ⊆ device is required: items that exist only on the device are fine.
+        const missing = await cloudItemsMissingLocally(cloudStore, localStore);
+        if (missing.length > 0) {
+          // Ids to the log only - the reason is shown to the user.
+          logger.warn('[ReverseMigrationService] Cloud items missing locally - cloud kept', { missing: missing.slice(0, 20) });
+          throw new Error(`${missing.length} cloud items are not on this device`);
+        }
         await cloudStore.clearAllUserData();
         cloudDeleted = true;
         clearCloudAccountInfo();
@@ -709,9 +728,38 @@ async function performReverseMigration(
 // HELPER: DOWNLOAD FROM CLOUD
 // =============================================================================
 
+/** Cloud items (by type:id) that are not in the local store - review 3.17. */
+async function cloudItemsMissingLocally(cloudStore: SupabaseDataStore, localStore: LocalDataStore): Promise<string[]> {
+  const cloud = await cloudStore.getAllEntityIds();
+  const [players, teams, seasons, tournaments, personnel, games, adjustments] = await Promise.all([
+    localStore.getPlayers(),
+    localStore.getTeams(true),
+    localStore.getSeasons(true),
+    localStore.getTournaments(true),
+    localStore.getAllPersonnel(),
+    localStore.getGames(),
+    localStore.getAllPlayerAdjustments(),
+  ]);
+  const local: Record<keyof typeof cloud, Set<string>> = {
+    players: new Set(players.map((x) => x.id)),
+    teams: new Set(teams.map((x) => x.id)),
+    seasons: new Set(seasons.map((x) => x.id)),
+    tournaments: new Set(tournaments.map((x) => x.id)),
+    personnel: new Set(personnel.map((x) => x.id)),
+    games: new Set(Object.keys(games)),
+    playerAdjustments: new Set([...adjustments.values()].flat().map((x) => x.id)),
+  };
+  const missing: string[] = [];
+  for (const type of Object.keys(cloud) as Array<keyof typeof cloud>) {
+    for (const id of cloud[type]) if (!local[type].has(id)) missing.push(`${type}:${id}`);
+  }
+  return missing;
+}
+
 async function downloadFromCloud(
   cloudStore: SupabaseDataStore,
-  onProgress: ReverseMigrationProgressCallback
+  onProgress: ReverseMigrationProgressCallback,
+  options: { requireAllGames?: boolean } = {},
 ): Promise<CloudDataSnapshot> {
   const { start, end } = REVERSE_PROGRESS_RANGES.DOWNLOADING;
   const range = end - start;
@@ -769,7 +817,9 @@ async function downloadFromCloud(
   completeStep(REVERSE_MIGRATION_ENTITY_NAMES.PERSONNEL);
 
   reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.GAMES);
-  const games = await cloudStore.getGames();
+  // Complete or nothing when the cloud copy will be deleted (review 3.17): a partial
+  // download used to pass verification against itself.
+  const games = await cloudStore.getGames({ requireAll: options.requireAllGames === true });
   completeStep(REVERSE_MIGRATION_ENTITY_NAMES.GAMES);
 
   // Get all player adjustments in a single batch operation (avoids N+1 queries)

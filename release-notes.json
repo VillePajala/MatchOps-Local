@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "Switching to local mode and deleting your cloud data is safer: if any game can't be downloaded, nothing is changed, and the cloud copy is deleted only after checking that every game is on this device."
+      ],
+      "fi": [
+        "Paikalliseen tilaan vaihtaminen pilvitietojen poistolla on turvallisempaa: jos jotain ottelua ei saada ladattua, mitään ei muuteta, ja pilvikopio poistetaan vasta kun on varmistettu, että jokainen ottelu on tällä laitteella."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Restoring a backup with cloud sync on is safer: if the cloud can't be reached, nothing is changed and you're told so, and items that can't be uploaded right away are sent automatically later instead of being left only on this device."
       ],
       "fi": [

@@ -1222,7 +1222,7 @@ function emptyCloudVersions(): CloudVersions {
 /** The ids already in the cloud, with their last-updated times. Throws if unreadable:
  *  without it the upload cannot tell what it would overwrite, so it must not run. */
 async function loadCloudVersions(cloudStore: SupabaseDataStore): Promise<CloudVersions> {
-  const [players, seasons, tournaments, teams, personnel, games, adjustments] = await Promise.all([
+  const [players, seasons, tournaments, teams, personnel, games, adjustments, cloudIds] = await Promise.all([
     cloudStore.getPlayers(),
     cloudStore.getSeasons(true),
     cloudStore.getTournaments(true),
@@ -1230,6 +1230,8 @@ async function loadCloudVersions(cloudStore: SupabaseDataStore): Promise<CloudVe
     cloudStore.getAllPersonnel(),
     cloudStore.getGames(),
     cloudStore.getAllPlayerAdjustments(),
+    // Complete or throws: also lists games that failed to load (review 3.17).
+    cloudStore.getAllEntityIds(),
   ]);
   const byId = <T extends { id: string; updatedAt?: string }>(list: T[]) =>
     new Map(list.map((x) => [x.id, x.updatedAt] as [string, string | undefined]));
@@ -1239,7 +1241,13 @@ async function loadCloudVersions(cloudStore: SupabaseDataStore): Promise<CloudVe
     tournaments: byId(tournaments),
     teams: byId(teams),
     personnel: byId(personnel),
-    games: new Map(Object.entries(games).map(([id, g]) => [id, g.updatedAt] as [string, string | undefined])),
+    // A game the cloud has but that failed to load is still in the cloud: listed with
+    // an unknown time, so the cloud copy is kept (never overwritten by this device's
+    // possibly older one) - review 3.17.
+    games: new Map([
+      ...[...cloudIds.games].map((id) => [id, undefined] as [string, string | undefined]),
+      ...Object.entries(games).map(([id, g]) => [id, g.updatedAt] as [string, string | undefined]),
+    ]),
     adjustments: byId([...adjustments.values()].flat()),
   };
 }

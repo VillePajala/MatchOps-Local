@@ -217,6 +217,7 @@ function createMockCloudStore() {
     getGames: jest.fn().mockResolvedValueOnce({}).mockResolvedValue({ 'game-1': mockGame }),
     getAllPersonnel: jest.fn().mockResolvedValueOnce([]).mockResolvedValue([mockPersonnel]),
     getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
+    getAllEntityIds: jest.fn().mockResolvedValue({ players: new Set(), teams: new Set(), seasons: new Set(), tournaments: new Set(), personnel: new Set(), games: new Set(), playerAdjustments: new Set() }),
     // Replace mode methods
     clearAllUserData: jest.fn().mockResolvedValue(undefined),
     // Cleanup
@@ -450,6 +451,27 @@ describe('migrationService', () => {
       expect((cloud.saveGame.mock.calls[0][1] as AppState).teamId).toBe('team-1');
       expect(cloud.upsertTeam).not.toHaveBeenCalled();
       expect(cloud.setTeamRoster).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Review 3.17: a cloud game that failed to load is still in the cloud - this
+     * device's (possibly older) copy must not overwrite it.
+     * @critical
+     */
+    it('never overwrites a cloud game that failed to load', async () => {
+      const local = createMockLocalStore();
+      local.getGames.mockResolvedValue({ 'game-1': { ...mockGame, updatedAt: '2026-05-01T00:00:00Z' } });
+      const cloud = createMockCloudStore();
+      cloud.getGames.mockReset().mockResolvedValue({}); // game-1 failed to load
+      cloud.getAllEntityIds.mockResolvedValue({
+        players: new Set(), teams: new Set(), seasons: new Set(), tournaments: new Set(),
+        personnel: new Set(), games: new Set(['game-1']), playerAdjustments: new Set(),
+      });
+      mockSupabaseClient.from.mockImplementation(() => ({
+        select: jest.fn().mockResolvedValue({ count: 1, error: null }),
+      }));
+      await migrateLocalToCloud(() => {});
+      expect(cloud.saveGame.mock.calls.map((c: unknown[]) => c[0])).not.toContain('game-1');
     });
   });
 

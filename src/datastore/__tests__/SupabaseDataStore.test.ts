@@ -3032,6 +3032,21 @@ describe('SupabaseDataStore', () => {
         warnSpy.mockRestore();
       });
 
+      /** Review 3.17: a caller about to delete the cloud copy must get all or nothing. @critical */
+      it('requireAll: throws instead of returning a partial set; default still returns what loaded', async () => {
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({ data: [{ id: 'game_lost' }], error: null });
+        const batch = jest.spyOn(dataStore as unknown as { fetchGameBatch: (ids: string[]) => Promise<unknown> }, 'fetchGameBatch')
+          .mockImplementation(async (ids: string[]) => ids.map((id) => ({ id, tables: null })));
+        try {
+          await expect(dataStore.getGames({ requireAll: true })).rejects.toThrow(/Not all games could be downloaded/);
+          await expect(dataStore.getGames()).resolves.toEqual({});
+        } finally {
+          batch.mockRestore();
+          warnSpy.mockRestore();
+        }
+      });
+
       it('should return valid games when some game transforms fail (partial data safety)', async () => {
         // Logger is mocked at module level, so we check the mocked logger.error
         // Also suppress console.warn for any retry exhaustion warnings
