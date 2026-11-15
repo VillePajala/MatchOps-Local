@@ -450,6 +450,19 @@ describe('migrationService', () => {
       expect((cloud.saveGame.mock.calls[0][1] as AppState).teamId).toBe('team-1');
       expect(cloud.upsertTeam).not.toHaveBeenCalled();
       expect(cloud.setTeamRoster).not.toHaveBeenCalled();
+      // Review 3.17: the cloud's games are read all-or-nothing - one left out of a
+      // partial load could not be protected from this device's older copy.
+      expect(cloud.getGames.mock.calls[0]).toEqual([{ requireAll: true }]);
+    });
+
+    it('a partial cloud game list stops the merge before anything is uploaded (review 3.17)', async () => {
+      const local = createMockLocalStore();
+      local.getGames.mockResolvedValue({ 'game-1': { ...mockGame, updatedAt: '2026-05-01T00:00:00Z' } });
+      const cloud = createMockCloudStore();
+      cloud.getGames.mockReset().mockRejectedValue(new Error('Not all games could be downloaded (1 of 2 failed)'));
+      const result = await migrateLocalToCloud(() => {});
+      expect(result.success).toBe(false);
+      expect(cloud.saveGame).not.toHaveBeenCalled();
     });
   });
 

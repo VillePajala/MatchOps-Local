@@ -217,6 +217,12 @@ describe('reverseMigrationService', () => {
       getSettings: jest.fn().mockResolvedValue(null),
       getCachedGameVersion: jest.fn().mockReturnValue(undefined),
       clearAllUserData: jest.fn().mockResolvedValue(undefined),
+      // The cloud's complete id lists (matches the single game/player/... above).
+      getAllEntityIds: jest.fn().mockResolvedValue({
+        players: new Set([mockPlayer.id]), teams: new Set([mockTeam.id]), seasons: new Set([mockSeason.id]),
+        tournaments: new Set([mockTournament.id]), personnel: new Set([mockPersonnel.id]),
+        games: new Set(['game-1']), playerAdjustments: new Set(),
+      }),
       close: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<SupabaseDataStore>;
 
@@ -229,6 +235,7 @@ describe('reverseMigrationService', () => {
       getTournaments: jest.fn().mockResolvedValue([mockTournament]),
       getAllPersonnel: jest.fn().mockResolvedValue([mockPersonnel]),
       getGames: jest.fn().mockResolvedValue({ 'game-1': mockGame }),
+      getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
       upsertPlayer: jest.fn().mockResolvedValue(mockPlayer),
       upsertTeam: jest.fn().mockResolvedValue(mockTeam),
       upsertSeason: jest.fn().mockResolvedValue(mockSeason),
@@ -404,6 +411,42 @@ describe('reverseMigrationService', () => {
       expect(mockUpdateCloudAccountInfo).toHaveBeenCalledWith(
         expect.objectContaining({ hasCloudData: true })
       );
+    });
+
+    /**
+     * Review 3.17: a partial game download must stop the switch with nothing changed;
+     * it used to pass verification against itself and the cloud was then deleted.
+     * @critical
+     */
+    it('a partial game download stops the switch: nothing saved, no mode switch, cloud kept', async () => {
+      mockSupabaseDataStore.getGames.mockRejectedValue(new Error('Not all games could be downloaded (2 of 30 failed)'));
+      const result = await migrateCloudToLocal(mockOnProgress, 'delete-cloud');
+      expect(result.success).toBe(false);
+      expect(mockSupabaseDataStore.getGames).toHaveBeenCalledWith({ requireAll: true });
+      expect(mockLocalDataStore.saveGame).not.toHaveBeenCalled();
+      expect(mockDisableCloudMode).not.toHaveBeenCalled();
+      expect(mockSupabaseDataStore.clearAllUserData).not.toHaveBeenCalled();
+    });
+
+    it('does not delete the cloud when a cloud game is not on the device, even if the counts match', async () => {
+      // The device holds a stale local-only game Y; the cloud has X that never arrived.
+      (mockSupabaseDataStore as unknown as { getAllEntityIds: jest.Mock }).getAllEntityIds.mockResolvedValue({
+        players: new Set([mockPlayer.id]), teams: new Set([mockTeam.id]), seasons: new Set([mockSeason.id]),
+        tournaments: new Set([mockTournament.id]), personnel: new Set([mockPersonnel.id]),
+        games: new Set(['game-X']), playerAdjustments: new Set(),
+      });
+      mockLocalDataStore.getGames.mockResolvedValue({ 'game-1': mockGame, 'game-Y': mockGame });
+      const result = await migrateCloudToLocal(mockOnProgress, 'delete-cloud');
+      expect(result.cloudDeleted).toBe(false);
+      expect(mockSupabaseDataStore.clearAllUserData).not.toHaveBeenCalled();
+      expect(result.warnings.join(' ')).toMatch(/still exists in the cloud/);
+    });
+
+    it('does not delete the cloud when the cloud id lists cannot be read completely', async () => {
+      (mockSupabaseDataStore as unknown as { getAllEntityIds: jest.Mock }).getAllEntityIds.mockRejectedValue(new Error('Failed to fetch'));
+      const result = await migrateCloudToLocal(mockOnProgress, 'delete-cloud');
+      expect(result.cloudDeleted).toBe(false);
+      expect(mockSupabaseDataStore.clearAllUserData).not.toHaveBeenCalled();
     });
 
     /**

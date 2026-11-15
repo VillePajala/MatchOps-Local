@@ -625,6 +625,14 @@ async function performReverseMigration(
       safeProgress({ stage: 'deleting', progress: REVERSE_PROGRESS_RANGES.DELETING.start, message: REVERSE_MIGRATION_MESSAGES.DELETING });
 
       try {
+        // Last guard before an irreversible delete (review 3.17): EVERY item the cloud
+        // holds must now be on this device, compared by id (getAllEntityIds is complete
+        // or throws). A count could match while a cloud item is missing, e.g. when the
+        // device already held local-only items.
+        const missing = await cloudItemsMissingLocally(cloudStore, localStore);
+        if (missing.length > 0) {
+          throw new Error(`${missing.length} cloud items are not on this device (${missing.slice(0, 3).join(', ')})`);
+        }
         await cloudStore.clearAllUserData();
         cloudDeleted = true;
         clearCloudAccountInfo();
@@ -709,6 +717,34 @@ async function performReverseMigration(
 // HELPER: DOWNLOAD FROM CLOUD
 // =============================================================================
 
+/** Cloud items (by type:id) that are not in the local store - review 3.17. */
+async function cloudItemsMissingLocally(cloudStore: SupabaseDataStore, localStore: LocalDataStore): Promise<string[]> {
+  const cloud = await cloudStore.getAllEntityIds();
+  const [players, teams, seasons, tournaments, personnel, games, adjustments] = await Promise.all([
+    localStore.getPlayers(),
+    localStore.getTeams(true),
+    localStore.getSeasons(true),
+    localStore.getTournaments(true),
+    localStore.getAllPersonnel(),
+    localStore.getGames(),
+    localStore.getAllPlayerAdjustments(),
+  ]);
+  const local: Record<keyof typeof cloud, Set<string>> = {
+    players: new Set(players.map((x) => x.id)),
+    teams: new Set(teams.map((x) => x.id)),
+    seasons: new Set(seasons.map((x) => x.id)),
+    tournaments: new Set(tournaments.map((x) => x.id)),
+    personnel: new Set(personnel.map((x) => x.id)),
+    games: new Set(Object.keys(games)),
+    playerAdjustments: new Set([...adjustments.values()].flat().map((x) => x.id)),
+  };
+  const missing: string[] = [];
+  for (const type of Object.keys(cloud) as Array<keyof typeof cloud>) {
+    for (const id of cloud[type]) if (!local[type].has(id)) missing.push(`${type}:${id}`);
+  }
+  return missing;
+}
+
 async function downloadFromCloud(
   cloudStore: SupabaseDataStore,
   onProgress: ReverseMigrationProgressCallback
@@ -769,7 +805,9 @@ async function downloadFromCloud(
   completeStep(REVERSE_MIGRATION_ENTITY_NAMES.PERSONNEL);
 
   reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.GAMES);
-  const games = await cloudStore.getGames();
+  // Complete or nothing (review 3.17): this download may be followed by deleting the
+  // cloud copy, and a partial one used to pass verification against itself.
+  const games = await cloudStore.getGames({ requireAll: true });
   completeStep(REVERSE_MIGRATION_ENTITY_NAMES.GAMES);
 
   // Get all player adjustments in a single batch operation (avoids N+1 queries)

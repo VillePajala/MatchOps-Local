@@ -1228,7 +1228,9 @@ async function loadCloudVersions(cloudStore: SupabaseDataStore): Promise<CloudVe
     cloudStore.getTournaments(true),
     cloudStore.getTeams(true),
     cloudStore.getAllPersonnel(),
-    cloudStore.getGames(),
+    // All or nothing (review 3.17): a game left out of a partial load could not be
+    // protected, and this device's older copy would overwrite the newer cloud one.
+    cloudStore.getGames({ requireAll: true }),
     cloudStore.getAllPlayerAdjustments(),
   ]);
   const byId = <T extends { id: string; updatedAt?: string }>(list: T[]) =>
