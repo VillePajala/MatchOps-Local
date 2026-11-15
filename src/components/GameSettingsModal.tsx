@@ -634,6 +634,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // state until they're done editing — no padding round-trip mid-typing,
   // and clearing one field never wipes the other.
   const commitGameTime = () => {
+    editedSinceCommitRef.current.gameTime = false;
     const hasHour = gameHour !== '';
     const hasMinute = gameMinute !== '';
 
@@ -662,6 +663,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   };
 
   const commitPeriodDuration = () => {
+    editedSinceCommitRef.current.periodDuration = false;
     const parsed = parseInt(periodDurationInput, 10);
     // Empty/invalid reverts to the current value; otherwise clamp 1-999.
     const finalDuration = isNaN(parsed)
@@ -681,11 +683,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // 4.17): pressing back (the usual way out on a phone, where the X is hidden) with
   // the cursor still in the field closed the modal without a blur, so a new kick-off
   // time or period length was never applied while the field still showed it.
+  // Only fields the coach actually typed in since the last commit: a commit on a
+  // synthetic close (React Strict Mode's mount replay in development) could otherwise
+  // run before the stored kick-off time reached the local fields and write '' over it.
+  const editedSinceCommitRef = useRef({ gameTime: false, periodDuration: false });
   const commitPendingRef = useRef<() => void>(() => {});
   useEffect(() => {
     commitPendingRef.current = () => {
-      commitGameTime();
-      commitPeriodDuration();
+      const edited = editedSinceCommitRef.current;
+      if (edited.gameTime) commitGameTime();
+      if (edited.periodDuration) commitPeriodDuration();
     };
   });
   useEffect(() => {
@@ -695,6 +702,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
   // Handle time changes — local state only; commit happens on blur.
   const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    editedSinceCommitRef.current.gameTime = true;
     const value = e.target.value;
     const numericValue = value.replace(/[^0-9]/g, '');
     if (numericValue.length <= 2) {
@@ -706,6 +714,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   };
 
   const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    editedSinceCommitRef.current.gameTime = true;
     const value = e.target.value;
     const numericValue = value.replace(/[^0-9]/g, '');
     if (numericValue.length <= 2) {
@@ -2144,6 +2153,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   onChange={(e) => {
                     // Local-only while typing: keep digits, never persist
                     // intermediate values. Commit happens on blur.
+                    editedSinceCommitRef.current.periodDuration = true;
                     setPeriodDurationInput(e.target.value.replace(/[^0-9]/g, ''));
                   }}
                   onBlur={commitPeriodDuration}

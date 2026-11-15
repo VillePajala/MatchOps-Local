@@ -247,6 +247,19 @@ describe('<GameSettingsModal />', () => {
     expect(mockOnPeriodDurationChange).toHaveBeenCalledWith(30);
   });
 
+  test('a close before the stored kick-off time reached the fields never writes it away', () => {
+    const mutate = defaultProps.updateGameDetailsMutation.mutate as jest.Mock;
+    mutate.mockClear();
+    // Strict Mode replays mount effects (a synthetic close) as in development.
+    const { rerender } = render(
+      <React.StrictMode><ToastProvider><GameSettingsModal {...defaultProps} gameTime="18:30" /></ToastProvider></React.StrictMode>
+    );
+    rerender(
+      <React.StrictMode><ToastProvider><GameSettingsModal {...defaultProps} gameTime="18:30" isOpen={false} /></ToastProvider></React.StrictMode>
+    );
+    expect(mutate).not.toHaveBeenCalledWith(expect.objectContaining({ updates: { gameTime: '' } }), expect.anything());
+  });
+
   test('closing an untouched modal changes nothing', () => {
     const { rerender } = renderModal();
     rerender(
