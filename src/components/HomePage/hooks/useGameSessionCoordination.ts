@@ -507,9 +507,7 @@ export function useGameSessionCoordination({
     // Single dispatch restores all session fields at once, avoiding 8 intermediate
     // reducer passes. LOAD_STATE_FROM_HISTORY is in NO_HISTORY_ACTIONS so no
     // history save is triggered.
-    dispatchGameSession({
-      type: 'LOAD_STATE_FROM_HISTORY',
-      payload: {
+    const payload: Partial<GameSessionState> = {
         teamName: state.teamName,
         opponentName: state.opponentName,
         gameDate: state.gameDate,
@@ -548,8 +546,15 @@ export function useGameSessionCoordination({
         wentToPenalties: state.wentToPenalties,
         shootoutKicks: state.shootoutKicks,
         tournamentSeriesId: state.tournamentSeriesId,
-      }
-    });
+    };
+    // Only the fields this history entry actually has (review 4.1). An entry that lacks
+    // one - e.g. the load baseline of an older build - must leave the live value as it
+    // is: spreading `undefined` over it wiped the team, shootout, tournament level and
+    // the clock, and the autosave then persisted that.
+    const present = Object.fromEntries(
+      Object.entries(payload).filter(([key]) => key in state),
+    ) as Partial<GameSessionState>;
+    dispatchGameSession({ type: 'LOAD_STATE_FROM_HISTORY', payload: present });
   }, [dispatchGameSession]);
 
   return {

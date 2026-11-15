@@ -656,6 +656,51 @@ describe('useGameSessionCoordination', () => {
     });
 
     /**
+     * Review 4.1: an undo entry that lacks a field (the load baseline did) must leave
+     * the live value alone - spreading undefined wiped the team, the shootout result,
+     * the tournament level and the clock, and the autosave persisted that.
+     * @critical
+     */
+    it('leaves fields the history entry does not have untouched', () => {
+      const live = createAppState({
+        teamId: 'team_1',
+        tournamentLevel: 'A',
+        tournamentSeriesId: 'series_1',
+        wentToPenalties: true,
+        shootoutKicks: [{ team: 'home', scored: true }] as never,
+        timeElapsedInSeconds: 1234,
+        homeScore: 2,
+      } as Partial<AppState>);
+      const { result } = renderHook(() => useGameSessionCoordination({ initialState: createAppState() }));
+      act(() => { result.current.applyHistoryState(live); }); // the live game, fully set
+
+      const partialEntry = { ...createAppState({ homeScore: 1 }) } as Record<string, unknown>;
+      for (const key of ['teamId', 'tournamentLevel', 'tournamentSeriesId', 'wentToPenalties', 'shootoutKicks', 'timeElapsedInSeconds']) {
+        delete partialEntry[key];
+      }
+      act(() => {
+        result.current.applyHistoryState(partialEntry as unknown as AppState);
+      });
+
+      const state = result.current.gameSessionState;
+      expect(state.homeScore).toBe(1); // what the entry has is restored
+      expect(state.teamId).toBe('team_1');
+      expect(state.tournamentLevel).toBe('A');
+      expect(state.tournamentSeriesId).toBe('series_1');
+      expect(state.wentToPenalties).toBe(true);
+      expect(state.shootoutKicks).toHaveLength(1);
+      expect(state.timeElapsedInSeconds).toBe(1234);
+    });
+
+    it('still clears a field the history entry has as undefined (undo of "set team")', () => {
+      const { result } = renderHook(() => useGameSessionCoordination({ initialState: createAppState() }));
+      act(() => { result.current.applyHistoryState(createAppState({ teamId: 'team_1' } as Partial<AppState>)); });
+      expect(result.current.gameSessionState.teamId).toBe('team_1');
+      act(() => { result.current.applyHistoryState(createAppState({ teamId: undefined } as Partial<AppState>)); });
+      expect(result.current.gameSessionState.teamId).toBeUndefined();
+    });
+
+    /**
      * Tests applying legacy history state without optional timer fields
      * @critical
      * @edge-case
