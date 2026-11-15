@@ -85,6 +85,12 @@ export interface UseGamePersistenceParams {
   fieldCoordination: UseFieldCoordinationReturn;
   availablePlayers: Player[];
   playerAssessments: Record<string, PlayerAssessment>;
+  /**
+   * Whether `playerAssessments` is this game's loaded stored set (review 3.23).
+   * Until then (loading, or the load failed) the snapshot keeps the stored ones.
+   * Defaults to true for callers that pass a known set.
+   */
+  assessmentsLoaded?: boolean;
   isPlayed: boolean;
   initialLoadComplete: boolean;
   /**
@@ -168,6 +174,7 @@ export function useGamePersistence({
   fieldCoordination,
   availablePlayers,
   playerAssessments,
+  assessmentsLoaded = true,
   isPlayed,
   initialLoadComplete,
   appliedGameId,
@@ -247,7 +254,15 @@ export function useGamePersistence({
       // the live session, so a full-overwrite autosave would drop the armband
       // the coach had just recorded.
       captainId: savedGames[currentGameId ?? '']?.captainId,
-      assessments: playerAssessments,
+      // Only once loaded (review 3.23): before that - still loading, or the read
+      // failed - the hook holds an empty set, and a full-overwrite autosave would
+      // wipe every stored rating (and sync that to the cloud). Keep the stored ones.
+      // Never the hook's set then: after a game switch it can still hold the PREVIOUS
+      // game's ratings. A stored game without the key has none. (No stored record at
+      // all: handleQuickSaveGame skips the silent save.)
+      assessments: assessmentsLoaded
+        ? playerAssessments
+        : (savedGames[currentGameId ?? '']?.assessments ?? {}),
 
       // From fieldCoordination
       playersOnField: fieldCoordination.playersOnField,
@@ -267,6 +282,7 @@ export function useGamePersistence({
     savedGames,
     currentGameId,
     playerAssessments,
+    assessmentsLoaded,
     fieldCoordination.playersOnField,
     fieldCoordination.opponents,
     fieldCoordination.drawings,
@@ -323,6 +339,12 @@ export function useGamePersistence({
       } catch {
         // best effort
       }
+      return false;
+    }
+    // Ratings not loaded and no stored record to keep them from (review 3.23): an
+    // autosave could only guess - skip it rather than overwrite stored ratings.
+    if (silent && !assessmentsLoaded && currentGameId && !savedGames[currentGameId]) {
+      logger.warn('[handleQuickSaveGame] Skipping auto-save: player ratings not loaded and no stored copy to keep');
       return false;
     }
     // Create snapshot first (needed for both validation and save)
@@ -511,6 +533,7 @@ export function useGamePersistence({
       }
     }
   }, [
+    assessmentsLoaded,
     currentGameId,
     setCurrentGameId,
     gameSessionState.teamId,

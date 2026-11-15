@@ -25,37 +25,57 @@ export function usePlayerAssessments(gameId: string, intervals?: IntervalLog[]) 
   const [assessments, setAssessments] = useState<{[id: string]: PlayerAssessment}>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The game whose stored assessments were actually loaded (review 3.23). Until it
+  // matches gameId - still loading, or the load failed - `assessments` is not the
+  // stored set, and autosave must not write it (it would wipe the stored ratings).
+  const [loadedForGameId, setLoadedForGameId] = useState<string | null>(null);
 
   React.useLayoutEffect(() => {
     if (!gameId) return;
+    let current = true;
     setLoading(true);
+    setError(null);
+    setLoadedForGameId(null);
     getPlayerAssessments(gameId)
-      .then(data => setAssessments(data || {}))
+      .then(data => {
+        if (!current) return;
+        setAssessments(data || {});
+        setLoadedForGameId(gameId);
+      })
       .catch(err => {
         logger.error('Failed to load assessments', err);
-        setError('load');
+        if (current) setError('load');
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (current) setLoading(false); });
+    return () => { current = false; };
   }, [gameId]);
+  const loaded = loadedForGameId === gameId && gameId !== '';
 
   const saveAssessment = useCallback(async (playerId: string, data: PlayerAssessment) => {
     if (!validateAssessment(data)) throw new Error('invalid');
     const minutesPlayed = minutesFromIntervals(intervals);
     const full: PlayerAssessment = { ...data, minutesPlayed };
     const updated = await savePlayerAssessment(gameId, playerId, full);
-    if (updated) setAssessments(updated.assessments || {});
+    if (updated) {
+      // The stored game's full set: from here on the hook holds the stored ratings.
+      setAssessments(updated.assessments || {});
+      setLoadedForGameId(gameId);
+    }
     return updated;
   }, [gameId, intervals]);
 
   const deleteAssessment = useCallback(async (playerId: string) => {
     const updated = await deletePlayerAssessment(gameId, playerId);
-    if (updated) setAssessments(updated.assessments || {});
+    if (updated) {
+      setAssessments(updated.assessments || {});
+      setLoadedForGameId(gameId);
+    }
     return updated;
   }, [gameId]);
 
   return useMemo(() => ({
-    assessments, loading, error, saveAssessment, deleteAssessment,
-  }), [assessments, loading, error, saveAssessment, deleteAssessment]);
+    assessments, loading, error, loaded, saveAssessment, deleteAssessment,
+  }), [assessments, loading, error, loaded, saveAssessment, deleteAssessment]);
 }
 
 export default usePlayerAssessments;
