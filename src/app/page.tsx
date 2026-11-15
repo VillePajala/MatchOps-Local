@@ -1679,19 +1679,33 @@ export default function Home() {
   }, [screen, refreshSetupSignals]);
 
   const handleOpenGameById = useCallback(async (id: string) => {
+    // The match view boots whatever id is persisted. If persisting THIS id fails
+    // (review 4.19; saveCurrentGameIdSetting reports it as `false`), entering would
+    // open the previously-loaded game and anything recorded would land in it - stay
+    // on Home and say so, as Load Game does.
+    let persisted = false;
     try {
-      await utilSaveCurrentGameIdSetting(id, userId);
-      // Invalidate the cached current-game-id so the fresh match mount boots
-      // the game we just persisted - without this the remount reads the STALE
-      // cached id and every recent card opens the previously-loaded game.
+      persisted = await utilSaveCurrentGameIdSetting(id, userId);
+    } catch (err) {
+      logger.warn('Failed to persist current game id before opening', { error: err });
+    }
+    if (!persisted) {
+      showToast(t('loadGameModal.errors.loadFailed', 'Error loading game state. Please try again.'), 'error');
+      return;
+    }
+    // Invalidate the cached current-game-id so the fresh match mount boots
+    // the game we just persisted - without this the remount reads the STALE
+    // cached id and every recent card opens the previously-loaded game. A failed
+    // invalidation is non-fatal: the persisted id is correct.
+    try {
       await queryClient.invalidateQueries({
         queryKey: [...queryKeys.appSettingsCurrentGameId, userId],
       });
     } catch (err) {
-      logger.warn('Failed to persist current game id before opening', { error: err });
+      logger.warn('Failed to refresh current game id before opening', { error: err });
     }
     enterMatch();
-  }, [userId, queryClient, enterMatch]);
+  }, [userId, queryClient, enterMatch, showToast, t]);
   // A live match whose game was just deleted must remount (its boot falls
   // back to the persisted next-latest game); on the start screen this is a
   // no-op - deleting from Home must not navigate.

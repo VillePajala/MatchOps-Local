@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "If opening a match fails to save on the device, the app now says so and stays put instead of opening the previous match."
+      ],
+      "fi": [
+        "Jos ottelun avaaminen ei tallennu laitteelle, sovellus kertoo siitä ja pysyy paikallaan sen sijaan, että avaisi edellisen ottelun."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Pressing back while recording a penalty shootout now closes the shootout window instead of the screen behind it, so a second back no longer takes you out of the match."
       ],
       "fi": [
