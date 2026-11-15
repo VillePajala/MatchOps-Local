@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "Undoing a venue change now also restores the venue's pitch, map pin and address, not just its name."
+      ],
+      "fi": [
+        "Pelipaikan vaihdon kumoaminen palauttaa nyt myös kentän, karttanastan ja osoitteen, ei vain nimeä."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Undoing a mistaken \"substitution made\" now brings back the reminder for the substitution that is still due."
       ],
       "fi": [
