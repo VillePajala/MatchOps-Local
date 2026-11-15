@@ -409,6 +409,42 @@ describe('useGamePersistence', () => {
         return (saveGame as jest.Mock).mock.calls[0][1] as AppState;
       };
 
+      /**
+       * Review 4.9: "Not played yet" on a game that already has clock time sticks; the
+       * auto-promotion happens only when the evidence first appears.
+       * @critical
+       */
+      it("keeps the coach's 'not played' on a game that already had clock time", async () => {
+        const saved = await save(createMockParams({
+          currentGameId: 'game123',
+          isPlayed: false,
+          savedGames: { game123: { timeElapsedInSeconds: 600, isPlayed: false } as unknown as AppState },
+          gameSessionState: createMockGameSessionState({ timeElapsedInSeconds: 600 }),
+        }));
+        expect(saved.isPlayed).toBe(false);
+      });
+
+      it('promotes a note-only write-up once the match day has passed', async () => {
+        const notes = [{ id: 'n1', type: 'note', time: 0 }];
+        const saved = await save(createMockParams({
+          currentGameId: 'game123',
+          isPlayed: false,
+          savedGames: { game123: { gameDate: '2020-01-01', gameEvents: notes, timeElapsedInSeconds: 0, isPlayed: false } as unknown as AppState },
+          gameSessionState: createMockGameSessionState({ gameDate: '2020-01-01', gameEvents: notes as never, timeElapsedInSeconds: 0 }),
+        }));
+        expect(saved.isPlayed).toBe(true);
+      });
+
+      it('promotes a booked fixture to played once its clock first runs', async () => {
+        const saved = await save(createMockParams({
+          currentGameId: 'game123',
+          isPlayed: false,
+          savedGames: { game123: { timeElapsedInSeconds: 0, isPlayed: false } as unknown as AppState },
+          gameSessionState: createMockGameSessionState({ timeElapsedInSeconds: 30 }),
+        }));
+        expect(saved.isPlayed).toBe(true);
+      });
+
       it('keeps the arrival buffer and drive time', async () => {
         const saved = await save(createMockParams({
           currentGameId: 'game123',

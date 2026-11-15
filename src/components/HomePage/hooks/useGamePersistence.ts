@@ -245,7 +245,17 @@ export function useGamePersistence({
       // whistle is how a played match goes missing from the season record,
       // which is the mirror image of the bug that had every booked fixture
       // counting as a 0-0 draw. One-way: this never marks a match unplayed.
-      isPlayed: isPlayed || hasBeenPlayed(persistedGameSessionState, todayIso()),
+      // Only when the evidence FIRST appears (review 4.9): if the stored game already had
+      // clock time or events and is not played, the coach chose "Not played yet" (a
+      // test run, the wrong fixture) - promoting it again on every save silently put it
+      // back in the record while the switch still said "not played".
+      // The stored side is checked for HARD evidence only (clock time or real events -
+      // no `today`, so notes do not count): note-only evidence appears when the match
+      // day passes, and the stored copy would show it too, blocking that promotion.
+      isPlayed: isPlayed || (
+        hasBeenPlayed(persistedGameSessionState, todayIso())
+        && !hasBeenPlayed(savedGames[currentGameId ?? ''] ?? {})
+      ),
       // isFriendly is game metadata, not part of the live session reducer, so a
       // full-overwrite autosave would otherwise silently drop it. Preserve it
       // from the persisted record - it is only ever set at creation or via the
