@@ -26,7 +26,7 @@ jest.mock('@/utils/savedGames', () => ({
 }));
 jest.mock('@/utils/appSettings', () => ({
   getCurrentGameIdSetting: jest.fn(),
-  saveCurrentGameIdSetting: jest.fn().mockResolvedValue(undefined),
+  saveCurrentGameIdSetting: jest.fn().mockResolvedValue(true), // real contract: boolean
 }));
 jest.mock('@/utils/timerStateManager', () => ({
   clearTimerState: jest.fn().mockResolvedValue(undefined),
@@ -203,6 +203,21 @@ describe('useLoadGameController (L.3a level crossing)', () => {
 
   it('load failure surfaces a toast and does not enter the match', async () => {
     (saveCurrentGameIdSetting as jest.Mock).mockRejectedValueOnce(new Error('io'));
+    const { result } = await renderController();
+    await act(async () => {
+      await result.current.handleLoadGame('g2');
+    });
+    expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error');
+    expect(onEnterMatch).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Review 4.19: the real save reports failure as `false` (it never throws). Opening
+   * must not enter the match then - the view would boot the previous game.
+   * @critical
+   */
+  it('a persist that reports false does not enter the match', async () => {
+    (saveCurrentGameIdSetting as jest.Mock).mockResolvedValueOnce(false);
     const { result } = await renderController();
     await act(async () => {
       await result.current.handleLoadGame('g2');

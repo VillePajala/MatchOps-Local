@@ -111,7 +111,12 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flush
         // Land any last-moment edits of the still-mounted match under the
         // OLD game before we repoint the current id (best-effort).
         await flushLiveMatch?.().catch(() => undefined);
-        await utilSaveCurrentGameIdSetting(gameId, userId);
+        // saveCurrentGameIdSetting reports failure as `false`, never by throwing
+        // (review 4.19): unchecked, the match view remounted on the OLD persisted id
+        // and the coach landed in the previous game.
+        if (!(await utilSaveCurrentGameIdSetting(gameId, userId))) {
+          throw new Error('Failed to persist current game id');
+        }
         await queryClient.invalidateQueries({
           queryKey: [...queryKeys.appSettingsCurrentGameId, userId],
         });
