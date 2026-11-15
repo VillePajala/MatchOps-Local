@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Editing a goal that was logged while the clock was paused no longer shows a long decimal time or refuses to save."
+      ],
+      "fi": [
+        "Kellon ollessa pysäytettynä kirjatun maalin muokkaus ei enää näytä pitkää desimaaliaikaa eikä estä tallennusta."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Switching a match between Home and Away after a penalty shootout no longer flips the shootout result."
       ],
       "fi": [
