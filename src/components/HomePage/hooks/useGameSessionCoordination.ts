@@ -289,6 +289,12 @@ export function useGameSessionCoordination({
       ageGroup: state.ageGroup,
       tournamentLevel: state.tournamentLevel,
       gameLocation: state.gameLocation,
+      // The venue's pitch, pin and address travel with its name (review 4.5): undoing a
+      // venue change reverted only the name, leaving the new venue's pin and address.
+      fieldNumber: state.fieldNumber,
+      locationLat: state.locationLat,
+      locationLng: state.locationLng,
+      locationAddress: state.locationAddress,
       gameTime: state.gameTime,
       gameEvents: state.gameEvents,
       demandFactor: state.demandFactor,
@@ -532,6 +538,10 @@ export function useGameSessionCoordination({
         ageGroup: state.ageGroup,
         tournamentLevel: state.tournamentLevel,
         gameLocation: state.gameLocation,
+        fieldNumber: state.fieldNumber,
+        locationLat: state.locationLat,
+        locationLng: state.locationLng,
+        locationAddress: state.locationAddress,
         gameTime: state.gameTime,
         gameEvents: state.gameEvents,
         gamePersonnel: state.gamePersonnel ?? [],

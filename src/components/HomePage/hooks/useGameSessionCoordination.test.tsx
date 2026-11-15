@@ -715,6 +715,30 @@ describe('useGameSessionCoordination', () => {
       expect(result.current.gameSessionState.timeElapsedInSeconds).toBe(1300);
     });
 
+    /** Review 4.5: undoing a venue change restores its pitch, pin and address too. @critical */
+    it('undo restores the venue name together with its pitch, pin and address', () => {
+      const venue = (name: string, lat: number) => createAppState({
+        gameLocation: name, fieldNumber: `${name}-1`, locationLat: lat, locationLng: lat + 1, locationAddress: `${name} street`,
+      } as Partial<AppState>);
+      const { result } = renderHook(() => useGameSessionCoordination({ initialState: createAppState() }));
+      act(() => { result.current.applyHistoryState(venue('New', 61)); });
+      act(() => { result.current.applyHistoryState(venue('Old', 60)); }); // undo to the old venue
+      expect(result.current.gameSessionState).toMatchObject({
+        gameLocation: 'Old', fieldNumber: 'Old-1', locationLat: 60, locationLng: 61, locationAddress: 'Old street',
+      });
+    });
+
+    it('a venue change records its pitch, pin and address in the history entry', () => {
+      const { result } = renderHook(() => useGameSessionCoordination({ initialState: createAppState() }));
+      act(() => {
+        result.current.dispatchGameSession({ type: 'SET_LOCATION_COORDS', payload: { lat: 60.2, lng: 24.9, address: 'Pitch road 1' } });
+      });
+      act(() => { result.current.dispatchGameSession({ type: 'SET_FIELD_NUMBER', payload: '3' }); });
+      expect(result.current.historyState).toMatchObject({
+        locationLat: 60.2, locationLng: 24.9, locationAddress: 'Pitch road 1', fieldNumber: '3',
+      });
+    });
+
     it('still clears a field the history entry has as undefined (undo of "set team")', () => {
       const { result } = renderHook(() => useGameSessionCoordination({ initialState: createAppState() }));
       act(() => { result.current.applyHistoryState(createAppState({ teamId: 'team_1' } as Partial<AppState>)); });
