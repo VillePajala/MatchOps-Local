@@ -74,7 +74,12 @@ const ALL_ACTION_TYPES = new Set([
   'LOAD_PERSISTED_GAME_DATA',
   'RESUME_GAME',
   'CONTINUE_CLOCK',
+  'SET_SHOOTOUT_KICKS',
+  'SET_PLAYER_POSITIONS',
+  'APPLY_REPORT_DRAFT',
 ]);
+// (The compiler also enforces this now: ALL_ACTIONS_CATEGORIZED in
+// useGameSessionWithHistory.ts fails the type check for an uncategorised action.)
 
 describe('useGameSessionWithHistory action type validation', () => {
   it('all action types are categorized', () => {
@@ -101,6 +106,15 @@ describe('useGameSessionWithHistory action type validation', () => {
     }
 
     expect(nonExistent).toEqual([]);
+  });
+
+  /**
+   * Review 4.2: these coach edits were in neither set, so no history entry was pushed
+   * and the next Undo reverted them along with the previous action.
+   * @critical
+   */
+  it.each(['SET_SHOOTOUT_KICKS', 'SET_PLAYER_POSITIONS', 'APPLY_REPORT_DRAFT'])('%s saves a history entry', (action) => {
+    expect(HISTORY_SAVING_ACTIONS.has(action)).toBe(true);
   });
 
   it('documents expected categorization counts', () => {
