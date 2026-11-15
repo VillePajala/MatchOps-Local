@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "A kick-off time, period length, default team name or opponent name you typed is now saved even if you close the window with back before leaving the field."
+      ],
+      "fi": [
+        "Kirjoittamasi aloitusaika, jakson pituus, oletusjoukkueen nimi tai vastustajan nimi tallentuu nyt, vaikka sulkisit ikkunan takaisin-painikkeella ennen kentästä poistumista."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "A player rating or note changed just before closing the ratings window is no longer lost."
       ],
       "fi": [

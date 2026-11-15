@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within, waitFor, act } from '@testing-library/react';
+import { render, screen, within, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import GameSettingsModal from './GameSettingsModal';
@@ -227,6 +227,47 @@ describe('<GameSettingsModal />', () => {
     const closeButton = screen.getByRole('button', { name: t('common.doneButton', 'Done') });
     await user.click(closeButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Review 4.17: a period length typed and closed with back (no blur) is applied when
+   * the modal closes; an untouched field writes nothing.
+   * @critical
+   */
+  test('applies a typed period length when the modal closes without leaving the field', () => {
+    const { rerender } = renderModal();
+    const input = document.getElementById('periodDurationInput') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '30' } });
+    expect(mockOnPeriodDurationChange).not.toHaveBeenCalled(); // not on every keystroke
+    rerender(
+      <ToastProvider>
+        <GameSettingsModal {...defaultProps} isOpen={false} />
+      </ToastProvider>
+    );
+    expect(mockOnPeriodDurationChange).toHaveBeenCalledWith(30);
+  });
+
+  test('a close before the stored kick-off time reached the fields never writes it away', () => {
+    const mutate = defaultProps.updateGameDetailsMutation.mutate as jest.Mock;
+    mutate.mockClear();
+    // Strict Mode replays mount effects (a synthetic close) as in development.
+    const { rerender } = render(
+      <React.StrictMode><ToastProvider><GameSettingsModal {...defaultProps} gameTime="18:30" /></ToastProvider></React.StrictMode>
+    );
+    rerender(
+      <React.StrictMode><ToastProvider><GameSettingsModal {...defaultProps} gameTime="18:30" isOpen={false} /></ToastProvider></React.StrictMode>
+    );
+    expect(mutate).not.toHaveBeenCalledWith(expect.objectContaining({ updates: { gameTime: '' } }), expect.anything());
+  });
+
+  test('closing an untouched modal changes nothing', () => {
+    const { rerender } = renderModal();
+    rerender(
+      <ToastProvider>
+        <GameSettingsModal {...defaultProps} isOpen={false} />
+      </ToastProvider>
+    );
+    expect(mockOnPeriodDurationChange).not.toHaveBeenCalled();
   });
 
   // The #734 wiring guard that used to sit here moved with the formation
