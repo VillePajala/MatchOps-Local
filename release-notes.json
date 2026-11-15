@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "Undo no longer winds the match clock back: undoing something while the clock is paused keeps the current match time."
+      ],
+      "fi": [
+        "Kumoaminen ei enää siirrä otteluaikaa taaksepäin: kun kumoat jotain kellon ollessa pysäytettynä, nykyinen otteluaika säilyy."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Undo no longer reverts a re-edited penalty shootout, edited positions played or an applied report draft together with the previous action."
       ],
       "fi": [
