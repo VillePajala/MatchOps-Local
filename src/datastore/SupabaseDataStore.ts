@@ -4590,22 +4590,25 @@ export class SupabaseDataStore implements DataStore {
       tournament_id: normalizedTournamentId,
       external_team_name: normalizedExternalTeamName,
       opponent_name: normalizedOpponentName,
-      score_for: adjustment.scoreFor,
-      score_against: adjustment.scoreAgainst,
+      // Explicit nulls (review 3.18): an undefined key is dropped from the request, so
+      // PostgREST leaves the column as it was - a cleared score or note stayed in the
+      // cloud and came back on the next pull.
+      score_for: adjustment.scoreFor ?? null,
+      score_against: adjustment.scoreAgainst ?? null,
       game_date: normalizedGameDate,
       home_or_away: normalizeAdjustmentHomeOrAway(adjustment.homeOrAway),
       include_in_season_tournament: adjustment.includeInSeasonTournament ?? false,
       games_played_delta: adjustment.gamesPlayedDelta,
       goals_delta: adjustment.goalsDelta,
       assists_delta: adjustment.assistsDelta,
-      fair_play_cards_delta: adjustment.fairPlayCardsDelta,
+      fair_play_cards_delta: adjustment.fairPlayCardsDelta ?? null,
       // 053: an empty list is "not recorded", stored as NULL like every other absent field.
       positions: knownPositionIds(adjustment.positions) ?? null,
       game_type: asAdjustmentGameType(adjustment.gameType) ?? null,
       gender: asAdjustmentGender(adjustment.gender) ?? null,
       age_group: asAdjustmentAgeGroup(adjustment.ageGroup) ?? null,
-      note: adjustment.note,
-      created_by: adjustment.createdBy,
+      note: adjustment.note ?? null,
+      created_by: adjustment.createdBy ?? null,
       applied_at: adjustment.appliedAt,
     };
   }

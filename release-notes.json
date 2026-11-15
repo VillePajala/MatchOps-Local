@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "Clearing the score or note of an external game now also clears it in the cloud, so the old values no longer come back after a restart or on your other devices."
+      ],
+      "fi": [
+        "Ulkopuolisen ottelun tuloksen tai muistiinpanon tyhjentäminen tyhjentää sen nyt myös pilvessä, joten vanhat arvot eivät enää palaa uudelleenkäynnistyksen jälkeen tai muilla laitteillasi."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Switching to local mode and deleting your cloud data is safer: if any game can't be downloaded, nothing is changed, and the cloud copy is deleted only after checking that every game is on this device."
       ],
       "fi": [

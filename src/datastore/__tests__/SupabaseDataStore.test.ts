@@ -5277,6 +5277,34 @@ describe('SupabaseDataStore', () => {
         expect(normalised?.ageGroup).toBe('U12');
       });
 
+      /**
+       * Review 3.18: a cleared score/note must be sent as NULL. An undefined key is
+       * dropped from the request and the cloud kept the old value, which the next pull
+       * brought back.
+       * @critical
+       */
+      it('sends cleared optional fields as explicit NULLs, and reads NULLs back as not set', async () => {
+        mockQueryBuilder.upsert = jest.fn().mockResolvedValue({ error: null });
+        await dataStore.upsertPlayerAdjustment({
+          id: 'adj_ext', playerId: 'player_123', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0,
+          appliedAt: '2024-01-01T00:00:00.000Z',
+          scoreFor: undefined, scoreAgainst: undefined, fairPlayCardsDelta: undefined, note: undefined, createdBy: undefined,
+        });
+        const sent = (mockQueryBuilder.upsert as jest.Mock).mock.calls[0][0] as Record<string, unknown>;
+        // Survives JSON serialisation (what reaches PostgREST): undefined keys would vanish.
+        const body = JSON.parse(JSON.stringify(sent)) as Record<string, unknown>;
+        for (const key of ['score_for', 'score_against', 'fair_play_cards_delta', 'note', 'created_by']) {
+          expect(body).toHaveProperty(key, null);
+        }
+
+        mockQueryBuilder.eq = jest.fn().mockReturnValue({ order: jest.fn().mockResolvedValue({ data: [{ ...body, games_played_delta: 1, goals_delta: 0, assists_delta: 0 }], error: null }) });
+        const [read] = await dataStore.getPlayerAdjustments('player_123');
+        expect(read).toMatchObject({ id: 'adj_ext' });
+        for (const key of ['scoreFor', 'scoreAgainst', 'fairPlayCardsDelta', 'note', 'createdBy'] as const) {
+          expect(read?.[key]).toBeUndefined();
+        }
+      });
+
       it('writes NULL for a sport or gender the CHECK constraint would reject (053)', async () => {
         mockQueryBuilder.insert = jest.fn().mockResolvedValue({ error: null });
         await dataStore.addPlayerAdjustment({ playerId: 'player_123', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, gameType: 'hockey' as never, gender: 'mixed' as never });
