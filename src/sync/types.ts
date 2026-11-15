@@ -77,6 +77,16 @@ export interface SyncOperation {
   /** Number of sync attempts made */
   retryCount: number;
 
+  /**
+   * Whether this entity's change may have been sent (review 3.20): set when the op is
+   * sent, kept through resets ("Retry failed" clears lastAttempt/retryCount) and
+   * through a merge with a newer edit, which starts a fresh op. A create that was sent
+   * may exist on the server even though its reply was lost, so a later delete must
+   * still be sent, not cancelled with it. false = queued by this version and not sent
+   * yet; undefined = an op from an older version (treated as possibly sent).
+   */
+  attempted?: boolean;
+
   /** Maximum retry attempts before giving up */
   maxRetries: number;
 

@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "Deleting something right after creating it, while the connection is unreliable, no longer lets it come back from the cloud later."
+      ],
+      "fi": [
+        "Juuri luodun asian poistaminen epävakaan yhteyden aikana ei enää anna sen palata pilvestä myöhemmin."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Deleting a season or tournament now also unlinks the external games that belonged to it on this device, so editing those games afterwards saves to the cloud again."
       ],
       "fi": [

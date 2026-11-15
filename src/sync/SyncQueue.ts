@@ -452,7 +452,7 @@ export class SyncQueue {
           // replace the in-flight op any more, so it must be retryable again.
           // Same transaction: atomic with the write.
           const cancelled = existingOp !== null
-            && this.getMergedOperation((existingOp as SyncOperation).operation, input.operation) === null;
+            && this.mergeWithExisting(existingOp as SyncOperation, input.operation) === null;
           for (const op of inFlight) {
             if (Boolean(op.superseded) !== !cancelled) store.put({ ...op, superseded: !cancelled });
           }
@@ -525,8 +525,9 @@ export class SyncQueue {
 
     // Determine merged operation type if replacing
     let finalOperation = input.operation;
+    const attempted = existingOp ? SyncQueue.wasAttempted(existingOp) : false;
     if (existingOp) {
-      const merged = this.getMergedOperation(existingOp.operation, input.operation);
+      const merged = this.mergeWithExisting(existingOp, input.operation);
 
       if (merged === null) {
         // CREATE + DELETE = remove existing, don't add new
@@ -553,6 +554,7 @@ export class SyncQueue {
       retryCount: 0,
       maxRetries: this.maxRetries,
       createdAt: existingOp?.createdAt ?? now,
+      attempted,
     };
 
     // If replacing, delete the old one first
@@ -575,11 +577,35 @@ export class SyncQueue {
   }
 
   /**
+   * Whether a queued op may have been sent. Ops queued by this version record it
+   * (`attempted`: false at enqueue, true once sent). An op from an older version has
+   * no record - and "Retry failed" there erased every other trace of an attempt - so
+   * it counts as possibly sent: at worst one extra, harmless delete.
+   */
+  private static wasAttempted(op: SyncOperation): boolean {
+    return op.attempted !== false
+      || Boolean(op.lastAttempt || op.retryCount > 0 || (op.networkFailures ?? 0) > 0);
+  }
+
+  /**
+   * Merge rule for a new change on top of a queued one. CREATE + DELETE cancels both
+   * only if the create was never sent: one that was may exist on the server (its reply
+   * lost), so the delete must go out - it is harmless if the item is not there
+   * (review 3.20).
+   */
+  private mergeWithExisting(existingOp: SyncOperation, newOp: SyncOperationType): SyncOperationType | null {
+    const merged = this.getMergedOperation(existingOp.operation, newOp);
+    if (merged === null && SyncQueue.wasAttempted(existingOp)) return 'delete';
+    return merged;
+  }
+
+  /**
    * Determine the merged operation type when combining existing + new operations.
    *
    * Merge rules:
    * - CREATE + UPDATE → CREATE (with new data) - entity doesn't exist on server yet
-   * - CREATE + DELETE → null (remove both - entity never existed on server)
+   * - CREATE + DELETE → null (remove both - entity never existed on server); see
+   *   mergeWithExisting, which keeps a DELETE when the create may have been sent
    * - UPDATE + UPDATE → UPDATE (with new data)
    * - UPDATE + DELETE → DELETE
    * - DELETE + any → new operation (rare edge case, just use new)
@@ -1578,6 +1604,9 @@ export class SyncQueue {
           ...op,
           status,
           lastAttempt: status === 'syncing' ? Date.now() : op.lastAttempt,
+          // Recorded when the op is SENT (review 3.20): "Retry failed" (retryFailed)
+          // clears lastAttempt and retryCount, and every later reset keeps this.
+          ...(status === 'syncing' ? { attempted: true } : {}),
         };
 
         store.put(updated);
