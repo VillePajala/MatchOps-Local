@@ -442,6 +442,24 @@ describe('reverseMigrationService', () => {
       expect(result.warnings.join(' ')).toMatch(/still exists in the cloud/);
     });
 
+    it('does not delete the cloud when a non-critical item (a team roster) failed to save locally', async () => {
+      mockLocalDataStore.setTeamRoster.mockRejectedValue(new Error('IndexedDB write failed'));
+      const result = await migrateCloudToLocal(mockOnProgress, 'delete-cloud');
+      expect(mockSupabaseDataStore.clearAllUserData).not.toHaveBeenCalled();
+      expect(result.cloudDeleted).toBe(false);
+    });
+
+    it('does not delete the cloud when a cloud player adjustment is not on the device', async () => {
+      (mockSupabaseDataStore as unknown as { getAllEntityIds: jest.Mock }).getAllEntityIds.mockResolvedValue({
+        players: new Set([mockPlayer.id]), teams: new Set([mockTeam.id]), seasons: new Set([mockSeason.id]),
+        tournaments: new Set([mockTournament.id]), personnel: new Set([mockPersonnel.id]),
+        games: new Set(['game-1']), playerAdjustments: new Set(['adj-cloud-only']),
+      });
+      const result = await migrateCloudToLocal(mockOnProgress, 'delete-cloud');
+      expect(mockSupabaseDataStore.clearAllUserData).not.toHaveBeenCalled();
+      expect(result.cloudDeleted).toBe(false);
+    });
+
     it('does not delete the cloud when the cloud id lists cannot be read completely', async () => {
       (mockSupabaseDataStore as unknown as { getAllEntityIds: jest.Mock }).getAllEntityIds.mockRejectedValue(new Error('Failed to fetch'));
       const result = await migrateCloudToLocal(mockOnProgress, 'delete-cloud');

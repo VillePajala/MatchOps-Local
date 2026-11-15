@@ -629,6 +629,13 @@ async function performReverseMigration(
         // holds must now be on this device, compared by id (getAllEntityIds is complete
         // or throws). A count could match while a cloud item is missing, e.g. when the
         // device already held local-only items.
+        // Types without id lists (team rosters, playtime plans/links/subs, warmup plan,
+        // settings) are covered by their save results: ANY item that failed to save
+        // locally means the cloud may hold its only copy.
+        if (saveFailures.length > 0) {
+          throw new Error(`${saveFailures.length} items could not be saved on this device`);
+        }
+        // Only cloud ⊆ device is required: items that exist only on the device are fine.
         const missing = await cloudItemsMissingLocally(cloudStore, localStore);
         if (missing.length > 0) {
           throw new Error(`${missing.length} cloud items are not on this device (${missing.slice(0, 3).join(', ')})`);

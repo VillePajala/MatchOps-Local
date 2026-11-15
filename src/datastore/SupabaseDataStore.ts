@@ -3653,9 +3653,6 @@ export class SupabaseDataStore implements DataStore {
         `Loaded ${loadedCount} successfully. Failed IDs: ${failedSample}${allFailedIds.length > 5 ? '...' : ''}`;
 
       logger.warn(`[SupabaseDataStore] ${errorMsg}`);
-      if (options.requireAll) {
-        throw new NetworkError(`Not all games could be downloaded (${allFailedIds.length} of ${totalCount} failed)`);
-      }
       // Wrap in try/catch - Sentry failure must not break returning valid games
       // Use warning level — partial failures are often transient network issues
       try {
@@ -3671,6 +3668,11 @@ export class SupabaseDataStore implements DataStore {
         });
       } catch {
         // Sentry failure is acceptable - returning valid games is critical
+      }
+
+      // A caller that must not act on a partial set (review 3.17) - reported above.
+      if (options.requireAll) {
+        throw new NetworkError(`Not all games could be downloaded (${allFailedIds.length} of ${totalCount} failed)`);
       }
 
       // CRITICAL: Return valid games instead of throwing
