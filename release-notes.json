@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "If you start a password reset but go back and sign in with your old password, the app no longer signs you out the next time you open it."
+      ],
+      "fi": [
+        "Jos aloitat salasanan palautuksen mutta palaat takaisin ja kirjaudut vanhalla salasanallasi, sovellus ei enää kirjaa sinua ulos seuraavalla avauskerralla."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Adding the same staff member on two devices before they sync no longer leaves a sync error that never clears; both entries are kept and you can remove the duplicate."
       ],
       "fi": [

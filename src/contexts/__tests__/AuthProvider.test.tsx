@@ -2131,6 +2131,68 @@ describe('AuthProvider', () => {
       expect(undo.readReplacedReport('game_a')).toBeNull();
     });
 
+    /**
+     * Review 3.22: backing out of "Set new password" and signing in normally left the
+     * stored reset marker, so the next launch signed the user out.
+     * @critical
+     */
+    it.each(['sign in', 'sign out'] as const)('a reset the user backed out of is forgotten on %s', async (action) => {
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+      function ResetComponent() {
+        const { isAuthenticated, verifyPasswordResetOtp, signIn, signOut } = useAuth();
+        return (
+          <div>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <button data-testid="code" onClick={() => { void verifyPasswordResetOtp('test@example.com', '123456'); }}>code</button>
+            <button data-testid="in" onClick={() => { void signIn('test@example.com', 'pw'); }}>in</button>
+            <button data-testid="out" onClick={() => { void signOut(); }}>out</button>
+          </div>
+        );
+      }
+      render(<AuthProvider><ResetComponent /></AuthProvider>);
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+      await act(async () => { fireEvent.click(screen.getByTestId('code')); });
+      await waitFor(() => expect(localStorage.getItem('matchops-password-reset-in-progress')).toBe('1'));
+
+      await act(async () => { fireEvent.click(screen.getByTestId(action === 'sign in' ? 'in' : 'out')); });
+      await waitFor(() => expect(localStorage.getItem('matchops-password-reset-in-progress')).toBeNull());
+    });
+
+    it.each(['sign in fails', 'sign out fails'] as const)('the reset marker stays when the %s (a recovery session may remain)', async (action) => {
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+      (mockAuthService.signIn as jest.Mock).mockRejectedValue(new Error('Invalid login credentials'));
+      (mockAuthService.signOut as jest.Mock).mockRejectedValue(new Error('Sign out could not be completed on this device.'));
+      function ResetComponent() {
+        const { isAuthenticated, verifyPasswordResetOtp, signIn, signOut } = useAuth();
+        return (
+          <div>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <button data-testid="code" onClick={() => { void verifyPasswordResetOtp('test@example.com', '123456'); }}>code</button>
+            <button data-testid="in" onClick={() => { void signIn('test@example.com', 'pw'); }}>in</button>
+            <button data-testid="out" onClick={() => { void signOut(); }}>out</button>
+          </div>
+        );
+      }
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        render(<AuthProvider><ResetComponent /></AuthProvider>);
+        await act(async () => { jest.advanceTimersByTime(100); });
+        await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+        await act(async () => { fireEvent.click(screen.getByTestId('code')); });
+        await waitFor(() => expect(localStorage.getItem('matchops-password-reset-in-progress')).toBe('1'));
+        await act(async () => { fireEvent.click(screen.getByTestId(action === 'sign in fails' ? 'in' : 'out')); });
+        await act(async () => { jest.advanceTimersByTime(100); });
+        expect(localStorage.getItem('matchops-password-reset-in-progress')).toBe('1');
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
     /** Review 3.11: a session the user establishes after a sign-out is accepted again. @critical */
     it('after signing out and creating an account, session refreshes are accepted again', async () => {
       mockAuthService = createMockCloudAuthService(true);

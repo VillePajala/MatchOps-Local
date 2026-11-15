@@ -246,6 +246,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     lastSignInAtRef.current = Date.now();
     // A session the user established (sign-in, sign-up...): sessions are accepted again.
     isIntentionalSignOutRef.current = false;
+    // Any reset the user backed out of is over (review 3.22): the stored marker would
+    // otherwise make the next launch treat this real session as a lingering recovery
+    // session and sign the user out.
+    setPasswordResetInProgress(false);
     // Device memory: from now on this device opens on Sign in, not Create account.
     markDeviceHasSignedIn();
   }, []);
@@ -1017,6 +1021,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logger.info('[AuthProvider] Signed out before auth init finished; completing when it does');
       } else {
         await authService.signOut();
+        // Only once the stored session is really gone (review 3.22, as init's CR-M5 #4
+        // rule): kept on failure, the next launch still clears a lingering recovery
+        // session. (Signed out before init: init's own reset branch handles it.)
+        setPasswordResetInProgress(false);
       }
     } catch (error) {
       // Log but don't throw - user should be signed out locally regardless
