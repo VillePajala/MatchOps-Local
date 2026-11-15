@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Switching a match between Home and Away after a penalty shootout no longer flips the shootout result."
+      ],
+      "fi": [
+        "Ottelun vaihtaminen koti- ja vieraspelin välillä rangaistuspotkukilpailun jälkeen ei enää käännä kilpailun tulosta."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Reopening the running match from Saved games no longer rewinds and pauses its clock; it continues like with the Continue card."
       ],
       "fi": [

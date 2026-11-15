@@ -258,12 +258,22 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const isChanging = state.homeOrAway !== newHomeOrAway;
 
       if (isChanging) {
-        // Swap scores when toggling
+        // Swap scores when toggling - and the shootout kicks with them (review 4.12):
+        // a kick's team is a side ('home'/'away') too, so leaving it flipped a won
+        // shootout into a loss and listed the coach's shooters as the opponent's.
         return {
           ...state,
           homeOrAway: newHomeOrAway,
           homeScore: state.awayScore,
           awayScore: state.homeScore,
+          ...(state.shootoutKicks
+            ? {
+                shootoutKicks: state.shootoutKicks.map((kick) => ({
+                  ...kick,
+                  team: kick.team === 'home' ? 'away' as const : 'home' as const,
+                })),
+              }
+            : {}),
         };
       }
 

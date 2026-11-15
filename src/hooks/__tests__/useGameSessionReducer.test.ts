@@ -180,6 +180,30 @@ describe('gameSessionReducer', () => {
     expect(next.subAlertLevel).toBe('warning');
   });
 
+  /**
+   * Review 4.12: switching Home/Away swaps the scores AND the shootout kicks, so a won
+   * shootout stays won (it used to flip to a loss on penalties).
+   * @critical
+   */
+  test('SET_HOME_OR_AWAY swaps the shootout kicks with the scores', () => {
+    const state: GameSessionState = {
+      ...baseState,
+      homeOrAway: 'home',
+      homeScore: 1,
+      awayScore: 1,
+      shootoutKicks: [
+        { id: 'k1', team: 'home', scorerId: 'p9', scored: true },
+        { id: 'k2', team: 'away', scored: false },
+        { id: 'k3', team: 'home', scorerId: 'p7', scored: true },
+      ] as GameSessionState['shootoutKicks'],
+    };
+    const next = gameSessionReducer(state, { type: 'SET_HOME_OR_AWAY', payload: 'away' });
+    expect(next.shootoutKicks?.map((k) => [k.id, k.team])).toEqual([['k1', 'away'], ['k2', 'home'], ['k3', 'away']]);
+    expect(next.shootoutKicks?.[0].scorerId).toBe('p9');
+    // Setting the same side again changes nothing.
+    expect(gameSessionReducer(next, { type: 'SET_HOME_OR_AWAY', payload: 'away' })).toBe(next);
+  });
+
   test('LOAD_STATE_FROM_HISTORY restores complete session details', () => {
     const historySnapshot = {
       currentPeriod: 3 as const,
