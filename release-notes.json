@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "The travel time and arrival buffer you set for a match are no longer erased when the match is saved, and a paused match stays in progress so the app opens straight into it."
+      ],
+      "fi": [
+        "Ottelulle asettamasi matka-aika ja saapumisvara eivät enää katoa ottelun tallennuksessa, ja tauolle pysäytetty ottelu pysyy käynnissä, joten sovellus avautuu suoraan siihen."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Undoing a venue change now also restores the venue's pitch, map pin and address, not just its name."
       ],
       "fi": [
