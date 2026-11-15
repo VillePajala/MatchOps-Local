@@ -56,6 +56,25 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
     return () => clearTimeout(timeout);
   }, [overall, sliders, notes, isValid, onSave]);
 
+  // Flush on close (review 4.16): the debounce above is cancelled when the card
+  // unmounts, so a rating or note changed within 0.8 s of pressing back/Done was
+  // silently dropped. The latest values are kept in a ref and saved on unmount.
+  const latestRef = useRef({ overall, sliders, notes, isValid, onSave });
+  // Deleted: a pending edit must not bring the assessment back on close.
+  const deletedRef = useRef(false);
+  useEffect(() => {
+    latestRef.current = { overall, sliders, notes, isValid, onSave };
+  }, [overall, sliders, notes, isValid, onSave]);
+  useEffect(() => () => {
+    const latest = latestRef.current;
+    if (!latest.isValid || deletedRef.current) return;
+    const current = { overall: latest.overall, sliders: latest.sliders, notes: latest.notes };
+    if (JSON.stringify(prev.current) !== JSON.stringify(current)) {
+      latest.onSave({ ...current, sliders: current.sliders as PlayerAssessment['sliders'] });
+      prev.current = current;
+    }
+  }, []);
+
   const handleSliderChange = (key: string, value: number) => {
     setSliders((prev) => ({ ...prev, [key]: value }));
   };
@@ -67,6 +86,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
       sliders: sliders as PlayerAssessment['sliders'],
       notes,
     });
+    prev.current = { overall, sliders, notes }; // saved: closing must not save it again
     setExpanded(false);
   };
 
@@ -132,7 +152,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
               <button
                 type="button"
                 className="px-3 py-2 rounded-sm text-sm font-medium transition-colors bg-red-600 hover:bg-red-500 text-white border border-red-400/30"
-                onClick={() => onDelete()}
+                onClick={() => { deletedRef.current = true; onDelete(); }}
               >
                 {t('playerAssessmentModal.resetButton', 'Reset')}
               </button>
