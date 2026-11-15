@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { useHardwareBackSubLevel, __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
 import ShootoutModal from './ShootoutModal';
 import type { Player } from '@/types';
 
@@ -32,6 +33,37 @@ const renderModal = (overrides: Partial<React.ComponentProps<typeof ShootoutModa
 };
 
 describe('ShootoutModal', () => {
+  /**
+   * Review 4.18: with a surface underneath already holding a back guard (the timer
+   * overlay / Match details), a hardware back closes the shootout - not the surface
+   * beneath it.
+   * @critical
+   */
+  it('a hardware back closes the shootout, not the surface underneath', () => {
+    __resetModalHardwareBackForTests();
+    const pushSpy = jest.spyOn(window.history, 'pushState').mockImplementation(() => {});
+    const backSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+    try {
+      const underneathClose = jest.fn();
+      const Underneath = () => { useHardwareBackSubLevel(true, underneathClose); return null; };
+      const onClose = jest.fn();
+      render(
+        <>
+          <Underneath />
+          <ShootoutModal isOpen onClose={onClose} availablePlayers={players} initialKicks={[]}
+            homeOrAway="home" teamName="My Team" opponentName="Opponent" onSave={jest.fn()} />
+        </>
+      );
+      act(() => { window.dispatchEvent(new PopStateEvent('popstate')); });
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(underneathClose).not.toHaveBeenCalled();
+    } finally {
+      pushSpy.mockRestore();
+      backSpy.mockRestore();
+      __resetModalHardwareBackForTests();
+    }
+  });
+
   it('does not render when closed', () => {
     render(
       <ShootoutModal isOpen={false} onClose={jest.fn()} availablePlayers={players} initialKicks={[]} homeOrAway="home" teamName="My Team" opponentName="Opponent" onSave={jest.fn()} />
