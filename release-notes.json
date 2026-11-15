@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "Undo right after opening a saved game no longer removes the game's team, tournament level or penalty-shootout result."
+      ],
+      "fi": [
+        "Kumoaminen heti tallennetun ottelun avaamisen jälkeen ei enää poista ottelun joukkuetta, turnaustasoa tai rangaistuspotkukilpailun tulosta."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Player ratings of a game are no longer lost if they fail to load when you open the game: the app keeps the stored ratings instead of saving an empty set over them."
       ],
       "fi": [

@@ -1445,6 +1445,20 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       formationSnapPoints: gameData?.formationSnapPoints || [],
       // Same list as set above, so undo starts from what the coach sees.
       availablePlayers: loadedAvailablePlayers,
+      // Every other field undo restores (review 4.1): missing from the baseline, an
+      // undo back to it blanked them - the team, tournament level and series, the
+      // overtime/shootout result - and the autosave persisted that. (The clock is
+      // deliberately NOT here: undo restores only fields its entry has, so the live
+      // clock is kept rather than rewound.)
+      teamId: gameData?.teamId ?? initialGameSessionData.teamId,
+      ageGroup: gameData?.ageGroup ?? initialGameSessionData.ageGroup,
+      tournamentLevel: gameData?.tournamentLevel ?? initialGameSessionData.tournamentLevel,
+      tournamentSeriesId: gameData?.tournamentSeriesId ?? initialGameSessionData.tournamentSeriesId,
+      wentToOvertime: gameData?.wentToOvertime ?? initialGameSessionData.wentToOvertime,
+      wentToPenalties: gameData?.wentToPenalties ?? initialGameSessionData.wentToPenalties,
+      shootoutKicks: gameData?.shootoutKicks ?? initialGameSessionData.shootoutKicks,
+      showPositionLabels: gameData?.showPositionLabels ?? initialGameSessionData.showPositionLabels,
+      gameNotesAiMeta: gameData?.gameNotesAiMeta ?? initialGameSessionData.gameNotesAiMeta,
     };
     resetHistory(newHistoryState);
     logger.log('[LOAD GAME STATE] Finished dispatching. Reducer will update gameSessionState.');
