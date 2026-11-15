@@ -145,11 +145,12 @@ CREATE TABLE teams (
   bound_tournament_series_id text, -- References tournament_series.id (no FK)
 
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 
   -- NOTE: LocalDataStore uses composite uniqueness (name + context bindings + gameType)
-  -- Database uses simple name uniqueness; app-level validation handles composite rules
-  CONSTRAINT teams_name_user_unique UNIQUE (user_id, name)
+  -- Database: composite unique index (011), mirroring the app-level composite key
+  -- No plain name constraint (003 dropped teams_name_user_unique). Migration 011 adds
+  -- idx_teams_composite_unique: UNIQUE (user_id, LOWER(name), bound_season_id, bound_tournament_id, bound_tournament_series_id, game_type) (NULLs as '').
 );
 
 CREATE INDEX idx_teams_user_id ON teams(user_id);
@@ -285,11 +286,12 @@ CREATE TABLE seasons (
   team_placements jsonb DEFAULT '{}'::jsonb,  -- { [teamId]: { placement: 1, award?: "Champion", note?: "..." } }
 
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 
   -- NOTE: LocalDataStore uses composite uniqueness (name + clubSeason + gameType + gender + ageGroup + leagueId)
-  -- Database uses simple name uniqueness; app-level validation handles composite rules
-  CONSTRAINT seasons_name_user_unique UNIQUE (user_id, name)
+  -- Database: composite unique index (011), mirroring the app-level composite key
+  -- No plain name constraint (003 dropped seasons_name_user_unique). Migration 011 adds
+  -- idx_seasons_composite_unique: UNIQUE (user_id, LOWER(name), club_season, game_type, gender, age_group, league_id) (NULLs as '').
 );
 
 CREATE INDEX idx_seasons_user_id ON seasons(user_id);
@@ -347,11 +349,12 @@ CREATE TABLE tournaments (
   series jsonb DEFAULT '[]'::jsonb,  -- [{ id: "series_...", level: "Elite" }, ...]
 
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 
   -- NOTE: LocalDataStore uses composite uniqueness (name + clubSeason + gameType + gender + ageGroup)
-  -- Database uses simple name uniqueness; app-level validation handles composite rules
-  CONSTRAINT tournaments_name_user_unique UNIQUE (user_id, name)
+  -- Database: composite unique index (011), mirroring the app-level composite key
+  -- No plain name constraint (003 dropped tournaments_name_user_unique). Migration 011 adds
+  -- idx_tournaments_composite_unique: UNIQUE (user_id, LOWER(name), club_season, game_type, gender, age_group) (NULLs as '').
 );
 
 CREATE INDEX idx_tournaments_user_id ON tournaments(user_id);
@@ -389,9 +392,10 @@ CREATE TABLE personnel (
   certifications text[] DEFAULT '{}',  -- e.g., ['UEFA A License', 'First Aid']
   notes text,
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
-
-  CONSTRAINT personnel_name_user_unique UNIQUE (user_id, name)
+  updated_at timestamptz DEFAULT now()
+  -- No database name constraint (migration 056 dropped personnel_name_user_unique):
+  -- the app prevents duplicate names per device; two devices adding the same person
+  -- offline both sync.
 );
 
 CREATE INDEX idx_personnel_user_id ON personnel(user_id);
@@ -1601,7 +1605,7 @@ function sanitizeGameForMigration(game: AppState, validIds: {
    - Rely on app-level validation only
    - Risk: Cloud API could create duplicates bypassing app
 
-**Current Approach**: Schema keeps simple uniqueness with NOTE comments. Migration service should implement Option 1 (pre-migration validation).
+**Current Approach**: No plain name constraints remain (003 for teams/seasons/tournaments, 056 for personnel). Teams, seasons and tournaments have composite unique indexes (011) matching the app-level composite keys; duplicates are prevented by the app per device.
 
 ---
 

@@ -1,0 +1,22 @@
+-- ============================================================================
+-- 056: Drop the personnel name uniqueness constraint (review 3.21)
+-- ============================================================================
+-- personnel_name_user_unique (UNIQUE (user_id, name)) is the last plain name
+-- constraint; migration 003 removed the same constraint from teams, seasons and
+-- tournaments. (Those three still have composite unique indexes from 011 - name plus
+-- context - which can fail the same way; tracked as review follow-up 3.21b.)
+--
+-- Why it has to go: two devices that add the same staff member while out of sync
+-- each give the person their own id. The second upload violated this constraint,
+-- the sync op could never succeed (no row with that id to resolve against), and the
+-- "operations failed" indicator stayed until the coach discarded the change - while
+-- that device's games pointed at a staff id the cloud never got.
+--
+-- Without it both entries sync; the coach can delete the duplicate. Duplicate names
+-- are still prevented on each device by the app (LocalDataStore and
+-- SupabaseDataStore addPersonnelMember compare normalised names).
+--
+-- Only removes a constraint: no data changes. Idempotent.
+-- ============================================================================
+
+ALTER TABLE personnel DROP CONSTRAINT IF EXISTS personnel_name_user_unique;
