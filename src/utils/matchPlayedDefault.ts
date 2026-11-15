@@ -53,10 +53,23 @@ export default defaultIsPlayed;
  * been played does not become unplayed, and the explicit toggle is still there
  * for a fixture nothing was ever recorded against.
  */
-export function hasBeenPlayed(match: {
-  timeElapsedInSeconds?: number;
-  gameEvents?: readonly unknown[];
-}): boolean {
+export function hasBeenPlayed(
+  match: {
+    timeElapsedInSeconds?: number;
+    gameEvents?: readonly unknown[];
+    gameDate?: string;
+  },
+  today?: string,
+): boolean {
   if ((match.timeElapsedInSeconds ?? 0) > 0) return true;
-  return (match.gameEvents?.length ?? 0) > 0;
+  const events = match.gameEvents ?? [];
+  if (events.some((event) => (event as { type?: unknown })?.type !== 'note')) return true;
+  // A NOTE counts only once the match day has PASSED (review 4.8), like
+  // defaultIsPlayed: before that it may be a pre-match note ("their #9 is fast", a
+  // lineup reminder on the morning of the match) - it marked the fixture played, a
+  // phantom 0-0 draw that vanished from the next-match card on the very day it
+  // mattered, and re-promoted itself after the coach flipped it back. A write-up
+  // after the match still counts (from the next day; goals or clock time count at once).
+  const matchDayPassed = !!match.gameDate && !!today && match.gameDate < today;
+  return matchDayPassed && events.length > 0;
 }

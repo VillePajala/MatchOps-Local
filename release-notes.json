@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "Writing a note on an upcoming match no longer marks it as played before the match day has passed, so it stays on the next-match card and no 0-0 draw appears in the record. A write-up after the match still counts."
+      ],
+      "fi": [
+        "Muistiinpanon kirjoittaminen tulevaan otteluun ei enää merkitse sitä pelatuksi ennen kuin ottelupäivä on ohi, joten se pysyy seuraavan ottelun kortilla eikä tilastoihin ilmesty 0-0-tasapeliä. Ottelun jälkeen kirjoitettu yhteenveto merkitsee sen edelleen pelatuksi."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "The note that a match report came from an AI draft is no longer lost when you reopen and edit the match."
       ],
       "fi": [
