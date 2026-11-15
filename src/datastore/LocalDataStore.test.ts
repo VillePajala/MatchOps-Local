@@ -16,7 +16,7 @@ import type { WarmupPlan } from '@/types/warmupPlan';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { AppSettings } from '@/types/settings';
 import { TestFixtures } from '../../tests/fixtures';
-import { SAVED_GAMES_KEY, MASTER_ROSTER_KEY, TEAMS_INDEX_KEY, TEAM_ROSTERS_KEY } from '@/config/storageKeys';
+import { SAVED_GAMES_KEY, MASTER_ROSTER_KEY, TEAMS_INDEX_KEY, TEAM_ROSTERS_KEY, SEASONS_LIST_KEY, TOURNAMENTS_LIST_KEY, PLAYER_ADJUSTMENTS_KEY } from '@/config/storageKeys';
 
 // Create mock functions BEFORE jest.mock (so they can be referenced in mocks)
 const mockGetStorageItem = jest.fn();
@@ -1067,6 +1067,36 @@ describe('LocalDataStore', () => {
 
         const result = await dataStore.deleteSeason('non_existent');
         expect(result).toBe(false);
+      });
+
+      /**
+       * Review 3.19: external games linked to a deleted season/tournament are unlinked
+       * (the dialog promises it; the cloud does it). Left linked, their next edit was
+       * rejected by the cloud's foreign key and never synced.
+       * @critical
+       */
+      it.each([
+        ['season', SEASONS_LIST_KEY, 'seasonId', 'season_123'],
+        ['tournament', TOURNAMENTS_LIST_KEY, 'tournamentId', 'tournament_123'],
+      ] as const)('deleting a %s unlinks the external games that pointed at it, and only those', async (kind, listKey, field, id) => {
+        const store: Record<string, string> = {
+          [listKey]: JSON.stringify([{ id, name: 'Old' }, { id: 'keep_me', name: 'Keep' }]),
+          [PLAYER_ADJUSTMENTS_KEY]: JSON.stringify({
+            player_1: [
+              { id: 'adj_a', playerId: 'player_1', [field]: id, gamesPlayedDelta: 1, goalsDelta: 2, assistsDelta: 0, appliedAt: '2024-01-01' },
+              { id: 'adj_b', playerId: 'player_1', [field]: 'keep_me', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, appliedAt: '2024-01-01' },
+            ],
+          }),
+        };
+        mockGetStorageItem.mockImplementation(async (key: string) => store[key] ?? null);
+        mockSetStorageItem.mockImplementation(async (key: string, value: string) => { store[key] = value; });
+
+        const deleted = kind === 'season' ? await dataStore.deleteSeason(id) : await dataStore.deleteTournament(id);
+        expect(deleted).toBe(true);
+        const adjustments = JSON.parse(store[PLAYER_ADJUSTMENTS_KEY]).player_1;
+        expect(adjustments[0][field]).toBeUndefined();
+        expect(adjustments[0].goalsDelta).toBe(2); // nothing else changes
+        expect(adjustments[1][field]).toBe('keep_me');
       });
     });
 

@@ -1244,7 +1244,7 @@ export class LocalDataStore implements DataStore {
   async deleteSeason(id: string): Promise<boolean> {
     this.ensureInitialized();
 
-    return withKeyLock(SEASONS_LIST_KEY, async () => {
+    const deleted = await withKeyLock(SEASONS_LIST_KEY, async () => {
       const currentSeasons = await this.loadSeasons();
       const nextSeasons = currentSeasons.filter((season) => season.id !== id);
 
@@ -1255,6 +1255,8 @@ export class LocalDataStore implements DataStore {
       await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify(nextSeasons));
       return true;
     });
+    if (deleted) await this.unlinkAdjustments('seasonId', id);
+    return deleted;
   }
 
   /**
@@ -1473,7 +1475,7 @@ export class LocalDataStore implements DataStore {
   async deleteTournament(id: string): Promise<boolean> {
     this.ensureInitialized();
 
-    return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
+    const deleted = await withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
       const currentTournaments = await this.loadTournaments();
       const nextTournaments = currentTournaments.filter((tournament) => tournament.id !== id);
 
@@ -1483,6 +1485,29 @@ export class LocalDataStore implements DataStore {
 
       await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify(nextTournaments));
       return true;
+    });
+    if (deleted) await this.unlinkAdjustments('tournamentId', id);
+    return deleted;
+  }
+
+  /**
+   * External games that pointed at a deleted season/tournament are unlinked
+   * (review 3.19) - as the delete dialog promises and as the cloud does itself
+   * (ON DELETE SET NULL). Left linked, their next edit carried the deleted id and the
+   * cloud rejected it (23503), so the edit never synced.
+   */
+  private async unlinkAdjustments(field: 'seasonId' | 'tournamentId', id: string): Promise<void> {
+    await withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
+      const all = await this.loadPlayerAdjustments();
+      let changed = false;
+      for (const [playerId, list] of Object.entries(all)) {
+        all[playerId] = list.map((adjustment) => {
+          if (adjustment[field] !== id) return adjustment;
+          changed = true;
+          return { ...adjustment, [field]: undefined };
+        });
+      }
+      if (changed) await this.storageSetItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
     });
   }
 
