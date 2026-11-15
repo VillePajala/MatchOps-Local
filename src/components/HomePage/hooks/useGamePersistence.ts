@@ -650,6 +650,13 @@ export function useGamePersistence({
         // timing shifts on reload. Persist instantly so the sub record survives.
         completedIntervalDurations: gameSessionState.completedIntervalDurations,
         lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
+        // Period and status (review 4.10): resetting a PAUSED clock (or at a break)
+        // flips neither isTimerRunning nor anything else watched here, so the reset was
+        // never saved - a reload or a trip to Home brought the old time back and Start
+        // resumed from it. Both change only at discrete moments (start/end of a period,
+        // reset), never per tick.
+        gameStatus: gameSessionState.gameStatus,
+        currentPeriod: gameSessionState.currentPeriod,
       },
       delay: 0,
     },
