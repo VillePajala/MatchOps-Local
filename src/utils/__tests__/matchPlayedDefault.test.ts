@@ -44,8 +44,16 @@ describe('hasBeenPlayed', () => {
    * booked fixture played (a phantom 0-0 draw) and re-promoted it after "not played".
    * @critical
    */
-  it('a note alone does not mean it was played', () => {
-    expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: [{ type: 'note' }, { type: 'note' }] })).toBe(false);
+  it('a note alone before the match day does not mean it was played', () => {
+    const notes = [{ type: 'note' }, { type: 'note' }];
+    expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: notes, gameDate: '2026-11-21' }, '2026-11-19')).toBe(false);
+    expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: notes })).toBe(false); // no date known
+  });
+
+  it('a note written on or after the match day (a write-up) still means it was played', () => {
+    const notes = [{ type: 'note' }];
+    expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: notes, gameDate: '2026-11-21' }, '2026-11-21')).toBe(true);
+    expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: notes, gameDate: '2026-11-21' }, '2026-11-23')).toBe(true);
   });
 
   it('a note together with a goal still means it was played', () => {

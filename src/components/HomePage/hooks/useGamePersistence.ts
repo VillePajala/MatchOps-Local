@@ -51,6 +51,7 @@
 
 import { useCallback, useRef, useEffect } from 'react';
 import { hasBeenPlayed } from '@/utils/matchPlayedDefault';
+import { todayIso } from '@/utils/todayIso';
 import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import * as Sentry from '@sentry/nextjs';
@@ -244,7 +245,7 @@ export function useGamePersistence({
       // whistle is how a played match goes missing from the season record,
       // which is the mirror image of the bug that had every booked fixture
       // counting as a 0-0 draw. One-way: this never marks a match unplayed.
-      isPlayed: isPlayed || hasBeenPlayed(persistedGameSessionState),
+      isPlayed: isPlayed || hasBeenPlayed(persistedGameSessionState, todayIso()),
       // isFriendly is game metadata, not part of the live session reducer, so a
       // full-overwrite autosave would otherwise silently drop it. Preserve it
       // from the persisted record - it is only ever set at creation or via the
