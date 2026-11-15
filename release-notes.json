@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "Undoing a mistaken \"substitution made\" now brings back the reminder for the substitution that is still due."
+      ],
+      "fi": [
+        "Vahingossa tehdyn \"vaihto tehty\" -merkinnän kumoaminen palauttaa nyt muistutuksen vaihdosta, joka on yhä tekemättä."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Undo no longer winds the match clock back: undoing something while the clock is paused keeps the current match time."
       ],
       "fi": [
