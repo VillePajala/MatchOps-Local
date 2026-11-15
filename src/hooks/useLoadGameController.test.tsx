@@ -33,6 +33,7 @@ jest.mock('@/utils/timerStateManager', () => ({
 }));
 jest.mock('@/utils/timerAnchor', () => ({
   clearTimerAnchor: jest.fn(),
+  readTimerAnchor: jest.fn(() => null),
 }));
 jest.mock('@/utils/playtimePlanner/gameSubs', () => ({
   deleteGameSubs: jest.fn().mockResolvedValue(undefined),
@@ -55,7 +56,7 @@ jest.mock('@/utils/logger', () => {
 import { getSavedGames, deleteGame as utilDeleteGame, getLatestGameId } from '@/utils/savedGames';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting } from '@/utils/appSettings';
 import { clearTimerState } from '@/utils/timerStateManager';
-import { clearTimerAnchor } from '@/utils/timerAnchor';
+import { clearTimerAnchor, readTimerAnchor } from '@/utils/timerAnchor';
 import { deleteGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { deletePlanLink } from '@/utils/playtimePlanner/planLinks';
 
@@ -110,6 +111,32 @@ describe('useLoadGameController (L.3a level crossing)', () => {
     expect(clearTimerAnchor).toHaveBeenCalled();
     expect(saveCurrentGameIdSetting).toHaveBeenCalledWith('g2', 'user-1');
     expect(onEnterMatch).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Review 4.11: re-opening the match whose clock is running (from Saved games
+   * instead of Continue) must keep its live-clock recovery records.
+   * @critical
+   */
+  it('re-opening the game whose clock is running keeps its timer records', async () => {
+    (readTimerAnchor as jest.Mock).mockReturnValueOnce({ gameId: 'g2', elapsedSeconds: 900, wallClockMs: Date.now() });
+    const { result } = await renderController();
+    await act(async () => {
+      await result.current.handleLoadGame('g2');
+    });
+    expect(clearTimerState).not.toHaveBeenCalled();
+    expect(clearTimerAnchor).not.toHaveBeenCalled();
+    expect(onEnterMatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('opening a different game still clears the running one\'s records', async () => {
+    (readTimerAnchor as jest.Mock).mockReturnValueOnce({ gameId: 'g1', elapsedSeconds: 900, wallClockMs: Date.now() });
+    const { result } = await renderController();
+    await act(async () => {
+      await result.current.handleLoadGame('g2');
+    });
+    expect(clearTimerState).toHaveBeenCalledWith('user-1');
+    expect(clearTimerAnchor).toHaveBeenCalled();
   });
 
   it('deleting a NON-current game cleans planner bookkeeping and updates the cache only', async () => {
