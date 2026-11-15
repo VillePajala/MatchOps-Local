@@ -640,7 +640,9 @@ async function performReverseMigration(
         // Only cloud ⊆ device is required: items that exist only on the device are fine.
         const missing = await cloudItemsMissingLocally(cloudStore, localStore);
         if (missing.length > 0) {
-          throw new Error(`${missing.length} cloud items are not on this device (${missing.slice(0, 3).join(', ')})`);
+          // Ids to the log only - the reason is shown to the user.
+          logger.warn('[ReverseMigrationService] Cloud items missing locally - cloud kept', { missing: missing.slice(0, 20) });
+          throw new Error(`${missing.length} cloud items are not on this device`);
         }
         await cloudStore.clearAllUserData();
         cloudDeleted = true;
