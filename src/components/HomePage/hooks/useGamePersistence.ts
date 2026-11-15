@@ -254,6 +254,20 @@ export function useGamePersistence({
       // the live session, so a full-overwrite autosave would drop the armband
       // the coach had just recorded.
       captainId: savedGames[currentGameId ?? '']?.captainId,
+      // Travel set on the Home card is game metadata too (review 4.6): a full-overwrite
+      // save erased the arrival buffer and drive time, so Home fell back to the default
+      // departure time.
+      arrivalBufferMinutes: savedGames[currentGameId ?? '']?.arrivalBufferMinutes,
+      travelMinutes: savedGames[currentGameId ?? '']?.travelMinutes,
+      // Loading a game coerces a paused 'inProgress' match to 'notStarted' (the clock
+      // never auto-starts); saving that coerced value made the next cold launch land on
+      // Home instead of in the match (review 4.6). Until the coach resumes or resets it,
+      // the stored status stands.
+      gameStatus: persistedGameSessionState.gameStatus === 'notStarted'
+        && savedGames[currentGameId ?? '']?.gameStatus === 'inProgress'
+        && (persistedGameSessionState.timeElapsedInSeconds > 0 || persistedGameSessionState.currentPeriod > 1)
+        ? 'inProgress'
+        : persistedGameSessionState.gameStatus,
       // Only once loaded (review 3.23): before that - still loading, or the read
       // failed - the hook holds an empty set, and a full-overwrite autosave would
       // wipe every stored rating (and sync that to the cloud). Keep the stored ones.

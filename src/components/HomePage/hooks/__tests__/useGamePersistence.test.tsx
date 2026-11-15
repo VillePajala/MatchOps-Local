@@ -395,6 +395,47 @@ describe('useGamePersistence', () => {
       expect((saveGame as jest.Mock).mock.calls[0][1]).toEqual(expect.objectContaining({ assessments: fresh }));
     });
 
+    /**
+     * Review 4.6: travel set on the Home card, and a paused match's stored status,
+     * survive a save (they are not part of the live session).
+     * @critical
+     */
+    describe('fields the live session does not carry', () => {
+      const save = async (params: UseGamePersistenceParams) => {
+        const { saveGame } = jest.requireMock('@/utils/savedGames');
+        (saveGame as jest.Mock).mockClear();
+        const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+        await act(async () => { await result.current.handleQuickSaveGame(true); });
+        return (saveGame as jest.Mock).mock.calls[0][1] as AppState;
+      };
+
+      it('keeps the arrival buffer and drive time', async () => {
+        const saved = await save(createMockParams({
+          currentGameId: 'game123',
+          savedGames: { game123: { arrivalBufferMinutes: 45, travelMinutes: 30 } as unknown as AppState },
+        }));
+        expect(saved).toMatchObject({ arrivalBufferMinutes: 45, travelMinutes: 30 });
+      });
+
+      it('keeps a paused match in progress (loading coerced it to notStarted)', async () => {
+        const saved = await save(createMockParams({
+          currentGameId: 'game123',
+          savedGames: { game123: { gameStatus: 'inProgress' } as unknown as AppState },
+          gameSessionState: createMockGameSessionState({ gameStatus: 'notStarted', timeElapsedInSeconds: 1170, currentPeriod: 1 }),
+        }));
+        expect(saved.gameStatus).toBe('inProgress');
+      });
+
+      it('saves notStarted once the clock was reset', async () => {
+        const saved = await save(createMockParams({
+          currentGameId: 'game123',
+          savedGames: { game123: { gameStatus: 'inProgress' } as unknown as AppState },
+          gameSessionState: createMockGameSessionState({ gameStatus: 'notStarted', timeElapsedInSeconds: 0, currentPeriod: 1 }),
+        }));
+        expect(saved.gameStatus).toBe('notStarted');
+      });
+    });
+
     it('keeps the saved-games cache fresh via setQueryData, not invalidateQueries (no per-save refetch)', async () => {
       const params = createMockParams();
       const invalidateSpy = jest.spyOn(params.queryClient, 'invalidateQueries');
