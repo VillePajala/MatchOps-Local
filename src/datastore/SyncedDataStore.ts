@@ -783,7 +783,8 @@ export class SyncedDataStore implements DataStore {
   private async adjustmentsLinkedTo(field: 'seasonId' | 'tournamentId', id: string): Promise<PlayerStatAdjustment[]> {
     try {
       return [...(await this.localStore.getAllPlayerAdjustments()).values()].flat().filter((a) => a[field] === id);
-    } catch {
+    } catch (error) {
+      logger.warn('[SyncedDataStore] Could not read external games before a delete - their unlink is not queued', { field, error });
       return [];
     }
   }
