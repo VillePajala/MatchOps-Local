@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Resetting the match clock while it is paused (or at a break) is now saved, so the old time no longer comes back after reopening the app."
+      ],
+      "fi": [
+        "Ottelukellon nollaus sen ollessa pysäytettynä (tai tauolla) tallentuu nyt, joten vanha aika ei enää palaa sovelluksen uudelleen avaamisen jälkeen."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Marking a match that has clock time or recorded events \"Not played yet\" now sticks: the next save no longer puts it back into the record and stats."
       ],
       "fi": [

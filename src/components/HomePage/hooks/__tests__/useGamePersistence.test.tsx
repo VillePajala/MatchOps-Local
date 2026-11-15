@@ -668,6 +668,33 @@ describe('useGamePersistence', () => {
 
   describe('Auto-Save Behavior', () => {
     /**
+     * Review 4.10: resetting a PAUSED clock changes no field the immediate tier used to
+     * watch, so the reset was never saved; status and period are watched now.
+     * @critical
+     */
+    it('saves a reset of a paused clock', async () => {
+      const { saveGame } = jest.requireMock('@/utils/savedGames');
+      const paused = createMockGameSessionState({ gameStatus: 'inProgress', currentPeriod: 1, timeElapsedInSeconds: 600, isTimerRunning: false });
+      const base = createMockParams({
+        currentGameId: 'game123',
+        initialLoadComplete: true,
+        appliedGameId: 'game123',
+        savedGames: { game123: { gameStatus: 'inProgress', timeElapsedInSeconds: 600 } as unknown as AppState },
+        gameSessionState: paused,
+      });
+      const { rerender } = renderHook((props: UseGamePersistenceParams) => useGamePersistence(props), {
+        wrapper: createWrapper(), initialProps: base,
+      });
+      await act(async () => {});
+      (saveGame as jest.Mock).mockClear();
+      const reset = { ...paused, gameStatus: 'notStarted' as const, currentPeriod: 1, timeElapsedInSeconds: 0 };
+      rerender({ ...base, gameSessionState: reset });
+      await waitFor(() => expect(saveGame).toHaveBeenCalled());
+      const savedState = (saveGame as jest.Mock).mock.calls.at(-1)[1] as AppState;
+      expect(savedState).toMatchObject({ gameStatus: 'notStarted', timeElapsedInSeconds: 0 });
+    });
+
+    /**
      * Tests that auto-save is enabled for non-default games
      * @integration
      */
