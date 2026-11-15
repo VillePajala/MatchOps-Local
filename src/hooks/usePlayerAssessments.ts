@@ -34,6 +34,7 @@ export function usePlayerAssessments(gameId: string, intervals?: IntervalLog[]) 
     if (!gameId) return;
     let current = true;
     setLoading(true);
+    setError(null);
     setLoadedForGameId(null);
     getPlayerAssessments(gameId)
       .then(data => {
