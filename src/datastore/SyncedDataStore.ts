@@ -770,11 +770,35 @@ export class SyncedDataStore implements DataStore {
   }
 
   async deleteSeason(id: string): Promise<boolean> {
+    const linked = await this.adjustmentsLinkedTo('seasonId', id);
     const deleted = await this.localStore.deleteSeason(id);
     if (deleted) {
       await this.queueSync('season', id, 'delete', null);
+      await this.queueUnlinkedAdjustments(linked, 'seasonId');
     }
     return deleted;
+  }
+
+  /** External games pointing at a season/tournament, read before it is deleted. */
+  private async adjustmentsLinkedTo(field: 'seasonId' | 'tournamentId', id: string): Promise<PlayerStatAdjustment[]> {
+    try {
+      return [...(await this.localStore.getAllPlayerAdjustments()).values()].flat().filter((a) => a[field] === id);
+    } catch (error) {
+      logger.warn('[SyncedDataStore] Could not read external games before a delete - their unlink is not queued', { field, error });
+      return [];
+    }
+  }
+
+  /**
+   * Queue the unlinked version of each external game (review 3.19). The local store
+   * unlinks them; without this, an edit queued earlier (offline) still carries the
+   * deleted id - the season delete syncs first and that edit is then rejected (23503).
+   * The newer queued op replaces the stale one.
+   */
+  private async queueUnlinkedAdjustments(linked: PlayerStatAdjustment[], field: 'seasonId' | 'tournamentId'): Promise<void> {
+    for (const adjustment of linked) {
+      await this.queueSync('playerAdjustment', adjustment.id, 'update', { ...adjustment, [field]: undefined });
+    }
   }
 
   async upsertSeason(season: Season): Promise<Season> {
@@ -810,9 +834,11 @@ export class SyncedDataStore implements DataStore {
   }
 
   async deleteTournament(id: string): Promise<boolean> {
+    const linked = await this.adjustmentsLinkedTo('tournamentId', id);
     const deleted = await this.localStore.deleteTournament(id);
     if (deleted) {
       await this.queueSync('tournament', id, 'delete', null);
+      await this.queueUnlinkedAdjustments(linked, 'tournamentId');
     }
     return deleted;
   }

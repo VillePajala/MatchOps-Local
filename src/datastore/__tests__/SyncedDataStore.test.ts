@@ -399,6 +399,26 @@ describe('SyncedDataStore', () => {
     });
   });
 
+  /**
+   * Review 3.19 (Codex): an external-game edit queued offline still carried the
+   * season's id; deleting the season must queue the unlinked version, or the season
+   * delete syncs first and the stale edit is rejected.
+   * @critical
+   */
+  it.each(['season', 'tournament'] as const)('deleting a %s queues the unlinked version of its external games', async (kind) => {
+    const field = kind === 'season' ? 'seasonId' : 'tournamentId';
+    const parent = kind === 'season'
+      ? await store.createSeason('Probe season')
+      : await store.createTournament('Probe tournament');
+    const adj = await store.addPlayerAdjustment({ playerId: 'p1', [field]: parent.id, gamesPlayedDelta: 1, goalsDelta: 3, assistsDelta: 0 });
+    if (kind === 'season') await store.deleteSeason(parent.id); else await store.deleteTournament(parent.id);
+    const ops = await (store as unknown as { syncQueue: SyncQueue }).syncQueue.getAllOperations();
+    const adjOp = ops.find((o) => o.entityType === 'playerAdjustment' && o.entityId === adj.id);
+    expect(adjOp).toBeDefined();
+    expect((adjOp!.data as Record<string, unknown>)[field]).toBeUndefined();
+    expect((adjOp!.data as Record<string, unknown>).goalsDelta).toBe(3);
+  });
+
   describe('Lifecycle', () => {
     it('should initialize successfully', async () => {
       const newStore = new SyncedDataStore();

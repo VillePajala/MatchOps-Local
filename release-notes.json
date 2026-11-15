@@ -4,6 +4,15 @@
     {
       "date": "2026-11-15",
       "en": [
+        "Deleting a season or tournament now also unlinks the external games that belonged to it on this device, so editing those games afterwards saves to the cloud again."
+      ],
+      "fi": [
+        "Sarjan tai turnauksen poistaminen irrottaa nyt myös siihen kuuluneet ulkopuoliset ottelut tällä laitteella, joten niiden muokkaukset tallentuvat taas pilveen."
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "en": [
         "Clearing the score or note of an external game now also clears it in the cloud, so the old values no longer come back after a restart or on your other devices."
       ],
       "fi": [
