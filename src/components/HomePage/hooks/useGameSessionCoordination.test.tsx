@@ -670,6 +670,7 @@ describe('useGameSessionCoordination', () => {
         shootoutKicks: [{ team: 'home', scored: true }] as never,
         timeElapsedInSeconds: 1234,
         homeScore: 2,
+        gameStatus: 'inProgress', // differs from the initial state, so the clock is set too
       } as Partial<AppState>);
       const { result } = renderHook(() => useGameSessionCoordination({ initialState: createAppState() }));
       act(() => { result.current.applyHistoryState(live); }); // the live game, fully set
@@ -690,6 +691,28 @@ describe('useGameSessionCoordination', () => {
       expect(state.wentToPenalties).toBe(true);
       expect(state.shootoutKicks).toHaveLength(1);
       expect(state.timeElapsedInSeconds).toBe(1234);
+    });
+
+    /**
+     * Review 4.3: undo within the same period never rewinds the clock (a pause at
+     * 19:30 then Undo set it back to the 08:00 goal entry); crossing a period start or
+     * end still restores it, so clock and period match.
+     * @critical
+     */
+    it('keeps the live clock when undoing within the same period, restores it across periods', () => {
+      const { result } = renderHook(() => useGameSessionCoordination({ initialState: createAppState() }));
+      const at = (t: number, period: number, status: AppState['gameStatus']) =>
+        createAppState({ timeElapsedInSeconds: t, currentPeriod: period, gameStatus: status } as Partial<AppState>);
+      act(() => { result.current.applyHistoryState(at(1170, 1, 'inProgress')); }); // paused at 19:30
+      expect(result.current.gameSessionState.timeElapsedInSeconds).toBe(1170);
+
+      act(() => { result.current.applyHistoryState(at(480, 1, 'inProgress')); }); // undo to the 08:00 goal
+      expect(result.current.gameSessionState.timeElapsedInSeconds).toBe(1170);
+
+      act(() => { result.current.applyHistoryState(at(1200, 1, 'periodEnd')); }); // a different status
+      expect(result.current.gameSessionState.timeElapsedInSeconds).toBe(1200);
+      act(() => { result.current.applyHistoryState(at(1300, 2, 'inProgress')); }); // a different period
+      expect(result.current.gameSessionState.timeElapsedInSeconds).toBe(1300);
     });
 
     it('still clears a field the history entry has as undefined (undo of "set team")', () => {

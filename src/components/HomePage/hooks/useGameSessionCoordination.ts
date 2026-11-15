@@ -478,6 +478,10 @@ export function useGameSessionCoordination({
   }, [dispatchGameSession]);
 
   // --- Apply History State Helper ---
+  // The live session for applyHistoryState (a ref: it must not re-create the callback).
+  const liveSessionRef = useRef(gameSessionState);
+  useEffect(() => { liveSessionRef.current = gameSessionState; }, [gameSessionState]);
+
   /**
    * Applies history state to restore game session
    *
@@ -554,6 +558,15 @@ export function useGameSessionCoordination({
     const present = Object.fromEntries(
       Object.entries(payload).filter(([key]) => key in state),
     ) as Partial<GameSessionState>;
+    // The match clock is not undoable within a period (review 4.3): the clock time in
+    // an older entry is when that entry was made, not now. Undoing while paused
+    // rewound the clock (a pause at 19:30, undo -> 08:00, Start counted from there)
+    // and the next autosave saved that. Restored only when the undo crosses a period
+    // start/end, so clock and period stay consistent.
+    const live = liveSessionRef.current;
+    if (present.currentPeriod === live.currentPeriod && present.gameStatus === live.gameStatus) {
+      delete present.timeElapsedInSeconds;
+    }
     dispatchGameSession({ type: 'LOAD_STATE_FROM_HISTORY', payload: present });
   }, [dispatchGameSession]);
 
