@@ -424,6 +424,17 @@ describe('useGamePersistence', () => {
         expect(saved.isPlayed).toBe(false);
       });
 
+      it('promotes a note-only write-up once the match day has passed', async () => {
+        const notes = [{ id: 'n1', type: 'note', time: 0 }];
+        const saved = await save(createMockParams({
+          currentGameId: 'game123',
+          isPlayed: false,
+          savedGames: { game123: { gameDate: '2020-01-01', gameEvents: notes, timeElapsedInSeconds: 0, isPlayed: false } as unknown as AppState },
+          gameSessionState: createMockGameSessionState({ gameDate: '2020-01-01', gameEvents: notes as never, timeElapsedInSeconds: 0 }),
+        }));
+        expect(saved.isPlayed).toBe(true);
+      });
+
       it('promotes a booked fixture to played once its clock first runs', async () => {
         const saved = await save(createMockParams({
           currentGameId: 'game123',

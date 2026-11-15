@@ -249,9 +249,12 @@ export function useGamePersistence({
       // clock time or events and is not played, the coach chose "Not played yet" (a
       // test run, the wrong fixture) - promoting it again on every save silently put it
       // back in the record while the switch still said "not played".
+      // The stored side is checked for HARD evidence only (clock time or real events -
+      // no `today`, so notes do not count): note-only evidence appears when the match
+      // day passes, and the stored copy would show it too, blocking that promotion.
       isPlayed: isPlayed || (
         hasBeenPlayed(persistedGameSessionState, todayIso())
-        && !hasBeenPlayed(savedGames[currentGameId ?? ''] ?? {}, todayIso())
+        && !hasBeenPlayed(savedGames[currentGameId ?? ''] ?? {})
       ),
       // isFriendly is game metadata, not part of the live session reducer, so a
       // full-overwrite autosave would otherwise silently drop it. Preserve it
