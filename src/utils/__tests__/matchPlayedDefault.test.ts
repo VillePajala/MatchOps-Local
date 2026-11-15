@@ -50,10 +50,10 @@ describe('hasBeenPlayed', () => {
     expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: notes })).toBe(false); // no date known
   });
 
-  it('a note written on or after the match day (a write-up) still means it was played', () => {
+  it('a note on the match day itself (a lineup reminder) does not; after it (a write-up) does', () => {
     const notes = [{ type: 'note' }];
-    expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: notes, gameDate: '2026-11-21' }, '2026-11-21')).toBe(true);
-    expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: notes, gameDate: '2026-11-21' }, '2026-11-23')).toBe(true);
+    expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: notes, gameDate: '2026-11-21' }, '2026-11-21')).toBe(false);
+    expect(hasBeenPlayed({ timeElapsedInSeconds: 0, gameEvents: notes, gameDate: '2026-11-21' }, '2026-11-22')).toBe(true);
   });
 
   it('a note together with a goal still means it was played', () => {
