@@ -506,6 +506,49 @@ describe('Saved Games Utilities', () => {
       expect(mockDataStore.saveGame).toHaveBeenCalledWith(gameIdToUpdate, expect.objectContaining(updates));
     });
 
+    /**
+     * Review 4.33b: a Match details update waits for an autosave already writing the
+     * same game, then reads the RESULT of that save - it used to read first and write
+     * back the older status/clock/events over it. Two quick updates keep both fields.
+     * @critical
+     */
+    it('reads only after an in-flight save of the same game has landed', async () => {
+      let stored: AppState = { ...mockGame1_AppState, gameStatus: 'inProgress', timeElapsedInSeconds: 100 } as AppState;
+      let releaseSave: () => void = () => {};
+      let markSaveStarted: () => void = () => {};
+      const saveStarted = new Promise<void>((r) => { markSaveStarted = r; });
+      mockDataStore.getGameById.mockImplementation(async () => stored);
+      let holdFirstSave = true; // only the autosave is held; the details write (which carries its 900) is not
+      mockDataStore.saveGame.mockImplementation(async (_id: string, game: AppState) => {
+        if (holdFirstSave) {
+          holdFirstSave = false;
+          const released = new Promise<void>((r) => { releaseSave = r; });
+          markSaveStarted();
+          await released;
+        }
+        stored = game;
+        return game;
+      });
+      const autosave = saveGame('game_123', { ...stored, gameStatus: 'periodEnd', timeElapsedInSeconds: 900 } as AppState);
+      const details = updateGameDetails('game_123', { opponentName: 'Late Edit' });
+      await saveStarted; // the autosave holds the game's write queue
+      expect(mockDataStore.getGameById).not.toHaveBeenCalled(); // queued behind the save
+      releaseSave();
+      await Promise.all([autosave, details]);
+      expect(stored).toMatchObject({ gameStatus: 'periodEnd', timeElapsedInSeconds: 900, opponentName: 'Late Edit' });
+    });
+
+    it('two quick Match details updates keep both fields', async () => {
+      let stored: AppState = { ...mockGame1_AppState } as AppState;
+      mockDataStore.getGameById.mockImplementation(async () => stored);
+      mockDataStore.saveGame.mockImplementation(async (_id: string, game: AppState) => { stored = game; return game; });
+      await Promise.all([
+        updateGameDetails('game_123', { gameLocation: 'Field A' }),
+        updateGameDetails('game_123', { gameTime: '18:30' }),
+      ]);
+      expect(stored).toMatchObject({ gameLocation: 'Field A', gameTime: '18:30' });
+    });
+
     it('should resolve with null if game to update is not found', async () => {
       mockDataStore.getGameById.mockResolvedValue(null);
       const updates: Partial<AppState> = { teamName: 'Does Not Matter' };
