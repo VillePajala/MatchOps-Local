@@ -129,7 +129,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
       aria-label={t('shootoutModal.title', 'Penalty Shootout')}
     >
       <div className="bg-slate-800 shadow-xl flex flex-col border-0 overflow-hidden h-full w-full relative">
-        {/* Chrome slimming: full-screen X-header (Cancel folds into the X);
+        {/* Chrome slimming: full-screen X-header (the X closes and keeps the kicks, 4.35);
             the instructions line collapses on scroll. */}
         <CollapsibleModalHeader
           title={t('shootoutModal.title', 'Penalty Shootout')}
@@ -285,7 +285,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
           </div>
         </div>
 
-        {/* Sticky primary in the thumb zone. Cancel lives in the header X. */}
+        {/* Sticky primary in the thumb zone. Close (keeps the kicks) lives in the header X. */}
         <ModalStickyPrimary onClick={handleSave}>
           {t('common.save', 'Save')}
         </ModalStickyPrimary>

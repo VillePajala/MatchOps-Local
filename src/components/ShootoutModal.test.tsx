@@ -131,6 +131,23 @@ describe('ShootoutModal', () => {
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
+  it('hardware back keeps the recorded kicks', () => {
+    __resetModalHardwareBackForTests();
+    const pushSpy = jest.spyOn(window.history, 'pushState').mockImplementation(() => {});
+    const backSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+    try {
+      const { onSave, onClose } = renderModal();
+      fireEvent.click(screen.getAllByRole('button', { name: 'Scored' })[0]);
+      act(() => { window.dispatchEvent(new PopStateEvent('popstate')); });
+      expect(onSave).toHaveBeenCalledTimes(1);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      pushSpy.mockRestore();
+      backSpy.mockRestore();
+      __resetModalHardwareBackForTests();
+    }
+  });
+
   it('closing an untouched window saves nothing', () => {
     const { onSave, onClose } = renderModal();
     fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
