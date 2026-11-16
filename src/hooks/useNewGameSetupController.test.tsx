@@ -115,7 +115,8 @@ describe('useNewGameSetupController (L.3b level crossing)', () => {
     });
     // Same pre-switch hygiene as picking a saved game (L.3a).
     expect(clearTimerState).toHaveBeenCalledWith('user-1');
-    expect(clearTimerAnchor).toHaveBeenCalled();
+    // Anchors are per game (review 4.22): the previous match's running clock is kept.
+    expect(clearTimerAnchor).not.toHaveBeenCalled();
     expect(mockedSaveGame).toHaveBeenCalledWith(expect.stringMatching(/^game_/), expect.any(Object), 'user-1');
     expect(saveCurrentGameIdSetting).toHaveBeenCalledWith(expect.stringMatching(/^game_/), 'user-1');
     expect(onGameCreated).toHaveBeenCalledWith(expect.stringMatching(/^game_/));

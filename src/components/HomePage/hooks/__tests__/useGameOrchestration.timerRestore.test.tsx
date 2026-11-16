@@ -397,8 +397,9 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
       expect(result.current.modalManagerProps.data.gameSessionState.gameStatus).toBe('inProgress');
       expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(true);
     }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
-    // Anchor consumed so it can't be replayed.
-    expect(window.localStorage.getItem('matchops_timer_anchor')).toBeNull();
+    // Kept while the clock runs (review 4.22): a second remount before the next
+    // tick must be able to recover it too.
+    expect(window.localStorage.getItem('matchops_timer_anchor')).toContain(GAME_ID);
   });
 
   /**
@@ -428,8 +429,8 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
   });
 
   /**
-   * @edge-case - A stale anchor left by a DIFFERENT game must not correct/resume
-   * the loaded game; it is ignored (and cleared).
+   * @edge-case - An anchor of a DIFFERENT game must not correct/resume the loaded
+   * game; it is ignored and kept for its own game.
    */
   it('ignores an anchor whose gameId does not match the loaded game', async () => {
     mockLoadTimerStateForGame.mockResolvedValue(null);
@@ -445,8 +446,9 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
       expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBe(900);
     }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
     expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(false);
-    // Stale foreign anchor consumed so it can't linger.
-    expect(window.localStorage.getItem('matchops_timer_anchor')).toBeNull();
+    // Another game's anchor is that game's running clock (review 4.22): left alone,
+    // and never applied to this one.
+    expect(window.localStorage.getItem('matchops_timer_anchor')).toContain('some-other-game');
   });
 
   /**
@@ -461,5 +463,147 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
       expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBe(900);
     }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
     expect(mockClearTimerState).toHaveBeenCalled();
+  });
+});
+
+/**
+ * Lifecycle scenario bench (review 4.21). Each scenario is a coach-level story
+ * of the phone locking, the app being killed or the match view remounting.
+ * `it.failing` marks a scenario that is broken today; the fix that repairs it
+ * (item named in the title) turns it into a plain `it`.
+ * @critical @integration
+ */
+describe('timer lifecycle scenarios (review 4.21 bench)', () => {
+  let queryClient: QueryClient;
+  const GAME_A = 'game-a';
+  const GAME_B = 'game-b';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    window.localStorage.clear();
+    mockLoadTimerStateForGame.mockResolvedValue(null);
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
+    });
+  });
+
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  const seed = (games: Record<string, AppState>, currentGameId: string) => {
+    mockGetSavedGames.mockResolvedValue(games);
+    mockUseGameDataQueries.mockReturnValue(gameDataQueriesResult(games, currentGameId));
+  };
+  const seedAnchor = (gameId: string, elapsedSeconds: number, agoMs: number) => {
+    window.localStorage.setItem(
+      'matchops_timer_anchor',
+      JSON.stringify({ gameId, elapsedSeconds, wallClockMs: Date.now() - agoMs })
+    );
+  };
+  const mount = async () => {
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const view = renderHook(() => useGameOrchestration({ skipInitialSetup: true }), { wrapper: Wrapper });
+    await waitFor(() => expect(view.result.current.isBootstrapping).toBe(false), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    return view;
+  };
+  const session = (view: { result: { current: ReturnType<typeof useGameOrchestration> } }) =>
+    view.result.current.modalManagerProps.data.gameSessionState;
+
+  /**
+   * Phone locked at 10:00 of a 2x15 first half, WebView killed, reopened after the
+   * half ended. Must come back as a real half-time at 15:00, so one tap on "Start
+   * Period 2" starts the second half - not a "Start" at 15:00 that runs 1 s and stops.
+   */
+  it.failing('4.26 - killed through the end of a half, reopens as half-time at the boundary', async () => {
+    seed({ [GAME_A]: createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 600 }) }, GAME_A);
+    seedAnchor(GAME_A, 600, 20 * 60 * 1000);
+    const view = await mount();
+    await waitFor(() => expect(session(view).timeElapsedInSeconds).toBe(900), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    expect(session(view).isTimerRunning).toBe(false);
+    expect(session(view).gameStatus).toBe('periodEnd');
+  });
+
+  /**
+   * Phone locked mid-period; on return the match view remounts twice in quick
+   * succession (a resume refresh and a sync remount). The second mount must still
+   * recover the running clock - the recovery record must not be spent on the first.
+   */
+  it('4.22 - two remounts in a row both recover the running clock', async () => {
+    seed({ [GAME_A]: createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 300 }) }, GAME_A);
+    seedAnchor(GAME_A, 300, 60_000);
+    const first = await mount();
+    await waitFor(() => expect(session(first).isTimerRunning).toBe(true), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    first.unmount(); // before the first tick rewrites the record
+    const second = await mount();
+    await waitFor(() => {
+      expect(session(second).timeElapsedInSeconds).toBeGreaterThanOrEqual(360);
+      expect(session(second).isTimerRunning).toBe(true);
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    second.unmount();
+  });
+
+  /**
+   * Match A is running; the coach goes Home and opens game B to check its line-up.
+   * Opening B must not destroy A's running-clock record, or A comes back at its last
+   * saved time (often 00:00) when the coach returns to it.
+   */
+  it('4.22/4.29 - opening another game keeps the running game\'s clock record', async () => {
+    const games = {
+      [GAME_A]: createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 0 }),
+      [GAME_B]: createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 0, gameStatus: 'notStarted' }),
+    };
+    seed(games, GAME_B);
+    seedAnchor(GAME_A, 1200 - 900, 0); // A running at 05:00 right now
+    const view = await mount();
+    await waitFor(() => expect(session(view).gameStatus).toBe('notStarted'), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    expect(session(view).isTimerRunning).toBe(false); // never applied to B
+    expect(window.localStorage.getItem('matchops_timer_anchor')).toContain(GAME_A);
+    view.unmount();
+  });
+
+  /**
+   * The intended other half of the previous scenario: A was running while the coach
+   * looked at B for 3 minutes - the real match kept going - so returning to A counts
+   * those minutes and the clock carries on running (capped at the period end).
+   */
+  it('4.29 - returning to the running game after 3 min away counts the time and keeps running', async () => {
+    seed({ [GAME_A]: createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 120 }) }, GAME_A);
+    seedAnchor(GAME_A, 300, 3 * 60 * 1000); // A at 05:00 when the coach left, 3 min ago
+    const view = await mount();
+    await waitFor(() => {
+      expect(session(view).timeElapsedInSeconds).toBeGreaterThanOrEqual(480);
+      expect(session(view).isTimerRunning).toBe(true);
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    expect(session(view).timeElapsedInSeconds).toBeLessThan(900);
+    view.unmount();
+  });
+
+  /**
+   * A game abandoned mid-period (phone died, another game opened and never returned
+   * to) and opened again the next day: its old anchor must not jump the clock to the
+   * period end - the game opens at its last saved time, paused.
+   */
+  it('4.22 review - an anchor older than any real match is ignored', async () => {
+    seed({ [GAME_A]: createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 300 }) }, GAME_A);
+    seedAnchor(GAME_A, 300, 26 * 60 * 60 * 1000);
+    const view = await mount();
+    await waitFor(() => expect(session(view).timeElapsedInSeconds).toBe(300), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    expect(session(view).isTimerRunning).toBe(false);
+    view.unmount();
+  });
+
+  /**
+   * Paused at 12:34.5, then a reload. Comes back paused at the same time and does not
+   * start by itself.
+   */
+  it('paused across a reload comes back paused at the same time', async () => {
+    seed({ [GAME_A]: createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 754.5 }) }, GAME_A);
+    const view = await mount();
+    await waitFor(() => expect(session(view).timeElapsedInSeconds).toBe(754.5), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    expect(session(view).isTimerRunning).toBe(false);
+    view.unmount();
   });
 });

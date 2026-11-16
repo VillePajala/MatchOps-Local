@@ -120,17 +120,14 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flush
         await queryClient.invalidateQueries({
           queryKey: [...queryKeys.appSettingsCurrentGameId, userId],
         });
-        // Pre-switch hygiene AFTER the persist is known good (M6): stale
-        // timer state or a wall-clock anchor from the previous game must not
-        // replay onto the newly opened one - but a failed persist must not
-        // cost the STILL-CURRENT game its crash-recovery records.
-        // ...except when the coach re-opens the match whose clock is running (review
-        // 4.11): its recovery anchor IS this game's live clock. Clearing it brought the
-        // match back at the last save's time, paused - 00:00 if nothing had been saved
-        // since kick-off - where the Continue card resumes it.
-        if (readTimerAnchor()?.gameId !== gameId) {
+        // Pre-switch hygiene AFTER the persist is known good (M6): the single-slot
+        // IndexedDB timer record of the previous game must not replay onto the newly
+        // opened one - unless the coach re-opens the match whose clock is running
+        // (review 4.11). Wall-clock anchors are per game (review 4.22) and are left
+        // alone: the previous game's anchor is its running clock, which it needs when
+        // the coach comes back to it, and it can never apply to this game.
+        if (!readTimerAnchor(gameId)) {
           await clearTimerState(userId);
-          clearTimerAnchor();
         }
         onEnterMatch();
       } catch (error) {
@@ -157,6 +154,7 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flush
       try {
         const deletedGameId = await utilDeleteGame(gameId, userId);
         if (deletedGameId) {
+          clearTimerAnchor(gameId); // a deleted game's clock can never resume
           // Planner bookkeeping: drop the game's planned-sub schedule and plan
           // link so they don't accumulate as orphans (best-effort).
           try {

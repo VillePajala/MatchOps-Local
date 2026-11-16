@@ -4,6 +4,17 @@
     {
       "date": "2026-11-16",
       "en": [
+        "The match clock no longer stops when the app reloads twice in a row after the phone was locked.",
+        "Opening another game during a match no longer resets the running match's clock."
+      ],
+      "fi": [
+        "Ottelukello ei enää pysähdy, kun sovellus latautuu kahdesti peräkkäin puhelimen lukituksen jälkeen.",
+        "Toisen ottelun avaaminen kesken pelin ei enää nollaa käynnissä olevan ottelun kelloa."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Changing the substitution interval during a match now counts from the last confirmed substitution, so the reminder no longer moves when the app reloads."
       ],
       "fi": [
