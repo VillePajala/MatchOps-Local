@@ -59,6 +59,37 @@ describe('useGameSessionWithHistory with the real reducer', () => {
     expect(saveToHistory).not.toHaveBeenCalled();
   });
 
+  /**
+   * Review 4.33: a coach action followed by a clock tick before the effect ran still
+   * gets its history entry (the tick used to become the last action and skip it).
+   * @critical
+   */
+  it('a coach action followed by a tick in the same batch is still saved', () => {
+    const { result, saveToHistory } = setup();
+    act(() => {
+      result.current[1]({ type: 'APPLY_REPORT_DRAFT', payload: { gameNotes: 'Draft' } });
+      result.current[1]({ type: 'SET_TIMER_ELAPSED', payload: 5 });
+    });
+    expect(saveToHistory).toHaveBeenCalledTimes(1);
+    expect(saveToHistory.mock.calls[0][0].gameNotes).toBe('Draft');
+  });
+
+  it('a no-op coach action leaves no pending entry for the next tick', () => {
+    const { result, saveToHistory } = setup();
+    act(() => { result.current[1]({ type: 'SET_HOME_OR_AWAY', payload: result.current[0].homeOrAway }); }); // already chosen
+    act(() => { result.current[1]({ type: 'START_TIMER' }); }); // a system action that DOES change state
+    expect(saveToHistory).not.toHaveBeenCalled();
+  });
+
+  it('a pending entry is dropped when the session is replaced by a load', () => {
+    const { result, saveToHistory } = setup();
+    act(() => {
+      result.current[1]({ type: 'APPLY_REPORT_DRAFT', payload: { gameNotes: 'Draft' } });
+      result.current[1]({ type: 'LOAD_GAME_SESSION_STATE', payload: { gameNotes: 'Loaded' } });
+    });
+    expect(saveToHistory).not.toHaveBeenCalled();
+  });
+
   it('a system action (timer tick) saves nothing', () => {
     const { result, saveToHistory } = setup();
     act(() => { result.current[1]({ type: 'SET_TIMER_ELAPSED', payload: 5 }); });

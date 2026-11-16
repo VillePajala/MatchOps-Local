@@ -142,6 +142,13 @@ export interface UseGameSessionWithHistoryOptions {
  * this, undoing the first sub after kick-off landed on a "not started" entry and kept
  * the mistaken confirmation; after a Reset, an older entry's sub times came back.
  */
+/** Actions that replace the session wholesale: an entry still pending from before is
+ *  dropped, never saved over the loaded state. */
+const STATE_REPLACING_ACTIONS: ReadonlySet<string> = new Set([
+  'LOAD_STATE_FROM_HISTORY', 'LOAD_GAME_SESSION_STATE', 'LOAD_PERSISTED_GAME_DATA',
+  'RESET_TO_INITIAL_STATE', 'RESET_GAME_SESSION_STATE',
+]);
+
 const PHASE_ACTIONS: ReadonlySet<string> = new Set([
   'START_PERIOD', 'END_PERIOD_OR_GAME', 'CONTINUE_CLOCK', 'PAUSE_TIMER', 'RESUME_GAME', 'RESET_TIMER_ONLY',
 ]);
@@ -154,7 +161,18 @@ export function useGameSessionWithHistory(
   options: UseGameSessionWithHistoryOptions
 ): [GameSessionState, GameSessionDispatch] {
   const { buildHistorySlice, saveToHistory, patchCurrentHistory } = options;
+  // A coach action whose history entry is still to be saved (review 4.33). Looking at
+  // the LAST action type alone skipped the entry when an async action (dispatched after
+  // an await, e.g. deleting a goal) was followed by a clock tick before the effect ran:
+  // the tick became the last action. A later undo then restored the deleted goal.
+  // Set only when the action CHANGES the state (checked in dispatch with the pure
+  // reducer against the last committed state): a no-op (e.g. choosing the side already
+  // chosen) runs no effect, and a flag left set would turn the next tick into an undo
+  // step that reverts nothing.
+  const pendingHistoryRef = useRef(false);
   const [state, dispatch] = useReducer(gameSessionReducer, initialState);
+  const committedStateRef = useRef(state);
+  useEffect(() => { committedStateRef.current = state; }, [state]);
 
   // Track the last action type to determine if we should save history
   const lastActionTypeRef = useRef<string | null>(null);
@@ -162,6 +180,12 @@ export function useGameSessionWithHistory(
   // Enhanced dispatch that tracks action types
   const enhancedDispatch: GameSessionDispatch = useCallback((action: GameSessionAction) => {
     lastActionTypeRef.current = action.type;
+    if (HISTORY_SAVING_ACTIONS.has(action.type)) {
+      const base = committedStateRef.current;
+      if (gameSessionReducer(base, action) !== base) pendingHistoryRef.current = true;
+    } else if (STATE_REPLACING_ACTIONS.has(action.type)) {
+      pendingHistoryRef.current = false;
+    }
     dispatch(action);
   }, [dispatch]);
 
@@ -198,6 +222,14 @@ export function useGameSessionWithHistory(
       return;
     }
 
+    // A coach action still owes its history entry - save it even if a system action
+    // (a clock tick) has become the last action since.
+    if (pendingHistoryRef.current) {
+      pendingHistoryRef.current = false;
+      saveToHistoryRef.current(buildHistorySliceRef.current(state));
+      return;
+    }
+
     // Skip if it's a non-history action - but a clock/period transition updates the
     // current entry's phase in place (see PHASE_ACTIONS).
     if (NO_HISTORY_ACTIONS.has(lastAction)) {
@@ -223,11 +255,6 @@ export function useGameSessionWithHistory(
       );
     }
 
-    // Only save for history-saving actions
-    if (HISTORY_SAVING_ACTIONS.has(lastAction)) {
-      const historySlice = buildHistorySliceRef.current(state);
-      saveToHistoryRef.current(historySlice);
-    }
 
     // Don't clear the action type - it naturally gets overwritten by the next dispatch.
     // Clearing it could cause race conditions with rapid successive actions where the

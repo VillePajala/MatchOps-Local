@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { flushSync } from 'react-dom';
-import { saveTimerState, clearTimerState, TimerState } from '@/utils/timerStateManager';
+import { saveTimerState, clearTimerState } from '@/utils/timerStateManager';
 import { setMatchTimerRunning, setMatchLive } from '@/utils/matchTimerSignal';
 import { writeTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
 import { useWakeLock } from './useWakeLock';
@@ -20,7 +20,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
 
   // Debounce timer for IndexedDB writes (reduce write frequency)
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const SAVE_DEBOUNCE_MS = 2000; // 2 second debounce
+  const DOUBLE_TAP_GUARD_MS = 600;
 
   // Store precision timer reference for precise pause timing and background re-anchoring
   const precisionTimerRef = useRef<{
@@ -111,6 +111,13 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
       // Use proper START_TIMER/PAUSE_TIMER actions instead of SET_TIMER_RUNNING
       // to ensure startTimestamp is correctly managed
       if (isTimerRunning) {
+        // A double-tap on Start / Start Period 2 (review 4.33): the same button turns
+        // into Pause under the finger, so the second tap paused the clock it had just
+        // started. A pause within this window of starting is that second tap.
+        const startedAt = stateRef.current.startTimestamp;
+        const sinceStart = startedAt === null ? Infinity : Date.now() - startedAt;
+        // >= 0: a wall clock stepped backwards must not swallow every pause.
+        if (sinceStart >= 0 && sinceStart < DOUBLE_TAP_GUARD_MS) return;
         // Get precise current time from precision timer to prevent race conditions
         const preciseTime = precisionTimerRef.current?.getCurrentTime();
         dispatch({ type: 'PAUSE_TIMER', payload: preciseTime });
@@ -125,15 +132,16 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   }, [dispatch, gameStatus, isTimerRunning, currentPeriod, numberOfPeriods, periodDurationMinutes, subIntervalMinutes, currentGameId]);
 
   const reset = useCallback(async () => {
-    // Clear timer state from IndexedDB
-    await clearTimerState();
+    // Reset NOW, in the tap (review 4.33): awaiting IndexedDB first kept the clock
+    // running until it answered (mobile IndexedDB stalls), and a tick in that gap
+    // could rewrite the anchor after it was cleared.
     if (currentGameId) clearTimerAnchor(currentGameId);
-    // Clear any pending debounced save
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
     }
     dispatch({ type: 'RESET_TIMER_ONLY' });
+    await clearTimerState();
   }, [dispatch, currentGameId]);
 
   /**
@@ -179,33 +187,16 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     const s = stateRef.current;
     const periodEnd = s.currentPeriod * s.periodDurationMinutes * 60;
 
-    // Save timer state with debouncing to reduce IndexedDB writes.
-    // Skip while hidden: the hide handler writes an authoritative wasRunning
-    // marker, and a throttled background tick must not overwrite it with a
-    // record that lacks wasRunning (which would break reload-time recovery).
-    if (currentGameId && !document.hidden) {
-      const timerState: TimerState = {
-        gameId: currentGameId,
-        timeElapsedInSeconds: elapsedSeconds,
-        timestamp: Date.now(),
-      };
-
-      // Refresh the durable wall-clock anchor synchronously every tick. Cheap
-      // (one localStorage write) and means a freeze/kill at any moment leaves a
-      // fresh anchor for boot to recover from. The hide handler also writes it.
-      if (elapsedSeconds < periodEnd) {
-        writeTimerAnchor(currentGameId, elapsedSeconds);
-      }
-
-      // Clear existing debounce timer
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-
-      // Set up debounced save
-      saveTimerRef.current = setTimeout(async () => {
-        await saveTimerState(timerState);
-      }, SAVE_DEBOUNCE_MS);
+    // Refresh the durable wall-clock anchor synchronously every tick. Cheap (one
+    // localStorage write) and means a freeze/kill at any moment leaves a fresh anchor
+    // for boot to recover from. The hide handler also writes it. Skipped while hidden:
+    // the hide handler wrote the authoritative one.
+    // (A debounced IndexedDB timer-state save used to sit here. Re-armed by every
+    // 1 s tick, its 2 s debounce only ever fired after the clock stopped, writing a
+    // record without wasRunning that boot ignores - dead weight, removed in 4.33. The
+    // IndexedDB record is written on hide only, as a fallback behind the anchor.)
+    if (currentGameId && !document.hidden && elapsedSeconds < periodEnd) {
+      writeTimerAnchor(currentGameId, elapsedSeconds);
     }
 
     // Check if period/game should end
