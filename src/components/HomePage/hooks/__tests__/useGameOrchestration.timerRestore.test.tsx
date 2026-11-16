@@ -10,7 +10,7 @@
  */
 
 import React from 'react';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useGameOrchestration } from '../useGameOrchestration';
 import type { AppState } from '@/types';
@@ -623,6 +623,29 @@ describe('timer lifecycle scenarios (review 4.21 bench)', () => {
     const view = await mount();
     await waitFor(() => expect(session(view).timeElapsedInSeconds).toBe(300), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
     expect(session(view).isTimerRunning).toBe(false);
+    view.unmount();
+  });
+
+  /**
+   * Review 4.32: the persisted game is not in a stale snapshot yet and a refetch is in
+   * flight. Boot must WAIT and then open that game - it used to mark the initial load
+   * complete while waiting, never decide again, and open the default game instead.
+   * @critical
+   */
+  it('4.32 - boot with an unsettled snapshot waits for the refetch and opens the persisted game', async () => {
+    const gameA = createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 300, opponentName: 'Rivals FC' });
+    mockGetSavedGames.mockResolvedValue({ [GAME_A]: gameA });
+    let snapshot = { ...gameDataQueriesResult({}, GAME_A), isSettling: true }; // stale, refetching
+    mockUseGameDataQueries.mockImplementation(() => snapshot);
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const view = renderHook(() => useGameOrchestration({ skipInitialSetup: true }), { wrapper: Wrapper });
+    await act(async () => { await Promise.resolve(); });
+    snapshot = { ...gameDataQueriesResult({ [GAME_A]: gameA }, GAME_A), isSettling: false }; // the refetch lands
+    view.rerender();
+    await waitFor(() => expect(session(view).opponentName).toBe('Rivals FC'), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    expect(session(view).timeElapsedInSeconds).toBe(300);
     view.unmount();
   });
 

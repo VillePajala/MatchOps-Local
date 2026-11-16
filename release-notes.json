@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Reopening the app while your games are still loading no longer opens an empty or wrong match."
+      ],
+      "fi": [
+        "Sovelluksen avaaminen pelien latautuessa ei enää avaa tyhjää tai väärää ottelua."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Closing the penalty shootout window, with back or the close button, now keeps the kicks you recorded."
       ],
       "fi": [
