@@ -10,6 +10,7 @@ import type { GameType, Gender } from '@/types/game';
 import { StatsTab, TournamentSeasonStats, OverallTournamentSeasonStats } from '../types';
 import { SavedGamesCollection } from '@/types';
 import { filterGameIds } from '../utils/gameFilters';
+import { resolveGameResult } from '@/utils/gameResult';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 
 interface UseTournamentSeasonStatsParams {
@@ -87,11 +88,11 @@ export function useTournamentSeasonStats(
             stats.goalsFor += game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
             stats.goalsAgainst += game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
 
-            const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-
-            if (ourScore > theirScore) stats.wins++;
-            else if (ourScore < theirScore) stats.losses++;
+            // A level game decided by a logged penalty shootout is a win/loss here too, as on
+            // the Overall tab and in the Excel export (review 5.1).
+            const result = resolveGameResult(game);
+            if (result === 'W') stats.wins++;
+            else if (result === 'L') stats.losses++;
             else stats.ties++;
 
             if (!stats.lastGameDate || game.gameDate > stats.lastGameDate) {
@@ -159,11 +160,11 @@ export function useTournamentSeasonStats(
             stats.goalsFor += game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
             stats.goalsAgainst += game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
 
-            const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-
-            if (ourScore > theirScore) stats.wins++;
-            else if (ourScore < theirScore) stats.losses++;
+            // A level game decided by a logged penalty shootout is a win/loss here too, as on
+            // the Overall tab and in the Excel export (review 5.1).
+            const result = resolveGameResult(game);
+            if (result === 'W') stats.wins++;
+            else if (result === 'L') stats.losses++;
             else stats.ties++;
 
             if (!stats.lastGameDate || game.gameDate > stats.lastGameDate) {
@@ -213,11 +214,11 @@ export function useTournamentSeasonStats(
             stats.goalsFor += game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
             stats.goalsAgainst += game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
 
-            const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-
-            if (ourScore > theirScore) stats.wins++;
-            else if (ourScore < theirScore) stats.losses++;
+            // A level game decided by a logged penalty shootout is a win/loss here too, as on
+            // the Overall tab and in the Excel export (review 5.1).
+            const result = resolveGameResult(game);
+            if (result === 'W') stats.wins++;
+            else if (result === 'L') stats.losses++;
             else stats.ties++;
 
             if (!stats.lastGameDate || game.gameDate > stats.lastGameDate) {
@@ -283,11 +284,11 @@ export function useTournamentSeasonStats(
             stats.goalsFor += game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
             stats.goalsAgainst += game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
 
-            const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-
-            if (ourScore > theirScore) stats.wins++;
-            else if (ourScore < theirScore) stats.losses++;
+            // A level game decided by a logged penalty shootout is a win/loss here too, as on
+            // the Overall tab and in the Excel export (review 5.1).
+            const result = resolveGameResult(game);
+            if (result === 'W') stats.wins++;
+            else if (result === 'L') stats.losses++;
             else stats.ties++;
 
             if (!stats.lastGameDate || game.gameDate > stats.lastGameDate) {
