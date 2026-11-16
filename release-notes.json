@@ -4,10 +4,10 @@
     {
       "date": "2026-11-16",
       "en": [
-        "Coming back to the app during a match no longer reloads the match screen: an open dialog, undo history and the screen-awake setting are kept."
+        "Briefly leaving the app during a match no longer reloads the match screen: an open dialog, undo history and the screen-awake setting are kept."
       ],
       "fi": [
-        "Sovellukseen palaaminen kesken ottelun ei enää lataa otteluruutua uudelleen: avoin ikkuna, kumoamishistoria ja näytön valveilla pito säilyvät."
+        "Sovelluksesta hetkeksi poistuminen kesken ottelun ei enää lataa otteluruutua uudelleen: avoin ikkuna, kumoamishistoria ja näytön valveilla pito säilyvät."
       ]
     },
     {

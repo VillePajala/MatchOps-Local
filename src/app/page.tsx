@@ -522,6 +522,10 @@ export default function Home() {
         .catch((setupErr) => logger.warn('Failed to compute recommended-setup signals', { error: setupErr }));
     } catch (error) {
       logger.warn('Failed to check initial game state', { error });
+      // A background re-check (app resume) that fails - a transient IndexedDB error
+      // on mobile - keeps the last known values instead of blanking them under a
+      // mounted match; the next refresh corrects them.
+      if (inBackground) return;
       setCanResume(false);
       setHasSavedGames(false);
       setHasPlayers(false);
