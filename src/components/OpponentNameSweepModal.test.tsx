@@ -186,6 +186,35 @@ describe('OpponentNameSweepModal', () => {
       );
     });
 
+    /**
+     * Review 7.14: renaming to a spelling another opponent already uses joins the
+     * two for good. It asks first; Cancel changes nothing, Merge applies.
+     * @critical
+     */
+    it('asks before merging into another opponent', async () => {
+      renderModal();
+      await waitFor(() =>
+        expect(screen.getByTestId('opponent-row-ips sininen')).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByTestId('opponent-row-toggle-ips sininen'));
+      fireEvent.change(screen.getByTestId('opponent-row-input-ips sininen'), { target: { value: 'IPS' } });
+      fireEvent.click(screen.getByTestId('opponent-row-apply-ips sininen'));
+
+      const warning = await screen.findByTestId('opponent-row-merge-ips sininen');
+      expect(warning).toHaveTextContent('3');
+      expect(mockSaveGame).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByTestId('opponent-row-merge-cancel-ips sininen'));
+      expect(screen.queryByTestId('opponent-row-merge-ips sininen')).not.toBeInTheDocument();
+      expect(mockSaveGame).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByTestId('opponent-row-apply-ips sininen'));
+      fireEvent.click(await screen.findByTestId('opponent-row-merge-confirm-ips sininen'));
+      await waitFor(() =>
+        expect(mockSaveGame).toHaveBeenCalledWith('g4', expect.objectContaining({ opponentName: 'IPS' }), 'user-1'),
+      );
+    });
+
     /** The blast radius is still one name, even from this section. */
     it('leaves every other team alone', async () => {
       renderModal();

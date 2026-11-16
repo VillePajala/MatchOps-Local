@@ -30,6 +30,23 @@ export interface OpponentRenamePlan {
 }
 
 /**
+ * The other opponent a rename would merge into, if any (review 7.14).
+ *
+ * Every tool works per normalised key, so renaming one opponent to a spelling
+ * another already uses joins the two for good - no later rename can tell their
+ * games apart again. The sweep asks before doing that.
+ */
+export function findMergeTarget<T extends { key: string }>(
+  fromKey: string,
+  newSpelling: string,
+  opponents: readonly T[],
+): T | null {
+  const newKey = normalizeOpponentName(newSpelling);
+  if (!newKey || newKey === normalizeOpponentName(fromKey)) return null;
+  return opponents.find((o) => o.key === newKey) ?? null;
+}
+
+/**
  * What a rename would touch.
  *
  * Matching is by normalised key, so every spelling of the name is caught; rows

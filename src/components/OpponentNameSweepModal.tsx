@@ -1,5 +1,6 @@
 'use client';
 
+import { findMergeTarget } from '@/utils/opponentRename';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
@@ -59,6 +60,9 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
   const [filter, setFilter] = useState('');
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameTo, setRenameTo] = useState('');
+  // A rename that would join two opponents waits for the coach's yes (review 7.14).
+  const [confirmMerge, setConfirmMerge] = useState<{ key: string; spelling: string; count: number } | null>(null);
+
   const visible = useMemo(() => {
     const needle = normalizeOpponentName(filter);
     return needle
@@ -212,6 +216,7 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                         onClick={() => {
                           setRenaming(open ? null : opponent.key);
                           setRenameTo(opponent.spelling);
+                          setConfirmMerge(null);
                         }}
                         data-testid={`opponent-row-toggle-${opponent.key}`}
                         className="w-full flex items-center justify-between gap-3 text-left"
@@ -226,14 +231,59 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                           <input
                             type="text"
                             value={renameTo}
-                            onChange={(e) => setRenameTo(e.target.value)}
+                            onChange={(e) => {
+                              setRenameTo(e.target.value);
+                              setConfirmMerge(null);
+                            }}
                             aria-label={t('opponentSweep.canonicalLabel', 'Spelling to keep')}
                             data-testid={`opponent-row-input-${opponent.key}`}
                             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           />
+                          {confirmMerge?.key === opponent.key ? (
+                            <div
+                              role="alertdialog"
+                              data-testid={`opponent-row-merge-${opponent.key}`}
+                              className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 space-y-2"
+                            >
+                              <p className="text-sm text-amber-100">
+                                {t('opponentSweep.mergeWarning', '"{{name}}" already has {{count}} games. Merge them? They cannot be split again.', {
+                                  name: confirmMerge.spelling,
+                                  count: confirmMerge.count,
+                                })}
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmMerge(null)}
+                                  data-testid={`opponent-row-merge-cancel-${opponent.key}`}
+                                  className="flex-1 px-3 py-2 rounded-md bg-slate-700 hover:bg-slate-600 text-white text-sm"
+                                >
+                                  {t('common.cancel', 'Cancel')}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    setConfirmMerge(null);
+                                    await apply(opponent.key, renameTo);
+                                    setRenaming(null);
+                                  }}
+                                  disabled={busy}
+                                  data-testid={`opponent-row-merge-confirm-${opponent.key}`}
+                                  className="flex-1 px-3 py-2 rounded-md bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold disabled:opacity-50"
+                                >
+                                  {t('opponentSweep.mergeConfirm', 'Merge')}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
                           <button
                             type="button"
                             onClick={async () => {
+                              const target = findMergeTarget(opponent.key, renameTo, allOpponents);
+                              if (target) {
+                                setConfirmMerge({ key: opponent.key, spelling: target.spelling, count: target.count });
+                                return;
+                              }
                               await apply(opponent.key, renameTo);
                               setRenaming(null);
                             }}
@@ -245,6 +295,7 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                               ? t('opponentSweep.applying', 'Renaming…')
                               : t('opponentSweep.apply', 'Use this everywhere')}
                           </button>
+                          )}
                         </div>
                       )}
                     </div>

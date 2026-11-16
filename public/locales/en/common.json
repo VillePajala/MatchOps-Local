@@ -3935,7 +3935,10 @@
     "applied": "Renamed in {{count}} games.",
     "failed": "Could not rename. Please try again.",
     "openLabel": "Check team names",
-    "appliedListsOnly": "Renamed in the competition list."
+    "appliedListsOnly": "Renamed in the competition list.",
+    "mergeWarning_one": "\"{{name}}\" already has {{count}} game. Merge them? They cannot be split again.",
+    "mergeWarning_other": "\"{{name}}\" already has {{count}} games. Merge them? They cannot be split again.",
+    "mergeConfirm": "Merge"
   },
   "venueInput": {
     "pinned": "Pinned to a map location",

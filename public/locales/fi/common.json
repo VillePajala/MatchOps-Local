@@ -3935,7 +3935,10 @@
     "applied": "Nimetty {{count}} ottelussa.",
     "failed": "Nimeäminen ei onnistunut. Yritä uudelleen.",
     "openLabel": "Tarkista joukkuenimet",
-    "appliedListsOnly": "Nimetty sarjan joukkuelistassa."
+    "appliedListsOnly": "Nimetty sarjan joukkuelistassa.",
+    "mergeWarning_one": "Joukkueella \"{{name}}\" on jo {{count}} ottelu. Yhdistetäänkö? Niitä ei voi erottaa uudelleen.",
+    "mergeWarning_other": "Joukkueella \"{{name}}\" on jo {{count}} ottelua. Yhdistetäänkö? Niitä ei voi erottaa uudelleen.",
+    "mergeConfirm": "Yhdistä"
   },
   "venueInput": {
     "pinned": "Kiinnitetty karttasijaintiin",
