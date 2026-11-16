@@ -332,6 +332,25 @@ describe('gameSessionReducer', () => {
       expect(gameSessionReducer(state, { type: 'SET_PERIOD_DURATION', payload: 20 }).gameStatus).toBe('gameEnd');
     });
 
+    /**
+     * Review 4.31: a break made with "End period" is not a false half-time - lengthening
+     * the period afterwards keeps it (a stopped-too-early clock would continue instead).
+     * @critical
+     */
+    it('a manually ended period stays ended when the period is lengthened', () => {
+      const state = createBaseState({ numberOfPeriods: 2, periodDurationMinutes: 20, gameStatus: 'inProgress', currentPeriod: 1, isTimerRunning: true, startTimestamp: 1, timeElapsedInSeconds: 1122 });
+      const ended = gameSessionReducer(state, { type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'periodEnd', finalTime: 1200, manual: true } });
+      const longer = gameSessionReducer(ended, { type: 'SET_PERIOD_DURATION', payload: 25 });
+      expect(longer.gameStatus).toBe('periodEnd');
+      expect(longer.currentPeriod).toBe(1);
+      // ...while the clock's own stop at the period end still continues (1.11).
+      const auto = gameSessionReducer(state, { type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'periodEnd', finalTime: 1200 } });
+      expect(gameSessionReducer(auto, { type: 'SET_PERIOD_DURATION', payload: 25 }).gameStatus).toBe('inProgress');
+      // ...and starting the next period clears the mark.
+      const p2 = gameSessionReducer(ended, { type: 'START_PERIOD', payload: { nextPeriod: 2, periodDurationMinutes: 20, subIntervalMinutes: 5 } });
+      expect(p2.periodEndedManually).toBe(false);
+    });
+
     it('re-saving the same structure leaves half-time alone', () => {
       const state = stopped({ gameStatus: 'periodEnd', currentPeriod: 1, timeElapsedInSeconds: 1200 });
       const result = gameSessionReducer(state, { type: 'SET_PERIOD_DURATION', payload: 20 });

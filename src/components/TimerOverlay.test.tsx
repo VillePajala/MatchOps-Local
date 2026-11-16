@@ -91,6 +91,54 @@ describe('TimerOverlay', () => {
     await waitFor(() => expect(baseProps.onResetTimer).toHaveBeenCalledTimes(1));
   });
 
+  /**
+   * Review 4.31 (owner decision): "End period" while a period is in play, behind a
+   * confirmation that names the time the clock moves to; "End match" on the last one.
+   * @critical
+   */
+  describe('End period now (review 4.31)', () => {
+    it('is not offered before kick-off or at a break', () => {
+      const onEndPeriod = jest.fn();
+      const { rerender } = render(<TimerOverlay {...baseProps} onEndPeriod={onEndPeriod} />);
+      expect(screen.queryByTestId('timer-end-period')).not.toBeInTheDocument();
+      rerender(<TimerOverlay {...baseProps} onEndPeriod={onEndPeriod} gameStatus="periodEnd" timeElapsedInSeconds={600} />);
+      expect(screen.queryByTestId('timer-end-period')).not.toBeInTheDocument();
+    });
+
+    it('asks first, naming the time, then ends the period', async () => {
+      const onEndPeriod = jest.fn();
+      render(<TimerOverlay {...baseProps} onEndPeriod={onEndPeriod} gameStatus="inProgress" isTimerRunning timeElapsedInSeconds={522} />);
+      fireEvent.click(screen.getByTestId('timer-end-period'));
+      expect(onEndPeriod).not.toHaveBeenCalled(); // never on one tap
+      const dialog = await screen.findByRole('dialog', { name: /end period/i });
+      expect(dialog).toHaveTextContent(/period 1 now\? The clock moves to 10:00/);
+      fireEvent.click(within(dialog).getByRole('button', { name: /end period/i }));
+      await waitFor(() => expect(onEndPeriod).toHaveBeenCalledTimes(1));
+    });
+
+    it('cancel leaves the period running', async () => {
+      const onEndPeriod = jest.fn();
+      render(<TimerOverlay {...baseProps} onEndPeriod={onEndPeriod} gameStatus="inProgress" timeElapsedInSeconds={522} />);
+      fireEvent.click(screen.getByTestId('timer-end-period'));
+      const dialog = await screen.findByRole('dialog', { name: /end period/i });
+      fireEvent.click(within(dialog).getByRole('button', { name: /cancel|peruuta/i }));
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: /end period/i })).not.toBeInTheDocument());
+      expect(onEndPeriod).not.toHaveBeenCalled();
+    });
+
+    it('is not offered at full time or without a handler', () => {
+      const { rerender } = render(<TimerOverlay {...baseProps} onEndPeriod={jest.fn()} gameStatus="gameEnd" currentPeriod={2} timeElapsedInSeconds={1200} />);
+      expect(screen.queryByTestId('timer-end-period')).not.toBeInTheDocument();
+      rerender(<TimerOverlay {...baseProps} gameStatus="inProgress" timeElapsedInSeconds={300} />);
+      expect(screen.queryByTestId('timer-end-period')).not.toBeInTheDocument();
+    });
+
+    it('on the last period it is "End match"', () => {
+      render(<TimerOverlay {...baseProps} onEndPeriod={jest.fn()} gameStatus="inProgress" currentPeriod={2} timeElapsedInSeconds={1100} />);
+      expect(screen.getByTestId('timer-end-period')).toHaveTextContent(/end match/i);
+    });
+  });
+
   it('confirms opponent goal and calls onRecordOpponentGoal', async () => {
     render(<TimerOverlay {...baseProps} />);
     const oppGoalButton = screen.getByRole('button', { name: /opponent \+1|vastustaja \+1/i });

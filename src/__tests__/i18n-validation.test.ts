@@ -727,7 +727,8 @@ describe('Translation File Validation', () => {
       //     honest cloud-mode restore messages (review 3.16). Lands at 3393.
       // +1 fullBackup.restoreInterruptedRepeat: the cloud may already be cleared. 3394.
       // +1 fullBackup.cloudPushQueued split into _one/_other (singular wording). 3395.
-      expect(enKeys.length).toBe(3395);
+      // +4 timerOverlay End period/End match + confirmations (review 4.31). 3399.
+      expect(enKeys.length).toBe(3399);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -921,7 +922,8 @@ describe('Translation File Validation', () => {
       // +3 cloud-mode restore messages (see EN above). Lands at 3393.
       // +1 restoreInterruptedRepeat (see EN above). Lands at 3394.
       // +1 cloudPushQueued _one/_other (see EN above). Lands at 3395.
-      expect(fiKeys.length).toBe(3395);
+      // +4 End period/End match (see EN above). Lands at 3399.
+      expect(fiKeys.length).toBe(3399);
     });
   });
 });

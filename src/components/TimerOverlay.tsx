@@ -25,6 +25,8 @@ interface TimerOverlayProps {
   isTimerRunning: boolean;
   onStartPauseTimer: () => void;
   onResetTimer: () => void;
+  /** End the current period now (review 4.31). Shown while a period is in play. */
+  onEndPeriod?: () => void;
   onToggleGoalLogModal?: () => void;
   onOpenPlayerAssessmentModal?: () => void;
   /** Phase 1b (7c): the one CTA at game end - closes the overlay and opens the
@@ -72,6 +74,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   onStartPauseTimer,
   dictation,
   onResetTimer,
+  onEndPeriod,
   onToggleGoalLogModal = () => { logger.warn('onToggleGoalLogModal handler not provided'); },
   onOpenPlayerAssessmentModal,
   onFinishGame,
@@ -108,6 +111,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
   // --- State for Confirmation Modals ---
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showEndPeriodConfirm, setShowEndPeriodConfirm] = useState(false);
+  const isLastPeriod = currentPeriod >= numberOfPeriods;
+  const endPeriodLabel = isLastPeriod
+    ? t('timerOverlay.endMatchButton', 'End match')
+    : t('timerOverlay.endPeriodButton', 'End period');
+  const periodEndClock = formatTime(currentPeriod * periodDurationMinutes * 60);
   const [showOpponentGoalConfirm, setShowOpponentGoalConfirm] = useState(false);
   // Overtime/penalties are edge-of-game actions; keep them collapsed so the
   // substitution-interval list keeps its room. Open by default if OT is already on.
@@ -399,6 +408,19 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             {isTimerRunning ? <FaPause size={16}/> : <FaPlay size={16}/>} 
             <span>{startPauseButtonText}</span>
           </button>
+          {/* End the period now (review 4.31): the referee blew early, or the clock
+              was set up longer than the match. Confirmed first - one stray tap must
+              never end a half. */}
+          {onEndPeriod && gameStatus === 'inProgress' && (
+            <button
+              type="button"
+              onClick={() => setShowEndPeriodConfirm(true)}
+              data-testid="timer-end-period"
+              className={`${timerButtonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500 px-3`}
+            >
+              {endPeriodLabel}
+            </button>
+          )}
           {/* Compact reset: icon-only + confirm */}
           <button 
             onClick={handleConfirmReset}
@@ -676,6 +698,21 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         onCancel={() => setShowResetConfirm(false)}
         confirmLabel={t('common.reset', 'Reset')}
         variant="danger"
+      />
+
+      <ConfirmationModal
+        isOpen={showEndPeriodConfirm}
+        title={endPeriodLabel}
+        message={isLastPeriod
+          ? t('timerOverlay.confirmEndMatch', 'End the match now? The clock moves to {{time}}, full time.', { time: periodEndClock })
+          : t('timerOverlay.confirmEndPeriod', 'End period {{period}} now? The clock moves to {{time}}, the end of the period.', {
+            period: currentPeriod,
+            time: periodEndClock,
+          })}
+        onConfirm={() => { setShowEndPeriodConfirm(false); onEndPeriod?.(); }}
+        onCancel={() => setShowEndPeriodConfirm(false)}
+        confirmLabel={endPeriodLabel}
+        variant="primary"
       />
 
       <ConfirmationModal

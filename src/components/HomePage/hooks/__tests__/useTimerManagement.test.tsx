@@ -93,6 +93,7 @@ describe('useTimerManagement', () => {
     lastSubConfirmationTimeSeconds: 0,
     startPause: jest.fn(),
     reset: jest.fn(),
+    endPeriodNow: jest.fn(),
     ackSubstitution: jest.fn(),
     setSubInterval: jest.fn(),
   };

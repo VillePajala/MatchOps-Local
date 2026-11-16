@@ -48,6 +48,9 @@ export interface GameSessionState {
   // Timer related state
   timeElapsedInSeconds: number; // This will now represent the time elapsed *when paused*
   startTimestamp: number | null; // Timestamp from Date.now() when the timer was started/resumed
+  /** The current break was made by "End period" (review 4.31): a length edit must not
+   *  reopen it as a false half-time. Session-only; cleared when play resumes or resets. */
+  periodEndedManually?: boolean;
   isTimerRunning: boolean;
   subIntervalMinutes: number;
   nextSubDueTimeSeconds: number;
@@ -125,7 +128,7 @@ export type GameSessionAction =
   | { type: 'SET_PERIOD_DURATION'; payload: number }
   | { type: 'SET_GAME_STATUS'; payload: GameSessionState['gameStatus'] }
   | { type: 'START_PERIOD'; payload: { nextPeriod: number, periodDurationMinutes: number, subIntervalMinutes: number } }
-  | { type: 'END_PERIOD_OR_GAME'; payload: { newStatus: 'periodEnd' | 'gameEnd', finalTime?: number } }
+  | { type: 'END_PERIOD_OR_GAME'; payload: { newStatus: 'periodEnd' | 'gameEnd', finalTime?: number; manual?: boolean } }
   | { type: 'START_TIMER' }
   | { type: 'PAUSE_TIMER'; payload?: number } // Optional payload: precise current time from precision timer
   | { type: 'SET_SELECTED_PLAYER_IDS'; payload: string[] }
@@ -222,6 +225,11 @@ function reconcilePeriodBreak(state: GameSessionState): GameSessionState {
     return stop ? { ...state, gameStatus: stop.status } : state;
   }
   if (state.gameStatus !== 'periodEnd') return state;
+  // A break the coach made with "End period" (review 4.31) is never reopened by a length
+  // edit - only the period COUNT can still turn it into full time.
+  if (state.periodEndedManually) {
+    return state.currentPeriod >= state.numberOfPeriods ? { ...state, gameStatus: 'gameEnd' } : state;
+  }
   // The break still stands when the clock is at or past the CURRENT period's end under
   // the new structure (review 4.30): shortening the length at half-time (2 x 25 played
   // as 2 x 20, corrected at the break) used to read 25:00 as "5 minutes into period 2",
@@ -356,6 +364,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
             ...state,
             currentPeriod: nextPeriod,
             gameStatus: 'inProgress',
+            periodEndedManually: false,
             timeElapsedInSeconds: nextPeriod === 1 ? 0 : previousPeriodEndTime,
             isTimerRunning: true,
             lastSubConfirmationTimeSeconds: nextPeriod === 1 ? 0 : previousPeriodEndTime,
@@ -375,6 +384,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
             timeElapsedInSeconds: timeToSet,
             subAlertLevel: timeToSet >= state.nextSubDueTimeSeconds ? 'due' : state.subAlertLevel,
             startTimestamp: null,
+            periodEndedManually: action.payload.manual === true,
         };
     }
     case 'START_TIMER': {
@@ -391,6 +401,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       if (state.isTimerRunning || state.gameStatus !== 'gameEnd') return state;
       return {
         ...state,
+        periodEndedManually: false,
         gameStatus: 'inProgress',
         currentPeriod: action.payload.period,
         isTimerRunning: true,
