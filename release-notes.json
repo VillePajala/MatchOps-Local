@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "If you use the app without an account and start enabling cloud sync, the sign-in screen now lets you go back to the games on your device."
+      ],
+      "fi": [
+        "Jos käytät sovellusta ilman tiliä ja aloitat pilvisynkronoinnin käyttöönoton, kirjautumisnäkymästä pääsee nyt takaisin laitteen otteluihin."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Signing in on a new phone with a weak connection no longer treats you as a new coach: the app keeps loading your data in the background instead of offering to set up a team again."
       ],
       "fi": [
