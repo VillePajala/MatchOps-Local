@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { saveTimerState, clearTimerState, TimerState } from '@/utils/timerStateManager';
-import { setMatchTimerRunning } from '@/utils/matchTimerSignal';
+import { setMatchTimerRunning, setMatchLive } from '@/utils/matchTimerSignal';
 import { writeTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
 import { useWakeLock } from './useWakeLock';
 import { useRecordingSessionActive } from '@/utils/recordingSessionSignal';
@@ -252,6 +252,17 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     setMatchTimerRunning(state.isTimerRunning && state.gameStatus === 'inProgress');
     return () => setMatchTimerRunning(false);
   }, [state.isTimerRunning, state.gameStatus]);
+
+  // ...and whether a live match is mounted at all (review 4.24): started and not
+  // finished - running, paused (incl. the load-coerced notStarted with time on the
+  // clock) or at a period break. Blocks the long-background reload too.
+  const matchIsLive = state.gameStatus === 'inProgress'
+    || state.gameStatus === 'periodEnd'
+    || (state.gameStatus === 'notStarted' && state.timeElapsedInSeconds > 0);
+  useEffect(() => {
+    setMatchLive(matchIsLive);
+    return () => setMatchLive(false);
+  }, [matchIsLive]);
 
   useEffect(() => {
     const handleDocumentVisibilityChange = () => {

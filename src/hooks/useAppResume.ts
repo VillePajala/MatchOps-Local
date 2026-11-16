@@ -25,7 +25,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Sentry from '@sentry/nextjs';
 import logger from '@/utils/logger';
-import { isMatchTimerRunning } from '@/utils/matchTimerSignal';
+import { isMatchLive } from '@/utils/matchTimerSignal';
 import { isRecordingSessionActive } from '@/utils/recordingSessionSignal';
 
 interface UseAppResumeOptions {
@@ -126,6 +126,17 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         try {
           // Call optional callback (e.g., to show toast notification)
           await onBeforeForceReload?.();
+          // Re-check after the notice (review 4.24): a match may have gone live
+          // during it (the coach tapped Start on returning). Reloading now would
+          // throw that start away - refresh in place instead.
+          if (isMatchLive() || isRecordingSessionActive()) {
+            logger.info('[useAppResume] Reload cancelled: a match went live during the notice');
+            isReloadingRef.current = false;
+            queryClient.invalidateQueries();
+            dispatchResumeEvent(backgroundDuration);
+            onResume?.();
+            return;
+          }
           // Note: Tests should mock window.location.reload to verify this code path
           window.location.reload();
         } catch (error) {
@@ -188,7 +199,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
       // screen with a paused clock. Fall through to the soft refresh instead.
       // Never offline either: a reload with no connection can't fetch anything new
       // and (in cloud mode) restarts the sign-in, which can't finish without signal.
-      if (backgroundDuration > forceReloadTime && !isMatchTimerRunning() && !isRecordingSessionActive() && !isDeviceOffline()) {
+      if (backgroundDuration > forceReloadTime && !isMatchLive() && !isRecordingSessionActive() && !isDeviceOffline()) {
         forceReloadWithNotification(backgroundDuration, 'visibilitychange');
         return;
       }
@@ -240,7 +251,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         const backgroundDuration = now - backgroundStartRef.current;
 
         // Skip the force-reload during a live match or offline (see visibilitychange note).
-        if (backgroundDuration > forceReloadTime && !isMatchTimerRunning() && !isRecordingSessionActive() && !isDeviceOffline()) {
+        if (backgroundDuration > forceReloadTime && !isMatchLive() && !isRecordingSessionActive() && !isDeviceOffline()) {
           forceReloadWithNotification(backgroundDuration, 'pageshow_bfcache');
           return;
         }
