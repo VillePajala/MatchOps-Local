@@ -309,7 +309,11 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         // reload-recovery path may still need.
         if (hidden) {
           if (stateRef.current.gameStatus === 'inProgress') {
-            const trueElapsed = Math.floor(
+            // Not floored (review 4.25): flooring dropped ~0.5 s on every lock/unlock
+            // (reanchor floors only what it reports to onTick). Never earlier than at
+            // hide, so a wall clock stepped backwards cannot rewind the match.
+            const trueElapsed = Math.max(
+              hidden.elapsedAtHide,
               hidden.elapsedAtHide + (Date.now() - hidden.hiddenAt) / 1000
             );
             // flushSync so the display anchor is updated before the re-anchor's

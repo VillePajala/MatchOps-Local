@@ -653,6 +653,43 @@ describe('useGameTimer', () => {
     });
 
     /**
+     * Review 4.25: the re-anchor keeps fractions (flooring lost ~0.5 s per lock/unlock)
+     * and never moves the clock back when the wall clock was stepped backwards.
+     * @critical
+     */
+    it('re-anchors without rounding down: a pause after 10.6 s away keeps the 0.6 s', () => {
+      const initialState = createInitialState({
+        gameStatus: 'inProgress', isTimerRunning: true, startTimestamp: Date.now() - 100_000,
+        timeElapsedInSeconds: 100, periodDurationMinutes: 40, numberOfPeriods: 1,
+      });
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, initialState);
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+      hide();
+      act(() => { jest.setSystemTime(Date.now() + 10_600); });
+      show();
+      act(() => { result.current.startPause(); }); // pause: stores the precise time
+      expect(result.current.timeElapsedInSeconds).toBeCloseTo(110.6, 5);
+    });
+
+    it('does not move the clock back when the wall clock was stepped backwards while away', () => {
+      const initialState = createInitialState({
+        gameStatus: 'inProgress', isTimerRunning: true, startTimestamp: Date.now() - 100_000,
+        timeElapsedInSeconds: 100, periodDurationMinutes: 40, numberOfPeriods: 1,
+      });
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, initialState);
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+      hide();
+      act(() => { jest.setSystemTime(Date.now() - 3_600_000); }); // clock set an hour back
+      show();
+      expect(result.current.timeElapsedInSeconds).toBe(100);
+      expect(result.current.isTimerRunning).toBe(true);
+    });
+
+    /**
      * If the user explicitly paused before backgrounding, return must NOT resume.
      * @edge-case
      */

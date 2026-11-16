@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "The match clock catches up with real time after the phone has slept, even when the app did not notice going to the background, and no longer loses half a second each time the screen locks."
+      ],
+      "fi": [
+        "Ottelukello ottaa todellisen ajan kiinni puhelimen lepotilan jälkeen, vaikka sovellus ei olisi huomannut siirtyneensä taustalle, eikä enää menetä puolta sekuntia jokaisella näytön lukituksella."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "At half-time or with the clock paused, coming back to the app after a long break no longer reloads the whole app, and a Start tapped right away is no longer lost."
       ],
       "fi": [
