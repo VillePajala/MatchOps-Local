@@ -236,6 +236,52 @@ const usePlayerManagement = () => {
 - **Update Notifications**: In-app notifications for new versions
 - **Background Updates**: Automatic service worker updates
 
+## Match Clock Architecture
+
+The match clock is the core of match day. This section states the rules it must always keep. They come from the 2026-11 timer review, items 4.20–4.36. Each rule is enforced by the code paths named with it; the tests that cover them are listed further down.
+
+### Where the clock lives
+
+| Piece | Role |
+|---|---|
+| `useGameSessionReducer` | The clock state: `timeElapsedInSeconds`, `currentPeriod`, `gameStatus` (`notStarted` / `inProgress` / `periodEnd` / `gameEnd`), `isTimerRunning`, sub tracking. |
+| `usePrecisionTimer` | While the clock runs, measures elapsed time from a `performance.now()` origin, plus a wall-clock (`Date.now()`) origin that snaps a stalled clock forward. |
+| `useGameTimer` | Start / pause / reset / End period, period-end detection on each tick, the back-from-background re-sync, and the "match is live" signals. |
+| `timerAnchor` (localStorage) | The durable recovery record: one per game, written **synchronously**, so it survives the OS freezing or killing the WebView. |
+| `timerStateManager` (IndexedDB) | A secondary record, written on hide only, as a fallback behind the anchor. |
+| `useGamePersistence` + `useAutoSave` | Saving the game record (clock included) on discrete changes, on hide and when leaving a running match. |
+
+### Rules (invariants)
+
+1. **One source of truth while running.** The precision timer drives the clock, and the reducer mirrors it once a second. While stopped, the reducer's `timeElapsedInSeconds` is the truth.
+2. **Running implies in play.** `isTimerRunning === true` only with `gameStatus === 'inProgress'`. The timer, undo (`LOAD_STATE_FROM_HISTORY`) and load paths keep this. The legacy `SET_TIMER_RUNNING` / `SET_GAME_STATUS` actions have no dispatch sites and are not guarded, so don't start using them.
+3. **The boundary is a break, never a startable clock.** A stopped clock at or past `currentPeriod × periodDurationMinutes × 60` is `periodEnd`, or `gameEnd` on the last period. This holds whether the clock got there by a tick, a pause, a reload or a length edit (`boundaryStop`).
+4. **Periods start at their nominal time.** Period *n* starts at (n − 1) × length, the football convention. *End period* moves the clock to the period end for the same reason.
+5. **The clock only moves forward,** with two exceptions: an explicit Reset, and normalizing to a period boundary. When the period is shortened below the running clock, the tick ends the period at the new boundary; a pause just past the end or a recovered clock is set to the boundary. Re-syncs never go below the time at hide, and a backward wall-clock step never rewinds the match.
+6. **Undo never moves match time.** Undo/redo never restores the clock, the period or the match status. Clock transitions are not undo steps; they update the current history entry in place. Sub tracking is restored only from an entry in the same half.
+7. **One anchor per running game.** An anchor exists for game G exactly while G's clock runs. It is written synchronously at start, on every visible tick and on hide. It is removed only by G's own pause, period end, reset, End period or deletion; never by reading it, and never by opening another game. Anchors older than 6 h are ignored.
+8. **Recovery never auto-advances a period.** A boot that recovers a running clock still mid-period resumes it. One that reached the period end loads the break and **saves** it. The next period always needs a tap.
+9. **A live match is never reloaded behind the coach's back.** Live means running, paused, or at a break. The return-from-background refresh never unmounts it, and the long-background force-reload is suppressed for it.
+10. **Every stop is saved before anything can lose it.** That covers pause, period end, End period, reset and a stop decided at boot. Pending edits and a running clock are saved on hide, `pagehide` and leaving the match. Transient save failures are retried.
+11. **A loaded game never auto-starts,** except to continue a clock that its anchor, or failing that the IndexedDB `wasRunning` record, proves was running, and that is still mid-period. A paused game reloads paused.
+12. **Derived numbers come from the clock.** Total game duration and minutes played use `timeElapsedInSeconds`, not the sub-interval log.
+
+### Lifecycle paths and where they are tested
+
+| Path | Behaviour | Tests |
+|---|---|---|
+| Lock / background < 30 s | Re-synced to wall-clock on return, keeping fractions | `useGameTimer.test` (visibility), `usePrecisionTimer.reanchor.test` |
+| Return after > 30 s | Refreshed in place; the match stays mounted | Browser check (#957) |
+| Away > 5 min while live | No force reload | `useAppResume.test` |
+| App killed mid-period | Boot resumes from the anchor | `useGameOrchestration.timerRestore.test` (scenario bench) |
+| Killed through the period end | Opens at the break, saved | bench "4.26" scenarios |
+| Two remounts in a row | Both recover (the anchor is not consumed on read) | bench "4.22" |
+| Another game opened mid-match | The running game keeps its anchor and is saved on leaving | bench "4.22/4.29" |
+| Boot before data settles | Waits for the refetch, opens the persisted game | bench "4.32" |
+| Undo at any phase | Clock, period and status untouched | `useGameSessionCoordination.test`, `useGameSessionWithHistory.behaviour.test` |
+
+When you change the clock, add the coach-level story to the scenario bench in `useGameOrchestration.timerRestore.test.tsx`. If the change can't be tested there, test it in the hook that owns that path.
+
 ## Performance Architecture
 
 ### Loading Strategy
