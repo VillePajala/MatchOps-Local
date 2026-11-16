@@ -13,6 +13,7 @@ import type { AuthService } from '@/interfaces/AuthService';
 import type { AuthState, Session } from '@/interfaces/AuthTypes';
 import { POLICY_VERSION } from '@/config/constants';
 import { notifyAuthServerUnreachable } from '@/auth/authReachability';
+import { AuthError } from '@/interfaces/DataStoreErrors';
 
 // Track auth callbacks for testing
 let authCallbacks: ((state: AuthState, session: Session | null) => void)[] = [];
@@ -755,6 +756,32 @@ describe('AuthProvider', () => {
       await waitFor(() => {
         expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('yes');
       });
+    });
+
+    /** Review 7.2: the form opens the code screen from this flag. */
+    it('flags an unconfirmed account on sign-in, and only that', async () => {
+      const results: Array<{ error?: string; emailNotConfirmed?: boolean }> = [];
+      function SignInProbe() {
+        const { isLoading, signIn } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <button onClick={() => { void signIn('test@example.com', 'password').then((r) => results.push(r)); }}>Sign In</button>
+          </div>
+        );
+      }
+      render(<AuthProvider><SignInProbe /></AuthProvider>);
+      await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('ready'));
+
+      mockAuthService.signIn = jest.fn()
+        .mockRejectedValueOnce(new AuthError('Invalid email or password.', undefined, { code: 'email_not_confirmed', message: 'Email not confirmed' }))
+        .mockRejectedValueOnce(new AuthError('Invalid email or password.'));
+      await act(async () => { screen.getByText('Sign In').click(); });
+      await act(async () => { screen.getByText('Sign In').click(); });
+
+      await waitFor(() => expect(results).toHaveLength(2));
+      expect(results[0]).toEqual({ error: 'Invalid email or password.', emailNotConfirmed: true });
+      expect(results[1]).toEqual({ error: 'Invalid email or password.' });
     });
 
     it('does not show the app logged-in via the SIGNED_IN event before re-consent is resolved (race fix)', async () => {

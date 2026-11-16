@@ -679,9 +679,13 @@ export class SupabaseAuthService implements AuthService {
         throw new NetworkError('Sign in failed: network error');
       }
 
-      // Track failed attempt for rate limiting (only for non-network errors)
-      this.failedSignInAttempts++;
-      this.lastFailedSignInTime = Date.now();
+      // Track failed attempt for rate limiting (only for non-network errors).
+      // Not for an unconfirmed account: that answer means the password was right
+      // (review 7.2), and a coach retrying it must not walk into the lockout.
+      if (!error.message.includes('Email not confirmed')) {
+        this.failedSignInAttempts++;
+        this.lastFailedSignInTime = Date.now();
+      }
 
       // Detect Supabase rate limiting (429)
       if (error.status === 429 || error.message?.toLowerCase().includes('rate limit')) {
@@ -690,8 +694,19 @@ export class SupabaseAuthService implements AuthService {
 
       // Map Supabase errors to user-friendly messages
       // Use unified message to prevent user enumeration attacks
-      if (error.message.includes('Invalid login credentials') ||
-          error.message.includes('Email not confirmed')) {
+      // "Email not confirmed" is only returned once the password has checked out,
+      // so telling it apart reveals nothing to someone without the password. The
+      // sign-in form uses the code to take a coach who signed up but never entered
+      // the code back to the code screen (review 7.2) - the email holds a code,
+      // not a link, and no other screen accepts it.
+      if (error.message.includes('Email not confirmed')) {
+        throw new AuthError(
+          'Invalid email or password. If you recently signed up, please check your email for confirmation.',
+          undefined,
+          { code: 'email_not_confirmed', message: 'Email not confirmed' },
+        );
+      }
+      if (error.message.includes('Invalid login credentials')) {
         throw new AuthError('Invalid email or password. If you recently signed up, please check your email for confirmation.');
       }
 
@@ -1353,7 +1368,10 @@ export class SupabaseAuthService implements AuthService {
           throw new NetworkError('Resend failed: network error');
         }
 
-        if (error.message.includes('rate') || error.message.includes('limit')) {
+        // Supabase's per-address gap between sends answers 429 "For security
+        // purposes, you can only request this after N seconds" - no "rate" in it
+        // (review 7.2: the sign-in route makes an early resend likely).
+        if (error.status === 429 || error.message.includes('rate') || error.message.includes('limit') || error.message.includes('security purposes')) {
           throw new AuthError('Please wait before requesting another code.');
         }
 

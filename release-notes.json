@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "After creating an account, you can get back to the screen for the emailed code: it reopens after a reload, and signing in before confirming takes you there."
+      ],
+      "fi": [
+        "Tilin luomisen jälkeen pääset takaisin sähköpostiin lähetetyn koodin näkymään: se avautuu uudelleen sivun latauksen jälkeen, ja kirjautuminen ennen vahvistusta vie sinut sinne."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "If you switch to another app for a while during first-time setup, or with the New Game or player form open, what you typed is still there when you come back."
       ],
       "fi": [

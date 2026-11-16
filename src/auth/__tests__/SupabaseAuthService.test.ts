@@ -404,6 +404,33 @@ describe('SupabaseAuthService', () => {
       await expect(
         authService.signIn('test@example.com', 'Password123!@#')
       ).rejects.toThrow('Invalid email or password');
+      // Review 7.2: the same message, plus a code the form uses to open the code
+      // screen. Supabase answers "Email not confirmed" only after the password
+      // checked out, so the code reveals nothing to someone without it.
+      await expect(
+        authService.signIn('test@example.com', 'Password123!@#')
+      ).rejects.toMatchObject({ authErrorCode: 'email_not_confirmed' });
+    });
+
+    /** Review 7.2: "not confirmed" means the password was right - no lockout for it. */
+    it('an unconfirmed account does not count toward the sign-in lockout', async () => {
+      mockAuth.signInWithPassword.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'Email not confirmed' },
+      });
+      for (let i = 0; i < 8; i++) {
+        await expect(authService.signIn('test@example.com', 'Password123!@#')).rejects.toMatchObject({ authErrorCode: 'email_not_confirmed' });
+      }
+    });
+
+    it('wrong credentials carry no email_not_confirmed code', async () => {
+      mockAuth.signInWithPassword.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'Invalid login credentials' },
+      });
+      const error = await authService.signIn('test@example.com', 'wrong').catch((e: unknown) => e);
+      expect(error).toMatchObject({ message: expect.stringContaining('Invalid email or password') });
+      expect((error as { authErrorCode?: string }).authErrorCode).toBeUndefined();
     });
 
     it('should throw NetworkError on network failure', async () => {
@@ -1428,6 +1455,17 @@ describe('SupabaseAuthService', () => {
       await expect(
         authService.resendSignUpConfirmation('test@example.com')
       ).rejects.toThrow(AuthError);
+      await expect(
+        authService.resendSignUpConfirmation('test@example.com')
+      ).rejects.toThrow('Please wait before requesting another code.');
+    });
+
+    /** Review 7.2: Supabase's per-address send gap has no "rate" in its text. */
+    it('says "please wait" inside the per-address send gap', async () => {
+      mockAuth.resend.mockResolvedValue({
+        data: null,
+        error: { message: 'For security purposes, you can only request this after 42 seconds.', status: 429 },
+      });
       await expect(
         authService.resendSignUpConfirmation('test@example.com')
       ).rejects.toThrow('Please wait before requesting another code.');
