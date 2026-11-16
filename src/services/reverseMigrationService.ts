@@ -1438,6 +1438,38 @@ export async function hasCloudData(): Promise<CloudDataCheckResult> {
 }
 
 /**
+ * Is this failure about the session rather than the network? The caller waits for
+ * auth to settle instead (and the next effect cycle retries), so these are not
+ * retried here.
+ */
+export const isCloudCheckAuthOrAbort = (error?: string): boolean =>
+  !!error && (
+    error.includes('Not authenticated') ||
+    error.includes('auth') ||
+    error.includes('sign in') ||
+    error.includes('AbortError') ||
+    error.includes('signal is aborted')
+  );
+
+/**
+ * hasCloudData with a few quick retries for network failures (review 7.3). One
+ * failed count query on a flaky mobile network used to end the first sign-in check:
+ * a returning coach on a new phone was let in on an empty device as a new coach.
+ */
+export async function hasCloudDataWithRetry(
+  attempts = 3,
+  delayMs = (attempt: number) => 1000 * attempt,
+): Promise<CloudDataCheckResult> {
+  let result = await hasCloudData();
+  for (let attempt = 1; attempt < attempts && result.checkFailed && !isCloudCheckAuthOrAbort(result.error); attempt++) {
+    logger.info('[ReverseMigrationService] hasCloudData failed, retrying', { attempt, error: result.error });
+    await new Promise((resolve) => setTimeout(resolve, delayMs(attempt)));
+    result = await hasCloudData();
+  }
+  return result;
+}
+
+/**
  * Get counts of all cloud data.
  * Used for preview in reverse migration wizard.
  *
