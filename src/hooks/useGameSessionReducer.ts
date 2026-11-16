@@ -173,6 +173,27 @@ const safeElapsedSeconds = (value: unknown, fallback: number): number => {
 
 // --- Reducer Function ---
 /**
+ * A STOPPED clock at or past the end of its current period is a period break, or
+ * full time on the last period - never "in progress" (review 4.26). Left as
+ * in-progress (or as the load-coerced notStarted) it showed a plain Start/Resume at
+ * the boundary: one tap ran the clock for a second, the tick then ended the period
+ * and the clock stopped again - an untimed second half for a coach who tapped Start
+ * at kick-off and looked up. Reached by: reopening after the phone was locked
+ * through the period end, a pause in the last fraction of a second, or shortening
+ * the period while paused.
+ */
+export function boundaryStop(
+  currentPeriod: number,
+  numberOfPeriods: number,
+  periodDurationMinutes: number,
+  elapsed: number,
+): { status: 'periodEnd' | 'gameEnd'; time: number } | null {
+  const boundary = currentPeriod * periodDurationMinutes * 60;
+  if (!(boundary > 0) || elapsed < boundary) return null;
+  return { status: currentPeriod >= numberOfPeriods ? 'gameEnd' : 'periodEnd', time: boundary };
+}
+
+/**
  * Re-checks a clock stopped at a PERIOD BREAK after the period length or count
  * changes (review 1.11). At a false half-time (period set up shorter than played),
  * lengthening the period puts the game back in play, paused at the same minute, so
@@ -183,9 +204,24 @@ const safeElapsedSeconds = (value: unknown, fallback: number): number => {
  * when the coach is only correcting the length for the record. Instead the timer's
  * Start button offers to continue when the corrected structure leaves time to play
  * (see clockContinuation, useGameTimer.startPause and TimerOverlay).
+ *
+ * A PAUSED in-progress clock (incl. the load-coerced notStarted with time on the
+ * clock) that a shortened period leaves at or past its end becomes the break
+ * (review 4.26) - status only, the clock stays where it was.
  */
 function reconcilePeriodBreak(state: GameSessionState): GameSessionState {
-  if (state.isTimerRunning || state.gameStatus !== 'periodEnd') return state;
+  if (state.isTimerRunning) return state;
+  const pausedInPlay = state.gameStatus === 'inProgress'
+    || (state.gameStatus === 'notStarted' && state.timeElapsedInSeconds > 0); // load-coerced
+  if (pausedInPlay) {
+    // Paused mid-period and the period was shortened to end at or before this minute:
+    // it is now the period break. Only the STATUS changes - the clock stays where the
+    // game was, so re-entering the right length (a typo of 15 for 25) continues from
+    // exactly there via clockContinuation instead of losing the minutes in between.
+    const stop = boundaryStop(state.currentPeriod, state.numberOfPeriods, state.periodDurationMinutes, state.timeElapsedInSeconds);
+    return stop ? { ...state, gameStatus: stop.status } : state;
+  }
+  if (state.gameStatus !== 'periodEnd') return state;
   const next = clockContinuation(state);
   if (next === null) return { ...state, gameStatus: 'gameEnd' };
   if (next.kind === 'resume') return { ...state, gameStatus: 'inProgress', currentPeriod: next.period };
@@ -359,11 +395,21 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         preciseTime,
         safeElapsedSeconds(state.timeElapsedInSeconds, 0)
       );
+      // A pause in the last fraction of a second (precise time just past the end,
+      // before the tick ended the period) is the period end (review 4.26).
+      const stop = state.gameStatus === 'inProgress'
+        ? boundaryStop(state.currentPeriod, state.numberOfPeriods, state.periodDurationMinutes, timeElapsedAtPause)
+        : null;
       return {
         ...state,
         isTimerRunning: false,
         startTimestamp: null,
-        timeElapsedInSeconds: timeElapsedAtPause,
+        timeElapsedInSeconds: stop ? stop.time : timeElapsedAtPause,
+        // Same as the tick's period end (END_PERIOD_OR_GAME), incl. its sub-alert rule.
+        ...(stop ? {
+          gameStatus: stop.status,
+          subAlertLevel: stop.time >= state.nextSubDueTimeSeconds ? 'due' as const : state.subAlertLevel,
+        } : {}),
       };
     }
     case 'SET_SELECTED_PLAYER_IDS':
@@ -639,12 +685,19 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       // Calculate next due time from last confirmation, not from current time
       const nextSubDueTime = lastSubConfirmation + (subIntervalMinutes * 60);
 
+      // An in-progress game stored (or recovered) at or past its period end loads as
+      // the period break / full time it is, not as a startable clock (review 4.26).
+      const stopAtLoad = loadedData.gameStatus === 'inProgress'
+        ? boundaryStop(currentPeriod, numberOfPeriods, periodDurationMinutes, timeElapsedAtLoad)
+        : null;
+      const clockAtLoad = stopAtLoad ? stopAtLoad.time : timeElapsedAtLoad;
+
       // Recalculate alert level based on restored timer position (matches logic in SET_TIMER_ELAPSED)
       let recalculatedAlertLevel: SubAlertLevel = 'none';
       const warningTime = nextSubDueTime - 60;
-      if (timeElapsedAtLoad >= nextSubDueTime) {
+      if (clockAtLoad >= nextSubDueTime) {
         recalculatedAlertLevel = 'due';
-      } else if (warningTime >= 0 && timeElapsedAtLoad >= warningTime) {
+      } else if (warningTime >= 0 && clockAtLoad >= warningTime) {
         recalculatedAlertLevel = 'warning';
       }
 
@@ -661,7 +714,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         numberOfPeriods,
         periodDurationMinutes,
         currentPeriod,
-        gameStatus,
+        gameStatus: stopAtLoad ? stopAtLoad.status : gameStatus,
         selectedPlayerIds,
         gamePersonnel,
         seasonId,
@@ -690,7 +743,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         showPositionLabels,
         completedIntervalDurations,
 
-        timeElapsedInSeconds: timeElapsedAtLoad,
+        timeElapsedInSeconds: clockAtLoad,
         startTimestamp: null,
         isTimerRunning: false,
         nextSubDueTimeSeconds: nextSubDueTime,

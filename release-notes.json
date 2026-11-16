@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "If the phone was locked through the end of a half, the app now opens at half-time, so one tap on Start Period 2 starts the second half. Previously the clock ran for a second and then stopped."
+      ],
+      "fi": [
+        "Jos puhelin oli lukittuna jakson loppuun asti, sovellus avautuu nyt puoliaikaan, joten yksi napautus Aloita jakso 2 käynnistää toisen puoliajan. Aiemmin kello kävi sekunnin ja pysähtyi."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "The match clock catches up with real time after the phone has slept, even when the app did not notice going to the background, and no longer loses half a second each time the screen locks."
       ],
       "fi": [

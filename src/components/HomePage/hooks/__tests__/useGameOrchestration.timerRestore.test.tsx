@@ -345,7 +345,9 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
       // Period 2 of a 2x15 game: boundary = 2 * 15 * 60 = 1800
       expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBe(1800);
     }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
-    expect(result.current.modalManagerProps.data.gameSessionState.gameStatus).toBe('notStarted');
+    // Last period: the match reached full time while away (review 4.26) - shown as
+    // full time, not as a Start at the boundary that would run 1 s and stop.
+    expect(result.current.modalManagerProps.data.gameSessionState.gameStatus).toBe('gameEnd');
     expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(false);
   });
 
@@ -517,13 +519,42 @@ describe('timer lifecycle scenarios (review 4.21 bench)', () => {
    * half ended. Must come back as a real half-time at 15:00, so one tap on "Start
    * Period 2" starts the second half - not a "Start" at 15:00 that runs 1 s and stops.
    */
-  it.failing('4.26 - killed through the end of a half, reopens as half-time at the boundary', async () => {
+  it('4.26 - killed through the end of a half, reopens as half-time at the boundary', async () => {
     seed({ [GAME_A]: createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 600 }) }, GAME_A);
     seedAnchor(GAME_A, 600, 20 * 60 * 1000);
     const view = await mount();
     await waitFor(() => expect(session(view).timeElapsedInSeconds).toBe(900), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
     expect(session(view).isTimerRunning).toBe(false);
     expect(session(view).gameStatus).toBe('periodEnd');
+    // Saved straight away (a second reload must not fall back to 10:00), then the
+    // stopped clock's anchor is cleared.
+    await waitFor(() => expect(mockSaveGame).toHaveBeenCalledWith(
+      GAME_A, expect.objectContaining({ gameStatus: 'periodEnd', timeElapsedInSeconds: 900 }), undefined,
+    ), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    await waitFor(() => expect(window.localStorage.getItem('matchops_timer_anchor')).toBeNull());
+    view.unmount();
+  });
+
+  it('4.26 - if saving the half-time fails, a record at the period end is left for the next load', async () => {
+    seed({ [GAME_A]: createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 600 }) }, GAME_A);
+    seedAnchor(GAME_A, 600, 20 * 60 * 1000);
+    mockSaveGame.mockRejectedValueOnce(new Error('transient IndexedDB failure'));
+    const view = await mount();
+    await waitFor(() => expect(session(view).gameStatus).toBe('periodEnd'), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    await waitFor(() => {
+      const raw = JSON.parse(window.localStorage.getItem('matchops_timer_anchor') ?? '{}');
+      expect(raw[GAME_A]?.elapsedSeconds).toBe(900);
+    });
+    view.unmount();
+  });
+
+  it('4.26 - killed through the end of the LAST period, reopens at full time', async () => {
+    seed({ [GAME_A]: createInProgressGame({ currentPeriod: 2, timeElapsedInSeconds: 1500 }) }, GAME_A);
+    seedAnchor(GAME_A, 1500, 20 * 60 * 1000);
+    const view = await mount();
+    await waitFor(() => expect(session(view).gameStatus).toBe('gameEnd'), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    expect(session(view).timeElapsedInSeconds).toBe(1800);
+    view.unmount();
   });
 
   /**

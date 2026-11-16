@@ -12,7 +12,7 @@ import usePlayerAssessments from '@/hooks/usePlayerAssessments';
 import { useTranslation } from 'react-i18next';
 import { useFieldCoordination } from './useFieldCoordination';
 import { useTimerManagement } from './useTimerManagement';
-import { GameSessionState } from '@/hooks/useGameSessionReducer';
+import { GameSessionState, boundaryStop, initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import { saveGame as utilSaveGame, getGame as utilGetGame, getLatestGameId } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
@@ -42,7 +42,7 @@ import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { withoutFairPlayCard } from '@/utils/playerStats';
-import { readTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
+import { readTimerAnchor, clearTimerAnchor, writeTimerAnchor } from '@/utils/timerAnchor';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
@@ -1251,6 +1251,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setOrphanedGameInfo(null);
     }
 
+    // The status the reducer loads (review 4.26: an in-progress game at or past its
+    // period end loads as the break / full time) - the undo baseline below must start
+    // from it too, or undo could restore the startable in-progress state.
+    let loadedGameStatus: GameSessionState['gameStatus'] | undefined;
+
     if (gameData) {
       // gameData is AppState, map its fields directly to GameSessionState partial payload
       const payload: Partial<GameSessionState> = {
@@ -1317,8 +1322,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           || readTimerAnchor(pendingCorrection.gameId)?.wallClockMs === pendingCorrection.recordWallClockMs;
         if (pendingCorrection.gameId === currentGameId && gameData.gameStatus === 'inProgress' && stillLive) {
           // The game was live when the app was hidden and a force-reload followed.
+          // Same defaults as LOAD_PERSISTED_GAME_DATA, so the boundary (and the stop
+          // saved below) is the one the reducer loads.
           const periodBoundarySeconds =
-            (gameData.currentPeriod ?? 1) * (gameData.periodDurationMinutes ?? 10) * 60;
+            (gameData.currentPeriod ?? 1)
+            * (gameData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes) * 60;
           const recoveredElapsed = pendingCorrection.elapsedAtRecord
             + Math.max(0, (Date.now() - pendingCorrection.recordWallClockMs) / 1000);
           const corrected = Math.min(recoveredElapsed, periodBoundarySeconds);
@@ -1334,12 +1342,59 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           // the period), leave it paused so the user taps to acknowledge the period
           // end — we never silently auto-advance periods.
           shouldAutoResume = pendingCorrection.resume && corrected < periodBoundarySeconds;
+          const stopWhileAway = boundaryStop(
+            gameData.currentPeriod ?? 1,
+            gameData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods,
+            gameData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes,
+            recoveredElapsed,
+          );
+          if (stopWhileAway) {
+            // The period ended while the app was away (review 4.26). The reducer loads
+            // this as the period break / full time at the boundary; save that now -
+            // nothing else would (autosave takes the loaded state as its baseline), so a
+            // second reload would otherwise fall back to the last saved, older clock.
+            // The anchor is cleared once that save has landed: the clock has stopped.
+            const endedGame: AppState = {
+              ...gameData,
+              timeElapsedInSeconds: stopWhileAway.time,
+              gameStatus: stopWhileAway.status,
+            };
+            const endedGameId = currentGameId;
+            const anchorAtSave = readTimerAnchor(endedGameId)?.wallClockMs;
+            void utilSaveGame(endedGameId, endedGame, userId)
+              .then(() => {
+                // If the coach already tapped Start Period 2 (a new anchor), the clock is
+                // running again: leave its anchor and the newer in-memory game alone.
+                if (readTimerAnchor(endedGameId)?.wallClockMs === anchorAtSave) {
+                  clearTimerAnchor(endedGameId);
+                  setSavedGames(prev => ({ ...prev, [endedGameId]: endedGame }));
+                }
+                queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
+              })
+              .catch((error) => {
+                // Leave a recovery record AT the period end, so the next load derives the
+                // same stop again - also when this recovery came from the IndexedDB record,
+                // which the boot has already consumed.
+                writeTimerAnchor(endedGameId, stopWhileAway.time);
+                logger.warn('[LOAD GAME STATE] Saving the period end reached while away failed', { error });
+              });
+          }
         } else if (pendingCorrection.gameId === currentGameId && gameData.gameStatus !== 'inProgress') {
           // A record for a game that is not in progress (reset, ended) is stale.
           clearTimerAnchor(currentGameId);
         }
         pendingClockCorrectionRef.current = null;
       }
+
+      const loadStop = gameData.gameStatus === 'inProgress'
+        ? boundaryStop(
+          gameData.currentPeriod ?? 1,
+          gameData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods,
+          gameData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes,
+          payload.timeElapsedInSeconds ?? gameData.timeElapsedInSeconds ?? 0,
+        )
+        : null;
+      loadedGameStatus = loadStop ? loadStop.status : gameData.gameStatus;
 
       dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
 
@@ -1438,7 +1493,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       numberOfPeriods: gameData?.numberOfPeriods ?? initialGameSessionData.numberOfPeriods,
       periodDurationMinutes: gameData?.periodDurationMinutes ?? initialGameSessionData.periodDurationMinutes,
       currentPeriod: gameData?.currentPeriod ?? initialGameSessionData.currentPeriod,
-      gameStatus: gameData?.gameStatus ?? initialGameSessionData.gameStatus,
+      gameStatus: loadedGameStatus ?? gameData?.gameStatus ?? initialGameSessionData.gameStatus,
       seasonId: gameData?.seasonId ?? initialGameSessionData.seasonId,
       tournamentId: gameData?.tournamentId ?? initialGameSessionData.tournamentId,
       leagueId: gameData?.leagueId ?? initialGameSessionData.leagueId,
@@ -1493,6 +1548,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setTacticalDrawings, setTacticalBallPosition, setFormationSnapPoints, setSubSlots,
     // Stable data from hooks (initialGameSessionData from useGameSessionCoordination)
     initialGameSessionData,
+    // Saving a period end reached while away (review 4.26): queryClient is stable,
+    // userId changes only on an account switch, which remounts the match anyway.
+    queryClient, userId,
     // Data dependencies (used as fallbacks - changes trigger callback recreation)
     // Note: initialState is a function parameter (outer scope), not a dep
     availablePlayers, gameDataManagement.masterRoster,
