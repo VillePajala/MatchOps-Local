@@ -228,9 +228,10 @@ function reconcilePeriodBreak(state: GameSessionState): GameSessionState {
   // turning the break into a paused period 2 whose half then ran 15 minutes. Start
   // Period 2 still starts the next period at its nominal time. On the last period it
   // is full time. Only a LONGER period (a false half-time) continues the clock below.
-  const currentPeriodEnd = state.currentPeriod * state.periodDurationMinutes * 60;
-  if (currentPeriodEnd > 0 && state.timeElapsedInSeconds >= currentPeriodEnd) {
-    return state.currentPeriod >= state.numberOfPeriods ? { ...state, gameStatus: 'gameEnd' } : state;
+  // The clock is deliberately left where it stopped (as for a paused clock above).
+  const breakStands = boundaryStop(state.currentPeriod, state.numberOfPeriods, state.periodDurationMinutes, state.timeElapsedInSeconds);
+  if (breakStands) {
+    return breakStands.status === 'gameEnd' ? { ...state, gameStatus: 'gameEnd' } : state;
   }
   const next = clockContinuation(state);
   if (next === null) return { ...state, gameStatus: 'gameEnd' };

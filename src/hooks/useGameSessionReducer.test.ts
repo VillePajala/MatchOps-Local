@@ -306,6 +306,7 @@ describe('gameSessionReducer', () => {
       const shortened = gameSessionReducer(state, { type: 'SET_PERIOD_DURATION', payload: 20 });
       expect(shortened.gameStatus).toBe('periodEnd');
       expect(shortened.currentPeriod).toBe(1);
+      expect(shortened.timeElapsedInSeconds).toBe(1500); // kept; Start Period 2 sets 20:00
       const secondHalf = gameSessionReducer(shortened, { type: 'START_PERIOD', payload: { nextPeriod: 2, periodDurationMinutes: 20, subIntervalMinutes: 5 } });
       expect(secondHalf.currentPeriod).toBe(2);
       expect(secondHalf.timeElapsedInSeconds).toBe(1200); // 20 minutes to the 40:00 end
@@ -317,6 +318,13 @@ describe('gameSessionReducer', () => {
       const undone = gameSessionReducer(shortened, { type: 'LOAD_STATE_FROM_HISTORY', payload: { periodDurationMinutes: 25 } });
       expect(undone.gameStatus).toBe('periodEnd');
       expect(undone.currentPeriod).toBe(1);
+    });
+
+    it('shortening by a lot at half-time (25 -> 10) still keeps the break', () => {
+      const state = createBaseState({ numberOfPeriods: 2, periodDurationMinutes: 25, gameStatus: 'periodEnd', currentPeriod: 1, timeElapsedInSeconds: 1500 });
+      const r = gameSessionReducer(state, { type: 'SET_PERIOD_DURATION', payload: 10 });
+      expect(r.gameStatus).toBe('periodEnd');
+      expect(r.currentPeriod).toBe(1);
     });
 
     it('shortening the period at the last break is full time', () => {
