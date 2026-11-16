@@ -173,18 +173,6 @@ const safeElapsedSeconds = (value: unknown, fallback: number): number => {
 
 // --- Reducer Function ---
 /**
- * Re-checks a clock stopped at a PERIOD BREAK after the period length or count
- * changes (review 1.11). At a false half-time (period set up shorter than played),
- * lengthening the period puts the game back in play, paused at the same minute, so
- * Start continues the period; reducing the game to one period at half-time ends it.
- *
- * A finished game ('gameEnd') is deliberately NOT changed here: reopening it would
- * make it the live match the app opens into at launch, and hide the wrap-up, even
- * when the coach is only correcting the length for the record. Instead the timer's
- * Start button offers to continue when the corrected structure leaves time to play
- * (see clockContinuation, useGameTimer.startPause and TimerOverlay).
- */
-/**
  * A STOPPED clock at or past the end of its current period is a period break, or
  * full time on the last period - never "in progress" (review 4.26). Left as
  * in-progress (or as the load-coerced notStarted) it showed a plain Start/Resume at
@@ -192,7 +180,7 @@ const safeElapsedSeconds = (value: unknown, fallback: number): number => {
  * and the clock stopped again - an untimed second half for a coach who tapped Start
  * at kick-off and looked up. Reached by: reopening after the phone was locked
  * through the period end, a pause in the last fraction of a second, or shortening
- * the period while paused. The clock is set to the boundary, as the tick does.
+ * the period while paused.
  */
 export function boundaryStop(
   currentPeriod: number,
@@ -205,9 +193,27 @@ export function boundaryStop(
   return { status: currentPeriod >= numberOfPeriods ? 'gameEnd' : 'periodEnd', time: boundary };
 }
 
+/**
+ * Re-checks a clock stopped at a PERIOD BREAK after the period length or count
+ * changes (review 1.11). At a false half-time (period set up shorter than played),
+ * lengthening the period puts the game back in play, paused at the same minute, so
+ * Start continues the period; reducing the game to one period at half-time ends it.
+ *
+ * A finished game ('gameEnd') is deliberately NOT changed here: reopening it would
+ * make it the live match the app opens into at launch, and hide the wrap-up, even
+ * when the coach is only correcting the length for the record. Instead the timer's
+ * Start button offers to continue when the corrected structure leaves time to play
+ * (see clockContinuation, useGameTimer.startPause and TimerOverlay).
+ *
+ * A PAUSED in-progress clock (incl. the load-coerced notStarted with time on the
+ * clock) that a shortened period leaves at or past its end becomes the break
+ * (review 4.26) - status only, the clock stays where it was.
+ */
 function reconcilePeriodBreak(state: GameSessionState): GameSessionState {
   if (state.isTimerRunning) return state;
-  if (state.gameStatus === 'inProgress') {
+  const pausedInPlay = state.gameStatus === 'inProgress'
+    || (state.gameStatus === 'notStarted' && state.timeElapsedInSeconds > 0); // load-coerced
+  if (pausedInPlay) {
     // Paused mid-period and the period was shortened to end at or before this minute:
     // it is now the period break. Only the STATUS changes - the clock stays where the
     // game was, so re-entering the right length (a typo of 15 for 25) continues from

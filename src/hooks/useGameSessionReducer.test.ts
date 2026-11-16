@@ -1033,6 +1033,28 @@ describe('gameSessionReducer', () => {
       expect(r.isTimerRunning).toBe(false);
     });
 
+    it('PAUSE exactly at the period end is the period end (same as the tick)', () => {
+      const state = createBaseState({ ...base, gameStatus: 'inProgress', currentPeriod: 1, isTimerRunning: true, startTimestamp: 1, timeElapsedInSeconds: 899 });
+      const r = gameSessionReducer(state, { type: 'PAUSE_TIMER', payload: 900 });
+      expect(r.gameStatus).toBe('periodEnd');
+      expect(r.timeElapsedInSeconds).toBe(900);
+    });
+
+    it('shortening the period on a reopened paused game (load-coerced notStarted) makes it the break', () => {
+      const loaded = gameSessionReducer(createBaseState(), { type: 'LOAD_PERSISTED_GAME_DATA', payload: {
+        numberOfPeriods: 2, periodDurationMinutes: 25, gameStatus: 'inProgress', currentPeriod: 1, timeElapsedInSeconds: 1220,
+      } });
+      expect(loaded.gameStatus).toBe('notStarted');
+      const r = gameSessionReducer(loaded, { type: 'SET_PERIOD_DURATION', payload: 20 });
+      expect(r.gameStatus).toBe('periodEnd');
+      expect(r.timeElapsedInSeconds).toBe(1220);
+    });
+
+    it('shortening the period on a fresh game (0:00, not started) changes nothing', () => {
+      const r = gameSessionReducer(createBaseState({ gameStatus: 'notStarted', timeElapsedInSeconds: 0, periodDurationMinutes: 25 }), { type: 'SET_PERIOD_DURATION', payload: 20 });
+      expect(r.gameStatus).toBe('notStarted');
+    });
+
     it('PAUSE mid-period is an ordinary pause', () => {
       const state = createBaseState({ ...base, gameStatus: 'inProgress', currentPeriod: 1, isTimerRunning: true, startTimestamp: 1, timeElapsedInSeconds: 600 });
       const r = gameSessionReducer(state, { type: 'PAUSE_TIMER', payload: 600.4 });

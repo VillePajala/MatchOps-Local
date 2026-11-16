@@ -535,6 +535,19 @@ describe('timer lifecycle scenarios (review 4.21 bench)', () => {
     view.unmount();
   });
 
+  it('4.26 - if saving the half-time fails, a record at the period end is left for the next load', async () => {
+    seed({ [GAME_A]: createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 600 }) }, GAME_A);
+    seedAnchor(GAME_A, 600, 20 * 60 * 1000);
+    mockSaveGame.mockRejectedValueOnce(new Error('transient IndexedDB failure'));
+    const view = await mount();
+    await waitFor(() => expect(session(view).gameStatus).toBe('periodEnd'), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    await waitFor(() => {
+      const raw = JSON.parse(window.localStorage.getItem('matchops_timer_anchor') ?? '{}');
+      expect(raw[GAME_A]?.elapsedSeconds).toBe(900);
+    });
+    view.unmount();
+  });
+
   it('4.26 - killed through the end of the LAST period, reopens at full time', async () => {
     seed({ [GAME_A]: createInProgressGame({ currentPeriod: 2, timeElapsedInSeconds: 1500 }) }, GAME_A);
     seedAnchor(GAME_A, 1500, 20 * 60 * 1000);

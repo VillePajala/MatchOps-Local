@@ -42,7 +42,7 @@ import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { withoutFairPlayCard } from '@/utils/playerStats';
-import { readTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
+import { readTimerAnchor, clearTimerAnchor, writeTimerAnchor } from '@/utils/timerAnchor';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
@@ -1251,6 +1251,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setOrphanedGameInfo(null);
     }
 
+    // The status the reducer loads (review 4.26: an in-progress game at or past its
+    // period end loads as the break / full time) - the undo baseline below must start
+    // from it too, or undo could restore the startable in-progress state.
+    let loadedGameStatus: GameSessionState['gameStatus'] | undefined;
+
     if (gameData) {
       // gameData is AppState, map its fields directly to GameSessionState partial payload
       const payload: Partial<GameSessionState> = {
@@ -1367,7 +1372,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
                 queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
               })
               .catch((error) => {
-                // The anchor stays, so the next load derives the same period end again.
+                // Leave a recovery record AT the period end, so the next load derives the
+                // same stop again - also when this recovery came from the IndexedDB record,
+                // which the boot has already consumed.
+                writeTimerAnchor(endedGameId, stopWhileAway.time);
                 logger.warn('[LOAD GAME STATE] Saving the period end reached while away failed', { error });
               });
           }
@@ -1377,6 +1385,16 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         }
         pendingClockCorrectionRef.current = null;
       }
+
+      const loadStop = gameData.gameStatus === 'inProgress'
+        ? boundaryStop(
+          gameData.currentPeriod ?? 1,
+          gameData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods,
+          gameData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes,
+          payload.timeElapsedInSeconds ?? gameData.timeElapsedInSeconds ?? 0,
+        )
+        : null;
+      loadedGameStatus = loadStop ? loadStop.status : gameData.gameStatus;
 
       dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
 
@@ -1475,7 +1493,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       numberOfPeriods: gameData?.numberOfPeriods ?? initialGameSessionData.numberOfPeriods,
       periodDurationMinutes: gameData?.periodDurationMinutes ?? initialGameSessionData.periodDurationMinutes,
       currentPeriod: gameData?.currentPeriod ?? initialGameSessionData.currentPeriod,
-      gameStatus: gameData?.gameStatus ?? initialGameSessionData.gameStatus,
+      gameStatus: loadedGameStatus ?? gameData?.gameStatus ?? initialGameSessionData.gameStatus,
       seasonId: gameData?.seasonId ?? initialGameSessionData.seasonId,
       tournamentId: gameData?.tournamentId ?? initialGameSessionData.tournamentId,
       leagueId: gameData?.leagueId ?? initialGameSessionData.leagueId,
