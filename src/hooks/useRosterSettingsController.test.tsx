@@ -121,4 +121,29 @@ describe('useRosterSettingsController (L.2)', () => {
     expect(mockedAddPlayer).toHaveBeenCalled();
     expect(result.current.rosterError).toBeNull();
   });
+
+  /** Review 7.10: the form closes only when the player was really added. */
+  it('tells the form whether the player was added', async () => {
+    const { result } = renderHook(() => useRosterSettingsController(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.availablePlayers).toHaveLength(1));
+
+    let outcome: boolean | undefined;
+    await act(async () => {
+      outcome = await result.current.handleAddPlayerForModal({ name: 'Uusi', jerseyNumber: '10', notes: '', nickname: '' });
+    });
+    expect(outcome).toBe(false); // duplicate number
+
+    mockedAddPlayer.mockResolvedValueOnce(null); // the write failed
+    await act(async () => {
+      outcome = await result.current.handleAddPlayerForModal({ name: 'Uusi', jerseyNumber: '7', notes: '', nickname: '' });
+    });
+    expect(outcome).toBe(false);
+    expect(result.current.rosterError).toBeTruthy();
+
+    mockedAddPlayer.mockResolvedValueOnce(player({ id: 'p3', name: 'Toinen', jerseyNumber: '8' }));
+    await act(async () => {
+      outcome = await result.current.handleAddPlayerForModal({ name: 'Toinen', jerseyNumber: '8', notes: '', nickname: '' });
+    });
+    expect(outcome).toBe(true);
+  });
 });

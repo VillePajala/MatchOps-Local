@@ -130,7 +130,7 @@ export function useRosterSettingsController(): UseRosterSettingsControllerReturn
     }
   }, [handleRemovePlayer, setRosterError]);
 
-  const handleAddPlayerForModal = useCallback(async (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => {
+  const handleAddPlayerForModal = useCallback(async (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }): Promise<boolean> => {
     logger.log('[useRosterSettingsController] add player:', playerData);
     setRosterError(null); // Clear previous specific errors first
 
@@ -141,14 +141,14 @@ export function useRosterSettingsController(): UseRosterSettingsControllerReturn
     // Check for empty name after trimming
     if (!newNameTrimmedLower) {
       setRosterError(t('rosterSettingsModal.errors.nameRequired', 'Player name cannot be empty.'));
-      return;
+      return false;
     }
 
     // Check for duplicate name (case-insensitive)
     const nameExists = currentRoster.some(p => p.name.trim().toLowerCase() === newNameTrimmedLower);
     if (nameExists) {
       setRosterError(t('rosterSettingsModal.errors.duplicateName', 'A player with this name already exists. Please use a different name.'));
-      return;
+      return false;
     }
 
     // Check for duplicate jersey number (only if a number is provided and not empty)
@@ -156,17 +156,24 @@ export function useRosterSettingsController(): UseRosterSettingsControllerReturn
       const numberExists = currentRoster.some(p => p.jerseyNumber && p.jerseyNumber.trim() === newNumberTrimmed);
       if (numberExists) {
         setRosterError(t('rosterSettingsModal.errors.duplicateNumber', 'A player with this jersey number already exists. Please use a different number or leave it blank.'));
-        return;
+        return false;
       }
     }
 
     // If all checks pass, proceed with the mutation
     try {
-      await handleAddPlayer(playerData);
+      // handleAddPlayer reports a failed write as null (it never throws).
+      const saved = await handleAddPlayer(playerData);
+      if (!saved) {
+        setRosterError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {playerName}. Please try again.', { playerName: playerData.name }));
+        return false;
+      }
       logger.log(`[useRosterSettingsController] add player success: ${playerData.name}.`);
+      return true;
     } catch (error) {
       logger.error(`[useRosterSettingsController] Exception during add of player ${playerData.name}:`, error);
       setRosterError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {playerName}. Please try again.', { playerName: playerData.name }));
+      return false;
     }
   }, [masterRoster, handleAddPlayer, t, setRosterError]);
 
