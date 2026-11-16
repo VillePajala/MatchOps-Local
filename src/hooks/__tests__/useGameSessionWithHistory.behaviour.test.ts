@@ -74,6 +74,13 @@ describe('useGameSessionWithHistory with the real reducer', () => {
     expect(saveToHistory.mock.calls[0][0].gameNotes).toBe('Draft');
   });
 
+  it('a no-op coach action leaves no pending entry for the next tick', () => {
+    const { result, saveToHistory } = setup();
+    act(() => { result.current[1]({ type: 'SET_HOME_OR_AWAY', payload: result.current[0].homeOrAway }); }); // already chosen
+    act(() => { result.current[1]({ type: 'SET_TIMER_ELAPSED', payload: 5 }); });
+    expect(saveToHistory).not.toHaveBeenCalled();
+  });
+
   it('a pending entry is dropped when the session is replaced by a load', () => {
     const { result, saveToHistory } = setup();
     act(() => {

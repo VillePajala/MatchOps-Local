@@ -161,22 +161,31 @@ export function useGameSessionWithHistory(
   options: UseGameSessionWithHistoryOptions
 ): [GameSessionState, GameSessionDispatch] {
   const { buildHistorySlice, saveToHistory, patchCurrentHistory } = options;
+  // A coach action whose history entry is still to be saved (review 4.33). Looking at
+  // the LAST action type alone skipped the entry when an async action (dispatched after
+  // an await, e.g. deleting a goal) was followed by a clock tick before the effect ran:
+  // the tick became the last action. A later undo then restored the deleted goal.
+  // Set only when the action CHANGES the state (checked in dispatch with the pure
+  // reducer against the last committed state): a no-op (e.g. choosing the side already
+  // chosen) runs no effect, and a flag left set would turn the next tick into an undo
+  // step that reverts nothing.
+  const pendingHistoryRef = useRef(false);
   const [state, dispatch] = useReducer(gameSessionReducer, initialState);
+  const committedStateRef = useRef(state);
+  useEffect(() => { committedStateRef.current = state; }, [state]);
 
   // Track the last action type to determine if we should save history
   const lastActionTypeRef = useRef<string | null>(null);
 
   // Enhanced dispatch that tracks action types
-  // A coach action whose history entry is still to be saved (review 4.33). Looking at
-  // the LAST action type alone skipped the entry when an async action (dispatched after
-  // an await, e.g. deleting a goal) was followed by a clock tick before the effect ran:
-  // the tick became the last action. A later undo then restored the deleted goal.
-  const pendingHistoryRef = useRef(false);
-
   const enhancedDispatch: GameSessionDispatch = useCallback((action: GameSessionAction) => {
     lastActionTypeRef.current = action.type;
-    if (HISTORY_SAVING_ACTIONS.has(action.type)) pendingHistoryRef.current = true;
-    else if (STATE_REPLACING_ACTIONS.has(action.type)) pendingHistoryRef.current = false;
+    if (HISTORY_SAVING_ACTIONS.has(action.type)) {
+      const base = committedStateRef.current;
+      if (gameSessionReducer(base, action) !== base) pendingHistoryRef.current = true;
+    } else if (STATE_REPLACING_ACTIONS.has(action.type)) {
+      pendingHistoryRef.current = false;
+    }
     dispatch(action);
   }, [dispatch]);
 

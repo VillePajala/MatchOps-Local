@@ -115,7 +115,9 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         // into Pause under the finger, so the second tap paused the clock it had just
         // started. A pause within this window of starting is that second tap.
         const startedAt = stateRef.current.startTimestamp;
-        if (startedAt !== null && Date.now() - startedAt < DOUBLE_TAP_GUARD_MS) return;
+        const sinceStart = startedAt === null ? Infinity : Date.now() - startedAt;
+        // >= 0: a wall clock stepped backwards must not swallow every pause.
+        if (sinceStart >= 0 && sinceStart < DOUBLE_TAP_GUARD_MS) return;
         // Get precise current time from precision timer to prevent race conditions
         const preciseTime = precisionTimerRef.current?.getCurrentTime();
         dispatch({ type: 'PAUSE_TIMER', payload: preciseTime });

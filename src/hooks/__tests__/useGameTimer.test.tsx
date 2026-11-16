@@ -507,6 +507,15 @@ describe('useGameTimer', () => {
       expect(result.current.isTimerRunning).toBe(false);
     });
 
+    it('a wall clock stepped backwards does not swallow a pause', () => {
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, createInitialState({ gameStatus: 'inProgress', isTimerRunning: true, startTimestamp: Date.now() + 3_600_000, timeElapsedInSeconds: 300 }));
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+      act(() => { result.current.startPause(); });
+      expect(result.current.isTimerRunning).toBe(false);
+    });
+
     it('Reset resets at once, before the timer record is cleared', () => {
       let resolveClear: () => void = () => {};
       const { clearTimerState } = jest.requireMock('@/utils/timerStateManager');
