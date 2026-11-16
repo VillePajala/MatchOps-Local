@@ -23,7 +23,6 @@ import { getSavedGames, saveGame as utilSaveGame } from '@/utils/savedGames';
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { clearTimerState } from '@/utils/timerStateManager';
-import { clearTimerAnchor } from '@/utils/timerAnchor';
 import {
   buildAndPersistNewGame,
   type StartNewGameRequest,
@@ -165,11 +164,11 @@ export function useNewGameSetupController({ onGameCreated, flushLiveMatch }: Use
         // clears below run ONLY once the persist is known good.
         if (!result) return;
 
-        // Same pre-switch hygiene as picking a saved game (L.3a): stale timer
-        // state or a wall-clock anchor from the previous game must not replay
-        // onto the fresh mount that boots the new one.
+        // Same pre-switch hygiene as picking a saved game (L.3a): the previous game's
+        // single-slot IndexedDB timer record must not replay onto the fresh mount.
+        // Its wall-clock anchor is per game (review 4.22) and is kept - it is the
+        // previous match's running clock, and can never apply to the new game.
         await clearTimerState(userId);
-        clearTimerAnchor();
 
         setNewGameDemandFactor(1);
         onGameCreated(result.gameId);

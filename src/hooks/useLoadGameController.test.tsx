@@ -106,9 +106,10 @@ describe('useLoadGameController (L.3a level crossing)', () => {
     await act(async () => {
       await result.current.handleLoadGame('g2');
     });
-    // Pre-switch hygiene, exactly like the old match-side loader.
+    // Pre-switch hygiene: the single-slot IndexedDB record. Anchors are per game
+    // (review 4.22) and are not cleared by opening another game.
     expect(clearTimerState).toHaveBeenCalledWith('user-1');
-    expect(clearTimerAnchor).toHaveBeenCalled();
+    expect(clearTimerAnchor).not.toHaveBeenCalled();
     expect(saveCurrentGameIdSetting).toHaveBeenCalledWith('g2', 'user-1');
     expect(onEnterMatch).toHaveBeenCalledTimes(1);
   });
@@ -119,7 +120,8 @@ describe('useLoadGameController (L.3a level crossing)', () => {
    * @critical
    */
   it('re-opening the game whose clock is running keeps its timer records', async () => {
-    (readTimerAnchor as jest.Mock).mockReturnValueOnce({ gameId: 'g2', elapsedSeconds: 900, wallClockMs: Date.now() });
+    (readTimerAnchor as jest.Mock).mockImplementationOnce((id: string) =>
+      (id === 'g2' ? { gameId: 'g2', elapsedSeconds: 900, wallClockMs: Date.now() } : null));
     const { result } = await renderController();
     await act(async () => {
       await result.current.handleLoadGame('g2');
@@ -129,14 +131,22 @@ describe('useLoadGameController (L.3a level crossing)', () => {
     expect(onEnterMatch).toHaveBeenCalledTimes(1);
   });
 
-  it('opening a different game still clears the running one\'s records', async () => {
-    (readTimerAnchor as jest.Mock).mockReturnValueOnce({ gameId: 'g1', elapsedSeconds: 900, wallClockMs: Date.now() });
+  /**
+   * Review 4.22: opening another game while g1's clock runs keeps g1's anchor - it is
+   * g1's running clock, needed when the coach comes back - and only the single-slot
+   * IndexedDB record is cleared.
+   * @critical
+   */
+  it('opening a different game keeps the running game\'s anchor', async () => {
+    (readTimerAnchor as jest.Mock).mockImplementationOnce((id: string) =>
+      (id === 'g1' ? { gameId: 'g1', elapsedSeconds: 900, wallClockMs: Date.now() } : null));
     const { result } = await renderController();
     await act(async () => {
       await result.current.handleLoadGame('g2');
     });
+    expect(readTimerAnchor).toHaveBeenCalledWith('g2');
     expect(clearTimerState).toHaveBeenCalledWith('user-1');
-    expect(clearTimerAnchor).toHaveBeenCalled();
+    expect(clearTimerAnchor).not.toHaveBeenCalled();
   });
 
   it('deleting a NON-current game cleans planner bookkeeping and updates the cache only', async () => {
@@ -147,6 +157,8 @@ describe('useLoadGameController (L.3a level crossing)', () => {
     });
     expect(deleteGameSubs).toHaveBeenCalledWith('g2');
     expect(deletePlanLink).toHaveBeenCalledWith('g2');
+    expect(clearTimerAnchor).toHaveBeenCalledWith('g2'); // only the deleted game's clock (4.22)
+    expect(clearTimerAnchor).toHaveBeenCalledTimes(1);
     expect(queryClient.getQueryData([...queryKeys.savedGames, 'user-1'])).toEqual({ g1: games.g1 });
     expect(saveCurrentGameIdSetting).not.toHaveBeenCalled();
     expect(onActiveGameDeleted).not.toHaveBeenCalled();

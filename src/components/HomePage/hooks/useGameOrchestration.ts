@@ -457,7 +457,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // applied one-shot when the corresponding game loads (see loadGameStateFromData).
   // `resume` is set when the timer was running at hide time (wasRunning), so the
   // boot path can continue the clock without a tap after a >5 min force-reload.
-  const pendingClockCorrectionRef = useRef<{ gameId: string; elapsed: number; resume: boolean } | null>(null);
+  // Holds the raw record (clock + wall time), not a computed elapsed: elapsed is
+  // worked out when the game state is loaded (review 4.22), so the boot's awaits
+  // in between are not lost from the recovered clock.
+  const pendingClockCorrectionRef = useRef<{ gameId: string; elapsedAtRecord: number; recordWallClockMs: number; resume: boolean; source: 'anchor' | 'record' } | null>(null);
   // Set when the boot path wants to auto-resume a loaded in-progress game. Consumed
   // by a dedicated effect ONE render after LOAD_PERSISTED_GAME_DATA commits, so the
   // precision timer's stableStartTime has synced to the recovered clock before
@@ -1160,28 +1163,32 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
             : null;
           // Prefer the durable, synchronous localStorage anchor — it survives the
           // Android WebView freeze/kill that the async IndexedDB record does not.
-          const anchor = readTimerAnchor();
-          // Note: the period-boundary cap is applied downstream in
-          // loadGameStateFromData (Math.min(elapsed, periodBoundary)); this just
-          // computes the raw wall-clock-corrected elapsed.
-          if (anchor && lastGameId && anchor.gameId === lastGameId) {
-            const offlineSeconds = (Date.now() - anchor.wallClockMs) / 1000;
+          // Keyed by game: only this game's anchor, never another's.
+          const anchor = lastGameId ? readTimerAnchor(lastGameId) : null;
+          // Note: elapsed and the period-boundary cap are worked out downstream in
+          // loadGameStateFromData; this only hands over the raw record.
+          if (anchor && lastGameId) {
             pendingClockCorrectionRef.current = {
               gameId: lastGameId,
-              elapsed: Math.round(anchor.elapsedSeconds + offlineSeconds),
+              elapsedAtRecord: anchor.elapsedSeconds,
+              recordWallClockMs: anchor.wallClockMs,
               resume: true,
+              source: 'anchor',
             };
           } else if (savedTimerState?.wasRunning && lastGameId) {
-            const offlineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
             pendingClockCorrectionRef.current = {
               gameId: lastGameId,
-              elapsed: Math.round(savedTimerState.timeElapsedInSeconds + offlineSeconds),
+              elapsedAtRecord: savedTimerState.timeElapsedInSeconds,
+              recordWallClockMs: savedTimerState.timestamp,
               resume: true,
+              source: 'record',
             };
           }
-          // Consume both recovery records unconditionally so a stale anchor/record
-          // (incl. one for a different game) can never be replayed on a later boot.
-          clearTimerAnchor();
+          // The anchor is NOT consumed on read (review 4.22): a second remount before
+          // the first tick (a resume refresh plus a sync remount) must recover the
+          // clock too. It stays exactly while this game's clock runs - the next tick
+          // rewrites it, and pause, period end, reset or deletion remove it. The
+          // IndexedDB record is a single-slot fallback behind it and is consumed.
           await clearTimerState(userId);
         } catch (error) {
           logger.error('[EFFECT init] Error consuming persisted timer state:', error);
@@ -1300,11 +1307,20 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       const pendingCorrection = pendingClockCorrectionRef.current;
       let shouldAutoResume = false;
       if (pendingCorrection) {
-        if (pendingCorrection.gameId === currentGameId && gameData.gameStatus === 'inProgress') {
+        // An anchor-based correction is used only if that anchor is still the live one:
+        // the anchor is no longer consumed on read (review 4.22), so an overlapping boot
+        // run could re-arm a correction from an older read. A tick (wallClockMs moved on)
+        // or a pause (anchor gone) in the meantime means it must not be applied - it
+        // would rewind the clock or restart one the coach paused.
+        const stillLive = pendingCorrection.source !== 'anchor'
+          || readTimerAnchor(pendingCorrection.gameId)?.wallClockMs === pendingCorrection.recordWallClockMs;
+        if (pendingCorrection.gameId === currentGameId && gameData.gameStatus === 'inProgress' && stillLive) {
           // The game was live when the app was hidden and a force-reload followed.
           const periodBoundarySeconds =
             (gameData.currentPeriod ?? 1) * (gameData.periodDurationMinutes ?? 10) * 60;
-          const corrected = Math.min(pendingCorrection.elapsed, periodBoundarySeconds);
+          const recoveredElapsed = pendingCorrection.elapsedAtRecord
+            + Math.max(0, (Date.now() - pendingCorrection.recordWallClockMs) / 1000);
+          const corrected = Math.min(recoveredElapsed, periodBoundarySeconds);
           if (corrected > (gameData.timeElapsedInSeconds ?? 0)) {
             logger.info('[LOAD GAME STATE] Applying hidden-session clock correction', {
               storedElapsed: gameData.timeElapsedInSeconds,
@@ -1317,6 +1333,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           // the period), leave it paused so the user taps to acknowledge the period
           // end — we never silently auto-advance periods.
           shouldAutoResume = pendingCorrection.resume && corrected < periodBoundarySeconds;
+        } else if (pendingCorrection.gameId === currentGameId && gameData.gameStatus !== 'inProgress') {
+          // A record for a game that is not in progress (reset, ended) is stale.
+          clearTimerAnchor(currentGameId);
         }
         pendingClockCorrectionRef.current = null;
       }

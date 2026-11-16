@@ -15,6 +15,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useGameTimer } from '../useGameTimer';
 import { GameSessionState, GameSessionAction, gameSessionReducer } from '../useGameSessionReducer';
 import { setRecordingSessionActive } from '@/utils/recordingSessionSignal';
+import { readTimerAnchor, writeTimerAnchor } from '@/utils/timerAnchor';
 
 // Mock storage module
 jest.mock('@/utils/storage', () => ({
@@ -239,6 +240,48 @@ describe('useGameTimer', () => {
   // startPause functionality
   // ============================================
   describe('startPause', () => {
+    /**
+     * Review 4.22: the recovery anchor is written the moment the clock starts - a lock,
+     * kill or reload in the first second otherwise had nothing to recover from - and a
+     * pause removes only this game's anchor.
+     * @critical
+     */
+    describe('recovery anchor (review 4.22)', () => {
+      beforeEach(() => window.localStorage.clear());
+      const render = (overrides: Partial<GameSessionState>) => renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, createInitialState(overrides));
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+
+      it('kick-off writes the anchor at 0 before any tick', () => {
+        const { result } = render({ gameStatus: 'notStarted' });
+        act(() => { result.current.startPause(); });
+        expect(readTimerAnchor('game-1')?.elapsedSeconds).toBe(0);
+      });
+
+      it('resuming a loaded game writes the anchor at its saved clock', () => {
+        const { result } = render({ gameStatus: 'notStarted', currentPeriod: 2, timeElapsedInSeconds: 1600 });
+        act(() => { result.current.startPause(); });
+        expect(readTimerAnchor('game-1')?.elapsedSeconds).toBe(1600);
+      });
+
+      it('Start Period 2 writes the anchor at the period start', () => {
+        const { result } = render({ gameStatus: 'periodEnd', currentPeriod: 1, timeElapsedInSeconds: 900, periodDurationMinutes: 15, numberOfPeriods: 2 });
+        act(() => { result.current.startPause(); });
+        expect(readTimerAnchor('game-1')?.elapsedSeconds).toBe(900);
+      });
+
+      it('pause removes this game\'s anchor and keeps another game\'s', () => {
+        writeTimerAnchor('game-other', 300);
+        const { result } = render({ gameStatus: 'inProgress', isTimerRunning: false, timeElapsedInSeconds: 120 });
+        act(() => { result.current.startPause(); }); // START_TIMER
+        expect(readTimerAnchor('game-1')?.elapsedSeconds).toBe(120);
+        act(() => { result.current.startPause(); }); // PAUSE_TIMER
+        expect(readTimerAnchor('game-1')).toBeNull();
+        expect(readTimerAnchor('game-other')?.elapsedSeconds).toBe(300);
+      });
+    });
+
     it('should start first period when game not started', () => {
       const initialState = createInitialState({ gameStatus: 'notStarted' });
 
