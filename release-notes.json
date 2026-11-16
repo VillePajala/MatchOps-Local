@@ -3,6 +3,16 @@
   "releases": [
     {
       "date": "2026-11-16",
+      "internal": true,
+      "en": [
+        "Error messages no longer show internal server details."
+      ],
+      "fi": [
+        "Virheilmoitukset eivät enää näytä palvelimen sisäisiä tietoja."
+      ]
+    },
+    {
+      "date": "2026-11-16",
       "en": [
         "Security: two internal server functions can no longer be called without signing in."
       ],

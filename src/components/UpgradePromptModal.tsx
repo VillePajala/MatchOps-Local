@@ -185,10 +185,10 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
           // Call Edge Function to create subscription record in database
           const result = await grantMockSubscription(token);
           if (!result.success) {
-            // Always show the actual error message for debugging
-            const errorMsg = result.error || 'Unknown error';
-            logger.error('[UpgradePromptModal] Mock subscription failed:', errorMsg);
-            showToast(t('premium.subscriptionFailed', 'Subscription failed: {{error}}', { error: errorMsg }), 'error');
+            // The detail goes to the log only (review 6.8): the toast must not carry
+            // backend error text, even on the preview/internal path.
+            logger.error('[UpgradePromptModal] Mock subscription failed:', result.error || 'Unknown error');
+            showToast(t('premium.subscriptionFailed', 'Subscription failed. Please try again.'), 'error');
             return;
           }
         }

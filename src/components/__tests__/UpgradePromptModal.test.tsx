@@ -45,7 +45,9 @@ jest.mock('@/hooks/usePremium', () => ({
 }));
 
 // Mock usePlayBilling hook
+const mockGrantMockSubscription = jest.fn();
 jest.mock('@/hooks/usePlayBilling', () => ({
+  grantMockSubscription: (...args: unknown[]) => mockGrantMockSubscription(...args),
   usePlayBilling: () => ({
     isAvailable: false,
     isPurchasing: false,
@@ -54,6 +56,12 @@ jest.mock('@/hooks/usePlayBilling', () => ({
     restore: jest.fn(),
     refreshDetails: jest.fn(),
   }),
+}));
+
+const mockLoggerError = jest.fn();
+jest.mock('@/utils/logger', () => ({
+  __esModule: true,
+  default: { log: jest.fn(), debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: (...args: unknown[]) => mockLoggerError(...args) },
 }));
 
 // Mock SubscriptionContext
@@ -338,6 +346,24 @@ describe('UpgradePromptModal', () => {
         expect(mockGrantPremiumAccess).toHaveBeenCalledWith(expect.stringMatching(/^test-internal-\d+$/));
         expect(onClose).toHaveBeenCalled();
       });
+    });
+
+    /**
+     * Review 6.8: the toast used to carry the Edge Function's error text. The
+     * detail goes to the log only; the coach sees a generic message.
+     */
+    it('shows a generic message when the cloud subscription fails, and logs the detail', async () => {
+      mockGrantMockSubscription.mockResolvedValue({ success: false, error: 'mock mode disabled: SECRET_CONFIG missing' });
+      renderWithProviders(<UpgradePromptModal {...defaultProps} variant="cloudUpgrade" />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /upgrade to premium/i }));
+      });
+
+      await waitFor(() => expect(screen.getByText('Subscription failed. Please try again.')).toBeInTheDocument());
+      expect(screen.queryByText(/SECRET_CONFIG/)).not.toBeInTheDocument();
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.any(String), 'mock mode disabled: SECRET_CONFIG missing');
+      expect(mockGrantPremiumAccess).not.toHaveBeenCalled();
     });
   });
 
