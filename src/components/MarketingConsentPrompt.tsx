@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
-import { useFirstGameExists, useSetupWizardActive } from '@/components/setupWizardActive';
+import { useFirstGameExists, useHomeShowing, useSetupWizardActive } from '@/components/setupWizardActive';
 import logger from '@/utils/logger';
 
 /**
@@ -31,6 +31,9 @@ export default function MarketingConsentPrompt() {
   // Re-gate (Onboarding v2 PR 22): never mid-onboarding - the prompt waits
   // until the FIRST GAME exists. Existing users with games see no change.
   const hasFirstGame = useFirstGameExists();
+  // Home only (review 7.5): never over a live match, e.g. after returning to the
+  // app mid-match. Leaving Home before the delay runs out cancels it.
+  const homeShowing = useHomeShowing();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -39,7 +42,7 @@ export default function MarketingConsentPrompt() {
   // Delay rendering by 5 seconds after showMarketingPrompt becomes true.
   // This avoids the prompt appearing over auth/start screens during post-login transitions.
   useEffect(() => {
-    if (showMarketingPrompt && !tourActive && !wizardActive && hasFirstGame) {
+    if (showMarketingPrompt && !tourActive && !wizardActive && hasFirstGame && homeShowing) {
       timerRef.current = setTimeout(() => {
         setIsReady(true);
       }, 5000);
@@ -56,7 +59,7 @@ export default function MarketingConsentPrompt() {
         timerRef.current = null;
       }
     };
-  }, [showMarketingPrompt, tourActive, wizardActive, hasFirstGame]);
+  }, [showMarketingPrompt, tourActive, wizardActive, hasFirstGame, homeShowing]);
 
   if (!showMarketingPrompt || !isReady) return null;
 
