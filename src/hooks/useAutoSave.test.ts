@@ -506,10 +506,6 @@ describe('useAutoSave', () => {
     });
 
     /**
-     * Cleanup should clear all pending timers to prevent memory leaks
-     * @critical
-     */
-    /**
      * Review 4.28: going to the background saves a pending change at once (a kill in
      * the debounce window lost it), and with saveWhenLeaving (a running clock) hiding
      * or unmounting saves even with nothing pending.
@@ -557,10 +553,19 @@ describe('useAutoSave', () => {
         }), { initialProps: { teamName: 'A' } });
         act(() => { rerender({ teamName: 'B' }); });
         setHidden(true);
-        await act(async () => { await Promise.resolve(); await Promise.resolve(); });
         expect(mockSaveFunction).toHaveBeenCalledTimes(1);
+        await act(async () => { await jest.runAllTimersAsync(); }); // let the failure settle
         unmount(); // leaving again: still pending, so saved again
         expect(mockSaveFunction).toHaveBeenCalledTimes(2);
+      });
+
+      it('saves a pending change on pagehide (bfcache, no visibilitychange)', () => {
+        const { rerender } = renderHook(({ teamName }) => useAutoSave({
+          short: { states: { teamName }, delay: 500 }, saveFunction: mockSaveFunction, enabled: true, currentGameId: 'g1',
+        }), { initialProps: { teamName: 'A' } });
+        act(() => { rerender({ teamName: 'B' }); });
+        act(() => { window.dispatchEvent(new Event('pagehide')); });
+        expect(mockSaveFunction).toHaveBeenCalledTimes(1);
       });
 
       it('saves nothing when disabled', () => {
@@ -573,6 +578,10 @@ describe('useAutoSave', () => {
       });
     });
 
+    /**
+     * Cleanup should clear all pending timers to prevent memory leaks
+     * @critical
+     */
     it('flushes a pending debounce on unmount, then stays quiet', () => {
       const { unmount, rerender } = renderHook(
         ({ teamName, playersOnField }) =>

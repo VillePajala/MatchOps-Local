@@ -182,11 +182,12 @@ export const useAutoSave = ({
     saveWhenLeavingRef.current = saveWhenLeaving;
   }, [saveWhenLeaving]);
 
-  // Save NOW when leaving (hidden or unmounted): a pending debounce, or anything at all
-  // when saveWhenLeaving says so. Fire-and-forget, but the first attempt starts
-  // synchronously (the page may be frozen right after a hide) and is retried like the
-  // other tiers; if it still fails, the change is marked pending again so the next
-  // save (or the next leave) carries it.
+  // Save NOW when leaving (hidden, pagehide or unmounted): a pending debounce, or
+  // anything at all when saveWhenLeaving says so. Fire-and-forget, but the first attempt
+  // starts synchronously (the page may be frozen right after a hide) and is retried like
+  // the other tiers - also after an unmount, so it can still finish (the save closes
+  // over its own game id). If it still fails while the view is mounted, the change is
+  // marked pending again so the next save or leave carries it.
   const flushOnLeave = useCallback(() => {
     if (!enabledRef.current) return;
     if (!pendingSaveRef.current && !saveWhenLeavingRef.current?.()) return;
@@ -195,7 +196,17 @@ export const useAutoSave = ({
     if (longTimerRef.current) { clearTimeout(longTimerRef.current); longTimerRef.current = null; }
     saveWithRetry(() => saveFunctionRef.current(), 3, 'on-leave').catch((error) => {
       pendingSaveRef.current = true;
-      logger.warn('[useAutoSave] Save on leaving failed:', error);
+      // Reported like the other tiers: a save lost on leaving is the data-loss case.
+      if (error instanceof NetworkError) {
+        logger.warn('[useAutoSave] Network error after retries (on leaving):', error.message);
+        return;
+      }
+      logger.error('[useAutoSave] Save failed after retries (on leaving):', error);
+      try {
+        Sentry.captureException(error, { tags: { operation: 'auto_save_on_leave' } });
+      } catch {
+        // Sentry failure must not affect auto-save error handling
+      }
     });
   }, []);
 
@@ -205,8 +216,14 @@ export const useAutoSave = ({
     const onVisibility = () => {
       if (document.hidden) flushOnLeave();
     };
+    // pagehide too: Safari can put the page into the back/forward cache with no
+    // visibilitychange, and a cached page never unmounts - then may be evicted.
     document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', flushOnLeave);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', flushOnLeave);
+    };
   }, [flushOnLeave]);
 
   // --- Serialize state groups during render ---
