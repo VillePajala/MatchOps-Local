@@ -2380,6 +2380,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Bulk re-apply ran in the planner (Phase 3.4). If the CURRENTLY LOADED game was
   // among the updated ones, its live state is now stale - without this refresh the
   // next autosave would silently write the old lineup back over the bulk update.
+  // The session's opponent name, read by the refresh below without re-creating it.
+  const opponentNameRef = useRef(gameSessionState.opponentName);
+  useEffect(() => {
+    opponentNameRef.current = gameSessionState.opponentName;
+  }, [gameSessionState.opponentName]);
+
   const handleLinkedGamesUpdated = useCallback(
     async (updatedIds: string[]) => {
       if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
@@ -2397,13 +2403,22 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
             formationSnapPoints: stored.formationSnapPoints ?? [],
           });
         }
+        // A club-side rename of this game's opponent (review 7.13): take the stored
+        // spelling into the session, or the next autosave writes the old name back.
+        if (
+          reapplyGameIdRef.current === currentGameId &&
+          stored.opponentName &&
+          stored.opponentName !== opponentNameRef.current
+        ) {
+          handleOpponentNameChange(stored.opponentName);
+        }
         // Keep the in-memory savedGames copy in step with storage too.
         setSavedGames(prev => ({ ...prev, [currentGameId]: stored }));
       } catch (err) {
         logger.error('[reapplyPlan] Failed to refresh live state after bulk re-apply', err);
       }
     },
-    [currentGameId, userId, applyReappliedLineup, setSavedGames],
+    [currentGameId, userId, applyReappliedLineup, setSavedGames, handleOpponentNameChange],
   );
 
   // L.3c: the planner modal renders at page level (ClubModalsHost), so it

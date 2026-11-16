@@ -28,6 +28,8 @@ const mockGetSeasons = jest.fn();
 
 jest.mock('@/utils/savedGames', () => ({
   getSavedGames: (...a: unknown[]) => mockGetSavedGames(...a),
+  // The rename reads each game fresh from storage (review 7.13): same store here.
+  getGame: async (id: string) => ((await mockGetSavedGames()) as Record<string, unknown>)?.[id] ?? null,
   saveGame: (...a: unknown[]) => mockSaveGame(...a),
 }));
 jest.mock('@/utils/seasons', () => ({

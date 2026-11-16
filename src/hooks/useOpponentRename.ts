@@ -5,7 +5,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import { getSeasons, updateSeason } from '@/utils/seasons';
-import { getSavedGames, saveGame } from '@/utils/savedGames';
+import { getGame, getSavedGames, saveGame } from '@/utils/savedGames';
+import { useModalContextOptional } from '@/contexts/ModalProvider';
+import logger from '@/utils/logger';
 import { planOpponentRename, renameInOpponentList } from '@/utils/opponentRename';
 import type { Season } from '@/types';
 import type { SavedGamesCollection } from '@/types/game';
@@ -51,6 +53,8 @@ export function useOpponentRename(enabled = true): {
   const { userId } = useDataStore();
   const queryClient = useQueryClient();
   const [isRenaming, setIsRenaming] = useState(false);
+  // The open match, when there is one (registered while the match view is mounted).
+  const liveGame = useModalContextOptional()?.plannerLiveGameHooks ?? null;
 
   // Both are already cached under these keys by the rest of the app, so this is
   // normally a cache read rather than a fetch.
@@ -78,11 +82,20 @@ export function useOpponentRename(enabled = true): {
 
       setIsRenaming(true);
       try {
+        // Review 7.13: an open match must not undo this. Its pending edits land
+        // first, each game is read fresh from storage (the cached copy can be older
+        // than the open match's last autosave), and afterwards the match takes the
+        // new spelling into its session - otherwise its next autosave wrote the old
+        // name back and the duplicate opponent returned.
+        await liveGame?.onFlushLiveGame().catch((error) => {
+          logger.warn('[useOpponentRename] Flushing the open match failed', { error });
+        });
         for (const gameId of plan.gameIds) {
-          const game = savedGames?.[gameId];
+          const game = (await getGame(gameId, userId)) ?? savedGames?.[gameId];
           if (!game) continue;
           await saveGame(gameId, { ...game, opponentName: plan.canonical }, userId);
         }
+        liveGame?.onLinkedGamesUpdated(plan.gameIds);
 
         for (const seasonId of plan.seasonIds) {
           const season = (seasons ?? []).find((s) => s.id === seasonId);
@@ -105,7 +118,7 @@ export function useOpponentRename(enabled = true): {
         setIsRenaming(false);
       }
     },
-    [savedGames, seasons, userId, queryClient],
+    [savedGames, seasons, userId, queryClient, liveGame],
   );
 
   return { renameOpponent, isRenaming };

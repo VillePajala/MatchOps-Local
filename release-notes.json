@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Fixing an opponent's name with \"Check team names\" while a match is open now sticks: the open match takes the new spelling instead of saving the old one back."
+      ],
+      "fi": [
+        "Vastustajan nimen korjaus \"Tarkista joukkueiden nimet\" -toiminnolla ottelun ollessa auki pysyy nyt voimassa: avoin ottelu ottaa uuden kirjoitusasun eikä tallenna vanhaa takaisin."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "A double tap on Add when adding a player no longer opens another player's details or saves twice."
       ],
       "fi": [

@@ -477,6 +477,9 @@ export const ModalProvider = ({ children, currentUserId }: {
   return <ModalContext.Provider value={value}>{children}</ModalContext.Provider>;
 };
 
+/** The context when inside ModalProvider, null outside it (no throw). */
+export const useModalContextOptional = () => useContext(ModalContext);
+
 export const useModalContext = () => {
   const ctx = useContext(ModalContext);
   if (!ctx) {
