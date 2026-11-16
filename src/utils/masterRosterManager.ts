@@ -67,13 +67,6 @@ export const updatePlayer = async (
 };
 
 /**
- * Removes a player from the master roster.
- * Calls the underlying async utility from masterRoster.ts.
- * @param {string} playerId The ID of the player to remove.
- * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
- * @returns {Promise<boolean>} True if the player was successfully removed, false otherwise.
- */
-/**
  * A deleted player leaves every team roster too (review 7.16). The team rosters hold
  * their own copy of the player (name, nickname, number, notes), so deleting only the
  * club entry left the Teams list counting the child and their details stored - in the
@@ -109,6 +102,13 @@ async function removePlayerFromAllTeamRosters(playerId: string, userId?: string)
     }
 }
 
+/**
+ * Removes a player from the master roster.
+ * Calls the underlying async utility from masterRoster.ts.
+ * @param {string} playerId The ID of the player to remove.
+ * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
+ * @returns {Promise<boolean>} True if the player was successfully removed, false otherwise.
+ */
 export const removePlayer = async (playerId: string, userId?: string): Promise<boolean> => {
     // logger.log('[masterRosterManager] removePlayer called for ID:', playerId);
     try {
