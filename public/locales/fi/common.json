@@ -2841,7 +2841,7 @@
     "purchaseComingSoon": "Sovelluksen sisäinen osto tulossa pian!",
     "grantSuccess": "Premium aktivoitu! Voit nollata Asetuksissa.",
     "grantError": "Premium-version aktivointi epäonnistui. Yritä uudelleen.",
-    "subscriptionFailed": "Tilaus epäonnistui: {{error}}",
+    "subscriptionFailed": "Tilaus epäonnistui. Yritä uudelleen.",
     "processing": "Käsitellään...",
     "billingNotAvailable": "Play Billing ei ole käytettävissä. Yritä uudelleen.",
     "purchaseFailed": "Osto epäonnistui. Yritä uudelleen.",

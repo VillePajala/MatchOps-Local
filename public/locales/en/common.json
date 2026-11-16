@@ -2841,7 +2841,7 @@
     "purchaseComingSoon": "In-app purchase coming soon!",
     "grantSuccess": "Premium activated! You can reset in Settings.",
     "grantError": "Failed to activate premium. Please try again.",
-    "subscriptionFailed": "Subscription failed: {{error}}",
+    "subscriptionFailed": "Subscription failed. Please try again.",
     "processing": "Processing...",
     "billingNotAvailable": "Play Billing not available. Please try again.",
     "purchaseFailed": "Purchase failed. Please try again.",
