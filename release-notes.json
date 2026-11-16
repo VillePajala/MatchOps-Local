@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Coming back to the app during a match no longer reloads the match screen: an open dialog, undo history and the screen-awake setting are kept."
+      ],
+      "fi": [
+        "Sovellukseen palaaminen kesken ottelun ei enää lataa otteluruutua uudelleen: avoin ikkuna, kumoamishistoria ja näytön valveilla pito säilyvät."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "The match clock no longer stops when the app reloads twice in a row after the phone was locked.",
         "Opening another game during a match no longer resets the running match's clock."
       ],
