@@ -1113,6 +1113,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       }
 
       // 5. Determine and set current game ID and related state from useQuery data
+      let waitingForRefetch = false;
       if (gameDataManagement.isLoading) {
       } else {
         const lastGameIdSetting = gameDataManagement.currentGameIdSetting;
@@ -1139,6 +1140,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           // decision itself has to wait instead. Leaving currentGameId as it is
           // re-runs this effect when the fetch lands.
           logger.debug(`[EFFECT init] ${lastGameIdSetting} not in the snapshot yet; waiting for the refetch rather than falling back.`);
+          waitingForRefetch = true;
         } else {
           if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID) {
             logger.warn(`[EFFECT init] Last game ID ${lastGameIdSetting} not found in saved games (from TanStack Query). Loading default.`);
@@ -1147,6 +1149,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       }
     }
     
+      // Still waiting for the refetch (review 4.32): stop HERE. Falling through marked
+      // the initial load complete, after which this effect returns at the top and
+      // never makes the decision it was waiting for - the persisted game was never
+      // set, and the init fallback opened the latest (or the demo) game instead.
+      if (waitingForRefetch) return;
+
       // Determine overall initial load completion
       if (!gameDataManagement.isLoading) {
         // Consume the persisted timer record, then clear it. If the
