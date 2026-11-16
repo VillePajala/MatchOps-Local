@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "The menu's finish-this-game counter now includes voice notes waiting for review, so it matches the checklist."
+      ],
+      "fi": [
+        "Valikon ottelun viimeistelyn laskuri sisältää nyt tarkistusta odottavat ääniviestit, joten se vastaa tarkistuslistaa."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "In a player's ratings, Current season now means the season of their latest rated game. Next season's fixtures, entered in advance, no longer empty the end-of-season report."
       ],
       "fi": [

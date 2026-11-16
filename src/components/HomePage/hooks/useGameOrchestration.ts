@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { listClips } from '@/utils/audioClipStore';
+import { useRecordingSessionActive } from '@/utils/recordingSessionSignal';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { completenessProgress, computeGameCompleteness } from '@/utils/gameCompleteness';
 import { todayIso } from '@/utils/todayIso';
@@ -577,7 +579,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isGoalLogModalOpen,
     setIsGoalLogModalOpen,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used here
     isGameStatsModalOpen,
     setIsGameStatsModalOpen,
     openClubStatsToTab,
@@ -1779,6 +1780,21 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
    * checklist itself: the game-end button and the menu. Computed once, from the
    * same model the checklist uses, so no two places can disagree.
    */
+  // Voice clips awaiting review count in the checklist (review 5.12): the wrap-up
+  // card passes them, the menu badge did not, so the two disagreed by one for every
+  // game with dictation (4/6 vs 4/7). Re-read when the game changes, when a recording
+  // session ends (a new clip) and when the stats window closes (clips reviewed there).
+  const recordingActive = useRecordingSessionActive();
+  const [voiceClipsPending, setVoiceClipsPending] = useState(0);
+  useEffect(() => {
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID || recordingActive || isGameStatsModalOpen) return;
+    let cancelled = false;
+    listClips(currentGameId, userId ?? undefined)
+      .then((clips) => { if (!cancelled) setVoiceClipsPending(clips.length); })
+      .catch(() => { /* the badge keeps its last count */ });
+    return () => { cancelled = true; };
+  }, [currentGameId, userId, recordingActive, isGameStatsModalOpen]);
+
   const finishProgress = useMemo(() => {
     const saved = currentGameId ? savedGames?.[currentGameId] : undefined;
     if (!saved) return null;
@@ -1796,8 +1812,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       awayScore: gameSessionState.awayScore,
     }, { assessmentsEnabled });
     if (!completeness.applicable) return null;
-    return completenessProgress(completeness);
+    return completenessProgress(completeness, { voiceClipsPending });
   }, [
+    voiceClipsPending,
     currentGameId,
     savedGames,
     gameSessionState.gameNotes,
