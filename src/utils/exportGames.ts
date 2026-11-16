@@ -1,6 +1,7 @@
 import { AppState, Player, Season, Tournament, SavedGamesCollection, PlayerStatRow } from '@/types';
 import type { TFunction } from 'i18next';
 import { formatTime } from './time';
+import { gameSquadForExport } from '@/utils/playerStats';
 
 /** Utility to create and trigger a download from a data string */
 const triggerDownload = (data: string, filename: string, type: string): void => {
@@ -91,7 +92,7 @@ export const exportCsv = (
   rows.push('Player Stats');
   rows.push(`${escapeCsvField('Player')}${DELIMITER}${escapeCsvField('Goals')}${DELIMITER}${escapeCsvField('Assists')}${DELIMITER}${escapeCsvField('Points')}${DELIMITER}${escapeCsvField('Fair Play')}`);
 
-  const selectedPlayers = players.filter(p => game.selectedPlayerIds?.includes(p.id));
+  const selectedPlayers = gameSquadForExport(game, players);
 
   const playerStats = selectedPlayers
     .map((p) => {

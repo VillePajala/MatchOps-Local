@@ -18,6 +18,35 @@ export function withoutFairPlayCard<T extends { receivedFairPlayCard?: boolean }
   return players.map((p) => (p.receivedFairPlayCard ? { ...p, receivedFairPlayCard: false } : p));
 }
 
+/**
+ * The players of ONE game, as that game recorded them (review 5.4): its own squad and
+ * field lists, which hold the per-game state (the fair-play card, goalie) and the
+ * names as they were then. The current roster is only a fallback for an id the game
+ * did not record - exporting from it dropped players who have since left the club
+ * (their goals showed a raw id) and showed nobody holding the card.
+ */
+export function gameSquadForExport(
+  game: Pick<AppState, 'selectedPlayerIds' | 'availablePlayers' | 'playersOnField'>,
+  roster: Player[],
+): Player[] {
+  const fromGame = new Map<string, Player>();
+  for (const p of [...(game.availablePlayers || []), ...(game.playersOnField || [])]) {
+    const prev = fromGame.get(p.id);
+    fromGame.set(p.id, prev
+      ? { ...prev, ...p, receivedFairPlayCard: !!(prev.receivedFairPlayCard || p.receivedFairPlayCard) }
+      : p);
+  }
+  const fromRoster = new Map(roster.map((p) => [p.id, p]));
+  return (game.selectedPlayerIds || []).flatMap((id) => {
+    const inGame = fromGame.get(id);
+    const onRoster = fromRoster.get(id);
+    // The card is the game's own, never the roster's (which may carry a stale one).
+    if (inGame) return [{ ...onRoster, ...inGame, name: inGame.name || onRoster?.name || id, receivedFairPlayCard: !!inGame.receivedFairPlayCard }];
+    // Not recorded in the game: the roster entry, without its (possibly stale) card.
+    return onRoster ? [{ ...onRoster, receivedFairPlayCard: false }] : [];
+  });
+}
+
 // Define a type for the processed stats
 /**
  * Whether a game counts for a player's stats in the given scope: played,

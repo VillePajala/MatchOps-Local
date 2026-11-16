@@ -1,4 +1,4 @@
-import { isGameInPlayerScope, calculatePlayerStats, withoutFairPlayCard } from './playerStats';
+import { isGameInPlayerScope, calculatePlayerStats, withoutFairPlayCard, gameSquadForExport } from './playerStats';
 import { Player, Season, Tournament, AppState, GameEvent, PlayerStatAdjustment } from '@/types';
 
 describe('calculatePlayerStats', () => {
@@ -596,5 +596,28 @@ describe('withoutFairPlayCard', () => {
   it('returns the same array when nobody holds the card', () => {
     const players: Player[] = [{ id: 'a', name: 'A' }, { id: 'b', name: 'B', receivedFairPlayCard: false }];
     expect(withoutFairPlayCard(players)).toBe(players);
+  });
+});
+
+/**
+ * Review 5.4: one game's squad for export comes from the game's own lists.
+ * @critical
+ */
+describe('gameSquadForExport', () => {
+  const roster = [
+    { id: 'p1', name: 'Roster Name', jerseyNumber: '7', receivedFairPlayCard: true },
+    { id: 'p3', name: 'Only On Roster', receivedFairPlayCard: true },
+  ] as Player[];
+
+  it('uses the game\'s players and card; the roster only fills gaps', () => {
+    const squad = gameSquadForExport({
+      selectedPlayerIds: ['p1', 'p2', 'p3', 'p4'],
+      availablePlayers: [{ id: 'p1', name: 'Name Then' } as Player, { id: 'p2', name: 'Left Club' } as Player],
+      playersOnField: [{ id: 'p2', name: 'Left Club', receivedFairPlayCard: true } as Player],
+    }, roster);
+    expect(squad.map((p) => p.name)).toEqual(['Name Then', 'Left Club', 'Only On Roster']); // p4: nowhere
+    expect(squad.find((p) => p.id === 'p1')).toMatchObject({ jerseyNumber: '7', receivedFairPlayCard: false });
+    expect(squad.find((p) => p.id === 'p2')?.receivedFairPlayCard).toBe(true); // held on the field list
+    expect(squad.find((p) => p.id === 'p3')?.receivedFairPlayCard).toBe(false); // a stale roster card is not this game's
   });
 });
