@@ -15,6 +15,7 @@ export type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'pl
 // Minimal interface for saved game structure used in this component
 export interface SavedGame {
   availablePlayers?: Player[];
+  playersOnField?: Player[];
   selectedPlayerIds?: string[];
   seasonId?: string;
   tournamentId?: string;

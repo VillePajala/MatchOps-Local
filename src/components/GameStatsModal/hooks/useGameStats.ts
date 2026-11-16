@@ -64,6 +64,8 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
           totalScore: 0,
           gamesPlayed: 1,
           avgPoints: 0,
+          // The card is per-game state on this game's player list (review 5.3).
+          fpAwards: player.receivedFairPlayCard ? 1 : 0,
         };
       });
 
@@ -147,6 +149,7 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
               totalScore: 0,
               gamesPlayed: 0,
               avgPoints: 0,
+              fpAwards: 0,
             };
           }
         });
@@ -162,6 +165,13 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
           game.selectedPlayerIds?.forEach(playerId => {
             if (statsMap[playerId]) {
               statsMap[playerId].gamesPlayed = (statsMap[playerId].gamesPlayed || 0) + 1;
+              // Fair play awards (review 5.3): counted per game from that game's own
+              // player lists, exactly as the player view (calculatePlayerStats) does.
+              // The rows never had it, so the Excel column and its sort were always 0.
+              const inGame = [...(game.playersOnField || []), ...(game.availablePlayers || [])].find(p => p.id === playerId);
+              if (inGame?.receivedFairPlayCard) {
+                statsMap[playerId].fpAwards = (statsMap[playerId].fpAwards || 0) + 1;
+              }
             }
           });
         }
@@ -180,10 +190,12 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
             totalScore: 0,
             gamesPlayed: 0,
             avgPoints: 0,
+            fpAwards: 0,
           };
         }
         const row = statsMap[adj.playerId];
         row.gamesPlayed += adj.gamesPlayedDelta;
+        row.fpAwards = (row.fpAwards || 0) + (adj.fairPlayCardsDelta || 0);
         row.goals += adj.goalsDelta;
         row.assists += adj.assistsDelta;
         row.totalScore += adj.goalsDelta + adj.assistsDelta;
