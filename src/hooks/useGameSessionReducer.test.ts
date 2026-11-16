@@ -934,7 +934,41 @@ describe('gameSessionReducer', () => {
       const result = gameSessionReducer(state, action);
 
       expect(result.subIntervalMinutes).toBe(3);
-      expect(result.nextSubDueTimeSeconds).toBe(180); // Ceil(101/180) * 180 = 180
+      expect(result.nextSubDueTimeSeconds).toBe(180); // last sub 0 + 3 min
+    });
+
+    /**
+     * Review 4.13: changing the interval uses last confirmed sub + interval, the same
+     * rule a reload uses, so the reminder does not move after a reload.
+     * @critical
+     */
+    it('counts the new interval from the last confirmed sub, matching a reload', () => {
+      const state = createBaseState({
+        subIntervalMinutes: 5,
+        lastSubConfirmationTimeSeconds: 300,
+        timeElapsedInSeconds: 400,
+        nextSubDueTimeSeconds: 600,
+      });
+      const result = gameSessionReducer(state, { type: 'SET_SUB_INTERVAL', payload: 7 });
+      expect(result.nextSubDueTimeSeconds).toBe(720); // 05:00 + 7:00
+      expect(result.subAlertLevel).toBe('none');
+      const reloaded = gameSessionReducer(result, { type: 'LOAD_PERSISTED_GAME_DATA', payload: {
+        subIntervalMinutes: result.subIntervalMinutes,
+        lastSubConfirmationTimeSeconds: result.lastSubConfirmationTimeSeconds,
+        timeElapsedInSeconds: result.timeElapsedInSeconds,
+      } } as GameSessionAction);
+      expect(reloaded.nextSubDueTimeSeconds).toBe(result.nextSubDueTimeSeconds);
+    });
+
+    it('is due straight away when the shorter interval has already passed', () => {
+      const state = createBaseState({
+        subIntervalMinutes: 10,
+        lastSubConfirmationTimeSeconds: 0,
+        timeElapsedInSeconds: 400,
+      });
+      const result = gameSessionReducer(state, { type: 'SET_SUB_INTERVAL', payload: 5 });
+      expect(result.nextSubDueTimeSeconds).toBe(300);
+      expect(result.subAlertLevel).toBe('due');
     });
 
     it('should enforce minimum of 1 minute', () => {
