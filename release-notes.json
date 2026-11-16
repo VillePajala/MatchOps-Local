@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Player names are now hidden from the AI in more Finnish forms, such as Joonaksen, Oton, Helmen and Virtasen, as the privacy setting promises."
+      ],
+      "fi": [
+        "Pelaajien nimet piilotetaan nyt tekoälyltä useammassa suomen taivutusmuodossa, kuten Joonaksen, Oton, Helmen ja Virtasen, kuten tietosuoja-asetus lupaa."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "AI drafts and translations no longer turn age-group team names like PEPO P11 into a player's name. The codes that hide player names now use a format that cannot appear in team names."
       ],
       "fi": [

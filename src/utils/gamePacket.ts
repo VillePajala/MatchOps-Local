@@ -270,6 +270,17 @@ const GRADATING_NAME = /([kpt])\1[aeiouyäö]$/;
  * turned "paine" into a code (one letter from the surname "Laine") and
  * "leopardin" into one (three letters from "Leo").
  */
+/** The extra inflection stems of a name (review 6.2); each still needs an ending. */
+function finnishStems(handle: string): string[] {
+  const stems: string[] = [];
+  const doubled = handle.match(/([kpt])\1([aeiouyäö])$/);
+  if (doubled) stems.push(handle.slice(0, -3) + doubled[1] + doubled[2]); // otto -> oto
+  if (/nen$/.test(handle)) stems.push(handle.slice(0, -3) + 'se'); // virtanen -> virtase
+  else if (/[aeiouyäö]s$/.test(handle)) stems.push(handle.slice(0, -1) + 'ks'); // joonas -> joonaks
+  if (/[^aeiouyäö]i$/.test(handle)) stems.push(handle.slice(0, -1) + 'e'); // helmi -> helme
+  return stems;
+}
+
 function tokenMatchesHandle(token: string, handle: string): boolean {
   if (token === handle) return true;
   // A very short name is matched exactly and no other way. "Bo" must not drag
@@ -282,6 +293,16 @@ function tokenMatchesHandle(token: string, handle: string): boolean {
   if (handle.length >= 5 && GRADATING_NAME.test(handle)) {
     const stem = handle.slice(0, -2);
     if (token.startsWith(stem) && token.length - stem.length <= MAX_GRADATED_ENDING) return true;
+  }
+  // Further Finnish stems (review 6.2), each with the same bounded ending - names
+  // these missed went to the provider in clear text:
+  //  - the gradated stem itself, for names of any length: the doubled consonant
+  //    weakens to one ("Otto" -> "Oton", "Pekka" -> "Pekalle");
+  //  - names in -s take a -ks- stem ("Joonas" -> "Joonaksen", "Elias" -> "Eliakselle");
+  //  - surnames in -nen take -se- ("Virtanen" -> "Virtasen");
+  //  - names in -i whose stem takes -e ("Helmi" -> "Helmen", "Tuuli" -> "Tuulelle").
+  for (const stem of finnishStems(handle)) {
+    if (token.startsWith(stem) && token.length - stem.length <= MAX_ENDING) return true;
   }
   // A one-character transcription slip, but only when the word starts the same
   // way. Without that guard, every five-letter word one edit from a surname

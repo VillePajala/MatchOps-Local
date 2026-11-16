@@ -217,6 +217,41 @@ describe('redactPlayerNames', () => {
     expect(redactPlayerNames('Matin ja Emman yhteistyö', [emma, matti], refOf)).toBe('X2 ja X1 yhteistyö');
   });
 
+  /**
+   * Review 6.2: common Finnish forms the matcher missed went to the provider in
+   * clear text, although the consent gate promises codes. Each must become a code;
+   * the ordinary words next to them must not.
+   * @critical
+   */
+  describe('Finnish inflections that used to leak', () => {
+    const p = (id: string, name: string, extra: Record<string, unknown> = {}) => ({ id, name, ...extra }) as never;
+    const one = (name: string, extra?: Record<string, unknown>) => [p('p1', name, extra)];
+
+    it.each([
+      ['Joonas', 'Joonaksen syöttö oli hieno', 'X1 syöttö oli hieno'],
+      ['Joonas', 'annoin Joonakselle palautetta', 'annoin X1 palautetta'],
+      ['Elias', 'Eliaksen laukaus', 'X1 laukaus'],
+      ['Otto', 'Oton laukaus meni yli', 'X1 laukaus meni yli'],
+      ['Otto', 'syöttö Otolle', 'syöttö X1'],
+      ['Pekka', 'Pekalle tuli hyvä paikka', 'X1 tuli hyvä paikka'],
+      ['Helmi', 'Helmen pallonhallinta', 'X1 pallonhallinta'],
+    ])('%s: "%s"', (name, text, expected) => {
+      expect(redactPlayerNames(text, one(name), refOf)).toBe(expected);
+    });
+
+    it('a -nen surname in the genitive', () => {
+      expect(redactPlayerNames('Virtasen puolustus piti', one('Emma Virtanen'), refOf)).toBe('X1 puolustus piti');
+    });
+
+    it.each([
+      ['Otto', 'otan sen huomioon'],
+      ['Otto', 'ottaa pallon'],
+      ['Laine', 'paine kasvoi'],
+    ])('%s leaves "%s" alone', (name, text) => {
+      expect(redactPlayerNames(text, one(name), refOf)).toBe(text);
+    });
+  });
+
   it('replaces surnames too - a coach may say one out loud', () => {
     expect(redactPlayerNames('Virtanen puolusti hyvin', [emma], refOf)).toBe('X1 puolusti hyvin');
   });
