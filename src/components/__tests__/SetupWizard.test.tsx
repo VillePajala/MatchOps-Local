@@ -264,6 +264,30 @@ describe('SetupWizard', () => {
     );
   });
 
+  it('a failed removal keeps the wizard open, and the retry removes the player', async () => {
+    mockAddPlayer.mockImplementation(async (data: { name: string }) =>
+      data.name === 'Eetu' && mockAddPlayer.mock.calls.length === 2
+        ? null
+        : { id: `p-${data.name}`, name: data.name, nickname: '', jerseyNumber: '', notes: '', isGoalie: false, receivedFairPlayCard: false });
+    mockRemovePlayer.mockResolvedValueOnce(false);
+    const { onComplete } = renderWizard();
+    toStepTwo();
+    addPlayerRow('Aino');
+    addPlayerRow('Eetu');
+    fireEvent.click(screen.getByTestId('wizard-finish'));
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByLabelText('Remove Aino'));
+    fireEvent.click(screen.getByTestId('wizard-finish'));
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(2));
+    expect(onComplete).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('wizard-finish'));
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(mockRemovePlayer).toHaveBeenCalledTimes(2);
+    expect(mockSetTeamRoster).toHaveBeenCalledWith('team-1', [expect.objectContaining({ id: 'p-Eetu' })], 'user-1');
+  });
+
   it('limits the team and player names to what the store accepts', () => {
     renderWizard();
     expect(screen.getByTestId('wizard-team-name')).toHaveAttribute('maxLength', '48');

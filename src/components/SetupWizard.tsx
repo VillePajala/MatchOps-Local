@@ -157,7 +157,11 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       const rowIds = new Set(rows.map((r) => r.id));
       for (const [rowId, player] of Array.from(created.entries())) {
         if (rowIds.has(rowId)) continue;
-        await removePlayer(player.id, userId ?? undefined);
+        // removePlayer reports failure as `false`: stop here (toast, wizard stays
+        // open) so the retry tries the removal again instead of leaving an orphan.
+        if (!(await removePlayer(player.id, userId ?? undefined))) {
+          throw new Error(`player removal failed: ${player.id}`);
+        }
         created.delete(rowId);
       }
 
