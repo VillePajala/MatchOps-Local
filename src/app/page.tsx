@@ -1869,7 +1869,10 @@ export default function Home() {
   }, [hasSavedGames]);
 
   // ...and opens on Home only, never over a match (review 7.5).
-  const homeOnScreen = screen === 'start' && !showLoadingScreen && !isBlockedByOtherTab;
+  // Same gates as the Home render below: Welcome, sign-in and the migration wizard
+  // all take Home's place while `screen` is still 'start'.
+  const homeOnScreen = screen === 'start' && !showLoadingScreen && !isBlockedByOtherTab &&
+    !showWelcome && !needsAuth && !showMigrationWizard;
   useEffect(() => {
     setHomeShowing(homeOnScreen);
   }, [homeOnScreen]);
