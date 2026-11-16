@@ -12,6 +12,7 @@ import {
   buildGamePacket,
   gamePacketFingerprint,
   playerRedactionHandles,
+  playersForRedaction,
   redactPlayerNames,
 } from '../gamePacket';
 import type { AppState, GameEvent } from '@/types/game';
@@ -206,6 +207,31 @@ describe('buildGamePacket - names outside the squad', () => {
 
     expect(packet.attested.notes[0].text).toBe('X? tuli hyvin mukaan, X1 syötti');
     expect(JSON.stringify(packet)).not.toContain('Leo');
+  });
+});
+
+/**
+ * Review 6.3: a player removed from the roster still appears in older games. With
+ * the roster plus the game's recorded players, their name is coded, not sent.
+ * @critical
+ */
+describe('playersForRedaction', () => {
+  it('adds recorded players who left the roster; the roster entry wins for the rest', () => {
+    const renamed = player('p1', 'Emma Virtanen', 'Emppu');
+    const all = playersForRedaction([renamed], [emma, sofia], [bench]);
+    expect(all.map((p) => p.id).sort()).toEqual(['p1', 'p3', 'p4']);
+    expect(all.find((p) => p.id === 'p1')?.nickname).toBe('Emppu');
+  });
+
+  it('a removed player\'s name in a note goes out as a code', () => {
+    const game = baseGame({
+      availablePlayers: [emma, matti, sofia],
+      gameEvents: [note('n1', 60, 'Sofia teki hienon taklauksen')],
+    });
+    const { packet } = buildGamePacket({ game, players: playersForRedaction([emma, matti], game.availablePlayers) });
+    expect(JSON.stringify(packet)).not.toContain('Sofia');
+    // The old input - the current roster alone - is what leaked her name.
+    expect(JSON.stringify(buildGamePacket({ game, players: [emma, matti] }).packet)).toContain('Sofia');
   });
 });
 

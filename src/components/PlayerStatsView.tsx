@@ -1,5 +1,6 @@
 'use client';
 
+import { playersForRedaction } from '@/utils/gamePacket';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
@@ -129,6 +130,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
       return dateStr;
     }
   };
+
+  // Everyone named in this player's notes across games, including players since
+  // removed from the roster and this player themself (review 6.3).
+  const notesRoster = useMemo(
+    () => playersForRedaction(masterRoster ?? [], player ? [player] : [], ...Object.values(savedGames).map((g) => g.availablePlayers)),
+    [masterRoster, player, savedGames],
+  );
 
   // Separate season scope for the assessment section only (does not affect the
   // goals/assists/games stats). "Current season" = the club season of this player's
@@ -827,7 +835,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             <PlayerNotesSummaryCard
               player={player}
               notes={playerNotes}
-              roster={masterRoster ?? []}
+              roster={notesRoster}
               language={i18n.language}
             />
           </div>

@@ -248,6 +248,23 @@ export const PLAYER_REF_PREFIX = 'X';
 export const playerRef = (n: number): string => `${PLAYER_REF_PREFIX}${n}`;
 export const UNKNOWN_PLAYER_REF = `${PLAYER_REF_PREFIX}?`;
 
+/**
+ * Everyone whose name may appear in AI-bound text (review 6.3): the current roster
+ * plus every player a game recorded who has since left it. A player removed from the
+ * roster still appears in older games' notes and reports, and without a handle their
+ * name went to the provider in clear text (and their goals lost the scorer).
+ * Roster entries win - they carry the current spelling and nickname.
+ */
+export function playersForRedaction(roster: Player[], ...recorded: Array<Player[] | undefined>): Player[] {
+  const byId = new Map(roster.map((p) => [p.id, p]));
+  for (const list of recorded) {
+    for (const p of list ?? []) {
+      if (p?.id && !byId.has(p.id)) byId.set(p.id, p);
+    }
+  }
+  return [...byId.values()];
+}
+
 /** Longest case ending we accept after a name ("Emma" -> "Emmalle", +3). */
 const MAX_ENDING = 4;
 /** Longest ending after a gradated stem ("Matti" -> "Matille": stem "mat", +4). */
