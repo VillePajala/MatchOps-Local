@@ -33,8 +33,10 @@ jest.mock('@/hooks/useDataStore', () => ({
 }));
 
 const mockAddPlayer = jest.fn();
+const mockRemovePlayer = jest.fn();
 jest.mock('@/utils/masterRosterManager', () => ({
   addPlayer: (...args: unknown[]) => mockAddPlayer(...args),
+  removePlayer: (...args: unknown[]) => mockRemovePlayer(...args),
 }));
 
 const mockAddTeam = jest.fn();
@@ -89,6 +91,7 @@ beforeEach(() => {
   }));
   mockAddTeam.mockResolvedValue({ id: 'team-1', name: 'FC Test', createdAt: '', updatedAt: '' });
   mockSetTeamRoster.mockResolvedValue(undefined);
+  mockRemovePlayer.mockResolvedValue(true);
 });
 
 describe('SetupWizard', () => {
@@ -225,6 +228,71 @@ describe('SetupWizard', () => {
       'user-1',
     );
     expect(localStorage.getItem(DONE_KEY)).toBe('1');
+  });
+
+  /**
+   * Review 7.6: a retry used to resume by POSITION. After the coach removed a
+   * row in between, the removed player stayed in the roster and team, and the
+   * player now at an already-used position was never created.
+   * @critical
+   */
+  it('a retry after removing a row matches the list on screen', async () => {
+    // Aino and Eetu are created, then the third row fails.
+    mockAddPlayer.mockImplementation(async (data: { name: string }) => {
+      if (data.name === 'Liisa' && mockAddPlayer.mock.calls.length === 3) return null;
+      return { id: `p-${data.name}`, name: data.name, nickname: '', jerseyNumber: '', notes: '', isGoalie: false, receivedFairPlayCard: false };
+    });
+    const { onComplete } = renderWizard();
+    toStepTwo();
+    addPlayerRow('Aino');
+    addPlayerRow('Eetu');
+    addPlayerRow('Liisa');
+    fireEvent.click(screen.getByTestId('wizard-finish'));
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
+
+    // The coach removes Aino and tries again.
+    fireEvent.click(screen.getByLabelText('Remove Aino'));
+    fireEvent.click(screen.getByTestId('wizard-finish'));
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+
+    expect(mockRemovePlayer).toHaveBeenCalledWith('p-Aino', 'user-1');
+    expect(mockAddPlayer.mock.calls.map((c) => (c[0] as { name: string }).name)).toEqual(['Aino', 'Eetu', 'Liisa', 'Liisa']);
+    expect(mockSetTeamRoster).toHaveBeenCalledWith(
+      'team-1',
+      [expect.objectContaining({ id: 'p-Eetu' }), expect.objectContaining({ id: 'p-Liisa' })],
+      'user-1',
+    );
+  });
+
+  it('a failed removal keeps the wizard open, and the retry removes the player', async () => {
+    mockAddPlayer.mockImplementation(async (data: { name: string }) =>
+      data.name === 'Eetu' && mockAddPlayer.mock.calls.length === 2
+        ? null
+        : { id: `p-${data.name}`, name: data.name, nickname: '', jerseyNumber: '', notes: '', isGoalie: false, receivedFairPlayCard: false });
+    mockRemovePlayer.mockResolvedValueOnce(false);
+    const { onComplete } = renderWizard();
+    toStepTwo();
+    addPlayerRow('Aino');
+    addPlayerRow('Eetu');
+    fireEvent.click(screen.getByTestId('wizard-finish'));
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByLabelText('Remove Aino'));
+    fireEvent.click(screen.getByTestId('wizard-finish'));
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(2));
+    expect(onComplete).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('wizard-finish'));
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(mockRemovePlayer).toHaveBeenCalledTimes(2);
+    expect(mockSetTeamRoster).toHaveBeenCalledWith('team-1', [expect.objectContaining({ id: 'p-Eetu' })], 'user-1');
+  });
+
+  it('limits the team and player names to what the store accepts', () => {
+    renderWizard();
+    expect(screen.getByTestId('wizard-team-name')).toHaveAttribute('maxLength', '48');
+    toStepTwo();
+    expect(screen.getByTestId('wizard-player-input')).toHaveAttribute('maxLength', '100');
   });
 
   /**
