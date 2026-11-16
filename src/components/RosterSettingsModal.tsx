@@ -33,6 +33,9 @@ const getLastName = (fullName: string): string => {
   return parts[parts.length - 1] || fullName;
 };
 
+/** How long row taps are ignored after a player form closes (a double tap's second half). */
+const CHILD_FORM_TAP_GUARD_MS = 400;
+
 interface RosterSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -90,6 +93,20 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   const { checkAndPrompt: checkPlayerLimitAndPrompt } = useResourceLimit('player', availablePlayers.filter((p) => !p.archived).length);
 
   const [createPlayerModalOpen, setCreatePlayerModalOpen] = useState(false);
+  // Set for a moment after a player form closes - see handleEditPlayer.
+  const rowTapsBlockedRef = useRef(false);
+  const rowTapsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blockRowTapsBriefly = () => {
+    rowTapsBlockedRef.current = true;
+    if (rowTapsTimerRef.current) clearTimeout(rowTapsTimerRef.current);
+    rowTapsTimerRef.current = setTimeout(() => {
+      rowTapsBlockedRef.current = false;
+      rowTapsTimerRef.current = null;
+    }, CHILD_FORM_TAP_GUARD_MS);
+  };
+  useEffect(() => () => {
+    if (rowTapsTimerRef.current) clearTimeout(rowTapsTimerRef.current);
+  }, []);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   const [searchText, setSearchText] = useState('');
@@ -137,6 +154,9 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   }, [actionsMenuPlayerId]); // Re-run when the open menu changes
 
   const handleEditPlayer = (playerId: string) => {
+    // The second tap of a double tap on the form's button lands on the row that
+    // was under it once the form closes (review 7.11): ignore row taps briefly.
+    if (rowTapsBlockedRef.current) return;
     setSelectedPlayerId(playerId);
     setActionsMenuPlayerId(null);
   };
@@ -393,7 +413,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
       {/* Player Create Modal */}
       <PlayerDetailsModal
         isOpen={createPlayerModalOpen}
-        onClose={() => setCreatePlayerModalOpen(false)}
+        onClose={() => {
+          blockRowTapsBriefly();
+          setCreatePlayerModalOpen(false);
+        }}
         mode="create"
         players={availablePlayers}
         onAddPlayer={onAddPlayer}
@@ -403,7 +426,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
       {/* Player Edit Modal */}
       <PlayerDetailsModal
         isOpen={selectedPlayerId !== null}
-        onClose={() => setSelectedPlayerId(null)}
+        onClose={() => {
+          blockRowTapsBriefly();
+          setSelectedPlayerId(null);
+        }}
         mode="edit"
         player={availablePlayers.find(p => p.id === selectedPlayerId) || null}
         players={availablePlayers}

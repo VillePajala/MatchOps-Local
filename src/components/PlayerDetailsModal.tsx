@@ -1,7 +1,7 @@
 'use client';
 
 import { useHoldUnsavedInput } from '@/utils/unsavedInputSignal';
-import React, { useState, useId } from 'react';
+import React, { useState, useId, useRef } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
@@ -48,6 +48,10 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   // drop what was typed; the only message was off-screen under the roster list.
   const [numberError, setNumberError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Review 7.11: a double tap on Lisää must not save twice. A ref stops the second
+  // tap at once (state commits too late); the state disables the button meanwhile.
+  const savingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Initialize form when player changes or modal opens
   React.useLayoutEffect(() => {
@@ -72,6 +76,18 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   }, [mode, player, isOpen]);
 
   const handleSave = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setIsSaving(true);
+    try {
+      await saveOnce();
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
+    }
+  };
+
+  const saveOnce = async () => {
     const trimmedName = name.trim();
     const trimmedNickname = nickname.trim();
 
@@ -154,7 +170,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
     return null;
   }
 
-  const isPending = isRosterUpdating;
+  const isPending = isRosterUpdating || isSaving;
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>

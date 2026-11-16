@@ -387,6 +387,24 @@ describe('PlayerDetailsModal', () => {
       expect(screen.getByPlaceholderText('Enter player name')).toHaveValue('Aino');
     });
 
+    /** Review 7.11: the second tap of a double tap does not save again. */
+    it('a double tap on Add saves once', async () => {
+      let finish: (v: boolean) => void = () => {};
+      const onAddPlayer = jest.fn(() => new Promise<boolean>((resolve) => { finish = resolve; }));
+      const onClose = jest.fn();
+      const user = userEvent.setup();
+      await act(async () => {
+        renderWithProviders({ mode: 'create', player: undefined, onAddPlayer, onUpdatePlayer: undefined, onClose });
+      });
+      await user.type(screen.getByPlaceholderText('Enter player name'), 'Aino');
+      const add = screen.getByRole('button', { name: /Add/i });
+      await user.click(add);
+      await user.click(add);
+      expect(onAddPlayer).toHaveBeenCalledTimes(1);
+      await act(async () => { finish(true); });
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    });
+
     it('keeps the form and what was typed when the add fails', async () => {
       const onAddPlayer = jest.fn().mockResolvedValue(false);
       const onClose = jest.fn();
