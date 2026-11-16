@@ -247,6 +247,8 @@ describe('redactPlayerNames', () => {
       ['Otto', 'otan sen huomioon'],
       ['Otto', 'ottaa pallon'],
       ['Laine', 'paine kasvoi'],
+      ['Ari', 'arena oli täynnä'],
+      ['Aki', 'akeni ei auennut'],
     ])('%s leaves "%s" alone', (name, text) => {
       expect(redactPlayerNames(text, one(name), refOf)).toBe(text);
     });

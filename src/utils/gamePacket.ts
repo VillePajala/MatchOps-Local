@@ -277,7 +277,9 @@ function finnishStems(handle: string): string[] {
   if (doubled) stems.push(handle.slice(0, -3) + doubled[1] + doubled[2]); // otto -> oto
   if (/nen$/.test(handle)) stems.push(handle.slice(0, -3) + 'se'); // virtanen -> virtase
   else if (/[aeiouyäö]s$/.test(handle)) stems.push(handle.slice(0, -1) + 'ks'); // joonas -> joonaks
-  if (/[^aeiouyäö]i$/.test(handle)) stems.push(handle.slice(0, -1) + 'e'); // helmi -> helme
+  // 5+ letters only: on a short name the -e stem is too generic ("Ari" -> "are-"
+  // would take "arena", "Aki" -> "ake-" would take "akeni").
+  if (handle.length >= 5 && /[^aeiouyäö]i$/.test(handle)) stems.push(handle.slice(0, -1) + 'e'); // helmi -> helme
   return stems;
 }
 
