@@ -77,6 +77,18 @@ describe('usePrecisionTimer.reanchor', () => {
       expect(onTick).toHaveBeenLastCalledWith(305);
     });
 
+    it('still catches a stall that follows a backward wall-clock step', () => {
+      jest.setSystemTime(WALL0);
+      const onTick = jest.fn();
+      renderHook(() => usePrecisionTimer({ onTick, isRunning: true, startTime: 300, interval: 100 }));
+      // Clock set an hour back at 05:05...
+      act(() => { nowMs = 5_000; jest.setSystemTime(WALL0 - 3_600_000); jest.advanceTimersByTime(100); });
+      expect(onTick).toHaveBeenLastCalledWith(305);
+      // ...then the phone sleeps: 60 s of wall time, monotonic clock moves 1 s.
+      act(() => { nowMs = 6_000; jest.setSystemTime(WALL0 - 3_600_000 + 60_000); jest.advanceTimersByTime(100); });
+      expect(onTick).toHaveBeenLastCalledWith(365);
+    });
+
     it('leaves a small difference alone (under the 2 s threshold)', () => {
       jest.setSystemTime(WALL0);
       const onTick = jest.fn();

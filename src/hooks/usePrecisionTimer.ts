@@ -6,7 +6,11 @@ import { useEffect, useRef, useCallback, useMemo } from 'react';
  * WebView is frozen; the return-from-background re-anchor in useGameTimer only
  * caught that when the app SAW itself being hidden (a missed visibilitychange,
  * a bfcache restore, or a re-lock during boot left the clock behind for good).
- * Forward only: a wall clock stepped backwards never rewinds the match.
+ * Forward only: a wall clock stepped backwards never rewinds the match (the wall
+ * origin is rebased instead, so a real stall right after it is still caught).
+ * Accepted trade-off: a wall clock stepped FORWARD by more than this (a manual
+ * time change) moves a running match clock forward too - the return-from-
+ * background re-anchor has always trusted Date.now() the same way.
  */
 const WALL_CLOCK_STALL_SECONDS = 2;
 
@@ -74,6 +78,10 @@ export const usePrecisionTimer = ({
         startTimestampRef.current = now;
         wallStartRef.current = wallNow;
         preciseElapsedSeconds = wallElapsedSeconds;
+      } else if (preciseElapsedSeconds - wallElapsedSeconds > WALL_CLOCK_STALL_SECONDS) {
+        // The wall clock was stepped backwards: keep the match clock, rebase the wall
+        // origin so the stall check measures from here.
+        wallStartRef.current = wallNow - (preciseElapsedSeconds - initialTimeRef.current) * 1000;
       }
     }
     const roundedSeconds = Math.floor(preciseElapsedSeconds);
