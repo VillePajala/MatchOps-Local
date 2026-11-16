@@ -110,6 +110,34 @@ describe('ShootoutModal', () => {
     expect(kicks[1]).toMatchObject({ team: 'away', scored: false, order: 1 });
   });
 
+  /**
+   * Review 4.35 (owner decision): closing keeps the recorded kicks - the X, Escape and
+   * hardware back all save the working copy; an untouched window saves nothing.
+   * @critical
+   */
+  it('closing with the X keeps the recorded kicks', () => {
+    const { onSave, onClose } = renderModal();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Scored' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave.mock.calls[0][0]).toHaveLength(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('Escape keeps the recorded kicks', () => {
+    const { onSave } = renderModal();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Missed' })[0]);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('closing an untouched window saves nothing', () => {
+    const { onSave, onClose } = renderModal();
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('lets you remove a logged kick', () => {
     renderModal();
     fireEvent.click(screen.getAllByRole('button', { name: 'Scored' })[0]);

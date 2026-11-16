@@ -60,11 +60,20 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  useEscapeToClose(isOpen, onClose);
+  // Closing KEEPS the kicks (review 4.35, owner decision 2026-11-16): back, Escape
+  // and the X save the working copy like Save does - losing ten live-recorded kicks
+  // is far worse than keeping one the coach did not want (it can be removed here).
+  // An untouched window saves nothing. No confirm prompt mid-shootout.
+  const closeKeepingKicks = React.useCallback(() => {
+    if (JSON.stringify(kicks) !== JSON.stringify(initialKicks)) onSave(kicks);
+    onClose();
+  }, [kicks, initialKicks, onSave, onClose]);
+
+  useEscapeToClose(isOpen, closeKeepingKicks);
   // Hardware back closes THIS overlay first (review 4.18). Unregistered, back went
   // to whatever sat underneath (the timer overlay, or Match details together with
   // the shootout), and a second back left the match. Registered last, so topmost.
-  useHardwareBackSubLevel(isOpen, onClose);
+  useHardwareBackSubLevel(isOpen, closeKeepingKicks);
 
 
   if (!isOpen) return null;
@@ -124,8 +133,8 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
             the instructions line collapses on scroll. */}
         <CollapsibleModalHeader
           title={t('shootoutModal.title', 'Penalty Shootout')}
-          onClose={onClose}
-          closeLabel={t('common.cancel', 'Cancel')}
+          onClose={closeKeepingKicks}
+          closeLabel={t('common.close', 'Close')}
           collapse={headerCollapse}
         >
           <p className="text-sm text-slate-400 text-center px-6 pb-3">

@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Closing the penalty shootout window, with back or the close button, now keeps the kicks you recorded."
+      ],
+      "fi": [
+        "Rangaistuspotkukilpailun ikkunan sulkeminen takaisin- tai sulkupainikkeella säilyttää nyt kirjaamasi potkut."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "New: End period. If the referee ends a half early, tap End period in the timer view (End match in the last period). After a confirmation, the clock moves to the end of the period."
       ],
       "fi": [
