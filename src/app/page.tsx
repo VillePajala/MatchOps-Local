@@ -559,7 +559,7 @@ export default function Home() {
 
   const refreshSetupSignals = useCallback(async () => {
     try {
-      const [roster, games, seasonsList, tournamentsList, teamsList, personnel] = await Promise.all([
+      const [roster, games, seasonsList, tournamentsList, teamsList, personnel, adjustments] = await Promise.all([
         // Guarded on its own: a transient roster read failure must not cancel
         // the rest of this refresh (null = unknown, keep what is shown).
         getMasterRoster(userId).catch((rosterErr) => {
@@ -573,6 +573,12 @@ export default function Home() {
         // Read here too: this refresh also runs after the personnel manager
         // closes, and the dashboard counts every entity, not only teams.
         getAllPersonnel(userId),
+        // External games, for the Home top scorer (review 5.8): re-read so one added
+        // from Home shows the moment its window closes. null = unknown, keep it.
+        getDataStore(userId)
+          .then((store) => store.getAllPlayerAdjustments())
+          .then((map) => Array.from(map.values()).flat())
+          .catch(() => null),
       ]);
       if (roster) setHasPlayers(roster.length > 0);
       // Also refreshed here so a cloud pull that brought or removed games updates
@@ -616,6 +622,7 @@ export default function Home() {
           startingPoint: asCoordinates(settings.startingPoint),
           arrivalBufferMinutes: settings.arrivalBufferMinutes,
           ...(roster ? { roster } : {}),
+          ...(adjustments ? { adjustments } : {}),
           teamsCount: teamsList.length,
           seasonsCount: seasonsList.length,
           tournamentsCount: tournamentsList.length,

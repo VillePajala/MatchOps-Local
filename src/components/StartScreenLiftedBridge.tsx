@@ -73,6 +73,7 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
     isPersonnelManagerOpen,
     isLoadGameModalOpen,
     isSettingsModalOpen,
+    isExternalGamesOpen,
   } = useModalContext();
 
   // The page's Home flags (hasPlayers -> isFirstTimeUser, the setup tracker) and
@@ -90,9 +91,12 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
   // SO IS SETTINGS, for the same reason and found the same way: the starting
   // point and the arrival buffer both feed the departure time on the card, and
   // setting them left Home showing what it had worked out before they existed.
+  //
+  // AND THE EXTERNAL GAMES WINDOW (review 5.8): its goals count toward the Home top
+  // scorer, so a game added from "Täydennä pelaajan tilastoja" must show on closing.
   const anyHomeAffectingModalOpen = isRosterModalOpen || isNewGameSetupModalOpen ||
     isSeasonTournamentModalOpen || isTeamManagerOpen || isPersonnelManagerOpen ||
-    isLoadGameModalOpen || isSettingsModalOpen;
+    isLoadGameModalOpen || isSettingsModalOpen || isExternalGamesOpen;
   const prevOpen = React.useRef(anyHomeAffectingModalOpen);
   React.useEffect(() => {
     if (prevOpen.current && !anyHomeAffectingModalOpen) onSetupModalsClosed?.();
