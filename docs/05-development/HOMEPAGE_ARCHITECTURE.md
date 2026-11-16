@@ -1,4 +1,4 @@
-> **DEPRECATED**: This document is outdated and contains inaccurate information (phantom hooks like `useNewGameFlow`, incorrect line counts, missing 6 of 9 actual hooks). The actual HomePage architecture is: `page.tsx` (~1,242 lines) orchestrates 9 hooks in `src/components/HomePage/hooks/`: useHomeModalControls, useGameOrchestration, useGamePersistence, useFieldCoordination, useGameSessionCoordination, useGameDataManagement, useTimerManagement, useModalOrchestration, and useSavedGameManager. `HomePage.tsx` (~95 lines) is a thin wrapper. See the source code directly for current architecture.
+> **DEPRECATED**: This document is outdated and contains inaccurate information (phantom hooks like `useNewGameFlow`, incorrect line counts, missing most of the actual hooks). The actual HomePage architecture is: `page.tsx` (~1,242 lines) orchestrates 8 hooks in `src/components/HomePage/hooks/`: useHomeModalControls, useGameOrchestration, useGamePersistence, useFieldCoordination, useGameSessionCoordination, useGameDataManagement, useTimerManagement, and useModalOrchestration (useSavedGameManager was removed in #986 - it was unused; loading and deleting games is `src/hooks/useLoadGameController.ts`). `HomePage.tsx` (~95 lines) is a thin wrapper. See the source code directly for current architecture.
 
 # HomePage Architecture Guide
 
@@ -223,6 +223,8 @@ async handleSaveBeforeNewConfirmed() {
 ---
 
 ### 3. useSavedGameManager
+
+> **Removed (#986).** This hook was unused; loading and deleting saved games lives in `src/hooks/useLoadGameController.ts`.
 
 **Purpose**: Wraps game persistence operations
 
