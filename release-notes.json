@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "The stats table and the Excel export now show a player's current name, nickname and number, so a corrected name appears there too and can be searched."
+      ],
+      "fi": [
+        "Tilastotaulukko ja Excel-vienti näyttävät nyt pelaajan nykyisen nimen, lempinimen ja numeron, joten korjattu nimi näkyy myös niissä ja sillä voi hakea."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "The top-scorer tile on Home now counts goals from added external games, so it agrees with the stats view."
       ],
       "fi": [

@@ -68,3 +68,29 @@ describe('useGameStats - fair play awards', () => {
     expect(fpAwards({ activeTab: 'currentGame', availablePlayers: [player(true)], currentGameId: 'g1' })).toBe(1);
   });
 });
+
+/**
+ * Review 5.9: a row shows the player's CURRENT name, nickname and number (the roster),
+ * not the first game's snapshot; a player since removed keeps the recorded name.
+ * @critical
+ */
+describe('useGameStats - current player names', () => {
+  const rows = (playerPool: Player[]) => renderHook(() => useGameStats({
+    activeTab: 'overall',
+    savedGames: { g1: game(false, { availablePlayers: [{ id: 'p1', name: 'Leevvi', jerseyNumber: '9' } as Player] }) } as unknown as SavedGamesCollection,
+    availablePlayers: [], selectedPlayerIds: [], localGameEvents: [], currentGameId: null,
+    selectedSeasonIdFilter: 'all', selectedTournamentIdFilter: 'all', selectedTeamIdFilter: 'all',
+    selectedSeriesIdFilter: 'all', selectedGameTypeFilter: 'all', selectedGenderFilter: 'all', selectedClubSeason: 'all',
+    sortColumn: 'name', sortDirection: 'asc', filterText: '', playerPool,
+  } as GameStatsParams)).result.current.stats;
+
+  it('uses the roster\'s corrected name and number', () => {
+    const [row] = rows([{ id: 'p1', name: 'Leevi', jerseyNumber: '10', nickname: 'Lepa' } as Player]);
+    expect(row).toMatchObject({ name: 'Leevi', jerseyNumber: '10', nickname: 'Lepa' });
+  });
+
+  it('keeps the recorded name for a player no longer on the roster', () => {
+    const [row] = rows([]);
+    expect(row).toMatchObject({ name: 'Leevvi', jerseyNumber: '9' });
+  });
+});
