@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Security: two internal server functions can no longer be called without signing in."
+      ],
+      "fi": [
+        "Tietoturva: kahta sisäistä palvelinfunktiota ei voi enää kutsua kirjautumatta."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "If saving your email-updates choice fails, the question now stays on screen and says so, so you can try again. It used to close as if the choice had been saved."
       ],
       "fi": [
