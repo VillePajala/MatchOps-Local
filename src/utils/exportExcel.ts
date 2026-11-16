@@ -561,7 +561,7 @@ export const exportAggregateExcel = (
       return {
         [translate('export.season', 'Season')]: name,
         [translate('export.gamesPlayed', 'Games Played')]: stats.games,
-        [translate('export.record', 'Record')]: `${stats.wins}-${stats.losses}-${stats.ties}`,
+        [translate('export.record', 'Record (W-D-L)')]: `${stats.wins}-${stats.ties}-${stats.losses}`,
         [translate('export.winPercentage', 'Win %')]: `${winPct}%`,
         [translate('export.goalsFor', 'Goals For')]: stats.goalsFor,
         [translate('export.goalsAgainst', 'Goals Against')]: stats.goalsAgainst,
@@ -596,7 +596,7 @@ export const exportAggregateExcel = (
       return {
         [translate('export.opponent', 'Opponent')]: row.opponent,
         [translate('export.gamesPlayed', 'Games Played')]: row.gamesPlayed,
-        [translate('export.record', 'Record')]: `${row.wins}-${row.losses}-${row.ties}`,
+        [translate('export.record', 'Record (W-D-L)')]: `${row.wins}-${row.ties}-${row.losses}`,
         [translate('export.winPercentage', 'Win %')]: `${winPct}%`,
         [translate('export.goalsFor', 'Goals For')]: row.goalsFor,
         [translate('export.goalsAgainst', 'Goals Against')]: row.goalsAgainst,
@@ -660,7 +660,7 @@ export const exportAggregateExcel = (
       return {
         [translate('export.tournament', 'Tournament')]: name,
         [translate('export.gamesPlayed', 'Games Played')]: stats.games,
-        [translate('export.record', 'Record')]: `${stats.wins}-${stats.losses}-${stats.ties}`,
+        [translate('export.record', 'Record (W-D-L)')]: `${stats.wins}-${stats.ties}-${stats.losses}`,
         [translate('export.winPercentage', 'Win %')]: `${winPct}%`,
         [translate('export.goalsFor', 'Goals For')]: stats.goalsFor,
         [translate('export.goalsAgainst', 'Goals Against')]: stats.goalsAgainst,

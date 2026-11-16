@@ -721,6 +721,7 @@ export type TranslationKey =
   | 'export.playerName'
   | 'export.points'
   | 'export.positions'
+  | 'export.record'
   | 'export.result'
   | 'export.scoreAgainst'
   | 'export.scoreFor'

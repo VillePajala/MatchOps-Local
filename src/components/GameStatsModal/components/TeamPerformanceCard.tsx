@@ -75,9 +75,10 @@ export function TeamPerformanceCard({
           <span className="text-amber-400 font-bold">{gamesPlayed}</span>
         </div>
         <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-          <span className="text-slate-300">{t('common.record', 'Record')}</span>
+          <span className="text-slate-300">{t('common.record', 'Record (W-D-L)')}</span>
           <span className="text-amber-400 font-bold">
-            {wins}-{losses}-{ties}
+            {/* Wins-draws-losses everywhere (review 5.2), as on Home and in the opponent table. */}
+            {wins}-{ties}-{losses}
           </span>
         </div>
         <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">

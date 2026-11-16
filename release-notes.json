@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Team records now read wins-draws-losses everywhere, labelled, as on the Home screen. Previously the stats view and the Excel export showed wins-losses-draws."
+      ],
+      "fi": [
+        "Joukkueen tilastot näytetään nyt kaikkialla järjestyksessä voitot-tasapelit-häviöt, otsikoituna kuten etusivulla. Aiemmin tilastonäkymä ja Excel-vienti näyttivät voitot-häviöt-tasapelit."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Season and Tournament records now count a game decided by a penalty shootout as a win or loss, the same as the Overall tab and the Excel export."
       ],
       "fi": [
