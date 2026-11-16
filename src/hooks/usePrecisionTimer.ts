@@ -1,5 +1,15 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 
+/**
+ * A running clock that falls this far behind wall-clock time is snapped forward
+ * (review 4.25). performance.now() can stall while the device sleeps or the
+ * WebView is frozen; the return-from-background re-anchor in useGameTimer only
+ * caught that when the app SAW itself being hidden (a missed visibilitychange,
+ * a bfcache restore, or a re-lock during boot left the clock behind for good).
+ * Forward only: a wall clock stepped backwards never rewinds the match.
+ */
+const WALL_CLOCK_STALL_SECONDS = 2;
+
 interface PrecisionTimerOptions {
   onTick: (elapsedSeconds: number) => void;
   isRunning: boolean;
@@ -30,6 +40,8 @@ export const usePrecisionTimer = ({
 }: PrecisionTimerOptions) => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimestampRef = useRef<number | null>(null);
+  // Wall-clock (Date.now) at the same origin as startTimestampRef, for the stall check.
+  const wallStartRef = useRef<number | null>(null);
   const initialTimeRef = useRef<number>(startTime);
   const lastTickRef = useRef<number>(Math.floor(startTime));
   const onTickRef = useRef(onTick);
@@ -52,7 +64,18 @@ export const usePrecisionTimer = ({
 
     const now = performance.now();
     const elapsedMs = now - startTimestampRef.current;
-    const preciseElapsedSeconds = initialTimeRef.current + (elapsedMs / 1000);
+    let preciseElapsedSeconds = initialTimeRef.current + (elapsedMs / 1000);
+    if (wallStartRef.current !== null) {
+      const wallNow = Date.now();
+      const wallElapsedSeconds = initialTimeRef.current + (wallNow - wallStartRef.current) / 1000;
+      if (wallElapsedSeconds - preciseElapsedSeconds > WALL_CLOCK_STALL_SECONDS) {
+        // The monotonic clock stalled (sleep/freeze): continue from wall-clock truth.
+        initialTimeRef.current = wallElapsedSeconds;
+        startTimestampRef.current = now;
+        wallStartRef.current = wallNow;
+        preciseElapsedSeconds = wallElapsedSeconds;
+      }
+    }
     const roundedSeconds = Math.floor(preciseElapsedSeconds);
 
     // Only call onTick when we cross a second boundary to avoid excessive updates
@@ -66,6 +89,7 @@ export const usePrecisionTimer = ({
     if (startTimestampRef.current !== null) return; // Already running
 
     startTimestampRef.current = performance.now();
+    wallStartRef.current = Date.now();
     lastTickRef.current = Math.floor(initialTimeRef.current);
 
     // Single setInterval for precision checking - no requestAnimationFrame conflicts
@@ -78,6 +102,7 @@ export const usePrecisionTimer = ({
       intervalRef.current = null;
     }
     startTimestampRef.current = null;
+    wallStartRef.current = null;
   }, []);
 
   const reset = useCallback((newStartTime = 0) => {
@@ -107,6 +132,7 @@ export const usePrecisionTimer = ({
     if (startTimestampRef.current !== null) {
       // Running: reset the wall-clock origin to now so elapsed = newElapsed going forward
       startTimestampRef.current = performance.now();
+      wallStartRef.current = Date.now();
     }
     onTickRef.current(Math.floor(newElapsedSeconds));
   }, []);
