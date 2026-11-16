@@ -158,12 +158,29 @@ export async function hasRoomFor(bytes: number): Promise<boolean> {
   }
 }
 
+/**
+ * Clip-set changes (saved, deleted, rotated) for views that show a clip count, e.g.
+ * the match menu's finish-this-game badge (review 5.12). Fired after the write
+ * lands - the recording signal ends BEFORE the last clip is saved.
+ */
+const clipChangeListeners = new Set<() => void>();
+export function onClipsChanged(listener: () => void): () => void {
+  clipChangeListeners.add(listener);
+  return () => { clipChangeListeners.delete(listener); };
+}
+const notifyClipsChanged = () => {
+  for (const listener of clipChangeListeners) {
+    try { listener(); } catch { /* a listener must not break the store */ }
+  }
+};
+
 export async function saveClip(record: AudioClipRecord, userId?: string): Promise<void> {
   if (!hasIndexedDb()) throw new Error('IndexedDB unavailable');
   if (!(await hasRoomFor(record.sizeBytes))) {
     throw new AudioQuotaError();
   }
   await withStore('readwrite', userId, (store) => promisifyRequest(store.put(record)).then(() => undefined));
+  notifyClipsChanged();
 }
 
 /** Clip metadata for a game, oldest clock time first (no blobs). */
@@ -191,6 +208,7 @@ export async function getClipBlob(id: string, userId?: string): Promise<Blob | n
 export async function deleteClip(id: string, userId?: string): Promise<void> {
   if (!hasIndexedDb()) return;
   await withStore('readwrite', userId, (store) => promisifyRequest(store.delete(id)).then(() => undefined));
+  notifyClipsChanged();
 }
 
 export async function deleteClipsForGame(gameId: string, userId?: string): Promise<number> {
@@ -201,7 +219,7 @@ export async function deleteClipsForGame(gameId: string, userId?: string): Promi
       await promisifyRequest(store.delete(key));
     }
     return keys.length;
-  });
+  }).then((n) => { if (n > 0) notifyClipsChanged(); return n; });
 }
 
 /**
@@ -230,13 +248,14 @@ export async function rotateOldClips(now: number = Date.now(), userId?: string):
       logger.info('[audioClipStore] Rotated expired voice clips', { count: keys.length });
     }
     return keys.length;
-  });
+  }).then((n) => { if (n > 0) notifyClipsChanged(); return n; });
 }
 
 /** Remove all clips (Settings "delete all recordings" and pre-erasure). */
 export async function deleteAllClips(userId?: string): Promise<void> {
   if (!hasIndexedDb()) return;
   await withStore('readwrite', userId, (store) => promisifyRequest(store.clear()).then(() => undefined));
+  notifyClipsChanged();
 }
 
 /** Drop the whole database - account deletion only. Resolves on blocked too (best effort). */

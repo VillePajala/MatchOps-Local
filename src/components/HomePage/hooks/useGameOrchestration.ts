@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { listClips } from '@/utils/audioClipStore';
-import { useRecordingSessionActive } from '@/utils/recordingSessionSignal';
+import { countClips, onClipsChanged } from '@/utils/audioClipStore';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { completenessProgress, computeGameCompleteness } from '@/utils/gameCompleteness';
 import { todayIso } from '@/utils/todayIso';
@@ -579,6 +578,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isGoalLogModalOpen,
     setIsGoalLogModalOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used here
     isGameStatsModalOpen,
     setIsGameStatsModalOpen,
     openClubStatsToTab,
@@ -1782,18 +1782,21 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
    */
   // Voice clips awaiting review count in the checklist (review 5.12): the wrap-up
   // card passes them, the menu badge did not, so the two disagreed by one for every
-  // game with dictation (4/6 vs 4/7). Re-read when the game changes, when a recording
-  // session ends (a new clip) and when the stats window closes (clips reviewed there).
-  const recordingActive = useRecordingSessionActive();
+  // game with dictation (4/6 vs 4/7). Re-read when the game changes and whenever the
+  // clip store reports a change (a clip saved, reviewed or deleted) - after the write
+  // has landed, which the recording signal (cleared before the last save) is not.
   const [voiceClipsPending, setVoiceClipsPending] = useState(0);
+  const [clipsVersion, setClipsVersion] = useState(0);
+  useEffect(() => onClipsChanged(() => setClipsVersion((v) => v + 1)), []);
   useEffect(() => {
-    if (!currentGameId || currentGameId === DEFAULT_GAME_ID || recordingActive || isGameStatsModalOpen) return;
+    setVoiceClipsPending(0); // never carry another game's count
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
     let cancelled = false;
-    listClips(currentGameId, userId ?? undefined)
-      .then((clips) => { if (!cancelled) setVoiceClipsPending(clips.length); })
-      .catch(() => { /* the badge keeps its last count */ });
+    countClips(currentGameId, userId ?? undefined)
+      .then((n) => { if (!cancelled) setVoiceClipsPending(n); })
+      .catch((error) => logger.debug('[finish badge] clip count unavailable', error));
     return () => { cancelled = true; };
-  }, [currentGameId, userId, recordingActive, isGameStatsModalOpen]);
+  }, [currentGameId, userId, clipsVersion]);
 
   const finishProgress = useMemo(() => {
     const saved = currentGameId ? savedGames?.[currentGameId] : undefined;

@@ -47,10 +47,12 @@ jest.mock('@/utils/appSettings', () => ({
 }));
 
 // Voice clips (review 5.12): controllable per test.
-const mockListClips = jest.fn().mockResolvedValue([]);
+const mockCountClips = jest.fn().mockResolvedValue(0);
+const clipListeners: Array<() => void> = [];
 jest.mock('@/utils/audioClipStore', () => ({
   ...jest.requireActual('@/utils/audioClipStore'),
-  listClips: (...args: unknown[]) => mockListClips(...args),
+  countClips: (...args: unknown[]) => mockCountClips(...args),
+  onClipsChanged: (listener: () => void) => { clipListeners.push(listener); return () => undefined; },
 }));
 
 // Mock storage utilities
@@ -694,19 +696,31 @@ describe('finish-this-game badge counts voice clips', () => {
     const view = renderHook(() => useGameOrchestration({ skipInitialSetup: true }), { wrapper: Wrapper });
     await waitFor(() => expect(view.result.current.isBootstrapping).toBe(false), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
     await waitFor(() => expect(view.result.current.gameContainerProps.fieldProps.finishProgress).not.toBeNull(), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
-    await waitFor(() => expect(mockListClips).toHaveBeenCalled());
+    await waitFor(() => expect(mockCountClips).toHaveBeenCalled());
     await act(async () => { await Promise.resolve(); });
-    const total = view.result.current.gameContainerProps.fieldProps.finishProgress!.total;
-    view.unmount();
-    return total;
+    return view;
   };
+  const total = (view: Awaited<ReturnType<typeof badgeTotal>>) => view.result.current.gameContainerProps.fieldProps.finishProgress!.total;
 
   it('a pending clip adds the voice-notes item to the badge total', async () => {
-    mockListClips.mockResolvedValue([]);
-    const without = await badgeTotal();
-    mockListClips.mockResolvedValue([{ id: 'c1' }]);
-    const withClip = await badgeTotal();
-    expect(withClip).toBe(without + 1);
+    mockCountClips.mockResolvedValue(0);
+    const a = await badgeTotal();
+    const without = total(a);
+    a.unmount();
+    mockCountClips.mockResolvedValue(1);
+    const b = await badgeTotal();
+    expect(total(b)).toBe(without + 1);
+    b.unmount();
+  });
+
+  it('re-counts when the clip store reports a saved clip (after the write)', async () => {
+    mockCountClips.mockResolvedValue(0);
+    const view = await badgeTotal();
+    const without = total(view);
+    mockCountClips.mockResolvedValue(1);
+    await act(async () => { clipListeners.forEach((l) => l()); });
+    await waitFor(() => expect(total(view)).toBe(without + 1));
+    view.unmount();
   });
 });
 
