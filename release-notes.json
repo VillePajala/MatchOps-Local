@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Back button: after opening Settings from the statistics to set the season dates, back now returns to the statistics."
+      ],
+      "fi": [
+        "Takaisin-painike: kun avaat asetukset tilastoista kauden päivämäärien asettamiseksi, takaisin palaa nyt tilastoihin."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Back button: after going from the wrap-up checklist to match details, or from a player's game log into a match, back now returns to Home instead of leaving the app."
       ],
       "fi": [
