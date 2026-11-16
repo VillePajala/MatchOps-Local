@@ -10,6 +10,18 @@ import type { Player } from '@/types';
 import { QueryClient } from '@tanstack/react-query';
 
 jest.mock('./masterRoster');
+jest.mock('./teams', () => ({
+  getAllTeamRosters: jest.fn(),
+  removePlayerFromRoster: jest.fn(),
+}));
+const mockTeams = jest.fn();
+// A plain function, not jest.fn: the suite's resetAllMocks would wipe its implementation.
+jest.mock('@/datastore/factory', () => ({
+  getDataStore: async () => ({ getTeams: (includeArchived?: boolean) => mockTeams(includeArchived) }),
+}));
+import { getAllTeamRosters, removePlayerFromRoster as removeFromTeamRoster } from './teams';
+const mockedGetAllTeamRosters = getAllTeamRosters as jest.MockedFunction<typeof getAllTeamRosters>;
+const mockedRemoveFromTeam = removeFromTeamRoster as jest.MockedFunction<typeof removeFromTeamRoster>;
 
 const mockRoster: Player[] = [
   { id: '1', name: 'A', isGoalie: false, receivedFairPlayCard: false },
@@ -100,7 +112,48 @@ it('returns null when update fails', async () => {
 
 it('removes player via util', async () => {
   mockedRemove.mockResolvedValue(true);
+  mockedGetAllTeamRosters.mockResolvedValue({});
+  mockTeams.mockResolvedValue([]);
   await expect(removePlayer('1')).resolves.toBe(true);
+});
+
+/**
+ * Review 7.16: a deleted player's copy in the team rosters used to stay - counted
+ * in the Teams list and stored (in the cloud too) until the team was re-saved.
+ * @critical
+ */
+it('a deleted player leaves every team roster that has them, and only those', async () => {
+  mockedRemove.mockResolvedValue(true);
+  const p = (id: string) => ({ id, name: id, nickname: '', jerseyNumber: '', isGoalie: false, receivedFairPlayCard: false });
+  // t3 is archived (still a team); 'gone' is a deleted team whose roster is kept.
+  mockedGetAllTeamRosters.mockResolvedValue({ t1: [p('1'), p('2')], t2: [p('2')], t3: [p('1')], gone: [p('1')] });
+  mockTeams.mockResolvedValue([{ id: 't1' }, { id: 't2' }, { id: 't3', archived: true }]);
+  mockedRemoveFromTeam.mockResolvedValue(true);
+  await expect(removePlayer('1', 'u1')).resolves.toBe(true);
+  expect(mockTeams).toHaveBeenCalledWith(true); // archived teams included
+  expect(mockedRemoveFromTeam.mock.calls).toEqual([['t1', '1', 'u1'], ['t3', '1', 'u1']]);
+});
+
+it('a team whose clean-up fails does not stop the others', async () => {
+  mockedRemove.mockResolvedValue(true);
+  const p = (id: string) => ({ id, name: id, nickname: '', jerseyNumber: '', isGoalie: false, receivedFairPlayCard: false });
+  mockedGetAllTeamRosters.mockResolvedValue({ t1: [p('1')], t2: [p('1')] });
+  mockTeams.mockResolvedValue([{ id: 't1' }, { id: 't2' }]);
+  mockedRemoveFromTeam.mockRejectedValueOnce(new Error('locked')).mockResolvedValue(true);
+  await expect(removePlayer('1', 'u1')).resolves.toBe(true);
+  expect(mockedRemoveFromTeam).toHaveBeenCalledWith('t2', '1', 'u1');
+});
+
+it('a failed roster clean-up does not turn the delete into a failure', async () => {
+  mockedRemove.mockResolvedValue(true);
+  mockedGetAllTeamRosters.mockRejectedValue(new Error('offline'));
+  await expect(removePlayer('1')).resolves.toBe(true);
+});
+
+it('nothing is touched when the delete itself fails', async () => {
+  mockedRemove.mockResolvedValue(false);
+  await expect(removePlayer('1')).resolves.toBe(false);
+  expect(mockedGetAllTeamRosters).not.toHaveBeenCalled();
 });
 
 it('returns false when remove fails', async () => {

@@ -813,7 +813,7 @@
     "nameHeader": "Nimi",
     "jerseyHeader": "Numero",
     "confirmAddPlayer": "Lisää Pelaaja",
-    "confirmDeletePlayer": "Haluatko varmasti poistaa tämän pelaajan?",
+    "confirmDeletePlayer": "Poistetaanko pelaaja seuran pelaajista ja kaikista joukkueista? Pelatut ottelut säilyttävät pelaajan tilastoissa.",
     "confirmDeletePlayerTitle": "Poista pelaaja",
     "searchPlaceholder": "Etsi pelaajaa...",
     "sortBy": "Järjestä",

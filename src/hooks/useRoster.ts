@@ -135,6 +135,8 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
       setRosterError(null);
       // Invalidate React Query cache so TeamRosterModal gets fresh data (user-scoped)
       await queryClient.invalidateQueries({ queryKey: [...queryKeys.masterRoster, userId] });
+      // The player also left every team roster (review 7.16): refresh those too.
+      await queryClient.invalidateQueries({ queryKey: queryKeys.teams });
       return true;
     } catch (error) {
       logger.warn('Failed to remove player from roster', { playerId, error });

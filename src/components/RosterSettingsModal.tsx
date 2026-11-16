@@ -395,12 +395,9 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
       <ConfirmationModal
         isOpen={showDeleteConfirm}
         title={t('rosterSettingsModal.confirmDeletePlayerTitle', 'Remove Player')}
-        message={t('rosterSettingsModal.confirmDeletePlayer', 'Are you sure you want to remove this player?')}
-        warningMessage={
-          <>
-            <strong>{playerToDelete?.name || ''}</strong> will be removed from your roster.
-          </>
-        }
+        message={t('rosterSettingsModal.confirmDeletePlayer', 'Remove this player from the club roster and every team? Past games keep the player in their statistics.')}
+        // The name only: the (translated) message above says what happens.
+        warningMessage={<strong>{playerToDelete?.name || ''}</strong>}
         onConfirm={handleDeleteConfirmed}
         onCancel={() => {
           setShowDeleteConfirm(false);

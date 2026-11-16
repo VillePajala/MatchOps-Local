@@ -942,7 +942,7 @@
     "nameHeader": "Name",
     "jerseyHeader": "Jersey #",
     "confirmAddPlayer": "Add Player",
-    "confirmDeletePlayer": "Are you sure you want to remove this player?",
+    "confirmDeletePlayer": "Remove this player from the club roster and every team? Past games keep the player in their statistics.",
     "confirmDeletePlayerTitle": "Remove Player",
     "searchPlaceholder": "Search players...",
     "sortBy": "Sort by",

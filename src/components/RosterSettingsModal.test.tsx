@@ -262,7 +262,7 @@ describe('<RosterSettingsModal />', () => {
 
     // Wait for confirmation modal to appear
     await waitFor(() => {
-      expect(screen.getByText(/Are you sure/i)).toBeInTheDocument();
+      expect(screen.getByText(/Past games keep the player in their statistics/i)).toBeInTheDocument();
     });
 
     // Click Remove in the confirmation modal (not the Delete buttons)
