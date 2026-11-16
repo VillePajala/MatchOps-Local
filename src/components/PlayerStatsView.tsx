@@ -31,7 +31,7 @@ import { computePositionDiversity } from '@/utils/positionDiversity';
 import { POSITION_IDS } from '@/config/positions';
 import ExternalGamesSection, { getResultClass } from './ExternalGamesSection';
 import logger from '@/utils/logger';
-import { getClubSeasonForDate } from '@/utils/clubSeason';
+import { getClubSeasonForDate, currentClubSeasonForPlayer } from '@/utils/clubSeason';
 import PlayerNotesSummaryCard from './PlayerNotesSummaryCard';
 
 // Line badge colours mirror the position-category colours used in the positions editor.
@@ -131,14 +131,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   };
 
   // Separate season scope for the assessment section only (does not affect the
-  // goals/assists/games stats). "Current season" = the club season of the most
-  // recent game. Shown only when the data spans more than one club season.
-  const currentClubSeason = useMemo(() => {
-    const dated = Object.values(savedGames).filter(g => g.gameDate);
-    if (dated.length === 0) return null;
-    const latest = dated.reduce((a, b) => ((a.gameDate as string) > (b.gameDate as string) ? a : b));
-    return getClubSeasonForDate(latest.gameDate as string, clubSeasonStartDate, clubSeasonEndDate);
-  }, [savedGames, clubSeasonStartDate, clubSeasonEndDate]);
+  // goals/assists/games stats). "Current season" = the club season of this player's
+  // most recent RATED game, else the most recent played game (review 5.11): the
+  // newest game of all could be next season's unplayed fixture, which left the
+  // end-of-season report empty. Shown only when the data spans more than one season.
+  const currentClubSeason = useMemo(
+    () => currentClubSeasonForPlayer(Object.values(savedGames), player?.id, clubSeasonStartDate, clubSeasonEndDate),
+    [savedGames, player, clubSeasonStartDate, clubSeasonEndDate],
+  );
 
   const hasMultipleSeasons = useMemo(() => {
     const seen = new Set<string>();

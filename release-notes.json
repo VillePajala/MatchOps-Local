@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "In a player's ratings, Current season now means the season of their latest rated game. Next season's fixtures, entered in advance, no longer empty the end-of-season report."
+      ],
+      "fi": [
+        "Pelaajan arvioissa Nykyinen kausi tarkoittaa nyt viimeisimmän arvioidun ottelun kautta, joten etukäteen syötetyt seuraavan kauden ottelut eivät enää tyhjennä kauden loppuraporttia."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "The opponent name tool now shows each opponent's real number of games. Opponents listed in a season no longer count twice, and the label reads 1 game instead of 1 games."
       ],
       "fi": [

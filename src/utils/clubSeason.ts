@@ -394,3 +394,27 @@ export function validateSeasonDates(
 
   return true;
 }
+
+/**
+ * The club season a player's development view means by "Current season" (review
+ * 5.11): that of the player's most recent RATED game, else the most recent played
+ * game, else the most recent game. The newest game of all can be next season's
+ * unplayed fixture, which left the end-of-season report empty.
+ */
+export function currentClubSeasonForPlayer(
+  games: Array<{ gameDate?: string; isPlayed?: boolean; assessments?: Record<string, unknown> }>,
+  playerId: string | null | undefined,
+  clubSeasonStartDate?: string,
+  clubSeasonEndDate?: string,
+): string | null {
+  const dated = games.filter((g) => g.gameDate);
+  const latestOf = (list: typeof dated) =>
+    list.length === 0 ? null : list.reduce((a, b) => ((a.gameDate as string) > (b.gameDate as string) ? a : b));
+  const played = dated.filter((g) => g.isPlayed !== false);
+  // Played only: the report leaves out games marked not played, so a rating on one
+  // must not pick the season either. (An assessment entry exists only once saved.)
+  const rated = playerId ? played.filter((g) => g.assessments?.[playerId]) : [];
+  const latest = latestOf(rated) ?? latestOf(played) ?? latestOf(dated);
+  return latest ? getClubSeasonForDate(latest.gameDate as string, clubSeasonStartDate, clubSeasonEndDate) : null;
+}
+
