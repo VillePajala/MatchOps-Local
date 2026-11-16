@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { countClips, onClipsChanged } from '@/utils/audioClipStore';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { completenessProgress, computeGameCompleteness } from '@/utils/gameCompleteness';
 import { todayIso } from '@/utils/todayIso';
@@ -1779,6 +1780,24 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
    * checklist itself: the game-end button and the menu. Computed once, from the
    * same model the checklist uses, so no two places can disagree.
    */
+  // Voice clips awaiting review count in the checklist (review 5.12): the wrap-up
+  // card passes them, the menu badge did not, so the two disagreed by one for every
+  // game with dictation (4/6 vs 4/7). Re-read when the game changes and whenever the
+  // clip store reports a change (a clip saved, reviewed or deleted) - after the write
+  // has landed, which the recording signal (cleared before the last save) is not.
+  const [voiceClipsPending, setVoiceClipsPending] = useState(0);
+  const [clipsVersion, setClipsVersion] = useState(0);
+  useEffect(() => onClipsChanged(() => setClipsVersion((v) => v + 1)), []);
+  useEffect(() => {
+    setVoiceClipsPending(0); // never carry another game's count
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
+    let cancelled = false;
+    countClips(currentGameId, userId ?? undefined)
+      .then((n) => { if (!cancelled) setVoiceClipsPending(n); })
+      .catch((error) => logger.debug('[finish badge] clip count unavailable', error));
+    return () => { cancelled = true; };
+  }, [currentGameId, userId, clipsVersion]);
+
   const finishProgress = useMemo(() => {
     const saved = currentGameId ? savedGames?.[currentGameId] : undefined;
     if (!saved) return null;
@@ -1796,8 +1815,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       awayScore: gameSessionState.awayScore,
     }, { assessmentsEnabled });
     if (!completeness.applicable) return null;
-    return completenessProgress(completeness);
+    return completenessProgress(completeness, { voiceClipsPending });
   }, [
+    voiceClipsPending,
     currentGameId,
     savedGames,
     gameSessionState.gameNotes,

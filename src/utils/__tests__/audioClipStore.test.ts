@@ -21,6 +21,7 @@ import {
   getAudioDatabaseName,
   getClipBlob,
   listClips,
+  onClipsChanged,
   rotateOldClips,
   saveClip,
 } from '../audioClipStore';
@@ -60,6 +61,22 @@ describe('audioClipStore', () => {
     expect(clips[0]).not.toHaveProperty('data'); // metadata only
     expect(await countClips('g1')).toBe(2);
     expect(await countClips('g2')).toBe(1);
+  });
+
+  /** Review 5.12: listeners hear about a clip-set change only after it has landed. */
+  it('notifies clip-change listeners after a save and a delete', async () => {
+    const listener = jest.fn();
+    const off = onClipsChanged(listener);
+    try {
+      await saveClip(clip({ id: 'n1' }));
+      expect(listener).toHaveBeenCalledTimes(1);
+      await deleteClip('n1');
+      expect(listener).toHaveBeenCalledTimes(2);
+    } finally {
+      off();
+    }
+    await saveClip(clip({ id: 'n2' }));
+    expect(listener).toHaveBeenCalledTimes(2); // unsubscribed
   });
 
   it('rebuilds a Blob with the stored bytes and type', async () => {

@@ -46,6 +46,15 @@ jest.mock('@/utils/appSettings', () => ({
   saveAppSettings: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Voice clips (review 5.12): controllable per test.
+const mockCountClips = jest.fn().mockResolvedValue(0);
+const clipListeners: Array<() => void> = [];
+jest.mock('@/utils/audioClipStore', () => ({
+  ...jest.requireActual('@/utils/audioClipStore'),
+  countClips: (...args: unknown[]) => mockCountClips(...args),
+  onClipsChanged: (listener: () => void) => { clipListeners.push(listener); return () => undefined; },
+}));
+
 // Mock storage utilities
 jest.mock('@/utils/storage', () => ({
   getStorageItem: jest.fn().mockResolvedValue(null),
@@ -661,3 +670,57 @@ describe('timer lifecycle scenarios (review 4.21 bench)', () => {
     view.unmount();
   });
 });
+
+/**
+ * Review 5.12: the menu's "finish this game" badge counts pending voice clips like the
+ * wrap-up checklist does - they disagreed by one for every game with dictation.
+ * @critical
+ */
+describe('finish-this-game badge counts voice clips', () => {
+  let queryClient: QueryClient;
+  const GAME = 'game-done';
+  beforeEach(() => {
+    jest.clearAllMocks();
+    window.localStorage.clear();
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } });
+    const game = createInProgressGame({ gameStatus: 'gameEnd', isPlayed: true, gameDate: '2024-01-01' } as Partial<AppState>);
+    mockGetSavedGames.mockResolvedValue({ [GAME]: game });
+    mockUseGameDataQueries.mockReturnValue(gameDataQueriesResult({ [GAME]: game }, GAME));
+  });
+  afterEach(() => queryClient.clear());
+
+  const badgeTotal = async () => {
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const view = renderHook(() => useGameOrchestration({ skipInitialSetup: true }), { wrapper: Wrapper });
+    await waitFor(() => expect(view.result.current.isBootstrapping).toBe(false), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    await waitFor(() => expect(view.result.current.gameContainerProps.fieldProps.finishProgress).not.toBeNull(), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    await waitFor(() => expect(mockCountClips).toHaveBeenCalled());
+    await act(async () => { await Promise.resolve(); });
+    return view;
+  };
+  const total = (view: Awaited<ReturnType<typeof badgeTotal>>) => view.result.current.gameContainerProps.fieldProps.finishProgress!.total;
+
+  it('a pending clip adds the voice-notes item to the badge total', async () => {
+    mockCountClips.mockResolvedValue(0);
+    const a = await badgeTotal();
+    const without = total(a);
+    a.unmount();
+    mockCountClips.mockResolvedValue(1);
+    const b = await badgeTotal();
+    expect(total(b)).toBe(without + 1);
+    b.unmount();
+  });
+
+  it('re-counts when the clip store reports a saved clip (after the write)', async () => {
+    mockCountClips.mockResolvedValue(0);
+    const view = await badgeTotal();
+    const without = total(view);
+    mockCountClips.mockResolvedValue(1);
+    await act(async () => { clipListeners.forEach((l) => l()); });
+    await waitFor(() => expect(total(view)).toBe(without + 1));
+    view.unmount();
+  });
+});
+
