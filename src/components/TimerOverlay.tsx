@@ -472,7 +472,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               <div className="flex items-center">
                 <button
                   onClick={() => onSetSubInterval(subIntervalMinutes - 0.5)}
-                  disabled={subIntervalMinutes <= 0.5}
+                  // 1 minute is the real minimum (the reducer clamps to it, review 4.33):
+                  // at 1 the button used to stay enabled and do nothing.
+                  disabled={subIntervalMinutes <= 1}
                   className={controlButtonStyle} aria-label={t('timerOverlay.decreaseInterval', 'Decrease interval')}>
                   -
                 </button>

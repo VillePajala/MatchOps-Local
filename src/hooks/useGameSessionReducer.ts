@@ -375,6 +375,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         };
     }
     case 'END_PERIOD_OR_GAME': {
+        // Only a period in play can end (review 4.33): a stray end (a tick landing
+        // between a reset and the interval teardown) must not end a reset game.
+        if (state.gameStatus !== 'inProgress') return state;
         const { newStatus, finalTime } = action.payload;
         const timeToSet = finalTime !== undefined ? finalTime : state.timeElapsedInSeconds;
         return {

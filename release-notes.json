@@ -4,6 +4,17 @@
     {
       "date": "2026-11-16",
       "en": [
+        "A quick double tap on Start no longer pauses the clock it just started, and Reset now resets straight away.",
+        "Undo no longer misses a change made just as the clock ticked, and the substitution interval stops at its 1-minute minimum."
+      ],
+      "fi": [
+        "Nopea kaksoisnapautus Käynnistä-painikkeeseen ei enää pysäytä juuri käynnistettyä kelloa, ja Nollaa nollaa nyt heti.",
+        "Kumoa ei enää ohita muutosta, joka tehtiin juuri kellon edetessä, ja vaihtoväli pysähtyy 1 minuutin minimiin."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Reopening the app while your games are still loading no longer opens an empty or wrong match."
       ],
       "fi": [

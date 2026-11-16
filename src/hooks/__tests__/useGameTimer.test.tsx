@@ -337,6 +337,7 @@ describe('useGameTimer', () => {
         const { result } = render({ gameStatus: 'inProgress', isTimerRunning: false, timeElapsedInSeconds: 120 });
         act(() => { result.current.startPause(); }); // START_TIMER
         expect(readTimerAnchor('game-1')?.elapsedSeconds).toBe(120);
+        act(() => { jest.setSystemTime(Date.now() + 2000); }); // a real pause, not a double-tap
         act(() => { result.current.startPause(); }); // PAUSE_TIMER
         expect(readTimerAnchor('game-1')).toBeNull();
         expect(readTimerAnchor('game-other')?.elapsedSeconds).toBe(300);
@@ -471,7 +472,7 @@ describe('useGameTimer', () => {
       const initialState = createInitialState({
         gameStatus: 'inProgress',
         isTimerRunning: true,
-        startTimestamp: Date.now(),
+        startTimestamp: Date.now() - 5000, // running for a while (not a double-tap)
         timeElapsedInSeconds: 100,
       });
 
@@ -485,6 +486,39 @@ describe('useGameTimer', () => {
       });
 
       expect(result.current.isTimerRunning).toBe(false);
+    });
+
+    /**
+     * Review 4.33: a double-tap on Start - the button turns into Pause under the
+     * finger - must not pause the clock it just started; a later pause still works.
+     * @critical
+     */
+    it('ignores a pause within the double-tap window after starting', () => {
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, createInitialState({ gameStatus: 'periodEnd', currentPeriod: 1, numberOfPeriods: 2, periodDurationMinutes: 15, timeElapsedInSeconds: 900 }));
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+      act(() => { result.current.startPause(); }); // Start Period 2
+      act(() => { jest.setSystemTime(Date.now() + 200); });
+      act(() => { result.current.startPause(); }); // the second tap of a double-tap
+      expect(result.current.isTimerRunning).toBe(true);
+      act(() => { jest.setSystemTime(Date.now() + 2000); });
+      act(() => { result.current.startPause(); }); // a deliberate pause
+      expect(result.current.isTimerRunning).toBe(false);
+    });
+
+    it('Reset resets at once, before the timer record is cleared', () => {
+      let resolveClear: () => void = () => {};
+      const { clearTimerState } = jest.requireMock('@/utils/timerStateManager');
+      (clearTimerState as jest.Mock).mockImplementationOnce(() => new Promise<void>((r) => { resolveClear = r; }));
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, createInitialState({ gameStatus: 'inProgress', isTimerRunning: true, startTimestamp: Date.now() - 5000, timeElapsedInSeconds: 300 }));
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+      act(() => { void result.current.reset(); });
+      expect(result.current.isTimerRunning).toBe(false); // IndexedDB has not answered yet
+      expect(result.current.timeElapsedInSeconds).toBe(0);
+      act(() => { resolveClear(); });
     });
 
     it('should resume timer when paused during inProgress', () => {

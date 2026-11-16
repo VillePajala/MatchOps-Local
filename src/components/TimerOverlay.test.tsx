@@ -66,14 +66,14 @@ describe('TimerOverlay', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
-  it('disables decrease button at minimum 0.5 minutes', () => {
-    render(<TimerOverlay {...baseProps} subIntervalMinutes={0.5} />);
+  it('disables decrease button at the 1-minute minimum (the reducer clamps to 1)', () => {
+    render(<TimerOverlay {...baseProps} subIntervalMinutes={1} />);
     const dec = screen.getByRole('button', { name: /decrease interval/i });
     expect(dec).toBeDisabled();
   });
 
-  it('enables decrease button above 0.5 minutes', () => {
-    render(<TimerOverlay {...baseProps} subIntervalMinutes={1} />);
+  it('enables decrease button above 1 minute', () => {
+    render(<TimerOverlay {...baseProps} subIntervalMinutes={1.5} />);
     const dec = screen.getByRole('button', { name: /decrease interval/i });
     expect(dec).not.toBeDisabled();
   });

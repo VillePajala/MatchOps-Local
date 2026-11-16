@@ -1153,6 +1153,11 @@ describe('gameSessionReducer', () => {
     });
   });
 
+  it('END_PERIOD_OR_GAME only ends a period in play (review 4.33)', () => {
+    const reset = createBaseState({ gameStatus: 'notStarted', timeElapsedInSeconds: 0 });
+    expect(gameSessionReducer(reset, { type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'periodEnd', finalTime: 900 } })).toBe(reset);
+  });
+
   describe('LOAD_STATE_FROM_HISTORY guards (review 4.27)', () => {
     it('a running flag never survives outside play', () => {
       const state = createBaseState({ gameStatus: 'inProgress', isTimerRunning: true, startTimestamp: 1 });
