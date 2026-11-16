@@ -8,7 +8,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
-import { addPlayer } from '@/utils/masterRosterManager';
+import { addPlayer, removePlayer } from '@/utils/masterRosterManager';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { addTeam, setTeamRoster } from '@/utils/teams';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { setSetupWizardActive, storeSetupFormat, storeSetupAgeGroup } from './setupWizardActive';
@@ -80,7 +81,11 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
    * today's behaviour - it must never become a gate on creating a team.
    */
   const [ageGroup, setAgeGroup] = useState('');
-  const [names, setNames] = useState<string[]>([]);
+  // Each row has its own id (review 7.6): a retry after a partial failure must
+  // match created players to the rows on screen, not to positions that shift
+  // when the coach removes a row in between.
+  const [names, setNames] = useState<Array<{ id: number; name: string }>>([]);
+  const nextRowIdRef = useRef(1);
   const [draft, setDraft] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -88,7 +93,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const totalCount = names.length + (draft.trim() ? 1 : 0);
 
   // Retry safety: a failed finish must not duplicate what already got created.
-  const createdPlayersRef = useRef<Player[]>([]);
+  const createdPlayersRef = useRef<Map<number, Player>>(new Map());
   const createdTeamRef = useRef<Team | null>(null);
   // Re-entrancy guard as a REF (state commits too late to stop a double tap)
   // and an unmount guard for the async save chain (review #725).
@@ -121,7 +126,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const commitDraft = useCallback(() => {
     const trimmed = draft.trim();
     if (!trimmed) return;
-    setNames((prev) => [...prev, trimmed]);
+    const id = nextRowIdRef.current++;
+    setNames((prev) => [...prev, { id, name: trimmed }]);
     setDraft('');
   }, [draft]);
 
@@ -136,13 +142,30 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
     try {
       // A typed-but-unentered name still counts - losing it on Valmis would
       // surprise exactly the fast typist the rapid entry is for.
+      // It becomes a row of its own, so a retry finds it under the same id.
       const pendingDraft = draft.trim();
-      const finalNames = pendingDraft ? [...names, pendingDraft] : names;
+      let rows = names;
+      if (pendingDraft) {
+        rows = [...names, { id: nextRowIdRef.current++, name: pendingDraft }];
+        setNames(rows);
+        setDraft('');
+      }
+      const created = createdPlayersRef.current;
 
-      // Create players sequentially, resuming past what an earlier failed
-      // attempt already created (retry-safe, no duplicates).
-      while (createdPlayersRef.current.length < finalNames.length) {
-        const name = finalNames[createdPlayersRef.current.length];
+      // A row removed after an earlier failed attempt created its player: that
+      // player goes again, or it would stay in the roster (review 7.6).
+      const rowIds = new Set(rows.map((r) => r.id));
+      for (const [rowId, player] of Array.from(created.entries())) {
+        if (rowIds.has(rowId)) continue;
+        await removePlayer(player.id, userId ?? undefined);
+        created.delete(rowId);
+      }
+
+      // Create players sequentially, skipping rows an earlier failed attempt
+      // already created (retry-safe, no duplicates).
+      for (const row of rows) {
+        if (created.has(row.id)) continue;
+        const name = row.name;
         // "Matti Meikalainen" -> disc shows "Matti": multi-word names get
         // the first word as the nickname, the same outcome as a coach setting
         // one in the roster (the disc renders nickname || name). Single words
@@ -153,8 +176,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           userId ?? undefined,
         );
         if (!player) throw new Error(`player creation failed: ${name}`);
-        createdPlayersRef.current.push(player);
+        created.set(row.id, player);
       }
+      // In the order on screen.
+      const players = rows.map((r) => created.get(r.id)).filter((p): p is Player => !!p);
 
       if (!createdTeamRef.current) {
         createdTeamRef.current = await addTeam(
@@ -165,8 +190,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
         );
       }
 
-      if (createdPlayersRef.current.length > 0) {
-        const roster: TeamPlayer[] = createdPlayersRef.current.map((p) => ({
+      if (players.length > 0) {
+        const roster: TeamPlayer[] = players.map((p) => ({
           id: p.id,
           name: p.name,
           nickname: p.nickname,
@@ -311,6 +336,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               data-testid="wizard-team-name"
               type="text"
               value={teamName}
+              maxLength={VALIDATION_LIMITS.TEAM_NAME_MAX}
               onChange={(e) => setTeamName(e.target.value)}
               placeholder={t('setupWizard.teamNamePlaceholder', 'e.g. FC Honka P12') ?? undefined}
               aria-label={t('setupWizard.teamNameLabel', 'Team name')}
@@ -428,6 +454,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 data-testid="wizard-player-input"
                 type="text"
                 value={draft}
+                maxLength={VALIDATION_LIMITS.PLAYER_NAME_MAX}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -452,11 +479,11 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               {t('setupWizard.playersAdded', '{{count}} players added', { count: totalCount })}
             </p>
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 mt-2 -mx-1 px-1">
-              {[...names].reverse().map((name, i) => {
+              {[...names].reverse().map(({ id, name }, i) => {
                 const originalIndex = names.length - 1 - i;
                 return (
                   <div
-                    key={`${name}-${originalIndex}`}
+                    key={id}
                     data-testid="wizard-player-row"
                     className="flex items-center justify-between rounded-lg bg-slate-800/90 border border-slate-700/60 px-3.5 py-2"
                   >

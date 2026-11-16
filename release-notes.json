@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "First-time setup: if saving fails and you change the player list before trying again, the saved roster now matches the list on screen. Over-long names can no longer be entered."
+      ],
+      "fi": [
+        "Ensimmäinen käyttöönotto: jos tallennus epäonnistuu ja muutat pelaajalistaa ennen uutta yritystä, tallentuva kokoonpano vastaa nyt näytön listaa. Liian pitkiä nimiä ei voi enää syöttää."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "The question about product emails no longer pops up during a match. It waits until you are on the home screen."
       ],
       "fi": [
