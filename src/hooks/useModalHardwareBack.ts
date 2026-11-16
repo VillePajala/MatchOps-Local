@@ -53,8 +53,11 @@ export function liftedSurfaceCount(): number {
 }
 
 function pushSentinel(): void {
-  window.history.pushState({ liftedModal: true }, '');
   sentinelPushed = true;
+  // A sub-guard retired this tick still has its live entry: take it over
+  // instead of back()+pushState (review 7.7, see flushHistoryRetires).
+  if (takeOverRetiringEntry()) return;
+  window.history.pushState({ liftedModal: true }, '');
 }
 
 let reArmTimer: ReturnType<typeof setTimeout> | null = null;
@@ -81,6 +84,54 @@ function reArmSentinel(): void {
 }
 
 let retireTimer: ReturnType<typeof setTimeout> | null = null;
+let sentinelRetirePending = false;
+
+// Sub-guards left via the UI whose history entries are still live, waiting for
+// the deferred flush (review 7.7). A sub-guard or the sentinel pushed in the same
+// tick takes one of them over instead of calling pushState.
+let pendingSubRetires = 0;
+
+function takeOverRetiringEntry(): boolean {
+  if (pendingSubRetires === 0) return false;
+  pendingSubRetires -= 1;
+  return true;
+}
+
+/**
+ * Every history entry we retire leaves in ONE deferred step (review 7.7).
+ *
+ * A modal handing off to another in the same tap (wrap-up -> match details, club
+ * stats game log -> match) closed one guard and opened the next in one commit.
+ * Retiring synchronously put history.back() and pushState in the same tick - the
+ * interleave Android WebViews drop - so history ended one entry short: the second
+ * back then left the app. Deferred to a macrotask, a same-commit push takes the
+ * live entry over instead, and whatever is still to retire goes in a single
+ * traversal (several back() calls in a row would race each other).
+ */
+function scheduleHistoryFlush(): void {
+  if (retireTimer !== null) return;
+  retireTimer = setTimeout(flushHistoryRetires, 0);
+}
+
+function flushHistoryRetires(): void {
+  retireTimer = null;
+  let steps = pendingSubRetires;
+  pendingSubRetires = 0;
+  // Only retire the sentinel if nothing re-registered in the meantime and it is
+  // still up (a same-commit reopen/crossing cancels this instead).
+  if (sentinelRetirePending) {
+    sentinelRetirePending = false;
+    if (modalStack.length === 0 && sentinelPushed) {
+      sentinelPushed = false;
+      steps += 1;
+    }
+  }
+  if (steps === 0) return;
+  // One traversal, one popstate - one suppressed pop.
+  suppressedPops += 1;
+  if (steps === 1) window.history.back();
+  else window.history.go(-steps);
+}
 
 // Retire the sentinel when the last modal closes via UI - but DEFER it a
 // macrotask. On the Start-screen -> Match crossing, the closing modal's cleanup
@@ -91,17 +142,8 @@ let retireTimer: ReturnType<typeof setTimeout> | null = null;
 // no real entry (first hardware back then exits the app). Deferring lets the
 // same-commit setup CANCEL this retire and reuse the still-live sentinel.
 function scheduleSentinelRetire(): void {
-  if (retireTimer !== null) return;
-  retireTimer = setTimeout(() => {
-    retireTimer = null;
-    // Only retire if nothing re-registered in the meantime and the sentinel
-    // is still up (a same-commit reopen/crossing cancels this instead).
-    if (modalStack.length === 0 && sentinelPushed) {
-      sentinelPushed = false;
-      suppressedPops += 1;
-      window.history.back();
-    }
-  }, 0);
+  sentinelRetirePending = true;
+  scheduleHistoryFlush();
 }
 
 // --- Preemptive sub-level guards ----------------------------------------
@@ -121,7 +163,10 @@ const subGuards: SubGuard[] = [];
 function pushSubGuard(onPop: () => void): SubGuard {
   const g: SubGuard = { onPop, consumed: false };
   subGuards.push(g);
-  window.history.pushState({ liftedSubGuard: true }, '');
+  // Same-commit hand-off (one guard closed, this one opened): reuse the live entry.
+  if (!takeOverRetiringEntry()) {
+    window.history.pushState({ liftedSubGuard: true }, '');
+  }
   return g;
 }
 
@@ -130,9 +175,10 @@ function removeSubGuard(g: SubGuard): void {
   if (i === -1) return; // already consumed by a hardware back - nothing to undo
   subGuards.splice(i, 1);
   // Left via the UI (or a forced state change), not a hardware back: our
-  // history entry is still live, so retire it with a suppressed back().
-  suppressedPops += 1;
-  window.history.back();
+  // history entry is still live. Retire it - deferred, so a guard opened in the
+  // same commit can take it over (review 7.7).
+  pendingSubRetires += 1;
+  scheduleHistoryFlush();
 }
 
 function handleGlobalPop(): void {
@@ -186,6 +232,8 @@ export function __resetModalHardwareBackForTests(): void {
   sentinelPushed = false;
   if (reArmTimer !== null) { clearTimeout(reArmTimer); reArmTimer = null; }
   if (retireTimer !== null) { clearTimeout(retireTimer); retireTimer = null; }
+  sentinelRetirePending = false;
+  pendingSubRetires = 0;
 }
 
 export function useModalHardwareBack(isOpen: boolean, onClose: () => void | boolean): void {
@@ -208,8 +256,9 @@ export function useModalHardwareBack(isOpen: boolean, onClose: () => void | bool
     const entry: StackEntry = { close: () => onCloseRef.current() };
     // Cancel a pending sentinel-retire: if a modal closed THIS commit (its
     // cleanup ran first) and set one, this registration reuses the still-live
-    // sentinel rather than letting it retire (the Start->Match crossing).
-    if (retireTimer !== null) { clearTimeout(retireTimer); retireTimer = null; }
+    // sentinel rather than letting it retire (the Start->Match crossing). Sub-guard
+    // retires stay scheduled.
+    sentinelRetirePending = false;
     modalStack.push(entry);
     if (!sentinelPushed) {
       pushSentinel();

@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Back button: after going from the wrap-up checklist to match details, or from a player's game log into a match, back now returns to Home instead of leaving the app."
+      ],
+      "fi": [
+        "Takaisin-painike: kun siirryt viimeistelylistalta ottelun tietoihin tai pelaajan ottelulistalta otteluun, takaisin vie nyt aloitusnäkymään eikä sulje sovellusta."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "First-time setup: if saving fails and you change the player list before trying again, the saved roster now matches the list on screen. Over-long names can no longer be entered."
       ],
       "fi": [
