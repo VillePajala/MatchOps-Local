@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "The Excel export no longer adds together seasons or tournaments that share a name. Each one has its own row, labelled with its season, for example Aluesarja 24/25."
+      ],
+      "fi": [
+        "Excel-vienti ei enää laske yhteen samannimisiä kausia tai turnauksia. Jokaisella on oma rivinsä kauden kanssa, esimerkiksi Aluesarja 24/25."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Exporting a single game from Saved games now lists that game's own players, including those who have since left, and shows who received the fair play card."
       ],
       "fi": [

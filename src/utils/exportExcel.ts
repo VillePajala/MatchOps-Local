@@ -11,6 +11,7 @@ import {
 import { formatTime } from './time';
 import { resolveGameResult } from '@/utils/gameResult';
 import { gameSquadForExport } from '@/utils/playerStats';
+import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { computeHeadToHead } from '@/utils/headToHead';
 import { ASSESSMENT_METRICS } from '@/config/assessmentMetrics';
 
@@ -516,6 +517,7 @@ export const exportAggregateExcel = (
 
   // Sheet 4: Season Breakdown (if we have multiple seasons in dataset)
   // Include both player stats (goals/assists) and team stats (wins/losses/ties, goals for/against)
+  const seasonLabels = new Map<string, string>();
   const seasonMap = new Map<string, {
     games: number; goals: number; assists: number; points: number;
     wins: number; losses: number; ties: number; goalsFor: number; goalsAgainst: number;
@@ -526,7 +528,10 @@ export const exportAggregateExcel = (
     const season = seasons.find((s) => s.id === game.seasonId);
     if (!season) return;
 
-    const key = season.name;
+    // Keyed by id, labelled with the display name (review 5.5): two seasons sharing a
+    // name (Aluesarja 24/25 and 25/26) were added together into one row.
+    const key = season.id;
+    seasonLabels.set(key, getSeasonDisplayName(season));
     if (!seasonMap.has(key)) {
       seasonMap.set(key, { games: 0, goals: 0, assists: 0, points: 0, wins: 0, losses: 0, ties: 0, goalsFor: 0, goalsAgainst: 0 });
     }
@@ -556,7 +561,8 @@ export const exportAggregateExcel = (
   });
 
   if (seasonMap.size > 0) {
-    const seasonBreakdown = Array.from(seasonMap.entries()).map(([name, stats]) => {
+    const seasonBreakdown = Array.from(seasonMap.entries()).map(([id, stats]) => {
+      const name = seasonLabels.get(id) ?? id;
       const winPct = stats.games > 0 ? ((stats.wins / stats.games) * 100).toFixed(1) : '0.0';
       const goalDiff = stats.goalsFor - stats.goalsAgainst;
       return {
@@ -615,6 +621,7 @@ export const exportAggregateExcel = (
 
   // Sheet 5: Tournament Breakdown (if we have multiple tournaments in dataset)
   // Include both player stats (goals/assists) and team stats (wins/losses/ties, goals for/against)
+  const tournamentLabels = new Map<string, string>();
   const tournamentMap = new Map<string, {
     games: number; goals: number; assists: number; points: number;
     wins: number; losses: number; ties: number; goalsFor: number; goalsAgainst: number;
@@ -625,7 +632,8 @@ export const exportAggregateExcel = (
     const tournament = tournaments.find((t) => t.id === game.tournamentId);
     if (!tournament) return;
 
-    const key = tournament.name;
+    const key = tournament.id; // by id, labelled with the display name (review 5.5)
+    tournamentLabels.set(key, getTournamentDisplayName(tournament));
     if (!tournamentMap.has(key)) {
       tournamentMap.set(key, { games: 0, goals: 0, assists: 0, points: 0, wins: 0, losses: 0, ties: 0, goalsFor: 0, goalsAgainst: 0 });
     }
@@ -655,7 +663,8 @@ export const exportAggregateExcel = (
   });
 
   if (tournamentMap.size > 0) {
-    const tournamentBreakdown = Array.from(tournamentMap.entries()).map(([name, stats]) => {
+    const tournamentBreakdown = Array.from(tournamentMap.entries()).map(([id, stats]) => {
+      const name = tournamentLabels.get(id) ?? id;
       const winPct = stats.games > 0 ? ((stats.wins / stats.games) * 100).toFixed(1) : '0.0';
       const goalDiff = stats.goalsFor - stats.goalsAgainst;
       return {
@@ -933,7 +942,7 @@ export const exportPlayerExcel = (
   }
 
   // Sheet 4: Season Performance
-  const seasonStats = new Map<string, { games: number; goals: number; assists: number; fairPlay: number }>();
+  const seasonStats = new Map<string, { name: string; games: number; goals: number; assists: number; fairPlay: number }>();
 
   Object.values(games)
     .filter((game) => game.selectedPlayerIds?.includes(playerId) && game.seasonId)
@@ -941,11 +950,12 @@ export const exportPlayerExcel = (
       const season = seasons.find((s) => s.id === game.seasonId);
       if (!season) return;
 
-      if (!seasonStats.has(season.name)) {
-        seasonStats.set(season.name, { games: 0, goals: 0, assists: 0, fairPlay: 0 });
+      // By id, labelled with the display name (review 5.5).
+      if (!seasonStats.has(season.id)) {
+        seasonStats.set(season.id, { name: getSeasonDisplayName(season), games: 0, goals: 0, assists: 0, fairPlay: 0 });
       }
 
-      const stats = seasonStats.get(season.name)!;
+      const stats = seasonStats.get(season.id)!;
       stats.games++;
       stats.goals += game.gameEvents.filter((e) => e.type === 'goal' && e.scorerId === playerId).length;
       stats.assists += game.gameEvents.filter((e) => e.type === 'goal' && e.assisterId === playerId).length;
@@ -956,8 +966,8 @@ export const exportPlayerExcel = (
     });
 
   if (seasonStats.size > 0) {
-    const seasonPerformance = Array.from(seasonStats.entries()).map(([name, stats]) => ({
-      [translate('export.season', 'Season')]: name,
+    const seasonPerformance = Array.from(seasonStats.values()).map((stats) => ({
+      [translate('export.season', 'Season')]: stats.name,
       [translate('export.gamesPlayed', 'Games Played')]: stats.games,
       [translate('export.goals', 'Goals')]: stats.goals,
       [translate('export.assists', 'Assists')]: stats.assists,
@@ -970,7 +980,7 @@ export const exportPlayerExcel = (
   }
 
   // Sheet 5: Tournament Performance
-  const tournamentStats = new Map<string, { games: number; goals: number; assists: number; fairPlay: number }>();
+  const tournamentStats = new Map<string, { name: string; games: number; goals: number; assists: number; fairPlay: number }>();
 
   Object.values(games)
     .filter((game) => game.selectedPlayerIds?.includes(playerId) && game.tournamentId)
@@ -978,11 +988,11 @@ export const exportPlayerExcel = (
       const tournament = tournaments.find((t) => t.id === game.tournamentId);
       if (!tournament) return;
 
-      if (!tournamentStats.has(tournament.name)) {
-        tournamentStats.set(tournament.name, { games: 0, goals: 0, assists: 0, fairPlay: 0 });
+      if (!tournamentStats.has(tournament.id)) {
+        tournamentStats.set(tournament.id, { name: getTournamentDisplayName(tournament), games: 0, goals: 0, assists: 0, fairPlay: 0 });
       }
 
-      const stats = tournamentStats.get(tournament.name)!;
+      const stats = tournamentStats.get(tournament.id)!;
       stats.games++;
       stats.goals += game.gameEvents.filter((e) => e.type === 'goal' && e.scorerId === playerId).length;
       stats.assists += game.gameEvents.filter((e) => e.type === 'goal' && e.assisterId === playerId).length;
@@ -992,8 +1002,8 @@ export const exportPlayerExcel = (
     });
 
   if (tournamentStats.size > 0) {
-    const tournamentPerformance = Array.from(tournamentStats.entries()).map(([name, stats]) => ({
-      [translate('export.tournament', 'Tournament')]: name,
+    const tournamentPerformance = Array.from(tournamentStats.values()).map((stats) => ({
+      [translate('export.tournament', 'Tournament')]: stats.name,
       [translate('export.gamesPlayed', 'Games Played')]: stats.games,
       [translate('export.goals', 'Goals')]: stats.goals,
       [translate('export.assists', 'Assists')]: stats.assists,

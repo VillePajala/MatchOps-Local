@@ -1000,6 +1000,43 @@ describe('Excel Export Utilities', () => {
         gameDate: '2024-01-01', isPlayed: true, selectedPlayerIds: [],
       }) as unknown as SavedGamesCollection[string];
 
+    /**
+     * Review 5.5: two seasons sharing a name (the same league every year) are two rows,
+     * labelled as the app shows them - they used to be added together into one row.
+     * @critical
+     */
+    it('keeps same-named seasons apart, labelled with their club season', () => {
+      const seasons = [
+        { id: 's24', name: 'Aluesarja', clubSeason: '24/25' },
+        { id: 's25', name: 'Aluesarja', clubSeason: '25/26' },
+      ] as Season[];
+      const games: SavedGamesCollection = {
+        g1: { ...gameVs('A', 2, 0), seasonId: 's24' },
+        g2: { ...gameVs('B', 0, 1), seasonId: 's25' },
+        g3: { ...gameVs('C', 1, 1), seasonId: 's25' },
+      } as SavedGamesCollection;
+      exportAggregateExcel(games, noPlayerStats, seasons, [], []);
+      const sheet = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls.find(
+        (call) => Array.isArray(call[0]) && call[0][0] && 'Season' in call[0][0] && 'Games Played' in call[0][0],
+      )![0] as Array<Record<string, unknown>>;
+      expect(sheet.map((r) => r['Season']).sort()).toEqual(['Aluesarja 24/25', 'Aluesarja 25/26']);
+      expect(sheet.find((r) => r['Season'] === 'Aluesarja 25/26')?.['Games Played']).toBe(2);
+    });
+
+    it('the player export keeps same-named seasons apart too', () => {
+      const seasons = [
+        { id: 's24', name: 'Aluesarja', clubSeason: '24/25' },
+        { id: 's25', name: 'Aluesarja', clubSeason: '25/26' },
+      ] as Season[];
+      const withPlayer = (seasonId: string) => ({ ...gameVs('X', 1, 0), seasonId, selectedPlayerIds: ['p1'] });
+      const games = { g1: withPlayer('s24'), g2: withPlayer('s25'), g3: withPlayer('s25') } as SavedGamesCollection;
+      exportPlayerExcel('p1', { id: 'p1', name: 'P' } as PlayerStatRow, games, seasons, [], []);
+      const sheet = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls.find(
+        (call) => Array.isArray(call[0]) && call[0][0] && 'Season' in call[0][0] && 'Fair Play Awards' in call[0][0],
+      )![0] as Array<Record<string, unknown>>;
+      expect(sheet.map((r) => r['Season']).sort()).toEqual(['Aluesarja 24/25', 'Aluesarja 25/26']);
+    });
+
     it('groups every spelling of a team into one row', () => {
       const games: SavedGamesCollection = {
         g1: gameVs('LauTP / Sininen', 2, 0),
