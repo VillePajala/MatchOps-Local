@@ -35,6 +35,9 @@ jest.mock('@/utils/timerAnchor', () => ({
   clearTimerAnchor: jest.fn(),
   readTimerAnchor: jest.fn(() => null),
 }));
+jest.mock('@/utils/audioClipStore', () => ({
+  deleteClipsForGame: jest.fn().mockResolvedValue(0),
+}));
 jest.mock('@/utils/playtimePlanner/gameSubs', () => ({
   deleteGameSubs: jest.fn().mockResolvedValue(undefined),
 }));
@@ -57,6 +60,7 @@ import { getSavedGames, deleteGame as utilDeleteGame, getLatestGameId } from '@/
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting } from '@/utils/appSettings';
 import { clearTimerState } from '@/utils/timerStateManager';
 import { clearTimerAnchor, readTimerAnchor } from '@/utils/timerAnchor';
+import { deleteClipsForGame } from '@/utils/audioClipStore';
 import { deleteGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { deletePlanLink } from '@/utils/playtimePlanner/planLinks';
 
@@ -158,6 +162,8 @@ describe('useLoadGameController (L.3a level crossing)', () => {
     expect(deleteGameSubs).toHaveBeenCalledWith('g2');
     expect(deletePlanLink).toHaveBeenCalledWith('g2');
     expect(clearTimerAnchor).toHaveBeenCalledWith('g2'); // only the deleted game's clock (4.22)
+    // Its voice recordings go with it (review 6.5).
+    expect(deleteClipsForGame).toHaveBeenCalledWith('g2', 'user-1');
     expect(clearTimerAnchor).toHaveBeenCalledTimes(1);
     expect(queryClient.getQueryData([...queryKeys.savedGames, 'user-1'])).toEqual({ g1: games.g1 });
     expect(saveCurrentGameIdSetting).not.toHaveBeenCalled();

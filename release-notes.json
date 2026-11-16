@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Voice recordings are now deleted after 30 days even if you no longer use voice notes, and deleting a match also deletes its recordings."
+      ],
+      "fi": [
+        "Ääninauhoitteet poistetaan nyt 30 päivän jälkeen, vaikka et enää käyttäisi ääniviestejä, ja ottelun poistaminen poistaa myös sen nauhoitteet."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Names of players you have removed from the roster are now hidden from the AI too, when you draft, tidy or translate an older game's report."
       ],
       "fi": [

@@ -2624,7 +2624,7 @@
     "keeps3": "Valmentaja vastaa muistiinpanoista samoin kuin paperivihkosta. Sovelluksen säännöt ohjaavat pysymään jalkapallotoiminnassa ja etunimissä eikä koskaan kirjaamaan terveyttä, perheasioita tai muita henkilökohtaisia asioita.",
     "recordingsTitle": "Äänitallenteet",
     "recordings1": "Tallenne pysyy valmentajan puhelimessa. Sitä ei koskaan lähetetä MatchOpsille, ei synkronoida toiselle laitteelle eikä sisällytetä varmuuskopioihin.",
-    "recordings2": "Se poistetaan puhelimesta heti, kun se on muutettu tekstiksi tai hylätty, ja joka tapauksessa 30 päivän kuluttua.",
+    "recordings2": "Se poistetaan puhelimesta heti, kun se on muutettu muistiinpanoksi tai hylätty, ja joka tapauksessa 30 päivän kuluttua.",
     "aiTitle": "Jos valmentaja käyttää valinnaista tekoälyä",
     "aiIntro": "Tallenteen muuttamiseen tekstiksi ja otteluraportin luonnosteluun voi käyttää tekoälypalvelua. Näin tapahtuu vain, jos valmentaja on yhdistänyt oman tilinsä palveluntarjoajaan (esimerkiksi OpenAI), ja vain kun valmentaja painaa nappia. MatchOps, sovelluksen tekijä, ei koskaan näe mitään siitä.",
     "ai1": "Ennen raportin luonnostelua pelaajien nimet korvataan puhelimessa koodeilla, kuten P1 ja P2. Palveluntarjoaja ei saa nimiä.",

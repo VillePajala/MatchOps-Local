@@ -77,6 +77,7 @@ import { importFromFilePicker } from '@/utils/importHelper';
 import { isPlayStoreContext } from '@/utils/platform';
 import TransitionOverlay from '@/components/TransitionOverlay';
 import logger from '@/utils/logger';
+import { rotateOldClips } from '@/utils/audioClipStore';
 import * as Sentry from '@sentry/nextjs';
 import { reloadApp, claimReloadAttempt, clearReloadOnce } from '@/utils/reloadApp';
 
@@ -227,6 +228,17 @@ export default function Home() {
 
   // Extract userId to avoid effect re-runs when user object reference changes
   const userId = user?.id;
+
+  // Voice recordings older than 30 days are deleted at every app start (review 6.4).
+  // The app promises this; rotation used to run only when the mic or a game's voice
+  // inbox was opened, so a coach who stopped using voice notes kept the audio for
+  // months. Once auth has settled, for this account's store (no-op without one).
+  useEffect(() => {
+    if (isAuthLoading) return;
+    if (mode === 'cloud' && !userId) return;
+    void rotateOldClips(Date.now(), userId ?? undefined)
+      .catch((error) => logger.warn('[page] Voice clip rotation at start failed', { error }));
+  }, [isAuthLoading, mode, userId]);
 
   // Toggle the Home view (gear sheet). Optimistic: flip immediately, persist
   // in the background so the switch feels instant.
