@@ -43,7 +43,8 @@ import { asCoordinates } from '@/utils/travelPlan';
 import { todayIso } from '@/utils/todayIso';
 import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId, buildHomeTeamScopeOptions } from '@/utils/homeTeamScope';
 import type { HomeTeamScopeOption } from '@/utils/homeTeamScope';
-import type { Player, Season, Team, Tournament } from '@/types';
+import type { Player, PlayerStatAdjustment, Season, Team, Tournament } from '@/types';
+import { getDataStore } from '@/datastore';
 import type { TranslationKey } from '@/i18n-types';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
@@ -492,8 +493,16 @@ export default function Home() {
           (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
         )
       );
-      void Promise.all([getSeasons(userId), getTournaments(userId), getTeams(userId), getAllPersonnel(userId)])
-        .then(([seasonsList, tournamentsList, teamsList, personnel]) => {
+      void Promise.all([
+        getSeasons(userId), getTournaments(userId), getTeams(userId), getAllPersonnel(userId),
+        // External games for the Home top scorer (review 5.8); a failed read only
+        // leaves the tile counting app games, never the other signals.
+        getDataStore(userId)
+          .then((store) => store.getAllPlayerAdjustments())
+          .then((map) => Array.from(map.values()).flat())
+          .catch(() => [] as PlayerStatAdjustment[]),
+      ])
+        .then(([seasonsList, tournamentsList, teamsList, personnel, adjustments]) => {
           setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
           setHasTeam(teamsList.length > 0);
           // Enrich the dashboard summary with entity counts + top scorer (for the
@@ -512,6 +521,7 @@ export default function Home() {
               startingPoint: asCoordinates(homeSettings.startingPoint),
               arrivalBufferMinutes: homeSettings.arrivalBufferMinutes,
               roster,
+              adjustments,
               teamsCount: teamsList.length,
               personnelCount: personnel.length,
               seasonsCount: seasonsList.length,
@@ -549,7 +559,7 @@ export default function Home() {
 
   const refreshSetupSignals = useCallback(async () => {
     try {
-      const [roster, games, seasonsList, tournamentsList, teamsList, personnel] = await Promise.all([
+      const [roster, games, seasonsList, tournamentsList, teamsList, personnel, adjustments] = await Promise.all([
         // Guarded on its own: a transient roster read failure must not cancel
         // the rest of this refresh (null = unknown, keep what is shown).
         getMasterRoster(userId).catch((rosterErr) => {
@@ -563,6 +573,12 @@ export default function Home() {
         // Read here too: this refresh also runs after the personnel manager
         // closes, and the dashboard counts every entity, not only teams.
         getAllPersonnel(userId),
+        // External games, for the Home top scorer (review 5.8): re-read so one added
+        // from Home shows the moment its window closes. null = unknown, keep it.
+        getDataStore(userId)
+          .then((store) => store.getAllPlayerAdjustments())
+          .then((map) => Array.from(map.values()).flat())
+          .catch(() => null),
       ]);
       if (roster) setHasPlayers(roster.length > 0);
       // Also refreshed here so a cloud pull that brought or removed games updates
@@ -606,6 +622,7 @@ export default function Home() {
           startingPoint: asCoordinates(settings.startingPoint),
           arrivalBufferMinutes: settings.arrivalBufferMinutes,
           ...(roster ? { roster } : {}),
+          ...(adjustments ? { adjustments } : {}),
           teamsCount: teamsList.length,
           seasonsCount: seasonsList.length,
           tournamentsCount: tournamentsList.length,

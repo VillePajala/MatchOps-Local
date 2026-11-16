@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "The top-scorer tile on Home now counts goals from added external games, so it agrees with the stats view."
+      ],
+      "fi": [
+        "Etusivun maalikuningas-ruutu laskee nyt myös lisättyjen ulkopuolisten otteluiden maalit, joten se vastaa tilastonäkymää."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "On the Player tab, Export Excel now always works or explains why it can't: a name typed in the table filter no longer stops the export, and a player with no games in the current filters gets a message."
       ],
       "fi": [

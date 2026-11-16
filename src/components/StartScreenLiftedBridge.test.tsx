@@ -56,6 +56,8 @@ function Closer() {
   return (
     <>
       <button onClick={() => ctx.setIsRosterModalOpen(false)}>close-roster</button>
+      <button onClick={() => ctx.setIsExternalGamesOpen(true)}>open-external</button>
+      <button onClick={() => ctx.setIsExternalGamesOpen(false)}>close-external</button>
       <button onClick={() => ctx.setIsTrainingResourcesOpen(false)}>close-training</button>
       <button onClick={() => ctx.setIsLoadGameModalOpen(false)}>close-load</button>
       <button onClick={() => ctx.setIsSettingsModalOpen(false)}>close-settings</button>
@@ -132,6 +134,15 @@ describe('StartScreenLiftedBridge (L.2)', () => {
       // Closing it fires exactly once.
       fireEvent.click(screen.getByText('close-roster'));
       expect(screen.getByTestId('probe')).toHaveTextContent('none');
+      expect(onSetupModalsClosed).toHaveBeenCalledTimes(1);
+    });
+
+    /** Review 5.8: an external game added from Home counts toward the top scorer. */
+    it('fires when the external-games window closes', () => {
+      const { onSetupModalsClosed } = renderBridgeWithCloser();
+      fireEvent.click(screen.getByText('open-external'));
+      expect(onSetupModalsClosed).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByText('close-external'));
       expect(onSetupModalsClosed).toHaveBeenCalledTimes(1);
     });
 
