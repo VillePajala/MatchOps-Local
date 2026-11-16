@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Removing a player now also removes them from every team, so team player counts are right. Past games keep the player in their statistics."
+      ],
+      "fi": [
+        "Pelaajan poistaminen poistaa hänet nyt myös kaikista joukkueista, joten joukkueiden pelaajamäärät ovat oikein. Pelatut ottelut säilyttävät pelaajan tilastoissa."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Tournaments: a level that games or teams use can no longer be removed by mistake. The app says how many use it, so you can move them first."
       ],
       "fi": [

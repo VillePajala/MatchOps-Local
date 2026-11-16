@@ -7,6 +7,8 @@ import {
     setPlayerGoalieStatus as utilSetPlayerGoalieStatus,
 } from '@/utils/masterRoster';
 import logger from '@/utils/logger';
+import { getAllTeamRosters, removePlayerFromRoster as removePlayerFromTeamRoster } from '@/utils/teams';
+import { getDataStore } from '@/datastore/factory';
 
 /**
  * Retrieves the master roster of players.
@@ -65,6 +67,42 @@ export const updatePlayer = async (
 };
 
 /**
+ * A deleted player leaves every team roster too (review 7.16). The team rosters hold
+ * their own copy of the player (name, nickname, number, notes), so deleting only the
+ * club entry left the Teams list counting the child and their details stored - in the
+ * cloud too - until the coach happened to re-save that team.
+ *
+ * - Only teams that exist (archived included): a deleted team's roster is kept on
+ *   purpose for recovery, and writing it would queue a cloud update the server
+ *   rejects (team not found) - a permanently failed sync op caused by a delete.
+ * - Each roster is read, filtered and written under the roster lock
+ *   (removePlayerFromRoster), so an edit landing meanwhile is not overwritten.
+ *
+ * Best effort: the player is already deleted, and a roster that fails here is
+ * logged, not reported as a failed delete.
+ */
+async function removePlayerFromAllTeamRosters(playerId: string, userId?: string): Promise<void> {
+    try {
+        const [rosters, teams] = await Promise.all([
+            getAllTeamRosters(userId),
+            getDataStore(userId).then((store) => store.getTeams(true)),
+        ]);
+        const existingTeamIds = new Set(teams.map((team) => team.id));
+        for (const [teamId, roster] of Object.entries(rosters)) {
+            if (!existingTeamIds.has(teamId)) continue;
+            if (!roster?.some((p) => p.id === playerId)) continue;
+            try {
+                await removePlayerFromTeamRoster(teamId, playerId, userId);
+            } catch (error) {
+                logger.warn('[masterRosterManager] Could not remove the deleted player from a team roster', { teamId, error });
+            }
+        }
+    } catch (error) {
+        logger.warn('[masterRosterManager] Could not read team rosters after deleting a player', { error });
+    }
+}
+
+/**
  * Removes a player from the master roster.
  * Calls the underlying async utility from masterRoster.ts.
  * @param {string} playerId The ID of the player to remove.
@@ -76,6 +114,7 @@ export const removePlayer = async (playerId: string, userId?: string): Promise<b
     try {
         const success = await utilRemovePlayerFromRoster(playerId, userId);
         // logger.log('[masterRosterManager] Player removal by util status:', success);
+        if (success) await removePlayerFromAllTeamRosters(playerId, userId);
         return success;
     } catch (error) {
         logger.error(`[masterRosterManager] Error in removePlayer for ID ${playerId}:`, error);
