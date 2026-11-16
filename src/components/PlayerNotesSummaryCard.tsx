@@ -25,7 +25,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useAiProviderState } from '@/utils/aiProvider';
 import { recordAiUsage } from '@/utils/aiUsage';
 import { DraftingError, groupPlayerNotes, MAX_GROUPED_NOTES, MAX_GROUPING_CHARS } from '@/utils/aiDrafting';
-import { redactPlayerNames, playerRedactionHandles } from '@/utils/gamePacket';
+import { playerRef, redactPlayerNames, playerRedactionHandles } from '@/utils/gamePacket';
 import { resolveRefsInText } from '@/utils/applyReportDraft';
 import WorkingIndicator from '@/components/WorkingIndicator';
 import logger from '@/utils/logger';
@@ -97,12 +97,12 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
     setWorking(true);
     setSummary(null);
     try {
-      // This player is P1; everyone else the coach may have named is a code too.
+      // This player is code 1; everyone else the coach may have named is a code too.
       const refFor = new Map<string, string>();
-      refFor.set(player.id, 'P1');
+      refFor.set(player.id, playerRef(1));
       roster
         .filter((p) => p.id !== player.id && playerRedactionHandles(p).length > 0)
-        .forEach((p, i) => refFor.set(p.id, `P${i + 2}`));
+        .forEach((p, i) => refFor.set(p.id, playerRef(i + 2)));
       const refOf = (playerId: string): string | undefined => refFor.get(playerId);
 
       // Oldest first: the model is told the order, and a development account

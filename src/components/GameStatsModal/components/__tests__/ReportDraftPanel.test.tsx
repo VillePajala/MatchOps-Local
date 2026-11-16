@@ -67,8 +67,8 @@ const draft: ReportDraft = {
     { section: 'next', text: 'Harjoitellaan syöttöä.' },
   ],
   playerNotes: [
-    { ref: 'P1', text: 'Rohkea eteenpäin.' },
-    { ref: 'P2', text: 'Hyvä puolustustyö.' },
+    { ref: 'X1', text: 'Rohkea eteenpäin.' },
+    { ref: 'X2', text: 'Hyvä puolustustyö.' },
   ],
   dataCaveat: 'Havaintoja vain kahdesta pelaajasta.',
   model: 'gpt-5-mini',
@@ -225,15 +225,15 @@ describe('ReportDraftPanel - reviewing a draft', () => {
   });
 
   /**
-   * @critical - the owner's screenshot: the review list read "tekijana P5 ja
-   * syottajana P3". The codes are resolved for display, and the fixtures used
+   * @critical - the owner's screenshot: the review list read "tekijana X5 ja
+   * syottajana X3". The codes are resolved for display, and the fixtures used
    * to contain none, so a revert to bare {text} would have passed everything.
    */
   it('shows names in the review list, not the codes the provider saw', async () => {
     draftMatchReport.mockResolvedValueOnce({
       ...draft,
-      sections: [{ section: 'overview', text: 'Tasoituksen teki P1, syottajana P2.' }],
-      playerNotes: [{ ref: 'P1', text: 'P1 pelasi rohkeasti P2:n rinnalla.' }],
+      sections: [{ section: 'overview', text: 'Tasoituksen teki X1, syottajana X2.' }],
+      playerNotes: [{ ref: 'X1', text: 'X1 pelasi rohkeasti X2:n rinnalla.' }],
     });
     renderPanel();
     await produceDraft();

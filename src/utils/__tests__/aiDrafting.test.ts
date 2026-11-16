@@ -84,7 +84,7 @@ const okResponse = (payload: unknown, usage?: Record<string, number>) => ({
 
 const fullDraft = {
   sections: REPORT_SECTIONS.map((section) => ({ section, text: `Teksti ${section}` })),
-  playerNotes: [{ ref: 'P1', text: 'Rohkeaa peliä' }],
+  playerNotes: [{ ref: 'X1', text: 'Rohkeaa peliä' }],
   dataCaveat: null,
 };
 
@@ -285,8 +285,8 @@ describe('validateDraft', () => {
       {
         sections: [{ section: 'overview', text: 'Hyvä ottelu' }],
         playerNotes: [
-          { ref: 'P1', text: 'Rohkea' },
-          { ref: 'P9', text: 'Loistava suoritus' },
+          { ref: 'X1', text: 'Rohkea' },
+          { ref: 'X9', text: 'Loistava suoritus' },
           { ref: 'Emma', text: 'Nimellä' },
         ],
         dataCaveat: null,
@@ -294,7 +294,7 @@ describe('validateDraft', () => {
       packet,
     );
 
-    expect(draft.playerNotes).toEqual([{ ref: 'P1', text: 'Rohkea' }]);
+    expect(draft.playerNotes).toEqual([{ ref: 'X1', text: 'Rohkea' }]);
   });
 
   it('keeps only known sections, de-duplicates them and restores template order', () => {
@@ -322,7 +322,7 @@ describe('validateDraft', () => {
     const draft = validateDraft(
       {
         sections: [{ section: 'overview', text: 'a'.repeat(MAX_SECTION_CHARS + 500) }],
-        playerNotes: [{ ref: 'P2', text: 'b'.repeat(MAX_PLAYER_NOTE_CHARS + 500) }],
+        playerNotes: [{ ref: 'X2', text: 'b'.repeat(MAX_PLAYER_NOTE_CHARS + 500) }],
         dataCaveat: null,
       },
       packet,
@@ -355,7 +355,7 @@ describe('instructions and cost hint', () => {
     expect(text).toMatch(/passive/i);
     expect(text).not.toMatch(/the coach noted/i);
     expect(text).toMatch(/not licence to claim more than the data holds/i);
-    expect(text).toContain('P?');
+    expect(text).toContain('X?');
     expect(text).toMatch(/coverage/i);
     expect(text).toMatch(/never invent/i);
     expect(text).toContain('fi');
@@ -497,13 +497,13 @@ describe('translateReport', () => {
    * or concern from one player to another.
    */
   it('tells the model to leave player codes exactly as they are', async () => {
-    const fetchMock = jest.fn().mockResolvedValue(okResponse('P1 played well.'));
+    const fetchMock = jest.fn().mockResolvedValue(okResponse('X1 played well.'));
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    await translateReport({ text: 'P1 pelasi hyvin.', language: 'en' });
+    await translateReport({ text: 'X1 pelasi hyvin.', language: 'en' });
 
     const instructions = JSON.parse(fetchMock.mock.calls[0][1].body).messages[0].content;
-    expect(instructions).toMatch(/P1/);
+    expect(instructions).toMatch(/X1/);
     expect(instructions).toMatch(/exactly as/i);
   });
 
@@ -617,7 +617,7 @@ describe('groupPlayerNotes', () => {
     expect(instructions).toMatch(/ORGANISE ONLY/);
     expect(instructions).toMatch(/do not rate/i);
     expect(instructions).toMatch(/do not predict/i);
-    expect(instructions).toMatch(/P1/);
+    expect(instructions).toMatch(/X1/);
     // The language the coach reads, not the model's default.
     expect(instructions).toMatch(/Write in fi\./);
   });

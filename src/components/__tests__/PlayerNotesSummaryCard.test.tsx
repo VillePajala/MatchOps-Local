@@ -72,7 +72,7 @@ describe('PlayerNotesSummaryCard', () => {
     aiState.connected = true;
     aiState.pseudonymize = true;
     groupPlayerNotes.mockResolvedValue({
-      text: 'P1 otti vastuuta ja rohkeni yrittää.',
+      text: 'X1 otti vastuuta ja rohkeni yrittää.',
       model: 'gpt-5-mini',
       estimatedUsd: 0.002,
       noteCount: 3,
@@ -154,8 +154,8 @@ describe('PlayerNotesSummaryCard', () => {
 
     const sent = (groupPlayerNotes.mock.calls[0][0] as { notes: string[] }).notes;
     expect(sent.join(' ')).not.toMatch(/Emma|Matti/);
-    expect(sent.join(' ')).toMatch(/P1/);
-    expect(sent.join(' ')).toMatch(/P2/);
+    expect(sent.join(' ')).toMatch(/X1/);
+    expect(sent.join(' ')).toMatch(/X2/);
   });
 
   /** An account of a development read backwards says the opposite. */

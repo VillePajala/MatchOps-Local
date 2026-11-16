@@ -28,7 +28,7 @@ import {
   translateReport,
   type TranslationLanguage,
 } from '@/utils/aiDrafting';
-import { redactPlayerNames } from '@/utils/gamePacket';
+import { playerRef, redactPlayerNames } from '@/utils/gamePacket';
 import { resolveRefsInText } from '@/utils/applyReportDraft';
 import WorkingIndicator from '@/components/WorkingIndicator';
 import logger from '@/utils/logger';
@@ -84,10 +84,10 @@ const TranslateReportPanel: React.FC<TranslateReportPanelProps> = ({
       // report for this same match would have used. Built directly: a whole
       // GamePacket would be built only to read one map back out of it.
       const refFor = new Map<string, string>();
-      (game.selectedPlayerIds ?? []).forEach((id, i) => refFor.set(id, `P${i + 1}`));
+      (game.selectedPlayerIds ?? []).forEach((id, i) => refFor.set(id, playerRef(i + 1)));
       // Anyone named who was not selected still needs a code, not their name.
       players.forEach((p) => {
-        if (!refFor.has(p.id)) refFor.set(p.id, `P${refFor.size + 1}`);
+        if (!refFor.has(p.id)) refFor.set(p.id, playerRef(refFor.size + 1));
       });
       const refOf = (playerId: string): string | undefined => refFor.get(playerId);
       const outgoing = pseudonymize ? redactPlayerNames(report, players, refOf) : report;
