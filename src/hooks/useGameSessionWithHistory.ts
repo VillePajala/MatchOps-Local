@@ -79,12 +79,7 @@ const HISTORY_SAVING_ACTION_TYPES = [
   'DELETE_GAME_EVENT',
   'DELETE_GAME_EVENT_WITH_SCORE',
   // Game flow (user-initiated)
-  'START_PERIOD',
-  'CONTINUE_CLOCK',
-  'END_PERIOD_OR_GAME',
   'CONFIRM_SUBSTITUTION',
-  // Timer (pause is user-initiated and should save timer state)
-  'PAUSE_TIMER',
 ] as const satisfies readonly ActionType[];
 export const HISTORY_SAVING_ACTIONS: ReadonlySet<string> = new Set<ActionType>(HISTORY_SAVING_ACTION_TYPES);
 
@@ -109,6 +104,13 @@ const NO_HISTORY_ACTION_TYPES = [
   'RESET_TIMER_ONLY',
   // Game status (system-managed)
   'SET_GAME_STATUS',
+  // Clock and period transitions (review 4.27): undo never moves match time, so these
+  // are not undo steps - they used to be invisible ones (the "Goal logged - Undo" toast
+  // tapped just after the whistle undid the whistle, not the goal).
+  'START_PERIOD',
+  'CONTINUE_CLOCK',
+  'END_PERIOD_OR_GAME',
+  'PAUSE_TIMER',
 ] as const satisfies readonly ActionType[];
 export const NO_HISTORY_ACTIONS: ReadonlySet<string> = new Set<ActionType>(NO_HISTORY_ACTION_TYPES);
 
@@ -128,7 +130,21 @@ export type GameSessionDispatch = (action: GameSessionAction) => void;
 export interface UseGameSessionWithHistoryOptions {
   buildHistorySlice: (state: GameSessionState) => Partial<AppState>;
   saveToHistory: (slice: Partial<AppState>) => void;
+  /** Update the current history entry in place (no undo step), see PHASE_ACTIONS. */
+  patchCurrentHistory?: (slice: Partial<AppState>) => void;
 }
+
+/**
+ * Clock and period transitions are not undo steps (review 4.27), but the CURRENT
+ * history entry must follow the match phase they set: undo compares an entry's
+ * period/status with the live one to decide whether its sub tracking belongs to
+ * this half, and field entries inherit the current entry's session fields. Without
+ * this, undoing the first sub after kick-off landed on a "not started" entry and kept
+ * the mistaken confirmation; after a Reset, an older entry's sub times came back.
+ */
+const PHASE_ACTIONS: ReadonlySet<string> = new Set([
+  'START_PERIOD', 'END_PERIOD_OR_GAME', 'CONTINUE_CLOCK', 'PAUSE_TIMER', 'RESUME_GAME', 'RESET_TIMER_ONLY',
+]);
 
 /**
  * Enhanced game session reducer with automatic history management
@@ -137,7 +153,7 @@ export function useGameSessionWithHistory(
   initialState: GameSessionState,
   options: UseGameSessionWithHistoryOptions
 ): [GameSessionState, GameSessionDispatch] {
-  const { buildHistorySlice, saveToHistory } = options;
+  const { buildHistorySlice, saveToHistory, patchCurrentHistory } = options;
   const [state, dispatch] = useReducer(gameSessionReducer, initialState);
 
   // Track the last action type to determine if we should save history
@@ -152,6 +168,8 @@ export function useGameSessionWithHistory(
   // Keep latest function refs stable to avoid effect churn when identities change upstream
   const buildHistorySliceRef = useRef(buildHistorySlice);
   const saveToHistoryRef = useRef(saveToHistory);
+  const patchCurrentHistoryRef = useRef(patchCurrentHistory);
+  useEffect(() => { patchCurrentHistoryRef.current = patchCurrentHistory; }, [patchCurrentHistory]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production' && !process.env.JEST_WORKER_ID && debug.enabled('history')) {
@@ -180,8 +198,18 @@ export function useGameSessionWithHistory(
       return;
     }
 
-    // Skip if it's a non-history action
+    // Skip if it's a non-history action - but a clock/period transition updates the
+    // current entry's phase in place (see PHASE_ACTIONS).
     if (NO_HISTORY_ACTIONS.has(lastAction)) {
+      if (PHASE_ACTIONS.has(lastAction)) {
+        patchCurrentHistoryRef.current?.({
+          currentPeriod: state.currentPeriod,
+          gameStatus: state.gameStatus,
+          timeElapsedInSeconds: state.timeElapsedInSeconds,
+          lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds,
+          completedIntervalDurations: state.completedIntervalDurations,
+        });
+      }
       return;
     }
 

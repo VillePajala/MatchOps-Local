@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Undo no longer moves the match clock: it can no longer reopen a finished half, freeze the clock just after kick-off, or bring an old time back after a reset. Undo still reverts goals, the score, the line-up and settings."
+      ],
+      "fi": [
+        "Kumoa ei enää siirrä ottelukelloa: se ei voi enää avata päättynyttä jaksoa uudelleen, jäädyttää kelloa heti aloituksen jälkeen eikä palauttaa vanhaa aikaa nollauksen jälkeen. Kumoa palauttaa yhä maalit, tuloksen, kokoonpanon ja asetukset."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "If the phone was locked through the end of a half, the app now opens at half-time, so one tap on Start Period 2 starts the second half. Previously the clock ran for a second and then stopped."
       ],
       "fi": [

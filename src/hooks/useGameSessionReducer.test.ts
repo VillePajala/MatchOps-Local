@@ -1096,6 +1096,32 @@ describe('gameSessionReducer', () => {
     });
   });
 
+  describe('LOAD_STATE_FROM_HISTORY guards (review 4.27)', () => {
+    it('a running flag never survives outside play', () => {
+      const state = createBaseState({ gameStatus: 'inProgress', isTimerRunning: true, startTimestamp: 1 });
+      const r = gameSessionReducer(state, { type: 'LOAD_STATE_FROM_HISTORY', payload: { gameStatus: 'notStarted' } });
+      expect(r.isTimerRunning).toBe(false);
+      expect(r.startTimestamp).toBeNull();
+    });
+
+    it('undoing "1 period" set at half-time puts the match back at half-time', () => {
+      const halfTime = createBaseState({ numberOfPeriods: 2, periodDurationMinutes: 20, gameStatus: 'periodEnd', currentPeriod: 1, isTimerRunning: false, timeElapsedInSeconds: 1200 });
+      const ended = gameSessionReducer(halfTime, { type: 'SET_NUMBER_OF_PERIODS', payload: 1 });
+      expect(ended.gameStatus).toBe('gameEnd');
+      const undone = gameSessionReducer(ended, { type: 'LOAD_STATE_FROM_HISTORY', payload: { numberOfPeriods: 2 } });
+      expect(undone.gameStatus).toBe('periodEnd');
+      expect(undone.currentPeriod).toBe(1);
+    });
+
+    it('undoing a lengthened period at a false half-time re-checks the break', () => {
+      // 2x20 played as 2x25: half-time at 20:00 lengthened to 25 put it back in play...
+      const resumed = createBaseState({ numberOfPeriods: 2, periodDurationMinutes: 25, gameStatus: 'inProgress', currentPeriod: 1, isTimerRunning: false, timeElapsedInSeconds: 1200 });
+      // ...and undoing that change (length back to 20) is half-time again.
+      const r = gameSessionReducer(resumed, { type: 'LOAD_STATE_FROM_HISTORY', payload: { periodDurationMinutes: 20 } });
+      expect(r.gameStatus).toBe('periodEnd');
+    });
+  });
+
   // ============================================
   // CONFIRM_SUBSTITUTION
   // ============================================

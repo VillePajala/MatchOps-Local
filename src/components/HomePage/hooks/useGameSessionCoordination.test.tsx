@@ -668,12 +668,12 @@ describe('useGameSessionCoordination', () => {
         tournamentSeriesId: 'series_1',
         wentToPenalties: true,
         shootoutKicks: [{ team: 'home', scored: true }] as never,
-        timeElapsedInSeconds: 1234,
         homeScore: 2,
-        gameStatus: 'inProgress', // differs from the initial state, so the clock is set too
       } as Partial<AppState>);
       const { result } = renderHook(() => useGameSessionCoordination({ initialState: createAppState() }));
       act(() => { result.current.applyHistoryState(live); }); // the live game, fully set
+      // The clock is never set by undo (4.27); set it the way the timer does.
+      act(() => { result.current.dispatchGameSession({ type: 'LOAD_GAME_SESSION_STATE', payload: { timeElapsedInSeconds: 1234 } }); });
 
       const partialEntry = { ...createAppState({ homeScore: 1 }) } as Record<string, unknown>;
       for (const key of ['teamId', 'tournamentLevel', 'tournamentSeriesId', 'wentToPenalties', 'shootoutKicks', 'timeElapsedInSeconds']) {
@@ -694,25 +694,104 @@ describe('useGameSessionCoordination', () => {
     });
 
     /**
-     * Review 4.3: undo within the same period never rewinds the clock (a pause at
-     * 19:30 then Undo set it back to the 08:00 goal entry); crossing a period start or
-     * end still restores it, so clock and period match.
+     * Reviews 4.3 and 4.27 (owner decision): undo never moves match time. The clock,
+     * the period and the match status stay as they are - within a period (a pause at
+     * 19:30 then Undo went back to 08:00) and across a boundary alike (undo at
+     * half-time reopened period 1 at an old minute; undo just after kick-off froze the
+     * clock; undo after a Reset brought the old clock back).
      * @critical
      */
-    it('keeps the live clock when undoing within the same period, restores it across periods', () => {
+    it('never restores the clock, period or match status', () => {
       const { result } = renderHook(() => useGameSessionCoordination({ initialState: createAppState() }));
-      const at = (t: number, period: number, status: AppState['gameStatus']) =>
-        createAppState({ timeElapsedInSeconds: t, currentPeriod: period, gameStatus: status } as Partial<AppState>);
-      act(() => { result.current.applyHistoryState(at(1170, 1, 'inProgress')); }); // paused at 19:30
-      expect(result.current.gameSessionState.timeElapsedInSeconds).toBe(1170);
+      const setLive = (t: number, period: number, status: AppState['gameStatus'], running = false) => act(() => {
+        result.current.dispatchGameSession({ type: 'LOAD_GAME_SESSION_STATE', payload: {
+          timeElapsedInSeconds: t, currentPeriod: period, gameStatus: status, isTimerRunning: running, startTimestamp: running ? 1 : null,
+        } });
+      });
+      const entry = (t: number, period: number, status: AppState['gameStatus'], homeScore = 0) =>
+        createAppState({ timeElapsedInSeconds: t, currentPeriod: period, gameStatus: status, homeScore } as Partial<AppState>);
+      const clock = () => {
+        const g = result.current.gameSessionState;
+        return [g.timeElapsedInSeconds, g.currentPeriod, g.gameStatus, g.isTimerRunning];
+      };
 
-      act(() => { result.current.applyHistoryState(at(480, 1, 'inProgress')); }); // undo to the 08:00 goal
-      expect(result.current.gameSessionState.timeElapsedInSeconds).toBe(1170);
+      setLive(1170, 1, 'inProgress'); // paused at 19:30
+      act(() => { result.current.applyHistoryState(entry(480, 1, 'inProgress', 1)); }); // undo to the 08:00 goal
+      expect(clock()).toEqual([1170, 1, 'inProgress', false]);
+      expect(result.current.gameSessionState.homeScore).toBe(1); // the coach's data IS undone
 
-      act(() => { result.current.applyHistoryState(at(1200, 1, 'periodEnd')); }); // a different status
-      expect(result.current.gameSessionState.timeElapsedInSeconds).toBe(1200);
-      act(() => { result.current.applyHistoryState(at(1300, 2, 'inProgress')); }); // a different period
-      expect(result.current.gameSessionState.timeElapsedInSeconds).toBe(1300);
+      setLive(1200, 1, 'periodEnd'); // half-time
+      act(() => { result.current.applyHistoryState(entry(480, 1, 'inProgress')); });
+      expect(clock()).toEqual([1200, 1, 'periodEnd', false]);
+
+      setLive(15, 1, 'inProgress', true); // 15 s after kick-off, running
+      act(() => { result.current.applyHistoryState(entry(0, 1, 'notStarted')); });
+      expect(clock()).toEqual([15, 1, 'inProgress', true]);
+
+      setLive(0, 1, 'notStarted'); // after a Reset
+      act(() => { result.current.applyHistoryState(entry(180, 1, 'inProgress')); });
+      expect(clock()).toEqual([0, 1, 'notStarted', false]);
+
+      setLive(1300, 2, 'inProgress'); // second half
+      act(() => { result.current.applyHistoryState(entry(600, 1, 'inProgress')); }); // an entry from the first half
+      expect(clock()).toEqual([1300, 2, 'inProgress', false]);
+    });
+
+    /**
+     * Review 4.27 (pre-PR review): with the clock transitions no longer undo steps, the
+     * current entry follows the match phase in place - so undoing the FIRST sub after
+     * kick-off reverts it (the entry it lands on is "in play", not "not started"), and
+     * after a Reset an older entry's sub times are not brought back.
+     * @critical
+     */
+    it('undoing the first sub after kick-off reverts it; a Reset leaves no old sub times to restore', () => {
+      const { result } = renderHook(() => useGameSessionCoordination({ initialState: createAppState({ gameStatus: 'notStarted', timeElapsedInSeconds: 0 } as Partial<AppState>) }));
+      const d = (action: Parameters<typeof result.current.dispatchGameSession>[0]) => act(() => { result.current.dispatchGameSession(action); });
+      const undo = () => act(() => { const entry = result.current.undo(); if (entry) result.current.applyHistoryState(entry); });
+
+      d({ type: 'SET_HOME_SCORE', payload: 0 } as never); // a pre-match edit (line-up stand-in)
+      d({ type: 'START_PERIOD', payload: { nextPeriod: 1, periodDurationMinutes: 20, subIntervalMinutes: 5 } });
+      d({ type: 'SET_TIMER_ELAPSED', payload: 420 });
+      d({ type: 'CONFIRM_SUBSTITUTION' });
+      expect(result.current.gameSessionState.lastSubConfirmationTimeSeconds).toBe(420);
+      undo();
+      expect(result.current.gameSessionState.lastSubConfirmationTimeSeconds).toBe(0);
+      expect(result.current.gameSessionState.completedIntervalDurations).toHaveLength(0);
+      expect(result.current.gameSessionState.timeElapsedInSeconds).toBe(420); // clock untouched
+
+      // Sub at 7:00 again, a goal at 7:10, then Reset, restart, a goal at 2:00.
+      d({ type: 'CONFIRM_SUBSTITUTION' });
+      d({ type: 'SET_TIMER_ELAPSED', payload: 430 });
+      d({ type: 'SET_HOME_SCORE', payload: 1 } as never);
+      d({ type: 'PAUSE_TIMER', payload: 431 });
+      d({ type: 'RESET_TIMER_ONLY' });
+      d({ type: 'START_PERIOD', payload: { nextPeriod: 1, periodDurationMinutes: 20, subIntervalMinutes: 5 } });
+      d({ type: 'SET_TIMER_ELAPSED', payload: 120 });
+      d({ type: 'SET_AWAY_SCORE', payload: 1 } as never);
+      undo();
+      expect(result.current.gameSessionState.awayScore).toBe(0);
+      expect(result.current.gameSessionState.lastSubConfirmationTimeSeconds).toBe(0); // not the pre-reset 420
+      expect(result.current.gameSessionState.timeElapsedInSeconds).toBe(120);
+      // One step further back: the sub entry from before the Reset (same half, same
+      // status) - its 7:00 last-sub lies after the live 2:00 clock, so it is not restored.
+      undo();
+      expect(result.current.gameSessionState.homeScore).toBe(0);
+      expect(result.current.gameSessionState.lastSubConfirmationTimeSeconds).toBe(0);
+    });
+
+    it('restores sub tracking only within the same period and status', () => {
+      const { result } = renderHook(() => useGameSessionCoordination({ initialState: createAppState() }));
+      act(() => {
+        result.current.dispatchGameSession({ type: 'LOAD_GAME_SESSION_STATE', payload: {
+          timeElapsedInSeconds: 1500, currentPeriod: 2, gameStatus: 'inProgress', lastSubConfirmationTimeSeconds: 1400,
+        } });
+      });
+      // An entry from period 1: its last-sub time belongs to that half.
+      act(() => { result.current.applyHistoryState(createAppState({ currentPeriod: 1, gameStatus: 'inProgress', lastSubConfirmationTimeSeconds: 300 } as Partial<AppState>)); });
+      expect(result.current.gameSessionState.lastSubConfirmationTimeSeconds).toBe(1400);
+      // An entry from this period: undoing a sub confirmation restores it.
+      act(() => { result.current.applyHistoryState(createAppState({ currentPeriod: 2, gameStatus: 'inProgress', lastSubConfirmationTimeSeconds: 1200 } as Partial<AppState>)); });
+      expect(result.current.gameSessionState.lastSubConfirmationTimeSeconds).toBe(1200);
     });
 
     /** Review 4.5: undoing a venue change restores its pitch, pin and address too. @critical */

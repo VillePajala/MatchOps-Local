@@ -44,6 +44,21 @@ describe('useGameSessionWithHistory with the real reducer', () => {
     expect(saveToHistory.mock.calls[0][0].gameNotes).toBe('Draft report');
   });
 
+  /**
+   * Review 4.27: clock and period transitions are not undo steps (undo never moves
+   * match time), so a "Goal logged - Undo" tapped just after the whistle undoes the
+   * goal, not the whistle.
+   * @critical
+   */
+  it('kick-off, pause, period end and continue save nothing to history', () => {
+    const { result, saveToHistory } = setup();
+    act(() => { result.current[1]({ type: 'START_PERIOD', payload: { nextPeriod: 1, periodDurationMinutes: 15, subIntervalMinutes: 5 } }); });
+    act(() => { result.current[1]({ type: 'PAUSE_TIMER', payload: 30 }); });
+    act(() => { result.current[1]({ type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'periodEnd', finalTime: 900 } }); });
+    act(() => { result.current[1]({ type: 'CONTINUE_CLOCK', payload: { period: 1 } }); });
+    expect(saveToHistory).not.toHaveBeenCalled();
+  });
+
   it('a system action (timer tick) saves nothing', () => {
     const { result, saveToHistory } = setup();
     act(() => { result.current[1]({ type: 'SET_TIMER_ELAPSED', payload: 5 }); });

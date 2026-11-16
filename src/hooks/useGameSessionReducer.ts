@@ -232,7 +232,24 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
   logger.debug('[gameSessionReducer] action type:', action.type);
   switch (action.type) {
     case 'LOAD_STATE_FROM_HISTORY': {
-      const merged = { ...state, ...action.payload };
+      let merged = { ...state, ...action.payload };
+      // Belt and braces (review 4.27): a running clock only exists in play.
+      if (merged.gameStatus !== 'inProgress' && (merged.isTimerRunning || merged.startTimestamp !== null)) {
+        merged = { ...merged, isTimerRunning: false, startTimestamp: null };
+      }
+      // An undone period length or count re-checks the break, as editing it does.
+      if (merged.periodDurationMinutes !== state.periodDurationMinutes || merged.numberOfPeriods !== state.numberOfPeriods) {
+        merged = reconcilePeriodBreak(merged);
+        // Undoing the change that ENDED the match at half-time (periods 2 -> 1 at the
+        // break) puts it back at the break. Editing never reopens a finished game (see
+        // reconcilePeriodBreak); undo returns to a state the coach already had.
+        if (merged.gameStatus === 'gameEnd' && !merged.isTimerRunning) {
+          const next = clockContinuation(merged);
+          if (next?.kind === 'nextPeriod') {
+            merged = { ...merged, gameStatus: 'periodEnd', currentPeriod: next.period - 1 };
+          }
+        }
+      }
       // The sub reminder is derived state, not in history (review 4.4): undoing a sub
       // confirmation restored lastSubConfirmationTimeSeconds but left the next-due time
       // of the mistaken confirmation, so a sub still owed showed no reminder. Recompute
