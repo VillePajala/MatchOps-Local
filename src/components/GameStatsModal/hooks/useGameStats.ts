@@ -136,14 +136,21 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
         return { stats: [], gameIds: [] };
       }
 
-      // Aggregate views: Build statsMap from players that actually played
+      // Aggregate views: Build statsMap from players that actually played.
+      // Display fields come from the CURRENT roster when the player is on it (review
+      // 5.9): the first game's snapshot kept a corrected name, nickname or number out
+      // of the table, its name search and the Excel, while the Player tab showed the
+      // new one. A removed player keeps the name the game recorded.
+      const currentById = new Map(playerPool.map(p => [p.id, p]));
       processedGameIds.forEach(gameId => {
         const game: SavedGame | undefined = savedGames?.[gameId];
         game?.selectedPlayerIds?.forEach(playerId => {
           const playerInGame = game.availablePlayers?.find(p => p.id === playerId);
           if (playerInGame && !statsMap[playerId]) {
+            const current = currentById.get(playerId);
             statsMap[playerId] = {
               ...playerInGame,
+              ...(current ? { name: current.name, nickname: current.nickname, jerseyNumber: current.jerseyNumber } : {}),
               goals: 0,
               assists: 0,
               totalScore: 0,
