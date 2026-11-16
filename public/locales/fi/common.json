@@ -3924,6 +3924,8 @@
     "sectionHint": "Listaa sarjan joukkueet, niin voit valita vastustajan listalta ottelua luodessa. Vapaaehtoinen."
   },
   "opponentSweep": {
+    "usedIn_one": "{{count}} ottelu",
+    "usedIn_other": "{{count}} ottelua",
     "title": "Tarkista joukkuenimet",
     "subtitle": "Yksi joukkue monella eri tavalla kirjoitettuna on tilastoissa monta eri vastustajaa.",
     "allClean": "Jokainen joukkue on kirjoitettu samalla tavalla kaikkialla. Ei korjattavaa.",

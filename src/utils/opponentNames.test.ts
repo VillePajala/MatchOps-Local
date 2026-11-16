@@ -281,3 +281,23 @@ describe('settleSpelling', () => {
     expect(settleSpelling(NO_ADOPTION, '   ', pool).value).toBe('');
   });
 });
+
+/**
+ * Review 5.10: the usage count is games only. A name also in a season's opponent list
+ * is not counted twice, and a listed name with no games still shows, at 0.
+ * @critical
+ */
+describe('listOpponents - games are the count', () => {
+  it('counts games only; listed names add the name, not a game', () => {
+    const rows = listOpponents(['Ilves', 'Ilves', 'HJK'], ['Ilves', 'HJK', 'KuPS']);
+    expect(rows.find((r) => r.key === normalizeOpponentName('Ilves'))?.count).toBe(2);
+    expect(rows.find((r) => r.key === normalizeOpponentName('HJK'))?.count).toBe(1);
+    expect(rows.find((r) => r.key === normalizeOpponentName('KuPS'))?.count).toBe(0);
+  });
+
+  it('a listed spelling still counts as a variant of the name', () => {
+    const [row] = listOpponents(['Ilves'], ['ilves ']);
+    expect(row).toMatchObject({ count: 1, spelling: 'Ilves' });
+  });
+});
+

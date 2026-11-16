@@ -200,21 +200,29 @@ export interface OpponentUsage {
  *
  * Input is every occurrence, so `count` is usage rather than distinct rows.
  */
-export function listOpponents(occurrences: readonly string[]): OpponentUsage[] {
+export function listOpponents(
+  occurrences: readonly string[],
+  /** Names listed elsewhere (season opponent lists): included as spellings, but they
+   *  add no games to the count (review 5.10 - a listed opponent with one game read
+   *  "2 games"). */
+  listedNames: readonly string[] = [],
+): OpponentUsage[] {
   const byName = new Map<string, { counts: Map<string, number>; firstSeen: string[] }>();
 
-  for (const raw of occurrences) {
+  const add = (raw: string, weight: number) => {
     const spelling = (raw ?? '').trim();
     const key = normalizeOpponentName(spelling);
-    if (!key) continue;
+    if (!key) return;
     let entry = byName.get(key);
     if (!entry) {
       entry = { counts: new Map(), firstSeen: [] };
       byName.set(key, entry);
     }
     if (!entry.counts.has(spelling)) entry.firstSeen.push(spelling);
-    entry.counts.set(spelling, (entry.counts.get(spelling) ?? 0) + 1);
-  }
+    entry.counts.set(spelling, (entry.counts.get(spelling) ?? 0) + weight);
+  };
+  for (const raw of occurrences) add(raw, 1);
+  for (const raw of listedNames) add(raw, 0);
 
   return [...byName.entries()]
     .map(([key, { counts, firstSeen }]) => ({
