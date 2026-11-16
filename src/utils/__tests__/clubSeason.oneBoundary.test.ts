@@ -3,7 +3,7 @@
  * record entirely. The shipped default left a 26-day hole where exactly that
  * happened, and the coach had no way to know.
  */
-import { getClubSeasonForDate, clubSeasonEndFromStart } from '../clubSeason';
+import { getClubSeasonForDate, clubSeasonEndFromStart, currentClubSeasonForPlayer } from '../clubSeason';
 
 describe('clubSeasonEndFromStart', () => {
   it('is the day before', () => {
@@ -94,3 +94,32 @@ describe('bad input', () => {
     expect(getClubSeasonForDate('not-a-date', '2000-11-15')).toBe('off-season');
   });
 });
+
+/**
+ * Review 5.11: "Current season" for a player's ratings is the season of their latest
+ * rated game, else latest played game - never next season's unplayed fixture.
+ * @critical
+ */
+describe('currentClubSeasonForPlayer', () => {
+  const START = '2000-08-01';
+  const END = '2000-07-31';
+  const thisSeasonRated = { gameDate: '2026-05-10', isPlayed: true, assessments: { p1: {} } };
+  const thisSeasonPlayed = { gameDate: '2026-06-20', isPlayed: true };
+  const nextSeasonFixture = { gameDate: '2026-09-05', isPlayed: false };
+
+  it('uses the latest rated game, not a later fixture', () => {
+    const expected = getClubSeasonForDate('2026-05-10', START, END);
+    expect(currentClubSeasonForPlayer([thisSeasonRated, nextSeasonFixture], 'p1', START, END)).toBe(expected);
+  });
+
+  it('falls back to the latest played game when the player has no ratings', () => {
+    const expected = getClubSeasonForDate('2026-06-20', START, END);
+    expect(currentClubSeasonForPlayer([thisSeasonPlayed, nextSeasonFixture], 'p2', START, END)).toBe(expected);
+    expect(expected).not.toBe(getClubSeasonForDate('2026-09-05', START, END));
+  });
+
+  it('null without dated games', () => {
+    expect(currentClubSeasonForPlayer([], 'p1', START, END)).toBeNull();
+  });
+});
+
