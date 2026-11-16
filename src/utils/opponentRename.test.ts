@@ -3,7 +3,7 @@
  * one normalised key would rename games belonging to a different opponent, and
  * there is no undo.
  */
-import { planOpponentRename, renameInOpponentList } from './opponentRename';
+import { planOpponentRename, renameInOpponentList, findMergeTarget } from './opponentRename';
 import type { SavedGamesCollection } from '@/types/game';
 import type { Season } from '@/types';
 
@@ -81,5 +81,19 @@ describe('renameInOpponentList', () => {
   it('keeps the order of untouched entries', () => {
     expect(renameInOpponentList(['KuPS', 'Ips', 'HJK'], 'ips', 'IPS'))
       .toEqual(['KuPS', 'IPS', 'HJK']);
+  });
+});
+
+describe('findMergeTarget (review 7.14)', () => {
+  const opponents = [{ key: 'ips', spelling: 'IPS', count: 3 }, { key: 'ips/sininen', spelling: 'IPS/Sininen', count: 1 }];
+
+  it('finds the other opponent a new spelling belongs to', () => {
+    expect(findMergeTarget('ips/sininen', 'ips', opponents)).toEqual(opponents[0]);
+  });
+
+  it('a new spelling of the same opponent, or a new name, is not a merge', () => {
+    expect(findMergeTarget('ips', 'Ips ', opponents)).toBeNull();
+    expect(findMergeTarget('ips', 'IPS Punainen', opponents)).toBeNull();
+    expect(findMergeTarget('ips', '   ', opponents)).toBeNull();
   });
 });

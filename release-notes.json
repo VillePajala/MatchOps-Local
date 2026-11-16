@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user. Two exceptions to the prompt: a PR that touches nothing in the app (docs, CI, tests, tooling - see scripts/vercel-ignore-build.mjs) does not deploy and needs no entry; a PR that changes the app but nothing a coach can see (deps, refactors) adds an entry with \"internal\": true, which ships without the update banner and applies on the next launch.",
   "releases": [
     {
+      "date": "2026-11-17",
+      "en": [
+        "Check team names: renaming a team to a name another team already uses now asks before merging them, since merged teams cannot be split again."
+      ],
+      "fi": [
+        "Tarkista joukkueiden nimet: kun nimeät joukkueen nimellä, joka on jo toisella joukkueella, sovellus kysyy ennen yhdistämistä, koska yhdistettyjä joukkueita ei voi erottaa uudelleen."
+      ]
+    },
+    {
       "date": "2026-11-16",
       "en": [
         "Fixing an opponent's name with \"Check team names\" while a match is open now sticks: the open match takes the new spelling instead of saving the old one back."
