@@ -651,6 +651,43 @@ describe('GameStatsModal', () => {
     expect(charlieHeadings.length).toBeGreaterThan(0);
   });
 
+  /**
+   * Review 5.7: Player-tab "Export Excel" never silently does nothing. The table's name
+   * filter does not hide the chosen player's row, and a player with no games in the
+   * current filters gets a message instead of a dead button.
+   * @critical
+   */
+  test('player export ignores the table name filter and explains when there is nothing to export', async () => {
+    const onExportPlayerExcel = jest.fn();
+    const props = {
+      ...getDefaultProps(),
+      masterRoster: [...samplePlayers, { id: 'p4', name: 'Diana' } as Player],
+      savedGames: { game1: { ...minimalMockAppState, selectedPlayerIds: ['p1', 'p2'], isPlayed: true } } as SavedGamesCollection,
+      onExportPlayerExcel,
+      initialTab: 'overall' as const,
+    };
+    await act(async () => { renderComponent(props); });
+    // A name typed in the table filter...
+    fireEvent.change(screen.getByPlaceholderText(i18n.t('common.filterByName', 'Filter By Name')), { target: { value: 'Bob' } });
+    // ...then the Player tab, Alice chosen and exported.
+    fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.player', 'Player') }));
+    const input = await screen.findByPlaceholderText(i18n.t('playerStats.selectPlayerLabel', 'Select Player'));
+    fireEvent.change(input, { target: { value: 'Alice' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await screen.findAllByRole('heading', { name: 'Alice' });
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('common.exportExcel', 'Export Excel') }));
+    expect(onExportPlayerExcel).toHaveBeenCalledWith('p1', expect.objectContaining({ id: 'p1' }), ['game1'], expect.any(Object));
+
+    // Diana has no games: a message, no export call.
+    onExportPlayerExcel.mockClear();
+    fireEvent.change(input, { target: { value: 'Diana' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await screen.findAllByRole('heading', { name: 'Diana' });
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('common.exportExcel', 'Export Excel') }));
+    expect(onExportPlayerExcel).not.toHaveBeenCalled();
+    expect(await screen.findByText(i18n.t('export.noGamesForPlayer', 'This player has no games in the current filters.'))).toBeInTheDocument();
+  });
+
   test('player search uses master roster (not limited to available players)', async () => {
     const props = getDefaultProps();
     // Provide a master roster that includes a player not in availablePlayers

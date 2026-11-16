@@ -704,6 +704,7 @@ export type TranslationKey =
   | 'export.nickname'
   | 'export.no'
   | 'export.noCanvas'
+  | 'export.noGamesForPlayer'
   | 'export.noGamesInSelection'
   | 'export.noGoalsLogged'
   | 'export.none'

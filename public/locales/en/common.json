@@ -2281,6 +2281,7 @@
     "reassignDescription": "Select a team to associate this game with, or choose \"No Team\" to use the master roster."
   },
   "export": {
+    "noGamesForPlayer": "This player has no games in the current filters.",
     "countedInTotals": "Counted in totals",
     "record": "Record (W-D-L)",
     "opponent": "Opponent",
