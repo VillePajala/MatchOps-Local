@@ -91,6 +91,9 @@ let sentinelRetirePending = false;
 // tick takes one of them over instead of calling pushState.
 let pendingSubRetires = 0;
 
+// A taken-over entry keeps the state object it was pushed with ({ liftedSubGuard }
+// or { liftedModal }). Harmless: the pop handler reads only the in-memory stacks,
+// never history.state.
 function takeOverRetiringEntry(): boolean {
   if (pendingSubRetires === 0) return false;
   pendingSubRetires -= 1;
@@ -140,7 +143,8 @@ function flushHistoryRetires(): void {
 // and then the match guard's pushState in the same tick - the exact back()+
 // pushState interleave Android WebViews drop, leaving sentinelPushed=true with
 // no real entry (first hardware back then exits the app). Deferring lets the
-// same-commit setup CANCEL this retire and reuse the still-live sentinel.
+// same-commit setup cancel this retire (it clears sentinelRetirePending) and
+// reuse the still-live sentinel.
 function scheduleSentinelRetire(): void {
   sentinelRetirePending = true;
   scheduleHistoryFlush();
@@ -184,6 +188,13 @@ function removeSubGuard(g: SubGuard): void {
 function handleGlobalPop(): void {
   if (suppressedPops > 0) {
     suppressedPops -= 1;
+    return;
+  }
+  // A real back inside the one-macrotask window before the flush: the entries
+  // waiting to retire sit on top, so this back consumed one of them. Count it as
+  // retired (nothing to close) instead of retiring one entry too many later.
+  if (pendingSubRetires > 0) {
+    pendingSubRetires -= 1;
     return;
   }
   // A preemptive sub-guard sits ABOVE the sentinel; a back consumes it first.

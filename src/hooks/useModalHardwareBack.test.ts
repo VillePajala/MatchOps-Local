@@ -336,6 +336,41 @@ describe('useModalHardwareBack (single sentinel)', () => {
     host.unmount();
   });
 
+  it('two guards closing while one opens retire the one surplus entry in a single back', async () => {
+    const match = renderHook(() => useModalHardwareBack(true, jest.fn()));
+    const guards = renderHook(
+      ({ phase }) => {
+        useHardwareBackSubLevel(phase === 'two', jest.fn());
+        useHardwareBackSubLevel(phase === 'two', jest.fn());
+        useHardwareBackSubLevel(phase === 'one', jest.fn());
+      },
+      { initialProps: { phase: 'two' as 'two' | 'one' } },
+    );
+    expect(pushSpy).toHaveBeenCalledTimes(3);
+    guards.rerender({ phase: 'one' });
+    await flushRetire();
+    expect(pushSpy).toHaveBeenCalledTimes(3); // the opener took one entry over
+    expect(backSpy).toHaveBeenCalledTimes(1); // the surplus one leaves
+    expect(goSpy).not.toHaveBeenCalled();
+    guards.unmount();
+    match.unmount();
+  });
+
+  it('a real back inside the deferred window counts as the retire, not one more', async () => {
+    const closeMatch = jest.fn();
+    const match = renderHook(() => useModalHardwareBack(true, closeMatch));
+    const guard = renderHook(({ active }) => useHardwareBackSubLevel(active, jest.fn()), { initialProps: { active: true } });
+    guard.rerender({ active: false }); // retire pending
+    await act(async () => { window.dispatchEvent(new PopStateEvent('popstate')); }); // the coach's back, same tick
+    await flushRetire();
+    expect(backSpy).not.toHaveBeenCalled(); // nothing left to retire
+    expect(closeMatch).not.toHaveBeenCalled();
+    await pop(); // the next back reaches the match guard
+    expect(closeMatch).toHaveBeenCalledTimes(1);
+    guard.unmount();
+    match.unmount();
+  });
+
   it('exposes the hardware-back flag ONLY during a popstate-driven close', async () => {
     let flagDuringClose: boolean | null = null;
     const a = renderHook(({ open }) => useModalHardwareBack(open, () => { flagDuringClose = isHandlingHardwareBack(); }), { initialProps: { open: true } });
