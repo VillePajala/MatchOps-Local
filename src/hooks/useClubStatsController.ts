@@ -73,8 +73,8 @@ export function useClubStatsController() {
   );
 
   const handleExportPlayerExcel = useCallback(
-    (playerId: string, playerData: PlayerStatRow, gameIds: string[]) =>
-      exportPlayerStatsExcel(excelDeps, playerId, playerData, gameIds),
+    (playerId: string, playerData: PlayerStatRow, gameIds: string[], teamFilter?: string) =>
+      exportPlayerStatsExcel(excelDeps, playerId, playerData, gameIds, teamFilter),
     [excelDeps],
   );
 

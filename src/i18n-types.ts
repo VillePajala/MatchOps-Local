@@ -653,6 +653,7 @@ export type TranslationKey =
   | 'export.awayScore'
   | 'export.awayTeam'
   | 'export.buttonTitle'
+  | 'export.countedInTotals'
   | 'export.courage'
   | 'export.creativity'
   | 'export.currentPeriod'

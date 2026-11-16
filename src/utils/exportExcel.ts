@@ -12,6 +12,7 @@ import { formatTime } from './time';
 import { resolveGameResult } from '@/utils/gameResult';
 import { gameSquadForExport } from '@/utils/playerStats';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
+import { adjustmentInScope } from '@/utils/adjustmentScope';
 import { computeHeadToHead } from '@/utils/headToHead';
 import { ASSESSMENT_METRICS } from '@/config/assessmentMetrics';
 
@@ -184,6 +185,9 @@ const calculateRecord = (
 /** Excel-only switches. `includeAssessments` follows the app setting: off means no ratings sheet, even for old data. */
 export interface ExcelExportOptions {
   includeAssessments?: boolean;
+  /** Player export: the team filter on screen, so the external games counted are the
+   *  ones the player view counts (review 5.6). */
+  teamFilter?: string;
 }
 
 export const exportCurrentGameExcel = (
@@ -965,6 +969,24 @@ export const exportPlayerExcel = (
       if (seasonPlayerInGame?.receivedFairPlayCard) stats.fairPlay++;
     });
 
+  // External games in scope (the player view's rule, review 5.6): the team filter on
+  // screen, and only those marked to count toward their season/tournament.
+  const countedAdjustments = externalAdjustments.filter(
+    (adj) => adj.playerId === playerId && adjustmentInScope(adj, { teamFilter: options.teamFilter ?? 'all' }),
+  );
+  for (const adj of countedAdjustments) {
+    if (!adj.includeInSeasonTournament || !adj.seasonId) continue;
+    const season = seasons.find((s) => s.id === adj.seasonId);
+    if (!seasonStats.has(adj.seasonId)) {
+      seasonStats.set(adj.seasonId, { name: season ? getSeasonDisplayName(season) : adj.seasonId, games: 0, goals: 0, assists: 0, fairPlay: 0 });
+    }
+    const stats = seasonStats.get(adj.seasonId)!;
+    stats.games += adj.gamesPlayedDelta || 0;
+    stats.goals += adj.goalsDelta || 0;
+    stats.assists += adj.assistsDelta || 0;
+    stats.fairPlay += adj.fairPlayCardsDelta || 0;
+  }
+
   if (seasonStats.size > 0) {
     const seasonPerformance = Array.from(seasonStats.values()).map((stats) => ({
       [translate('export.season', 'Season')]: stats.name,
@@ -1001,6 +1023,19 @@ export const exportPlayerExcel = (
       if (tournamentPlayerInGame?.receivedFairPlayCard) stats.fairPlay++;
     });
 
+  for (const adj of countedAdjustments) {
+    if (!adj.includeInSeasonTournament || !adj.tournamentId) continue;
+    const tournament = tournaments.find((tr) => tr.id === adj.tournamentId);
+    if (!tournamentStats.has(adj.tournamentId)) {
+      tournamentStats.set(adj.tournamentId, { name: tournament ? getTournamentDisplayName(tournament) : adj.tournamentId, games: 0, goals: 0, assists: 0, fairPlay: 0 });
+    }
+    const stats = tournamentStats.get(adj.tournamentId)!;
+    stats.games += adj.gamesPlayedDelta || 0;
+    stats.goals += adj.goalsDelta || 0;
+    stats.assists += adj.assistsDelta || 0;
+    stats.fairPlay += adj.fairPlayCardsDelta || 0;
+  }
+
   if (tournamentStats.size > 0) {
     const tournamentPerformance = Array.from(tournamentStats.values()).map((stats) => ({
       [translate('export.tournament', 'Tournament')]: stats.name,
@@ -1036,6 +1071,8 @@ export const exportPlayerExcel = (
         [translate('export.season', 'Season')]: season,
         [translate('export.tournament', 'Tournament')]: tournament,
         [translate('export.includeInStats', 'Include in Stats')]: adj.includeInSeasonTournament ? yes : no,
+        // Whether this external game is in the totals above (the screen's team scope).
+        [translate('export.countedInTotals', 'Counted in totals')]: countedAdjustments.includes(adj) ? yes : no,
         [notesHeader]: adj.note || '',
         [translate('export.appliedAt', 'Applied At')]: new Date(adj.appliedAt).toLocaleString(),
       };

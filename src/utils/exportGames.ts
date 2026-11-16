@@ -288,6 +288,7 @@ export const exportPlayerStatsExcel = async (
   playerId: string,
   playerData: PlayerStatRow,
   gameIds: string[],
+  teamFilter?: string,
 ): Promise<void> => {
   const { savedGames, seasons, tournaments, showToast, t, userId } = deps;
   const gamesData = collectGames(savedGames, gameIds);
@@ -298,7 +299,7 @@ export const exportPlayerStatsExcel = async (
     ]);
     const adjustments = await getAdjustmentsForPlayer(playerId, userId);
     const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
-    exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, adjustments, translate, { includeAssessments: deps.assessmentsEnabled ?? true });
+    exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, adjustments, translate, { includeAssessments: deps.assessmentsEnabled ?? true, teamFilter });
   } catch (error) {
     const { default: logger } = await import('@/utils/logger');
     logger.error('[exportPlayerStatsExcel] Export failed:', error);

@@ -132,7 +132,7 @@ interface GameStatsModalProps {
   onExportOneExcel?: (gameId: string) => void;
   onDeleteGameEvent?: (goalId: string) => void | Promise<boolean>;
   onExportAggregateExcel?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
-  onExportPlayerExcel?: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
+  onExportPlayerExcel?: (playerId: string, playerData: PlayerStatRow, gameIds: string[], teamFilter?: string) => void;
   initialSelectedPlayerId?: string | null;
   /** Tab to land on when opening (menu match-vs-team stats entries). */
   initialTab?: StatsTab;
@@ -1657,7 +1657,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       const playerGameIds = processedGameIds.filter(
                         gameId => savedGames[gameId]?.selectedPlayerIds?.includes(selectedPlayer.id)
                       );
-                      onExportPlayerExcel(selectedPlayer.id, playerData, playerGameIds);
+                      onExportPlayerExcel(selectedPlayer.id, playerData, playerGameIds, selectedTeamIdFilter);
                     }
                   }}
                   className="px-4 py-2 rounded-md text-sm font-medium transition-colors border border-transparent bg-slate-700 hover:bg-slate-600 text-slate-200"
