@@ -27,8 +27,8 @@ const draft = (over: Partial<ReportDraft> = {}): ReportDraft => ({
     { section: 'next', text: 'Harjoitellaan syöttöä.' },
   ],
   playerNotes: [
-    { ref: 'P1', text: 'Rohkea eteenpäin.' },
-    { ref: 'P2', text: 'Hyvä puolustustyö.' },
+    { ref: 'X1', text: 'Rohkea eteenpäin.' },
+    { ref: 'X2', text: 'Hyvä puolustustyö.' },
   ],
   model: 'gpt-5-mini',
   packetFingerprint: 'v1-abcdef0123456789',
@@ -42,8 +42,8 @@ const base = {
   existingReport: '',
   mode: 'append' as const,
   labelFor,
-  refToPlayerId: { P1: 'p1', P2: 'p2' },
-  nameForRef: (ref: string) => ({ P1: 'Emma', P2: 'Matti' }[ref] ?? 'Tuntematon pelaaja'),
+  refToPlayerId: { X1: 'p1', X2: 'p2' },
+  nameForRef: (ref: string) => ({ X1: 'Emma', X2: 'Matti' }[ref] ?? 'Tuntematon pelaaja'),
   stamp: { time: 3000, period: 2 },
   idFactory: (i: number) => `n${i}`,
 };
@@ -120,8 +120,8 @@ describe('applyReportDraft - section text', () => {
   });
 
   it('composeReportText is usable on its own for a preview', () => {
-    const refs = ['P1', 'P2'];
-    const nameForRef = (ref: string) => ({ P1: 'Emma', P2: 'Matti' }[ref] ?? ref);
+    const refs = ['X1', 'X2'];
+    const nameForRef = (ref: string) => ({ X1: 'Emma', X2: 'Matti' }[ref] ?? ref);
     expect(composeReportText(draft(), ['overview'], labelFor, refs, nameForRef)).toBe(
       'Yleiskuva:\nTasainen ottelu.',
     );
@@ -133,12 +133,12 @@ describe('applyReportDraft - codes become names again', () => {
   /**
    * @critical - the packet sends codes so the provider never learns who these
    * children are. That protects them from the PROVIDER, not from the coach: a
-   * report reading "P1 pelasi rohkeasti" in the coach's own document is broken.
+   * report reading "X1 pelasi rohkeasti" in the coach's own document is broken.
    */
   it('puts names back into the drafted prose and into note text', () => {
     const withRefs = draft({
-      sections: [{ section: 'mentions', text: 'P1 teki paljon työtä ilman palloa, ja P2 tuki hyvin.' }],
-      playerNotes: [{ ref: 'P1', text: 'Rohkea. Yhteistyö P2:n kanssa toimi.' }],
+      sections: [{ section: 'mentions', text: 'X1 teki paljon työtä ilman palloa, ja X2 tuki hyvin.' }],
+      playerNotes: [{ ref: 'X1', text: 'Rohkea. Yhteistyö X2:n kanssa toimi.' }],
     });
     const result = applyReportDraft({
       ...base,
@@ -159,14 +159,14 @@ describe('applyReportDraft - codes become names again', () => {
    */
   it('drops the colon Finnish uses for codes, so a name inflects properly', () => {
     const inflected = draft({
-      sections: [{ section: 'mentions', text: 'P2:lle upea torjunta, ja P1:n kautta syntyi maali. P2 oli vahva.' }],
+      sections: [{ section: 'mentions', text: 'X2:lle upea torjunta, ja X1:n kautta syntyi maali. X2 oli vahva.' }],
     });
     const result = applyReportDraft({
       ...base,
       draft: inflected,
       approvedSections: ['mentions'],
       approvedPlayerNoteIndexes: [],
-      nameForRef: (ref) => ({ P1: 'Esko', P2: 'Keijo' }[ref] ?? ref),
+      nameForRef: (ref) => ({ X1: 'Esko', X2: 'Keijo' }[ref] ?? ref),
     });
 
     expect(result.report).toBe('Erityismaininnat:\nKeijolle upea torjunta, ja Eskon kautta syntyi maali. Keijo oli vahva.');
@@ -177,45 +177,65 @@ describe('applyReportDraft - codes become names again', () => {
   /** Finnish weakens a doubled k/p/t before a consonant ending: Matti -> Matin. */
   it('inflects a name properly instead of gluing the ending on', () => {
     const forms = draft({
-      sections: [{ section: 'overview', text: 'P1:n syöttö, P2:lle kiitos, P3:a kehuttiin, P4:n veto.' }],
+      sections: [{ section: 'overview', text: 'X1:n syöttö, X2:lle kiitos, X3:a kehuttiin, X4:n veto.' }],
     });
     const result = applyReportDraft({
       ...base,
       draft: forms,
       approvedSections: ['overview'],
       approvedPlayerNoteIndexes: [],
-      refToPlayerId: { P1: 'p1', P2: 'p2', P3: 'p3', P4: 'p4' },
-      nameForRef: (ref) => ({ P1: 'Matti', P2: 'Pekka', P3: 'Matti', P4: 'Keijo' }[ref] ?? ref),
+      refToPlayerId: { X1: 'p1', X2: 'p2', X3: 'p3', X4: 'p4' },
+      nameForRef: (ref) => ({ X1: 'Matti', X2: 'Pekka', X3: 'Matti', X4: 'Keijo' }[ref] ?? ref),
     });
 
     // Weak grade before a consonant ending; strong grade kept before a vowel.
     expect(result.report).toBe('Yleiskuva:\nMatin syöttö, Pekalle kiitos, Mattia kehuttiin, Keijon veto.');
   });
 
-  /** "P1" must not eat the front of "P10" in a squad of a dozen or more. */
+  /** "X1" must not eat the front of "X10" in a squad of a dozen or more. */
   it('does not let a short ref swallow a longer one', () => {
-    const many = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`P${i + 1}`, `p${i + 1}`]));
-    const withRefs = draft({ sections: [{ section: 'overview', text: 'P1 ja P10 ja P12 pelasivat.' }] });
+    const many = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`X${i + 1}`, `p${i + 1}`]));
+    const withRefs = draft({ sections: [{ section: 'overview', text: 'X1 ja X10 ja X12 pelasivat.' }] });
     const result = applyReportDraft({
       ...base,
       draft: withRefs,
       approvedSections: ['overview'],
       approvedPlayerNoteIndexes: [],
       refToPlayerId: many,
-      nameForRef: (ref) => ({ P1: 'Emma', P10: 'Leo', P12: 'Sofia' }[ref] ?? ref),
+      nameForRef: (ref) => ({ X1: 'Emma', X10: 'Leo', X12: 'Sofia' }[ref] ?? ref),
     });
 
     expect(result.report).toBe('Yleiskuva:\nEmma ja Leo ja Sofia pelasivat.');
   });
 
-  it('leaves the unidentified marker readable rather than as a code', () => {
-    const withRefs = draft({ sections: [{ section: 'overview', text: 'P? sai hyvän paikan.' }] });
+  /**
+   * Review 6.1: Finnish teams are named by age group ("PEPO P11"). With a squad of 12
+   * the team name must survive - P-codes used to resolve it into a child's name
+   * ("PEPO Eetu voitti HJK Onnin").
+   * @critical
+   */
+  it('keeps age-group team names like "PEPO P11" intact in a 12-player squad', () => {
+    const many = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`X${i + 1}`, `p${i + 1}`]));
+    const withRefs = draft({ sections: [{ section: 'overview', text: 'PEPO P11 voitti HJK P12:n 3-1. X11 teki kaksi.' }] });
     const result = applyReportDraft({
       ...base,
       draft: withRefs,
       approvedSections: ['overview'],
       approvedPlayerNoteIndexes: [],
-      nameForRef: (ref) => (ref === 'P?' ? 'yksi pelaajista' : 'Emma'),
+      refToPlayerId: many,
+      nameForRef: (ref) => ({ X11: 'Eetu', X12: 'Onni' }[ref] ?? ref),
+    });
+    expect(result.report).toBe('Yleiskuva:\nPEPO P11 voitti HJK P12:n 3-1. Eetu teki kaksi.');
+  });
+
+  it('leaves the unidentified marker readable rather than as a code', () => {
+    const withRefs = draft({ sections: [{ section: 'overview', text: 'X? sai hyvän paikan.' }] });
+    const result = applyReportDraft({
+      ...base,
+      draft: withRefs,
+      approvedSections: ['overview'],
+      approvedPlayerNoteIndexes: [],
+      nameForRef: (ref) => (ref === 'X?' ? 'yksi pelaajista' : 'Emma'),
     });
 
     expect(result.report).toBe('Yleiskuva:\nyksi pelaajista sai hyvän paikan.');
@@ -263,21 +283,21 @@ describe('applyReportDraft - player notes', () => {
 
   /** @critical - a ref with no player must never be guessed onto someone. */
   it('drops an approved note whose ref has no player and says which', () => {
-    const result = applyReportDraft({ ...base, refToPlayerId: { P1: 'p1' } });
+    const result = applyReportDraft({ ...base, refToPlayerId: { X1: 'p1' } });
 
     expect(result.noteEvents.map((e) => e.entityId)).toEqual(['p1']);
-    expect(result.droppedRefs).toEqual(['P2']);
+    expect(result.droppedRefs).toEqual(['X2']);
   });
 
   it('caps note text at the same limit the datastore validates', () => {
-    const long = draft({ playerNotes: [{ ref: 'P1', text: 'y'.repeat(VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX + 50) }] });
+    const long = draft({ playerNotes: [{ ref: 'X1', text: 'y'.repeat(VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX + 50) }] });
     const result = applyReportDraft({ ...base, draft: long, approvedPlayerNoteIndexes: [0] });
 
     expect(result.noteEvents[0].text).toHaveLength(VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX);
   });
 
   it('skips an empty note instead of creating a blank one', () => {
-    const blank = draft({ playerNotes: [{ ref: 'P1', text: '   ' }] });
+    const blank = draft({ playerNotes: [{ ref: 'X1', text: '   ' }] });
     const result = applyReportDraft({ ...base, draft: blank, approvedPlayerNoteIndexes: [0] });
 
     expect(result.noteEvents).toEqual([]);

@@ -25,8 +25,11 @@
 
 import { AI_PROVIDERS, getAiProviderKey, getAiProviderState } from '@/utils/aiProvider';
 import type { GamePacket } from '@/utils/gamePacket';
-import { gamePacketFingerprint } from '@/utils/gamePacket';
+import { gamePacketFingerprint, playerRef, UNKNOWN_PLAYER_REF } from '@/utils/gamePacket';
 import logger from '@/utils/logger';
+
+/** How every prompt names the player codes (review 6.1: one source with the builders). */
+const CODES_EXAMPLE = `${playerRef(1)}, ${playerRef(2)} and ${UNKNOWN_PLAYER_REF}`;
 
 /**
  * The default drafting model: the cheap tier, because this is the coach's own
@@ -229,8 +232,8 @@ export function buildDraftingInstructions(packet: GamePacket, mode: DraftingMode
     '',
     'RULES:',
     '1. Never invent an event, a player, a number or a detail that is not in the data.',
-    '2. Players are referred to by their ref exactly as given (for example P1). Never guess a name.',
-    `3. "${'P?'}" means the note did not identify which player it was. Write about it without attributing it to anyone.`,
+    `2. Players are referred to by their ref exactly as given (for example ${playerRef(1)}). Never guess a name.`,
+    `3. "${UNKNOWN_PLAYER_REF}" means the note did not identify which player it was. Write about it without attributing it to anyone.`,
     "4. The coverage numbers say how thin the data is. Say nothing about a player nobody wrote a note about, and do not turn a few observations into a verdict on the team. The report's own voice is not licence to claim more than the data holds: it changes who is speaking, not what is known.",
     '5. Player notes must each rest on something in the notes for that same player. If nothing was written about a player, they get no note.',
     '6. A note tagged "debrief" is the coach\'s own spoken account of the match. Treat it as the primary source for the report and keep their judgement, rather than reducing it to one observation among many.',
@@ -654,7 +657,7 @@ export async function translateReport({
           'Translate it and nothing else. Do not summarise, do not improve it, do not add a',
           'greeting or a closing, and do not comment on the text. Keep the headings, the',
           'paragraph breaks and the order exactly as they are.',
-          'Codes like P1, P2 and P? are player references. Leave every one of them exactly as',
+          `Codes like ${CODES_EXAMPLE} are player references. Leave every one of them exactly as`,
           'written - they are replaced with real names on the coach\'s device afterwards, and a',
           'translated or renumbered code would attach the wrong child to the sentence.',
           'Return the translated report as plain text, with no preamble and no code fences.',
@@ -756,7 +759,7 @@ export async function groupPlayerNotes({
           'not turn a single remark into a pattern. Where the notes disagree with each other,',
           'say so rather than resolving it.',
           "Keep the coach's own judgements and their wording where you can.",
-          'Codes like P1, P2 and P? are player references. Leave every one exactly as written.',
+          `Codes like ${CODES_EXAMPLE} are player references. Leave every one exactly as written.`,
           'Return plain text only: no headings, no bullet list, no preamble.',
         ].join('\n'),
       },

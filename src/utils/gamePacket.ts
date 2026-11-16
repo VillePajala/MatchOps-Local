@@ -55,7 +55,7 @@ export const GAME_PACKET_SCHEMA_VERSION = 1 as const;
 export type TrustTier = 'recorded' | 'attested' | 'planned';
 
 export interface PacketPlayer {
-  /** Pseudonym ('P1') or the real name when the coach turned pseudonymization off. */
+  /** Pseudonym (playerRef: 'X1') or the real name when the coach turned pseudonymization off. */
   ref: string;
   /** Positions the coach recorded for this game (attested). Absent = not recorded. */
   positions?: string[];
@@ -237,7 +237,16 @@ export function playerRedactionHandles(player: Player): string[] {
  * two players cannot be told apart from the word alone. The name is still
  * removed; what is dropped is only the claim about *which* player it was.
  */
-export const UNKNOWN_PLAYER_REF = 'P?';
+/**
+ * The letter of a player code ("X1", "X2:lle"). NOT "P" (review 6.1): Finnish boys'
+ * and girls' teams are named by age group - "PEPO P11", "HJK T12" - so "P11" in a
+ * team name was resolved back to the 11th player's name ("PEPO Eetu voitti..."), and
+ * the model could file a team remark as that child's note. "X" plus a number does not
+ * occur in football text. One source for every code builder and every prompt.
+ */
+export const PLAYER_REF_PREFIX = 'X';
+export const playerRef = (n: number): string => `${PLAYER_REF_PREFIX}${n}`;
+export const UNKNOWN_PLAYER_REF = `${PLAYER_REF_PREFIX}?`;
 
 /** Longest case ending we accept after a name ("Emma" -> "Emmalle", +3). */
 const MAX_ENDING = 4;
@@ -359,7 +368,7 @@ export function buildGamePacket({
   const refToPlayerId: Record<string, string> = {};
   const playerIdToRef = new Map<string, string>();
   squadPlayers.forEach((player, index) => {
-    const ref = pseudonymize ? `P${index + 1}` : player.nickname?.trim() || player.name;
+    const ref = pseudonymize ? playerRef(index + 1) : player.nickname?.trim() || player.name;
     // Real-name mode can collide (two Emmas); keep refs unique either way.
     const unique = refToPlayerId[ref] ? `${ref} (${index + 1})` : ref;
     refToPlayerId[unique] = player.id;

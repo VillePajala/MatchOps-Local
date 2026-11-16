@@ -84,7 +84,7 @@ describe('buildGamePacket - trust tiers', () => {
     });
 
     expect(JSON.stringify(packet.recorded)).not.toMatch(/LW|paine/);
-    expect(packet.attested.squad.find((p) => p.ref === 'P1')?.positions).toEqual(['LW']);
+    expect(packet.attested.squad.find((p) => p.ref === 'X1')?.positions).toEqual(['LW']);
     expect(packet.attested.notes[0].text).toBe('Hyvä paine');
   });
 
@@ -98,8 +98,8 @@ describe('buildGamePacket - trust tiers', () => {
     expect(packet.planned.demandLevel).toBe(4);
     // Bench player p4 was never selected for this game, so no minutes for them.
     expect(packet.planned.minutes).toEqual([
-      { ref: 'P1', plannedMinutes: 30 },
-      { ref: 'P2', plannedMinutes: 20 },
+      { ref: 'X1', plannedMinutes: 30 },
+      { ref: 'X2', plannedMinutes: 20 },
     ]);
     expect(JSON.stringify(packet.recorded)).not.toMatch(/plannedMinutes|30/);
   });
@@ -123,12 +123,12 @@ describe('buildGamePacket - pseudonymization', () => {
     for (const name of ['Emma', 'Emman', 'Matti', 'Matille', 'Sofia', 'Virtanen', 'Korhonen', 'Nieminen']) {
       expect(json).not.toContain(name);
     }
-    expect(packet.attested.notes[0].text).toBe('P1 syöttö oli rohkea');
-    expect(packet.attested.notes[1].text).toBe('P2 kannustusta, P3 piti pään kylmänä');
-    expect(packet.attested.coachReport).toBe('P1 ja P2 johtivat peliä.');
+    expect(packet.attested.notes[0].text).toBe('X1 syöttö oli rohkea');
+    expect(packet.attested.notes[1].text).toBe('X2 kannustusta, X3 piti pään kylmänä');
+    expect(packet.attested.coachReport).toBe('X1 ja X2 johtivat peliä.');
     expect(packet.pseudonymized).toBe(true);
     // The mapping back stays with the caller and is not part of the payload.
-    expect(refToPlayerId).toEqual({ P1: 'p1', P2: 'p2', P3: 'p3' });
+    expect(refToPlayerId).toEqual({ X1: 'p1', X2: 'p2', X3: 'p3' });
     expect(json).not.toContain('refToPlayerId');
   });
 
@@ -145,7 +145,7 @@ describe('buildGamePacket - pseudonymization', () => {
       coachReport: 'Emma ja Matti johtivat peliä.',
     });
 
-    expect(packet.attested.coachReport).toBe('P1 ja P2 johtivat peliä.');
+    expect(packet.attested.coachReport).toBe('X1 ja X2 johtivat peliä.');
     expect(JSON.stringify(packet)).not.toContain('Vanha tallennettu');
   });
 
@@ -204,25 +204,25 @@ describe('buildGamePacket - names outside the squad', () => {
       players: roster,
     });
 
-    expect(packet.attested.notes[0].text).toBe('P? tuli hyvin mukaan, P1 syötti');
+    expect(packet.attested.notes[0].text).toBe('X? tuli hyvin mukaan, X1 syötti');
     expect(JSON.stringify(packet)).not.toContain('Leo');
   });
 });
 
 describe('redactPlayerNames', () => {
-  const refOf = (id: string) => ({ p1: 'P1', p2: 'P2' }[id]);
+  const refOf = (id: string) => ({ p1: 'X1', p2: 'X2' }[id]);
 
   it('replaces Finnish inflections and keeps the surrounding text intact', () => {
-    expect(redactPlayerNames('Emmalle syöttö, Emman veto!', [emma, matti], refOf)).toBe('P1 syöttö, P1 veto!');
-    expect(redactPlayerNames('Matin ja Emman yhteistyö', [emma, matti], refOf)).toBe('P2 ja P1 yhteistyö');
+    expect(redactPlayerNames('Emmalle syöttö, Emman veto!', [emma, matti], refOf)).toBe('X1 syöttö, X1 veto!');
+    expect(redactPlayerNames('Matin ja Emman yhteistyö', [emma, matti], refOf)).toBe('X2 ja X1 yhteistyö');
   });
 
   it('replaces surnames too - a coach may say one out loud', () => {
-    expect(redactPlayerNames('Virtanen puolusti hyvin', [emma], refOf)).toBe('P1 puolusti hyvin');
+    expect(redactPlayerNames('Virtanen puolusti hyvin', [emma], refOf)).toBe('X1 puolusti hyvin');
   });
 
   it('survives a one-character transcription slip', () => {
-    expect(redactPlayerNames('Emna otti pallon', [emma], refOf)).toBe('P1 otti pallon');
+    expect(redactPlayerNames('Emna otti pallon', [emma], refOf)).toBe('X1 otti pallon');
   });
 
   /**
@@ -233,17 +233,17 @@ describe('redactPlayerNames', () => {
    */
   it('redacts a hyphenated name, whole or by either part', () => {
     const jp = { id: 'p1', name: 'Juha-Pekka Virtanen' } as Player;
-    expect(redactPlayerNames('Juha-Pekka teki syötön', [jp], refOf)).toBe('P1 teki syötön');
+    expect(redactPlayerNames('Juha-Pekka teki syötön', [jp], refOf)).toBe('X1 teki syötön');
     // The pitch name, not the team-sheet name.
-    expect(redactPlayerNames('Juha teki syötön', [jp], refOf)).toBe('P1 teki syötön');
-    expect(redactPlayerNames('Pekka teki syötön', [jp], refOf)).toBe('P1 teki syötön');
+    expect(redactPlayerNames('Juha teki syötön', [jp], refOf)).toBe('X1 teki syötön');
+    expect(redactPlayerNames('Pekka teki syötön', [jp], refOf)).toBe('X1 teki syötön');
     // ...and inflected on the compound.
-    expect(redactPlayerNames('Juha-Pekan syöttö', [jp], refOf)).toBe('P1 syöttö');
+    expect(redactPlayerNames('Juha-Pekan syöttö', [jp], refOf)).toBe('X1 syöttö');
   });
 
   it('redacts a name held together by an apostrophe', () => {
     const liam = { id: 'p1', name: "Liam O'Brien" } as Player;
-    expect(redactPlayerNames("O'Brien torjui", [liam], refOf)).toBe('P1 torjui');
+    expect(redactPlayerNames("O'Brien torjui", [liam], refOf)).toBe('X1 torjui');
   });
 
   /**
@@ -252,7 +252,7 @@ describe('redactPlayerNames', () => {
    */
   it('redacts a two-letter name, but only where it stands alone', () => {
     const bo = { id: 'p1', name: 'Bo Nieminen' } as Player;
-    expect(redactPlayerNames('Bo puolusti hyvin', [bo], refOf)).toBe('P1 puolusti hyvin');
+    expect(redactPlayerNames('Bo puolusti hyvin', [bo], refOf)).toBe('X1 puolusti hyvin');
     // No inflection rule is safe at two letters, so nothing else may match.
     expect(redactPlayerNames('Bonus oli iso, bussi tuli', [bo], refOf)).toBe('Bonus oli iso, bussi tuli');
   });
@@ -267,21 +267,21 @@ describe('redactPlayerNames', () => {
 
   /** @critical - a name with no ref is still a child's name. */
   it('removes a name that has no ref instead of leaving it in cleartext', () => {
-    expect(redactPlayerNames('Emman syöttö', [emma], () => undefined)).toBe('P? syöttö');
+    expect(redactPlayerNames('Emman syöttö', [emma], () => undefined)).toBe('X? syöttö');
   });
 
   /** @critical - two Emmas in one team: drop the name, never guess the child. */
   it('uses the unknown ref when a word could be either of two players', () => {
     const otherEmma = player('p9', 'Emma Salo', 'Emma');
-    expect(redactPlayerNames('Emman veto', [emma, otherEmma], (id) => ({ p1: 'P1', p9: 'P2' }[id]))).toBe(
-      'P? veto',
+    expect(redactPlayerNames('Emman veto', [emma, otherEmma], (id) => ({ p1: 'X1', p9: 'X2' }[id]))).toBe(
+      'X? veto',
     );
   });
 
   it('tells similar but distinct names apart instead of giving up', () => {
     const emmi = player('p9', 'Emmi Koski', 'Emmi');
-    const ref = (id: string) => ({ p1: 'P1', p9: 'P2' }[id]);
-    expect(redactPlayerNames('Emman ja Emmin veto', [emma, emmi], ref)).toBe('P1 ja P2 veto');
+    const ref = (id: string) => ({ p1: 'X1', p9: 'X2' }[id]);
+    expect(redactPlayerNames('Emman ja Emmin veto', [emma, emmi], ref)).toBe('X1 ja X2 veto');
   });
 
   /** @critical - redaction happens BEFORE the request, so its mistakes are never
@@ -289,24 +289,24 @@ describe('redactPlayerNames', () => {
   it('leaves ordinary Finnish words alone next to similar names', () => {
     const leo = player('p8', 'Leo Laine', 'Leo');
     const squad = [emma, matti, sofia, leo];
-    const ref = (id: string) => ({ p1: 'P1', p2: 'P2', p3: 'P3', p8: 'P4' }[id]);
+    const ref = (id: string) => ({ p1: 'X1', p2: 'X2', p3: 'X3', p8: 'X4' }[id]);
     const words = 'Hyvä paine ja laittaa pallo, aikaa oli, sofalla istuttiin, emmekä luovuttaneet';
     expect(redactPlayerNames(words, squad, ref)).toBe(words);
   });
 
   it('still catches real inflections and gradation', () => {
     const squad = [emma, matti, sofia];
-    const ref = (id: string) => ({ p1: 'P1', p2: 'P2', p3: 'P3' }[id]);
-    expect(redactPlayerNames('Matin pallo Emmalle, Sofian veto', squad, ref)).toBe('P2 pallo P1, P3 veto');
-    expect(redactPlayerNames('Matille ja Mattia kehuttiin', squad, ref)).toBe('P2 ja P2 kehuttiin');
-    expect(redactPlayerNames('Niemisen kulmapotku', squad, ref)).toBe('P3 kulmapotku');
+    const ref = (id: string) => ({ p1: 'X1', p2: 'X2', p3: 'X3' }[id]);
+    expect(redactPlayerNames('Matin pallo Emmalle, Sofian veto', squad, ref)).toBe('X2 pallo X1, X3 veto');
+    expect(redactPlayerNames('Matille ja Mattia kehuttiin', squad, ref)).toBe('X2 ja X2 kehuttiin');
+    expect(redactPlayerNames('Niemisen kulmapotku', squad, ref)).toBe('X3 kulmapotku');
   });
 
   it('does not let a three-letter name swallow a long unrelated word', () => {
     const leo = player('p8', 'Leo Laine', 'Leo');
-    const ref = (id: string) => (id === 'p8' ? 'P1' : undefined);
+    const ref = (id: string) => (id === 'p8' ? 'X1' : undefined);
     expect(redactPlayerNames('leopardin nopeus', [leo], ref)).toBe('leopardin nopeus');
-    expect(redactPlayerNames('Leolle syöttö', [leo], ref)).toBe('P1 syöttö');
+    expect(redactPlayerNames('Leolle syöttö', [leo], ref)).toBe('X1 syöttö');
   });
 
   /**
@@ -343,7 +343,7 @@ describe('buildGamePacket - events, notes and coverage', () => {
     });
 
     expect(packet.recorded.goals).toEqual([
-      { minute: 2, team: 'us', period: 1, scorer: 'P1', assist: 'P2' },
+      { minute: 2, team: 'us', period: 1, scorer: 'X1', assist: 'X2' },
       { minute: 25, team: 'them' },
     ]);
   });
@@ -389,7 +389,7 @@ describe('buildGamePacket - events, notes and coverage', () => {
     });
 
     expect(packet.attested.notes).toEqual([
-      { minute: 1, text: 'Rohkea aloitus', source: 'dictation', about: 'P3' },
+      { minute: 1, text: 'Rohkea aloitus', source: 'dictation', about: 'X3' },
       { minute: 10, text: 'Puoliaikapuhe', source: 'manual', period: 2, tag: 'halftime' },
     ]);
   });

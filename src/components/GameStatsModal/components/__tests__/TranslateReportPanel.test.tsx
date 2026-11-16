@@ -72,7 +72,7 @@ describe('TranslateReportPanel', () => {
     aiState.connected = true;
     aiState.pseudonymize = true;
     translateReport.mockResolvedValue({
-      text: 'P1 played beautifully.',
+      text: 'X1 played beautifully.',
       language: 'en',
       model: 'gpt-5-mini',
       estimatedUsd: 0.001,
@@ -99,7 +99,7 @@ describe('TranslateReportPanel', () => {
     await waitFor(() => expect(translateReport).toHaveBeenCalled());
 
     const sent = translateReport.mock.calls[0][0] as { text: string };
-    expect(sent.text).toBe('P1 pelasi hienosti.');
+    expect(sent.text).toBe('X1 pelasi hienosti.');
     expect(sent.text).not.toContain('Emma');
   });
 
@@ -110,6 +110,24 @@ describe('TranslateReportPanel', () => {
     });
     await waitFor(() => expect(screen.getByTestId('translate-output')).toBeInTheDocument());
     expect(screen.getByTestId('translate-output')).toHaveTextContent('Emma played beautifully.');
+  });
+
+  /**
+   * Review 6.1: every roster player gets a code here, so with P-codes a coach's own
+   * "P12" (the opponent's age group) came back as a roster child's name.
+   * @critical
+   */
+  it('leaves an age-group name in the report untouched', async () => {
+    translateReport.mockResolvedValueOnce({ text: 'X1 played beautifully against HJK P12.', language: 'en', model: 'gpt-5-mini', estimatedUsd: 0.001 });
+    renderPanel({ report: 'Emma pelasi hienosti HJK P12:ta vastaan.' });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('translate-start'));
+    });
+    await waitFor(() => expect(screen.getByTestId('translate-output')).toBeInTheDocument());
+    // Out: the name coded, the age group left as it is.
+    expect((translateReport.mock.calls[0][0] as { text: string }).text).toBe('X1 pelasi hienosti HJK P12:ta vastaan.');
+    // Back: the code resolved, the age group still untouched.
+    expect(screen.getByTestId('translate-output')).toHaveTextContent('Emma played beautifully against HJK P12.');
   });
 
   it('sends the real names when the coach turned pseudonymization off', async () => {

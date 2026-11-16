@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "AI drafts and translations no longer turn age-group team names like PEPO P11 into a player's name. The codes that hide player names now use a format that cannot appear in team names."
+      ],
+      "fi": [
+        "Tekoälyn luonnokset ja käännökset eivät enää muuta ikäryhmäjoukkueen nimeä, kuten PEPO P11, pelaajan nimeksi. Pelaajien nimiä piilottavat koodit käyttävät nyt muotoa, jota joukkueiden nimissä ei esiinny."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "The menu's finish-this-game counter now includes voice notes waiting for review, so it matches the checklist."
       ],
       "fi": [
