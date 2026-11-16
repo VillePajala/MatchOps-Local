@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "On the Player tab, Export Excel now always works or explains why it can't: a name typed in the table filter no longer stops the export, and a player with no games in the current filters gets a message."
+      ],
+      "fi": [
+        "Pelaaja-välilehden Vie Exceliin toimii nyt aina tai kertoo syyn: taulukon suodattimeen kirjoitettu nimi ei enää estä vientiä, ja pelaajasta, jolla ei ole otteluita nykyisillä suodattimilla, näytetään ilmoitus."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "A player's Excel export now counts external games in its Season and Tournament sheets the same way the player view does, and its Added Stats sheet shows which external games are counted."
       ],
       "fi": [

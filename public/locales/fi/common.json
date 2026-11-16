@@ -2281,6 +2281,7 @@
     "reassignDescription": "Valitse joukkue, johon peli liitetään, tai valitse \"Ei joukkuetta\" käyttääksesi pääkokoonpanoa."
   },
   "export": {
+    "noGamesForPlayer": "Pelaajalla ei ole otteluita nykyisillä suodattimilla.",
     "countedInTotals": "Mukana yhteissummissa",
     "record": "Rekordi (V-T-H)",
     "opponent": "Vastustaja",

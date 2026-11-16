@@ -510,7 +510,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     clubSeasonEndDate,
     sortColumn,
     sortDirection,
-    filterText,
+    // The name filter belongs to the table; the Player tab has no filter box and must
+    // find the chosen player's row whatever was typed there (review 5.7).
+    filterText: activeTab === 'player' ? '' : filterText,
     adjustments: allAdjustments,
     playerPool,
   });
@@ -1654,20 +1656,23 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 <button
                   onClick={() => {
                     const playerData = playerStats.find(p => p.id === selectedPlayer.id);
-                    if (playerData) {
-                      const playerGameIds = processedGameIds.filter(
-                        gameId => savedGames[gameId]?.selectedPlayerIds?.includes(selectedPlayer.id)
-                      );
-                      // The same scope the player view applies to external games (5.6).
-                      onExportPlayerExcel(selectedPlayer.id, playerData, playerGameIds, {
-                        teamFilter: selectedTeamIdFilter,
-                        clubSeason: selectedClubSeason,
-                        clubSeasonStartDate,
-                        clubSeasonEndDate,
-                        gameTypeFilter: selectedGameTypeFilter,
-                        genderFilter: selectedGenderFilter,
-                      });
+                    if (!playerData) {
+                      // No counted games in the current filters: say so (it used to do nothing).
+                      showToast(t('export.noGamesForPlayer', 'This player has no games in the current filters.'), 'info');
+                      return;
                     }
+                    const playerGameIds = processedGameIds.filter(
+                      gameId => savedGames[gameId]?.selectedPlayerIds?.includes(selectedPlayer.id)
+                    );
+                    // The same scope the player view applies to external games (5.6).
+                    onExportPlayerExcel(selectedPlayer.id, playerData, playerGameIds, {
+                      teamFilter: selectedTeamIdFilter,
+                      clubSeason: selectedClubSeason,
+                      clubSeasonStartDate,
+                      clubSeasonEndDate,
+                      gameTypeFilter: selectedGameTypeFilter,
+                      genderFilter: selectedGenderFilter,
+                    });
                   }}
                   className="px-4 py-2 rounded-md text-sm font-medium transition-colors border border-transparent bg-slate-700 hover:bg-slate-600 text-slate-200"
                 >

@@ -730,7 +730,8 @@ describe('Translation File Validation', () => {
       // +4 timerOverlay End period/End match + confirmations (review 4.31). 3399.
       // +1 export.record (Excel record column, W-D-L, review 5.2). 3400.
       // +1 export.countedInTotals (player export Added Stats, review 5.6). 3401.
-      expect(enKeys.length).toBe(3401);
+      // +1 export.noGamesForPlayer (review 5.7). 3402.
+      expect(enKeys.length).toBe(3402);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -927,7 +928,8 @@ describe('Translation File Validation', () => {
       // +4 End period/End match (see EN above). Lands at 3399.
       // +1 export.record (see EN above). Lands at 3400.
       // +1 export.countedInTotals. Lands at 3401.
-      expect(fiKeys.length).toBe(3401);
+      // +1 export.noGamesForPlayer. Lands at 3402.
+      expect(fiKeys.length).toBe(3402);
     });
   });
 });
