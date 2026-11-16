@@ -26,10 +26,10 @@
 import { AI_PROVIDERS, getAiProviderKey, getAiProviderState } from '@/utils/aiProvider';
 import type { GamePacket } from '@/utils/gamePacket';
 import { gamePacketFingerprint, playerRef, UNKNOWN_PLAYER_REF } from '@/utils/gamePacket';
+import logger from '@/utils/logger';
 
 /** How every prompt names the player codes (review 6.1: one source with the builders). */
 const CODES_EXAMPLE = `${playerRef(1)}, ${playerRef(2)} and ${UNKNOWN_PLAYER_REF}`;
-import logger from '@/utils/logger';
 
 /**
  * The default drafting model: the cheap tier, because this is the coach's own

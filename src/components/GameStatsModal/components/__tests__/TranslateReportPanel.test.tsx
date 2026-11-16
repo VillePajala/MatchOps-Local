@@ -124,6 +124,9 @@ describe('TranslateReportPanel', () => {
       fireEvent.click(screen.getByTestId('translate-start'));
     });
     await waitFor(() => expect(screen.getByTestId('translate-output')).toBeInTheDocument());
+    // Out: the name coded, the age group left as it is.
+    expect((translateReport.mock.calls[0][0] as { text: string }).text).toBe('X1 pelasi hienosti HJK P12:ta vastaan.');
+    // Back: the code resolved, the age group still untouched.
     expect(screen.getByTestId('translate-output')).toHaveTextContent('Emma played beautifully against HJK P12.');
   });
 
