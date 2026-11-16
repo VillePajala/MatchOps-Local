@@ -24,7 +24,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { getAuthService, getDataStore, isDataStoreInitialized, closeDataStore } from '@/datastore/factory';
 import { getBackendMode, isCloudAvailable, clearMigrationCompleted } from '@/config/backendConfig';
 import { POLICY_VERSION } from '@/config/constants';
-import { NetworkError } from '@/interfaces/DataStoreErrors';
+import { AuthError, NetworkError } from '@/interfaces/DataStoreErrors';
 import type { User, Session, AuthState } from '@/interfaces/AuthTypes';
 import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import * as Sentry from '@sentry/nextjs';
@@ -66,7 +66,8 @@ interface AuthContextValue {
   showMarketingPrompt: boolean;
 
   // Actions
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  /** `emailNotConfirmed`: the account exists but its sign-up code was never entered (review 7.2). */
+  signIn: (email: string, password: string) => Promise<{ error?: string; emailNotConfirmed?: boolean }>;
   signUp: (email: string, password: string) => Promise<{ error?: string; confirmationRequired?: boolean; existingUser?: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
@@ -928,6 +929,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return {};
     } catch (error) {
+      if (error instanceof AuthError && error.authErrorCode === 'email_not_confirmed') {
+        return { error: error.message, emailNotConfirmed: true };
+      }
       return { error: error instanceof Error ? error.message : 'Sign in failed' };
     } finally {
       // Always clear — even on failure — so onAuthStateChange resumes owning

@@ -10,13 +10,68 @@
 
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isNetworkErrorMessage, normalizeEmail, translateAuthError } from '@/utils/authHelpers';
 import { AuthError, NetworkError } from '@/interfaces/DataStoreErrors';
 import logger from '@/utils/logger';
+import { useHoldUnsavedInput } from '@/utils/unsavedInputSignal';
+
+/**
+ * The sign-up awaiting its emailed code, kept for the tab (review 7.2). A coach
+ * fetching the code from their mail app may be away long enough for a reload;
+ * without this they came back to Create Account and no screen accepted the code.
+ * sessionStorage survives a reload and a tab restore, not a fresh app launch -
+ * that case is covered by signing in, which opens the code screen for an
+ * unconfirmed account. One hour from sending: the code's own lifetime.
+ */
+const PENDING_SIGNUP_KEY = 'matchops.pendingSignUp';
+const PENDING_SIGNUP_MAX_AGE_MS = 60 * 60 * 1000;
+
+const readPendingSignUpRecord = (): { email: string; at: number } | null => {
+  try {
+    const raw = sessionStorage.getItem(PENDING_SIGNUP_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { email?: unknown; at?: unknown } | null;
+    if (!parsed || typeof parsed.email !== 'string' || typeof parsed.at !== 'number') return null;
+    return { email: parsed.email, at: parsed.at };
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * `sentNow`: a code was just sent (sign-up). From the sign-in route nothing is
+ * sent, so an entry for the same address keeps the time its code went out.
+ */
+const rememberPendingSignUp = (email: string, sentNow: boolean): void => {
+  try {
+    const existing = readPendingSignUpRecord();
+    const at = !sentNow && existing?.email === email ? existing.at : Date.now();
+    sessionStorage.setItem(PENDING_SIGNUP_KEY, JSON.stringify({ email, at }));
+  } catch {
+    // Storage unavailable: the code screen still works for this page load.
+  }
+};
+
+const forgetPendingSignUp = (): void => {
+  try {
+    sessionStorage.removeItem(PENDING_SIGNUP_KEY);
+  } catch {
+    // Nothing to clear.
+  }
+};
+
+const readPendingSignUp = (): string | null => {
+  const record = readPendingSignUpRecord();
+  if (!record || Date.now() - record.at > PENDING_SIGNUP_MAX_AGE_MS) {
+    forgetPendingSignUp();
+    return null;
+  }
+  return record.email;
+};
 import * as Sentry from '@sentry/nextjs';
 
 export type AuthMode = 'signIn' | 'signUp' | 'resetPassword';
@@ -69,6 +124,26 @@ export default function AuthForm({
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
+  // Back on the code screen after a reload (review 7.2). After mount, not in the
+  // initial state, so the server render and the first client render agree.
+  useEffect(() => {
+    const email = readPendingSignUp();
+    if (email) {
+      setPendingEmail(email);
+      setPendingVerification(true);
+    }
+  }, []);
+
+  // While the code screen is up, the long-background reload waits (review 7.1).
+  useHoldUnsavedInput(pendingVerification);
+
+  /** Show the code screen for this address and remember it for a reload. */
+  const openCodeScreen = useCallback((address: string, sentNow: boolean) => {
+    setPendingEmail(address);
+    setPendingVerification(true);
+    rememberPendingSignUp(address, sentNow);
+  }, []);
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -108,24 +183,31 @@ export default function AuthForm({
             setConfirmPassword('');
           } else {
             // New user — transition to OTP verification screen
-            setPendingEmail(normalizedEmail);
-            setPendingVerification(true);
+            openCodeScreen(normalizedEmail, true);
             setPassword('');
             setConfirmPassword('');
           }
         } else {
           // Success - user signed up and logged in (auto-confirmed)
+          forgetPendingSignUp();
           onSuccess?.();
         }
       } else if (mode === 'signIn') {
         const result = await signIn(normalizedEmail, password);
-        if (result.error) {
+        if (result.emailNotConfirmed) {
+          // Signed up but never entered the code (review 7.2): the email holds a
+          // code, and this is the only screen that accepts it.
+          setPassword('');
+          openCodeScreen(normalizedEmail, false);
+        } else if (result.error) {
           setError(result.error);
           if (isNetworkErrorMessage(result.error)) {
             logger.warn('[AuthForm] Network error during sign in:', result.error);
           }
         } else {
-          // Success - user signed in
+          // Success - user signed in. Any remembered sign-up is settled (or was
+          // someone else's): it must not reopen a code screen after a sign-out.
+          forgetPendingSignUp();
           setPassword('');
           onSuccess?.();
         }
@@ -164,7 +246,7 @@ export default function AuthForm({
     } finally {
       setIsLoading(false);
     }
-  }, [email, password, confirmPassword, mode, hasAcceptedTerms, signIn, signUp, resetPassword, onSuccess, t]);
+  }, [email, password, confirmPassword, mode, hasAcceptedTerms, signIn, signUp, resetPassword, onSuccess, t, openCodeScreen]);
 
   const handleVerifyOtp = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,6 +267,7 @@ export default function AuthForm({
         setError(result.error);
       } else {
         // Success — user verified and logged in
+        forgetPendingSignUp();
         onSuccess?.();
       }
     } catch (error) {
@@ -377,12 +460,17 @@ export default function AuthForm({
   }, [allowRegistration]);
 
   const exitVerification = useCallback(() => {
+    // Leaving on purpose: no code screen after a reload. Signing in with the
+    // password brings it back while the account is unconfirmed.
+    forgetPendingSignUp();
+    // Restored after a reload, the sign-in field is empty - carry the address over.
+    if (pendingEmail) setEmail(pendingEmail);
     setPendingVerification(false);
     setOtpCode('');
     setError(null);
     setSuccess(null);
     setMode('signIn');
-  }, []);
+  }, [pendingEmail]);
 
   // Shared style definitions
   const primaryButtonStyle =

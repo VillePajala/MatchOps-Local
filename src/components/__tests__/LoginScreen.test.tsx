@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react';
 import LoginScreen from '../LoginScreen';
 
 // Mock auth context
@@ -74,6 +74,7 @@ jest.mock('next/image', () => ({
 describe('LoginScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    sessionStorage.clear();
     mockSignIn.mockResolvedValue({});
     mockSignUp.mockResolvedValue({ confirmationRequired: false });
     mockResetPassword.mockResolvedValue({});
@@ -261,6 +262,97 @@ describe('LoginScreen', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: 'Enter Verification Code' })).toBeInTheDocument();
       });
+    });
+  });
+
+  /**
+   * Review 7.2: a new coach fetching the code from the mail app came back after a
+   * reload to Create Account, and signing in only said "Invalid email or password"
+   * - no screen accepted the code they went to get.
+   * @critical
+   */
+  describe('getting back to the sign-up code', () => {
+    const signUpToCodeScreen = async () => {
+      mockSignUp.mockResolvedValue({ confirmationRequired: true });
+      render(<LoginScreen />);
+      fireEvent.click(screen.getByText('Sign up'));
+      fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'new@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'Password123!@#' } });
+      fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'Password123!@#' } });
+      fireEvent.click(screen.getByRole('checkbox'));
+      fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Enter Verification Code' })).toBeInTheDocument());
+    };
+
+    it('signing in to an unconfirmed account opens the code screen', async () => {
+      mockSignIn.mockResolvedValue({ error: 'Invalid email or password.', emailNotConfirmed: true });
+      render(<LoginScreen />);
+      fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'new@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'Password123!@#' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
+      });
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Enter Verification Code' })).toBeInTheDocument());
+      expect(screen.queryByText('Invalid email or password.')).not.toBeInTheDocument();
+    });
+
+    it('remembers the sign-up for a reload', async () => {
+      await signUpToCodeScreen();
+      expect(JSON.parse(sessionStorage.getItem('matchops.pendingSignUp') ?? '{}').email).toBe('new@example.com');
+    });
+
+    it('holds the long-background reload while the code screen is up', async () => {
+      const { hasUnsavedInput } = jest.requireActual('@/utils/unsavedInputSignal') as typeof import('@/utils/unsavedInputSignal');
+      await signUpToCodeScreen();
+      expect(hasUnsavedInput()).toBe(true);
+      fireEvent.click(screen.getByText('Back to sign in'));
+      await waitFor(() => expect(hasUnsavedInput()).toBe(false));
+    });
+
+    it('a successful sign-in forgets a remembered sign-up (no stale code screen after sign-out)', async () => {
+      sessionStorage.setItem('matchops.pendingSignUp', JSON.stringify({ email: 'other@example.com', at: Date.now() }));
+      render(<LoginScreen />);
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Enter Verification Code' })).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Back to sign in'));
+      // The address carries over to the sign-in field.
+      expect(screen.getByPlaceholderText('Email')).toHaveValue('other@example.com');
+      sessionStorage.setItem('matchops.pendingSignUp', JSON.stringify({ email: 'other@example.com', at: Date.now() }));
+      fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'Password123!@#' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
+      });
+      await waitFor(() => expect(sessionStorage.getItem('matchops.pendingSignUp')).toBeNull());
+    });
+
+    it('ignores a malformed stored value', async () => {
+      sessionStorage.setItem('matchops.pendingSignUp', '{not json');
+      render(<LoginScreen />);
+      await act(async () => {});
+      expect(screen.queryByRole('heading', { name: 'Enter Verification Code' })).not.toBeInTheDocument();
+    });
+
+    it('the code screen comes back after a reload', async () => {
+      await signUpToCodeScreen();
+      cleanup(); // the page reloads
+      render(<LoginScreen />);
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Enter Verification Code' })).toBeInTheDocument());
+    });
+
+    it('not once the code has expired (an hour)', async () => {
+      sessionStorage.setItem('matchops.pendingSignUp', JSON.stringify({ email: 'new@example.com', at: Date.now() - 61 * 60 * 1000 }));
+      render(<LoginScreen />);
+      await act(async () => {});
+      expect(screen.queryByRole('heading', { name: 'Enter Verification Code' })).not.toBeInTheDocument();
+      expect(sessionStorage.getItem('matchops.pendingSignUp')).toBeNull();
+    });
+
+    it('not after the coach left it with "Back to sign in"', async () => {
+      await signUpToCodeScreen();
+      fireEvent.click(screen.getByText('Back to sign in'));
+      cleanup();
+      render(<LoginScreen />);
+      await act(async () => {});
+      expect(screen.queryByRole('heading', { name: 'Enter Verification Code' })).not.toBeInTheDocument();
     });
   });
 
