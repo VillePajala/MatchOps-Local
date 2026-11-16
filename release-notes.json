@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "A double tap on Add when adding a player no longer opens another player's details or saves twice."
+      ],
+      "fi": [
+        "Kaksoisnapautus Lisää-painikkeeseen pelaajaa lisättäessä ei enää avaa toisen pelaajan tietoja eikä tallenna kahdesti."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Adding a player: if the shirt number is already taken or saving fails, the form now stays open with the message next to the field, and what you typed is kept."
       ],
       "fi": [

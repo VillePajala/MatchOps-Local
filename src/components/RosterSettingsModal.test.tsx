@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 
@@ -168,6 +168,37 @@ describe('<RosterSettingsModal />', () => {
     await waitFor(() => {
       expect(mockOnAddPlayer).toHaveBeenCalledWith(newPlayer);
     });
+  });
+
+  /**
+   * Review 7.11: the second tap of a double tap on Add lands on the roster row that
+   * was under the button once the form closes - it must not open that player.
+   */
+  test('a tap on a row right after the add form closes is ignored, a later one opens it', async () => {
+    jest.useFakeTimers();
+    try {
+      mockOnAddPlayer.mockResolvedValue(true);
+      render(
+        <TestWrapper>
+          <RosterSettingsModal {...defaultProps} />
+        </TestWrapper>
+      );
+      fireEvent.click(screen.getByRole('button', { name: /Add Player/i }));
+      fireEvent.change(screen.getByPlaceholderText(/Enter player name/i), { target: { value: 'Uusi' } });
+      const add = screen.getAllByRole('button', { name: /Add/i }).find((b) => b.textContent === 'Add');
+      if (!add) throw new Error('Add button not found in modal');
+      await act(async () => { fireEvent.click(add); });
+      expect(screen.queryByPlaceholderText(/Enter player name/i)).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Player One')); // the double tap's second half
+      expect(screen.queryByText(/Player Details/i)).not.toBeInTheDocument();
+
+      act(() => { jest.advanceTimersByTime(500); });
+      fireEvent.click(screen.getByText('Player One'));
+      expect(screen.getByText(/Player Details/i)).toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   test('edits player when edit form is submitted', async () => {
