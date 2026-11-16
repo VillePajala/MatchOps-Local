@@ -479,7 +479,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     deleteAssessment,
   } = usePlayerAssessments(
     currentGameId || '',
-    gameSessionState.completedIntervalDurations,
+    gameSessionState.timeElapsedInSeconds,
   );
 
   // --- Game Data Management Hook ---

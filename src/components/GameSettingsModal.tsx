@@ -2299,9 +2299,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           onShootoutKicksChange(kicks);
           const updates: Partial<AppState> = { shootoutKicks: kicks };
           // Recording a shootout marks the game as decided by penalties, but we
-          // only auto-CHECK it — we never silently uncheck the coach's flag, and
-          // the result gates on this flag (see resolveGameResult), so they stay
-          // in control of whether the shootout counts.
+          // only auto-CHECK it — we never silently uncheck the coach's flag. Note
+          // (review 4.34): the RESULT is decided by the recorded kicks on a level
+          // score (resolveGameResult), not by this flag.
           if (kicks.length > 0 && !wentToPenalties) {
             onWentToPenaltiesChange(true);
             updates.wentToPenalties = true;

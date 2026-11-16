@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "The Excel export's Total Game Duration and a player rating's minutes played now use the match clock, so a game with no confirmed substitutions no longer shows 0. Substitution times in the export show the match minute instead of a 1970 date."
+      ],
+      "fi": [
+        "Excel-viennin pelin kokonaiskesto ja pelaaja-arvion peliminuutit perustuvat nyt ottelukelloon, joten peli ilman vahvistettuja vaihtoja ei enää näytä nollaa. Viennin vaihtoajat näyttävät ottelun minuutin vuoden 1970 päivämäärän sijaan."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "A quick double tap on Start no longer pauses the clock it just started, and Reset now resets straight away.",
         "Undo no longer misses a change made just as the clock ticked, and the substitution interval stops at its 1-minute minimum."
       ],
