@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Match changes are saved the moment the app goes to the background, a save that briefly fails is retried, and a running match is saved when you leave it."
+      ],
+      "fi": [
+        "Ottelun muutokset tallentuvat heti, kun sovellus siirtyy taustalle, hetkellisesti epäonnistunut tallennus yritetään uudelleen, ja käynnissä oleva ottelu tallentuu, kun poistut siitä."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Correcting a too-long period length at half-time no longer shortens the second half: it stays half-time, and the second half runs its full length."
       ],
       "fi": [

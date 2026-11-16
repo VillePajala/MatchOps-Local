@@ -18,6 +18,7 @@ jest.mock('@/utils/logger', () => ({
   default: {
     debug: jest.fn(),
     log: jest.fn(),
+    warn: jest.fn(),
     error: jest.fn(),
   },
 }));
@@ -508,6 +509,70 @@ describe('useAutoSave', () => {
      * Cleanup should clear all pending timers to prevent memory leaks
      * @critical
      */
+    /**
+     * Review 4.28: going to the background saves a pending change at once (a kill in
+     * the debounce window lost it), and with saveWhenLeaving (a running clock) hiding
+     * or unmounting saves even with nothing pending.
+     * @critical
+     */
+    describe('saving when leaving (review 4.28)', () => {
+      const setHidden = (hidden: boolean) => {
+        Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+        act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+      };
+      afterEach(() => setHidden(false));
+
+      it('saves a pending debounced change when the app is hidden', () => {
+        const { rerender } = renderHook(({ teamName }) => useAutoSave({
+          short: { states: { teamName }, delay: 500 }, saveFunction: mockSaveFunction, enabled: true, currentGameId: 'g1',
+        }), { initialProps: { teamName: 'A' } });
+        act(() => { rerender({ teamName: 'B' }); });
+        expect(mockSaveFunction).not.toHaveBeenCalled();
+        setHidden(true);
+        expect(mockSaveFunction).toHaveBeenCalledTimes(1);
+        act(() => { jest.advanceTimersByTime(1000); });
+        expect(mockSaveFunction).toHaveBeenCalledTimes(1); // the debounce does not save it again
+      });
+
+      it('with nothing pending, saves on hide and unmount only when saveWhenLeaving says so', () => {
+        let running = false;
+        const { unmount } = renderHook(() => useAutoSave({
+          short: { states: { teamName: 'A' }, delay: 500 }, saveFunction: mockSaveFunction, enabled: true,
+          currentGameId: 'g1', saveWhenLeaving: () => running,
+        }));
+        setHidden(true);
+        expect(mockSaveFunction).not.toHaveBeenCalled();
+        setHidden(false);
+        running = true;
+        setHidden(true);
+        expect(mockSaveFunction).toHaveBeenCalledTimes(1);
+        unmount();
+        expect(mockSaveFunction).toHaveBeenCalledTimes(2);
+      });
+
+      it('a failed save on hide keeps the change pending for the next save', async () => {
+        mockSaveFunction.mockRejectedValueOnce(new Error('deterministic failure'));
+        const { rerender, unmount } = renderHook(({ teamName }) => useAutoSave({
+          short: { states: { teamName }, delay: 500 }, saveFunction: mockSaveFunction, enabled: true, currentGameId: 'g1',
+        }), { initialProps: { teamName: 'A' } });
+        act(() => { rerender({ teamName: 'B' }); });
+        setHidden(true);
+        await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+        expect(mockSaveFunction).toHaveBeenCalledTimes(1);
+        unmount(); // leaving again: still pending, so saved again
+        expect(mockSaveFunction).toHaveBeenCalledTimes(2);
+      });
+
+      it('saves nothing when disabled', () => {
+        renderHook(() => useAutoSave({
+          short: { states: { teamName: 'A' }, delay: 500 }, saveFunction: mockSaveFunction, enabled: false,
+          currentGameId: 'g1', saveWhenLeaving: () => true,
+        }));
+        setHidden(true);
+        expect(mockSaveFunction).not.toHaveBeenCalled();
+      });
+    });
+
     it('flushes a pending debounce on unmount, then stays quiet', () => {
       const { unmount, rerender } = renderHook(
         ({ teamName, playersOnField }) =>
