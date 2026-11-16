@@ -33,6 +33,7 @@ export default function MarketingConsentPrompt() {
   const hasFirstGame = useFirstGameExists();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Delay rendering by 5 seconds after showMarketingPrompt becomes true.
@@ -59,31 +60,35 @@ export default function MarketingConsentPrompt() {
 
   if (!showMarketingPrompt || !isReady) return null;
 
-  const handleAccept = async () => {
+  // Dismiss only once the choice is saved (review 6.7): dismissing sets the per-user
+  // "seen" flag, so on a failed save the prompt used to vanish for good - a coach who
+  // said yes was not opted in and thought they were. On failure the prompt stays,
+  // says so, and the coach can try again or close it.
+  const submit = async (granted: boolean) => {
     setIsSubmitting(true);
+    setSaveFailed(false);
+    let saved = false;
     try {
-      const result = await setMarketingConsent(true);
+      const result = await setMarketingConsent(granted);
       if (result.error) {
-        logger.warn('[MarketingConsentPrompt] Failed to grant consent:', result.error);
+        logger.warn(`[MarketingConsentPrompt] Failed to ${granted ? 'grant consent' : 'record decline'}:`, result.error);
+      } else {
+        saved = true;
       }
+    } catch (error) {
+      logger.warn('[MarketingConsentPrompt] Saving the choice threw:', error);
     } finally {
       setIsSubmitting(false);
+    }
+    if (saved) {
       dismissMarketingPrompt();
+    } else {
+      setSaveFailed(true);
     }
   };
 
-  const handleDecline = async () => {
-    setIsSubmitting(true);
-    try {
-      const result = await setMarketingConsent(false);
-      if (result.error) {
-        logger.warn('[MarketingConsentPrompt] Failed to record decline:', result.error);
-      }
-    } finally {
-      setIsSubmitting(false);
-      dismissMarketingPrompt();
-    }
-  };
+  const handleAccept = () => submit(true);
+  const handleDecline = () => submit(false);
 
   const handleDismiss = () => {
     dismissMarketingPrompt();
@@ -110,6 +115,12 @@ export default function MarketingConsentPrompt() {
         <p className="text-sm text-slate-400 mt-2 mb-4">
           {t('marketingConsent.promptDescription', 'Get occasional product updates, tips, and new feature announcements via email. You can change this anytime in Settings.')}
         </p>
+
+        {saveFailed && (
+          <p role="alert" data-testid="marketing-consent-error" className="text-sm text-red-300 mb-3">
+            {t('marketingConsent.updateFailed', 'Failed to update marketing preferences')}
+          </p>
+        )}
 
         <div className="flex gap-2">
           <button

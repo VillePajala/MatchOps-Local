@@ -285,6 +285,44 @@ describe('MarketingConsentPrompt', () => {
     });
   });
 
+  /**
+   * Review 6.7: dismissing sets the per-user "seen" flag. On a failed save the prompt
+   * used to vanish for good, so a coach who said yes was not opted in and thought
+   * they were. It now stays, says so, and a retry that succeeds dismisses it.
+   * @critical
+   */
+  it.each([
+    ['an error result', () => mockSetMarketingConsent.mockResolvedValueOnce({ error: 'network' })],
+    ['a thrown error', () => mockSetMarketingConsent.mockRejectedValueOnce(new Error('offline'))],
+  ])('keeps the prompt and says so when saving fails (%s); a retry that works dismisses it', async (_label, failOnce) => {
+    failOnce();
+    mockSetMarketingConsent.mockResolvedValue({});
+    mockUseAuth.mockReturnValue({
+      ...defaultMockAuth,
+      showMarketingPrompt: true,
+      setMarketingConsent: mockSetMarketingConsent,
+      dismissMarketingPrompt: mockDismissMarketingPrompt,
+    });
+
+    render(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Yes, keep me updated/i }));
+    });
+    await waitFor(() => expect(screen.getByTestId('marketing-consent-error')).toBeInTheDocument());
+    expect(mockDismissMarketingPrompt).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /Yes, keep me updated/i })).not.toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Yes, keep me updated/i }));
+    });
+    await waitFor(() => expect(mockDismissMarketingPrompt).toHaveBeenCalledTimes(1));
+    expect(mockSetMarketingConsent).toHaveBeenCalledTimes(2);
+  });
+
   it('calls dismissMarketingPrompt only (no consent recorded) when X button is clicked', async () => {
     mockUseAuth.mockReturnValue({
       ...defaultMockAuth,

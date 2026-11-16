@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "If saving your email-updates choice fails, the question now stays on screen and says so, so you can try again. It used to close as if the choice had been saved."
+      ],
+      "fi": [
+        "Jos sähköpostipäivityksiä koskevan valinnan tallennus epäonnistuu, kysymys jää nyt näkyviin ja kertoo siitä, joten voit yrittää uudelleen. Aiemmin se sulkeutui kuin valinta olisi tallentunut."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Voice recordings are now deleted after 30 days even if you no longer use voice notes, and deleting a match also deletes its recordings."
       ],
       "fi": [
