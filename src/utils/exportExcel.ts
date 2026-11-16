@@ -12,7 +12,7 @@ import { formatTime } from './time';
 import { resolveGameResult } from '@/utils/gameResult';
 import { gameSquadForExport } from '@/utils/playerStats';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
-import { adjustmentInScope } from '@/utils/adjustmentScope';
+import { adjustmentInScope, type AdjustmentScope } from '@/utils/adjustmentScope';
 import { computeHeadToHead } from '@/utils/headToHead';
 import { ASSESSMENT_METRICS } from '@/config/assessmentMetrics';
 
@@ -185,9 +185,9 @@ const calculateRecord = (
 /** Excel-only switches. `includeAssessments` follows the app setting: off means no ratings sheet, even for old data. */
 export interface ExcelExportOptions {
   includeAssessments?: boolean;
-  /** Player export: the team filter on screen, so the external games counted are the
-   *  ones the player view counts (review 5.6). */
-  teamFilter?: string;
+  /** Player export: the filters on screen (team, club season, game type, gender), so
+   *  the external games counted are the ones the player view counts (review 5.6). */
+  adjustmentScope?: AdjustmentScope;
 }
 
 export const exportCurrentGameExcel = (
@@ -969,10 +969,10 @@ export const exportPlayerExcel = (
       if (seasonPlayerInGame?.receivedFairPlayCard) stats.fairPlay++;
     });
 
-  // External games in scope (the player view's rule, review 5.6): the team filter on
+  // External games in scope (the player view's rule, review 5.6): the filters on
   // screen, and only those marked to count toward their season/tournament.
   const countedAdjustments = externalAdjustments.filter(
-    (adj) => adj.playerId === playerId && adjustmentInScope(adj, { teamFilter: options.teamFilter ?? 'all' }),
+    (adj) => adj.playerId === playerId && adjustmentInScope(adj, options.adjustmentScope ?? {}),
   );
   for (const adj of countedAdjustments) {
     if (!adj.includeInSeasonTournament || !adj.seasonId) continue;
