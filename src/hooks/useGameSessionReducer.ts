@@ -201,9 +201,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       // confirmation restored lastSubConfirmationTimeSeconds but left the next-due time
       // of the mistaken confirmation, so a sub still owed showed no reminder. Recompute
       // both from the restored values, as loading a saved game does.
-      // Only when the undo actually changes them: every entry carries these fields, and
-      // other paths (e.g. SET_SUB_INTERVAL's clock-aligned due time) compute the due
-      // time differently - undoing an unrelated goal must not move the reminder.
+      // Only when the undo actually changes them: every entry carries these fields, so
+      // undoing an unrelated goal must not touch the reminder.
       if (merged.lastSubConfirmationTimeSeconds === state.lastSubConfirmationTimeSeconds
         && merged.subIntervalMinutes === state.subIntervalMinutes) {
         return merged;
@@ -488,10 +487,11 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         const newIntervalMinutes = Math.max(1, action.payload);
         const currentElapsedTime = state.timeElapsedInSeconds;
         const newIntervalSec = newIntervalMinutes * 60;
-        let newDueTime = Math.ceil((currentElapsedTime + 1) / newIntervalSec) * newIntervalSec;
-        if (newDueTime <= currentElapsedTime && newIntervalSec > 0 ) newDueTime += newIntervalSec;
-        if (newDueTime === 0 && newIntervalSec > 0) newDueTime = newIntervalSec;
-
+        // Last confirmed sub + interval (review 4.13, owner decision 2026-11-16) - the
+        // same rule as confirming a sub, starting a period and loading a game. A grid
+        // from kick-off here made the reminder jump after a reload (07:00 became 12:00).
+        // If that time has already passed, the reminder is due straight away.
+        const newDueTime = state.lastSubConfirmationTimeSeconds + newIntervalSec;
 
         let alertLevel: GameSessionState['subAlertLevel'] = 'none';
         const warningTime = newDueTime - 60;

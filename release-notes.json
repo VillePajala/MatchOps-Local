@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Changing the substitution interval during a match now counts from the last confirmed substitution, so the reminder no longer moves when the app reloads."
+      ],
+      "fi": [
+        "Vaihtovälin muuttaminen ottelun aikana lasketaan nyt viimeisimmästä vahvistetusta vaihdosta, joten muistutus ei enää siirry sovelluksen latautuessa uudelleen."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "If opening a match fails to save on the device, the app now says so and stays put instead of opening the previous match."
       ],
       "fi": [
