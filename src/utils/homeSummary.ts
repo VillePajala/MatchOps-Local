@@ -7,7 +7,8 @@
  * "Season" here always means the CLUB SEASON (Vuosi), derived from today's date
  * and the coach's configured season window - never one of the coach's Kaudet.
  */
-import type { SavedGamesCollection, AppState, Player } from '@/types';
+import type { SavedGamesCollection, AppState, Player, PlayerStatAdjustment } from '@/types';
+import { adjustmentInScope } from './adjustmentScope';
 import { planDeparture, DEFAULT_ARRIVAL_BUFFER_MINUTES, type TravelPlan, type Coordinates } from './travelPlan';
 import { mapsDirectionsUrl } from '@/config/externalLinks';
 import { DEFAULT_GAME_ID } from '@/config/constants';
@@ -212,6 +213,9 @@ export interface HomeSummaryOptions {
   currentGameId?: string | null;
   /** Master roster - for the players count AND top-scorer name resolution. */
   roster?: Player[];
+  /** External games recorded by hand: their goals count toward the top scorer within
+   *  the same team and club-season scope, as in the stats view (review 5.8). */
+  adjustments?: PlayerStatAdjustment[];
   /**
    * Which team the dashboard is about: a team id, 'legacy' for games naming no
    * team, or 'all'.
@@ -307,6 +311,19 @@ export function buildHomeSummary(
             goalsById.set(ev.scorerId, (goalsById.get(ev.scorerId) ?? 0) + 1);
           }
         }
+      }
+      // External games in the same scope as the stats view's Overall tab for this club
+      // season and team (review 5.8): the tile used to count app games only, so a
+      // player with goals added by hand topped the stats view but not Home.
+      for (const adj of opts.adjustments ?? []) {
+        if (!nameById.has(adj.playerId) || !adj.goalsDelta) continue;
+        if (!adjustmentInScope(adj, {
+          teamFilter: opts.teamFilter ?? 'all',
+          clubSeason: label,
+          clubSeasonStartDate: opts.clubSeasonStartDate,
+          clubSeasonEndDate: opts.clubSeasonEndDate,
+        })) continue;
+        goalsById.set(adj.playerId, (goalsById.get(adj.playerId) ?? 0) + adj.goalsDelta);
       }
       let bestId: string | null = null;
       let bestGoals = 0;

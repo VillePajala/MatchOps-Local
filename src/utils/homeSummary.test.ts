@@ -142,6 +142,31 @@ describe('buildHomeSummary — counts + top scorer (phase 2)', () => {
     expect(topScorer).toEqual({ name: 'Aho', goals: 1 });
   });
 
+  /**
+   * Review 5.8: external games' goals count toward the Home top scorer within the same
+   * team and club-season scope as the stats view - not other teams' or other years'.
+   * @critical
+   */
+  it('counts in-scope external games toward the top scorer', () => {
+    const games: SavedGamesCollection = {
+      m1: g({ teamId: 'teamA', gameDate: '2024-03-01', gameEvents: [
+        { id: 'e1', type: 'goal', time: 1, scorerId: 'p1' },
+        { id: 'e2', type: 'goal', time: 2, scorerId: 'p1' },
+      ] } as Partial<AppState>),
+    };
+    const ext = (id: string, over: Record<string, unknown>) => ({
+      id, playerId: 'p2', teamId: 'teamA', gameDate: '2024-04-01', gamesPlayedDelta: 1, goalsDelta: 3, assistsDelta: 0,
+      appliedAt: '2024-04-02T00:00:00Z', ...over,
+    }) as never;
+    const roster = [{ id: 'p1', name: 'Leevi' }, { id: 'p2', name: 'Onni' }] as never;
+    const inScope = buildHomeSummary(games, { ...opts, teamFilter: 'teamA', roster, adjustments: [ext('a', {})] });
+    expect(inScope.topScorer).toEqual({ name: 'Onni', goals: 3 });
+    const otherTeam = buildHomeSummary(games, { ...opts, teamFilter: 'teamA', roster, adjustments: [ext('b', { teamId: 'teamB' })] });
+    expect(otherTeam.topScorer).toEqual({ name: 'Leevi', goals: 2 });
+    const otherYear = buildHomeSummary(games, { ...opts, teamFilter: 'teamA', roster, adjustments: [ext('c', { gameDate: '2023-04-01' })] });
+    expect(otherYear.topScorer).toEqual({ name: 'Leevi', goals: 2 });
+  });
+
   it('top scorer is null without a roster or without season config', () => {
     const games: SavedGamesCollection = {
       m1: g({ gameDate: '2024-03-01', gameEvents: [{ id: 'e1', type: 'goal', time: 1, scorerId: 'p1' }] } as Partial<AppState>),
