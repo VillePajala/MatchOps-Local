@@ -3195,6 +3195,7 @@ export type TranslationKey =
   | 'tournamentDetailsModal.games'
   | 'tournamentDetailsModal.goalSingular'
   | 'tournamentDetailsModal.goals'
+  | 'tournamentDetailsModal.levelInUse'
   | 'tournamentDetailsModal.levelLabel'
   | 'tournamentDetailsModal.locationLabel'
   | 'tournamentDetailsModal.locationPlaceholder'

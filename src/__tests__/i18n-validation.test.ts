@@ -733,7 +733,8 @@ describe('Translation File Validation', () => {
       // +1 export.noGamesForPlayer (review 5.7). 3402.
       // +2 opponentSweep.usedIn_one/_other (the key did not exist; review 5.10). 3404.
       // +3 opponentSweep.mergeWarning_one/_other, mergeConfirm (review 7.14). 3407.
-      expect(enKeys.length).toBe(3407);
+      // +1 tournamentDetailsModal.levelInUse (review 7.15). 3408.
+      expect(enKeys.length).toBe(3408);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -933,7 +934,8 @@ describe('Translation File Validation', () => {
       // +1 export.noGamesForPlayer. Lands at 3402.
       // +2 opponentSweep.usedIn_one/_other. Lands at 3404.
       // +3 opponentSweep.mergeWarning_one/_other, mergeConfirm (review 7.14). 3407.
-      expect(fiKeys.length).toBe(3407);
+      // +1 tournamentDetailsModal.levelInUse (review 7.15). 3408.
+      expect(fiKeys.length).toBe(3408);
     });
   });
 });

@@ -72,6 +72,44 @@ describe('TournamentSeriesManager', () => {
     expect(mockOnSeriesChange).toHaveBeenCalledWith([{ id: 's2', level: 'Kilpa' }]);
   });
 
+  /**
+   * Review 7.15: removing a level that games or teams use left them pointing at an
+   * id that no longer exists. It is refused with the counts, like deleting a
+   * tournament in use.
+   * @critical
+   */
+  it('refuses to remove a level in use and says where it is used', () => {
+    const series: TournamentSeries[] = [{ id: 's1', level: 'Elite' }, { id: 's2', level: 'Kilpa' }];
+    render(
+      <TournamentSeriesManager
+        series={series}
+        onSeriesChange={mockOnSeriesChange}
+        seriesUsage={{ s1: { games: 4, teams: 1 } }}
+      />
+    );
+    fireEvent.click(screen.getAllByRole('button', { name: /remove level/i })[0]);
+    expect(mockOnSeriesChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId('series-in-use')).toBeInTheDocument();
+
+    // An unused level still goes.
+    fireEvent.click(screen.getAllByRole('button', { name: /remove level/i })[1]);
+    expect(mockOnSeriesChange).toHaveBeenCalledWith([{ id: 's1', level: 'Elite' }]);
+  });
+
+  it('a level removed and added back in the same edit keeps its id', async () => {
+    const { rerender } = render(
+      <TournamentSeriesManager series={[{ id: 's1', level: 'Elite' }]} onSeriesChange={mockOnSeriesChange} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /remove level/i }));
+    expect(mockOnSeriesChange).toHaveBeenLastCalledWith([]);
+    rerender(<TournamentSeriesManager series={[]} onSeriesChange={mockOnSeriesChange} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /add level/i }));
+    fireEvent.change(screen.getByRole('combobox', { name: /select the new level/i }), { target: { value: 'Elite' } });
+    fireEvent.click(screen.getByRole('button', { name: /confirm add level/i }));
+    await waitFor(() => expect(mockOnSeriesChange).toHaveBeenLastCalledWith([{ id: 's1', level: 'Elite' }]));
+  });
+
   it('shows add series UI when clicking add button', async () => {
     render(
       <TournamentSeriesManager

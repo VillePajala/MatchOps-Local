@@ -1487,7 +1487,8 @@
       "updateFailed": "Turnauksen päivittäminen epäonnistui. Yritä uudelleen."
     },
     "seasonDatesNotConfigured": "Seurakauden päivämääriä ei ole määritetty",
-    "configureInSettings": "Määritä asetuksissa laskeaksesi seurakaudet oikein."
+    "configureInSettings": "Määritä asetuksissa laskeaksesi seurakaudet oikein.",
+    "levelInUse": "Taso on käytössä: {{games}} ottelua, {{teams}} joukkuetta. Siirrä ne ensin toiselle tasolle."
   },
   "tournaments": {
     "selectAwardWinner": "-- Valitse turnauksen pelaaja --",

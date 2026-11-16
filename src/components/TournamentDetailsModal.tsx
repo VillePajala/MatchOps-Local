@@ -11,7 +11,9 @@ import { getAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END
 import { useDataStore } from '@/hooks/useDataStore';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { createLogger } from '@/utils/logger';
-import TournamentSeriesManager from './TournamentSeriesManager';
+import TournamentSeriesManager, { type SeriesUsage } from './TournamentSeriesManager';
+import { getSavedGames } from '@/utils/savedGames';
+import { getDataStore } from '@/datastore/factory';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { HiExclamationTriangle } from 'react-icons/hi2';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
@@ -49,6 +51,30 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
     queryFn: () => getAppSettings(userId),
     staleTime: Infinity, // Settings rarely change during session
   });
+
+  // Which games and teams use each level (review 7.15), archived teams included -
+  // a level they point at must not be removed.
+  const { data: savedGamesForUsage, isSuccess: gamesUsageLoaded } = useQuery({
+    queryKey: [...queryKeys.savedGames, userId],
+    queryFn: () => getSavedGames(userId),
+    enabled: isOpen,
+  });
+  const { data: teamsForUsage, isSuccess: teamsUsageLoaded } = useQuery({
+    queryKey: [...queryKeys.teams, userId, 'withArchived'],
+    queryFn: async () => (await getDataStore(userId)).getTeams(true),
+    enabled: isOpen,
+  });
+  const seriesUsage = useMemo<SeriesUsage>(() => {
+    const usage: SeriesUsage = {};
+    const bump = (id: string | undefined, field: 'games' | 'teams') => {
+      if (!id) return;
+      usage[id] = usage[id] ?? { games: 0, teams: 0 };
+      usage[id][field] += 1;
+    };
+    for (const game of Object.values(savedGamesForUsage ?? {})) bump(game?.tournamentSeriesId, 'games');
+    for (const team of teamsForUsage ?? []) bump(team.boundTournamentSeriesId, 'teams');
+    return usage;
+  }, [savedGamesForUsage, teamsForUsage]);
 
   // Form state
   useEscapeToClose(isOpen, onClose);
@@ -445,6 +471,8 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
               <TournamentSeriesManager
                 series={series}
                 onSeriesChange={setSeries}
+                seriesUsage={seriesUsage}
+                usageReady={gamesUsageLoaded && teamsUsageLoaded}
               />
 
               {/* Start Date and End Date */}

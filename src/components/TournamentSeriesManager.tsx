@@ -1,14 +1,28 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TournamentSeries } from '@/types';
 import { LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
 
+/** A fresh level id. crypto.randomUUID is available in every browser that has IndexedDB. */
+const newSeriesId = (): string => `series_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+
+/** How many saved games and teams point at a level, by level id. */
+export type SeriesUsage = Record<string, { games: number; teams: number }>;
+
 interface TournamentSeriesManagerProps {
   series: TournamentSeries[];
   onSeriesChange: (series: TournamentSeries[]) => void;
+  /**
+   * Review 7.15: a level that games or teams use cannot be removed - they would
+   * keep an id that no longer exists (no level badge, unreachable by the Level
+   * filter, a team's binding lost). Same rule as deleting a tournament in use.
+   */
+  seriesUsage?: SeriesUsage;
+  /** False while the usage is still loading: removal waits, so it cannot skip the check. */
+  usageReady?: boolean;
 }
 
 /**
@@ -19,8 +33,15 @@ interface TournamentSeriesManagerProps {
 const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
   series,
   onSeriesChange,
+  seriesUsage,
+  usageReady = true,
 }) => {
   const { t } = useTranslation();
+  // The level whose removal was refused, for the message under the chips.
+  const [blockedSeriesId, setBlockedSeriesId] = useState<string | null>(null);
+  // Levels removed in this edit, by level name: re-adding one gets its old id back,
+  // so anything still pointing at it (e.g. a game saved elsewhere meanwhile) matches.
+  const removedIdsRef = useRef<Record<string, string>>({});
 
   // UI state for adding new series
   const [isAddingNewSeries, setIsAddingNewSeries] = useState(false);
@@ -37,9 +58,8 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
     if (!newSeriesLevel || !LEVELS.includes(newSeriesLevel)) return;
     // Prevent duplicate levels (UI dropdown also filters, but defensive check for data integrity)
     if (series.some(s => s.level === newSeriesLevel)) return;
-    // Generate unique ID - crypto.randomUUID available in all browsers supporting IndexedDB
     const newSeries: TournamentSeries = {
-      id: `series_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`,
+      id: removedIdsRef.current[newSeriesLevel] ?? newSeriesId(),
       level: newSeriesLevel,
     };
     onSeriesChange([...series, newSeries]);
@@ -48,6 +68,14 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
   };
 
   const handleRemoveSeries = (seriesId: string) => {
+    const usage = seriesUsage?.[seriesId];
+    if (usage && (usage.games > 0 || usage.teams > 0)) {
+      setBlockedSeriesId(seriesId);
+      return;
+    }
+    setBlockedSeriesId(null);
+    const removed = series.find(s => s.id === seriesId);
+    if (removed) removedIdsRef.current[removed.level] = removed.id;
     onSeriesChange(series.filter(s => s.id !== seriesId));
   };
 
@@ -74,7 +102,8 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
               <button
                 type="button"
                 onClick={() => handleRemoveSeries(s.id)}
-                className="text-slate-400 hover:text-red-400 ml-1"
+                disabled={!usageReady}
+                className="text-slate-400 hover:text-red-400 ml-1 disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label={`${t('tournamentDetailsModal.removeSeries', 'Remove level')}: ${t(`common.level${s.level}` as TranslationKey, s.level)}`}
               >
                 ×
@@ -82,6 +111,15 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
             </div>
           ))}
         </div>
+      )}
+
+      {blockedSeriesId && seriesUsage?.[blockedSeriesId] && (
+        <p className="text-sm text-amber-300 mb-2" role="alert" data-testid="series-in-use">
+          {t('tournamentDetailsModal.levelInUse', 'This level is in use: {{games}} games, {{teams}} teams. Move them to another level first.', {
+            games: seriesUsage[blockedSeriesId].games,
+            teams: seriesUsage[blockedSeriesId].teams,
+          })}
+        </p>
       )}
 
       {/* Add new series UI */}
