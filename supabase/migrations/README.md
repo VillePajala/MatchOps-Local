@@ -494,3 +494,17 @@ supabase db push
 - [Schema Documentation](../../docs/02-technical/database/supabase-schema.md)
 - [Implementation Guide](../../docs/03-active-plans/supabase-implementation-guide.md)
 - [Billing Implementation](../../docs/03-active-plans/billing-implementation-plan.md)
+
+## Service-only functions (review 6.6)
+
+Supabase's default privileges grant `EXECUTE` on every new function in `public` to
+`anon` and `authenticated` directly. `REVOKE ... FROM PUBLIC` does not remove those
+grants. A function that only Edge Functions may call (with the service role) must
+revoke from all three roles and grant to `service_role` explicitly:
+
+```sql
+REVOKE EXECUTE ON FUNCTION public.my_fn(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.my_fn(text) TO service_role;
+```
+
+`service_role` is not a superuser: it bypasses RLS, not `EXECUTE` checks. See migration 057.

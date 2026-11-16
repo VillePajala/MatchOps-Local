@@ -15,6 +15,16 @@
 --  - call check_rate_limit with another caller's key (e.g. 'delete-acct:<ip>')
 --    to hold that key at its limit, or fill rate_limits with junk rows.
 --
+-- How it was missed: 010's comment says service_role is a superuser that bypasses
+-- EXECUTE checks, so revoking from the client roles was enough. That premise is
+-- false - service_role only has BYPASSRLS and needs EXECUTE like any other role -
+-- and this migration supersedes that comment.
+--
+-- For every future service-only function: the project's default privileges grant
+-- EXECUTE on new public functions to anon AND authenticated directly. Revoking
+-- from PUBLIC does not remove those grants; revoke from anon and authenticated
+-- explicitly (see supabase/migrations/README.md).
+--
 -- Grants only: the function bodies are not touched. The explicit service_role
 -- grant states the intent; it already holds EXECUTE today.
 --
@@ -24,10 +34,10 @@
 -- ============================================================================
 
 REVOKE EXECUTE ON FUNCTION public.upsert_subscription(
-  uuid, subscription_status, text, text, text, timestamptz, timestamptz, timestamptz
+  uuid, public.subscription_status, text, text, text, timestamptz, timestamptz, timestamptz
 ) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.upsert_subscription(
-  uuid, subscription_status, text, text, text, timestamptz, timestamptz, timestamptz
+  uuid, public.subscription_status, text, text, text, timestamptz, timestamptz, timestamptz
 ) TO service_role;
 
 REVOKE EXECUTE ON FUNCTION public.check_rate_limit(text, integer, integer)
