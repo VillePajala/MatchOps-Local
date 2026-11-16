@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Exporting a single game from Saved games now lists that game's own players, including those who have since left, and shows who received the fair play card."
+      ],
+      "fi": [
+        "Yksittäisen ottelun vienti tallennetuista peleistä listaa nyt ottelun omat pelaajat, myös myöhemmin lähteneet, ja näyttää kuka sai reilun pelin kortin."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "The Fair Play Awards column in the stats table and the Excel export now shows each player's real count instead of 0."
       ],
       "fi": [

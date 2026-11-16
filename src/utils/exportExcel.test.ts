@@ -317,6 +317,28 @@ describe('Excel Export Utilities', () => {
       expect(gameInfo.find((item) => item.Field === 'Total Game Duration')?.Value).toBe('10:00');
     });
 
+    /**
+     * Review 5.4: the single-game export uses the game's own players - a player who
+     * has since left the club still has a row (and a name on their goals), and the
+     * fair-play card is the game's, not the roster's.
+     * @critical
+     */
+    it('lists the game\'s own players, with the game\'s fair-play card', () => {
+      const gone = { id: 'gone', name: 'Left Club', jerseyNumber: '9', receivedFairPlayCard: true } as Player;
+      const game = {
+        ...mockGame,
+        selectedPlayerIds: ['gone'],
+        availablePlayers: [gone],
+        gameEvents: [{ id: 'e1', type: 'goal', time: 60, scorerId: 'gone' }],
+      } as AppState;
+      exportCurrentGameExcel(mockGameId, game, [] /* he is no longer on the roster */, mockSeasons, mockTournaments);
+      const calls = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls;
+      const statsRows = calls.find(call => call[0][0] && 'Fair Play' in call[0][0])[0] as Array<Record<string, unknown>>;
+      expect(statsRows[0]).toMatchObject({ Player: 'Left Club', Goals: 1, 'Fair Play': 'Yes' });
+      const events = calls.find(call => call[0][0] && 'Scorer' in call[0][0])[0] as Array<Record<string, unknown>>;
+      expect(events[0].Scorer).toBe('Left Club');
+    });
+
     it('a game with no confirmed subs still reports its duration', () => {
       const game = { ...mockGame, timeElapsedInSeconds: 1200, completedIntervalDurations: [] } as AppState;
       exportCurrentGameExcel(mockGameId, game, mockPlayers, mockSeasons, mockTournaments);

@@ -10,6 +10,7 @@ import {
 } from '@/types';
 import { formatTime } from './time';
 import { resolveGameResult } from '@/utils/gameResult';
+import { gameSquadForExport } from '@/utils/playerStats';
 import { computeHeadToHead } from '@/utils/headToHead';
 import { ASSESSMENT_METRICS } from '@/config/assessmentMetrics';
 
@@ -206,7 +207,7 @@ export const exportCurrentGameExcel = (
     : '';
 
   // Sheet 1: Player Stats
-  const selectedPlayers = players.filter((p) => game.selectedPlayerIds?.includes(p.id));
+  const selectedPlayers = gameSquadForExport(game, players);
 
   // Store translated keys as constants for type-safe sorting
   const pointsKey = translate('export.points', 'Points');
