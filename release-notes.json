@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Correcting a too-long period length at half-time no longer shortens the second half: it stays half-time, and the second half runs its full length."
+      ],
+      "fi": [
+        "Liian pitkän jakson keston korjaaminen puoliajalla ei enää lyhennä toista puoliaikaa: tauko säilyy, ja toinen puoliaika kestää täyden pituutensa."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Undo no longer moves the match clock: it can no longer reopen a finished half, freeze the clock just after kick-off, or bring an old time back after a reset. Undo still reverts goals, the score, the line-up and settings."
       ],
       "fi": [

@@ -222,6 +222,16 @@ function reconcilePeriodBreak(state: GameSessionState): GameSessionState {
     return stop ? { ...state, gameStatus: stop.status } : state;
   }
   if (state.gameStatus !== 'periodEnd') return state;
+  // The break still stands when the clock is at or past the CURRENT period's end under
+  // the new structure (review 4.30): shortening the length at half-time (2 x 25 played
+  // as 2 x 20, corrected at the break) used to read 25:00 as "5 minutes into period 2",
+  // turning the break into a paused period 2 whose half then ran 15 minutes. Start
+  // Period 2 still starts the next period at its nominal time. On the last period it
+  // is full time. Only a LONGER period (a false half-time) continues the clock below.
+  const currentPeriodEnd = state.currentPeriod * state.periodDurationMinutes * 60;
+  if (currentPeriodEnd > 0 && state.timeElapsedInSeconds >= currentPeriodEnd) {
+    return state.currentPeriod >= state.numberOfPeriods ? { ...state, gameStatus: 'gameEnd' } : state;
+  }
   const next = clockContinuation(state);
   if (next === null) return { ...state, gameStatus: 'gameEnd' };
   if (next.kind === 'resume') return { ...state, gameStatus: 'inProgress', currentPeriod: next.period };
