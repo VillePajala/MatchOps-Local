@@ -269,6 +269,14 @@ describe('backendConfig', () => {
       clearCloudSwitchFromLocal();
       expect(cameToCloudFromLocal()).toBe(false);
     });
+
+    it('is cleared when local mode is turned back on by any route', () => {
+      process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon';
+      markCloudSwitchFromLocal();
+      expect(disableCloudMode().success).toBe(true);
+      expect(cameToCloudFromLocal()).toBe(false);
+    });
   });
 
   describe('enableCloudMode', () => {

@@ -184,14 +184,6 @@ export function getBackendMode(): BackendMode {
 }
 
 /**
- * Enable cloud mode at runtime.
- *
- * Stores preference in localStorage. Takes effect on next factory initialization.
- * Returns false if Supabase is not configured.
- *
- * @returns true if cloud mode was enabled, false if Supabase not available
- */
-/**
  * A coach who was using local mode chose "Enable Cloud Sync" (review 7.4). Until
  * they sign in, the sign-in screen must let them go back to the games on this
  * device - the cloud-only web build otherwise hides "continue without an account",
@@ -212,6 +204,14 @@ export function clearCloudSwitchFromLocal(): void {
   safeRemoveItem(CAME_FROM_LOCAL_KEY);
 }
 
+/**
+ * Enable cloud mode at runtime.
+ *
+ * Stores preference in localStorage. Takes effect on next factory initialization.
+ * Returns false if Supabase is not configured.
+ *
+ * @returns true if cloud mode was enabled, false if Supabase not available
+ */
 export function enableCloudMode(): boolean {
   if (!isCloudAvailable()) {
     log.warn('[backendConfig] Cannot enable cloud mode - Supabase not configured');
@@ -261,6 +261,9 @@ export function disableCloudMode(): ModeSwitchResult {
       message: 'Failed to save mode preference. Your browser may be in private mode or have storage restrictions.',
     };
   }
+  // Back in local mode by any route: the way back offered on the sign-in screen is
+  // no longer needed, and must not reappear after a later switch to cloud.
+  clearCloudSwitchFromLocal();
 
   log.info('[backendConfig] Local mode enabled - will take effect on next initialization');
   return { success: true };
