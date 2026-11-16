@@ -29,6 +29,7 @@ import SteadyDigits from '@/components/SteadyDigits';
 import { useTranslation } from 'react-i18next';
 import { debug } from '@/utils/debug';
 import logger from '@/utils/logger';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 
 // Design tokens for consistent sizing and spacing
 const DESIGN_TOKENS = {
@@ -187,6 +188,28 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   // Button styles - square buttons, compact height, professional polish
   const buttonStyle = `${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border border-slate-600/30`;
   const iconSize = DESIGN_TOKENS.ICON_SIZE;
+
+  /** Exits the whole tactics workflow - the X button and a hardware back. */
+  const closeFieldTools = () => {
+    setIsFieldToolsOpen(false);
+    // Exit tactics mode if currently in it
+    if (isTacticsBoardView) {
+      onToggleTacticsBoard();
+    }
+    // Disable drawing mode if currently enabled
+    if (isDrawingEnabled) {
+      onToggleDrawingMode(); // Safe - hook handles errors internally via callback
+    }
+  };
+
+  // Back closes an open panel before it leaves the match (review 7.9): the side
+  // menu and the field tools are match-scope surfaces like the modals, which
+  // already follow this rule. Preemptive sub-guards, above the match's own guard.
+  useHardwareBackSubLevel(isFieldToolsOpen, closeFieldTools);
+  useHardwareBackSubLevel(isSettingsMenuOpen, () => {
+    setIsSettingsMenuOpen(false);
+    setDragOffset(0);
+  });
 
   // Settings menu handlers
   const handleSettingsButtonClick = () => {
@@ -450,17 +473,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
           <>
             {/* Close/Back Button - Exits entire tactics workflow */}
             <button
-              onClick={() => {
-                setIsFieldToolsOpen(false);
-                // Exit tactics mode if currently in it
-                if (isTacticsBoardView) {
-                  onToggleTacticsBoard();
-                }
-                // Disable drawing mode if currently enabled
-                if (isDrawingEnabled) {
-                  onToggleDrawingMode(); // Safe - hook handles errors internally via callback
-                }
-              }}
+              onClick={closeFieldTools}
               className={`${buttonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
               title={t('common.back', 'Back')}
               aria-label={t('common.back', 'Back')}

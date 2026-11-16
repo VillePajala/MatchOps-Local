@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { createPortal } from 'react-dom';
 import { HiOutlineSquares2X2 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
@@ -156,6 +157,8 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  // Back closes the picker first, not the match under it (review 7.9).
+  useHardwareBackSubLevel(isOpen, () => setIsOpen(false));
   const [desktopLayout, setDesktopLayout] = useState({
     left: 0,
     bottom: 0,

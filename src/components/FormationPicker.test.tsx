@@ -7,6 +7,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import FormationPicker from './FormationPicker';
+import { __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
 import { FIELD_SIZES } from '@/config/formationPresets';
 
 // Mock react-i18next with interpolation support
@@ -87,6 +88,24 @@ describe('FormationPicker', () => {
 
       expect(button).toHaveAttribute('aria-expanded', 'true');
       expect(screen.getByRole('menu')).toBeInTheDocument();
+    });
+
+    /** Review 7.9: back closes the picker, not the match under it. */
+    it('hardware back closes the open picker', async () => {
+      __resetModalHardwareBackForTests();
+      const push = jest.spyOn(window.history, 'pushState').mockImplementation(() => {});
+      try {
+        render(<FormationPicker onSelectFormation={mockOnSelectFormation} selectedPlayerCount={8} />);
+        const button = screen.getByRole('button');
+        await act(async () => { fireEvent.click(button); });
+        expect(screen.getByRole('menu')).toBeInTheDocument();
+        await act(async () => { window.dispatchEvent(new PopStateEvent('popstate')); });
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+        expect(button).toHaveAttribute('aria-expanded', 'false');
+      } finally {
+        push.mockRestore();
+        __resetModalHardwareBackForTests();
+      }
     });
 
     it('does not open dropdown when disabled', async () => {

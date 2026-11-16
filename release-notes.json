@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Back button during a match: with the menu, the field tools or the formation picker open, back now closes it instead of leaving the match."
+      ],
+      "fi": [
+        "Takaisin-painike ottelun aikana: kun valikko, kenttätyökalut tai muodostelmavalitsin on auki, takaisin sulkee sen eikä poistu ottelusta."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Back button: after opening Settings from the statistics to set the season dates, back now returns to the statistics."
       ],
       "fi": [
