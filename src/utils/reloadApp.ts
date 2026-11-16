@@ -5,7 +5,7 @@
  * testable: JSDOM's window.location is non-replaceable, so tests mock THIS
  * module instead. Other reload callsites can migrate here opportunistically.
  */
-import { isMatchTimerRunning } from '@/utils/matchTimerSignal';
+import { isMatchLive } from '@/utils/matchTimerSignal';
 import { isRecordingSessionActive } from '@/utils/recordingSessionSignal';
 import logger from '@/utils/logger';
 
@@ -36,7 +36,7 @@ const RELOAD_ONCE_PREFIX = 'matchops.reloadOnce.';
  * restore the single attempt rather than remember it was spent.
  *
  * TWO REFUSALS, both meaning "not now":
- * - A running match clock or an active recording. Reloading mid-match throws
+ * - A live match (running, paused or at half-time) or an active recording. Reloading mid-match throws
  *   away the in-game view for the sake of a background concern, which is why
  *   `useAppResume` suppresses its own force-reload for the same signals. The
  *   attempt is NOT spent, so it survives until the match ends.
@@ -45,7 +45,7 @@ const RELOAD_ONCE_PREFIX = 'matchops.reloadOnce.';
  *   loop is far worse than the failure it is recovering from.
  */
 export function claimReloadAttempt(reason: string): boolean {
-  if (isMatchTimerRunning() || isRecordingSessionActive()) {
+  if (isMatchLive() || isRecordingSessionActive()) {
     logger.warn('[reloadApp] Recovery reload suppressed: match or recording in progress', { reason });
     return false;
   }

@@ -16,7 +16,7 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useAppResume } from '../useAppResume';
-import { setMatchTimerRunning } from '@/utils/matchTimerSignal';
+import { setMatchTimerRunning, setMatchLive } from '@/utils/matchTimerSignal';
 
 // Mock logger
 jest.mock('@/utils/logger', () => ({
@@ -24,6 +24,7 @@ jest.mock('@/utils/logger', () => ({
   default: {
     log: jest.fn(),
     debug: jest.fn(),
+    info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
   },
@@ -56,6 +57,7 @@ describe('useAppResume', () => {
   beforeEach(() => {
     // Default: no live match (existing tests expect force-reload to happen).
     setMatchTimerRunning(false);
+    setMatchLive(false);
 
     queryClient = new QueryClient({
       defaultOptions: {
@@ -589,6 +591,55 @@ describe('useAppResume', () => {
       'seconds - forcing page reload'
     );
     expect(reloadMock).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Review 4.24: half-time or a paused match is a live match too. Away for 6 minutes,
+   * it is refreshed in place - never given a full page reload.
+   * @critical
+   */
+  it('does NOT force reload a paused or half-time match (clock not running)', async () => {
+    const logger = require('@/utils/logger').default;
+    setMatchLive(true); // live, clock stopped
+    const onResume = jest.fn();
+    renderHook(() => useAppResume({ forceReloadTime: 300000, onResume }), { wrapper });
+
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    mockNow += 360000;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    await act(async () => {});
+
+    expect(logger.debug).not.toHaveBeenCalledWith(
+      '[useAppResume] App was in background for', 360, 'seconds - forcing page reload'
+    );
+    expect(onResume).toHaveBeenCalled();
+  });
+
+  /**
+   * Review 4.24: a match that goes live during the reload's notice (the coach taps
+   * Start on returning) cancels the reload - refreshed in place instead.
+   * @critical
+   */
+  it('cancels the reload when a match goes live during the notice', async () => {
+    const logger = require('@/utils/logger').default;
+    const onResume = jest.fn();
+    const onBeforeForceReload = jest.fn(async () => { setMatchLive(true); });
+    renderHook(() => useAppResume({ forceReloadTime: 300000, onResume, onBeforeForceReload }), { wrapper });
+
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    mockNow += 360000;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    await act(async () => {});
+    await act(async () => {});
+
+    expect(onBeforeForceReload).toHaveBeenCalled(); // the reload path started...
+    expect(logger.info).toHaveBeenCalledWith('[useAppResume] Reload cancelled: a match went live during the notice');
+    expect(reloadMock).not.toHaveBeenCalled();
+    expect(onResume).toHaveBeenCalled(); // ...and fell back to the in-place refresh
   });
 
   describe('offline (review 1.10)', () => {

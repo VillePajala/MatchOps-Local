@@ -16,6 +16,7 @@ import { useGameTimer } from '../useGameTimer';
 import { GameSessionState, GameSessionAction, gameSessionReducer } from '../useGameSessionReducer';
 import { setRecordingSessionActive } from '@/utils/recordingSessionSignal';
 import { readTimerAnchor, writeTimerAnchor } from '@/utils/timerAnchor';
+import { isMatchLive } from '@/utils/matchTimerSignal';
 
 // Mock storage module
 jest.mock('@/utils/storage', () => ({
@@ -240,6 +241,27 @@ describe('useGameTimer', () => {
   // startPause functionality
   // ============================================
   describe('startPause', () => {
+    /**
+     * Review 4.24: a live match - started and not finished, clock running or not - is
+     * published so the long-background reload leaves it alone.
+     * @critical
+     */
+    it.each([
+      ['half-time', { gameStatus: 'periodEnd', currentPeriod: 1, timeElapsedInSeconds: 900 }, true],
+      ['paused mid-period', { gameStatus: 'inProgress', isTimerRunning: false, timeElapsedInSeconds: 300 }, true],
+      ['reloaded paused game', { gameStatus: 'notStarted', timeElapsedInSeconds: 300 }, true],
+      ['not started', { gameStatus: 'notStarted', timeElapsedInSeconds: 0 }, false],
+      ['finished', { gameStatus: 'gameEnd', timeElapsedInSeconds: 1800 }, false],
+    ] as const)('publishes a %s match as live=%s, and not live after unmount', (_label, overrides, live) => {
+      const view = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, createInitialState(overrides as Partial<GameSessionState>));
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+      expect(isMatchLive()).toBe(live);
+      view.unmount();
+      expect(isMatchLive()).toBe(false);
+    });
+
     /**
      * Review 4.22: the recovery anchor is written the moment the clock starts - a lock,
      * kill or reload in the first second otherwise had nothing to recover from - and a

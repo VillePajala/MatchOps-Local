@@ -26,3 +26,26 @@ export const setMatchTimerRunning = (running: boolean): void => {
 
 /** Read by useAppResume before deciding to force-reload. */
 export const isMatchTimerRunning = (): boolean => matchTimerRunning;
+
+/**
+ * Is a LIVE match mounted - started and not finished, whether the clock runs, is
+ * paused, or the match is at a period break (review 4.24)? Only a running clock
+ * used to block the long-background reload, so half-time or a paused match away
+ * for 5+ minutes got a full page reload: a slow return to the match (boot, auth,
+ * cloud pull, network-first navigation), with any open dialog and undo lost, and a
+ * "Start Period 2" tapped during the reload's notice could be lost to it.
+ */
+let matchLive = false;
+
+/** Set by useGameTimer whenever the match's live state changes. */
+export const setMatchLive = (live: boolean): void => {
+  matchLive = live;
+};
+
+/** True while a running OR paused OR half-time match is mounted. A running clock
+ *  implies a live match, so the `|| matchTimerRunning` is only a safety net for a
+ *  caller that publishes one signal but not the other.
+ *  No upper bound on purpose: a match left paused for hours is still never
+ *  force-reloaded - the in-place refresh still runs and new versions still come
+ *  through the update banner. */
+export const isMatchLive = (): boolean => matchLive || matchTimerRunning;

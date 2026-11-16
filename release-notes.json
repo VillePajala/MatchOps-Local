@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "At half-time or with the clock paused, coming back to the app after a long break no longer reloads the whole app, and a Start tapped right away is no longer lost."
+      ],
+      "fi": [
+        "Puoliajalla tai kellon ollessa pysäytettynä sovellukseen palaaminen pitkän tauon jälkeen ei enää lataa koko sovellusta uudelleen, eikä heti napautettu Aloita enää katoa."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Briefly leaving the app during a match no longer reloads the match screen: an open dialog, undo history and the screen-awake setting are kept."
       ],
       "fi": [
