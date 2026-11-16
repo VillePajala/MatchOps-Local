@@ -87,9 +87,17 @@ export function useOpponentRename(enabled = true): {
         // than the open match's last autosave), and afterwards the match takes the
         // new spelling into its session - otherwise its next autosave wrote the old
         // name back and the duplicate opponent returned.
-        await liveGame?.onFlushLiveGame().catch((error) => {
-          logger.warn('[useOpponentRename] Flushing the open match failed', { error });
-        });
+        // If the open match's edits cannot land, write nothing: renaming anyway
+        // would leave them in memory to save the old name back later. The caller
+        // shows "Could not rename" and the coach can try again.
+        if (liveGame) {
+          try {
+            await liveGame.onFlushLiveGame();
+          } catch (error) {
+            logger.warn('[useOpponentRename] Flushing the open match failed - rename not applied', { error });
+            throw error;
+          }
+        }
         for (const gameId of plan.gameIds) {
           const game = (await getGame(gameId, userId)) ?? savedGames?.[gameId];
           if (!game) continue;

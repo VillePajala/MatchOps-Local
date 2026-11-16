@@ -76,6 +76,22 @@ describe('useOpponentRename', () => {
     expect(saveGame).not.toHaveBeenCalledWith('g3', expect.anything(), expect.anything());
   });
 
+  it('writes nothing when the open match cannot be flushed', async () => {
+    liveGame.onFlushLiveGame.mockRejectedValueOnce(new Error('save failed'));
+    const { getSavedGames } = jest.requireMock('@/utils/savedGames') as { getSavedGames: jest.Mock };
+    const { result } = renderHook(() => useOpponentRename(true), { wrapper });
+    // Let the cached games load so the rename has a plan.
+    await waitFor(() => expect(getSavedGames).toHaveBeenCalled());
+    await act(async () => { await Promise.resolve(); });
+    let error: unknown;
+    await act(async () => {
+      error = await result.current.renameOpponent('IPS', 'IPS Punainen').catch((e: unknown) => e);
+    });
+    expect(error).toEqual(new Error('save failed'));
+    expect(saveGame).not.toHaveBeenCalled();
+    expect(liveGame.onLinkedGamesUpdated).not.toHaveBeenCalled();
+  });
+
   it('works from Home, with no match open', async () => {
     mockLiveGame = null;
     await rename();
