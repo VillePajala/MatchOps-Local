@@ -77,6 +77,7 @@ import { importFromFilePicker } from '@/utils/importHelper';
 import { isPlayStoreContext } from '@/utils/platform';
 import TransitionOverlay from '@/components/TransitionOverlay';
 import logger from '@/utils/logger';
+import { usePendingCloudPull } from '@/hooks/usePendingCloudPull';
 import { rotateOldClips } from '@/utils/audioClipStore';
 import * as Sentry from '@sentry/nextjs';
 import { reloadApp, claimReloadAttempt, clearReloadOnce } from '@/utils/reloadApp';
@@ -345,10 +346,34 @@ export default function Home() {
    * the signal that was missing to tell "empty" from "not arrived yet".
    */
   const [isHydratingFromCloud, setIsHydratingFromCloud] = useState(false);
+  /**
+   * The first sign-in on this device could not find out what the account holds
+   * (review 7.3): the cloud check or the pull failed for good. Until a retry
+   * succeeds, an empty device is "not known yet", never "new coach" - the setup
+   * wizard would otherwise create a second team and duplicate players in a real
+   * account. The migration flag stays unset, so the next launch checks again too.
+   *
+   * 'cloud': the account check itself failed (or the coach skipped / discarded the
+   * pre-sign-in offer, which never pulled) - once the cloud answers, the account is
+   * settled and the migration flag is set. 'unverified': the flow failed before it
+   * could decide (pre-sign-in data check, unexpected error) - the cloud is pulled,
+   * but the flag stays unset so the next launch runs the whole check, offer included.
+   *
+   * Every way into this state is a device whose account store is still empty (first
+   * sign-in here), so no local copy of a cloud game exists that a match could open
+   * stale and autosave over newer data once the 8 s launch-gate wait runs out.
+   */
+  const [cloudCheckPending, setCloudCheckPending] = useState<null | 'cloud' | 'unverified'>(null);
 
   // Empty is not the same as not-yet-arrived: a coach is only "first time" once
   // we know there is nothing still coming.
-  const isFirstTimeUser = !hasPlayers && !hasSavedGames && !isHydratingFromCloud;
+  const isFirstTimeUser = !hasPlayers && !hasSavedGames && !isHydratingFromCloud && cloudCheckPending === null;
+  // Per account: another account signing in starts from "known" again and runs
+  // its own first-sign-in check. Safe on mount too: pending is only ever set later,
+  // from the async post-login check, never in the same commit as a userId change.
+  useEffect(() => { setCloudCheckPending(null); }, [userId]);
+  // Whether this flow held the launch gate, so it releases only what it took.
+  const pendingHeldGateRef = useRef(false);
 
   /**
    * Re-derive the team scope and the dashboard from a fresh read.
@@ -648,6 +673,29 @@ export default function Home() {
   // For the background cloud pull (an effect that must not re-run when this changes).
   const refreshSetupSignalsRef = useRef(refreshSetupSignals);
   useEffect(() => { refreshSetupSignalsRef.current = refreshSetupSignals; }, [refreshSetupSignals]);
+
+  // Keep trying the first sign-in's cloud check and pull until they succeed
+  // (review 7.3). Only on success is the migration flag set.
+  const pendingCloudPull = usePendingCloudPull({
+    pending: cloudCheckPending !== null,
+    userId,
+    onPulled: async () => {
+      await queryClient.refetchQueries({ type: 'all' }).catch((err) => {
+        logger.warn('[page.tsx] Refetch after pending cloud pull failed:', err);
+      });
+      await refreshSetupSignalsRef.current();
+      // Worked: a later failure in this tab gets its one recovery reload again.
+      clearReloadOnce('cloudHydration');
+    },
+    onResolved: (resolvedUserId) => {
+      if (cloudCheckPending === 'cloud') setMigrationCompleted(resolvedUserId);
+      setCloudCheckPending(null);
+      if (pendingHeldGateRef.current) {
+        pendingHeldGateRef.current = false;
+        launchPullGate.pullFinished();
+      }
+    },
+  });
 
   // 3.1: hardware back mirrors "Koti" - with the match on screen and no
   // modal open, back returns to Home instead of leaving the app. Registered
@@ -1153,6 +1201,8 @@ export default function Home() {
               'info'
             );
             migrationCheckInitiatedRef.current = false;
+            // Not known yet (review 7.3): no new-coach wizard on an empty device.
+            setCloudCheckPending('unverified');
             setPostLoginCheckComplete(true);
             return;
           }
@@ -1168,8 +1218,10 @@ export default function Home() {
           logger.info('[page.tsx] Nothing to offer from pre-sign-in data - checking the cloud');
         }
         {
-          const { hasCloudData, hydrateLocalFromCloudWithRetry, isAuthNotReadyError } = await import('@/services/reverseMigrationService');
-          const cloudResult = await hasCloudData();
+          const { hasCloudDataWithRetry, hydrateLocalFromCloudWithRetry, isAuthNotReadyError } = await import('@/services/reverseMigrationService');
+          // A few quick retries first: one failed count on a flaky network used to
+          // end this check (review 7.3).
+          const cloudResult = await hasCloudDataWithRetry();
           if (cloudResult.checkFailed) {
             // Cloud check failed - check if it's a transient error that should retry
             const isAuthError = cloudResult.error?.includes('Not authenticated') ||
@@ -1195,14 +1247,19 @@ export default function Home() {
               return;
             }
 
-            // Non-auth failure (network, etc) - notify user but don't block them
-            // They can use the app, data will load when queries run
+            // Non-auth failure (network, etc) - let them in, but as "not known yet"
+            // (review 7.3): no migration flag, no new-coach wizard, and the check
+            // keeps retrying in the background until it knows.
             logger.warn('[page.tsx] Failed to check cloud data:', cloudResult.error);
             showToast(
               t('page.couldNotCheckCloudData', 'Could not check cloud data. Your data will load automatically.'),
               'info'
             );
-            setMigrationCompleted(userId);
+            setCloudCheckPending('cloud');
+            // A match opened meanwhile waits (up to 8 s) for the pull, as on the
+            // flag-set path (review 3.5). Same step as the release below.
+            pendingHeldGateRef.current = true;
+            launchPullGate.pullStarted();
             // Mark post-login check complete
             setPostLoginCheckComplete(true);
           } else if (cloudResult.hasData) {
@@ -1286,7 +1343,10 @@ export default function Home() {
                   .join(' '),
                 'error'
               );
-              setMigrationCompleted(userId);
+              // Not done (review 7.3): no flag, no wizard; the pull keeps retrying.
+              setCloudCheckPending('cloud');
+              pendingHeldGateRef.current = true;
+              launchPullGate.pullStarted();
               // Mark post-login check complete
               setPostLoginCheckComplete(true);
             }
@@ -1323,6 +1383,8 @@ export default function Home() {
           'info'
         );
         migrationCheckInitiatedRef.current = false;
+        // Not known yet (review 7.3): no new-coach wizard on an empty device.
+        setCloudCheckPending('unverified');
         // Mark post-login check complete even on error (user can use app)
         setPostLoginCheckComplete(true);
       }
@@ -1474,15 +1536,15 @@ export default function Home() {
   // Within this sign-in the completion flag below keeps it away.
   const handleMigrationSkip = useCallback(async () => {
     logger.info('[page.tsx] Migration skipped permanently');
-    if (userId) {
-      setMigrationCompleted(userId);
-    }
+    // The offer is shown without a cloud check, so the account's own data has
+    // not been pulled yet (review 7.3): pull it now, and only then set the flag.
+    setCloudCheckPending('cloud');
     setShowMigrationWizard(false);
 
     // Continue in cloud mode — refetch data from cloud
     await queryClient.refetchQueries();
     setRefreshTrigger(prev => prev + 1);
-  }, [userId, queryClient]);
+  }, [queryClient]);
 
   // Handle migration wizard discard - clear local data, set flag, continue in cloud mode
   const handleMigrationDiscard = useCallback(async () => {
@@ -1508,9 +1570,8 @@ export default function Home() {
       return;
     }
 
-    if (userId) {
-      setMigrationCompleted(userId);
-    }
+    // As with "Not now": pull the account's own data, then set the flag (review 7.3).
+    setCloudCheckPending('cloud');
     setShowMigrationWizard(false);
 
     // Continue in cloud mode — refetch data from cloud
@@ -1955,6 +2016,31 @@ export default function Home() {
           </ErrorBoundary>
         ) : screen === 'start' ? (
           <ErrorBoundary>
+            {cloudCheckPending !== null && (
+              // Review 7.3: an empty Home is "still coming", not "new coach".
+              <div
+                role="status"
+                data-testid="cloud-data-pending"
+                className="fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top,0px))] z-[25] flex justify-center px-4 pointer-events-none"
+              >
+                <span className="pointer-events-auto rounded-xl border border-slate-700 bg-slate-800/95 backdrop-blur-sm shadow-xl px-3 py-2 text-sm text-slate-100 flex items-center gap-3">
+                  {/* After a few failed tries, say so and offer a manual retry. */}
+                  {pendingCloudPull.failures >= 3
+                    ? t('page.couldNotCheckCloudData', 'Could not check cloud data. Your data will load automatically.')
+                    : t('page.loadingYourData', 'Loading your data...')}
+                  {pendingCloudPull.failures >= 3 && (
+                    <button
+                      type="button"
+                      data-testid="cloud-data-retry"
+                      onClick={pendingCloudPull.retryNow}
+                      className="shrink-0 rounded-md bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-500"
+                    >
+                      {t('errors.tryAgain', 'Try Again')}
+                    </button>
+                  )}
+                </span>
+              </div>
+            )}
             {/* L.2: lifted-modal entries open IN PLACE via the bridge (no
                 screen switch, no game mount); only match-bound actions still
                 route through handleAction. */}
@@ -1964,7 +2050,10 @@ export default function Home() {
               canResume={canResume}
               hasSavedGames={hasSavedGames}
               isFirstTimeUser={isFirstTimeUser}
-              setupProgress={{
+              // While the account's data is not known yet, no setup checklist and
+              // no "create your team" hero (review 7.3): on an empty device it would
+              // lead a returning coach into duplicating their team.
+              setupProgress={cloudCheckPending !== null ? undefined : {
                 players: hasPlayers,
                 competition: hasCompetition,
                 team: hasTeam,

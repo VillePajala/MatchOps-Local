@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Signing in on a new phone with a weak connection no longer treats you as a new coach: the app keeps loading your data in the background instead of offering to set up a team again."
+      ],
+      "fi": [
+        "Kirjautuminen uudella puhelimella heikolla yhteydellä ei enää kohtele sinua uutena valmentajana: sovellus jatkaa tietojesi lataamista taustalla eikä tarjoa joukkueen luomista uudelleen."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "After creating an account, you can get back to the screen for the emailed code: it reopens after a reload, and signing in before confirming takes you there."
       ],
       "fi": [

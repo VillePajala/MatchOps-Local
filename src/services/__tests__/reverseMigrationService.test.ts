@@ -11,6 +11,7 @@ import {
   getCloudDataSummary,
   migrateCloudToLocal,
   hasCloudData,
+  hasCloudDataWithRetry,
   isReverseMigrationRunning,
   hydrateLocalFromCloudWithRetry,
   hydrationChangedAnything,
@@ -357,6 +358,49 @@ describe('reverseMigrationService', () => {
       expect(result.checkFailed).toBe(true);
       // Error message includes the table name
       expect(result.error).toBe('Failed to check games: Network error');
+    });
+  });
+
+  /**
+   * Review 7.3: one failed count on a flaky network ended the first sign-in check
+   * and let a returning coach in as a new one.
+   */
+  describe('hasCloudDataWithRetry', () => {
+    const noDelay = () => 0;
+
+    it('retries a network failure and returns the answer that follows', async () => {
+      const select = jest.fn()
+        .mockResolvedValueOnce({ count: null, error: { message: 'Failed to fetch' } })
+        .mockResolvedValue({ count: 3, error: null });
+      mockSupabaseClient.from.mockReturnValue({ select });
+
+      const result = await hasCloudDataWithRetry(3, noDelay);
+      expect(result).toEqual({ hasData: true, checkFailed: false });
+      expect(select).toHaveBeenCalledTimes(2);
+    });
+
+    it('gives up after the given attempts', async () => {
+      const select = jest.fn().mockResolvedValue({ count: null, error: { message: 'Failed to fetch' } });
+      mockSupabaseClient.from.mockReturnValue({ select });
+
+      const result = await hasCloudDataWithRetry(3, noDelay);
+      expect(result.checkFailed).toBe(true);
+      expect(select).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not retry an aborted request (account switch)', async () => {
+      const select = jest.fn().mockResolvedValue({ count: null, error: { message: 'AbortError: signal is aborted without reason' } });
+      mockSupabaseClient.from.mockReturnValue({ select });
+      const result = await hasCloudDataWithRetry(3, noDelay);
+      expect(result.checkFailed).toBe(true);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not retry an auth failure (the caller waits for auth instead)', async () => {
+      mockSupabaseClient.auth.getSession.mockResolvedValueOnce({ data: { session: null }, error: null });
+      const result = await hasCloudDataWithRetry(3, noDelay);
+      expect(result.checkFailed).toBe(true);
+      expect(mockSupabaseClient.auth.getSession).toHaveBeenCalledTimes(1);
     });
   });
 
