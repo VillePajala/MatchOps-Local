@@ -566,42 +566,47 @@ describe('TeamManagerModal - Premium Limit Enforcement', () => {
       { id: 't2', name: 'Archived Team', color: '#8B5CF6', archived: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     ];
 
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
+    try {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <PremiumProvider>
-          <ToastProvider>
-            <TeamManagerModal {...defaultProps} teams={teamsWithArchived} />
-          </ToastProvider>
-        </PremiumProvider>
-      </QueryClientProvider>
-    );
+      render(
+        <QueryClientProvider client={queryClient}>
+          <PremiumProvider>
+            <ToastProvider>
+              <TeamManagerModal {...defaultProps} teams={teamsWithArchived} />
+            </ToastProvider>
+          </PremiumProvider>
+        </QueryClientProvider>
+      );
 
-    // Enable show archived
-    const showArchivedCheckbox = screen.getByRole('button', { name: 'Show Archived' });
-    fireEvent.click(showArchivedCheckbox);
+      // Enable show archived
+      const showArchivedCheckbox = screen.getByRole('button', { name: 'Show Archived' });
+      fireEvent.click(showArchivedCheckbox);
 
-    // Open actions menu for archived team
-    const actionsButtons = screen.getAllByLabelText('Team actions');
-    fireEvent.click(actionsButtons[1]); // Second team is archived
+      // Open actions menu for archived team. Wait for it to be listed first: under
+      // full-suite CI load the default 1 s waits were not always enough (flaky test in
+      // the review checklist, seen on #956 and #967).
+      await waitFor(() => expect(screen.getAllByLabelText('Team actions')).toHaveLength(2), { timeout: 5000 });
+      fireEvent.click(screen.getAllByLabelText('Team actions')[1]); // Second team is archived
 
-    await waitFor(() => {
-      expect(screen.getByText('Unarchive')).toBeInTheDocument();
-    });
+      await waitFor(() => {
+        expect(screen.getByText('Unarchive')).toBeInTheDocument();
+      }, { timeout: 5000 });
 
-    // Click Unarchive
-    fireEvent.click(screen.getByText('Unarchive'));
+      // Click Unarchive
+      fireEvent.click(screen.getByText('Unarchive'));
 
-    // checkAndPrompt should have been called
-    expect(mockCheckAndPrompt).toHaveBeenCalled();
+      // checkAndPrompt should have been called
+      expect(mockCheckAndPrompt).toHaveBeenCalled();
 
-    // Team should NOT be unarchived (mutation not called)
-    expect(teamsUtils.updateTeam).not.toHaveBeenCalled();
+      // Team should NOT be unarchived (mutation not called)
+      expect(teamsUtils.updateTeam).not.toHaveBeenCalled();
 
-    // Restore original mock
-    usePremiumModule.useResourceLimit = originalUseResourceLimit;
+    } finally {
+      // Restore even on failure, so the patch never leaks into later tests.
+      usePremiumModule.useResourceLimit = originalUseResourceLimit;
+    }
   });
 });

@@ -77,7 +77,7 @@ describe('useGameSessionWithHistory with the real reducer', () => {
   it('a no-op coach action leaves no pending entry for the next tick', () => {
     const { result, saveToHistory } = setup();
     act(() => { result.current[1]({ type: 'SET_HOME_OR_AWAY', payload: result.current[0].homeOrAway }); }); // already chosen
-    act(() => { result.current[1]({ type: 'SET_TIMER_ELAPSED', payload: 5 }); });
+    act(() => { result.current[1]({ type: 'START_TIMER' }); }); // a system action that DOES change state
     expect(saveToHistory).not.toHaveBeenCalled();
   });
 
