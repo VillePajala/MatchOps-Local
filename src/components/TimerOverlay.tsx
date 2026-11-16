@@ -112,6 +112,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // --- State for Confirmation Modals ---
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showEndPeriodConfirm, setShowEndPeriodConfirm] = useState(false);
+  const isLastPeriod = currentPeriod >= numberOfPeriods;
+  const endPeriodLabel = isLastPeriod
+    ? t('timerOverlay.endMatchButton', 'End match')
+    : t('timerOverlay.endPeriodButton', 'End period');
+  const periodEndClock = formatTime(currentPeriod * periodDurationMinutes * 60);
   const [showOpponentGoalConfirm, setShowOpponentGoalConfirm] = useState(false);
   // Overtime/penalties are edge-of-game actions; keep them collapsed so the
   // substitution-interval list keeps its room. Open by default if OT is already on.
@@ -413,9 +418,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               data-testid="timer-end-period"
               className={`${timerButtonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500 px-3`}
             >
-              {currentPeriod >= numberOfPeriods
-                ? t('timerOverlay.endMatchButton', 'End match')
-                : t('timerOverlay.endPeriodButton', 'End period')}
+              {endPeriodLabel}
             </button>
           )}
           {/* Compact reset: icon-only + confirm */}
@@ -699,22 +702,16 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
       <ConfirmationModal
         isOpen={showEndPeriodConfirm}
-        title={currentPeriod >= numberOfPeriods
-          ? t('timerOverlay.endMatchButton', 'End match')
-          : t('timerOverlay.endPeriodButton', 'End period')}
-        message={currentPeriod >= numberOfPeriods
-          ? t('timerOverlay.confirmEndMatch', 'End the match now? The clock moves to {{time}}, full time.', {
-            time: formatTime(currentPeriod * periodDurationMinutes * 60),
-          })
+        title={endPeriodLabel}
+        message={isLastPeriod
+          ? t('timerOverlay.confirmEndMatch', 'End the match now? The clock moves to {{time}}, full time.', { time: periodEndClock })
           : t('timerOverlay.confirmEndPeriod', 'End period {{period}} now? The clock moves to {{time}}, the end of the period.', {
             period: currentPeriod,
-            time: formatTime(currentPeriod * periodDurationMinutes * 60),
+            time: periodEndClock,
           })}
         onConfirm={() => { setShowEndPeriodConfirm(false); onEndPeriod?.(); }}
         onCancel={() => setShowEndPeriodConfirm(false)}
-        confirmLabel={currentPeriod >= numberOfPeriods
-          ? t('timerOverlay.endMatchButton', 'End match')
-          : t('timerOverlay.endPeriodButton', 'End period')}
+        confirmLabel={endPeriodLabel}
         variant="primary"
       />
 

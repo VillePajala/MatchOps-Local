@@ -158,6 +158,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
       payload: {
         newStatus: s.currentPeriod >= s.numberOfPeriods ? 'gameEnd' : 'periodEnd',
         finalTime: s.currentPeriod * s.periodDurationMinutes * 60,
+        manual: true, // a later length edit must not reopen it as a false half-time
       },
     });
   }, [dispatch, currentGameId]);

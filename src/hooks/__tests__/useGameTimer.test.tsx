@@ -261,6 +261,7 @@ describe('useGameTimer', () => {
         expect(result.current.state.gameStatus).toBe('periodEnd');
         expect(result.current.state.timeElapsedInSeconds).toBe(1200);
         expect(result.current.state.isTimerRunning).toBe(false);
+        expect(result.current.state.periodEndedManually).toBe(true); // a length edit keeps it ended
         expect(readTimerAnchor('game-1')).toBeNull();
       });
 

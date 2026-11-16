@@ -126,6 +126,13 @@ describe('TimerOverlay', () => {
       expect(onEndPeriod).not.toHaveBeenCalled();
     });
 
+    it('is not offered at full time or without a handler', () => {
+      const { rerender } = render(<TimerOverlay {...baseProps} onEndPeriod={jest.fn()} gameStatus="gameEnd" currentPeriod={2} timeElapsedInSeconds={1200} />);
+      expect(screen.queryByTestId('timer-end-period')).not.toBeInTheDocument();
+      rerender(<TimerOverlay {...baseProps} gameStatus="inProgress" timeElapsedInSeconds={300} />);
+      expect(screen.queryByTestId('timer-end-period')).not.toBeInTheDocument();
+    });
+
     it('on the last period it is "End match"', () => {
       render(<TimerOverlay {...baseProps} onEndPeriod={jest.fn()} gameStatus="inProgress" currentPeriod={2} timeElapsedInSeconds={1100} />);
       expect(screen.getByTestId('timer-end-period')).toHaveTextContent(/end match/i);
