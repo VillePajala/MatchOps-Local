@@ -136,6 +136,32 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     dispatch({ type: 'RESET_TIMER_ONLY' });
   }, [dispatch, currentGameId]);
 
+  /**
+   * End the current period now (review 4.31, owner decision 2026-11-16): the referee
+   * blew early, or the clock was set up longer than the match. The clock moves to the
+   * period's end - the football convention the next period starts from anyway (Start
+   * Period 2 starts at (n-1) x length) - so a break always sits at its boundary: an
+   * ended match never offers "Resume", and a later length edit never reopens the half.
+   * On the last period this is full time. The timer view asks for confirmation.
+   */
+  const endPeriodNow = useCallback(() => {
+    const s = stateRef.current;
+    if (s.gameStatus !== 'inProgress') return;
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    void clearTimerState();
+    if (currentGameId) clearTimerAnchor(currentGameId);
+    dispatch({
+      type: 'END_PERIOD_OR_GAME',
+      payload: {
+        newStatus: s.currentPeriod >= s.numberOfPeriods ? 'gameEnd' : 'periodEnd',
+        finalTime: s.currentPeriod * s.periodDurationMinutes * 60,
+      },
+    });
+  }, [dispatch, currentGameId]);
+
   const ackSubstitution = useCallback(() => {
     dispatch({ type: 'CONFIRM_SUBSTITUTION' });
   }, [dispatch]);
@@ -355,12 +381,13 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds,
     startPause,
     reset,
+    endPeriodNow,
     ackSubstitution,
     setSubInterval,
   }), [
     state.timeElapsedInSeconds, state.isTimerRunning,
     state.nextSubDueTimeSeconds, state.subAlertLevel,
     state.lastSubConfirmationTimeSeconds,
-    startPause, reset, ackSubstitution, setSubInterval,
+    startPause, reset, endPeriodNow, ackSubstitution, setSubInterval,
   ]);
 };

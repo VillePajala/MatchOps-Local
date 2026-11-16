@@ -242,6 +242,44 @@ describe('useGameTimer', () => {
   // ============================================
   describe('startPause', () => {
     /**
+     * Review 4.31: ending a period early moves the clock to the period end (the next
+     * period starts there anyway), stops the clock and drops the recovery anchor; on
+     * the last period it is full time. Nothing happens outside play.
+     * @critical
+     */
+    describe('endPeriodNow (review 4.31)', () => {
+      beforeEach(() => window.localStorage.clear());
+      const render = (overrides: Partial<GameSessionState>) => renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, createInitialState(overrides));
+        return { timer: useGameTimer({ state, dispatch, currentGameId: 'game-1' }), state };
+      });
+
+      it('ends period 1 at its end, stopped, anchor cleared', () => {
+        writeTimerAnchor('game-1', 522);
+        const { result } = render({ gameStatus: 'inProgress', isTimerRunning: true, startTimestamp: Date.now(), currentPeriod: 1, numberOfPeriods: 2, periodDurationMinutes: 20, timeElapsedInSeconds: 522 });
+        act(() => { result.current.timer.endPeriodNow(); });
+        expect(result.current.state.gameStatus).toBe('periodEnd');
+        expect(result.current.state.timeElapsedInSeconds).toBe(1200);
+        expect(result.current.state.isTimerRunning).toBe(false);
+        expect(readTimerAnchor('game-1')).toBeNull();
+      });
+
+      it('on the last period it is full time', () => {
+        const { result } = render({ gameStatus: 'inProgress', isTimerRunning: false, currentPeriod: 2, numberOfPeriods: 2, periodDurationMinutes: 20, timeElapsedInSeconds: 2300 });
+        act(() => { result.current.timer.endPeriodNow(); });
+        expect(result.current.state.gameStatus).toBe('gameEnd');
+        expect(result.current.state.timeElapsedInSeconds).toBe(2400);
+      });
+
+      it('does nothing outside play (before kick-off)', () => {
+        const { result } = render({ gameStatus: 'notStarted', currentPeriod: 1, numberOfPeriods: 2, periodDurationMinutes: 20, timeElapsedInSeconds: 0 });
+        act(() => { result.current.timer.endPeriodNow(); });
+        expect(result.current.state.gameStatus).toBe('notStarted');
+        expect(result.current.state.timeElapsedInSeconds).toBe(0);
+      });
+    });
+
+    /**
      * Review 4.24: a live match - started and not finished, clock running or not - is
      * published so the long-background reload leaves it alone.
      * @critical

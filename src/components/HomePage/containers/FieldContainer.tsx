@@ -116,6 +116,8 @@ export interface TimerInteractions {
   setSubInterval: (minutes: number) => void;
   startPauseTimer: () => void;
   resetTimer: () => void;
+  /** End the current period now (review 4.31); the timer view confirms first. */
+  endPeriodNow?: () => void;
 }
 
 export interface FieldContainerProps {
@@ -253,6 +255,7 @@ export function FieldContainer({
     setSubInterval,
     startPauseTimer,
     resetTimer,
+    endPeriodNow,
   } = timerInteractions;
 
   // Consolidated locals (prefer VMs when provided)
@@ -374,6 +377,7 @@ export function FieldContainer({
           isTimerRunning={tmIsRunning}
           onStartPauseTimer={startPauseTimer}
           onResetTimer={resetTimer}
+          onEndPeriod={endPeriodNow}
           plannedSubGroup={plannedSubGroup}
           plannedSubsEarlier={plannedSubsEarlier}
           onToggleGoalLogModal={toggleGoalLogModal}
