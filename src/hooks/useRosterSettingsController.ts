@@ -35,7 +35,8 @@ export interface UseRosterSettingsControllerReturn {
   handleSetJerseyNumberForModal: (playerId: string, jerseyNumber: string) => void;
   handleSetPlayerNotesForModal: (playerId: string, notes: string) => void;
   handleRemovePlayerForModal: (playerId: string) => void;
-  handleAddPlayerForModal: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
+  /** Resolves whether the player was added (the form stays open on `false`). */
+  handleAddPlayerForModal: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => Promise<boolean>;
   /** Raw club-write returning the saved player (W1: the new-game picker's
    *  inline add needs the id to select). Callers do their own dup-check. */
   handleAddPlayerReturning: (data: { name: string; nickname?: string }) => Promise<import('@/types').Player | null>;
