@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Quick edits in Match details made while the match is saving no longer undo each other or bring back an older clock."
+      ],
+      "fi": [
+        "Ottelutietojen nopeat muokkaukset ottelun tallentuessa eivät enää kumoa toisiaan eivätkä palauta vanhempaa kelloa."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "The Excel export's Total Game Duration and a player rating's minutes played now use the match clock, so a game with no confirmed substitutions no longer shows 0. Substitution times in the export show the match minute instead of a 1970 date."
       ],
       "fi": [

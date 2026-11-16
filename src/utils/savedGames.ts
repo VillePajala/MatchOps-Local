@@ -4,6 +4,20 @@ import type { Player } from '@/types';
 import logger from '@/utils/logger';
 import { appStateSchema } from './appStateSchema';
 import { getDataStore } from '@/datastore';
+import { withKeyLock } from '@/utils/storageKeyLock';
+
+/**
+ * One write queue per game for the writes made through this module (review 4.33b):
+ * the autosave (saveGame) and the Match details read-modify-write
+ * (updateGameDetails) used to interleave - two quick Match details edits could drop
+ * the first field, and an autosave landing between a details update's read and its
+ * write was overwritten with the older status, clock and events until the next
+ * autosave. Inside the queue each writer reads after the previous write landed.
+ * Never call the exported saveGame from inside it (the queue is not re-entrant):
+ * use dataStore.saveGame there.
+ */
+const withGameWriteLock = <T>(gameId: string, operation: () => Promise<T>): Promise<T> =>
+  withKeyLock(`game-write:${gameId}`, operation);
 
 // Note: AppState (imported from @/types) is the primary type used for live game state
 // and for storing games in IndexedDB via SavedGamesCollection.
@@ -78,8 +92,10 @@ export const saveGame = async (gameId: string, gameData: AppState, userId?: stri
   if (!gameId || !gameId.trim()) {
     throw new Error('Game ID is required');
   }
-  const dataStore = await getDataStore(userId);
-  return dataStore.saveGame(gameId, gameData);
+  return withGameWriteLock(gameId, async () => {
+    const dataStore = await getDataStore(userId);
+    return dataStore.saveGame(gameId, gameData);
+  });
 };
 
 /**
@@ -278,7 +294,7 @@ export const updateGameDetails = async (
   gameId: string,
   updateData: Partial<Omit<AppState, 'id' | 'events'>>,
   userId?: string
-): Promise<AppState | null> => {
+): Promise<AppState | null> => withGameWriteLock(gameId, async () => {
   const dataStore = await getDataStore(userId);
   const game = await dataStore.getGameById(gameId);
 
@@ -310,7 +326,7 @@ export const updateGameDetails = async (
   }
 
   return dataStore.saveGame(gameId, updatedGame);
-};
+});
 
 /**
  * Adds an event to a game
@@ -319,10 +335,11 @@ export const updateGameDetails = async (
  * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to the updated game data, or null on error
  */
-export const addGameEvent = async (gameId: string, event: PageGameEvent, userId?: string): Promise<AppState | null> => {
-  const dataStore = await getDataStore(userId);
-  return dataStore.addGameEvent(gameId, event);
-};
+export const addGameEvent = async (gameId: string, event: PageGameEvent, userId?: string): Promise<AppState | null> =>
+  withGameWriteLock(gameId, async () => {
+    const dataStore = await getDataStore(userId);
+    return dataStore.addGameEvent(gameId, event);
+  });
 
 /**
  * Updates an event in a game
@@ -332,10 +349,11 @@ export const addGameEvent = async (gameId: string, event: PageGameEvent, userId?
  * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to the updated game data, or null on error
  */
-export const updateGameEvent = async (gameId: string, eventIndex: number, eventData: PageGameEvent, userId?: string): Promise<AppState | null> => {
-  const dataStore = await getDataStore(userId);
-  return dataStore.updateGameEvent(gameId, eventIndex, eventData);
-};
+export const updateGameEvent = async (gameId: string, eventIndex: number, eventData: PageGameEvent, userId?: string): Promise<AppState | null> =>
+  withGameWriteLock(gameId, async () => {
+    const dataStore = await getDataStore(userId);
+    return dataStore.updateGameEvent(gameId, eventIndex, eventData);
+  });
 
 /**
  * Removes an event from a game
@@ -344,10 +362,11 @@ export const updateGameEvent = async (gameId: string, eventIndex: number, eventD
  * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns Promise resolving to the updated game data, or null on error
  */
-export const removeGameEvent = async (gameId: string, eventIndex: number, userId?: string): Promise<AppState | null> => {
-  const dataStore = await getDataStore(userId);
-  return dataStore.removeGameEvent(gameId, eventIndex);
-};
+export const removeGameEvent = async (gameId: string, eventIndex: number, userId?: string): Promise<AppState | null> =>
+  withGameWriteLock(gameId, async () => {
+    const dataStore = await getDataStore(userId);
+    return dataStore.removeGameEvent(gameId, eventIndex);
+  });
 
 /**
  * Exports all games as a JSON string

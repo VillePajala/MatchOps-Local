@@ -412,7 +412,9 @@ export function useGamePersistence({
         }
         // Update savedGames state and storage
         const updatedSavedGames = { ...savedGames, [currentGameId]: currentSnapshot };
-        setSavedGames(updatedSavedGames);
+        // Functional: merge this game into the CURRENT local collection, never replace it
+        // with this callback's possibly older copy (review 4.33b).
+        setSavedGames((prev) => ({ ...prev, [currentGameId]: currentSnapshot }));
         await utilSaveGame(currentGameId, currentSnapshot, userId);
         // 2) The AUTO-save must never rewrite the persisted current-game-id
         //    setting: it cannot change while this match is mounted, and a
