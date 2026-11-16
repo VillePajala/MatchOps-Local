@@ -370,8 +370,15 @@ export default function Home() {
     // callback - see the tRef declaration for what that used to cost.
   }, [publishHomeSummaries]);
 
-  const checkAppState = useCallback(async () => {
-    setIsCheckingState(true);
+  // Set by the app-resume refresh (review 4.23): that re-check runs in the
+  // background, without the full-screen loading gate. Raising the gate swapped the
+  // whole tree for <LoadingScreen>, which UNMOUNTED a live match on every return
+  // after 30 s: open dialogs and undo were lost, the clock had to be recovered from
+  // its anchor (losing time), and a paused match lost its screen lock.
+  const backgroundCheckRef = useRef(false);
+
+  const checkAppState = useCallback(async ({ inBackground = false }: { inBackground?: boolean } = {}) => {
+    if (!inBackground) setIsCheckingState(true);
     // Consume the "first check" slot once per page load (boot / WebView recreation),
     // regardless of outcome, so later refreshTrigger re-runs can't auto-resume.
     const isFirstCheck = !didInitialResumeRef.current;
@@ -515,6 +522,10 @@ export default function Home() {
         .catch((setupErr) => logger.warn('Failed to compute recommended-setup signals', { error: setupErr }));
     } catch (error) {
       logger.warn('Failed to check initial game state', { error });
+      // A background re-check (app resume) that fails - a transient IndexedDB error
+      // on mobile - keeps the last known values instead of blanking them under a
+      // mounted match; the next refresh corrects them.
+      if (inBackground) return;
       setCanResume(false);
       setHasSavedGames(false);
       setHasPlayers(false);
@@ -851,6 +862,11 @@ export default function Home() {
   // - userId changes (ensures we have user ID for user-scoped storage)
   // In cloud mode, checkAppState() needs auth AND userId to access DataStore
   useEffect(() => {
+    // Consumed on every run, so a resume flag can never leak into a later check
+    // (e.g. the one after signing in), which must show the loading gate.
+    const inBackground = backgroundCheckRef.current;
+    backgroundCheckRef.current = false;
+
     // Skip if auth is still loading
     if (isAuthLoading) return;
 
@@ -873,7 +889,7 @@ export default function Home() {
       checkAppStateTriggeredRef.current = true;
     }
 
-    checkAppState();
+    void checkAppState({ inBackground });
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId]);
 
   // Deep-review fix (stale Home): all Home flags (canResume, hasPlayers,
@@ -1477,6 +1493,7 @@ export default function Home() {
   // Memoize onResume to avoid re-subscribing to visibility events on every render
   const handleAppResume = useCallback(() => {
     logger.log('[page.tsx] App resumed - triggering state refresh');
+    backgroundCheckRef.current = true; // refresh in place; never unmount the match
     setRefreshTrigger((prev) => prev + 1);
   }, []);
 
