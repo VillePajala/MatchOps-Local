@@ -2624,7 +2624,7 @@
     "keeps3": "The coach is responsible for these notes, the same as for a paper notebook. The app's rules tell coaches to keep to football actions and first names, and never to note health, family or personal matters.",
     "recordingsTitle": "Voice recordings",
     "recordings1": "A recording stays on the coach's phone. It is never sent to MatchOps, never synced to another device, and never included in backups.",
-    "recordings2": "It is deleted from the phone as soon as it has been turned into text or discarded, and in any case after 30 days.",
+    "recordings2": "It is deleted from the phone as soon as it has been turned into a note or discarded, and in any case after 30 days.",
     "aiTitle": "If the coach uses the optional AI",
     "aiIntro": "Turning a recording into text and drafting a match report can use an AI service. This only happens if the coach has connected their own account with a provider (for example OpenAI) and only when the coach presses a button. MatchOps, the app's maker, never sees any of it.",
     "ai1": "Before a report is drafted, players' names are replaced with codes such as P1 and P2 on the phone. The provider does not receive the names.",

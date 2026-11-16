@@ -39,6 +39,7 @@ import { exportJson } from '@/utils/exportGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import type { SavedGamesCollection } from '@/types';
 import logger from '@/utils/logger';
+import { deleteClipsForGame } from '@/utils/audioClipStore';
 
 export interface UseLoadGameControllerArgs {
   /** Flush the LIVE match's pending autosave before the crossing persists a
@@ -162,6 +163,11 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flush
           } catch (cleanupError) {
             logger.warn('[useLoadGameController] Planner cleanup after game delete failed (non-fatal):', cleanupError);
           }
+          // The match's voice recordings go with it (review 6.5): personal audio about
+          // named children, unreachable from any screen once the game is gone. Best
+          // effort; the 30-day rotation at app start is the backstop.
+          await deleteClipsForGame(gameId, userId).catch((clipError) =>
+            logger.warn('[useLoadGameController] Voice clip cleanup after game delete failed (non-fatal):', clipError));
 
           const updated: SavedGamesCollection = { ...savedGames };
           delete updated[gameId];
