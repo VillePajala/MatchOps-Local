@@ -54,15 +54,18 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
 
   // Which games and teams use each level (review 7.15), archived teams included -
   // a level they point at must not be removed.
-  const { data: savedGamesForUsage, isSuccess: gamesUsageLoaded } = useQuery({
+  // Re-read on every open: the check must see games saved since the cache was filled.
+  const { data: savedGamesForUsage, isSuccess: gamesUsageLoaded, isError: gamesUsageFailed } = useQuery({
     queryKey: [...queryKeys.savedGames, userId],
     queryFn: () => getSavedGames(userId),
     enabled: isOpen,
+    refetchOnMount: 'always',
   });
-  const { data: teamsForUsage, isSuccess: teamsUsageLoaded } = useQuery({
+  const { data: teamsForUsage, isSuccess: teamsUsageLoaded, isError: teamsUsageFailed } = useQuery({
     queryKey: [...queryKeys.teams, userId, 'withArchived'],
     queryFn: async () => (await getDataStore(userId)).getTeams(true),
     enabled: isOpen,
+    refetchOnMount: 'always',
   });
   const seriesUsage = useMemo<SeriesUsage>(() => {
     const usage: SeriesUsage = {};
@@ -474,6 +477,12 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                 seriesUsage={seriesUsage}
                 usageReady={gamesUsageLoaded && teamsUsageLoaded}
               />
+              {(gamesUsageFailed || teamsUsageFailed) && (
+                // Removal stays off (fail closed); say why rather than leave dead buttons.
+                <p className="text-xs text-slate-400 -mt-2" data-testid="series-usage-failed">
+                  {t('errors.failedToLoadData', 'Failed to load data. Some features may not be available.')}
+                </p>
+              )}
 
               {/* Start Date and End Date */}
               <div className="grid grid-cols-2 gap-3">
