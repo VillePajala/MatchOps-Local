@@ -27,6 +27,7 @@ import * as Sentry from '@sentry/nextjs';
 import logger from '@/utils/logger';
 import { isMatchLive } from '@/utils/matchTimerSignal';
 import { isRecordingSessionActive } from '@/utils/recordingSessionSignal';
+import { hasUnsavedInput } from '@/utils/unsavedInputSignal';
 
 interface UseAppResumeOptions {
   /** Callback when app resumes from background */
@@ -128,8 +129,9 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
           await onBeforeForceReload?.();
           // Re-check after the notice (review 4.24): a match may have gone live
           // during it (the coach tapped Start on returning). Reloading now would
-          // throw that start away - refresh in place instead.
-          if (isMatchLive() || isRecordingSessionActive()) {
+          // throw that start away - refresh in place instead. Same for a form the
+          // coach opened during the notice (review 7.1).
+          if (isMatchLive() || isRecordingSessionActive() || hasUnsavedInput()) {
             logger.info('[useAppResume] Reload cancelled: a match went live during the notice');
             isReloadingRef.current = false;
             queryClient.invalidateQueries();
@@ -199,7 +201,9 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
       // screen with a paused clock. Fall through to the soft refresh instead.
       // Never offline either: a reload with no connection can't fetch anything new
       // and (in cloud mode) restarts the sign-in, which can't finish without signal.
-      if (backgroundDuration > forceReloadTime && !isMatchLive() && !isRecordingSessionActive() && !isDeviceOffline()) {
+      // Nor with a form open (review 7.1): the reload would throw away what the
+      // coach typed - the setup wizard, New Game, a player being added.
+      if (backgroundDuration > forceReloadTime && !isMatchLive() && !isRecordingSessionActive() && !hasUnsavedInput() && !isDeviceOffline()) {
         forceReloadWithNotification(backgroundDuration, 'visibilitychange');
         return;
       }
@@ -251,7 +255,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         const backgroundDuration = now - backgroundStartRef.current;
 
         // Skip the force-reload during a live match or offline (see visibilitychange note).
-        if (backgroundDuration > forceReloadTime && !isMatchLive() && !isRecordingSessionActive() && !isDeviceOffline()) {
+        if (backgroundDuration > forceReloadTime && !isMatchLive() && !isRecordingSessionActive() && !hasUnsavedInput() && !isDeviceOffline()) {
           forceReloadWithNotification(backgroundDuration, 'pageshow_bfcache');
           return;
         }
