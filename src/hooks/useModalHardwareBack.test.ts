@@ -8,15 +8,18 @@ import { useModalHardwareBack, useHardwareBackSubLevel, __resetModalHardwareBack
 describe('useModalHardwareBack (single sentinel)', () => {
   let pushSpy: jest.SpyInstance;
   let backSpy: jest.SpyInstance;
+  let goSpy: jest.SpyInstance;
 
   beforeEach(() => {
     __resetModalHardwareBackForTests();
     pushSpy = jest.spyOn(window.history, 'pushState').mockImplementation(() => {});
     backSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+    goSpy = jest.spyOn(window.history, 'go').mockImplementation(() => {});
   });
   afterEach(() => {
     pushSpy.mockRestore();
     backSpy.mockRestore();
+    goSpy.mockRestore();
   });
 
   const pop = async () => {
@@ -139,6 +142,8 @@ describe('useModalHardwareBack (single sentinel)', () => {
     expect(pushSpy).toHaveBeenCalledTimes(2);
 
     b.rerender({ active: false }); // left the sub-level via UI/state, not a back
+    expect(backSpy).not.toHaveBeenCalled(); // deferred a macrotask (review 7.7)
+    await flushRetire();
     expect(backSpy).toHaveBeenCalledTimes(1); // guard retired with a suppressed back
 
     await pop(); // that programmatic back's popstate is swallowed - closes nothing
@@ -201,9 +206,9 @@ describe('useModalHardwareBack (single sentinel)', () => {
   it('closing the main modal from INSIDE a sub-level balances the counter (no stuck pops)', async () => {
     // Models closing the planner via its X while still inside a plan: the
     // preemptive sub-guard AND the main sentinel both retire in the same
-    // cleanup tick, firing two suppressed back()s. The two swallowed popstates
-    // must leave the suppression counter at ZERO, so a later unrelated back is
-    // not silently eaten. (Refutes the recurring review flag about this path.)
+    // cleanup tick - in ONE traversal (go(-2), one popstate; review 7.7), not two
+    // racing back()s. The swallowed popstate must leave the suppression counter
+    // at ZERO, so a later unrelated back is not silently eaten.
     const closeMain = jest.fn();
     const stepped = jest.fn();
     const planner = renderHook(
@@ -216,11 +221,11 @@ describe('useModalHardwareBack (single sentinel)', () => {
     expect(pushSpy).toHaveBeenCalledTimes(2); // sentinel + preemptive sub-guard
 
     planner.rerender({ open: false }); // close the planner from the sub-level via UI
-    await flushRetire(); // the sentinel retire is deferred a macrotask now
-    expect(backSpy).toHaveBeenCalledTimes(2); // sub-guard back + sentinel back
+    await flushRetire(); // both retires are deferred a macrotask
+    expect(goSpy).toHaveBeenCalledWith(-2); // sub-guard + sentinel in one traversal
+    expect(backSpy).not.toHaveBeenCalled();
 
-    // Both programmatic backs' popstates are swallowed - neither callback fires.
-    await pop();
+    // The one programmatic traversal's popstate is swallowed - neither callback fires.
     await pop();
     expect(stepped).not.toHaveBeenCalled();
     expect(closeMain).not.toHaveBeenCalled();
@@ -264,6 +269,106 @@ describe('useModalHardwareBack (single sentinel)', () => {
     await pop();
     expect(goHome).toHaveBeenCalledTimes(1);
     app.unmount();
+  });
+
+  /**
+   * Review 7.7 (a): wrap-up -> match details in one tap. One sub-guard closes and
+   * the next opens in the same commit; the live entry is handed over - no
+   * back()+pushState - so the history keeps exactly the entries in use.
+   * @critical
+   */
+  it('a sub-guard handing off to another in one commit reuses the live entry', async () => {
+    const closeMatch = jest.fn();
+    const wrapUpBack = jest.fn();
+    const detailsBack = jest.fn();
+    const match = renderHook(() => useModalHardwareBack(true, closeMatch));
+    const modals = renderHook(
+      ({ wrapUp }) => {
+        useHardwareBackSubLevel(wrapUp, wrapUpBack);
+        useHardwareBackSubLevel(!wrapUp, detailsBack);
+      },
+      { initialProps: { wrapUp: true } },
+    );
+    expect(pushSpy).toHaveBeenCalledTimes(2); // sentinel + wrap-up guard
+
+    modals.rerender({ wrapUp: false }); // same commit: wrap-up closes, details opens
+    await flushRetire();
+    expect(pushSpy).toHaveBeenCalledTimes(2); // handed over, not pushed
+    expect(backSpy).not.toHaveBeenCalled();
+    expect(goSpy).not.toHaveBeenCalled();
+
+    await pop(); // back: closes match details
+    expect(detailsBack).toHaveBeenCalledTimes(1);
+    expect(closeMatch).not.toHaveBeenCalled();
+    await pop(); // next back: the match's own guard (back to Home), not an app exit
+    expect(closeMatch).toHaveBeenCalledTimes(1);
+    expect(wrapUpBack).not.toHaveBeenCalled();
+    modals.unmount();
+    match.unmount();
+  });
+
+  /**
+   * Review 7.7 (b): club stats game log -> match. The club's sub-guard closes while
+   * the match screen's guard registers the sentinel in the same commit: the sentinel
+   * takes the live entry over.
+   * @critical
+   */
+  it('a sub-guard closing while the sentinel registers hands it the live entry', async () => {
+    const closeMatch = jest.fn();
+    const clubBack = jest.fn();
+    const host = renderHook(
+      ({ inMatch }) => {
+        useHardwareBackSubLevel(!inMatch, clubBack);
+        useModalHardwareBack(inMatch, closeMatch);
+      },
+      { initialProps: { inMatch: false } },
+    );
+    expect(pushSpy).toHaveBeenCalledTimes(1); // the club stats guard
+
+    host.rerender({ inMatch: true }); // same commit: guard retires, match registers
+    await flushRetire();
+    expect(pushSpy).toHaveBeenCalledTimes(1); // sentinel took the live entry
+    expect(backSpy).not.toHaveBeenCalled();
+
+    await pop(); // the first back returns to Home - never exits the app
+    expect(closeMatch).toHaveBeenCalledTimes(1);
+    expect(clubBack).not.toHaveBeenCalled();
+    host.unmount();
+  });
+
+  it('two guards closing while one opens retire the one surplus entry in a single back', async () => {
+    const match = renderHook(() => useModalHardwareBack(true, jest.fn()));
+    const guards = renderHook(
+      ({ phase }) => {
+        useHardwareBackSubLevel(phase === 'two', jest.fn());
+        useHardwareBackSubLevel(phase === 'two', jest.fn());
+        useHardwareBackSubLevel(phase === 'one', jest.fn());
+      },
+      { initialProps: { phase: 'two' as 'two' | 'one' } },
+    );
+    expect(pushSpy).toHaveBeenCalledTimes(3);
+    guards.rerender({ phase: 'one' });
+    await flushRetire();
+    expect(pushSpy).toHaveBeenCalledTimes(3); // the opener took one entry over
+    expect(backSpy).toHaveBeenCalledTimes(1); // the surplus one leaves
+    expect(goSpy).not.toHaveBeenCalled();
+    guards.unmount();
+    match.unmount();
+  });
+
+  it('a real back inside the deferred window counts as the retire, not one more', async () => {
+    const closeMatch = jest.fn();
+    const match = renderHook(() => useModalHardwareBack(true, closeMatch));
+    const guard = renderHook(({ active }) => useHardwareBackSubLevel(active, jest.fn()), { initialProps: { active: true } });
+    guard.rerender({ active: false }); // retire pending
+    await act(async () => { window.dispatchEvent(new PopStateEvent('popstate')); }); // the coach's back, same tick
+    await flushRetire();
+    expect(backSpy).not.toHaveBeenCalled(); // nothing left to retire
+    expect(closeMatch).not.toHaveBeenCalled();
+    await pop(); // the next back reaches the match guard
+    expect(closeMatch).toHaveBeenCalledTimes(1);
+    guard.unmount();
+    match.unmount();
   });
 
   it('exposes the hardware-back flag ONLY during a popstate-driven close', async () => {
