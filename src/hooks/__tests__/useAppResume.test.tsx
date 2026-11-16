@@ -17,6 +17,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useAppResume } from '../useAppResume';
 import { setMatchTimerRunning, setMatchLive } from '@/utils/matchTimerSignal';
+import { holdUnsavedInput, __resetUnsavedInputForTests } from '@/utils/unsavedInputSignal';
 
 // Mock logger
 jest.mock('@/utils/logger', () => ({
@@ -58,6 +59,7 @@ describe('useAppResume', () => {
     // Default: no live match (existing tests expect force-reload to happen).
     setMatchTimerRunning(false);
     setMatchLive(false);
+    __resetUnsavedInputForTests();
 
     queryClient = new QueryClient({
       defaultOptions: {
@@ -615,6 +617,60 @@ describe('useAppResume', () => {
       '[useAppResume] App was in background for', 360, 'seconds - forcing page reload'
     );
     expect(onResume).toHaveBeenCalled();
+  });
+
+  /**
+   * Review 7.1: a coach typing the squad into the setup wizard (or a New Game /
+   * player form) switches to another app to read names. The forced reload after
+   * 5 minutes used to throw all of it away. While a form holds the signal, the
+   * soft refresh runs instead; once released, the reload is back.
+   * @critical
+   */
+  it.each(['visibilitychange', 'pageshow'] as const)('does NOT force reload while a form holds unsaved input (%s)', async (path) => {
+    const logger = require('@/utils/logger').default;
+    const release = holdUnsavedInput();
+    const onResume = jest.fn();
+    renderHook(() => useAppResume({ forceReloadTime: 300000, onResume }), { wrapper });
+
+    if (path === 'visibilitychange') {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+      mockNow += 360000;
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+      act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    } else {
+      act(() => { window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })); });
+      mockNow += 360000;
+      act(() => { window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); });
+    }
+    await act(async () => {});
+    await act(async () => {});
+
+    expect(logger.debug).not.toHaveBeenCalledWith(expect.any(String), 360, 'seconds - forcing page reload');
+    expect(reloadMock).not.toHaveBeenCalled();
+    expect(onResume).toHaveBeenCalled();
+    release();
+  });
+
+  it('cancels the reload when a form is opened during the notice', async () => {
+    const logger = require('@/utils/logger').default;
+    const onResume = jest.fn();
+    let release: () => void = () => {};
+    const onBeforeForceReload = jest.fn(async () => { release = holdUnsavedInput(); });
+    renderHook(() => useAppResume({ forceReloadTime: 300000, onResume, onBeforeForceReload }), { wrapper });
+
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    mockNow += 360000;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    await act(async () => {});
+    await act(async () => {});
+
+    expect(onBeforeForceReload).toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith('[useAppResume] Reload cancelled: a form was opened during the notice');
+    expect(onResume).toHaveBeenCalled();
+    release();
   });
 
   /**

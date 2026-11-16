@@ -3,6 +3,15 @@
   "releases": [
     {
       "date": "2026-11-16",
+      "en": [
+        "If you switch to another app for a while during first-time setup, or with the New Game or player form open, what you typed is still there when you come back."
+      ],
+      "fi": [
+        "Jos siirryt hetkeksi toiseen sovellukseen ensimmäisen käyttöönoton aikana tai kun uuden ottelun tai pelaajan lomake on auki, kirjoittamasi tiedot ovat yhä tallessa, kun palaat."
+      ]
+    },
+    {
+      "date": "2026-11-16",
       "internal": true,
       "en": [
         "Error messages no longer show internal server details."

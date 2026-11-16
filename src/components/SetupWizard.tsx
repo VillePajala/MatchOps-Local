@@ -1,5 +1,6 @@
 'use client';
 
+import { useHoldUnsavedInput } from '@/utils/unsavedInputSignal';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { saveLanguagePreference } from '@/i18n';
@@ -64,6 +65,9 @@ interface SetupWizardProps {
 
 const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const { t } = useTranslation();
+  // The wizard is the coach's first input - typing the squad while reading names
+  // from another app must not be lost to the long-background reload (review 7.1).
+  useHoldUnsavedInput(true);
   const queryClient = useQueryClient();
   const { userId } = useDataStore();
   const { showToast } = useToast();

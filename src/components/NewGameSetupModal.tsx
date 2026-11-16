@@ -1,5 +1,6 @@
 'use client';
 
+import { useHoldUnsavedInput } from '@/utils/unsavedInputSignal';
 import React, { useState, useRef, useCallback, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
@@ -173,6 +174,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   knownVenues: storedVenues,
 }) => {
   const { t } = useTranslation();
+  // A half-filled New Game form must survive a long switch to another app (review 7.1).
+  useHoldUnsavedInput(isOpen);
   const headerCollapse = useCollapsingHeader();
   const { showToast } = useToast();
   const [homeTeamName, setHomeTeamName] = useState('');

@@ -1,5 +1,6 @@
 'use client';
 
+import { useHoldUnsavedInput } from '@/utils/unsavedInputSignal';
 import React, { useState, useId } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
@@ -31,6 +32,8 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   isRosterUpdating,
 }) => {
   const { t } = useTranslation();
+  // An open player form must survive a long switch to another app (review 7.1).
+  useHoldUnsavedInput(isOpen);
 
   // Form state
   useEscapeToClose(isOpen, onClose);
