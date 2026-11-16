@@ -997,7 +997,8 @@ describe('Excel Export Utilities', () => {
       expect(rows).toHaveLength(2);
       const lautp = rows.find((r) => String(r['Opponent']).toLowerCase().includes('lautp'))!;
       expect(lautp['Games Played']).toBe(2);
-      expect(lautp['Record']).toBe('1-1-0');
+      // Wins-draws-losses with the order in the header (review 5.2): one win, one loss.
+      expect(lautp['Record (W-D-L)']).toBe('1-0-1');
     });
 
     /** One opponent restates the Team Performance sheet, so it is omitted. */

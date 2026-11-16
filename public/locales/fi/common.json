@@ -492,7 +492,7 @@
     "selectLevel": "-- Valitse taso --",
     "selectSeries": "-- Valitse taso --",
     "player": "Pelaaja",
-    "record": "Rekordi",
+    "record": "Rekordi (V-T-H)",
     "remove": "Poista",
     "refresh": "Päivitä",
     "restore": "Palauta",
@@ -2281,6 +2281,7 @@
     "reassignDescription": "Valitse joukkue, johon peli liitetään, tai valitse \"Ei joukkuetta\" käyttääksesi pääkokoonpanoa."
   },
   "export": {
+    "record": "Rekordi (V-T-H)",
     "opponent": "Vastustaja",
     "sheetOpponentBreakdown": "Vastustajaerittely",
     "exportGameFailed": "Pelin vienti epäonnistui. Yritä uudelleen.",

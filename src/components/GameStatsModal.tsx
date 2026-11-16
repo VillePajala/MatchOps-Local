@@ -1585,9 +1585,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                                 <span className="text-amber-400 font-bold">{tournamentSeasonStats.totalGames}</span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-                                <span className="text-slate-300">{t('common.record', 'Record')}</span>
+                                <span className="text-slate-300">{t('common.record', 'Record (W-D-L)')}</span>
                                 <span className="text-amber-400 font-bold">
-                                  {tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}
+                                  {tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalTies}-{tournamentSeasonStats.totalLosses}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">

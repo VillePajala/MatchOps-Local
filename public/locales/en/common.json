@@ -492,7 +492,7 @@
     "selectLevel": "-- Select Level --",
     "selectSeries": "-- Select level --",
     "player": "Player",
-    "record": "Record",
+    "record": "Record (W-D-L)",
     "remove": "Remove",
     "refresh": "Refresh",
     "restore": "Restore",
@@ -2281,6 +2281,7 @@
     "reassignDescription": "Select a team to associate this game with, or choose \"No Team\" to use the master roster."
   },
   "export": {
+    "record": "Record (W-D-L)",
     "opponent": "Opponent",
     "sheetOpponentBreakdown": "Opponent Breakdown",
     "exportGameFailed": "Failed to export game. Please try again.",
