@@ -55,7 +55,7 @@ import { todayIso } from '@/utils/todayIso';
 import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import * as Sentry from '@sentry/nextjs';
-import { useAutoSave } from '@/hooks/useAutoSave';
+import { useAutoSave, isTransientError } from '@/hooks/useAutoSave';
 import { NetworkError, ValidationError } from '@/interfaces/DataStoreErrors';
 import type { AppState, GameEvent, PlayerAssessment, Player, SavedGamesCollection } from '@/types';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
@@ -134,7 +134,8 @@ export interface UseGamePersistenceReturn {
 
   // Handlers
   // Returns true only if the game is now persisted (see implementation note).
-  handleQuickSaveGame: (silent?: boolean, suppressErrorToast?: boolean) => Promise<boolean>;
+  /** rethrowTransient: hand a transient failure back to the caller's retry (autosave). */
+  handleQuickSaveGame: (silent?: boolean, suppressErrorToast?: boolean, rethrowTransient?: boolean) => Promise<boolean>;
   handleDeleteGameEvent: (goalId: string) => Promise<boolean>;
 }
 
@@ -353,16 +354,23 @@ export function useGamePersistence({
     }
   }, [appliedGameId, currentGameId, appliedGameReplacements]);
 
-  const handleQuickSaveGame = useCallback(async (silent = false, suppressErrorToast = false): Promise<boolean> => {
+  const reportedReplacementRef = useRef<string | null>(null);
+  const handleQuickSaveGame = useCallback(async (silent = false, suppressErrorToast = false, rethrowTransient = false): Promise<boolean> => {
     const loadedWith = loadedReplacementRef.current;
     if (currentGameId && loadedWith?.id === currentGameId && gameReplacementCount(currentGameId) !== loadedWith.count) {
       logger.warn('[handleQuickSaveGame] Skipping save: this game was replaced by the cloud version since it was opened');
-      // Never silently: ask the page to reload the match on the current copy (the page
-      // de-duplicates repeated requests).
-      try {
-        window.dispatchEvent(new CustomEvent(GAME_REPLACED_BY_CLOUD_EVENT, { detail: { gameId: currentGameId } }));
-      } catch {
-        // best effort
+      // Never silently: ask the page to reload the match on the current copy - once per
+      // replacement (review 4.28: the save on leaving a running match re-sent it while
+      // the page was already reloading, and the page's 5 s de-dup can expire on a slow
+      // refetch, giving a second toast and remount).
+      const replacementKey = `${currentGameId}:${gameReplacementCount(currentGameId)}`;
+      if (reportedReplacementRef.current !== replacementKey) {
+        reportedReplacementRef.current = replacementKey;
+        try {
+          window.dispatchEvent(new CustomEvent(GAME_REPLACED_BY_CLOUD_EVENT, { detail: { gameId: currentGameId } }));
+        } catch {
+          // best effort
+        }
       }
       return false;
     }
@@ -437,6 +445,11 @@ export function useGamePersistence({
         blockedSaveGameIdRef.current = null;
         return true;
       } catch (error) {
+        // Autosave hands transient failures back to its retry (review 4.28): this catch
+        // swallowed them, so useAutoSave's 1/2/4 s backoff never ran and a save that
+        // failed on a transient IndexedDB error was simply dropped. The retry logs the
+        // final failure once.
+        if (rethrowTransient && isTransientError(error)) throw error;
         // Network errors are transient — warn only, don't flood Sentry
         if (error instanceof NetworkError) {
           logger.warn("Network error saving game:", error.message);
@@ -581,12 +594,17 @@ export function useGamePersistence({
    * even if dependencies change during the debounce period.
    */
   const autoSaveFnRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  // Whether the match clock runs, read when the app is hidden or the match is left.
+  const isTimerRunningRef = useRef(gameSessionState.isTimerRunning);
+  useEffect(() => {
+    isTimerRunningRef.current = gameSessionState.isTimerRunning;
+  }, [gameSessionState.isTimerRunning]);
 
   useEffect(() => {
     // Auto-save with silent=true (no success toast) and suppressErrorToast=true
     // Errors are logged to Sentry but don't show intrusive toasts during auto-save
     // Auto-save ignores the success boolean (errors are logged/Sentry'd, not surfaced).
-    autoSaveFnRef.current = () => handleQuickSaveGame(true, true).then(() => {});
+    autoSaveFnRef.current = () => handleQuickSaveGame(true, true, true).then(() => {});
   }, [handleQuickSaveGame]);
 
   // --- 3-Tier Debounced Auto-Save ---
@@ -719,6 +737,9 @@ export function useGamePersistence({
       delay: 2000,
     },
     saveFunction: () => autoSaveFnRef.current(), // Ref-based to prevent stale closures
+    // A running clock is saved when the app is hidden or the match is left (review
+    // 4.28), so storage holds a recent time behind the wall-clock anchor.
+    saveWhenLeaving: () => isTimerRunningRef.current,
     enabled: initialLoadComplete && currentGameId !== DEFAULT_GAME_ID && appliedGameId === currentGameId,
     currentGameId,
   });

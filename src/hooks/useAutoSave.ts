@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 import { TRANSIENT_ERROR_PATTERNS } from '@/utils/transientErrors';
@@ -17,7 +17,7 @@ interface StateGroup {
  * Uses shared TRANSIENT_ERROR_PATTERNS for consistency with retry modules.
  * Also checks IndexedDB-specific patterns (quota, locked, busy).
  */
-const isTransientError = (error: unknown): boolean => {
+export const isTransientError = (error: unknown): boolean => {
   if (!(error instanceof Error)) return false;
 
   const message = error.message.toLowerCase();
@@ -84,6 +84,12 @@ interface UseAutoSaveConfig {
   saveFunction: () => void | Promise<void>;
   enabled: boolean;
   currentGameId: string | null;
+  /**
+   * Save when the app is hidden or the view unmounts even with no change pending
+   * (review 4.28) - e.g. while the match clock runs, so a killed app keeps a recent
+   * clock in storage behind the wall-clock anchor. Read at that moment.
+   */
+  saveWhenLeaving?: () => boolean;
 }
 
 /**
@@ -142,6 +148,7 @@ export const useAutoSave = ({
   saveFunction,
   enabled,
   currentGameId,
+  saveWhenLeaving,
 }: UseAutoSaveConfig): void => {
   // Track previous serialized values for content-based change detection
   const prevImmediateRef = useRef<string | null>(null);
@@ -169,6 +176,55 @@ export const useAutoSave = ({
   useEffect(() => {
     enabledRef.current = enabled;
   }, [enabled]);
+
+  const saveWhenLeavingRef = useRef(saveWhenLeaving);
+  useEffect(() => {
+    saveWhenLeavingRef.current = saveWhenLeaving;
+  }, [saveWhenLeaving]);
+
+  // Save NOW when leaving (hidden, pagehide or unmounted): a pending debounce, or
+  // anything at all when saveWhenLeaving says so. Fire-and-forget, but the first attempt
+  // starts synchronously (the page may be frozen right after a hide) and is retried like
+  // the other tiers - also after an unmount, so it can still finish (the save closes
+  // over its own game id). If it still fails while the view is mounted, the change is
+  // marked pending again so the next save or leave carries it.
+  const flushOnLeave = useCallback(() => {
+    if (!enabledRef.current) return;
+    if (!pendingSaveRef.current && !saveWhenLeavingRef.current?.()) return;
+    pendingSaveRef.current = false;
+    if (shortTimerRef.current) { clearTimeout(shortTimerRef.current); shortTimerRef.current = null; }
+    if (longTimerRef.current) { clearTimeout(longTimerRef.current); longTimerRef.current = null; }
+    saveWithRetry(() => saveFunctionRef.current(), 3, 'on-leave').catch((error) => {
+      pendingSaveRef.current = true;
+      // Reported like the other tiers: a save lost on leaving is the data-loss case.
+      if (error instanceof NetworkError) {
+        logger.warn('[useAutoSave] Network error after retries (on leaving):', error.message);
+        return;
+      }
+      logger.error('[useAutoSave] Save failed after retries (on leaving):', error);
+      try {
+        Sentry.captureException(error, { tags: { operation: 'auto_save_on_leave' } });
+      } catch {
+        // Sentry failure must not affect auto-save error handling
+      }
+    });
+  }, []);
+
+  // Review 4.28: nothing was saved when the app went to the background - a field move
+  // or note in its 0.5-2 s debounce was lost if the OS then killed the WebView.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) flushOnLeave();
+    };
+    // pagehide too: Safari can put the page into the back/forward cache with no
+    // visibilitychange, and a cached page never unmounts - then may be evicted.
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', flushOnLeave);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', flushOnLeave);
+    };
+  }, [flushOnLeave]);
 
   // --- Serialize state groups during render ---
   // These produce STABLE PRIMITIVE STRINGS that only change when content changes,
@@ -371,11 +427,9 @@ export const useAutoSave = ({
       // Deep-review: FLUSH (don't drop) a pending debounce - "autosave makes
       // leaving safe" must hold for the 3.1 exits. Fire-and-forget: the save
       // fn's own guards (existence check, no current-id write on silent
-      // saves) make a post-crossing flush harmless.
-      if (pendingSaveRef.current && enabledRef.current) {
-        pendingSaveRef.current = false;
-        void saveFunctionRef.current();
-      }
+      // saves) make a post-crossing flush harmless. Also saves a running clock
+      // on leaving the match (review 4.28), via saveWhenLeaving.
+      flushOnLeave();
     };
-  }, []);
+  }, [flushOnLeave]);
 };

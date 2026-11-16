@@ -251,6 +251,37 @@ describe('useGamePersistence', () => {
       expect(params.resetHistory).not.toHaveBeenCalled();
     });
 
+    /**
+     * Review 4.28: the autosave path hands a TRANSIENT failure back to useAutoSave's
+     * retry (it used to be swallowed here, so the backoff never ran); other callers
+     * still get the false result, and a deterministic failure is never rethrown.
+     * @critical
+     */
+    it('rethrows a transient save failure only for the autosave path', async () => {
+      const { saveGame } = jest.requireMock('@/utils/savedGames');
+      const params = createMockParams({ savedGames: { game123: {} as unknown as AppState }, currentGameId: 'game123' });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+      (saveGame as jest.Mock).mockRejectedValueOnce(new Error('The database connection is closing: transaction is busy'));
+      await act(async () => {
+        await expect(result.current.handleQuickSaveGame(true, true, true)).rejects.toThrow(/busy/);
+      });
+      // The other two log the failure (expected console output).
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        (saveGame as jest.Mock).mockRejectedValueOnce(new Error('The database connection is closing: transaction is busy'));
+        await act(async () => {
+          await expect(result.current.handleQuickSaveGame(true, true)).resolves.toBe(false);
+        });
+        (saveGame as jest.Mock).mockRejectedValueOnce(new Error('some deterministic failure'));
+        await act(async () => {
+          await expect(result.current.handleQuickSaveGame(true, true, true)).resolves.toBe(false);
+        });
+        expect(errorSpy).toHaveBeenCalled(); // logged as a real failure, not retried
+      } finally {
+        errorSpy.mockRestore();
+      }
+    });
+
     it('resets undo history on an explicit (manual) save', async () => {
       const params = createMockParams();
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
@@ -845,11 +876,15 @@ describe('useGamePersistence', () => {
       window.addEventListener(GAME_REPLACED_BY_CLOUD_EVENT, onReload);
       act(() => { rerender({ ...params, gameSessionState: createMockGameSessionState({ homeScore: 5 }) }); });
       await act(async () => { await jest.runAllTimersAsync(); });
+      act(() => { rerender({ ...params, gameSessionState: createMockGameSessionState({ homeScore: 6 }) }); }); // a second refused save
+      await act(async () => { await jest.runAllTimersAsync(); });
       unmount();
       await act(async () => { await jest.runAllTimersAsync(); });
       expect(setSavedGames).not.toHaveBeenCalled();
       expect(warn).toHaveBeenCalledWith(expect.stringContaining('replaced by the cloud version'));
       expect(reloadRequests).toContain('game_replaced'); // never silent: the page reloads the match
+      // ...once per replacement: the save on leaving does not ask again (review 4.28).
+      expect(reloadRequests).toHaveLength(1);
       warn.mockRestore();
       window.removeEventListener(GAME_REPLACED_BY_CLOUD_EVENT, onReload);
       jest.useRealTimers();
