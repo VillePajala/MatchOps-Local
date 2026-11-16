@@ -77,19 +77,24 @@ describe('useOpponentRename', () => {
   });
 
   it('writes nothing when the open match cannot be flushed', async () => {
-    liveGame.onFlushLiveGame.mockRejectedValueOnce(new Error('save failed'));
-    const { getSavedGames } = jest.requireMock('@/utils/savedGames') as { getSavedGames: jest.Mock };
-    const { result } = renderHook(() => useOpponentRename(true), { wrapper });
-    // Let the cached games load so the rename has a plan.
-    await waitFor(() => expect(getSavedGames).toHaveBeenCalled());
-    await act(async () => { await Promise.resolve(); });
-    let error: unknown;
-    await act(async () => {
-      error = await result.current.renameOpponent('IPS', 'IPS Punainen').catch((e: unknown) => e);
-    });
-    expect(error).toEqual(new Error('save failed'));
-    expect(saveGame).not.toHaveBeenCalled();
-    expect(liveGame.onLinkedGamesUpdated).not.toHaveBeenCalled();
+    const original = liveGame.onFlushLiveGame.getMockImplementation();
+    liveGame.onFlushLiveGame.mockImplementation(async () => { throw new Error('save failed'); });
+    try {
+      const { result } = renderHook(() => useOpponentRename(true), { wrapper });
+      // Until the cached games load the rename has no plan and resolves to null
+      // without flushing; once they have, it must reject and write nothing.
+      await waitFor(async () => {
+        let error: unknown = null;
+        await act(async () => {
+          error = await result.current.renameOpponent('IPS', 'IPS Punainen').then(() => null, (e: unknown) => e);
+        });
+        expect(error).toEqual(new Error('save failed'));
+      });
+      expect(saveGame).not.toHaveBeenCalled();
+      expect(liveGame.onLinkedGamesUpdated).not.toHaveBeenCalled();
+    } finally {
+      liveGame.onFlushLiveGame.mockImplementation(original);
+    }
   });
 
   it('works from Home, with no match open', async () => {
