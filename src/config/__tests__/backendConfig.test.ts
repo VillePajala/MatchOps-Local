@@ -43,6 +43,9 @@ import {
   hasSeenWelcome,
   setWelcomeSeen,
   clearWelcomeSeen,
+  markCloudSwitchFromLocal,
+  cameToCloudFromLocal,
+  clearCloudSwitchFromLocal,
 } from '../backendConfig';
 
 describe('backendConfig', () => {
@@ -246,6 +249,33 @@ describe('backendConfig', () => {
       // Step 3: default wins when no env
       delete process.env.NEXT_PUBLIC_BACKEND_MODE;
       expect(getBackendMode()).toBe('local');
+    });
+  });
+
+  /** Review 7.4: a local coach switching to cloud keeps a way back until signed in. */
+  describe('cloud switch from local mode', () => {
+    beforeEach(() => {
+      // The suite's default stub stores nothing; this needs a working store.
+      const store: Record<string, string> = {};
+      localStorageMock.getItem.mockImplementation((key: string) => store[key] ?? null);
+      localStorageMock.setItem.mockImplementation((key: string, value: string) => { store[key] = value; });
+      localStorageMock.removeItem.mockImplementation((key: string) => { delete store[key]; });
+    });
+
+    it('is remembered until cleared', () => {
+      expect(cameToCloudFromLocal()).toBe(false);
+      markCloudSwitchFromLocal();
+      expect(cameToCloudFromLocal()).toBe(true);
+      clearCloudSwitchFromLocal();
+      expect(cameToCloudFromLocal()).toBe(false);
+    });
+
+    it('is cleared when local mode is turned back on by any route', () => {
+      process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon';
+      markCloudSwitchFromLocal();
+      expect(disableCloudMode().success).toBe(true);
+      expect(cameToCloudFromLocal()).toBe(false);
     });
   });
 

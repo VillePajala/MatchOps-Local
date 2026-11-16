@@ -184,6 +184,27 @@ export function getBackendMode(): BackendMode {
 }
 
 /**
+ * A coach who was using local mode chose "Enable Cloud Sync" (review 7.4). Until
+ * they sign in, the sign-in screen must let them go back to the games on this
+ * device - the cloud-only web build otherwise hides "continue without an account",
+ * and the switch to cloud sticks across reloads, so they were locked out of a
+ * season of local data unless they created an account.
+ */
+const CAME_FROM_LOCAL_KEY = 'matchops_cloud_switch_from_local';
+
+export function markCloudSwitchFromLocal(): void {
+  safeSetItem(CAME_FROM_LOCAL_KEY, '1');
+}
+
+export function cameToCloudFromLocal(): boolean {
+  return safeGetItem(CAME_FROM_LOCAL_KEY) === '1';
+}
+
+export function clearCloudSwitchFromLocal(): void {
+  safeRemoveItem(CAME_FROM_LOCAL_KEY);
+}
+
+/**
  * Enable cloud mode at runtime.
  *
  * Stores preference in localStorage. Takes effect on next factory initialization.
@@ -240,6 +261,9 @@ export function disableCloudMode(): ModeSwitchResult {
       message: 'Failed to save mode preference. Your browser may be in private mode or have storage restrictions.',
     };
   }
+  // Back in local mode by any route: the way back offered on the sign-in screen is
+  // no longer needed, and must not reappear after a later switch to cloud.
+  clearCloudSwitchFromLocal();
 
   log.info('[backendConfig] Local mode enabled - will take effect on next initialization');
   return { success: true };

@@ -69,6 +69,9 @@ import {
   hasPendingPostLoginCheck,
   setPendingPostLoginCheck,
   clearPendingPostLoginCheck,
+  markCloudSwitchFromLocal,
+  cameToCloudFromLocal,
+  clearCloudSwitchFromLocal,
 } from '@/config/backendConfig';
 // Migration services are dynamically imported at call sites to avoid pulling
 // Supabase into the bundle for local-mode users (code-splitting optimization)
@@ -229,6 +232,12 @@ export default function Home() {
 
   // Extract userId to avoid effect re-runs when user object reference changes
   const userId = user?.id;
+
+  // Signed in to cloud: the way back to local mode offered on the sign-in screen
+  // (review 7.4) has done its job.
+  useEffect(() => {
+    if (mode === 'cloud' && isAuthenticated) clearCloudSwitchFromLocal();
+  }, [mode, isAuthenticated]);
 
   // Voice recordings older than 30 days are deleted at every app start (review 6.4).
   // The app promises this; rotation used to run only when the mic or a game's voice
@@ -875,6 +884,7 @@ export default function Home() {
     logger.info('[page.tsx] Login: User chose local mode');
     const result = disableCloudMode();
     if (result.success) {
+      clearCloudSwitchFromLocal();
       // Local mode enabled - reload to re-initialize AuthProvider in local mode
       setWelcomeSeen();
       setTransitionMessage(t('page.localModeEnabledReloading', 'Local mode enabled. Reloading...'));
@@ -899,6 +909,8 @@ export default function Home() {
     logger.info('[page.tsx] StartScreen: Enabling cloud sync');
     const success = enableCloudMode();
     if (success) {
+      // From local mode: keep a way back until they sign in (review 7.4).
+      markCloudSwitchFromLocal();
       setTransitionMessage(t('page.cloudModeEnabledReloading', 'Cloud mode enabled. Reloading...'));
       setTimeout(() => {
         try {
@@ -1996,7 +2008,10 @@ export default function Home() {
               // flip remounts the form instead of being ignored by its seed state.
               key={isReturningDevice ? 'returning-device' : 'new-device'}
               onBack={skipWelcomeScreen ? undefined : handleLoginBack}
-              onUseLocalMode={hideLocalModeEntry ? undefined : handleLoginUseLocalMode}
+              // A coach who switched here from local mode can always go back to the
+              // games on this device (review 7.4), even where new users get no
+              // local option.
+              onUseLocalMode={hideLocalModeEntry && !cameToCloudFromLocal() ? undefined : handleLoginUseLocalMode}
               allowRegistration={true}  // Account creation is free on all platforms
               initialMode={isReturningDevice ? 'signIn' : 'signUp'}
             />
@@ -2061,7 +2076,9 @@ export default function Home() {
               }}
               onEnableCloudSync={handleEnableCloudSync}
               onSignInExistingSubscriber={handleSignInExistingSubscriber}
-              onShowWelcome={() => setShowWelcome(true)}
+              // With local entry hidden, Welcome offers no choice - only a one-way
+              // switch to cloud - so the link is not shown (review 7.4).
+              onShowWelcome={hideLocalModeEntry ? undefined : () => setShowWelcome(true)}
               onSignOut={requestSignOut}
               isCloudAvailable={isCloudAvailable()}
               homeView={homeView}
