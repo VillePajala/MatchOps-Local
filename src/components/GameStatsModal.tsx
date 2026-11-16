@@ -1,5 +1,6 @@
 'use client';
 
+import { playersForRedaction } from '@/utils/gamePacket';
 import type { AdjustmentScope } from '@/utils/adjustmentScope';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
@@ -739,12 +740,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     return dictationVocabularyFor(squad);
   }, [availablePlayers, selectedPlayerIds]);
 
+  // Players the AI requests know about: the roster plus this game's recorded players,
+  // so a child since removed from the roster is still coded, not sent by name (6.3).
+  const aiPlayers = useMemo(() => playersForRedaction(masterRoster, availablePlayers), [masterRoster, availablePlayers]);
+
   // Tidying is driven from the report editor, where the text is; the request
   // and everything that reviews it live in the drafting card further down.
   const reportDraftRef = useRef<ReportDraftHandle | null>(null);
   const tidyEstimate = useDraftEstimate({
     game: currentGame,
-    players: masterRoster.length > 0 ? masterRoster : availablePlayers,
+    players: aiPlayers,
     language: i18n.language,
     coachReport: isEditingNotes ? editGameNotes : gameNotes ?? '',
   });
@@ -1183,7 +1188,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               estimate={tidyEstimate}
               game={currentGame}
               gameId={currentGameId}
-              players={masterRoster.length > 0 ? masterRoster : availablePlayers}
+              players={aiPlayers}
               stamp={draftStamp}
               language={i18n.language}
               existingReport={isEditingNotes ? editGameNotes : gameNotes ?? ''}
@@ -1205,7 +1210,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               <TranslateReportPanel
                 report={isEditingNotes ? editGameNotes : gameNotes ?? ''}
                 game={currentGame}
-                players={masterRoster.length > 0 ? masterRoster : availablePlayers}
+                players={aiPlayers}
               />
             </div>
           )}

@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Names of players you have removed from the roster are now hidden from the AI too, when you draft, tidy or translate an older game's report."
+      ],
+      "fi": [
+        "Pelaajarekisteristä poistettujen pelaajien nimet piilotetaan nyt tekoälyltä myös, kun luonnostelet, siistit tai käännät vanhemman ottelun raporttia."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Player names are now hidden from the AI in more Finnish forms, such as Joonaksen, Oton, Helmen and Virtasen, as the privacy setting promises."
       ],
       "fi": [
