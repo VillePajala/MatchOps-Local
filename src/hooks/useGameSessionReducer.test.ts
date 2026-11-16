@@ -992,6 +992,88 @@ describe('gameSessionReducer', () => {
     });
   });
 
+  /**
+   * Review 4.26: a stopped clock at or past the end of its period is the period break
+   * (full time on the last period), never a startable in-progress clock - one Start
+   * tap there ran the clock for a second and stopped it again.
+   * @critical
+   */
+  describe('a stopped clock at the period end is a period break (review 4.26)', () => {
+    const base = { numberOfPeriods: 2, periodDurationMinutes: 15 } as const;
+
+    it('LOAD: an in-progress game stored at or past its period end loads as half-time at the boundary', () => {
+      const r = gameSessionReducer(createBaseState(), { type: 'LOAD_PERSISTED_GAME_DATA', payload: {
+        ...base, gameStatus: 'inProgress', currentPeriod: 1, timeElapsedInSeconds: 905,
+      } });
+      expect(r.gameStatus).toBe('periodEnd');
+      expect(r.timeElapsedInSeconds).toBe(900);
+    });
+
+    it('LOAD: on the last period it loads as full time', () => {
+      const r = gameSessionReducer(createBaseState(), { type: 'LOAD_PERSISTED_GAME_DATA', payload: {
+        ...base, gameStatus: 'inProgress', currentPeriod: 2, timeElapsedInSeconds: 1800,
+      } });
+      expect(r.gameStatus).toBe('gameEnd');
+      expect(r.timeElapsedInSeconds).toBe(1800);
+    });
+
+    it('LOAD: mid-period stays the resumable (coerced) state', () => {
+      const r = gameSessionReducer(createBaseState(), { type: 'LOAD_PERSISTED_GAME_DATA', payload: {
+        ...base, gameStatus: 'inProgress', currentPeriod: 1, timeElapsedInSeconds: 899.5,
+      } });
+      expect(r.gameStatus).toBe('notStarted');
+      expect(r.timeElapsedInSeconds).toBe(899.5);
+    });
+
+    it('PAUSE in the last fraction of a second (just past the end) is the period end', () => {
+      const state = createBaseState({ ...base, gameStatus: 'inProgress', currentPeriod: 1, isTimerRunning: true, startTimestamp: 1, timeElapsedInSeconds: 899 });
+      const r = gameSessionReducer(state, { type: 'PAUSE_TIMER', payload: 900.03 });
+      expect(r.gameStatus).toBe('periodEnd');
+      expect(r.timeElapsedInSeconds).toBe(900);
+      expect(r.isTimerRunning).toBe(false);
+    });
+
+    it('PAUSE mid-period is an ordinary pause', () => {
+      const state = createBaseState({ ...base, gameStatus: 'inProgress', currentPeriod: 1, isTimerRunning: true, startTimestamp: 1, timeElapsedInSeconds: 600 });
+      const r = gameSessionReducer(state, { type: 'PAUSE_TIMER', payload: 600.4 });
+      expect(r.gameStatus).toBe('inProgress');
+      expect(r.timeElapsedInSeconds).toBe(600.4);
+    });
+
+    it('shortening the period while paused past the new end makes it the period break, clock kept', () => {
+      const state = createBaseState({ numberOfPeriods: 2, periodDurationMinutes: 25, gameStatus: 'inProgress', currentPeriod: 1, isTimerRunning: false, timeElapsedInSeconds: 1220 });
+      const r = gameSessionReducer(state, { type: 'SET_PERIOD_DURATION', payload: 20 });
+      expect(r.gameStatus).toBe('periodEnd');
+      expect(r.timeElapsedInSeconds).toBe(1220);
+    });
+
+    it('a mistyped length corrected straight back returns the game to exactly where it was', () => {
+      const state = createBaseState({ numberOfPeriods: 2, periodDurationMinutes: 25, gameStatus: 'inProgress', currentPeriod: 1, isTimerRunning: false, timeElapsedInSeconds: 1200 });
+      const typo = gameSessionReducer(state, { type: 'SET_PERIOD_DURATION', payload: 15 });
+      expect(typo.gameStatus).toBe('periodEnd');
+      const fixed = gameSessionReducer(typo, { type: 'SET_PERIOD_DURATION', payload: 25 });
+      expect(fixed.gameStatus).toBe('inProgress');
+      expect(fixed.currentPeriod).toBe(1);
+      expect(fixed.timeElapsedInSeconds).toBe(1200);
+    });
+
+    it('a stop at load sets the sub reminder from the period-end time', () => {
+      const r = gameSessionReducer(createBaseState(), { type: 'LOAD_PERSISTED_GAME_DATA', payload: {
+        numberOfPeriods: 2, periodDurationMinutes: 15, gameStatus: 'inProgress', currentPeriod: 1,
+        timeElapsedInSeconds: 960, lastSubConfirmationTimeSeconds: 600, subIntervalMinutes: 6,
+      } });
+      // due at 960; clock stops at 900 -> warning window (900..960), not due
+      expect(r.timeElapsedInSeconds).toBe(900);
+      expect(r.subAlertLevel).toBe('warning');
+    });
+
+    it('shortening the period while RUNNING is left to the tick', () => {
+      const state = createBaseState({ numberOfPeriods: 2, periodDurationMinutes: 25, gameStatus: 'inProgress', currentPeriod: 1, isTimerRunning: true, startTimestamp: 1, timeElapsedInSeconds: 1220 });
+      const r = gameSessionReducer(state, { type: 'SET_PERIOD_DURATION', payload: 20 });
+      expect(r.gameStatus).toBe('inProgress');
+    });
+  });
+
   // ============================================
   // CONFIRM_SUBSTITUTION
   // ============================================
