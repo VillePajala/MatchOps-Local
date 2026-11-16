@@ -43,6 +43,21 @@ describe('usePlayerAssessments', () => {
     expect(result.current.assessments.p1).toEqual(assessment);
   });
 
+  /**
+   * Review 4.34: minutesPlayed is the match time when saved (the clock), not the sum
+   * of sub intervals - a game with no confirmed subs used to record 0 minutes.
+   * @critical
+   */
+  it('records the match clock as minutes played', async () => {
+    mockedGet.mockResolvedValue({});
+    mockedSave.mockResolvedValue({ assessments: { p1: assessment } } as unknown as AppState);
+    const { result } = renderHook(() => usePlayerAssessments('g1', 2400));
+    await act(async () => {
+      await result.current.saveAssessment('p1', assessment);
+    });
+    expect(mockedSave).toHaveBeenCalledWith('g1', 'p1', expect.objectContaining({ minutesPlayed: 40 }));
+  });
+
   it('deletes assessment', async () => {
     mockedGet.mockResolvedValue({ p1: assessment });
     mockedDelete.mockResolvedValue({ assessments: {} } as unknown as AppState);

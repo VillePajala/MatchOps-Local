@@ -293,6 +293,39 @@ describe('Excel Export Utilities', () => {
     });
 
     /**
+     * Review 4.34: "Total Game Duration" is the match clock (the sub-interval sum only
+     * covered up to the last confirmed sub - 00:00 with none), and sub intervals print
+     * their match-clock time, not a 1970 date.
+     * @critical
+     */
+    it('reports the total game duration from the match clock and sub times as match time', () => {
+      const game = { ...mockGame, timeElapsedInSeconds: 2400.4, completedIntervalDurations: [{ period: 1, duration: 300, timestamp: 300.6 }] } as AppState;
+      exportCurrentGameExcel(mockGameId, game, mockPlayers, mockSeasons, mockTournaments);
+      const calls = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls;
+      const gameInfo = calls.find(call => call[0].some((item: GameInfoRow) => item.Field === 'Game ID'))[0] as GameInfoRow[];
+      expect(gameInfo.find((item) => item.Field === 'Total Game Duration')?.Value).toBe('40:00');
+      const intervals = calls.find(call => call[0][0] && 'Timestamp' in call[0][0])[0] as Array<Record<string, string>>;
+      expect(intervals[0].Timestamp).toBe('05:00');
+    });
+
+    it('an older game without a clock value falls back to the interval total', () => {
+      const game = { ...mockGame, completedIntervalDurations: [{ period: 1, duration: 600, timestamp: 600 }] } as AppState;
+      delete (game as Partial<AppState>).timeElapsedInSeconds;
+      exportCurrentGameExcel(mockGameId, game, mockPlayers, mockSeasons, mockTournaments);
+      const calls = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls;
+      const gameInfo = calls.find(call => call[0].some((item: GameInfoRow) => item.Field === 'Game ID'))[0] as GameInfoRow[];
+      expect(gameInfo.find((item) => item.Field === 'Total Game Duration')?.Value).toBe('10:00');
+    });
+
+    it('a game with no confirmed subs still reports its duration', () => {
+      const game = { ...mockGame, timeElapsedInSeconds: 1200, completedIntervalDurations: [] } as AppState;
+      exportCurrentGameExcel(mockGameId, game, mockPlayers, mockSeasons, mockTournaments);
+      const calls = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls;
+      const gameInfo = calls.find(call => call[0].some((item: GameInfoRow) => item.Field === 'Game ID'))[0] as GameInfoRow[];
+      expect(gameInfo.find((item) => item.Field === 'Total Game Duration')?.Value).toBe('20:00');
+    });
+
+    /**
      * Tests file download trigger
      * @integration - Validates download mechanism
      */

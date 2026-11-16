@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import type { PlayerAssessment, IntervalLog } from '@/types';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import type { PlayerAssessment } from '@/types';
 import { getPlayerAssessments, savePlayerAssessment, deletePlayerAssessment } from '@/utils/playerAssessments';
 import { ASSESSMENT_MIN, ASSESSMENT_MAX } from '@/config/assessmentMetrics';
 import logger from '@/utils/logger';
@@ -15,13 +15,17 @@ export const validateAssessment = (a: Partial<PlayerAssessment>): boolean => {
   return true;
 };
 
-const minutesFromIntervals = (intervals?: IntervalLog[]): number => {
-  if (!intervals || intervals.length === 0) return 0;
-  const seconds = intervals.reduce((s, i) => s + i.duration, 0);
-  return Math.round(seconds / 60);
-};
-
-export function usePlayerAssessments(gameId: string, intervals?: IntervalLog[]) {
+/**
+ * The match time played when the assessment is saved (review 4.34): the match clock.
+ * It used to sum the sub-interval log, which only grows when a substitution is
+ * confirmed - the stretch after the last sub was never counted, and a game with no
+ * confirmed subs recorded 0 minutes.
+ */
+export function usePlayerAssessments(gameId: string, playedSeconds?: number) {
+  // Read through a ref: the clock changes every second, and the save callback must
+  // not be recreated on each tick.
+  const playedSecondsRef = useRef(playedSeconds ?? 0);
+  useEffect(() => { playedSecondsRef.current = playedSeconds ?? 0; }, [playedSeconds]);
   const [assessments, setAssessments] = useState<{[id: string]: PlayerAssessment}>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +57,7 @@ export function usePlayerAssessments(gameId: string, intervals?: IntervalLog[]) 
 
   const saveAssessment = useCallback(async (playerId: string, data: PlayerAssessment) => {
     if (!validateAssessment(data)) throw new Error('invalid');
-    const minutesPlayed = minutesFromIntervals(intervals);
+    const minutesPlayed = Math.round(Math.max(0, playedSecondsRef.current) / 60);
     const full: PlayerAssessment = { ...data, minutesPlayed };
     const updated = await savePlayerAssessment(gameId, playerId, full);
     if (updated) {
@@ -62,7 +66,7 @@ export function usePlayerAssessments(gameId: string, intervals?: IntervalLog[]) 
       setLoadedForGameId(gameId);
     }
     return updated;
-  }, [gameId, intervals]);
+  }, [gameId]);
 
   const deleteAssessment = useCallback(async (playerId: string) => {
     const updated = await deletePlayerAssessment(gameId, playerId);

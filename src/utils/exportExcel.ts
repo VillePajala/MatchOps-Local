@@ -274,10 +274,14 @@ export const exportCurrentGameExcel = (
     else result = translate('export.tie', 'Tie');
   }
 
-  const totalDuration = (game.completedIntervalDurations || []).reduce(
-    (sum, log) => sum + log.duration,
-    0
-  );
+  // The match clock, not the sum of the sub intervals (review 4.34): those only cover
+  // up to the last confirmed substitution, so a game with no confirmed subs read 00:00.
+  // An older saved game without a clock value falls back to the interval sum it used
+  // to report.
+  const clockSeconds = Math.max(0, Math.floor(game.timeElapsedInSeconds ?? 0));
+  const totalDuration = clockSeconds > 0
+    ? clockSeconds
+    : (game.completedIntervalDurations || []).reduce((sum, log) => sum + log.duration, 0);
 
   const fieldLabel = translate('export.field', 'Field');
   const valueLabel = translate('export.value', 'Value');
@@ -353,7 +357,9 @@ export const exportCurrentGameExcel = (
       .map((log) => ({
         [translate('export.period', 'Period')]: log.period,
         [translate('export.duration', 'Duration (mm:ss)')]: formatTime(log.duration),
-        [translate('export.timestamp', 'Timestamp')]: new Date(log.timestamp).toLocaleString(),
+        // The match-clock time of the substitution (elapsed seconds), not a date:
+        // `new Date(seconds)` printed 1970 (review 4.34).
+        [translate('export.timestamp', 'Timestamp')]: formatTime(log.timestamp),
       }));
 
     const intervalsSheet = XLSX.utils.json_to_sheet(intervalData);
