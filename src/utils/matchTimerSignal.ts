@@ -42,5 +42,10 @@ export const setMatchLive = (live: boolean): void => {
   matchLive = live;
 };
 
-/** True while a running OR paused OR half-time match is mounted. */
+/** True while a running OR paused OR half-time match is mounted. A running clock
+ *  implies a live match, so the `|| matchTimerRunning` is only a safety net for a
+ *  caller that publishes one signal but not the other.
+ *  No upper bound on purpose: a match left paused for hours is still never
+ *  force-reloaded - the in-place refresh still runs and new versions still come
+ *  through the update banner. */
 export const isMatchLive = (): boolean => matchLive || matchTimerRunning;

@@ -242,12 +242,6 @@ describe('useGameTimer', () => {
   // ============================================
   describe('startPause', () => {
     /**
-     * Review 4.22: the recovery anchor is written the moment the clock starts - a lock,
-     * kill or reload in the first second otherwise had nothing to recover from - and a
-     * pause removes only this game's anchor.
-     * @critical
-     */
-    /**
      * Review 4.24: a live match - started and not finished, clock running or not - is
      * published so the long-background reload leaves it alone.
      * @critical
@@ -268,6 +262,12 @@ describe('useGameTimer', () => {
       expect(isMatchLive()).toBe(false);
     });
 
+    /**
+     * Review 4.22: the recovery anchor is written the moment the clock starts - a lock,
+     * kill or reload in the first second otherwise had nothing to recover from - and a
+     * pause removes only this game's anchor.
+     * @critical
+     */
     describe('recovery anchor (review 4.22)', () => {
       beforeEach(() => window.localStorage.clear());
       const render = (overrides: Partial<GameSessionState>) => renderHook(() => {
