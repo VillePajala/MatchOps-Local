@@ -1311,7 +1311,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         // the anchor is no longer consumed on read (review 4.22), so an overlapping boot
         // run could re-arm a correction from an older read. A tick (wallClockMs moved on)
         // or a pause (anchor gone) in the meantime means it must not be applied - it
-        // would rewind the clock or restart one the coach paused.
+        // would rewind the clock or restart one the coach paused. The IndexedDB record
+        // ('record') is consumed at boot, so it cannot be re-read and needs no check.
         const stillLive = pendingCorrection.source !== 'anchor'
           || readTimerAnchor(pendingCorrection.gameId)?.wallClockMs === pendingCorrection.recordWallClockMs;
         if (pendingCorrection.gameId === currentGameId && gameData.gameStatus === 'inProgress' && stillLive) {

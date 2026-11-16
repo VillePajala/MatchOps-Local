@@ -4,10 +4,12 @@
     {
       "date": "2026-11-16",
       "en": [
-        "The match clock now survives the app reloading twice in a row after the phone was locked, and opening another game during a match no longer resets the running match's clock."
+        "The match clock no longer stops when the app reloads twice in a row after the phone was locked.",
+        "Opening another game during a match no longer resets the running match's clock."
       ],
       "fi": [
-        "Ottelukello säilyy nyt, vaikka sovellus latautuisi kahdesti peräkkäin puhelimen lukituksen jälkeen, eikä toisen ottelun avaaminen kesken pelin enää nollaa käynnissä olevan ottelun kelloa."
+        "Ottelukello ei enää pysähdy, kun sovellus latautuu kahdesti peräkkäin puhelimen lukituksen jälkeen.",
+        "Toisen ottelun avaaminen kesken pelin ei enää nollaa käynnissä olevan ottelun kelloa."
       ]
     },
     {

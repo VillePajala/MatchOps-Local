@@ -565,6 +565,23 @@ describe('timer lifecycle scenarios (review 4.21 bench)', () => {
   });
 
   /**
+   * The intended other half of the previous scenario: A was running while the coach
+   * looked at B for 3 minutes - the real match kept going - so returning to A counts
+   * those minutes and the clock carries on running (capped at the period end).
+   */
+  it('4.29 - returning to the running game after 3 min away counts the time and keeps running', async () => {
+    seed({ [GAME_A]: createInProgressGame({ currentPeriod: 1, timeElapsedInSeconds: 120 }) }, GAME_A);
+    seedAnchor(GAME_A, 300, 3 * 60 * 1000); // A at 05:00 when the coach left, 3 min ago
+    const view = await mount();
+    await waitFor(() => {
+      expect(session(view).timeElapsedInSeconds).toBeGreaterThanOrEqual(480);
+      expect(session(view).isTimerRunning).toBe(true);
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    expect(session(view).timeElapsedInSeconds).toBeLessThan(900);
+    view.unmount();
+  });
+
+  /**
    * A game abandoned mid-period (phone died, another game opened and never returned
    * to) and opened again the next day: its old anchor must not jump the clock to the
    * period end - the game opens at its last saved time, paused.

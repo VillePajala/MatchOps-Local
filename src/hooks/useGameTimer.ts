@@ -64,7 +64,8 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         // saved time/period instead of START_PERIOD(1), which would reset the
         // match clock and wipe interval history.
         dispatch({ type: 'RESUME_GAME' });
-        // Only if the resume takes effect (the reducer ignores it while running).
+        // stateRef still holds the PRE-dispatch state here: skip the write when the
+        // clock was already running, the case in which the reducer ignores RESUME.
         if (!stateRef.current.isTimerRunning) anchorStart(stateRef.current.timeElapsedInSeconds);
       } else {
         dispatch({
