@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "The Fair Play Awards column in the stats table and the Excel export now shows each player's real count instead of 0."
+      ],
+      "fi": [
+        "Tilastotaulukon ja Excel-viennin Reilun pelin palkinnot -sarake näyttää nyt pelaajan todellisen määrän nollan sijaan."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Team records now read wins-draws-losses everywhere, labelled, as on the Home screen. Previously the stats view and the Excel export showed wins-losses-draws."
       ],
       "fi": [
