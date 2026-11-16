@@ -731,7 +731,8 @@ describe('Translation File Validation', () => {
       // +1 export.record (Excel record column, W-D-L, review 5.2). 3400.
       // +1 export.countedInTotals (player export Added Stats, review 5.6). 3401.
       // +1 export.noGamesForPlayer (review 5.7). 3402.
-      expect(enKeys.length).toBe(3402);
+      // +2 opponentSweep.usedIn_one/_other (the key did not exist; review 5.10). 3404.
+      expect(enKeys.length).toBe(3404);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -929,7 +930,8 @@ describe('Translation File Validation', () => {
       // +1 export.record (see EN above). Lands at 3400.
       // +1 export.countedInTotals. Lands at 3401.
       // +1 export.noGamesForPlayer. Lands at 3402.
-      expect(fiKeys.length).toBe(3402);
+      // +2 opponentSweep.usedIn_one/_other. Lands at 3404.
+      expect(fiKeys.length).toBe(3404);
     });
   });
 });

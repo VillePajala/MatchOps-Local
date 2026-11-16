@@ -74,7 +74,8 @@ export function useAllOpponents(enabled = true): OpponentUsage[] {
   return useMemo(() => {
     const fromGames = Object.values(savedGames ?? {}).map((g) => g?.opponentName ?? '');
     const fromSeasons = (seasons ?? []).flatMap((s) => s.opponents ?? []);
-    return listOpponents([...fromGames, ...fromSeasons]);
+    // Games are the count; season lists only add names (review 5.10).
+    return listOpponents(fromGames, fromSeasons);
   }, [savedGames, seasons]);
 }
 

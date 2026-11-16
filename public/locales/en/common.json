@@ -3924,6 +3924,8 @@
     "sectionHint": "List the teams in this league and you can pick the opponent from a list when creating a game. Optional."
   },
   "opponentSweep": {
+    "usedIn_one": "{{count}} game",
+    "usedIn_other": "{{count}} games",
     "title": "Check team names",
     "subtitle": "One team written several ways counts as several opponents in your statistics.",
     "allClean": "Every team is written the same way everywhere. Nothing to fix.",

@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "The opponent name tool now shows each opponent's real number of games. Opponents listed in a season no longer count twice, and the label reads 1 game instead of 1 games."
+      ],
+      "fi": [
+        "Vastustajien nimityökalu näyttää nyt kunkin vastustajan todellisen otteluiden määrän: kauden vastustajaluettelossa olevaa ei enää lasketa kahdesti, ja teksti on taivutettu oikein."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "The stats table and the Excel export now show a player's current name, nickname and number, so a corrected name appears there too and can be searched."
       ],
       "fi": [

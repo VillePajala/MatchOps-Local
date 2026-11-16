@@ -1582,6 +1582,8 @@ export type TranslationKey =
   | 'opponentSweep.openLabel'
   | 'opponentSweep.subtitle'
   | 'opponentSweep.title'
+  | 'opponentSweep.usedIn_one'
+  | 'opponentSweep.usedIn_other'
   | 'orphanedGame.banner'
   | 'orphanedGame.noTeam'
   | 'orphanedGame.reassignButton'
