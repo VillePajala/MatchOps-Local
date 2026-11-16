@@ -2281,6 +2281,7 @@
     "reassignDescription": "Select a team to associate this game with, or choose \"No Team\" to use the master roster."
   },
   "export": {
+    "countedInTotals": "Counted in totals",
     "record": "Record (W-D-L)",
     "opponent": "Opponent",
     "sheetOpponentBreakdown": "Opponent Breakdown",

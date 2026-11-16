@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "A player's Excel export now counts external games in its Season and Tournament sheets the same way the player view does, and its Added Stats sheet shows which external games are counted."
+      ],
+      "fi": [
+        "Pelaajan Excel-vienti laskee nyt ulkopuoliset ottelut kausi- ja turnausvälilehdille samoin kuin pelaajanäkymä, ja Lisätyt tilastot -välilehti näyttää, mitkä ulkopuoliset ottelut on laskettu mukaan."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "The Excel export no longer adds together seasons or tournaments that share a name. Each one has its own row, labelled with its season, for example Aluesarja 24/25."
       ],
       "fi": [

@@ -1,5 +1,6 @@
 'use client';
 
+import type { AdjustmentScope } from '@/utils/adjustmentScope';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Combobox } from '@headlessui/react';
@@ -132,7 +133,7 @@ interface GameStatsModalProps {
   onExportOneExcel?: (gameId: string) => void;
   onDeleteGameEvent?: (goalId: string) => void | Promise<boolean>;
   onExportAggregateExcel?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
-  onExportPlayerExcel?: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
+  onExportPlayerExcel?: (playerId: string, playerData: PlayerStatRow, gameIds: string[], adjustmentScope?: AdjustmentScope) => void;
   initialSelectedPlayerId?: string | null;
   /** Tab to land on when opening (menu match-vs-team stats entries). */
   initialTab?: StatsTab;
@@ -1657,7 +1658,15 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       const playerGameIds = processedGameIds.filter(
                         gameId => savedGames[gameId]?.selectedPlayerIds?.includes(selectedPlayer.id)
                       );
-                      onExportPlayerExcel(selectedPlayer.id, playerData, playerGameIds);
+                      // The same scope the player view applies to external games (5.6).
+                      onExportPlayerExcel(selectedPlayer.id, playerData, playerGameIds, {
+                        teamFilter: selectedTeamIdFilter,
+                        clubSeason: selectedClubSeason,
+                        clubSeasonStartDate,
+                        clubSeasonEndDate,
+                        gameTypeFilter: selectedGameTypeFilter,
+                        genderFilter: selectedGenderFilter,
+                      });
                     }
                   }}
                   className="px-4 py-2 rounded-md text-sm font-medium transition-colors border border-transparent bg-slate-700 hover:bg-slate-600 text-slate-200"

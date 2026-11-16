@@ -9,6 +9,7 @@
  * export handlers (same helpers the match-side render uses). The
  * current-game tab STAYS with the match modal.
  */
+import type { AdjustmentScope } from '@/utils/adjustmentScope';
 import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -73,8 +74,8 @@ export function useClubStatsController() {
   );
 
   const handleExportPlayerExcel = useCallback(
-    (playerId: string, playerData: PlayerStatRow, gameIds: string[]) =>
-      exportPlayerStatsExcel(excelDeps, playerId, playerData, gameIds),
+    (playerId: string, playerData: PlayerStatRow, gameIds: string[], adjustmentScope?: AdjustmentScope) =>
+      exportPlayerStatsExcel(excelDeps, playerId, playerData, gameIds, adjustmentScope),
     [excelDeps],
   );
 

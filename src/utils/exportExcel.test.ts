@@ -1037,6 +1037,40 @@ describe('Excel Export Utilities', () => {
       expect(sheet.map((r) => r['Season']).sort()).toEqual(['Aluesarja 24/25', 'Aluesarja 25/26']);
     });
 
+    /**
+     * Review 5.6: the player export counts the same external games as the player view -
+     * in-scope for the team filter and marked to count toward their season - and the
+     * Added Stats sheet says which ones are in the totals.
+     * @critical
+     */
+    it('player export folds in-scope external games into Season Performance and marks them counted', () => {
+      const seasons = [{ id: 's1', name: 'League', clubSeason: '25/26' }] as Season[];
+      const games = { g1: { ...gameVs('X', 1, 0), seasonId: 's1', teamId: 'teamA', selectedPlayerIds: ['p1'] } } as SavedGamesCollection;
+      const ext = (id: string, teamId: string) => ({
+        id, playerId: 'p1', teamId, seasonId: 's1', includeInSeasonTournament: true,
+        gamesPlayedDelta: 3, goalsDelta: 2, assistsDelta: 0, appliedAt: '2025-10-01T00:00:00Z',
+      }) as PlayerStatAdjustment;
+      exportPlayerExcel('p1', { id: 'p1', name: 'P' } as PlayerStatRow, games, seasons, [],
+        [ext('mine', 'teamA'), ext('elsewhere', 'teamB')], undefined, { adjustmentScope: { teamFilter: 'teamA' } });
+      const calls = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls;
+      const season = calls.find((c) => Array.isArray(c[0]) && c[0][0] && 'Season' in c[0][0] && 'Fair Play Awards' in c[0][0])![0] as Array<Record<string, unknown>>;
+      expect(season[0]).toMatchObject({ Season: 'League 25/26', 'Games Played': 4, Goals: 2 }); // 1 game + 3 external (teamA only)
+      const added = calls.find((c) => Array.isArray(c[0]) && c[0][0] && 'Counted in totals' in c[0][0])![0] as Array<Record<string, unknown>>;
+      expect(added.map((r) => r['Counted in totals'])).toEqual(['Yes', 'No']);
+    });
+
+    it('player export applies the screen\'s game-type filter to external games too', () => {
+      const seasons = [{ id: 's1', name: 'League', clubSeason: '25/26' }] as Season[];
+      const games = { g1: { ...gameVs('X', 1, 0), seasonId: 's1', selectedPlayerIds: ['p1'] } } as SavedGamesCollection;
+      const futsal = { id: 'f', playerId: 'p1', seasonId: 's1', includeInSeasonTournament: true, gameType: 'futsal',
+        gamesPlayedDelta: 2, goalsDelta: 0, assistsDelta: 0, appliedAt: '2025-10-01T00:00:00Z' } as PlayerStatAdjustment;
+      exportPlayerExcel('p1', { id: 'p1', name: 'P' } as PlayerStatRow, games, seasons, [], [futsal], undefined,
+        { adjustmentScope: { gameTypeFilter: 'soccer' } });
+      const calls = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls;
+      const season = calls.find((c) => Array.isArray(c[0]) && c[0][0] && 'Season' in c[0][0] && 'Fair Play Awards' in c[0][0])![0] as Array<Record<string, unknown>>;
+      expect(season[0]['Games Played']).toBe(1); // the futsal external game is out of the soccer scope
+    });
+
     it('groups every spelling of a team into one row', () => {
       const games: SavedGamesCollection = {
         g1: gameVs('LauTP / Sininen', 2, 0),

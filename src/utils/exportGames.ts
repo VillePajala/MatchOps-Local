@@ -2,6 +2,7 @@ import { AppState, Player, Season, Tournament, SavedGamesCollection, PlayerStatR
 import type { TFunction } from 'i18next';
 import { formatTime } from './time';
 import { gameSquadForExport } from '@/utils/playerStats';
+import type { AdjustmentScope } from '@/utils/adjustmentScope';
 
 /** Utility to create and trigger a download from a data string */
 const triggerDownload = (data: string, filename: string, type: string): void => {
@@ -288,6 +289,7 @@ export const exportPlayerStatsExcel = async (
   playerId: string,
   playerData: PlayerStatRow,
   gameIds: string[],
+  adjustmentScope?: AdjustmentScope,
 ): Promise<void> => {
   const { savedGames, seasons, tournaments, showToast, t, userId } = deps;
   const gamesData = collectGames(savedGames, gameIds);
@@ -298,7 +300,7 @@ export const exportPlayerStatsExcel = async (
     ]);
     const adjustments = await getAdjustmentsForPlayer(playerId, userId);
     const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
-    exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, adjustments, translate, { includeAssessments: deps.assessmentsEnabled ?? true });
+    exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, adjustments, translate, { includeAssessments: deps.assessmentsEnabled ?? true, adjustmentScope });
   } catch (error) {
     const { default: logger } = await import('@/utils/logger');
     logger.error('[exportPlayerStatsExcel] Export failed:', error);
