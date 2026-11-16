@@ -54,7 +54,8 @@ interface RosterSettingsModalProps {
   onSetPlayerNotes: (playerId: string, notes: string) => void;
   onUpdatePlayer?: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
   onRemovePlayer: (playerId: string) => void;
-  onAddPlayer: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
+  /** Resolves `false` when the player was not added. */
+  onAddPlayer: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void | boolean | Promise<void | boolean>;
   isRosterUpdating?: boolean;
   rosterError?: string | null;
   onOpenPlayerStats: (playerId: string) => void;

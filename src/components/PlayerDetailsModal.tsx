@@ -16,7 +16,8 @@ interface PlayerDetailsModalProps {
   mode: 'create' | 'edit';
   player?: Player | null;
   players: Player[]; // Available players list (for future enhancements)
-  onAddPlayer?: (playerData: { name: string; nickname: string; jerseyNumber: string; notes: string }) => void;
+  /** Resolves `false` when the player was not added (the form then stays open). */
+  onAddPlayer?: (playerData: { name: string; nickname: string; jerseyNumber: string; notes: string }) => void | boolean | Promise<void | boolean>;
   onUpdatePlayer?: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
   isRosterUpdating?: boolean;
 }
@@ -43,11 +44,17 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
+  // Review 7.10: a duplicate number or a failed save used to close the form and
+  // drop what was typed; the only message was off-screen under the roster list.
+  const [numberError, setNumberError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Initialize form when player changes or modal opens
   React.useLayoutEffect(() => {
     if (isOpen) {
       setNameError(null);
+      setNumberError(null);
+      setSaveError(null);
       if (mode === 'create') {
         // Reset form for create mode
         setName('');
@@ -83,17 +90,33 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
       return;  // Don't close modal
     }
 
+    // Same rule the roster applies, checked here so the coach sees it at the field.
+    const trimmedNumber = jerseyNumber.trim();
+    if (mode === 'create' && trimmedNumber) {
+      const numberTaken = players.some(p => p.jerseyNumber && p.jerseyNumber.trim() === trimmedNumber);
+      if (numberTaken) {
+        setNumberError(t('rosterSettingsModal.errors.duplicateNumber', 'A player with this jersey number already exists. Please use a different number or leave it blank.'));
+        return;  // Don't close modal
+      }
+    }
+    setSaveError(null);
+
     try {
       if (mode === 'create') {
         // Create new player
         if (!onAddPlayer) return;
 
-        onAddPlayer({
+        const added = await onAddPlayer({
           name: trimmedName,
           nickname: trimmedNickname,
-          jerseyNumber: jerseyNumber.trim(),
+          jerseyNumber: trimmedNumber,
           notes: notes.trim(),
         });
+        if (added === false) {
+          // Not added: keep the form and what was typed.
+          setSaveError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {playerName}. Please try again.', { playerName: trimmedName }));
+          return;
+        }
       } else {
         // Update existing player
         if (!player || !onUpdatePlayer) return;
@@ -173,6 +196,9 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                 {nameError && (
                   <p className="mt-1 text-sm text-red-400">{nameError}</p>
                 )}
+                {saveError && (
+                  <p className="mt-1 text-sm text-red-400" role="alert" data-testid="player-save-error">{saveError}</p>
+                )}
               </div>
 
               {/* Nickname */}
@@ -200,11 +226,18 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                 <input
                   type="text"
                   value={jerseyNumber}
-                  onChange={(e) => setJerseyNumber(e.target.value)}
+                  onChange={(e) => {
+                    setJerseyNumber(e.target.value);
+                    setNumberError(null);
+                  }}
                   placeholder={t('playerDetailsModal.jerseyNumberPlaceholder', 'e.g., 10')}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
+
+              {numberError && (
+                <p className="-mt-2 text-sm text-red-400" role="alert" data-testid="player-number-error">{numberError}</p>
+              )}
 
               {/* Notes */}
               <div>

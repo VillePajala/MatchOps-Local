@@ -366,6 +366,44 @@ describe('PlayerDetailsModal', () => {
     });
 
     /**
+     * Review 7.10: a duplicate shirt number used to close the form and drop the
+     * input; the only message was off-screen under the roster list.
+     * @critical
+     */
+    it('keeps the form open with the message at the field for a duplicate number', async () => {
+      const onAddPlayer = jest.fn();
+      const onClose = jest.fn();
+      const user = userEvent.setup();
+      await act(async () => {
+        renderWithProviders({ mode: 'create', player: undefined, onAddPlayer, onUpdatePlayer: undefined, onClose });
+      });
+      await user.type(screen.getByPlaceholderText('Enter player name'), 'Aino');
+      await user.type(screen.getByPlaceholderText(/e\.g\., 10/i), '1'); // Jane Smith has 1
+      await user.click(screen.getByRole('button', { name: /Add/i }));
+
+      expect(screen.getByTestId('player-number-error')).toBeInTheDocument();
+      expect(onAddPlayer).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByPlaceholderText('Enter player name')).toHaveValue('Aino');
+    });
+
+    it('keeps the form and what was typed when the add fails', async () => {
+      const onAddPlayer = jest.fn().mockResolvedValue(false);
+      const onClose = jest.fn();
+      const user = userEvent.setup();
+      await act(async () => {
+        renderWithProviders({ mode: 'create', player: undefined, onAddPlayer, onUpdatePlayer: undefined, onClose });
+      });
+      await user.type(screen.getByPlaceholderText('Enter player name'), 'Aino');
+      await user.click(screen.getByRole('button', { name: /Add/i }));
+
+      await waitFor(() => expect(screen.getByTestId('player-save-error')).toBeInTheDocument());
+      expect(onAddPlayer).toHaveBeenCalledTimes(1);
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByPlaceholderText('Enter player name')).toHaveValue('Aino');
+    });
+
+    /**
      * Tests duplicate name validation is case-insensitive
      * @critical - Ensures "john doe" and "John Doe" are treated as duplicates
      */
