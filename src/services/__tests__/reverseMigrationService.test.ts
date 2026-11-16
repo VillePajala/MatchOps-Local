@@ -388,6 +388,14 @@ describe('reverseMigrationService', () => {
       expect(select).toHaveBeenCalledTimes(3);
     });
 
+    it('does not retry an aborted request (account switch)', async () => {
+      const select = jest.fn().mockResolvedValue({ count: null, error: { message: 'AbortError: signal is aborted without reason' } });
+      mockSupabaseClient.from.mockReturnValue({ select });
+      const result = await hasCloudDataWithRetry(3, noDelay);
+      expect(result.checkFailed).toBe(true);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
     it('does not retry an auth failure (the caller waits for auth instead)', async () => {
       mockSupabaseClient.auth.getSession.mockResolvedValueOnce({ data: { session: null }, error: null });
       const result = await hasCloudDataWithRetry(3, noDelay);

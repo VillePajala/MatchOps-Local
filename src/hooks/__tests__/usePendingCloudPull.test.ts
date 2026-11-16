@@ -106,6 +106,21 @@ describe('usePendingCloudPull', () => {
     expect(onResolved).toHaveBeenCalledWith('u1');
   });
 
+  it('counts failed tries for the notice, and "Try again" skips the wait', async () => {
+    hasCloudData.mockResolvedValue({ hasData: false, checkFailed: true, error: 'Failed to fetch' });
+    const { hook, onResolved } = setup();
+    await act(async () => { await flush(); });
+    await act(async () => { jest.advanceTimersByTime(10_000); await flush(); });
+    await act(async () => { jest.advanceTimersByTime(20_000); await flush(); });
+    expect(hook.result.current.failures).toBe(3);
+
+    hasCloudData.mockResolvedValue({ hasData: false, checkFailed: false });
+    await act(async () => { hook.result.current.retryNow(); await flush(); });
+    expect(onResolved).toHaveBeenCalledWith('u1');
+    hook.rerender({ pending: false, userId: 'u1' });
+    expect(hook.result.current.failures).toBe(0);
+  });
+
   it('does nothing when not pending, and a pull cancelled by an account change never resolves', async () => {
     const idle = setup({ pending: false, userId: 'u1' });
     await act(async () => { jest.advanceTimersByTime(120_000); await flush(); });

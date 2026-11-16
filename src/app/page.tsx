@@ -352,21 +352,28 @@ export default function Home() {
    * succeeds, an empty device is "not known yet", never "new coach" - the setup
    * wizard would otherwise create a second team and duplicate players in a real
    * account. The migration flag stays unset, so the next launch checks again too.
+   *
+   * 'cloud': the account check itself failed (or the coach skipped / discarded the
+   * pre-sign-in offer, which never pulled) - once the cloud answers, the account is
+   * settled and the migration flag is set. 'unverified': the flow failed before it
+   * could decide (pre-sign-in data check, unexpected error) - the cloud is pulled,
+   * but the flag stays unset so the next launch runs the whole check, offer included.
+   *
+   * Every way into this state is a device whose account store is still empty (first
+   * sign-in here), so no local copy of a cloud game exists that a match could open
+   * stale and autosave over newer data once the 8 s launch-gate wait runs out.
    */
-  //
-  // 'cloud': the account check itself failed (or the coach skipped / discarded the
-  // pre-sign-in offer, which never pulled) - once the cloud answers, the account is
-  // settled and the migration flag is set. 'unverified': the flow failed before it
-  // could decide (pre-sign-in data check, unexpected error) - the cloud is pulled,
-  // but the flag stays unset so the next launch runs the whole check, offer included.
   const [cloudCheckPending, setCloudCheckPending] = useState<null | 'cloud' | 'unverified'>(null);
 
   // Empty is not the same as not-yet-arrived: a coach is only "first time" once
   // we know there is nothing still coming.
   const isFirstTimeUser = !hasPlayers && !hasSavedGames && !isHydratingFromCloud && cloudCheckPending === null;
   // Per account: another account signing in starts from "known" again and runs
-  // its own first-sign-in check.
+  // its own first-sign-in check. Safe on mount too: pending is only ever set later,
+  // from the async post-login check, never in the same commit as a userId change.
   useEffect(() => { setCloudCheckPending(null); }, [userId]);
+  // Whether this flow held the launch gate, so it releases only what it took.
+  const pendingHeldGateRef = useRef(false);
 
   /**
    * Re-derive the team scope and the dashboard from a fresh read.
@@ -669,7 +676,7 @@ export default function Home() {
 
   // Keep trying the first sign-in's cloud check and pull until they succeed
   // (review 7.3). Only on success is the migration flag set.
-  usePendingCloudPull({
+  const pendingCloudPull = usePendingCloudPull({
     pending: cloudCheckPending !== null,
     userId,
     onPulled: async () => {
@@ -683,7 +690,10 @@ export default function Home() {
     onResolved: (resolvedUserId) => {
       if (cloudCheckPending === 'cloud') setMigrationCompleted(resolvedUserId);
       setCloudCheckPending(null);
-      launchPullGate.pullFinished();
+      if (pendingHeldGateRef.current) {
+        pendingHeldGateRef.current = false;
+        launchPullGate.pullFinished();
+      }
     },
   });
 
@@ -1246,8 +1256,9 @@ export default function Home() {
               'info'
             );
             setCloudCheckPending('cloud');
-            // A match opened meanwhile waits (briefly) for the pull, as on the
+            // A match opened meanwhile waits (up to 8 s) for the pull, as on the
             // flag-set path (review 3.5). Same step as the release below.
+            pendingHeldGateRef.current = true;
             launchPullGate.pullStarted();
             // Mark post-login check complete
             setPostLoginCheckComplete(true);
@@ -1334,6 +1345,7 @@ export default function Home() {
               );
               // Not done (review 7.3): no flag, no wizard; the pull keeps retrying.
               setCloudCheckPending('cloud');
+              pendingHeldGateRef.current = true;
               launchPullGate.pullStarted();
               // Mark post-login check complete
               setPostLoginCheckComplete(true);
@@ -2011,8 +2023,21 @@ export default function Home() {
                 data-testid="cloud-data-pending"
                 className="fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top,0px))] z-[25] flex justify-center px-4 pointer-events-none"
               >
-                <span className="rounded-xl border border-slate-700 bg-slate-800/95 backdrop-blur-sm shadow-xl px-3 py-2 text-sm text-slate-100">
-                  {t('page.loadingYourData', 'Loading your data...')}
+                <span className="pointer-events-auto rounded-xl border border-slate-700 bg-slate-800/95 backdrop-blur-sm shadow-xl px-3 py-2 text-sm text-slate-100 flex items-center gap-3">
+                  {/* After a few failed tries, say so and offer a manual retry. */}
+                  {pendingCloudPull.failures >= 3
+                    ? t('page.couldNotCheckCloudData', 'Could not check cloud data. Your data will load automatically.')
+                    : t('page.loadingYourData', 'Loading your data...')}
+                  {pendingCloudPull.failures >= 3 && (
+                    <button
+                      type="button"
+                      data-testid="cloud-data-retry"
+                      onClick={pendingCloudPull.retryNow}
+                      className="shrink-0 rounded-md bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-500"
+                    >
+                      {t('errors.tryAgain', 'Try Again')}
+                    </button>
+                  )}
                 </span>
               </div>
             )}
