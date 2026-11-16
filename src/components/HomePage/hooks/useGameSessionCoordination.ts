@@ -168,6 +168,7 @@ export function useGameSessionCoordination({
     state: currentHistoryState,
     set: pushHistoryState,
     reset: resetHistory,
+    patchCurrent: patchCurrentHistory,
     undo: undoHistory,
     redo: redoHistory,
     canUndo,
@@ -322,6 +323,7 @@ export function useGameSessionCoordination({
     {
       buildHistorySlice: buildGameSessionHistorySlice,
       saveToHistory: saveStateToHistory,
+      patchCurrentHistory,
     }
   );
 
@@ -568,14 +570,28 @@ export function useGameSessionCoordination({
     const present = Object.fromEntries(
       Object.entries(payload).filter(([key]) => key in state),
     ) as Partial<GameSessionState>;
-    // The match clock is not undoable within a period (review 4.3): the clock time in
-    // an older entry is when that entry was made, not now. Undoing while paused
-    // rewound the clock (a pause at 19:30, undo -> 08:00, Start counted from there)
-    // and the next autosave saved that. Restored only when the undo crosses a period
-    // start/end, so clock and period stay consistent.
+    // Undo never moves match time (review 4.27, owner decision 2026-11-16; extends
+    // 4.3). The clock, the period and the match status are not undoable: an older
+    // entry's values are when that entry was made, not now. Restoring them across a
+    // boundary reopened a finished half or match and rewound its clock (undo at
+    // half-time -> 08:00 in period 1), froze a running clock behind a dead Start
+    // button (undo just after kick-off left isTimerRunning with notStarted), and
+    // brought an old clock back after a Reset. Undo reverts the coach's data - events,
+    // score, line-up, settings - and the timer controls alone move the clock.
     const live = liveSessionRef.current;
-    if (present.currentPeriod === live.currentPeriod && present.gameStatus === live.gameStatus) {
-      delete present.timeElapsedInSeconds;
+    // Same half: the entry's period and status match the live ones (kept current by
+    // the clock transitions, see PHASE_ACTIONS), and its last sub is not later than
+    // the live clock - an entry from before a Reset in the same half fails that.
+    const samePhase = present.currentPeriod === live.currentPeriod && present.gameStatus === live.gameStatus
+      && (present.lastSubConfirmationTimeSeconds ?? 0) <= live.timeElapsedInSeconds;
+    delete present.timeElapsedInSeconds;
+    delete present.currentPeriod;
+    delete present.gameStatus;
+    if (!samePhase) {
+      // Sub tracking belongs to the period it was recorded in: from another period
+      // (or across a reset) it would point the reminder at the wrong half.
+      delete present.lastSubConfirmationTimeSeconds;
+      delete present.completedIntervalDurations;
     }
     dispatchGameSession({ type: 'LOAD_STATE_FROM_HISTORY', payload: present });
   }, [dispatchGameSession]);

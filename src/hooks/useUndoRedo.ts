@@ -8,6 +8,12 @@ export interface UseUndoRedoReturn<T> {
    * a completely new game or discarding previous history.
    */
   reset: (next: T) => void;
+  /**
+   * Update the CURRENT entry in place - no new undo step, the redo stack is kept.
+   * For state the coach does not undo but later entries are compared against (the
+   * match phase after a clock transition, review 4.27).
+   */
+  patchCurrent: (patch: Partial<T>) => void;
   undo: () => T | null;
   redo: () => T | null;
   canUndo: boolean;
@@ -61,6 +67,16 @@ export function useUndoRedo<T>(initialState: T): UseUndoRedoReturn<T> {
     setHistory([next]);
   }, []);
 
+  const patchCurrent = useCallback((patch: Partial<T>) => {
+    const i = indexRef.current;
+    const current = historyRef.current[i];
+    if (current === undefined) return;
+    const newHistory = historyRef.current.slice();
+    newHistory[i] = { ...current, ...patch };
+    historyRef.current = newHistory;
+    setHistory(newHistory);
+  }, []);
+
   const undo = useCallback((): T | null => {
     if (indexRef.current === 0) return null;
     const newIndex = indexRef.current - 1;
@@ -81,7 +97,7 @@ export function useUndoRedo<T>(initialState: T): UseUndoRedoReturn<T> {
   const canUndo = index > 0;
   const canRedo = index < history.length - 1;
 
-  return { state, set, reset, undo, redo, canUndo, canRedo };
+  return { state, set, reset, patchCurrent, undo, redo, canUndo, canRedo };
 }
 
 export default useUndoRedo;
