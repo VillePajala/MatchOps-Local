@@ -131,8 +131,15 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
           // during it (the coach tapped Start on returning). Reloading now would
           // throw that start away - refresh in place instead. Same for a form the
           // coach opened during the notice (review 7.1).
-          if (isMatchLive() || isRecordingSessionActive() || hasUnsavedInput()) {
-            logger.info('[useAppResume] Reload cancelled: a match went live during the notice');
+          const cancelCause = isMatchLive()
+            ? 'a match went live'
+            : isRecordingSessionActive()
+              ? 'a recording started'
+              : hasUnsavedInput()
+                ? 'a form was opened'
+                : null;
+          if (cancelCause) {
+            logger.info(`[useAppResume] Reload cancelled: ${cancelCause} during the notice`);
             isReloadingRef.current = false;
             queryClient.invalidateQueries();
             dispatchResumeEvent(backgroundDuration);

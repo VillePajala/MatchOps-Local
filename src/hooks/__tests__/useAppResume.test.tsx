@@ -620,11 +620,6 @@ describe('useAppResume', () => {
   });
 
   /**
-   * Review 4.24: a match that goes live during the reload's notice (the coach taps
-   * Start on returning) cancels the reload - refreshed in place instead.
-   * @critical
-   */
-  /**
    * Review 7.1: a coach typing the squad into the setup wizard (or a New Game /
    * player form) switches to another app to read names. The forced reload after
    * 5 minutes used to throw all of it away. While a form holds the signal, the
@@ -673,11 +668,16 @@ describe('useAppResume', () => {
     await act(async () => {});
 
     expect(onBeforeForceReload).toHaveBeenCalled();
-    expect(logger.info).toHaveBeenCalledWith('[useAppResume] Reload cancelled: a match went live during the notice');
+    expect(logger.info).toHaveBeenCalledWith('[useAppResume] Reload cancelled: a form was opened during the notice');
     expect(onResume).toHaveBeenCalled();
     release();
   });
 
+  /**
+   * Review 4.24: a match that goes live during the reload's notice (the coach taps
+   * Start on returning) cancels the reload - refreshed in place instead.
+   * @critical
+   */
   it('cancels the reload when a match goes live during the notice', async () => {
     const logger = require('@/utils/logger').default;
     const onResume = jest.fn();
