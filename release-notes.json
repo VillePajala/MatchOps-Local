@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "Adding a player: if the shirt number is already taken or saving fails, the form now stays open with the message next to the field, and what you typed is kept."
+      ],
+      "fi": [
+        "Pelaajan lisääminen: jos pelinumero on jo käytössä tai tallennus epäonnistuu, lomake pysyy nyt auki, viesti näkyy kentän vieressä ja kirjoittamasi tiedot säilyvät."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "Back button during a match: with the menu, the field tools or the formation picker open, back now closes it instead of leaving the match."
       ],
       "fi": [
