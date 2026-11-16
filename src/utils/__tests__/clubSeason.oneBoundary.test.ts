@@ -118,6 +118,12 @@ describe('currentClubSeasonForPlayer', () => {
     expect(expected).not.toBe(getClubSeasonForDate('2026-09-05', START, END));
   });
 
+  it('ignores a rating on a game since marked not played', () => {
+    const unplayedRated = { gameDate: '2026-09-05', isPlayed: false, assessments: { p1: {} } };
+    const expected = getClubSeasonForDate('2026-05-10', START, END);
+    expect(currentClubSeasonForPlayer([thisSeasonRated, unplayedRated], 'p1', START, END)).toBe(expected);
+  });
+
   it('null without dated games', () => {
     expect(currentClubSeasonForPlayer([], 'p1', START, END)).toBeNull();
   });

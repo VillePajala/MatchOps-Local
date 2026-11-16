@@ -410,8 +410,11 @@ export function currentClubSeasonForPlayer(
   const dated = games.filter((g) => g.gameDate);
   const latestOf = (list: typeof dated) =>
     list.length === 0 ? null : list.reduce((a, b) => ((a.gameDate as string) > (b.gameDate as string) ? a : b));
-  const rated = playerId ? dated.filter((g) => g.assessments?.[playerId]) : [];
-  const latest = latestOf(rated) ?? latestOf(dated.filter((g) => g.isPlayed !== false)) ?? latestOf(dated);
+  const played = dated.filter((g) => g.isPlayed !== false);
+  // Played only: the report leaves out games marked not played, so a rating on one
+  // must not pick the season either. (An assessment entry exists only once saved.)
+  const rated = playerId ? played.filter((g) => g.assessments?.[playerId]) : [];
+  const latest = latestOf(rated) ?? latestOf(played) ?? latestOf(dated);
   return latest ? getClubSeasonForDate(latest.gameDate as string, clubSeasonStartDate, clubSeasonEndDate) : null;
 }
 
