@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Tournaments: a level that games or teams use can no longer be removed by mistake. The app says how many use it, so you can move them first."
+      ],
+      "fi": [
+        "Turnaukset: tasoa, jota ottelut tai joukkueet käyttävät, ei voi enää poistaa vahingossa. Sovellus kertoo, kuinka moni sitä käyttää, joten voit siirtää ne ensin."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Check team names: renaming a team to a name another team already uses now asks before merging them, since merged teams cannot be split again."
       ],
       "fi": [

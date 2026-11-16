@@ -1634,7 +1634,8 @@
     "selectLevelForNewSeries": "Select the new level",
     "confirmAddSeries": "Confirm add level",
     "seasonDatesNotConfigured": "Season dates not configured",
-    "configureInSettings": "Configure in Settings to calculate club seasons correctly."
+    "configureInSettings": "Configure in Settings to calculate club seasons correctly.",
+    "levelInUse": "This level is in use: {{games}} games, {{teams}} teams. Move them to another level first."
   },
   "tournaments": {
     "selectAwardWinner": "-- Select Player of Tournament --",

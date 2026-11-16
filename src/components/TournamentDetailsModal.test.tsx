@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TournamentDetailsModal from './TournamentDetailsModal';
 import { QueryClient, QueryClientProvider, UseMutationResult } from '@tanstack/react-query';
@@ -22,6 +22,16 @@ jest.mock('@/hooks/useDataStore', () => ({
     getStore: jest.fn(),
     isUserScoped: true,
   }),
+}));
+
+// Which games and teams use each level (review 7.15).
+let mockSavedGames: Record<string, unknown> = {};
+let mockTeams: unknown[] = [];
+jest.mock('@/utils/savedGames', () => ({
+  getSavedGames: jest.fn(async () => mockSavedGames),
+}));
+jest.mock('@/datastore/factory', () => ({
+  getDataStore: jest.fn(async () => ({ getTeams: async () => mockTeams })),
 }));
 
 const mockMutation = () => ({
@@ -470,6 +480,32 @@ describe('TournamentDetailsModal', () => {
       // Should now show both series (translated)
       expect(screen.getByText('Elite')).toBeInTheDocument();
       expect(screen.getByText('Competition')).toBeInTheDocument();
+    });
+
+    /**
+     * Review 7.15: the modal counts the games and teams on each level - archived
+     * teams included - so a level in use cannot be removed.
+     * @critical
+     */
+    it('refuses to remove a level that games or teams use', async () => {
+      const user = userEvent.setup();
+      mockSavedGames = { g1: { tournamentSeriesId: 'series_1' }, g2: { tournamentSeriesId: 'series_1' }, g3: { tournamentSeriesId: 'other' } };
+      mockTeams = [{ id: 'tm1', boundTournamentSeriesId: 'series_1', archived: true }];
+      try {
+        await act(async () => {
+          renderWithProviders({ tournament: { ...mockTournament, series: [{ id: 'series_1', level: 'Elite' }] } });
+        });
+        // Removal waits until the usage has loaded.
+        await waitFor(() => expect(screen.getByRole('button', { name: /remove level/i })).toBeEnabled());
+        await user.click(screen.getByRole('button', { name: /remove level/i }));
+        const notice = await screen.findByRole('alert');
+        expect(notice).toHaveTextContent('2');
+        expect(notice).toHaveTextContent('1');
+        expect(screen.getByText('Elite')).toBeInTheDocument();
+      } finally {
+        mockSavedGames = {};
+        mockTeams = [];
+      }
     });
 
     it('allows removing a series from the tournament', async () => {
