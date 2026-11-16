@@ -24,6 +24,7 @@ import React from 'react';
 import { render, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ControlBar from './ControlBar';
+import { __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
 
 const noop = () => {};
 const onOpenTeamStats = jest.fn();
@@ -126,6 +127,28 @@ describe('ControlBar menu - match scope only (restructure 3.1)', () => {
     // The menu defers handlers until its close animation settles.
     fireEvent.click(within(section('This match')).getByRole('button', { name: /Team stats/ }));
     await waitFor(() => expect(onOpenTeamStats).toHaveBeenCalledTimes(1));
+  });
+
+  /**
+   * Review 7.9: back with the menu open closes the menu - it used to leave the
+   * match for Home while the clock ran.
+   */
+  it('hardware back closes the menu, not the match', async () => {
+    const push = jest.spyOn(window.history, 'pushState').mockImplementation(() => {});
+    try {
+      // The menu was opened in beforeEach, before this spy; reopen under it.
+      fireEvent.click(screen.getByLabelText(/^Menu$/i));
+      __resetModalHardwareBackForTests();
+      fireEvent.click(screen.getByLabelText(/^Menu$/i));
+      expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      fireEvent(window, new PopStateEvent('popstate'));
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Home' })).not.toBeInTheDocument());
+      expect(onGoToStartScreen).not.toHaveBeenCalled();
+    } finally {
+      push.mockRestore();
+      __resetModalHardwareBackForTests();
+    }
   });
 
   it('"Home" exits to club scope', async () => {
