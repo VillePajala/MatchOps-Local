@@ -212,17 +212,19 @@ jest.mock('@/hooks/useNewGameSetupController', () => ({
 
 jest.mock('@/components/GameStatsModal', () => ({
   __esModule: true,
-  default: ({ aggregateOnly, initialTab, initialSelectedPlayerId, onGameClick }: {
+  default: ({ aggregateOnly, initialTab, initialSelectedPlayerId, onGameClick, onOpenSettings }: {
     aggregateOnly?: boolean;
     initialTab?: string;
     initialSelectedPlayerId?: string | null;
     onGameClick?: (id: string) => void;
+    onOpenSettings?: () => void;
   }) => (
     <div data-testid="club-stats-modal">
       <span data-testid="club-stats-shape">
         {aggregateOnly ? 'aggregate' : 'full'}:{initialTab ?? 'default'}:{initialSelectedPlayerId ?? 'none'}
       </span>
       <button onClick={() => onGameClick?.('g1')}>stats-open-g1</button>
+      <button onClick={() => onOpenSettings?.()}>stats-open-settings</button>
     </div>
   ),
 }));
@@ -355,6 +357,31 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     await waitFor(() => expect(screen.queryByTestId('season-tournament-modal')).not.toBeInTheDocument());
+  });
+
+  /**
+   * Review 7.8: "Määritä ajanjakso" opens Settings ON TOP of club stats. Back used
+   * to close the stats underneath (their sub-guard entry was consumed first) and
+   * leave Settings open; it must close Settings and return to the stats.
+   * @critical
+   */
+  it('back from Settings opened over club stats returns to the stats', async () => {
+    renderHost();
+    fireEvent.click(screen.getByText('open-club-stats'));
+    await waitFor(() => expect(screen.getByTestId('club-stats-modal')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('stats-open-settings'));
+    await waitFor(() => expect(screen.getByTestId('settings-modal')).toBeInTheDocument());
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await waitFor(() => expect(screen.queryByTestId('settings-modal')).not.toBeInTheDocument());
+    expect(screen.getByTestId('club-stats-modal')).toBeInTheDocument();
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await waitFor(() => expect(screen.queryByTestId('club-stats-modal')).not.toBeInTheDocument());
   });
 
   it('renders Roster and TeamManager at host level (L.2)', async () => {

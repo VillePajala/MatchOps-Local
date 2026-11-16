@@ -318,7 +318,12 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   useHardwareBackSubLevel(isTrainingResourcesOpen, () => setIsTrainingResourcesOpen(false));
   useHardwareBackSubLevel(isRulesDirectoryOpen, () => setIsRulesDirectoryOpen(false));
   useModalHardwareBack(isInstructionsModalOpen, () => setIsInstructionsModalOpen(false));
-  useModalHardwareBack(isSettingsModalOpen, () => setIsSettingsModalOpen(false));
+  // Settings opened FROM club stats ("Määritä ajanjakso") sits above club stats'
+  // sub-guard entry, so it needs a sub-guard of its own (review 7.8): on the shared
+  // sentinel, back reached club stats' guard first and closed the stats underneath
+  // instead of Settings on top. Anywhere else it uses the sentinel as before.
+  useModalHardwareBack(isSettingsModalOpen && !isClubStatsOpen, () => setIsSettingsModalOpen(false));
+  useHardwareBackSubLevel(isSettingsModalOpen && isClubStatsOpen, () => setIsSettingsModalOpen(false));
   useModalHardwareBack(isSeasonTournamentModalOpen, () => setIsSeasonTournamentModalOpen(false));
   useModalHardwareBack(isPersonnelManagerOpen, () => setIsPersonnelManagerOpen(false));
   useModalHardwareBack(isRosterModalOpen, handleCloseRosterModal);
