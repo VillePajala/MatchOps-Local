@@ -31,9 +31,12 @@ let mockWizardActive = false;
 // Default TRUE so the pre-existing delay/consent tests keep exercising the
 // prompt; the re-gate test below flips it.
 let mockFirstGameExists = true;
+// Default TRUE (Home on screen) for the same reason; the 7.5 test flips it.
+let mockHomeShowing = true;
 jest.mock('@/components/setupWizardActive', () => ({
   useSetupWizardActive: () => mockWizardActive,
   useFirstGameExists: () => mockFirstGameExists,
+  useHomeShowing: () => mockHomeShowing,
 }));
 
 jest.mock('@/contexts/AuthProvider', () => ({
@@ -98,6 +101,7 @@ describe('MarketingConsentPrompt', () => {
     mockTourActive = false;
     mockWizardActive = false;
     mockFirstGameExists = true;
+    mockHomeShowing = true;
     mockUseAuth.mockReturnValue(defaultMockAuth);
   });
 
@@ -171,6 +175,41 @@ describe('MarketingConsentPrompt', () => {
 
     // First game saved: the normal delayed appearance resumes.
     mockFirstGameExists = true;
+    rerender(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(screen.getByText('Stay in the loop?')).toBeInTheDocument();
+  });
+
+  /**
+   * Review 7.5: returning to the app mid-match raised the prompt over the live
+   * match. It opens on Home only, and leaving Home before the delay cancels it.
+   */
+  it('opens on Home only - never over a match', () => {
+    mockUseAuth.mockReturnValue({ ...defaultMockAuth, showMarketingPrompt: true });
+    mockHomeShowing = false; // a match is on screen
+    const { rerender } = render(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+    expect(screen.queryByText('Stay in the loop?')).not.toBeInTheDocument();
+
+    // Back on Home, then into a match again before the delay runs out.
+    mockHomeShowing = true;
+    rerender(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(3000);
+    });
+    mockHomeShowing = false;
+    rerender(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(screen.queryByText('Stay in the loop?')).not.toBeInTheDocument();
+
+    // On Home for the full delay: it appears.
+    mockHomeShowing = true;
     rerender(<MarketingConsentPrompt />);
     act(() => {
       jest.advanceTimersByTime(5000);

@@ -64,6 +64,34 @@ export function useFirstGameExists(): boolean {
   return useSyncExternalStore(subscribeGame, getGameSnapshot, getGameServerSnapshot);
 }
 
+// --- Home on screen (review 7.5) ---------------------------------------------
+// The marketing-consent prompt must open on Home, never over a match: the first
+// game exists the moment a coach starts it, and returning to the app after 30 s
+// mid-match used to raise the prompt over the live match five seconds later.
+let homeShowing = false;
+const homeListeners = new Set<() => void>();
+
+/** Published by page.tsx: Start/Home is the screen in front, settled (no loading gate). */
+export const setHomeShowing = (value: boolean): void => {
+  if (homeShowing === value) return;
+  homeShowing = value;
+  homeListeners.forEach((l) => l());
+};
+
+const subscribeHome = (listener: () => void) => {
+  homeListeners.add(listener);
+  return () => {
+    homeListeners.delete(listener);
+  };
+};
+const getHomeSnapshot = () => homeShowing;
+const getHomeServerSnapshot = () => false;
+
+/** True while Home is the screen in front. */
+export function useHomeShowing(): boolean {
+  return useSyncExternalStore(subscribeHome, getHomeSnapshot, getHomeServerSnapshot);
+}
+
 // --- Onboarding user id (review #728 round 2) --------------------------------
 // FirstVisitIntro must not depend on React contexts: host-modal test suites
 // partially mock AuthProvider/GuidedTourProvider and every context import

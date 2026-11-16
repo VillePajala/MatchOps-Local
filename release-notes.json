@@ -4,6 +4,15 @@
     {
       "date": "2026-11-16",
       "en": [
+        "The question about product emails no longer pops up during a match. It waits until you are on the home screen."
+      ],
+      "fi": [
+        "Kysymys tuotesähköposteista ei enää ponnahda esiin kesken ottelun. Se odottaa, kunnes olet aloitusnäkymässä."
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "en": [
         "If you use the app without an account and start enabling cloud sync, the sign-in screen now lets you go back to the games on your device."
       ],
       "fi": [

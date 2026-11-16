@@ -4,7 +4,7 @@ import { useDeviceHasSignedIn } from '@/utils/deviceSignInMemory';
 import ModalProvider from '@/contexts/ModalProvider';
 import GuidedTourController from '@/components/GuidedTour/GuidedTourController';
 import SetupWizard, { isSetupWizardDone } from '@/components/SetupWizard';
-import { setFirstGameExists, setOnboardingUserId } from '@/components/setupWizardActive';
+import { setFirstGameExists, setHomeShowing, setOnboardingUserId } from '@/components/setupWizardActive';
 import GuidedTourRosterReporter from '@/components/GuidedTour/GuidedTourRosterReporter';
 import HomePage from '@/components/HomePage';
 import StartScreenLiftedBridge from '@/components/StartScreenLiftedBridge';
@@ -1867,6 +1867,12 @@ export default function Home() {
   useEffect(() => {
     setFirstGameExists(hasSavedGames);
   }, [hasSavedGames]);
+
+  // ...and opens on Home only, never over a match (review 7.5).
+  const homeOnScreen = screen === 'start' && !showLoadingScreen && !isBlockedByOtherTab;
+  useEffect(() => {
+    setHomeShowing(homeOnScreen);
+  }, [homeOnScreen]);
 
   // Publish the SETTLED user id for the first-visit banners: undefined while
   // auth is resolving (banners stay hidden - no 'local'-key misfiling).
