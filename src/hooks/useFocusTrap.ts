@@ -34,7 +34,11 @@ class FocusTrapManager {
   getAppRoot(): HTMLElement | null {
     // Cache the app root lookup
     if (!this.appRoot) {
-      this.appRoot = document.getElementById('__next') ||
+      // #app-root (ClientWrapper) first (review 10.9b). The old `body > div:first-child`
+      // matched Next's hidden boundary <div hidden> in the real DOM, so the app behind
+      // a portalled dialog was never made inert. (__next is from the pages router.)
+      this.appRoot = document.getElementById('app-root') ||
+        document.getElementById('__next') ||
         document.querySelector('body > div:first-child') as HTMLElement | null;
     }
     return this.appRoot;
@@ -160,7 +164,8 @@ export function useFocusTrap(
     //    setting appRoot to inert would make the modal inert too!)
     //
     // For portal-based modals (rendered to document.body), appRoot won't contain modal.
-    // For non-portal modals (rendered inside #__next), we must NOT set inert.
+    // For non-portal modals (rendered inside #app-root), we must NOT set inert - their
+    // keyboard focus is still trapped, and aria-modal marks them for assistive tech.
     const appRoot = focusTrapManager.getAppRoot();
     const shouldManageInert = appRoot &&
       appRoot !== modal &&
