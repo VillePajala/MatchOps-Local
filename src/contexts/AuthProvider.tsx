@@ -30,6 +30,12 @@ import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import * as Sentry from '@sentry/nextjs';
 import type { AuthService } from '@/interfaces/AuthService';
 import logger from '@/utils/logger';
+import { getCachedUserIdentity, clearCachedSupabaseSession } from '@/auth/cachedSession';
+import { setAiAccount, forgetAiAccount } from '@/utils/aiProvider';
+import { forgetReplacedReport } from '@/utils/reportUndo';
+import { onAuthServerUnreachable } from '@/auth/authReachability';
+import { deleteUserLocalDatabases } from '@/datastore/userDatabase';
+import { markDeviceHasSignedIn } from '@/utils/deviceSignInMemory';
 
 /**
  * The message an auth action returns to the UI (review 8.3). Only our own auth errors
@@ -42,12 +48,6 @@ const userFacingAuthMessage = (error: unknown, fallback: string): string => {
   logger.warn('[AuthProvider] Unexpected error in an auth action; showing the generic message', error);
   return fallback;
 };
-import { getCachedUserIdentity, clearCachedSupabaseSession } from '@/auth/cachedSession';
-import { setAiAccount, forgetAiAccount } from '@/utils/aiProvider';
-import { forgetReplacedReport } from '@/utils/reportUndo';
-import { onAuthServerUnreachable } from '@/auth/authReachability';
-import { deleteUserLocalDatabases } from '@/datastore/userDatabase';
-import { markDeviceHasSignedIn } from '@/utils/deviceSignInMemory';
 
 /**
  * Auth context value interface.
