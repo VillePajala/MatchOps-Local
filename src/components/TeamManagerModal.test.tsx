@@ -561,9 +561,13 @@ describe('TeamManagerModal - Premium Limit Enforcement', () => {
       checkAndPrompt: mockCheckAndPrompt,
     }));
 
+    // Fixed timestamps (review 7.15b): the list sorts newest first, and two
+    // separate new Date() calls landed a millisecond apart under full-suite load -
+    // putting the archived team FIRST, so "the second actions button" opened the
+    // active team's menu ("Archive") and "Unarchive" never appeared.
     const teamsWithArchived: Team[] = [
-      { id: 't1', name: 'Active Team', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 't2', name: 'Archived Team', color: '#8B5CF6', archived: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 't1', name: 'Active Team', color: '#6366F1', createdAt: '2026-01-02T00:00:00.000Z', updatedAt: '2026-01-02T00:00:00.000Z' },
+      { id: 't2', name: 'Archived Team', color: '#8B5CF6', archived: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
     ];
 
     try {
@@ -588,12 +592,13 @@ describe('TeamManagerModal - Premium Limit Enforcement', () => {
       // Open actions menu for archived team. Wait for it to be listed first: under
       // full-suite CI load the default 1 s waits were not always enough (flaky test in
       // the review checklist, seen on #956 and #967).
-      await waitFor(() => expect(screen.getAllByLabelText('Team actions')).toHaveLength(2), { timeout: 5000 });
-      fireEvent.click(screen.getAllByLabelText('Team actions')[1]); // Second team is archived
+      await waitFor(() => expect(screen.getAllByLabelText('Team actions')).toHaveLength(2));
+      // Newest first: the active team (2026-01-02), then the archived one.
+      fireEvent.click(screen.getAllByLabelText('Team actions')[1]);
 
       await waitFor(() => {
         expect(screen.getByText('Unarchive')).toBeInTheDocument();
-      }, { timeout: 5000 });
+      });
 
       // Click Unarchive
       fireEvent.click(screen.getByText('Unarchive'));
