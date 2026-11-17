@@ -295,3 +295,49 @@ describe('useFocusTrap', () => {
     });
   });
 });
+
+/**
+ * Review 10.9b: in the real DOM the first <div> under <body> is Next's hidden boundary
+ * placeholder, which the old `body > div:first-child` lookup marked inert - so the app
+ * behind a portalled dialog never was. The app now lives in #app-root.
+ * @critical
+ */
+describe('useFocusTrap with the real DOM shape', () => {
+  const Trap = () => {
+    const ref = useRef<HTMLDivElement>(null);
+    useFocusTrap(ref, true);
+    return <div ref={ref} role="dialog" aria-modal="true"><button>ok</button></div>;
+  };
+  let hidden: HTMLElement;
+  let appRoot: HTMLElement;
+  let portal: HTMLElement;
+
+  beforeEach(() => {
+    focusTrapManager.reset();
+    hidden = document.createElement('div');
+    hidden.hidden = true;
+    appRoot = document.createElement('div');
+    appRoot.id = 'app-root';
+    portal = document.createElement('div');
+    document.body.append(hidden, appRoot, portal);
+  });
+  afterEach(() => {
+    focusTrapManager.reset();
+    hidden.remove();
+    appRoot.remove();
+    portal.remove();
+  });
+
+  it('a portalled dialog makes the app inert, not the hidden placeholder', () => {
+    const { unmount } = render(<Trap />, { container: portal });
+    expect(appRoot.hasAttribute('inert')).toBe(true);
+    expect(hidden.hasAttribute('inert')).toBe(false);
+    unmount();
+    expect(appRoot.hasAttribute('inert')).toBe(false);
+  });
+
+  it('a dialog inside the app does not make the app (and itself) inert', () => {
+    render(<Trap />, { container: appRoot });
+    expect(appRoot.hasAttribute('inert')).toBe(false);
+  });
+});
