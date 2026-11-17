@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Dates and numbers now follow the app language: the Home date chips show the day first (5.9.), and Finnish statistics use a decimal comma (57,1 %)."
+      ],
+      "fi": [
+        "Päivämäärät ja luvut noudattavat nyt sovelluksen kieltä: etusivun päivämäärät näytetään päivä edellä (5.9.), ja suomenkielisissä tilastoissa on desimaalipilkku (57,1 %)."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Account and sign-in error messages (terms acceptance, email preferences, password reset, account deletion) are now shown in Finnish too."
       ],
       "fi": [
