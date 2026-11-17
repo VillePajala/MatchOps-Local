@@ -36,6 +36,7 @@ import {
   getBackupsDatabaseName,
   requestPersistentStorage,
   MAX_SNAPSHOTS,
+  KEPT_RECOVERY_POINTS,
   AUTO_SNAPSHOT_INTERVAL_MS,
 } from './backupSnapshots';
 
@@ -125,6 +126,39 @@ describe('backupSnapshots (Layer 1 restore points)', () => {
     // Newest first, and strictly descending by createdAt (oldest were dropped).
     const times = list.map((s) => new Date(s.createdAt).getTime());
     expect(times).toEqual([...times].sort((a, b) => b - a));
+  });
+
+  /**
+   * Review 10.7: a mistaken reset's "before reset" point was the only copy of the
+   * old data, and five days of auto snapshots rotated it out.
+   * @critical
+   */
+  it('keeps the before-reset / before-restore points through any number of auto snapshots', async () => {
+    const preClear = await createSnapshot('user1', 'pre-clear');
+    nowMs += 1000;
+    for (let i = 0; i < MAX_SNAPSHOTS + 3; i++) {
+      await createSnapshot('user1', 'auto');
+      nowMs += 1000;
+    }
+    const list = await listSnapshots('user1');
+    expect(list.map((s) => s.id)).toContain(preClear!.id);
+    expect(list.filter((s) => s.reason === 'auto')).toHaveLength(MAX_SNAPSHOTS);
+  });
+
+  it('keeps only the newest recovery points of their own kind', async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < KEPT_RECOVERY_POINTS + 2; i++) {
+      ids.push((await createSnapshot('user1', i % 2 ? 'pre-restore' : 'pre-clear'))!.id);
+      nowMs += 1000;
+    }
+    const kept = (await listSnapshots('user1')).map((s) => s.id);
+    expect(kept).toEqual(ids.slice(-KEPT_RECOVERY_POINTS).reverse());
+  });
+
+  it('skips an automatic snapshot of empty data (a manual one is still taken)', async () => {
+    mockGenerate.mockImplementation(() => Promise.resolve(buildBackupJson({ games: {}, players: [], seasons: [], tournaments: [] })));
+    expect(await createSnapshot('user1', 'auto')).toBeNull();
+    expect(await createSnapshot('user1', 'manual')).not.toBeNull();
   });
 
   it('isolates snapshots per user (separate databases)', async () => {

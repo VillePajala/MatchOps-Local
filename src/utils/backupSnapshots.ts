@@ -29,6 +29,13 @@ const USER_BACKUPS_DB_PREFIX = 'matchops_backups_';
 
 /** Keep at most this many restore points; the oldest is rotated out. */
 export const MAX_SNAPSHOTS = 5;
+/**
+ * The newest "before reset" / "before restore" points kept on top of MAX_SNAPSHOTS
+ * (review 10.7): they are the only copy of the data a mistaken reset or restore
+ * replaced, and daily auto snapshots must never push them out.
+ */
+export const KEPT_RECOVERY_POINTS = 2;
+const isRecoveryPoint = (reason: SnapshotReason) => reason === 'pre-clear' || reason === 'pre-restore';
 /** Auto-snapshot on app open only if the newest is older than this. */
 export const AUTO_SNAPSHOT_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
@@ -141,16 +148,23 @@ function summarize(json: string): SnapshotSummary {
   };
 }
 
-/** Delete snapshots beyond MAX_SNAPSHOTS, oldest first. */
+/**
+ * Keep the newest MAX_SNAPSHOTS automatic/manual snapshots and, separately, the
+ * newest KEPT_RECOVERY_POINTS pre-clear/pre-restore ones; delete the rest. One
+ * list for all of them let five days of auto snapshots (of the empty or wrong
+ * data) delete the only copy of what a mistaken reset replaced (review 10.7).
+ */
 async function rotate(db: IDBDatabase): Promise<void> {
   const tx = db.transaction(SNAPSHOT_STORE, 'readwrite');
   const store = tx.objectStore(SNAPSHOT_STORE);
   const all = (await promisifyRequest(store.getAll())) as SnapshotRecord[];
-  if (all.length <= MAX_SNAPSHOTS) return;
-  all.sort((a, b) => a.createdAt.localeCompare(b.createdAt)); // oldest first
-  const excess = all.length - MAX_SNAPSHOTS;
-  for (let i = 0; i < excess; i++) {
-    store.delete(all[i].id);
+  const newestFirst = (list: SnapshotRecord[]) => [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const recovery = newestFirst(all.filter((s) => isRecoveryPoint(s.reason)));
+  const regular = newestFirst(all.filter((s) => !isRecoveryPoint(s.reason)));
+  const doomed = [...recovery.slice(KEPT_RECOVERY_POINTS), ...regular.slice(MAX_SNAPSHOTS)];
+  if (doomed.length === 0) return;
+  for (const snapshot of doomed) {
+    store.delete(snapshot.id);
   }
   await new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
@@ -181,12 +195,20 @@ export async function createSnapshot(userId?: string, reason: SnapshotReason = '
 
     // Derive id + createdAt from a single timestamp so behavior is deterministic
     // under a mocked Date.now() (and the id sorts in creation order).
+    const summary = summarize(json);
+    // An automatic snapshot of nothing is skipped (review 10.7): after a mistaken
+    // reset, empty daily copies would only crowd the list.
+    if (reason === 'auto' && summary.games + summary.players + summary.seasons + summary.tournaments === 0) {
+      logger.log('[backupSnapshots] Nothing to snapshot yet; auto restore point skipped');
+      return null;
+    }
+
     const now = Date.now();
     const meta: SnapshotMeta = {
       id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
       createdAt: new Date(now).toISOString(),
       reason,
-      summary: summarize(json),
+      summary,
       sizeBytes: json.length,
     };
     const record: SnapshotRecord = { ...meta, json };
