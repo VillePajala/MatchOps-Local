@@ -740,7 +740,8 @@ describe('Translation File Validation', () => {
       // +4 Saved games sort (review 7.L11). 3419.
       // +48 keys used in code but missing from both locales (review 8.2). 3467.
       // +7 auth error messages (review 8.3). 3474.
-      expect(enKeys.length).toBe(3474);
+      // +24: 24 count messages split into _one/_other (review 8.7). 3498.
+      expect(enKeys.length).toBe(3498);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -946,7 +947,8 @@ describe('Translation File Validation', () => {
       // +4 (review 7.L11). 3419.
       // +48 (review 8.2). 3467.
       // +7 (review 8.3). 3474.
-      expect(fiKeys.length).toBe(3474);
+      // +24 (review 8.7). 3498.
+      expect(fiKeys.length).toBe(3498);
     });
   });
 });
