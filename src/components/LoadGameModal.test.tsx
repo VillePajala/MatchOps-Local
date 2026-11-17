@@ -87,7 +87,7 @@ describe('LoadGameModal', () => {
       teams: [],
       ...props,
     };
-    let result;
+    let result: ReturnType<typeof render> | undefined;
     await act(async () => {
       result = render(
         <ToastProvider>
@@ -198,6 +198,34 @@ describe('LoadGameModal', () => {
     expect(screen.queryByText('Hawks')).not.toBeInTheDocument();
     fireEvent.change(box, { target: { value: 'hameenlinna eagles' } }); // second word matches the other game
     await waitFor(() => expect(screen.queryByText('Lions')).not.toBeInTheDocument());
+  });
+
+  /** Review 7.L11: sort by result - wins first, games not played yet last. */
+  it('sorts by result when chosen', async () => {
+    const games = createSampleGames(); // Lions 2023-05 (played), Eagles 2023-07 (unplayed)
+    (games['game_1659123456_abc'] as unknown as { homeScore: number; awayScore: number }).homeScore = 2;
+    (games['game_1659123456_abc'] as unknown as { homeScore: number; awayScore: number }).awayScore = 0;
+    await renderModal({ savedGames: games });
+    await screen.findByText('Lions');
+    const order = () => ['Lions', 'Eagles'].sort((a, b) =>
+      screen.getByText(a).compareDocumentPosition(screen.getByText(b)) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1);
+    expect(order()).toEqual(['Eagles', 'Lions']); // newest first by default
+    fireEvent.change(screen.getByTestId('load-game-sort'), { target: { value: 'result' } });
+    await waitFor(() => expect(order()).toEqual(['Lions', 'Eagles'])); // the win before the unplayed game
+  });
+
+  /** Review 7.L10: filters and sort are remembered for the next visit on this device. */
+  it('remembers the unplayed filter and the sort between visits', async () => {
+    const first = await renderModal();
+    await screen.findByText('Lions');
+    fireEvent.click(screen.getByRole('button', { name: /loadGameModal.showUnplayedOnly|unplayed/i }));
+    fireEvent.change(screen.getByTestId('load-game-sort'), { target: { value: 'opponent' } });
+    first.unmount();
+
+    await renderModal();
+    await screen.findByText('Eagles');
+    expect(screen.queryByText('Lions')).not.toBeInTheDocument(); // still "unplayed only"
+    expect((screen.getByTestId('load-game-sort') as HTMLSelectElement).value).toBe('opponent');
   });
 
   it('shows a not-played status dot for unplayed games', async () => {

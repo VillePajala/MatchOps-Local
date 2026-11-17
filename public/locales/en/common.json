@@ -1030,7 +1030,11 @@
       "createGameFailed": "Error creating new saved game.",
       "quickSaveInvalid": "This match cannot be saved as it is, so your latest changes are not being kept.",
       "quickSaveNotesTooLong": "Your latest changes are not being kept: the match report is too long. Shorten it and they will save again."
-    }
+    },
+    "sortLabel": "Sort by",
+    "sortDate": "Newest first",
+    "sortOpponent": "By opponent",
+    "sortResult": "By result"
   },
   "newGameSetupModal": {
     "formatNudge": "{{ageGroup}} officially plays {{official}}. You can still choose another - a series may differ.",

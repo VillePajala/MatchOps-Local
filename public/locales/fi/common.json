@@ -1030,7 +1030,11 @@
       "createGameFailed": "Uuden pelin luominen epäonnistui.",
       "quickSaveInvalid": "Tätä ottelua ei voi tallentaa tällaisena, joten viimeisimmät muutoksesi eivät säily.",
       "quickSaveNotesTooLong": "Viimeisimmät muutoksesi eivät säily: otteluraportti on liian pitkä. Lyhennä sitä, niin tallennus toimii taas."
-    }
+    },
+    "sortLabel": "Järjestys",
+    "sortDate": "Uusin ensin",
+    "sortOpponent": "Vastustajan mukaan",
+    "sortResult": "Tuloksen mukaan"
   },
   "errors": {
     "failedToSaveDrawingMode": "Piirtotilan asetuksen tallennus epäonnistui. Muutokset eivät välttämättä pysy.",

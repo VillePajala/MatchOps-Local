@@ -1,5 +1,6 @@
 'use client';
 
+import { useRememberedListSetting, isBoolean, isOneOf } from '@/hooks/useRememberedListSetting';
 import { matchesSearch, playerSearchFields } from '@/utils/listSearch';
 import { sortPlayersByLastName } from '@/utils/gamePlayerList';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -107,9 +108,14 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
 
   const [searchText, setSearchText] = useState('');
   // Archived players (arkistoidut) are hidden by default; the toggle under the list shows them.
-  const [showArchived, setShowArchived] = useState(false);
+  // Remembered on this device (review 7.L10).
+  const [showArchived, setShowArchived] = useRememberedListSetting('roster.showArchived', false, isBoolean);
   const archivedCount = useMemo(() => availablePlayers.filter((p) => p.archived).length, [availablePlayers]);
-  const [sortBy, setSortBy] = useState<'lastName' | 'creationNewest' | 'creationOldest'>('lastName');
+  const [sortBy, setSortBy] = useRememberedListSetting<'lastName' | 'creationNewest' | 'creationOldest'>(
+    'roster.sort',
+    'lastName',
+    isOneOf<'lastName' | 'creationNewest' | 'creationOldest'>('lastName', 'creationNewest', 'creationOldest'),
+  );
 
   // State for the actions menu
   const [actionsMenuPlayerId, setActionsMenuPlayerId] = useState<string | null>(null);

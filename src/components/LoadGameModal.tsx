@@ -1,5 +1,6 @@
 'use client';
 
+import { useRememberedListSetting, isBoolean, isOneOf, isString } from '@/hooks/useRememberedListSetting';
 import { matchesSearch } from '@/utils/listSearch';
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -68,6 +69,10 @@ export interface LoadGameModalProps {
 
 // DEFAULT_GAME_ID now imported from constants 
 
+
+type SavedGamesSort = 'date' | 'opponent' | 'result';
+const RESULT_RANK = { W: 0, D: 1, L: 2 } as const;
+
 const LoadGameModal: React.FC<LoadGameModalProps> = ({
   isOpen,
   onClose,
@@ -92,9 +97,15 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   const { t, i18n } = useTranslation();
   const language = i18n.language;
   const [searchText, setSearchText] = useState<string>('');
-  const [showUnplayedOnly, setShowUnplayedOnly] = useState<boolean>(false);
+  // Filters and sort are remembered on this device (review 7.L10); search is not.
+  const [showUnplayedOnly, setShowUnplayedOnly] = useRememberedListSetting('savedGames.unplayedOnly', false, isBoolean);
+  const [sortBy, setSortBy] = useRememberedListSetting<SavedGamesSort>(
+    'savedGames.sort',
+    'date',
+    isOneOf<SavedGamesSort>('date', 'opponent', 'result'),
+  );
   /** Normalised opponent key, so every spelling of one team is one choice. */
-  const [opponentFilter, setOpponentFilter] = useState<string>('all');
+  const [storedOpponentFilter, setOpponentFilter] = useRememberedListSetting('savedGames.opponent', 'all', isString);
 
   /**
    * The teams in this list, one entry per team however it is spelled.
@@ -114,6 +125,11 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       ),
     [savedGames],
   );
+  // A remembered opponent no game uses any more is no filter at all.
+  const opponentFilter =
+    storedOpponentFilter === 'all' || opponentOptions.some((o) => o.key === storedOpponentFilter)
+      ? storedOpponentFilter
+      : 'all';
 
   // Confirmation modal state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -226,11 +242,22 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
         dateTimestamp: gameData?.gameDate ? new Date(gameData.gameDate).getTime() : 0,
         timeMinutes,
         idTimestamp: extractTimestampFromId(id) || 0,
+        opponentKey: normalizeOpponentName(gameData?.opponentName),
+        // Win, draw, loss, then games not played yet.
+        resultRank: !gameData || gameData.isPlayed === false ? 3 : RESULT_RANK[resolveGameResult(gameData)],
       };
     });
 
-    // Sort: date (newest first) → game time (latest first) → creation date (newest first)
+    // Sort (review 7.L11): opponent A-Z or result (wins first) when chosen, and
+    // otherwise / within those: date (newest first) → game time (latest first) →
+    // creation date (newest first).
     gamesWithSortKeys.sort((a, b) => {
+      if (sortBy === 'opponent' && a.opponentKey !== b.opponentKey) {
+        if (!a.opponentKey) return 1;
+        if (!b.opponentKey) return -1;
+        return a.opponentKey.localeCompare(b.opponentKey, 'fi');
+      }
+      if (sortBy === 'result' && a.resultRank !== b.resultRank) return a.resultRank - b.resultRank;
       // Primary: by date descending (games without date go last)
       if (b.dateTimestamp !== a.dateTimestamp) {
         if (!a.dateTimestamp) return 1;
@@ -250,7 +277,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     });
 
     return gamesWithSortKeys.map(g => g.id);
-  }, [savedGames, searchText, showUnplayedOnly, opponentFilter, entityMaps, language]);
+  }, [savedGames, searchText, showUnplayedOnly, opponentFilter, entityMaps, language, sortBy]);
 
   const handleDeleteClick = (gameId: string, gameName: string) => {
     setGameToDelete({ id: gameId, name: gameName });
@@ -662,6 +689,22 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           {/* Search and filters */}
           <div className="relative mb-4">
             <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="savedGamesSortSelect" className="sr-only">
+              {t('loadGameModal.sortLabel', 'Sort by')}
+            </label>
+            <select
+              id="savedGamesSortSelect"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SavedGamesSort)}
+              data-testid="load-game-sort"
+              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="date">{t('loadGameModal.sortDate', 'Newest first')}</option>
+              <option value="opponent">{t('loadGameModal.sortOpponent', 'By opponent')}</option>
+              <option value="result">{t('loadGameModal.sortResult', 'By result')}</option>
+            </select>
           </div>
           {/* Only worth a control when there is a choice to make. */}
           {opponentOptions.length > 1 && (

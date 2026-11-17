@@ -1,5 +1,6 @@
 'use client';
 
+import { useRememberedListSetting, isBoolean } from '@/hooks/useRememberedListSetting';
 import { matchesSearch } from '@/utils/listSearch';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { secondaryButtonStyle, dangerButtonStyle, CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
@@ -66,7 +67,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const [unifiedModalOpen, setUnifiedModalOpen] = useState(false);
   const [unifiedModalMode, setUnifiedModalMode] = useState<'create' | 'edit'>('create');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
+  // Remembered on this device (review 7.L10).
+  const [showArchived, setShowArchived] = useRememberedListSetting('teams.showArchived', false, isBoolean);
   const archivedTeamCount = useMemo(() => teams.filter((team) => team.archived).length, [teams]);
   const [searchText, setSearchText] = useState('');
   const [actionsMenuTeamId, setActionsMenuTeamId] = useState<string | null>(null);
