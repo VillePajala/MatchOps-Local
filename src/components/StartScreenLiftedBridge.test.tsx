@@ -61,6 +61,8 @@ function Closer() {
       <button onClick={() => ctx.setIsTrainingResourcesOpen(false)}>close-training</button>
       <button onClick={() => ctx.setIsLoadGameModalOpen(false)}>close-load</button>
       <button onClick={() => ctx.setIsSettingsModalOpen(false)}>close-settings</button>
+      <button onClick={() => ctx.setIsClubStatsOpen(true)}>open-club-stats</button>
+      <button onClick={() => ctx.setIsClubStatsOpen(false)}>close-club-stats</button>
     </>
   );
 }
@@ -143,6 +145,15 @@ describe('StartScreenLiftedBridge (L.2)', () => {
       fireEvent.click(screen.getByText('open-external'));
       expect(onSetupModalsClosed).not.toHaveBeenCalled();
       fireEvent.click(screen.getByText('close-external'));
+      expect(onSetupModalsClosed).toHaveBeenCalledTimes(1);
+    });
+
+    /** Review 7.18: "Check team names" in the stats renames games Home shows. */
+    it('fires when team statistics close', () => {
+      const { onSetupModalsClosed } = renderBridgeWithCloser();
+      fireEvent.click(screen.getByText('open-club-stats'));
+      expect(onSetupModalsClosed).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByText('close-club-stats'));
       expect(onSetupModalsClosed).toHaveBeenCalledTimes(1);
     });
 

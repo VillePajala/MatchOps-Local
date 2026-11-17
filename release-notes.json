@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Home updates right after you close team statistics, for example after fixing a team's name there."
+      ],
+      "fi": [
+        "Aloitusnäkymä päivittyy heti, kun suljet joukkueen tilastot, esimerkiksi kun olet korjannut siellä joukkueen nimen."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Saved games now show each game under the team name it was saved with, the same as the match screen, recap and Taso text. Searching for a team's new name still finds its older games."
       ],
       "fi": [
