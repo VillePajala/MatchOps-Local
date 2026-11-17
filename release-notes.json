@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "The language chosen in Settings is now remembered after closing or reloading the app, and the language switches on every screen stay in step."
+      ],
+      "fi": [
+        "Asetuksista valittu kieli säilyy nyt sovelluksen sulkemisen ja uudelleenlatauksen jälkeen, ja kielivalinnat pysyvät samana kaikilla näkymillä."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Closing the \"Delete cloud data\" window after signing in now always signs that temporary login out on the device, also offline."
       ],
       "fi": [
