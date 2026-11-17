@@ -337,21 +337,38 @@ describe('useSyncStatus', () => {
   });
 
   describe('error handling', () => {
-    // Skip: retry logic makes this test slow (10 retries x 500ms)
-    // The behavior is: graceful degradation after retries exhausted
-    it.skip('should handle sync engine initialization failure', async () => {
-      mockGetBackendMode.mockReturnValue('cloud');
-      mockGetSyncEngine.mockImplementation(() => {
-        throw new Error('Engine not initialized');
-      });
+    /**
+     * Review 9.7 (was it.skip, with an expectation the hook never meets): a failing
+     * engine is not fatal - the hook keeps reporting "loading" in cloud mode and
+     * keeps polling, and connects as soon as the engine works.
+     */
+    it('keeps polling through an engine failure and connects once it works', async () => {
+      jest.useFakeTimers();
+      try {
+        mockGetBackendMode.mockReturnValue('cloud');
+        const workingEngine = mockGetSyncEngine.getMockImplementation()!;
+        mockGetSyncEngine.mockImplementation(() => {
+          throw new Error('Engine not initialized');
+        });
 
-      const { result } = renderHook(() => useSyncStatus());
+        const { result } = renderHook(() => useSyncStatus());
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(3000);
+        });
+        expect(result.current.mode).toBe('cloud');
+        expect(result.current.isLoading).toBe(true);
 
-      await waitFor(() => {
+        mockGetStatus.mockResolvedValue({
+          state: 'synced', pendingCount: 0, failedCount: 0, lastSyncedAt: null, isOnline: true,
+        } as SyncStatusInfo);
+        mockGetSyncEngine.mockImplementation(workingEngine);
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(1000);
+        });
         expect(result.current.isLoading).toBe(false);
-      }, { timeout: 6000 });
-
-      expect(result.current.mode).toBe('cloud');
-    }, 10000);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 });

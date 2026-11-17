@@ -181,19 +181,4 @@ describe('StorageAdapter Interface', () => {
     });
   });
 
-  describe('Interface Contract', () => {
-    it('should define expected behavior contracts in JSDoc', () => {
-      // This test documents the expected behavior that implementations should follow
-
-      // getItem should return null for non-existent keys
-      // setItem should throw StorageError on storage errors
-      // removeItem should be idempotent (safe to call multiple times)
-      // clear should remove all items
-      // getBackendName should return a descriptive string
-      // getKeys should return all currently stored keys
-
-      // These contracts will be tested in individual adapter implementations
-      expect(true).toBe(true); // Placeholder for interface contract documentation
-    });
-  });
 });

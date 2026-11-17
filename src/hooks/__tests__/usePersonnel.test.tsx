@@ -474,16 +474,16 @@ describe('usePersonnel hooks', () => {
         });
       });
 
-      // Unmount immediately
+      // The mutation is in flight (React Query calls it asynchronously); unmount now.
+      await waitFor(() => expect(personnelManager.addPersonnelMember).toHaveBeenCalledTimes(1));
       unmount();
 
-      // Resolve after unmount
-      resolveAdd?.(newPersonnel);
-
-      await waitFor(() => expect(true).toBe(true));
-
-      // Should not throw errors about state updates after unmount
-      expect(true).toBe(true);
+      // Resolve after unmount and let the mutation settle. A state update after
+      // unmount would log an error, which fails the test (setupTests; review 9.7).
+      expect(resolveAdd).toBeDefined();
+      await act(async () => {
+        resolveAdd?.(newPersonnel);
+      });
     });
   });
 });
