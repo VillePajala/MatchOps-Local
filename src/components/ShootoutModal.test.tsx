@@ -84,7 +84,7 @@ describe('ShootoutModal', () => {
   it('offers only the squad as shooters, and still names a recorded non-squad shooter', () => {
     renderModal({
       squadIds: ['p1'],
-      initialKicks: [{ id: 'k1', team: 'home', scorerId: 'p2', scored: true }],
+      initialKicks: [{ id: 'k1', team: 'home', scorerId: 'p2', scored: true, order: 1 }],
     });
     const options = screen.getAllByRole('option').map((o) => o.textContent);
     expect(options).toContain('Alice');
