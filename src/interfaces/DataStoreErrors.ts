@@ -24,7 +24,6 @@ export type DataStoreErrorCode =
   | 'AUTH_ERROR'
   | 'NOT_SUPPORTED'
   | 'CONFLICT'
-  | 'STALE_WRITE'
   | 'UNKNOWN';
 
 /**
@@ -171,24 +170,6 @@ export class NotSupportedError extends DataStoreError {
 /**
  * Error thrown when a conflict is detected (for optimistic locking).
  */
-/**
- * A sync write the cloud refused (review 3.13b): `stale` - another device made a newer
- * edit; `deleted` - another device deleted the record. The cloud copy wins.
- */
-export class StaleWriteError extends DataStoreError {
-  public readonly verdict: 'stale' | 'deleted';
-  public readonly resourceType: string;
-  public readonly resourceId: string;
-
-  constructor(verdict: 'stale' | 'deleted', resourceType: string, resourceId: string) {
-    super(`Sync write refused (${verdict}) for ${resourceType}: ${resourceId}`, 'STALE_WRITE');
-    this.name = 'StaleWriteError';
-    this.verdict = verdict;
-    this.resourceType = resourceType;
-    this.resourceId = resourceId;
-  }
-}
-
 export class ConflictError extends DataStoreError {
   public readonly resourceType: string;
   public readonly resourceId: string;

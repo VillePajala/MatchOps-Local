@@ -21,6 +21,12 @@
 --     clear_all_user_data, so another device's stale edit cannot resurrect a
 --     record removed by a reset/restore.
 --   * `updated_at` keeps meaning push time (hydration relies on it).
+--   * Known limits: the check and the write are two round trips - a newer edit
+--     landing in those milliseconds is still overwritten (one user's devices; the
+--     retry model makes it rare). Rosters are not checked (replaced as a whole and
+--     synced as their own op), so a stale team adopts only the team row.
+--   * Deletion records older than 180 days (longer than any plausible offline
+--     period) are pruned by the check.
 -- Additive and idempotent: new columns, a table, functions and triggers.
 -- ============================================================================
 
@@ -140,6 +146,9 @@ BEGIN
   IF p_table NOT IN ('players','teams','seasons','tournaments','personnel','user_settings','player_adjustments','warmup_plans') THEN
     RAISE EXCEPTION 'Unsupported table';
   END IF;
+
+  -- Prune deletion records no stale device could still need (PK-prefix delete).
+  DELETE FROM sync_tombstones t WHERE t.user_id = v_user_id AND t.deleted_at < now() - interval '180 days';
 
   -- The warmup plan's row id is derived from the user (the app's id is 'default').
   IF p_table = 'warmup_plans' THEN
