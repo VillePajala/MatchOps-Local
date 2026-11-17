@@ -5,6 +5,16 @@
       "date": "2026-11-17",
       "internal": true,
       "en": [
+        "The website's user guide now covers the match planner, voice notes, the Taso match report, the finishing checklist, friendly matches and the rules directory."
+      ],
+      "fi": [
+        "Verkkosivun käyttöopas kattaa nyt ottelusuunnittelun, äänimuistiinpanot, Taso-pöytäkirjan, viimeistelyn tarkistuslistan, harjoitusottelut ja sääntöhaun."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "internal": true,
+      "en": [
         "Developer tooling: a smoke test checks the cloud database's access rules and sync checks on the test environment."
       ],
       "fi": [

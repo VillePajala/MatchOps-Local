@@ -83,7 +83,7 @@
 
 You're ready to track your games. For more features:
 - **Menu → How It Works** - In-app help
-- **[Full User Manual](./USER_MANUAL.md)** - Complete guide
+- **[User guide](/en/guide)** - Complete guide ([suomeksi](/guide))
 
 ---
 
