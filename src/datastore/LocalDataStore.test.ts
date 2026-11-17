@@ -694,6 +694,20 @@ describe('LocalDataStore', () => {
     });
 
     describe('updateTeam', () => {
+      /**
+       * Review 3.21b / migration 058: a same-key pair can reach a device from two
+       * devices; editing either copy (without changing its key) must still work.
+       * @critical
+       */
+      it('allows editing one of two synced same-key duplicates', async () => {
+        const a = { ...mockTeam, id: 'team_a', name: 'Same' };
+        const b = { ...mockTeam, id: 'team_b', name: 'Same' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({ team_a: a, team_b: b }));
+
+        const updated = await dataStore.updateTeam('team_b', { color: '#123456', archived: true });
+        expect(updated?.color).toBe('#123456');
+      });
+
       it('should update team fields', async () => {
         mockGetStorageItem.mockResolvedValue(JSON.stringify({ team_123: mockTeam }));
 
@@ -1011,6 +1025,16 @@ describe('LocalDataStore', () => {
     });
 
     describe('updateSeason', () => {
+      /** Review 3.21b: editing one of two synced same-key seasons still works. @critical */
+      it('allows editing one of two synced same-key duplicates', async () => {
+        const a = { ...mockSeason, id: 'season_a' };
+        const b = { ...mockSeason, id: 'season_b' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([a, b]));
+
+        const updated = await dataStore.updateSeason({ ...b, notes: 'kept' });
+        expect(updated?.notes).toBe('kept');
+      });
+
       it('should update season', async () => {
         mockGetStorageItem.mockResolvedValue(JSON.stringify([mockSeason]));
 
@@ -1235,6 +1259,16 @@ describe('LocalDataStore', () => {
     });
 
     describe('updateTournament', () => {
+      /** Review 3.21b: editing one of two synced same-key tournaments still works. @critical */
+      it('allows editing one of two synced same-key duplicates', async () => {
+        const a = { ...mockTournament, id: 'tournament_a' };
+        const b = { ...mockTournament, id: 'tournament_b' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([a, b]));
+
+        const updated = await dataStore.updateTournament({ ...b, notes: 'kept' });
+        expect(updated?.notes).toBe('kept');
+      });
+
       it('should update tournament', async () => {
         mockGetStorageItem.mockResolvedValue(JSON.stringify([mockTournament]));
 

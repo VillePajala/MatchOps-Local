@@ -1412,17 +1412,13 @@ export class SupabaseDataStore implements DataStore {
     const existingTeams = await this.getTeams(true);
     const compositeKey = createTeamCompositeKey(finalName, finalSeasonId, finalTournamentId, finalSeriesId, finalGameType);
 
-    const duplicateExists = existingTeams.some(
-      (team) =>
-        team.id !== id &&
-        createTeamCompositeKey(
-          team.name,
-          team.boundSeasonId,
-          team.boundTournamentId,
-          team.boundTournamentSeriesId,
-          team.gameType
-        ) === compositeKey
-    );
+    // An update that keeps the record's own key adds no duplicate: a same-key pair can
+    // arrive from two devices (migration 058, review 3.21b), and checking it anyway
+    // blocked every edit - even archiving - of either copy.
+    const keyOf = (team: (typeof existingTeams)[number]) => createTeamCompositeKey(team.name, team.boundSeasonId, team.boundTournamentId, team.boundTournamentSeriesId, team.gameType);
+    const own = existingTeams.find((team) => team.id === id);
+    const duplicateExists = !(own && keyOf(own) === compositeKey) &&
+      existingTeams.some((team) => team.id !== id && keyOf(team) === compositeKey);
 
     if (duplicateExists) {
       throw new AlreadyExistsError('team', finalName);
@@ -1905,18 +1901,13 @@ export class SupabaseDataStore implements DataStore {
       season.leagueId
     );
 
-    const duplicateExists = existingSeasons.some(
-      (item) =>
-        item.id !== season.id &&
-        createSeasonCompositeKey(
-          item.name,
-          item.clubSeason,
-          item.gameType,
-          item.gender,
-          item.ageGroup,
-          item.leagueId
-        ) === compositeKey
-    );
+    // An update that keeps the record's own key adds no duplicate: a same-key pair can
+    // arrive from two devices (migration 058, review 3.21b), and checking it anyway
+    // blocked every edit - even archiving - of either copy.
+    const keyOf = (item: (typeof existingSeasons)[number]) => createSeasonCompositeKey(item.name, item.clubSeason, item.gameType, item.gender, item.ageGroup, item.leagueId);
+    const own = existingSeasons.find((item) => item.id === season.id);
+    const duplicateExists = !(own && keyOf(own) === compositeKey) &&
+      existingSeasons.some((item) => item.id !== season.id && keyOf(item) === compositeKey);
 
     if (duplicateExists) {
       throw new AlreadyExistsError('season', trimmedName);
@@ -2295,17 +2286,13 @@ export class SupabaseDataStore implements DataStore {
       tournament.ageGroup
     );
 
-    const duplicateExists = existingTournaments.some(
-      (item) =>
-        item.id !== tournament.id &&
-        createTournamentCompositeKey(
-          item.name,
-          item.clubSeason,
-          item.gameType,
-          item.gender,
-          item.ageGroup
-        ) === compositeKey
-    );
+    // An update that keeps the record's own key adds no duplicate: a same-key pair can
+    // arrive from two devices (migration 058, review 3.21b), and checking it anyway
+    // blocked every edit - even archiving - of either copy.
+    const keyOf = (item: (typeof existingTournaments)[number]) => createTournamentCompositeKey(item.name, item.clubSeason, item.gameType, item.gender, item.ageGroup);
+    const own = existingTournaments.find((item) => item.id === tournament.id);
+    const duplicateExists = !(own && keyOf(own) === compositeKey) &&
+      existingTournaments.some((item) => item.id !== tournament.id && keyOf(item) === compositeKey);
 
     if (duplicateExists) {
       throw new AlreadyExistsError('tournament', trimmedName);

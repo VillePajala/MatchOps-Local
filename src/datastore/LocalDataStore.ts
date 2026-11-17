@@ -966,16 +966,18 @@ export class LocalDataStore implements DataStore {
       }
 
       const compositeKey = createTeamCompositeKey(finalName, finalSeasonId, finalTournamentId, finalSeriesId, finalGameType);
-      const duplicateExists = Object.values(teamsIndex).some(team =>
-        team.id !== id &&
-        createTeamCompositeKey(
-          team.name,
-          team.boundSeasonId,
-          team.boundTournamentId,
-          team.boundTournamentSeriesId,
-          team.gameType
-        ) === compositeKey
+      // An update that keeps the team's own key adds no duplicate: a same-key pair can
+      // arrive from two devices (migration 058, review 3.21b), and checking it anyway
+      // blocked every edit - even archiving - of either copy.
+      const keyOf = (team: Team) => createTeamCompositeKey(
+        team.name,
+        team.boundSeasonId,
+        team.boundTournamentId,
+        team.boundTournamentSeriesId,
+        team.gameType,
       );
+      const duplicateExists = keyOf(existing) !== compositeKey &&
+        Object.values(teamsIndex).some((team) => team.id !== id && keyOf(team) === compositeKey);
 
       if (duplicateExists) {
         throw new AlreadyExistsError('team', finalName);
@@ -1212,18 +1214,22 @@ export class LocalDataStore implements DataStore {
         season.ageGroup,
         season.leagueId
       );
-      const duplicateExists = currentSeasons.some(
-        (item) => item.id !== season.id && createSeasonCompositeKey(
-          item.name,
-          // Compute clubSeason when missing (legacy rows), matching getSeasons()/the UI
-          // and SupabaseDataStore — keeps Local/Cloud uniqueness consistent.
-          item.clubSeason ?? calculateClubSeason(item.startDate, start, end),
-          item.gameType,
-          item.gender,
-          item.ageGroup,
-          item.leagueId
-        ) === compositeKey
+      // An update that keeps the record's own key adds no duplicate: a same-key pair can
+      // arrive from two devices (migration 058, review 3.21b), and checking it anyway
+      // blocked every edit - even archiving - of either copy.
+      // clubSeason is computed when missing (legacy rows), matching getSeasons()/the UI
+      // and SupabaseDataStore - keeps Local/Cloud uniqueness consistent.
+      const keyOf = (item: (typeof currentSeasons)[number]) => createSeasonCompositeKey(
+        item.name,
+        item.clubSeason ?? calculateClubSeason(item.startDate, start, end),
+        item.gameType,
+        item.gender,
+        item.ageGroup,
+        item.leagueId,
       );
+      const own = currentSeasons.find((item) => item.id === season.id);
+      const duplicateExists = !(own && keyOf(own) === compositeKey) &&
+        currentSeasons.some((item) => item.id !== season.id && keyOf(item) === compositeKey);
 
       if (duplicateExists) {
         throw new AlreadyExistsError('season', trimmedName);
@@ -1444,15 +1450,13 @@ export class LocalDataStore implements DataStore {
         tournament.gender,
         tournament.ageGroup
       );
-      const duplicateExists = currentTournaments.some(
-        (item) => item.id !== tournament.id && createTournamentCompositeKey(
-          item.name,
-          item.clubSeason,
-          item.gameType,
-          item.gender,
-          item.ageGroup
-        ) === compositeKey
-      );
+      // An update that keeps the record's own key adds no duplicate: a same-key pair can
+      // arrive from two devices (migration 058, review 3.21b), and checking it anyway
+      // blocked every edit - even archiving - of either copy.
+      const keyOf = (item: (typeof currentTournaments)[number]) => createTournamentCompositeKey(item.name, item.clubSeason, item.gameType, item.gender, item.ageGroup);
+      const own = currentTournaments.find((item) => item.id === tournament.id);
+      const duplicateExists = !(own && keyOf(own) === compositeKey) &&
+        currentTournaments.some((item) => item.id !== tournament.id && keyOf(item) === compositeKey);
 
       if (duplicateExists) {
         throw new AlreadyExistsError('tournament', trimmedName);
