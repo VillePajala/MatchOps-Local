@@ -1,6 +1,6 @@
 # Active Plans — START HERE
 
-**Last Updated**: 2026-06-10
+**Last Updated**: 2026-11-17
 **Status**: 🚀 Live in production (Google Play, 2026-06-09) · **Free** (no billing)
 
 ---
@@ -22,11 +22,9 @@
 
 ---
 
-## Current Focus (P0)
+## Current Focus
 
-1. **Store-listing accuracy** — listing/README still claim "offline / no account / optional cloud"; the Play build is cloud-only.
-2. **Stop publishing internal docs** — `copy-docs.js` publishes `11-blueprint` + archive tarball to the public site.
-3. **`get_user_consent` stale 'granted'** (#371) — make it status-aware.
+What is being worked on and what is done lives in **[UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md)** only - not repeated here, so it cannot go stale (the old P0 list here kept three items open that the roadmap had closed on 2026-06-18 and 2026-09-10).
 
 Monetization is **parked** (going free). If we ever go paid, it needs a full replan — see archived `billing-implementation-plan.md`.
 
@@ -35,7 +33,7 @@ Monetization is **parked** (going free). If we ever go paid, it needs a full rep
 | Project | ID | Purpose |
 |---------|-------------|---------|
 | `matchops-cloud` | `aybjmnxxtgspqesdiqxd` | Production |
-| `matchops-staging` | `hwcqpvvqnmetjrwvzlfr` | Preview/testing |
+| `matchops-staging` | `uncyxrffqrloypgjalzz` | Testing (recreated 2026-06-22; `npm run dev` points here via `.env.development`) |
 
 ### Preserved code snapshots (git tags)
 
