@@ -1,5 +1,6 @@
 'use client';
 
+import LeagueSelectWithFilters from './LeagueSelectWithFilters';
 import { useHoldUnsavedInput } from '@/utils/unsavedInputSignal';
 import React, { useState, useRef, useCallback, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,7 +22,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
-import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
+import { CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalSwitch } from '@/styles/modalStyles';
@@ -1429,22 +1430,19 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                               <label htmlFor="leagueSelect" className="block text-sm font-medium text-slate-300 mb-1">
                                 {t('newGameSetupModal.leagueLabel', 'Official league')}
                               </label>
-                              <select
+                              {/* The Level/Area filters Match details has (review 7.L11). */}
+                              <LeagueSelectWithFilters
                                 id="leagueSelect"
+                                filterIdSuffix="new"
                                 value={leagueId}
-                                onChange={(e) => {
-                                  setLeagueId(e.target.value);
+                                placeholder={t('newGameSetupModal.selectLeague', '-- Select official league --')}
+                                onChange={(value) => {
+                                  setLeagueId(value);
                                   // Clear custom name when switching away from "Muu" (intentional)
-                                  if (e.target.value !== CUSTOM_LEAGUE_ID) setCustomLeagueName('');
+                                  if (value !== CUSTOM_LEAGUE_ID) setCustomLeagueName('');
                                 }}
                                 onKeyDown={handleKeyDown}
-                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                              >
-                                <option value="">{t('newGameSetupModal.selectLeague', '-- Select official league --')}</option>
-                                {FINNISH_YOUTH_LEAGUES.map(league => (
-                                  <option key={league.id} value={league.id}>{league.name}</option>
-                                ))}
-                              </select>
+                              />
                               {/* Custom League Name - shown when "Muu" selected */}
                               {leagueId === CUSTOM_LEAGUE_ID && (
                                 <div className="mt-2">
