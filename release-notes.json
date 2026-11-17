@@ -3,6 +3,16 @@
   "releases": [
     {
       "date": "2026-11-17",
+      "internal": true,
+      "en": [
+        "When the app is already open in another tab, the second tab now stays idle instead of syncing in the background alongside the first."
+      ],
+      "fi": [
+        "Kun sovellus on jo auki toisessa välilehdessä, toinen välilehti pysyy nyt toimettomana eikä synkronoi taustalla ensimmäisen rinnalla."
+      ]
+    },
+    {
+      "date": "2026-11-17",
       "en": [
         "Home updates right after you close team statistics, for example after fixing a team's name there."
       ],
