@@ -290,6 +290,66 @@ describe('ConflictResolver', () => {
     });
   });
 
+  /**
+   * Review 3.6b: an in-flight op superseded by a newer local change lost a conflict,
+   * and the cloud copy was written over the newer edit on the device.
+   * @critical
+   */
+  describe('Superseded op where the cloud wins', () => {
+    const withSupersede = (check: jest.Mock) =>
+      new ConflictResolver({
+        fetchFromCloud: mockFetchFromCloud,
+        writeToCloud: mockWriteToCloud,
+        deleteFromCloud: mockDeleteFromCloud,
+        writeToLocal: mockWriteToLocal,
+        isSuperseded: check,
+      });
+
+    it('keeps the newer local edit (update op)', async () => {
+      const check = jest.fn().mockResolvedValue(true);
+      mockFetchFromCloud.mockResolvedValue(createCloudRecord());
+      const result = await withSupersede(check).resolve(createOperation({ timestamp: MUCH_OLDER }));
+      expect(result.resolution.winner).toBe('cloud');
+      expect(check).toHaveBeenCalledWith(expect.objectContaining({ id: 'op-1' }));
+      expect(mockWriteToLocal).not.toHaveBeenCalled();
+    });
+
+    it('keeps the newer local change (delete op)', async () => {
+      mockFetchFromCloud.mockResolvedValue(createCloudRecord());
+      await withSupersede(jest.fn().mockResolvedValue(true)).resolve(
+        createOperation({ operation: 'delete', timestamp: MUCH_OLDER }),
+      );
+      expect(mockWriteToLocal).not.toHaveBeenCalled();
+      expect(mockDeleteFromCloud).not.toHaveBeenCalled();
+    });
+
+    it('still adopts the cloud copy when the op was not superseded', async () => {
+      const cloudRecord = createCloudRecord();
+      mockFetchFromCloud.mockResolvedValue(cloudRecord);
+      await withSupersede(jest.fn().mockResolvedValue(false)).resolve(createOperation({ timestamp: MUCH_OLDER }));
+      expect(mockWriteToLocal).toHaveBeenCalledWith('player', 'player-1', cloudRecord);
+    });
+
+    it('adopts the cloud copy as before when the check fails', async () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      mockFetchFromCloud.mockResolvedValue(createCloudRecord());
+      await withSupersede(jest.fn().mockRejectedValue(new Error('queue closed'))).resolve(
+        createOperation({ timestamp: MUCH_OLDER }),
+      );
+      expect(mockWriteToLocal).toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('Supersede check failed'), expect.anything());
+      warn.mockRestore();
+    });
+
+    it('does not consult the check when local wins', async () => {
+      const check = jest.fn().mockResolvedValue(true);
+      mockFetchFromCloud.mockResolvedValue(createCloudRecord());
+      await withSupersede(check).resolve(createOperation({ timestamp: NOW }));
+      expect(check).not.toHaveBeenCalled();
+      expect(mockWriteToCloud).toHaveBeenCalled();
+    });
+  });
+
   describe('Different Entity Types', () => {
     const entityTypes = [
       'player',

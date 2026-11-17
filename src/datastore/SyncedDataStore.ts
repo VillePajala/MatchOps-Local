@@ -442,6 +442,15 @@ export class SyncedDataStore implements DataStore {
   }
 
   /**
+   * Whether a queued op was superseded by a newer change to its entity while in flight
+   * (review 3.6b). A missing op counts as not superseded.
+   */
+  async isOperationSuperseded(opId: string): Promise<boolean> {
+    const op = await this.syncQueue.getById(opId);
+    return op?.superseded === true;
+  }
+
+  /**
    * Start the sync engine.
    * Called by the factory after executor is set.
    */

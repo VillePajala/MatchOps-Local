@@ -89,6 +89,12 @@ export interface ConflictResolverOptions {
   deleteFromCloud: CloudRecordDeleter;
   /** Write a record to local storage (used when cloud wins) */
   writeToLocal: LocalRecordWriter;
+  /**
+   * Whether a newer change to the same entity was queued while this op was in flight
+   * (review 3.6b). The newer change is already on the device and will be pushed, so
+   * when the cloud wins against this older op its copy must not overwrite it locally.
+   */
+  isSuperseded?: (op: SyncOperation) => Promise<boolean>;
 }
 
 /**
@@ -154,12 +160,14 @@ export class ConflictResolver {
   private writeToCloud: CloudRecordWriter;
   private deleteFromCloud: CloudRecordDeleter;
   private writeToLocal: LocalRecordWriter;
+  private isSuperseded?: (op: SyncOperation) => Promise<boolean>;
 
   constructor(options: ConflictResolverOptions) {
     this.fetchFromCloud = options.fetchFromCloud;
     this.writeToCloud = options.writeToCloud;
     this.deleteFromCloud = options.deleteFromCloud;
     this.writeToLocal = options.writeToLocal;
+    this.isSuperseded = options.isSuperseded;
   }
 
   /**
@@ -346,7 +354,7 @@ export class ConflictResolver {
       cloudTimestamp,
     });
 
-    await this.writeToLocal(entityType, entityId, cloudRecord);
+    await this.adoptCloudLocally(op, cloudRecord);
 
     return {
       resolution: {
@@ -358,6 +366,38 @@ export class ConflictResolver {
       },
       actionTaken: true,
     };
+  }
+
+  /**
+   * Store the winning cloud copy on the device - unless a newer local change to the
+   * entity was queued meanwhile (review 3.6b): that change is the user's latest edit,
+   * and it will be pushed by its own op. Overwriting it here showed the older cloud
+   * state on the device while the cloud received the newer one.
+   * If the check itself fails, the cloud copy is written as before.
+   * A change made in the moment between the local write and its enqueue (or between
+   * this check and the write) is not seen yet; that window is milliseconds wide.
+   */
+  private async adoptCloudLocally(op: SyncOperation, cloudRecord: CloudRecord): Promise<void> {
+    if (this.isSuperseded) {
+      let superseded = false;
+      try {
+        superseded = await this.isSuperseded(op);
+      } catch (error) {
+        logger.warn('[ConflictResolver] Supersede check failed; writing the cloud copy locally', {
+          entityType: op.entityType,
+          entityId: op.entityId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      if (superseded) {
+        logger.info('[ConflictResolver] Cloud wins, but a newer local change is queued - keeping it', {
+          entityType: op.entityType,
+          entityId: op.entityId,
+        });
+        return;
+      }
+    }
+    await this.writeToLocal(op.entityType, op.entityId, cloudRecord);
   }
 
   /**
@@ -429,7 +469,7 @@ export class ConflictResolver {
       cloudTimestamp,
     });
 
-    await this.writeToLocal(entityType, entityId, cloudRecord);
+    await this.adoptCloudLocally(op, cloudRecord);
 
     return {
       resolution: {

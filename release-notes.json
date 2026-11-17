@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Cloud sync: an edit made while an earlier change was still uploading is no longer briefly replaced on the device by the older cloud copy."
+      ],
+      "fi": [
+        "Pilvisynkronointi: muokkaus, joka tehdään aiemman muutoksen vielä lähtiessä, ei enää hetkeksi korvaudu laitteella vanhemmalla pilviversiolla."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "The restore points taken before a reset or a restore are now kept even as daily backups accumulate, so a mistake can still be undone later."
       ],
       "fi": [
