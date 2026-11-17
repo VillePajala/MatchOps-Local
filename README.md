@@ -4,7 +4,7 @@
 
 # MatchOps-Local
 
-**Local-first soccer & futsal coaching PWA with optional cloud sync — your data, your choice.**
+**Soccer & futsal coaching app — live match tracking, stats and planning. Local-first: every change is saved on the device first, then synced to the cloud.**
 
 [![License](https://img.shields.io/badge/license-All_Rights_Reserved-red.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
@@ -15,11 +15,10 @@
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5a0fc8.svg)](https://web.dev/progressive-web-apps/)
 [![Privacy](https://img.shields.io/badge/Privacy-No_Tracking-green.svg)](#)
 
-MatchOps-Local is built for coaches who need privacy, offline reliability, and soccer-specific workflows. Start locally with zero setup, or enable cloud sync to access your data across devices.
+MatchOps-Local is built for coaches who need offline reliability and soccer-specific workflows.
 
-- **Local mode**: All data on-device (IndexedDB) — works offline, no account needed
-- **Cloud mode**: Optional Supabase backend for cross-device sync with local-first caching
-  - **Note**: the Google Play build is distributed **cloud-only** (Play Store users sign in; cloud mode required). Local mode is available in the web/PWA version.
+- **Google Play app**: cloud mode - sign in with an account; data syncs across devices and stays usable offline (local-first: saved on the device, synced in the background).
+- **Web / PWA**: the same cloud mode, or local mode - all data on the device (IndexedDB), no account.
 - **Auth**: Email/password authentication via Supabase Auth
 - **Performance**: Sub-second operations with IndexedDB + React Query caching
 - **PWA**: Installable, full offline support, auto-update detection
@@ -61,7 +60,7 @@ Grouped the way a coach meets them: before the match, during it, and after.
 - Structured player assessments — **off by default** since 2026-09-09: rating children after every match proved to be the wrong form, and the feature stays available for anyone who wants it rather than being pushed at everyone
 
 ### Sync & accounts
-- Optional Supabase cloud backend for cross-device access
+- Supabase cloud backend for cross-device access (required in the Google Play app; optional on the web)
 - Local-first sync: work offline, changes sync when the connection returns
 - SyncQueue persisted in IndexedDB, with retry and backoff
 - Bidirectional migration: local-to-cloud and cloud-to-local

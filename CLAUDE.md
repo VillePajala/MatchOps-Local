@@ -28,7 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Local-First Cloud Sync** ✅ - SyncQueue, SyncEngine, SyncedDataStore (PR #324)
 
 ### What's Next
-- See **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** — prioritized P0→P4. Current P0: store-listing accuracy, stop publishing internal docs, fix `get_user_consent` status bug (#371).
+- See **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** — prioritized P0→P4, the single place for what is open and what is done.
 - **Monetization is parked** (going free). Billing infrastructure exists but enforcement is off (`PREMIUM_ENFORCEMENT_ENABLED = false`); the plan is archived for an eventual replan if we ever go paid.
 
 ### ⚠️ Quality Bar: Production-Ready (Not MVP)
