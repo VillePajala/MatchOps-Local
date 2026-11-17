@@ -11,6 +11,8 @@ const I18nInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) 
   // After hydration (effects never run before it): keep <html lang> on the app
   // language - screen readers, hyphenation and spellcheck read it (review 8.6; the
   // server always renders "fi") - and then apply the stored language (review 8.5).
+  // i18n is already initialised here: init is synchronous with the bundled resources
+  // (see i18n.ts). If resources ever load asynchronously, apply after 'initialized'.
   useEffect(() => {
     const syncLang = (lng: string) => {
       document.documentElement.lang = lng.startsWith('en') ? 'en' : 'fi';

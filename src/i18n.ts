@@ -77,8 +77,10 @@ if (!i18n.isInitialized) {
  * Apply the coach's stored language - called by I18nInitializer AFTER hydration
  * (review 8.5). It used to run in a microtask right after init, i.e. before React
  * hydrated: an English coach's client rendered "Loading..." against the server's
- * "Ladataan...", React threw a hydration error and rebuilt the whole tree, and the
- * Finnish text flashed on every start (the MATCHOPS-LOCAL-8K / -3 class).
+ * "Ladataan...", and React threw a hydration error and rebuilt the whole tree (the
+ * MATCHOPS-LOCAL-8K / -3 class). The server cannot know the stored language, so the
+ * first paint is still Finnish for an English coach; the switch follows right after
+ * hydration, without the error.
  */
 export const applyStoredLanguage = (): void => {
   if (typeof window === 'undefined' || IS_TEST_ENVIRONMENT) return;
