@@ -300,6 +300,50 @@ describe('CloudAuthModal', () => {
       expect(deleteButton).not.toBeDisabled();
     });
 
+    /**
+     * Review 3.12b: cancelling after signing in signs out through the auth service,
+     * which also removes the stored session (works offline); a bare supabase-js
+     * signOut left it stored.
+     * @critical
+     */
+    it('cancelling after sign-in signs out through the auth service', async () => {
+      await goToConfirmStep();
+      mockSignOut.mockClear();
+
+      await user.click(screen.getByLabelText('Close'));
+
+      await waitFor(() => expect(mockOnCancel).toHaveBeenCalled());
+      expect(mockSignOut).toHaveBeenCalledTimes(1);
+    });
+
+    it('cancelling after going Back from the confirm step still ends the session', async () => {
+      await goToConfirmStep();
+      mockSignOut.mockClear();
+      await user.click(screen.getByRole('button', { name: 'Back' }));
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument());
+
+      await user.click(screen.getByLabelText('Close'));
+
+      await waitFor(() => expect(mockOnCancel).toHaveBeenCalled());
+      expect(mockSignOut).toHaveBeenCalledTimes(1);
+    });
+
+    it('closes even when ending the session fails', async () => {
+      await goToConfirmStep();
+      mockSignOut.mockRejectedValueOnce(new Error('Sign out could not be completed on this device.'));
+
+      await user.click(screen.getByLabelText('Close'));
+
+      await waitFor(() => expect(mockOnCancel).toHaveBeenCalled());
+    });
+
+    it('cancelling without having signed in does not sign out', async () => {
+      renderModal();
+      await user.click(screen.getByLabelText('Close'));
+      await waitFor(() => expect(mockOnCancel).toHaveBeenCalled());
+      expect(mockSignOut).not.toHaveBeenCalled();
+    });
+
     it('should go back to auth step when back button clicked', async () => {
       await goToConfirmStep();
 
@@ -368,10 +412,10 @@ describe('CloudAuthModal', () => {
       await triggerDelete();
 
       await waitFor(() => {
-        // Verify initialize() is called before signOut() (auth service requires initialization)
-        // The auth service is created twice: once for signIn, once for signOut
-        expect(mockAuthInitialize).toHaveBeenCalledTimes(2);
-        expect(mockSignOut).toHaveBeenCalled();
+        // The signed-in service instance is reused for sign-out (review 3.12b):
+        // initialized once, for signIn.
+        expect(mockAuthInitialize).toHaveBeenCalledTimes(1);
+        expect(mockSignOut).toHaveBeenCalledTimes(1);
       });
     });
 
