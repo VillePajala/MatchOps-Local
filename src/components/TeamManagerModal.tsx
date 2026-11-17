@@ -1,5 +1,6 @@
 'use client';
 
+import { matchesSearch } from '@/utils/listSearch';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { secondaryButtonStyle, dangerButtonStyle, CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
@@ -349,30 +350,19 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
           {/* Teams List */}
           {(() => {
-            const searchLower = searchText.toLowerCase();
             const filteredTeams = [...teams]
               .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
               .filter(team => showArchived || !team.archived)
-              .filter(team => {
-                if (!searchText) return true;
-                // Search by team name
-                if (team.name.toLowerCase().includes(searchLower)) return true;
-                // Search by ageGroup
-                if (team.ageGroup?.toLowerCase().includes(searchLower)) return true;
-                // Search by gameType
-                if (team.gameType?.toLowerCase().includes(searchLower)) return true;
-                // Search by season name (with club season)
-                if (team.boundSeasonId && seasonMap[team.boundSeasonId]) {
-                  const seasonName = getSeasonDisplayName(seasonMap[team.boundSeasonId]);
-                  if (seasonName.toLowerCase().includes(searchLower)) return true;
-                }
-                // Search by tournament name (with club season)
-                if (team.boundTournamentId && tournamentMap[team.boundTournamentId]) {
-                  const tournamentName = getTournamentDisplayName(tournamentMap[team.boundTournamentId]);
-                  if (tournamentName.toLowerCase().includes(searchLower)) return true;
-                }
-                return false;
-              });
+              // The app's one search (review 7.L6): name, age group, sport (as stored
+              // and as shown) and the bound league / tournament.
+              .filter(team => matchesSearch(searchText, [
+                team.name,
+                team.ageGroup,
+                team.gameType,
+                team.gameType === 'futsal' ? t('common.futsal', 'Futsal') : team.gameType ? t('common.gameTypeSoccer', 'Soccer') : '',
+                team.boundSeasonId && seasonMap[team.boundSeasonId] ? getSeasonDisplayName(seasonMap[team.boundSeasonId]) : '',
+                team.boundTournamentId && tournamentMap[team.boundTournamentId] ? getTournamentDisplayName(tournamentMap[team.boundTournamentId]) : '',
+              ]));
 
             if (teams.length === 0) {
               return (

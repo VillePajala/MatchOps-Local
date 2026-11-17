@@ -1,5 +1,6 @@
 'use client';
 
+import { matchesSearch } from '@/utils/listSearch';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Personnel } from '@/types/personnel';
 import {
@@ -205,11 +206,8 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
 
   // Filter personnel by search (memoized to avoid re-computation on every render)
   const filteredPersonnel = useMemo(() => {
-    return personnel.filter(p =>
-      p.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      p.role.toLowerCase().includes(searchText.toLowerCase()) ||
-      t(getRoleLabelKey(p.role)).toLowerCase().includes(searchText.toLowerCase())
-    );
+    // The app's one search (review 7.L6): name and role (as stored and as shown).
+    return personnel.filter(p => matchesSearch(searchText, [p.name, p.role, t(getRoleLabelKey(p.role))]));
   }, [personnel, searchText, t]);
 
   useEscapeToClose(isOpen, onClose);

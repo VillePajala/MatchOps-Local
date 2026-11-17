@@ -1,5 +1,6 @@
 'use client';
 
+import { matchesSearch } from '@/utils/listSearch';
 import React, { useState } from 'react';
 import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import OpponentNameSweepModal from '@/components/OpponentNameSweepModal';
@@ -262,7 +263,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         // date first (undated last), then name - this list was in storage order.
         const filtered = data
             .filter(d => showArchived || !d.archived)
-            .filter(d => d.name.toLowerCase().includes(searchText.toLowerCase()))
+            // The app's one search (review 7.L6).
+            .filter(d => matchesSearch(searchText, [d.name]))
             .sort((a, b) => {
                 if (a.startDate && b.startDate) {
                     const byDate = b.startDate.localeCompare(a.startDate);

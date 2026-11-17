@@ -1,5 +1,6 @@
 'use client';
 
+import { matchesSearch, playerSearchFields } from '@/utils/listSearch';
 import { sortPlayersByLastName } from '@/utils/gamePlayerList';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
@@ -206,13 +207,9 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
       }
     });
 
-    // Filter by search text
-    if (!searchText) return sorted;
-    const search = searchText.toLowerCase();
-    return sorted.filter(p =>
-      p.name.toLowerCase().includes(search) ||
-      (p.nickname && p.nickname.toLowerCase().includes(search))
-    );
+    // The app's one search (review 7.L6): name, nickname and shirt number - the
+    // number was not searchable.
+    return sorted.filter(p => matchesSearch(searchText, playerSearchFields(p)));
   }, [availablePlayers, sortBy, searchText, showArchived]);
 
   useEscapeToClose(isOpen, onClose, !showDeleteConfirm);

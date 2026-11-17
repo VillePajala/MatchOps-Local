@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Search works the same everywhere: it ignores accents and capitals (\"maki\" finds \"Mäki\"), every word you type must match, and players can also be found by shirt number."
+      ],
+      "fi": [
+        "Haku toimii nyt kaikkialla samoin: se ei välitä aksenteista eikä isoista kirjaimista (\"maki\" löytää \"Mäki\"), jokaisen kirjoittamasi sanan on osuttava, ja pelaajat löytyvät myös pelinumerolla."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Player lists and dropdowns now all use the same order (by last name, Finnish alphabetical order) and show players as \"Name (nickname)\".",
         "Team dropdowns are sorted by name, and leagues and tournaments are listed newest first in their manager too."
       ],

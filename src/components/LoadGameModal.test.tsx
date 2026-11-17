@@ -170,7 +170,7 @@ describe('LoadGameModal', () => {
     (games['game_1659123456_abc'] as unknown as { opponentName: string }).opponentName = 'IPS/Sininen';
     await renderModal({ savedGames: games });
     await screen.findByText('Lions');
-    fireEvent.change(screen.getByPlaceholderText('loadGameModal.filterPlaceholder'), { target: { value: 'ips sininen' } });
+    fireEvent.change(screen.getByPlaceholderText('loadGameModal.filterPlaceholder'), { target: { value: 'ips/sininen' } });
     expect(await screen.findByText('Lions')).toBeInTheDocument();
     expect(screen.queryByText('Hawks')).not.toBeInTheDocument();
   });
@@ -184,6 +184,20 @@ describe('LoadGameModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /loadGameModal.showUnplayedOnly|unplayed/i }));
     expect(await screen.findByText('loadGameModal.noGamesMatchFilter')).toBeInTheDocument();
     expect(screen.queryByText('loadGameModal.noGamesSaved')).not.toBeInTheDocument();
+  });
+
+  /** Review 7.L6: one search - accents ignored, every word must match, in any order. */
+  it('finds a game ignoring accents, with every word of the search', async () => {
+    const games = createSampleGames();
+    (games['game_1659123456_abc'] as unknown as { opponentName: string }).opponentName = 'Hämeenlinna';
+    await renderModal({ savedGames: games });
+    await screen.findByText('Lions');
+    const box = screen.getByPlaceholderText('loadGameModal.filterPlaceholder');
+    fireEvent.change(box, { target: { value: 'hameenlinna lions' } });
+    expect(await screen.findByText('Lions')).toBeInTheDocument();
+    expect(screen.queryByText('Hawks')).not.toBeInTheDocument();
+    fireEvent.change(box, { target: { value: 'hameenlinna eagles' } }); // second word matches the other game
+    await waitFor(() => expect(screen.queryByText('Lions')).not.toBeInTheDocument());
   });
 
   it('shows a not-played status dot for unplayed games', async () => {

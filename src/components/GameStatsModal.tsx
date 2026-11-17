@@ -1,5 +1,6 @@
 'use client';
 
+import { matchesSearch, playerSearchFields } from '@/utils/listSearch';
 import { sortPlayersByLastName, playerListLabel } from '@/utils/gamePlayerList';
 import { playersForRedaction } from '@/utils/gamePacket';
 import type { AdjustmentScope } from '@/utils/adjustmentScope';
@@ -390,14 +391,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
   // Filtered players for Player tab combobox (from the unified pool)
   const filteredPlayers = useMemo(() => {
-    const search = playerQuery.toLowerCase();
-    return playerPool.filter(p => {
-      if (!search) return true;
-      return (
-        p.name.toLowerCase().includes(search) ||
-        (p.nickname && p.nickname.toLowerCase().includes(search))
-      );
-    });
+    // The app's one search (review 7.L6): name, nickname and shirt number.
+    return playerPool.filter(p => matchesSearch(playerQuery, playerSearchFields(p)));
   }, [playerPool, playerQuery]);
 
   // Extract available club seasons from games
