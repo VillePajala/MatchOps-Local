@@ -374,6 +374,8 @@ export class ConflictResolver {
    * and it will be pushed by its own op. Overwriting it here showed the older cloud
    * state on the device while the cloud received the newer one.
    * If the check itself fails, the cloud copy is written as before.
+   * A change made in the moment between the local write and its enqueue (or between
+   * this check and the write) is not seen yet; that window is milliseconds wide.
    */
   private async adoptCloudLocally(op: SyncOperation, cloudRecord: CloudRecord): Promise<void> {
     if (this.isSuperseded) {

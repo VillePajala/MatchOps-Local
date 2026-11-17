@@ -377,11 +377,6 @@ describe('createSyncExecutor', () => {
   });
 
   /**
-   * Review 3.7 (decision: the cloud version wins). A game save refused because this
-   * device's copy is outdated must never be retried over the cloud copy.
-   * @critical
-   */
-  /**
    * Review 3.6b: the conflict resolver asks the queue (live) whether the op was
    * superseded before writing the winning cloud copy locally.
    */
@@ -402,6 +397,11 @@ describe('createSyncExecutor', () => {
     expect(upsertPlayer).not.toHaveBeenCalled();
   });
 
+  /**
+   * Review 3.7 (decision: the cloud version wins). A game save refused because this
+   * device's copy is outdated must never be retried over the cloud copy.
+   * @critical
+   */
   describe('game save refused as outdated (conflict)', () => {
     const cloudGame = { teamName: 'Match played', opponentName: 'X', homeScore: 3 } as unknown as AppState;
     const setup = () => {
@@ -649,6 +649,25 @@ describe('createSyncExecutor', () => {
       expect(isOperationSuperseded).toHaveBeenCalledWith(op.id);
       expect(restorePlaytimePlans).not.toHaveBeenCalled();
       expect(mockStore.getPlaytimePlans).not.toHaveBeenCalled();
+    });
+
+    it('pulls the cloud plan down as before when the supersede check fails', async () => {
+      mockStore.savePlaytimePlan.mockResolvedValueOnce(null);
+      const cloudPlan = { id: 'ptp_1', name: 'Newer', games: [] };
+      mockStore.getPlaytimePlans.mockResolvedValueOnce(
+        { ptp_1: cloudPlan } as unknown as Awaited<ReturnType<DataStore['getPlaytimePlans']>>,
+      );
+      const restorePlaytimePlans = jest.fn().mockResolvedValue(1);
+      const exec = createSyncExecutor(mockStore, { restorePlaytimePlans } as unknown as DataStore, {
+        isOperationSuperseded: jest.fn().mockRejectedValue(new Error('queue closed')),
+      });
+      await exec(createOperation({
+        entityType: 'playtimePlan',
+        entityId: 'ptp_1',
+        operation: 'update',
+        data: { id: 'ptp_1', name: 'Older', games: [] },
+      }));
+      expect(restorePlaytimePlans).toHaveBeenCalledWith({ ptp_1: cloudPlan });
     });
 
     it('treats an LWW refusal as success even without a local store wired', async () => {
