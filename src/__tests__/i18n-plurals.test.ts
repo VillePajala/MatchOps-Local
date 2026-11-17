@@ -9,6 +9,7 @@ const cases: Array<[string, string, string]> = [
   ['gameStatsModal.wrapUpVoiceNotes', '1 voice note to review', '1 äänimuistiinpano käsittelemättä'],
   ['syncStatus.pendingTitle', '1 change waiting to sync', '1 muutos odottaa synkronointia'],
   ['teamManager.playersCount', '1 player', '1 pelaaja'],
+  ['dictation.clipCount', '1 voice note', '1 äänimuistiinpano'],
   ['dictation.transcribe', 'Transcribe 1 clip (about $0.01)', 'Litteroi 1 klippi (noin $0.01)'],
 ];
 

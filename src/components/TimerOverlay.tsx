@@ -569,7 +569,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                     <span
                       data-testid="dictation-clip-count"
                       className="ml-1 rounded-full bg-slate-900/60 px-2 py-0.5 text-xs font-semibold text-slate-100"
-                      aria-label={t('dictation.clipCount', '{{count}} voice notes').replace('{{count}}', String(dictation.clipCount))}
+                      aria-label={t('dictation.clipCount', '{{count}} voice notes', { count: dictation.clipCount })}
                     >
                       {dictation.clipCount}
                     </span>

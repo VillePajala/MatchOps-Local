@@ -715,8 +715,8 @@
     "successRate": "Success Rate",
     "warnings": "Warnings",
     "failedImports": "Failed Imports",
-    "successMessage_one": "Successfully imported {{count}} game. {{skipped}} games were skipped as they already exist.",
-    "successMessage_other": "Successfully imported {{count}} games. {{skipped}} games were skipped as they already exist.",
+    "successMessage_one": "Successfully imported {{count}} game. Skipped (already on this device): {{skipped}}.",
+    "successMessage_other": "Successfully imported {{count}} games. Skipped (already on this device): {{skipped}}.",
     "noResults": "No import results available."
   },
   "timerOverlay": {

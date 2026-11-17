@@ -584,8 +584,8 @@
     "successRate": "Onnistumisprosentti",
     "warnings": "Varoitukset",
     "failedImports": "Epäonnistuneet tuonnit",
-    "successMessage_one": "Onnistuneesti tuotu {{count}} peli. {{skipped}} peliä ohitettiin, koska ne on jo olemassa.",
-    "successMessage_other": "Onnistuneesti tuotu {{count}} peliä. {{skipped}} peliä ohitettiin, koska ne on jo olemassa.",
+    "successMessage_one": "Tuotiin {{count}} peli. Ohitettiin (jo tällä laitteella): {{skipped}}.",
+    "successMessage_other": "Tuotiin {{count}} peliä. Ohitettiin (jo tällä laitteella): {{skipped}}.",
     "noResults": "Ei tuontituloksia saatavilla."
   },
   "timerOverlay": {
