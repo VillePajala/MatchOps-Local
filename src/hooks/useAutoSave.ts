@@ -3,6 +3,7 @@ import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 import { TRANSIENT_ERROR_PATTERNS } from '@/utils/transientErrors';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
+import { registerBeforeReload } from '@/utils/beforeReload';
 
 /**
  * State group configuration for auto-save
@@ -188,13 +189,14 @@ export const useAutoSave = ({
   // the other tiers - also after an unmount, so it can still finish (the save closes
   // over its own game id). If it still fails while the view is mounted, the change is
   // marked pending again so the next save or leave carries it.
-  const flushOnLeave = useCallback(() => {
-    if (!enabledRef.current) return;
-    if (!pendingSaveRef.current && !saveWhenLeavingRef.current?.()) return;
+  // Returns the save, so a reload the app starts itself can wait for it (beforeReload).
+  const flushOnLeave = useCallback((): Promise<void> => {
+    if (!enabledRef.current) return Promise.resolve();
+    if (!pendingSaveRef.current && !saveWhenLeavingRef.current?.()) return Promise.resolve();
     pendingSaveRef.current = false;
     if (shortTimerRef.current) { clearTimeout(shortTimerRef.current); shortTimerRef.current = null; }
     if (longTimerRef.current) { clearTimeout(longTimerRef.current); longTimerRef.current = null; }
-    saveWithRetry(() => saveFunctionRef.current(), 3, 'on-leave').catch((error) => {
+    return saveWithRetry(() => saveFunctionRef.current(), 3, 'on-leave').catch((error) => {
       pendingSaveRef.current = true;
       // Reported like the other tiers: a save lost on leaving is the data-loss case.
       if (error instanceof NetworkError) {
@@ -214,15 +216,21 @@ export const useAutoSave = ({
   // or note in its 0.5-2 s debounce was lost if the OS then killed the WebView.
   useEffect(() => {
     const onVisibility = () => {
-      if (document.hidden) flushOnLeave();
+      if (document.hidden) void flushOnLeave();
+    };
+    const onPageHide = () => {
+      void flushOnLeave();
     };
     // pagehide too: Safari can put the page into the back/forward cache with no
     // visibilitychange, and a cached page never unmounts - then may be evicted.
     document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('pagehide', flushOnLeave);
+    window.addEventListener('pagehide', onPageHide);
+    // An app update's "Reload to apply" waits for this save first (review 9.3).
+    const unregister = registerBeforeReload(flushOnLeave);
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', flushOnLeave);
+      window.removeEventListener('pagehide', onPageHide);
+      unregister();
     };
   }, [flushOnLeave]);
 

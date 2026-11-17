@@ -1,5 +1,12 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import ServiceWorkerRegistration from '../ServiceWorkerRegistration';
+import { registerBeforeReload } from '@/utils/beforeReload';
+import { navigateToAppRoot } from '@/utils/reloadApp';
+
+jest.mock('@/utils/reloadApp', () => ({
+  ...jest.requireActual('@/utils/reloadApp'),
+  navigateToAppRoot: jest.fn(),
+}));
 
 // Mock logger
 jest.mock('@/utils/logger', () => ({
@@ -391,6 +398,31 @@ describe('ServiceWorkerRegistration', () => {
       await waitFor(() => expect(screen.getByTestId('update-banner')).toBeInTheDocument());
       return () => mockUpdateBannerProps.onInstall?.();
     };
+
+    /**
+     * Review 9.3: "Reload to apply" saves what is still in the autosave delay first,
+     * then reloads.
+     * @critical
+     */
+    it('reload waits for the pending save before reloading', async () => {
+      const replace = jest.mocked(navigateToAppRoot);
+      replace.mockClear();
+      let finishSave!: () => void;
+      const unregister = registerBeforeReload(() => new Promise<void>((resolve) => { finishSave = resolve; }));
+      try {
+        await bannerWithUpdate(waitingWorker());
+        await act(async () => {
+          mockUpdateBannerProps.onReload?.();
+        });
+        expect(replace).not.toHaveBeenCalled();
+        await act(async () => {
+          finishSave();
+        });
+        await waitFor(() => expect(replace).toHaveBeenCalledTimes(1));
+      } finally {
+        unregister();
+      }
+    });
 
     it('tells the waiting worker to activate', async () => {
       const worker = waitingWorker();

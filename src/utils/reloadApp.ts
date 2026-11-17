@@ -13,6 +13,11 @@ export function reloadApp(): void {
   window.location.reload();
 }
 
+/** Load the app afresh at its root (applies a waiting app update). */
+export function navigateToAppRoot(): void {
+  window.location.replace('/');
+}
+
 const RELOAD_ONCE_PREFIX = 'matchops.reloadOnce.';
 
 /**

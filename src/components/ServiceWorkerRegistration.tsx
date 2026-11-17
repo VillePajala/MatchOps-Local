@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import UpdateBanner from './UpdateBanner';
 import logger from '@/utils/logger';
 import i18n from '@/i18n';
+import { runBeforeReload } from '@/utils/beforeReload';
+import { navigateToAppRoot } from '@/utils/reloadApp';
 
 interface ChangelogData {
   version: string;
@@ -276,7 +278,11 @@ export default function ServiceWorkerRegistration() {
    */
   const handleReload = () => {
     logger.log('[PWA] User requested reload to apply update.');
-    window.location.replace('/');
+    // Save what is still in the autosave delay first (review 9.3) - capped, so a stuck
+    // save cannot block the update.
+    void runBeforeReload().finally(() => {
+      navigateToAppRoot();
+    });
   };
 
   const handleDismiss = () => {

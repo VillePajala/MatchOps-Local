@@ -11,6 +11,7 @@ import { useAutoSave } from './useAutoSave';
 import { act } from 'react';
 import type { GameEvent } from '@/types/game';
 import type { Player } from '@/types';
+import { runBeforeReload } from '@/utils/beforeReload';
 
 // Mock logger to avoid console noise
 jest.mock('@/utils/logger', () => ({
@@ -557,6 +558,20 @@ describe('useAutoSave', () => {
         await act(async () => { await jest.runAllTimersAsync(); }); // let the failure settle
         unmount(); // leaving again: still pending, so saved again
         expect(mockSaveFunction).toHaveBeenCalledTimes(2);
+      });
+
+      /** Review 9.3: an app update's "Reload to apply" waits for this save. */
+      it('a reload the app starts saves the pending change first', async () => {
+        const { rerender, unmount } = renderHook(({ teamName }) => useAutoSave({
+          short: { states: { teamName }, delay: 500 }, saveFunction: mockSaveFunction, enabled: true, currentGameId: 'g1',
+        }), { initialProps: { teamName: 'A' } });
+        act(() => { rerender({ teamName: 'B' }); });
+        await act(async () => { await runBeforeReload(1000); });
+        expect(mockSaveFunction).toHaveBeenCalledTimes(1);
+        unmount();
+        // Unmounted: no longer registered.
+        await act(async () => { await runBeforeReload(1000); });
+        expect(mockSaveFunction).toHaveBeenCalledTimes(1);
       });
 
       it('saves a pending change on pagehide (bfcache, no visibilitychange)', () => {
