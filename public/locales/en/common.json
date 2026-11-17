@@ -2993,7 +2993,14 @@
       "verificationFailed": "Verification failed. Please try again.",
       "resendRateLimited": "Please wait before requesting another code.",
       "resendFailed": "Failed to resend confirmation email. Please try again.",
-      "notInitialized": "Authentication service is not ready. Please wait a moment and try again."
+      "notInitialized": "Authentication service is not ready. Please wait a moment and try again.",
+      "resetCodeInvalid": "Reset code is invalid or has expired. Please request a new one.",
+      "passwordUpdateFailed": "Password update failed. Please try again.",
+      "deleteAccountFailed": "Account deletion failed. Please try again or contact support.",
+      "consentFailed": "Could not save or check your acceptance of the terms. Please try again.",
+      "marketingFailed": "Could not load or save your email preferences. Please try again.",
+      "notSignedIn": "You need to be signed in to do this.",
+      "signOutFailed": "Sign out could not be completed on this device."
     }
   },
   "marketingConsent": {

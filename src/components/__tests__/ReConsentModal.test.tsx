@@ -146,7 +146,8 @@ describe('ReConsentModal', () => {
   });
 
   it('should display error message when acceptReConsent fails', async () => {
-    const mockAcceptReConsent = jest.fn().mockResolvedValue({ error: 'Network error' });
+    // A real provider message; shown translated (review 8.3).
+    const mockAcceptReConsent = jest.fn().mockResolvedValue({ error: 'Failed to record consent. Please try again.' });
     mockUseAuth.mockReturnValue({
       ...defaultMockAuth,
       needsReConsent: true,
@@ -163,7 +164,7 @@ describe('ReConsentModal', () => {
     fireEvent.click(acceptButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Network error')).toBeInTheDocument();
+      expect(screen.getByText('Could not save or check your acceptance of the terms. Please try again.')).toBeInTheDocument();
     });
   });
 

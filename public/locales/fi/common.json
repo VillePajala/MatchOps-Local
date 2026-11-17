@@ -2993,7 +2993,14 @@
       "verificationFailed": "Vahvistus epäonnistui. Yritä uudelleen.",
       "resendRateLimited": "Odota hetki ennen uuden koodin pyytämistä.",
       "resendFailed": "Vahvistussähköpostin uudelleenlähetys epäonnistui. Yritä uudelleen.",
-      "notInitialized": "Todennuspalvelu ei ole vielä valmis. Odota hetki ja yritä uudelleen."
+      "notInitialized": "Todennuspalvelu ei ole vielä valmis. Odota hetki ja yritä uudelleen.",
+      "resetCodeInvalid": "Palautuskoodi on virheellinen tai vanhentunut. Pyydä uusi koodi.",
+      "passwordUpdateFailed": "Salasanan vaihto epäonnistui. Yritä uudelleen.",
+      "deleteAccountFailed": "Tilin poisto epäonnistui. Yritä uudelleen tai ota yhteyttä tukeen.",
+      "consentFailed": "Ehtojen hyväksynnän tallennus tai tarkistus epäonnistui. Yritä uudelleen.",
+      "marketingFailed": "Sähköpostiasetusten lataus tai tallennus epäonnistui. Yritä uudelleen.",
+      "notSignedIn": "Tämä vaatii kirjautumisen.",
+      "signOutFailed": "Uloskirjautumista ei voitu viedä loppuun tällä laitteella."
     }
   },
   "marketingConsent": {

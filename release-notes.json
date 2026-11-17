@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Account and sign-in error messages (terms acceptance, email preferences, password reset, account deletion) are now shown in Finnish too."
+      ],
+      "fi": [
+        "Tiliin ja kirjautumiseen liittyvät virheilmoitukset (ehtojen hyväksyntä, sähköpostiasetukset, salasanan palautus, tilin poisto) näytetään nyt myös suomeksi."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "About 50 messages and labels that were shown in English in the Finnish app are now translated, including sync and backup error messages and screen-reader labels."
       ],
       "fi": [
