@@ -58,6 +58,22 @@ import {
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
 import { validateGame, normalizeOptionalString, isNewCompositeDuplicate } from '@/datastore/validation';
+
+/**
+ * Options for a SYNC write (review 3.13b): `editedAt` is the server-computed edit time
+ * returned by checkSyncWrite. Without it the database stamps the write now().
+ */
+export interface SyncWriteOptions {
+  editedAt?: string;
+}
+
+/** The cloud tables whose sync writes are checked (migration 059). */
+export type SyncCheckedTable =
+  | 'players' | 'teams' | 'seasons' | 'tournaments' | 'personnel'
+  | 'user_settings' | 'player_adjustments' | 'warmup_plans';
+
+const editedAtColumn = (options?: SyncWriteOptions): { edited_at?: string } =>
+  options?.editedAt ? { edited_at: options.editedAt } : {};
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { generateId } from '@/utils/idGenerator';
@@ -1143,13 +1159,49 @@ export class SupabaseDataStore implements DataStore {
   }
 
   /**
+   * Ask the cloud whether a queued (sync) write may apply (review 3.13b, migration
+   * 059). `editAgeMs` is how long ago the change was made, measured on this device's
+   * clock; the server turns it into an edit time on ITS clock, so device clock
+   * offset cancels out. Returns 'apply' with that edit time (pass it to the upsert
+   * as `editedAt`), 'stale' (another device made a newer edit) or 'deleted'
+   * (another device deleted the record). Transient failures throw as usual - a
+   * network error is never read as a verdict.
+   */
+  async checkSyncWrite(
+    table: SyncCheckedTable,
+    rowId: string,
+    editAgeMs: number,
+  ): Promise<{ verdict: 'apply' | 'stale' | 'deleted'; editedAt: string }> {
+    this.ensureInitialized();
+    checkOnline();
+    const { data, error } = await this.withRetry(async () => {
+      const result = await (this.getClient().rpc as unknown as (
+        fn: string,
+        params: unknown,
+      ) => Promise<{ data: unknown; error: { message: string; code?: string } | null }>)(
+        'sync_write_check',
+        { p_table: table, p_row_id: rowId, p_edit_age_ms: Math.max(0, Math.round(editAgeMs)) },
+      );
+      throwIfTransient(result as never);
+      return result;
+    }, 'checkSyncWrite');
+    if (error) this.classifyAndThrowError(error as never, 'checkSyncWrite');
+    const row = (Array.isArray(data) ? data[0] : data) as { verdict?: string; edit_at?: string } | null;
+    const verdict = row?.verdict;
+    if ((verdict !== 'apply' && verdict !== 'stale' && verdict !== 'deleted') || !row?.edit_at) {
+      throw new ValidationError('checkSyncWrite: unexpected response');
+    }
+    return { verdict, editedAt: row.edit_at };
+  }
+
+  /**
    * Upsert a player - inserts if not exists, updates if exists.
    * Preserves the original ID (critical for migration).
    *
    * @param player - Complete player object WITH id
    * @returns The upserted player
    */
-  async upsertPlayer(player: Player): Promise<Player> {
+  async upsertPlayer(player: Player, options?: SyncWriteOptions): Promise<Player> {
     this.ensureInitialized();
     checkOnline();
 
@@ -1179,7 +1231,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
         .from('players')
-        .upsert(this.transformPlayerToDb(playerToUpsert, now, userId) as unknown as never, {
+        .upsert({ ...this.transformPlayerToDb(playerToUpsert, now, userId), ...editedAtColumn(options) } as unknown as never, {
           onConflict: 'user_id,id',
         });
       throwIfTransient(result);
@@ -1527,7 +1579,7 @@ export class SupabaseDataStore implements DataStore {
    * @param team - Complete team object WITH id
    * @returns The upserted team
    */
-  async upsertTeam(team: Team): Promise<Team> {
+  async upsertTeam(team: Team, options?: SyncWriteOptions): Promise<Team> {
     this.ensureInitialized();
     checkOnline();
 
@@ -1562,7 +1614,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
         .from('teams')
-        .upsert(this.transformTeamToDb(teamToUpsert, userId) as unknown as never, {
+        .upsert({ ...this.transformTeamToDb(teamToUpsert, userId), ...editedAtColumn(options) } as unknown as never, {
           onConflict: 'user_id,id',
         });
       throwIfTransient(result);
@@ -2049,7 +2101,7 @@ export class SupabaseDataStore implements DataStore {
    * @param season - Complete season object WITH id
    * @returns The upserted season
    */
-  async upsertSeason(season: Season): Promise<Season> {
+  async upsertSeason(season: Season, options?: SyncWriteOptions): Promise<Season> {
     this.ensureInitialized();
     checkOnline();
 
@@ -2090,7 +2142,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
         .from('seasons')
-        .upsert(this.transformSeasonToDb(seasonToUpsert, now, userId) as unknown as never, {
+        .upsert({ ...this.transformSeasonToDb(seasonToUpsert, now, userId), ...editedAtColumn(options) } as unknown as never, {
           onConflict: 'user_id,id',
         });
       throwIfTransient(result);
@@ -2426,7 +2478,7 @@ export class SupabaseDataStore implements DataStore {
    * @param tournament - Complete tournament object WITH id
    * @returns The upserted tournament
    */
-  async upsertTournament(tournament: Tournament): Promise<Tournament> {
+  async upsertTournament(tournament: Tournament, options?: SyncWriteOptions): Promise<Tournament> {
     this.ensureInitialized();
     checkOnline();
 
@@ -2468,7 +2520,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
         .from('tournaments')
-        .upsert(this.transformTournamentToDb(tournamentToUpsert, now, userId) as unknown as never, {
+        .upsert({ ...this.transformTournamentToDb(tournamentToUpsert, now, userId), ...editedAtColumn(options) } as unknown as never, {
           onConflict: 'user_id,id',
         });
       throwIfTransient(result);
@@ -2746,7 +2798,7 @@ export class SupabaseDataStore implements DataStore {
    * @param personnel - Complete personnel object WITH id
    * @returns The upserted personnel
    */
-  async upsertPersonnelMember(personnel: Personnel): Promise<Personnel> {
+  async upsertPersonnelMember(personnel: Personnel, options?: SyncWriteOptions): Promise<Personnel> {
     this.ensureInitialized();
     checkOnline();
 
@@ -2768,7 +2820,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
         .from('personnel')
-        .upsert(this.transformPersonnelToDb(personnelToUpsert, userId) as unknown as never, {
+        .upsert({ ...this.transformPersonnelToDb(personnelToUpsert, userId), ...editedAtColumn(options) } as unknown as never, {
           onConflict: 'user_id,id',
         });
       throwIfTransient(result);
@@ -2822,7 +2874,7 @@ export class SupabaseDataStore implements DataStore {
     return this.transformSettingsFromDb(data);
   }
 
-  async saveSettings(settings: AppSettings): Promise<void> {
+  async saveSettings(settings: AppSettings, options?: SyncWriteOptions): Promise<void> {
     this.ensureInitialized();
     checkOnline();
 
@@ -2830,7 +2882,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
         .from('user_settings')
-        .upsert(this.transformSettingsToDb(settings, userId) as unknown as never);
+        .upsert({ ...this.transformSettingsToDb(settings, userId), ...editedAtColumn(options) } as unknown as never);
       throwIfTransient(result);
       return result;
     }, 'saveSettings');
@@ -4398,7 +4450,8 @@ export class SupabaseDataStore implements DataStore {
    * Used by migration service for merge mode.
    */
   async upsertPlayerAdjustment(
-    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
+    adjustment: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string },
+    options?: SyncWriteOptions,
   ): Promise<PlayerStatAdjustment> {
     this.ensureInitialized();
     checkOnline();
@@ -4419,7 +4472,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
         .from('player_adjustments')
-        .upsert(dbAdjustment as unknown as never, { onConflict: 'user_id,id' });
+        .upsert({ ...dbAdjustment, ...editedAtColumn(options) } as unknown as never, { onConflict: 'user_id,id' });
       throwIfTransient(result);
       return result;
     }, 'upsertPlayerAdjustment');
@@ -4644,7 +4697,7 @@ export class SupabaseDataStore implements DataStore {
     return this.transformWarmupPlanFromDb(data as WarmupPlanRow);
   }
 
-  async saveWarmupPlan(plan: WarmupPlan): Promise<boolean> {
+  async saveWarmupPlan(plan: WarmupPlan, options?: SyncWriteOptions): Promise<boolean> {
     this.ensureInitialized();
     checkOnline();
 
@@ -4664,7 +4717,7 @@ export class SupabaseDataStore implements DataStore {
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
         .from('warmup_plans')
-        .upsert(dbPlan as unknown as never, { onConflict: 'user_id' });
+        .upsert({ ...dbPlan, ...editedAtColumn(options) } as unknown as never, { onConflict: 'user_id' });
       throwIfTransient(result);
       return result;
     }, 'saveWarmupPlan');

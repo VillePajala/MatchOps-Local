@@ -15,6 +15,7 @@
  */
 
 import type { DataStore } from '@/interfaces/DataStore';
+import type { SyncCheckedTable, SyncWriteOptions } from '@/datastore/SupabaseDataStore';
 import type { SyncOperation, SyncEntityType } from './types';
 import type { SyncOperationExecutor } from './SyncEngine';
 import type {
@@ -61,6 +62,56 @@ export interface SyncExecutorHooks {
    * op predates the mark.
    */
   isOperationSuperseded?: (opId: string) => Promise<boolean>;
+}
+
+/**
+ * Non-game entities whose queued writes the cloud checks before applying (review
+ * 3.13b, migration 059): the newer edit wins, and a record deleted on another device
+ * stays deleted. Rosters (replaced as a whole), games (base versions, 3.7) and the
+ * playtime planner (own LWW RPC, 038) are handled elsewhere.
+ */
+const SYNC_CHECKED_TABLES: Partial<Record<SyncEntityType, SyncCheckedTable>> = {
+  player: 'players',
+  team: 'teams',
+  season: 'seasons',
+  tournament: 'tournaments',
+  personnel: 'personnel',
+  settings: 'user_settings',
+  playerAdjustment: 'player_adjustments',
+  warmupPlan: 'warmup_plans',
+};
+
+/** The cloud write methods that accept the checked edit time. */
+const SYNC_WRITE_METHODS = new Set([
+  'upsertPlayer', 'upsertTeam', 'upsertSeason', 'upsertTournament',
+  'upsertPersonnelMember', 'saveSettings', 'upsertPlayerAdjustment', 'saveWarmupPlan',
+]);
+
+interface SyncWriteAwareStore {
+  checkSyncWrite(
+    table: SyncCheckedTable,
+    rowId: string,
+    editAgeMs: number,
+  ): Promise<{ verdict: 'apply' | 'stale' | 'deleted'; editedAt: string }>;
+}
+const isSyncWriteAware = (store: unknown): store is SyncWriteAwareStore =>
+  typeof (store as Partial<SyncWriteAwareStore>)?.checkSyncWrite === 'function';
+
+/**
+ * The cloud store, with the checked edit time added to its write methods - so the
+ * per-entity sync functions stay unchanged.
+ */
+function withSyncWriteOptions(store: DataStore, options: SyncWriteOptions): DataStore {
+  return new Proxy(store, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof value !== 'function') return value;
+      if (typeof prop === 'string' && SYNC_WRITE_METHODS.has(prop)) {
+        return (arg: unknown) => (value as (a: unknown, o: SyncWriteOptions) => unknown).call(target, arg, options);
+      }
+      return (value as (...args: unknown[]) => unknown).bind(target);
+    },
+  });
 }
 
 /** The SupabaseDataStore methods used for game version checks (review 3.7). */
@@ -171,13 +222,15 @@ export function createSyncExecutor(
   hooks: SyncExecutorHooks = {},
 ): SyncOperationExecutor {
   // Create conflict resolver if we have both stores
+  const cloudFetcher = createCloudFetcher(cloudStore);
+  const localWriter = localStore ? createLocalWriter(localStore) : null;
   let conflictResolver: ConflictResolver | null = null;
   if (localStore) {
     conflictResolver = new ConflictResolver({
-      fetchFromCloud: createCloudFetcher(cloudStore),
+      fetchFromCloud: cloudFetcher,
       writeToCloud: createCloudWriter(cloudStore),
       deleteFromCloud: createCloudDeleter(cloudStore),
-      writeToLocal: createLocalWriter(localStore),
+      writeToLocal: localWriter!,
       isSuperseded: hooks.isOperationSuperseded
         ? (op) => hooks.isOperationSuperseded!(op.id)
         : undefined,
@@ -198,6 +251,74 @@ export function createSyncExecutor(
     }
   };
 
+  /**
+   * The cloud refused a queued write (review 3.13b): the cloud copy wins.
+   * - stale: another device made a newer edit - store the cloud copy on this device;
+   * - deleted: another device deleted the record - remove it here too, unless this
+   *   device still uses it (a season/tournament/team its games point at): then it is
+   *   pushed back as an ordinary write, since removing it would orphan those games.
+   * A newer local change to the same record (superseded op) is left alone - it is
+   * checked on its own. The op completes either way: no retry loop.
+   */
+  const handleRefusedSyncWrite = async (verdict: 'stale' | 'deleted', op: SyncOperation): Promise<void> => {
+    const { entityType, entityId, data } = op;
+    logger.info('[SyncExecutor] Cloud refused a queued write; the cloud copy wins', { entityType, entityId, verdict });
+    if (!localStore) return;
+    if (await isSuperseded(op)) return;
+
+    if (verdict === 'stale') {
+      const cloudRecord = await cloudFetcher(entityType, entityId, data);
+      if (cloudRecord) {
+        let record = cloudRecord;
+        if (entityType === 'settings') {
+          // Which game this device has open is per device (review 3.13b, #7).
+          const local = await localStore.getSettings();
+          record = { ...cloudRecord, currentGameId: local.currentGameId } as typeof cloudRecord;
+        }
+        await localWriter!(entityType, entityId, record);
+        return;
+      }
+      // Gone from the cloud since the check: treat as deleted.
+    }
+
+    switch (entityType) {
+      case 'player':
+        await localStore.deletePlayer(entityId);
+        return;
+      case 'personnel':
+        await localStore.removePersonnelMember(entityId);
+        return;
+      case 'playerAdjustment': {
+        const playerId = (data as { playerId?: string } | null)?.playerId;
+        if (playerId) await localStore.deletePlayerAdjustment(playerId, entityId);
+        return;
+      }
+      case 'warmupPlan':
+        await localStore.deleteWarmupPlan();
+        return;
+      case 'season':
+      case 'tournament':
+      case 'team': {
+        const refs = entityType === 'season'
+          ? await localStore.getSeasonReferences(entityId)
+          : entityType === 'tournament'
+            ? await localStore.getTournamentReferences(entityId)
+            : await localStore.getTeamReferences(entityId);
+        if (refs.canDelete) {
+          if (entityType === 'season') await localStore.deleteSeason(entityId);
+          else if (entityType === 'tournament') await localStore.deleteTournament(entityId);
+          else await localStore.deleteTeam(entityId);
+          return;
+        }
+        logger.info('[SyncExecutor] Deleted elsewhere but still used here - pushing it back', { entityType, entityId });
+        await executeSyncOperation(cloudStore, op, localStore, () => isSuperseded(op));
+        return;
+      }
+      default:
+        return; // settings: a single row, never deleted
+    }
+  };
+
   return async (op: SyncOperation): Promise<void> => {
     const { entityType, entityId, operation } = op;
 
@@ -208,7 +329,21 @@ export function createSyncExecutor(
     });
 
     try {
-      await executeSyncOperation(cloudStore, op, localStore, () => isSuperseded(op));
+      // Review 3.13b: a queued write of a checked entity asks the cloud first. The
+      // edit's age is measured on this device's clock only; the server compares it on
+      // its own clock. Only 'apply' writes, carrying the server's edit time.
+      let writeStore: DataStore = cloudStore;
+      const checkedTable = SYNC_CHECKED_TABLES[entityType];
+      if (checkedTable && operation !== 'delete' && isSyncWriteAware(cloudStore)) {
+        const check = await cloudStore.checkSyncWrite(checkedTable, entityId, Date.now() - op.timestamp);
+        if (check.verdict !== 'apply') {
+          await handleRefusedSyncWrite(check.verdict, op);
+          return;
+        }
+        writeStore = withSyncWriteOptions(cloudStore, { editedAt: check.editedAt });
+      }
+
+      await executeSyncOperation(writeStore, op, localStore, () => isSuperseded(op));
 
       logger.debug('[SyncExecutor] Sync operation completed', {
         entityType,
