@@ -332,6 +332,18 @@ describe('<RosterSettingsModal />', () => {
     expect(screen.getByText('Player Two')).toBeInTheDocument();
   });
 
+  /** Review 7.L6: players are also found by shirt number. */
+  test('finds a player by shirt number', () => {
+    render(
+      <TestWrapper>
+        <RosterSettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+    fireEvent.change(screen.getByPlaceholderText('Search players...'), { target: { value: '20' } });
+    expect(screen.queryByText('Player One')).not.toBeInTheDocument();
+    expect(screen.getByText('Player Two')).toBeInTheDocument();
+  });
+
 });
 
 /**

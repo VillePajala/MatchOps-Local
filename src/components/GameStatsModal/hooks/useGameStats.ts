@@ -3,6 +3,7 @@
  * Handles current game, season, tournament, and overall stats
  */
 
+import { matchesSearch, playerSearchFields } from '@/utils/listSearch';
 import { useMemo } from 'react';
 import { GameEvent, PlayerStatRow, PlayerStatAdjustment } from '@/types';
 import { GameStatsParams, SavedGame } from '../types';
@@ -230,7 +231,9 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
 
     // Filter and sort
     const filteredAndSortedStats = Object.values(statsMap)
-      .filter(player => player.gamesPlayed > 0 && player.name.toLowerCase().includes(filterText.toLowerCase()));
+      // The app's one search (review 7.L6): name, nickname and shirt number - this
+      // matched the name only.
+      .filter(player => player.gamesPlayed > 0 && matchesSearch(filterText, playerSearchFields(player)));
 
     // Apply sorting
     if (sortColumn) {

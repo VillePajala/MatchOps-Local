@@ -1,5 +1,6 @@
 'use client';
 
+import { matchesSearch } from '@/utils/listSearch';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { normalizeOpponentName } from '@/utils/opponentNames';
@@ -55,7 +56,8 @@ const SuggestionChips: React.FC<SuggestionChipsProps> = ({ value, options, onPic
   const typed = normalizeOpponentName(value);
   const searching = !!typed;
   const matches = searching
-    ? allOptions.filter((name) => normalizeOpponentName(name).includes(typed))
+    // The app's one search (review 7.L6) over the normalised name.
+    ? allOptions.filter((name) => matchesSearch(typed, [normalizeOpponentName(name)]))
     : allOptions;
   const shown = matches.slice(0, searching ? SEARCHING_CHIP_LIMIT : RESTING_CHIP_LIMIT);
   const hiddenCount = matches.length - shown.length;

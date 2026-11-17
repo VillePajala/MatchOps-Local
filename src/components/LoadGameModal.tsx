@@ -1,5 +1,6 @@
 'use client';
 
+import { matchesSearch } from '@/utils/listSearch';
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SavedGamesCollection } from '@/types'; // Keep this if SavedGamesCollection is from here
@@ -177,39 +178,26 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       const gameData = savedGames[id];
       if (!gameData) return false;
       if (!searchText) return true;
-      const lowerSearchText = searchText.toLowerCase();
-
-      // Use live entity names for search (fallback to empty string if entity not found)
+      // The app's one search (review 7.L6): accents and case ignored, every typed
+      // word must match one of these fields.
       const displayNames = getDisplayNames(gameData, entityMaps);
-      // The game's own name, and the team's current one: a renamed team's old games
-      // are still found by searching for the new name.
-      const teamName = `${displayNames.teamName || ''} ${displayNames.currentTeamName || ''}`.toLowerCase();
-      // Opponent by its normalised name, like the opponent filter beside it
-      // (review 7.L1): "ips/sininen" finds "IPS Sininen".
-      const opponentName = normalizeOpponentName(gameData.opponentName);
-      const searchAsOpponent = normalizeOpponentName(searchText);
-      // The date as stored AND as the card shows it (review 7.L1): "17.9." used to
-      // find nothing because only the ISO "2026-09-17" was searched.
-      const shownDate = gameData.gameDate ? new Date(gameData.gameDate).toLocaleDateString(language) : '';
-      const gameDate = `${gameData.gameDate || ''} ${shownDate}`.toLowerCase();
-      const seasonName = (displayNames.seasonName || '').toLowerCase();
-      const tournamentName = (displayNames.tournamentName || '').toLowerCase();
-      // Include game type in search (soccer/futsal/jalkapallo)
-      const gameType = (gameData.gameType || 'soccer').toLowerCase();
-      const gameTypeSearchTerms = gameType === 'soccer' ? 'soccer jalkapallo' : 'futsal';
-      // Include gender in search (boys/girls/pojat/tytöt)
+      const gameType = gameData.gameType || 'soccer';
       const gender = gameData.gender;
-      const genderSearchTerms = gender === 'boys' ? 'boys pojat' : gender === 'girls' ? 'girls tytöt' : '';
-
-      return (
-        teamName.includes(lowerSearchText) ||
-        (searchAsOpponent !== '' && opponentName.includes(searchAsOpponent)) ||
-        gameDate.includes(lowerSearchText) ||
-        seasonName.includes(lowerSearchText) ||
-        tournamentName.includes(lowerSearchText) ||
-        gameTypeSearchTerms.includes(lowerSearchText) ||
-        genderSearchTerms.includes(lowerSearchText)
-      );
+      return matchesSearch(searchText, [
+        // The game's own team name, and the team's current one (7.17).
+        displayNames.teamName,
+        displayNames.currentTeamName,
+        // The opponent as written and normalised ("ips/sininen" / "ips sininen", 7.L1).
+        gameData.opponentName,
+        normalizeOpponentName(gameData.opponentName),
+        // The date as stored and as the card shows it (7.L1).
+        gameData.gameDate,
+        gameData.gameDate ? new Date(gameData.gameDate).toLocaleDateString(language) : '',
+        displayNames.seasonName,
+        displayNames.tournamentName,
+        gameType === 'soccer' ? 'soccer jalkapallo' : 'futsal',
+        gender === 'boys' ? 'boys pojat' : gender === 'girls' ? 'girls tytöt' : '',
+      ]);
     });
 
     const filteredByOpponent = filteredBySearch.filter(id => {

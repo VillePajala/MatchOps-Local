@@ -20,6 +20,7 @@
  * @category Config
  */
 
+import { matchesSearch } from '@/utils/listSearch';
 import raw from '@/config/rulesIndex.json';
 import ruleLinks from '@/config/ruleLinks.json';
 
@@ -126,15 +127,14 @@ export function searchRules(sport: RulesSport, query: string, lang: 'fi' | 'en')
   } else {
     // Both languages are searched whatever the UI language: a Finnish coach
     // may well type "offside", and refusing them the answer helps nobody.
-    const matches = forThisSport.filter(
-      (t) => t.fi.toLowerCase().includes(q) || t.en.toLowerCase().includes(q),
-    );
+    // The app's one search (review 7.L6): accents and case ignored, every word
+    // must match - across both languages of the topic.
+    const matches = forThisSport.filter((t) => matchesSearch(q, [t.fi, t.en]));
     matches.forEach((t) => (t.law === null ? addGuidance(t) : addLaw(t.law, t[lang])));
     laws
       .filter(
         (l) =>
-          l.title.toLowerCase().includes(q) ||
-          l.titleEn.toLowerCase().includes(q) ||
+          matchesSearch(q, [l.title, l.titleEn]) ||
           String(l.law) === q,
       )
       .forEach((l) => addLaw(l.law, null));

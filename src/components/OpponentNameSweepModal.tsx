@@ -1,5 +1,6 @@
 'use client';
 
+import { matchesSearch } from '@/utils/listSearch';
 import { findMergeTarget } from '@/utils/opponentRename';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -64,9 +65,11 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
   const [confirmMerge, setConfirmMerge] = useState<{ key: string; spelling: string; count: number } | null>(null);
 
   const visible = useMemo(() => {
+    // The app's one search (review 7.L6) over the normalised name: separators count
+    // as spaces, accents and case are ignored, every word must match.
     const needle = normalizeOpponentName(filter);
     return needle
-      ? allOpponents.filter((o) => normalizeOpponentName(o.spelling).includes(needle))
+      ? allOpponents.filter((o) => matchesSearch(needle, [normalizeOpponentName(o.spelling)]))
       : allOpponents;
   }, [allOpponents, filter]);
 
