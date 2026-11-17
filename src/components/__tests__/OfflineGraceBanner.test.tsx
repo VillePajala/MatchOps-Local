@@ -2,8 +2,8 @@
  * Tests for OfflineGraceBanner (auth grace period banner).
  *
  * jsdom does not load globals.css, so these tests cannot measure the real height.
- * They guard the inline style that defeats the global `body > div { height: 100% }`
- * rule; without it the banner was full-screen and blocked every tap offline. It must
+ * They guard the inline style that defeated the old global `body > div { height: 100% }`
+ * rule (now scoped to #app-root, review 10.9 - the guard stays); without it the banner was full-screen and blocked every tap offline. It must
  * be inline: a Tailwind class (layered) loses to the unlayered global rule.
  *
  * @module components/__tests__/OfflineGraceBanner
@@ -29,7 +29,7 @@ describe('OfflineGraceBanner', () => {
 
   /**
    * Regression: the banner is a direct child of <body>, so without an explicit
-   * height the global `body > div { height: 100% }` rule made it cover the whole
+   * height the old global `body > div { height: 100% }` rule made it cover the whole
    * screen and swallow every tap (review 2026-11, item 1.1).
    * @critical
    */
