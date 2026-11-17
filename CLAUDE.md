@@ -79,6 +79,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   The endpoint runs each query in a transaction (rolls back fully on error).
 - **Before applying a migration that recreates an existing object to PROD**, diff prod's current definition (`pg_get_functiondef(...)`) against the migration's base — prod was bootstrapped from a different history than the migration files, so they can drift. Apply to prod only when the only differences are comments/whitespace (functionally identical).
 - **`supabase/migrations` must apply cleanly from scratch** (CI / new envs / staging) — they're never re-run on prod, so from-scratch breakage stays latent. Test a fresh apply against staging when touching schema.
+- **Staging smoke test** (grants, RLS, sync RPCs; throwaway users, cleaned up): `scripts/supabase-staging-smoke.sh` - run after applying a migration to staging. Refuses production.
 - **Testing the RPC end-to-end without a browser**: get a user JWT (`POST {url}/auth/v1/token?grant_type=password` with the anon key as `apikey`), then call `POST {url}/rest/v1/rpc/<fn>` with `Authorization: Bearer <jwt>`. Use `--http1.1` (Supabase's HTTP/2 can stream-error on some PostgREST error responses).
 
 ### Read Before Supabase Maintenance Work
