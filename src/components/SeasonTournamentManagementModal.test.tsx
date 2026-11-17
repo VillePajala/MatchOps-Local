@@ -311,6 +311,17 @@ describe('SeasonTournamentManagementModal', () => {
     expect(screen.queryByText('Autumn Cup')).toBeNull();
   });
 
+  /** Review 7.L4: a search that hides everything said "No leagues yet. Create one…". */
+  it('says nothing matches - not "no leagues yet" - when only the search hides them', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      renderWithProviders();
+    });
+    await act(async () => {});
+    await user.type(screen.getByPlaceholderText(i18n.t('seasonTournamentModal.searchPlaceholder')), 'zzz');
+    expect(screen.getByTestId('competition-no-search-results')).toBeInTheDocument();
+  });
+
   it('allows archiving a season', async () => {
     const user = userEvent.setup();
     await act(async () => {

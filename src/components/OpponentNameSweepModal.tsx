@@ -202,6 +202,11 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 )}
+                {filter.trim() !== '' && visible.length === 0 && (
+                  <p className="text-sm text-slate-400" data-testid="opponent-sweep-no-results">
+                    {t('opponentSweep.noSearchResults', 'No team matches "{{search}}".', { search: filter.trim() })}
+                  </p>
+                )}
                 {visible.map((opponent) => {
                   const open = renaming === opponent.key;
                   const busy = applying === opponent.key;

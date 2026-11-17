@@ -1034,6 +1034,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               totals={totals}
               onSort={handleSort}
               onPlayerRowClick={handlePlayerRowClick}
+              hasNameFilter={filterText.trim() !== ''}
             />
           </div>
         </>

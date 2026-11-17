@@ -91,6 +91,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
   const { t } = useTranslation();
   // Same order as the club roster list: by last name.
   const sortedPlayers = React.useMemo(() => sortPlayersByLastName(availablePlayers), [availablePlayers]);
+  const allSelected = availablePlayers.length > 0 && availablePlayers.every((p) => selectedPlayerIds.includes(p.id));
   const [newPlayerNickname, setNewPlayerNickname] = useState('');
   const [isAddingOpen, setIsAddingOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -137,12 +138,16 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
               <input
                 type="checkbox"
                 disabled={disabled || isSubmittingAdd}
-                checked={availablePlayers.length === selectedPlayerIds.length}
+                // Every listed player selected - by id, not by count (review 7.L4): a
+                // selection holding an id not in this list made the counts match
+                // while a listed player was unticked. Selecting all follows the order
+                // shown (last name), which the assessment list then keeps.
+                checked={allSelected}
                 onChange={() => {
-                  if (selectedPlayerIds.length === availablePlayers.length) {
+                  if (allSelected) {
                     onSelectedPlayersChange([]);
                   } else {
-                    onSelectedPlayersChange(availablePlayers.map((p) => p.id));
+                    onSelectedPlayersChange(sortedPlayers.map((p) => p.id));
                   }
                 }}
                 className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"

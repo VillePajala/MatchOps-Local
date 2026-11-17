@@ -265,7 +265,13 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         return (
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
                 <div className="space-y-3">
-                    {filtered.length === 0 && (
+                    {filtered.length === 0 && searchText.trim() !== '' && (
+                        // Only the search hides them (review 7.L4) - not "none yet".
+                        <p className="text-sm text-slate-400 py-2" data-testid="competition-no-search-results">
+                            {t('seasonTournamentModal.noSearchResults', 'Nothing matches "{{search}}".', { search: searchText.trim() })}
+                        </p>
+                    )}
+                    {filtered.length === 0 && searchText.trim() === '' && (
                         <p className="text-sm text-slate-400 py-2">
                             {type === 'season'
                                 ? t('seasonTournamentModal.noSeasonsNudge', 'No leagues yet. Create one, then link your teams and games to it to track league-level stats.')

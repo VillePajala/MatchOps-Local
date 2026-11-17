@@ -21,6 +21,8 @@ interface PlayerStatsTableProps {
   };
   onSort: (column: SortableColumn) => void;
   onPlayerRowClick: (player: PlayerStatRow) => void;
+  /** Whether a name filter is typed - decides the empty-table text (review 7.L4). */
+  hasNameFilter?: boolean;
 }
 
 export function PlayerStatsTable({
@@ -30,6 +32,7 @@ export function PlayerStatsTable({
   totals,
   onSort,
   onPlayerRowClick,
+  hasNameFilter = false,
 }: PlayerStatsTableProps) {
   const { t } = useTranslation();
 
@@ -158,7 +161,9 @@ export function PlayerStatsTable({
         ) : (
           <tr>
             <td colSpan={6} className="py-4 text-center text-slate-400">
-              {t('common.noPlayersMatchFilter', 'No Players Match Filter')}
+              {hasNameFilter
+                ? t('common.noPlayersMatchFilter', 'No Players Match Filter')
+                : t('common.noPlayersToShow', 'No player statistics for this selection.')}
             </td>
           </tr>
         )}

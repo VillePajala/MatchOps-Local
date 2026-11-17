@@ -718,8 +718,11 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                   'Added stats are counted in the totals. The dimmed ones fall outside the filters you have chosen and are not counted here.',
                 )}
             <div className="mt-3 space-y-3">
-              {adjustments
-                .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
+              {/* Newest GAME first, as in the player's game log (review 7.L4) - not the
+                  time the entry was saved - and on a copy: sorting the state array
+                  in place during render mutated it. */}
+              {[...adjustments]
+                .sort((a, b) => new Date(b.gameDate || b.appliedAt).getTime() - new Date(a.gameDate || a.appliedAt).getTime())
                 .map(a => {
                   const seasonObj = seasons.find(s => s.id === a.seasonId);
                   const seasonName = seasonObj ? getSeasonDisplayName(seasonObj) : undefined;

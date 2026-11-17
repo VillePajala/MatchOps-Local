@@ -215,6 +215,17 @@ describe('OpponentNameSweepModal', () => {
       );
     });
 
+    /** Review 7.L4: the "All teams" search said nothing when it matched no team. */
+    it('says so when the search matches no team', async () => {
+      mockGetSavedGames.mockResolvedValue(
+        Object.fromEntries(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map((n, i) => [`g${i}`, { opponentName: `Team ${n}` }])),
+      );
+      renderModal();
+      const filter = await screen.findByTestId('opponent-sweep-filter');
+      fireEvent.change(filter, { target: { value: 'zzz' } });
+      expect(screen.getByTestId('opponent-sweep-no-results')).toBeInTheDocument();
+    });
+
     /** The blast radius is still one name, even from this section. */
     it('leaves every other team alone', async () => {
       renderModal();
