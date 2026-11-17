@@ -13,7 +13,17 @@ const inLanguage = async (lng: string, run: () => void) => {
   }
 };
 
+const setDeviceLanguage = (lng: string) =>
+  jest.spyOn(window.navigator, 'language', 'get').mockReturnValue(lng);
+
 describe('localeFormat', () => {
+  beforeEach(() => {
+    setDeviceLanguage('en-GB');
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('Finnish: day-first date, decimal comma, spaced percent', async () => {
     await inLanguage('fi', () => {
       expect(formatAppDate('2026-10-03')).toBe('3.10.2026');
@@ -28,6 +38,20 @@ describe('localeFormat', () => {
       expect(formatAppDecimal(1.25)).toBe('1.3');
       expect(formatAppPercent(57.14)).toBe('57.1%');
     });
+  });
+
+  it('English follows the device\'s English variant (a US device keeps month-first)', () => {
+    setDeviceLanguage('en-US');
+    expect(formatAppDate('2026-10-03')).toBe('10/3/2026');
+  });
+
+  it('a Finnish device with the app in English gets day-first en-GB', () => {
+    setDeviceLanguage('fi-FI');
+    expect(formatAppDate('2026-10-03')).toBe('03/10/2026');
+  });
+
+  it('formats in an explicitly passed language', () => {
+    expect(formatAppDate('2026-10-03', 'fi')).toBe('3.10.2026');
   });
 
   it('a calendar date is the local day, not UTC midnight', () => {

@@ -13,6 +13,7 @@ import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import type { TranslationKey } from '@/i18n-types';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
+import { formatAppDate } from '@/utils/localeFormat';
 
 interface RulesDirectoryModalProps {
   isOpen: boolean;
@@ -122,9 +123,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
   // The stored date is ISO so the config stays machine-readable; a Finnish
   // reader should still see 9.9.2026 rather than a raw config value.
   const checkedOn = React.useMemo(() => {
-    const parsed = new Date(ruleLinks.checkedOn);
-    if (Number.isNaN(parsed.getTime())) return ruleLinks.checkedOn;
-    return parsed.toLocaleDateString(i18n.language || undefined);
+    return formatAppDate(ruleLinks.checkedOn, i18n.language);
   }, [i18n.language]);
 
   const modalTitleId = useId();

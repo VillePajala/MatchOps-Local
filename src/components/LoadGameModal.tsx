@@ -27,6 +27,7 @@ import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { extractTimestampFromId } from '@/utils/idGenerator';
 import { ENTITY_DOT } from '@/config/palette';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { formatAppDate } from '@/utils/localeFormat';
 
 /**
  * Get validated series level from tournament, returning null if invalid.
@@ -208,7 +209,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
         normalizeOpponentName(gameData.opponentName),
         // The date as stored and as the card shows it (7.L1).
         gameData.gameDate,
-        gameData.gameDate ? new Date(gameData.gameDate).toLocaleDateString(language) : '',
+        gameData.gameDate ? formatAppDate(gameData.gameDate, language) : '',
         displayNames.seasonName,
         displayNames.tournamentName,
         gameType === 'soccer' ? 'soccer jalkapallo' : 'futsal',
@@ -600,7 +601,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                         <div className="flex flex-col text-slate-400">
                           {game.gameDate && (
                             <span>
-                              {new Date(game.gameDate).toLocaleDateString(i18n.language)}
+                              {formatAppDate(game.gameDate, i18n.language)}
                               {game.gameTime && ` ${game.gameTime}`}
                             </span>
                           )}

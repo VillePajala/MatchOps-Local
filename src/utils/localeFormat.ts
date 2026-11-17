@@ -5,13 +5,25 @@
  */
 import i18n from '@/i18n';
 
-/** The Intl locale for the current app language (day-first in both). */
-export const appLocale = (): string => (i18n.language?.startsWith('en') ? 'en-GB' : 'fi-FI');
+/**
+ * The Intl locale for the current app language. Finnish: fi-FI. English: the
+ * device's own English variant when it has one (a US coach keeps month-first
+ * dates), else en-GB - never the device locale of another language.
+ */
+export const appLocale = (language: string | undefined = i18n.language): string => {
+  if (!language?.startsWith('en')) return 'fi-FI';
+  const device = typeof navigator !== 'undefined' ? navigator.language : undefined;
+  return device?.toLowerCase().startsWith('en') ? device : 'en-GB';
+};
 
-/** "2026-10-03" (a calendar date, read as local) or a timestamp -> "3.10.2026" / "03/10/2026". */
-export function formatAppDate(value: string | number | Date): string {
+/**
+ * "2026-10-03" (a calendar date, read as local) or a timestamp -> "3.10.2026" /
+ * "03/10/2026". `language` defaults to the app's; a component may pass the one from
+ * its useTranslation so a memo can depend on it.
+ */
+export function formatAppDate(value: string | number | Date, language?: string): string {
   const date = toDate(value);
-  return date ? date.toLocaleDateString(appLocale()) : String(value);
+  return date ? date.toLocaleDateString(appLocale(language)) : String(value);
 }
 
 /** A moment, with the time: "3.10.2026 klo 14.05" / "03/10/2026, 14:05". */

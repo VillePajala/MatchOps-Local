@@ -32,6 +32,7 @@ import UpgradePromptModal from './UpgradePromptModal';
 import PendingSyncWarningModal from './PendingSyncWarningModal';
 import { useSignOutWithPendingSyncWarning, syncUntilEmpty } from '@/hooks/useSignOutWithPendingSyncWarning';
 import TransitionOverlay from './TransitionOverlay';
+import { appLocale } from '@/utils/localeFormat';
 
 interface CloudSyncSectionProps {
   /** Callback when mode changes (app needs restart) */
@@ -492,7 +493,7 @@ export default function CloudSyncSection({
         logger.warn('[CloudSyncSection] Invalid date received:', { isoString });
         return t('cloudSync.cloudAccount.unknownDate', 'Unknown');
       }
-      return date.toLocaleDateString(undefined, {
+      return date.toLocaleDateString(appLocale(), {
         year: 'numeric',
         month: 'short',
         day: 'numeric',

@@ -81,7 +81,7 @@ import { useDraftEstimate } from '@/hooks/useDraftEstimate';
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
-import { formatAppDecimal, formatAppPercent } from '@/utils/localeFormat';
+import { appLocale, formatAppDecimal, formatAppPercent } from '@/utils/localeFormat';
 
 /** Stable no-op callback to avoid creating new function references on each render */
 const NOOP = () => {};
@@ -240,7 +240,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
       // Use consistent Intl.DateTimeFormat for both locales
       const formatter = new Intl.DateTimeFormat(
-        currentLanguage.startsWith('fi') ? 'fi-FI' : 'en-US',
+        appLocale(),
         {
           day: 'numeric',
           month: currentLanguage.startsWith('fi') ? 'numeric' : 'short',
