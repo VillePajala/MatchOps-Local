@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Cloud sync: a change made on a device that was offline for a while no longer overwrites a newer edit made on another device, and no longer brings back a player, team, league or tournament that was deleted on another device."
+      ],
+      "fi": [
+        "Pilvisynkronointi: pitkään ilman yhteyttä olleella laitteella tehty muutos ei enää korvaa toisella laitteella myöhemmin tehtyä muokkausta, eikä se enää palauta pelaajaa, joukkuetta, sarjaa tai turnausta, joka on poistettu toisella laitteella."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "The \"Cannot delete\" message for a league, tournament or team now explains the reason in Finnish too, in full sentences."
       ],
       "fi": [
