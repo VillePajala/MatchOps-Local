@@ -1414,6 +1414,21 @@ describe('SyncedDataStore', () => {
   // DATA MANAGEMENT TESTS
   // ==========================================================================
 
+  /** Review 3.6b: the executor asks the live queue whether an in-flight op was superseded. */
+  describe('isOperationSuperseded', () => {
+    it('reads the mark from the queue; a missing op is not superseded', async () => {
+      const syncQueue = (store as unknown as { syncQueue: SyncQueue }).syncQueue;
+      const getById = jest.spyOn(syncQueue, 'getById');
+      getById.mockResolvedValueOnce({ id: 'a', superseded: true } as unknown as Awaited<ReturnType<SyncQueue['getById']>>);
+      expect(await store.isOperationSuperseded('a')).toBe(true);
+      getById.mockResolvedValueOnce({ id: 'b' } as unknown as Awaited<ReturnType<SyncQueue['getById']>>);
+      expect(await store.isOperationSuperseded('b')).toBe(false);
+      getById.mockResolvedValueOnce(null);
+      expect(await store.isOperationSuperseded('gone')).toBe(false);
+      expect(getById).toHaveBeenCalledWith('a');
+    });
+  });
+
   describe('Data Management', () => {
     it('should clear all user data, stop engine, and clear queue', async () => {
       localStoreSpy.clearAllUserData.mockResolvedValue(undefined);

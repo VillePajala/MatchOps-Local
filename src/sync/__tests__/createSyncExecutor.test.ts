@@ -5,7 +5,7 @@
 import { createSyncExecutor } from '../createSyncExecutor';
 import { GAME_REPLACED_BY_CLOUD_EVENT, gameReplacementCount } from '../syncEvents';
 import type { AppState } from '@/types';
-import { ConflictError } from '@/interfaces/DataStoreErrors';
+import { AlreadyExistsError, ConflictError } from '@/interfaces/DataStoreErrors';
 import type { SyncOperation } from '../types';
 import type { DataStore } from '@/interfaces/DataStore';
 
@@ -381,6 +381,27 @@ describe('createSyncExecutor', () => {
    * device's copy is outdated must never be retried over the cloud copy.
    * @critical
    */
+  /**
+   * Review 3.6b: the conflict resolver asks the queue (live) whether the op was
+   * superseded before writing the winning cloud copy locally.
+   */
+  it('a superseded op that loses a conflict leaves the newer local edit alone', async () => {
+    mockStore.upsertPlayer.mockRejectedValueOnce(new AlreadyExistsError('player', 'entity-1'));
+    mockStore.getPlayers.mockResolvedValueOnce([
+      { id: 'entity-1', name: 'Cloud', updatedAt: new Date(Date.now() + 3_600_000).toISOString() },
+    ] as unknown as Awaited<ReturnType<DataStore['getPlayers']>>);
+    const upsertPlayer = jest.fn();
+    const localStore = { upsertPlayer } as unknown as DataStore;
+    const isOperationSuperseded = jest.fn().mockResolvedValue(true);
+
+    const exec = createSyncExecutor(mockStore, localStore, { isOperationSuperseded });
+    const op = createOperation({ timestamp: Date.now() - 3_600_000 });
+    await exec(op);
+
+    expect(isOperationSuperseded).toHaveBeenCalledWith(op.id);
+    expect(upsertPlayer).not.toHaveBeenCalled();
+  });
+
   describe('game save refused as outdated (conflict)', () => {
     const cloudGame = { teamName: 'Match played', opponentName: 'X', homeScore: 3 } as unknown as AppState;
     const setup = () => {
@@ -607,6 +628,27 @@ describe('createSyncExecutor', () => {
       }));
 
       expect(restorePlaytimePlans).toHaveBeenCalledWith({ ptp_1: cloudPlan });
+    });
+
+    /** Review 3.6b: a newer local edit of the plan is queued - keep it, don't pull. */
+    it('keeps a newer queued local edit instead of pulling the cloud plan down', async () => {
+      mockStore.savePlaytimePlan.mockResolvedValueOnce(null);
+      const restorePlaytimePlans = jest.fn().mockResolvedValue(1);
+      const localStore = { restorePlaytimePlans } as unknown as DataStore;
+      const isOperationSuperseded = jest.fn().mockResolvedValue(true);
+
+      const exec = createSyncExecutor(mockStore, localStore, { isOperationSuperseded });
+      const op = createOperation({
+        entityType: 'playtimePlan',
+        entityId: 'ptp_1',
+        operation: 'update',
+        data: { id: 'ptp_1', name: 'Older', games: [] },
+      });
+      await exec(op);
+
+      expect(isOperationSuperseded).toHaveBeenCalledWith(op.id);
+      expect(restorePlaytimePlans).not.toHaveBeenCalled();
+      expect(mockStore.getPlaytimePlans).not.toHaveBeenCalled();
     });
 
     it('treats an LWW refusal as success even without a local store wired', async () => {

@@ -55,6 +55,12 @@ export interface SyncExecutorHooks {
    * this entity was made on the same outdated copy and must not be pushed.
    */
   discardQueuedChanges?: (entityType: SyncEntityType, entityId: string) => Promise<{ deleteQueued: boolean }>;
+  /**
+   * Whether the queued op was superseded by a newer change to the same entity while
+   * in flight (review 3.6b) - read live from the queue, as the executor's copy of the
+   * op predates the mark.
+   */
+  isOperationSuperseded?: (opId: string) => Promise<boolean>;
 }
 
 /** The SupabaseDataStore methods used for game version checks (review 3.7). */
@@ -172,8 +178,25 @@ export function createSyncExecutor(
       writeToCloud: createCloudWriter(cloudStore),
       deleteFromCloud: createCloudDeleter(cloudStore),
       writeToLocal: createLocalWriter(localStore),
+      isSuperseded: hooks.isOperationSuperseded
+        ? (op) => hooks.isOperationSuperseded!(op.id)
+        : undefined,
     });
   }
+
+  const isSuperseded = async (op: SyncOperation): Promise<boolean> => {
+    if (!hooks.isOperationSuperseded) return false;
+    try {
+      return await hooks.isOperationSuperseded(op.id);
+    } catch (error) {
+      logger.warn('[SyncExecutor] Supersede check failed; treating the op as current', {
+        entityType: op.entityType,
+        entityId: op.entityId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return false;
+    }
+  };
 
   return async (op: SyncOperation): Promise<void> => {
     const { entityType, entityId, operation } = op;
@@ -185,7 +208,7 @@ export function createSyncExecutor(
     });
 
     try {
-      await executeSyncOperation(cloudStore, op, localStore);
+      await executeSyncOperation(cloudStore, op, localStore, () => isSuperseded(op));
 
       logger.debug('[SyncExecutor] Sync operation completed', {
         entityType,
@@ -357,7 +380,8 @@ export function createSyncExecutor(
 async function executeSyncOperation(
   cloudStore: DataStore,
   op: SyncOperation,
-  localStore?: DataStore
+  localStore?: DataStore,
+  isSuperseded?: () => Promise<boolean>,
 ): Promise<void> {
   const { entityType, entityId, operation, data } = op;
 
@@ -403,7 +427,7 @@ async function executeSyncOperation(
       break;
 
     case 'playtimePlan':
-      await syncPlaytimePlan(cloudStore, operation, entityId, data, localStore);
+      await syncPlaytimePlan(cloudStore, operation, entityId, data, localStore, isSuperseded);
       break;
 
     case 'playtimePlanLink':
@@ -613,7 +637,8 @@ async function syncPlaytimePlan(
   operation: SyncOperation['operation'],
   entityId: string,
   data: unknown,
-  localStore?: DataStore
+  localStore?: DataStore,
+  isSuperseded?: () => Promise<boolean>,
 ): Promise<void> {
   if (operation === 'delete') {
     await store.deletePlaytimePlan(entityId);
@@ -631,6 +656,12 @@ async function syncPlaytimePlan(
     `[SyncExecutor] playtimePlan ${entityId}: cloud copy is newer, pulling it down (LWW)`
   );
   if (!localStore) return; // one-way executor (no local store wired): nothing to reconcile
+  // A newer local edit to this plan is queued (review 3.6b): it is the user's latest
+  // version and will be pushed by its own op - the cloud copy must not overwrite it.
+  if (isSuperseded && (await isSuperseded())) {
+    logger.info(`[SyncExecutor] playtimePlan ${entityId}: newer local edit queued, keeping it`);
+    return;
+  }
   const cloudPlans = await store.getPlaytimePlans();
   const winner = cloudPlans[entityId];
   if (!winner) return; // row vanished between the RPC and the fetch (deleted elsewhere)
