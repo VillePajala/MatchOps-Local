@@ -9,12 +9,26 @@
  */
 
 import { useState, useEffect } from 'react';
+import { setTabOwnership, type TabOwnership } from '@/utils/tabOwnership';
 
-export function useMultiTabPrevention(): { isBlocked: boolean } {
-  const [isBlocked, setIsBlocked] = useState(false);
+/**
+ * `status` (review 7.19): the data layer must wait for 'owner' (or 'unsupported'),
+ * so a blocked tab stays completely passive. Also published to tabOwnership for
+ * code outside React (the data-store factory).
+ */
+export function useMultiTabPrevention(): { isBlocked: boolean; status: TabOwnership } {
+  const [status, setStatus] = useState<TabOwnership>('pending');
+  const isBlocked = status === 'blocked';
 
   useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.locks) return;
+    const publish = (value: TabOwnership) => {
+      setStatus(value);
+      setTabOwnership(value);
+    };
+    if (typeof navigator === 'undefined' || !navigator.locks) {
+      publish('unsupported');
+      return;
+    }
 
     let released = false;
 
@@ -24,9 +38,10 @@ export function useMultiTabPrevention(): { isBlocked: boolean } {
       (lock) => {
         if (!lock) {
           // Another tab holds the lock
-          setIsBlocked(true);
+          publish('blocked');
           return Promise.resolve();
         }
+        publish('owner');
         // We got the lock — hold it until component unmounts
         return new Promise<void>((resolve) => {
           const check = () => {
@@ -38,10 +53,11 @@ export function useMultiTabPrevention(): { isBlocked: boolean } {
       }
     ).catch(() => {
       // Web Locks API failure is non-critical — app works without multi-tab prevention
+      publish('unsupported');
     });
 
     return () => { released = true; };
   }, []);
 
-  return { isBlocked };
+  return { isBlocked, status };
 }

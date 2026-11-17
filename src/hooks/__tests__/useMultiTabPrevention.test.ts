@@ -11,6 +11,7 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useMultiTabPrevention } from '../useMultiTabPrevention';
+import { getTabOwnership, __resetTabOwnershipForTests } from '@/utils/tabOwnership';
 
 describe('useMultiTabPrevention', () => {
   // Store original navigator.locks for restoration
@@ -179,6 +180,48 @@ describe('useMultiTabPrevention', () => {
 
       // Initial state before any callback resolves
       expect(result.current.isBlocked).toBe(false);
+    });
+  });
+
+  /**
+   * Review 7.19: the data layer waits for ownership, so the hook reports it - and
+   * publishes it for the data-store factory - in every outcome.
+   * @critical
+   */
+  describe('ownership status', () => {
+    beforeEach(() => __resetTabOwnershipForTests());
+
+    const withLocks = (grant: boolean) =>
+      Object.defineProperty(navigator, 'locks', {
+        value: {
+          request: (_n: string, _o: LockOptions, cb: (lock: Lock | null) => Promise<void>) =>
+            cb(grant ? ({ name: 'matchops-active-tab', mode: 'exclusive' } as Lock) : null),
+        },
+        configurable: true,
+        writable: true,
+      });
+
+    it('owner when the lock is granted', async () => {
+      withLocks(true);
+      const { result, unmount } = renderHook(() => useMultiTabPrevention());
+      await waitFor(() => expect(result.current.status).toBe('owner'));
+      expect(getTabOwnership()).toBe('owner');
+      unmount();
+    });
+
+    it('blocked when another tab holds it', async () => {
+      withLocks(false);
+      const { result } = renderHook(() => useMultiTabPrevention());
+      await waitFor(() => expect(result.current.status).toBe('blocked'));
+      expect(result.current.isBlocked).toBe(true);
+      expect(getTabOwnership()).toBe('blocked');
+    });
+
+    it('unsupported without the Web Locks API - the app runs as before', async () => {
+      Object.defineProperty(navigator, 'locks', { value: undefined, configurable: true, writable: true });
+      const { result } = renderHook(() => useMultiTabPrevention());
+      await waitFor(() => expect(result.current.status).toBe('unsupported'));
+      expect(getTabOwnership()).toBe('unsupported');
     });
   });
 });
