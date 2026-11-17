@@ -32,8 +32,9 @@ class FocusTrapManager {
   private appRoot: HTMLElement | null = null;
 
   getAppRoot(): HTMLElement | null {
-    // Cache the app root lookup
-    if (!this.appRoot) {
+    // Cache the app root lookup - but only once #app-root itself is found, so an early
+    // call cannot pin a fallback element for the rest of the session.
+    if (!this.appRoot || this.appRoot.id !== 'app-root') {
       // #app-root (ClientWrapper) first (review 10.9b). The old `body > div:first-child`
       // matched Next's hidden boundary <div hidden> in the real DOM, so the app behind
       // a portalled dialog was never made inert. (__next is from the pages router.)
