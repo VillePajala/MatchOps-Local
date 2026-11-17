@@ -5,6 +5,16 @@
       "date": "2026-11-17",
       "internal": true,
       "en": [
+        "The \"already open in another tab\" check double-checks before blocking the app, so it cannot be triggered by the app itself."
+      ],
+      "fi": [
+        "\"Avoinna toisessa välilehdessä\" -tarkistus varmistaa tilanteen vielä kerran ennen sovelluksen estämistä, joten sovellus ei voi laukaista sitä itse."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "internal": true,
+      "en": [
         "Layout fix: pop-ups and banners shown above the app can no longer accidentally cover the whole screen."
       ],
       "fi": [
