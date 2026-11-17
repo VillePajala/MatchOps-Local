@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Counts of one now read correctly, for example \"1 voice note\" and \"1 change waiting to sync\" instead of \"1 voice notes\"."
+      ],
+      "fi": [
+        "Yhden kappaleen määrät näkyvät nyt oikein, esimerkiksi \"1 äänimuistiinpano\" ja \"1 muutos odottaa synkronointia\" eikä \"1 äänimuistiinpanoa\"."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Restoring a backup keeps each league's and tournament's season label (for example 25/26) even when your club season starts on a non-default date."
       ],
       "fi": [
