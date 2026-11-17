@@ -6,11 +6,11 @@ import { useTranslation } from "react-i18next";
 /**
  * Banner shown while the app runs offline on a cached session (auth grace period).
  *
- * It is rendered as a direct child of <body>, so the global `body > div` rule in
- * globals.css (height: 100%; display: flex; flex-direction: column) applies to it.
- * Without an override the fixed banner
- * becomes full-screen and swallows every tap, which made the app unusable offline at
- * the pitch. The override must be an inline style: Tailwind 4 utilities live in a
+ * History: it was once a direct child of <body>, where a global `body > div` rule
+ * (height: 100%; display: flex; flex-direction: column) made the fixed banner
+ * full-screen and swallow every tap - the app was unusable offline at the pitch. That
+ * rule is now scoped to #app-root (review 10.9); the inline override is kept as a
+ * guard. It must be inline: Tailwind 4 utilities live in a
  * cascade layer, and the unlayered global rule beats any layered class (an `h-auto`
  * class was measured at 844px in a real browser). `display: block` keeps any future
  * icon or second element on one line instead of stacking. z-40 matches the ControlBar:
