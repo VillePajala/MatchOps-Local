@@ -137,9 +137,13 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
     // after cancel would be a stale session lingering in the Supabase client.
     if (step === 'confirm') {
       try {
-        const { getSupabaseClient } = await import('@/datastore/supabase/client');
-        // This device only: supabase-js defaults to every device (review 3.12).
-        await getSupabaseClient().auth.signOut({ scope: 'local' });
+        // Through the auth service (review 3.12b): it signs out on this device only
+        // (3.12) and also removes the stored session directly, which is what works
+        // offline (3.11) - a bare supabase-js signOut left it stored there.
+        const { SupabaseAuthService } = await import('@/auth/SupabaseAuthService');
+        const authService = new (SupabaseAuthService as SupabaseAuthServiceType)();
+        await authService.initialize();
+        await authService.signOut();
       } catch (signOutErr) {
         // Best-effort cleanup — don't block cancel on sign-out failure
         logger.warn('[CloudAuthModal] Failed to sign out on cancel:', signOutErr);

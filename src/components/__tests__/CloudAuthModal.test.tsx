@@ -300,6 +300,24 @@ describe('CloudAuthModal', () => {
       expect(deleteButton).not.toBeDisabled();
     });
 
+    /**
+     * Review 3.12b: cancelling after signing in signs out through the auth service,
+     * which also removes the stored session (works offline); a bare supabase-js
+     * signOut left it stored.
+     * @critical
+     */
+    it('cancelling after sign-in signs out through the auth service', async () => {
+      await goToConfirmStep();
+      mockSignOut.mockClear();
+      mockAuthInitialize.mockClear();
+
+      await user.click(screen.getByLabelText('Close'));
+
+      await waitFor(() => expect(mockOnCancel).toHaveBeenCalled());
+      expect(mockAuthInitialize).toHaveBeenCalled();
+      expect(mockSignOut).toHaveBeenCalledTimes(1);
+    });
+
     it('should go back to auth step when back button clicked', async () => {
       await goToConfirmStep();
 
