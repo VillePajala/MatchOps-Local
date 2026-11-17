@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Closing the \"Delete cloud data\" window after signing in now always signs that temporary login out on the device, also offline."
+      ],
+      "fi": [
+        "Pilvitietojen poistoikkunan sulkeminen kirjautumisen jälkeen kirjaa nyt väliaikaisen kirjautumisen aina ulos laitteelta, myös ilman verkkoyhteyttä."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Cloud sync: an edit made while an earlier change was still uploading is no longer briefly replaced on the device by the older cloud copy."
       ],
       "fi": [
