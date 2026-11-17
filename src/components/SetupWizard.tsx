@@ -3,7 +3,7 @@
 import { useHoldUnsavedInput } from '@/utils/unsavedInputSignal';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n, { saveLanguagePreference } from '@/i18n';
+import { useAppLanguage } from '@/hooks/useAppLanguage';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
@@ -364,20 +364,11 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
    * toggle's conditional className and throw on removeChild
    * (MATCHOPS-LOCAL-8K).
    */
-  const [language, setLanguage] = useState<string>('fi');
-  useEffect(() => {
-    if (i18n.language !== language) setLanguage(i18n.language);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const [language, setAppLanguage] = useAppLanguage();
   // An ACTION, never an effect keyed on `language` - that shape is what fed
   // the Home render loop, because it re-fires on every mount with the
   // pre-adopt value still in its closure.
-  const changeLanguage = (next: string) => {
-    if (next === language) return;
-    setLanguage(next);
-    i18n.changeLanguage(next);
-    saveLanguagePreference(next);
-  };
+  const changeLanguage = setAppLanguage;
 
   return (
     <div

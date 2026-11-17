@@ -13,11 +13,23 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import WelcomeScreen from '../WelcomeScreen';
 
 // Mock i18n - both default export properties and named exports
-jest.mock('@/i18n', () => ({
-  language: 'en',
-  changeLanguage: jest.fn(),
-  saveLanguagePreference: jest.fn(),
-}));
+// Behaves like i18n: changing the language updates it and notifies listeners
+// (useAppLanguage subscribes to 'languageChanged').
+jest.mock('@/i18n', () => {
+  const listeners = new Set<() => void>();
+  const i18n = {
+    language: 'en',
+    changeLanguage: jest.fn((lng: string) => {
+      i18n.language = lng;
+      listeners.forEach((listener) => listener());
+      return Promise.resolve();
+    }),
+    on: (_event: string, listener: () => void) => { listeners.add(listener); },
+    off: (_event: string, listener: () => void) => { listeners.delete(listener); },
+    saveLanguagePreference: jest.fn(),
+  };
+  return i18n;
+});
 
 // Mock appSettings
 jest.mock('@/utils/appSettings', () => ({
@@ -355,6 +367,8 @@ describe('WelcomeScreen', () => {
 
       fireEvent.click(screen.getByText('FI'));
       expect(i18n.changeLanguage).toHaveBeenCalledWith('fi');
+      // Remembered on the device, so the next launch keeps it (review 8.1).
+      expect(i18n.saveLanguagePreference).toHaveBeenCalledWith('fi');
 
       fireEvent.click(screen.getByText('EN'));
       expect(i18n.changeLanguage).toHaveBeenCalledWith('en');

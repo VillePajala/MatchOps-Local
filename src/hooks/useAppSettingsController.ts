@@ -10,7 +10,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n from '@/i18n';
+import { useAppLanguage, changeAppLanguage as switchAppLanguage } from '@/hooks/useAppLanguage';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useModalContext } from '@/contexts/ModalProvider';
@@ -86,19 +86,8 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
   } = useModalContext();
 
   const [defaultTeamNameSetting, setDefaultTeamNameSetting] = useState<string>('');
-  // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
-  // HTML and the first client render produce identical markup (MATCHOPS-LOCAL-8K /
-  // MATCHOPS-LOCAL-3). The real value is adopted post-hydration via useEffect below.
-  const [appLanguage, setAppLanguage] = useState<string>('fi');
+  const [appLanguage] = useAppLanguage();
   const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
-
-  // Adopt the real i18n language once on the client, after hydration has completed.
-  useEffect(() => {
-    if (i18n.language !== appLanguage) {
-      setAppLanguage(i18n.language);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     utilGetLastHomeTeamName(userId).then((name) => setDefaultTeamNameSetting(name));
@@ -118,8 +107,9 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
    */
   const changeAppLanguage = useCallback((next: string) => {
     if (next === appLanguage) return;
-    setAppLanguage(next);
-    i18n.changeLanguage(next);
+    // Switches AND remembers it on this device (review 8.1: Settings only switched,
+    // so the next launch was back in the old language).
+    switchAppLanguage(next);
     utilUpdateAppSettings({ language: next }).catch((error) => {
       logger.warn('[useAppSettingsController] Failed to save language preference (non-critical)', { language: next, error });
     });

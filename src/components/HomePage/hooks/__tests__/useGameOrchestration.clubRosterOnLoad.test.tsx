@@ -97,7 +97,7 @@ jest.mock('react-i18next', () => ({
 
 jest.mock('@/i18n', () => ({
   __esModule: true,
-  default: { language: 'en', changeLanguage: jest.fn() },
+  default: { language: 'en', on: jest.fn(), off: jest.fn(), changeLanguage: jest.fn() },
 }));
 
 // Mock contexts

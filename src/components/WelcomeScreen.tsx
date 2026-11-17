@@ -16,9 +16,8 @@
  * @see docs/03-active-plans/cloud-sync-user-flows.md
  */
 
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n, { saveLanguagePreference } from '@/i18n';
+import { useAppLanguage } from '@/hooks/useAppLanguage';
 // Note: Do NOT import updateAppSettings here. WelcomeScreen is pre-login,
 // so there's no userId and calling updateAppSettings would cause DataStore conflicts.
 
@@ -46,29 +45,10 @@ export default function WelcomeScreen({
   hideLocalModeOptions = false,
 }: WelcomeScreenProps) {
   const { t } = useTranslation();
-  // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
-  // HTML and the first client render produce identical markup. Reading i18n.language
-  // here directly causes a hydration mismatch when localStorage holds a non-default
-  // language (MATCHOPS-LOCAL-8K / MATCHOPS-LOCAL-3). The real value is adopted
-  // post-hydration via useEffect below.
-  const [language, setLanguage] = useState<string>('fi');
-
-  // Adopt the real i18n language once on the client, after hydration has completed.
-  useEffect(() => {
-    if (i18n.language !== language) {
-      setLanguage(i18n.language);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Save language preference when changed
-  useEffect(() => {
-    i18n.changeLanguage(language);
-    // Save to localStorage (i18n loads from here on init).
-    // DO NOT call updateAppSettings here - WelcomeScreen is shown before login,
-    // so there's no userId and it would cause DataStore initialization conflicts.
-    saveLanguagePreference(language);
-  }, [language]);
+  // The app language (shared with every other language control; hydration-safe).
+  // Changed by the buttons only - it used to be an effect keyed on the value,
+  // which re-fired on mount with the pre-adopt 'fi' (review 8.1).
+  const [language, setLanguage] = useAppLanguage();
 
   return (
     <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-y-auto">
