@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Saved games: search now finds a game by the date as shown (e.g. 17.9.) and an opponent however it is written, and the \"unplayed only\" filter no longer claims there are no saved games."
+      ],
+      "fi": [
+        "Tallennetut ottelut: haku löytää nyt ottelun näkyvällä päivämäärällä (esim. 17.9.) ja vastustajan kirjoitusasusta riippumatta, eikä \"vain pelaamattomat\" -suodatin enää väitä, ettei tallennettuja otteluita ole."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Archived teams, leagues and tournaments now appear under \"Show archived\" again, so you can restore them."
       ],
       "fi": [

@@ -89,6 +89,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   teams,
 }) => {
   const { t, i18n } = useTranslation();
+  const language = i18n.language;
   const [searchText, setSearchText] = useState<string>('');
   const [showUnplayedOnly, setShowUnplayedOnly] = useState<boolean>(false);
   /** Normalised opponent key, so every spelling of one team is one choice. */
@@ -183,8 +184,14 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       // The game's own name, and the team's current one: a renamed team's old games
       // are still found by searching for the new name.
       const teamName = `${displayNames.teamName || ''} ${displayNames.currentTeamName || ''}`.toLowerCase();
-      const opponentName = (gameData.opponentName || '').toLowerCase();
-      const gameDate = (gameData.gameDate || '').toLowerCase();
+      // Opponent by its normalised name, like the opponent filter beside it
+      // (review 7.L1): "ips/sininen" finds "IPS Sininen".
+      const opponentName = normalizeOpponentName(gameData.opponentName);
+      const searchAsOpponent = normalizeOpponentName(searchText);
+      // The date as stored AND as the card shows it (review 7.L1): "17.9." used to
+      // find nothing because only the ISO "2026-09-17" was searched.
+      const shownDate = gameData.gameDate ? new Date(gameData.gameDate).toLocaleDateString(language) : '';
+      const gameDate = `${gameData.gameDate || ''} ${shownDate}`.toLowerCase();
       const seasonName = (displayNames.seasonName || '').toLowerCase();
       const tournamentName = (displayNames.tournamentName || '').toLowerCase();
       // Include game type in search (soccer/futsal/jalkapallo)
@@ -196,7 +203,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
       return (
         teamName.includes(lowerSearchText) ||
-        opponentName.includes(lowerSearchText) ||
+        (searchAsOpponent !== '' && opponentName.includes(searchAsOpponent)) ||
         gameDate.includes(lowerSearchText) ||
         seasonName.includes(lowerSearchText) ||
         tournamentName.includes(lowerSearchText) ||
@@ -255,7 +262,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     });
 
     return gamesWithSortKeys.map(g => g.id);
-  }, [savedGames, searchText, showUnplayedOnly, opponentFilter, entityMaps]);
+  }, [savedGames, searchText, showUnplayedOnly, opponentFilter, entityMaps, language]);
 
   const handleDeleteClick = (gameId: string, gameName: string) => {
     setGameToDelete({ id: gameId, name: gameName });
@@ -298,7 +305,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       </div>
     );
   } else if (filteredGameIds.length === 0) {
-    const hasFilters = searchText || opponentFilter !== 'all';
+    // "Unplayed only" is a filter too (review 7.L1): with it on and nothing
+    // matching, the coach was told "No games saved yet".
+    const hasFilters = searchText || opponentFilter !== 'all' || showUnplayedOnly;
     mainContent = (
       <div className="flex flex-col items-center justify-center py-16 px-4">
         {/* Soccer ball illustration */}

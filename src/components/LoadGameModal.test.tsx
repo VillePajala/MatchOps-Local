@@ -19,6 +19,7 @@ jest.mock('react-i18next', () => ({
         return translation;
       },
       i18n: {
+        language: 'fi',
         changeLanguage: () => new Promise(() => {}),
       },
   }),
@@ -152,6 +153,37 @@ describe('LoadGameModal', () => {
     fireEvent.change(screen.getByPlaceholderText('loadGameModal.filterPlaceholder'), { target: { value: 'P12' } });
     expect(await screen.findByText('Lions')).toBeInTheDocument();
     expect(screen.queryByText('Hawks')).not.toBeInTheDocument();
+  });
+
+  /** Review 7.L1: search matched only the stored ISO date. */
+  it('finds a game by the date as the card shows it', async () => {
+    await renderModal();
+    await screen.findByText('Lions');
+    fireEvent.change(screen.getByPlaceholderText('loadGameModal.filterPlaceholder'), { target: { value: '15.5.' } });
+    expect(await screen.findByText('Lions')).toBeInTheDocument();
+    expect(screen.queryByText('Hawks')).not.toBeInTheDocument();
+  });
+
+  /** Review 7.L1: the text search now matches opponents the way the opponent filter does. */
+  it('finds an opponent written with a separator by its normalised name', async () => {
+    const games = createSampleGames();
+    (games['game_1659123456_abc'] as unknown as { opponentName: string }).opponentName = 'IPS/Sininen';
+    await renderModal({ savedGames: games });
+    await screen.findByText('Lions');
+    fireEvent.change(screen.getByPlaceholderText('loadGameModal.filterPlaceholder'), { target: { value: 'ips sininen' } });
+    expect(await screen.findByText('Lions')).toBeInTheDocument();
+    expect(screen.queryByText('Hawks')).not.toBeInTheDocument();
+  });
+
+  /** Review 7.L1: "No games saved yet" was shown when only "unplayed" hid everything. */
+  it('says no games match - not "none saved" - when only the unplayed toggle hides them', async () => {
+    const games = createSampleGames();
+    (games['game_1659223456_def'] as unknown as { isPlayed: boolean }).isPlayed = true;
+    await renderModal({ savedGames: games });
+    await screen.findByText('Lions');
+    fireEvent.click(screen.getByRole('button', { name: /loadGameModal.showUnplayedOnly|unplayed/i }));
+    expect(await screen.findByText('loadGameModal.noGamesMatchFilter')).toBeInTheDocument();
+    expect(screen.queryByText('loadGameModal.noGamesSaved')).not.toBeInTheDocument();
   });
 
   it('shows a not-played status dot for unplayed games', async () => {
