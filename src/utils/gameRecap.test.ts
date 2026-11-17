@@ -74,6 +74,27 @@ describe('buildGameRecap', () => {
     expect(text).toContain('Tigers 2-2 Lions (Win, on penalties)');
   });
 
+  /** Review 11.1 (owner 2026-11-17): the extra-time score is shown beside the final one. */
+  it('shows the extra-time score separately, and with a shootout after it', () => {
+    const structure = { numberOfPeriods: 2, periodDurationMinutes: 25, extraTimePeriods: 2, extraTimeMinutes: 15 };
+    const won = buildGameRecap({
+      ...base, ...structure, homeScore: 3, awayScore: 2,
+      gameEvents: [goal('p1', undefined, 600), goal('p2', undefined, 2000), goal('p1', undefined, 3300)],
+    }, players, t);
+    expect(won).toContain('Tigers 3-2 Lions (extra time 1-0)');
+    const shootout = buildGameRecap({
+      ...base, ...structure, homeScore: 2, awayScore: 2,
+      gameEvents: [goal('p1', undefined, 600), goal('p2', undefined, 2000)],
+      shootoutKicks: [
+        { id: 'k1', team: 'home', scored: true, order: 1 },
+        { id: 'k2', team: 'away', scored: false, order: 2 },
+      ],
+    }, players, t);
+    expect(shootout).toContain('Tigers 2-2 Lions (extra time 0-0, Win, on penalties)');
+    // No extra time, no extra-time score.
+    expect(buildGameRecap({ ...base, numberOfPeriods: 2, periodDurationMinutes: 25 }, players, t)).not.toContain('extra time');
+  });
+
   it('renders a plain draw with no shootout', () => {
     const text = buildGameRecap({ ...base, homeScore: 1, awayScore: 1 }, players, t);
     expect(text).toContain('Tigers 1-1 Lions');

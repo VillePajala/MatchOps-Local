@@ -123,6 +123,53 @@ describe('gameSessionReducer', () => {
       expect(atEnd).toMatchObject({ gameStatus: 'periodEnd', timeElapsedInSeconds: 3900 });
     });
 
+    /**
+     * Review 11.1: extra time is started by the coach at full time, from the
+     * regulation end, and then plays through its own periods to a final whistle.
+     * @critical
+     */
+    test('START_EXTRA_TIME runs extra time from the regulation end to the final whistle', () => {
+      const fullTime: GameSessionState = {
+        ...baseState, numberOfPeriods: 2, periodDurationMinutes: 25, subIntervalMinutes: 5,
+        currentPeriod: 2, gameStatus: 'gameEnd', isTimerRunning: false, timeElapsedInSeconds: 3000,
+        wentToOvertime: false,
+      };
+      const et = gameSessionReducer(fullTime, { type: 'START_EXTRA_TIME', payload: { periods: 2, minutes: 15 } });
+      expect(et).toMatchObject({
+        extraTimePeriods: 2, extraTimeMinutes: 15, wentToOvertime: true,
+        currentPeriod: 3, gameStatus: 'inProgress', isTimerRunning: true,
+        timeElapsedInSeconds: 3000, lastSubConfirmationTimeSeconds: 3000, nextSubDueTimeSeconds: 3300,
+      });
+      // ET 1 ends at 3900 as a break; ET 2 starts there and ends the match at 4800.
+      const break1 = gameSessionReducer({ ...et, timeElapsedInSeconds: 3900 }, { type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'periodEnd', finalTime: 3900 } });
+      expect(break1).toMatchObject({ gameStatus: 'periodEnd', currentPeriod: 3 });
+      const et2 = gameSessionReducer(break1, { type: 'START_PERIOD', payload: { nextPeriod: 4, periodDurationMinutes: 25, subIntervalMinutes: 5 } });
+      expect(et2).toMatchObject({ currentPeriod: 4, timeElapsedInSeconds: 3900, gameStatus: 'inProgress' });
+      const end = gameSessionReducer({ ...et2, timeElapsedInSeconds: 4800 }, { type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'gameEnd', finalTime: 4800 } });
+      expect(end).toMatchObject({ gameStatus: 'gameEnd', currentPeriod: 4 });
+      // A finished extra time cannot be started again.
+      expect(gameSessionReducer(end, { type: 'START_EXTRA_TIME', payload: { periods: 1, minutes: 10 } })).toBe(end);
+      // A reset goes back to kick-off: extra time is chosen again at full time.
+      for (const reset of [{ type: 'RESET_TIMER_ONLY' as const }, { type: 'RESET_TIMER_AND_GAME_PROGRESS' as const }]) {
+        expect(gameSessionReducer(end, reset)).toMatchObject({ extraTimePeriods: undefined, extraTimeMinutes: undefined, currentPeriod: 1 });
+      }
+    });
+
+    /** @edge-case */
+    test('START_EXTRA_TIME is refused outside a stopped full time and for invalid lengths', () => {
+      const fullTime: GameSessionState = {
+        ...baseState, numberOfPeriods: 2, periodDurationMinutes: 25,
+        currentPeriod: 2, gameStatus: 'gameEnd', isTimerRunning: false, timeElapsedInSeconds: 3000,
+      };
+      const inPlay = { ...fullTime, gameStatus: 'inProgress' as const, isTimerRunning: true };
+      expect(gameSessionReducer(inPlay, { type: 'START_EXTRA_TIME', payload: { periods: 2, minutes: 15 } })).toBe(inPlay);
+      const halfTime = { ...fullTime, gameStatus: 'periodEnd' as const, currentPeriod: 1 };
+      expect(gameSessionReducer(halfTime, { type: 'START_EXTRA_TIME', payload: { periods: 2, minutes: 15 } })).toBe(halfTime);
+      for (const payload of [{ periods: 3, minutes: 15 }, { periods: 0, minutes: 15 }, { periods: 2, minutes: 0 }, { periods: 2, minutes: 7.5 }, { periods: 2, minutes: 61 }]) {
+        expect(gameSessionReducer(fullTime, { type: 'START_EXTRA_TIME', payload })).toBe(fullTime);
+      }
+    });
+
     test('full reload scenario: LOAD_PERSISTED_GAME_DATA then RESUME_GAME restores the match', () => {
       // An in-progress game as persisted by auto-save mid-period-2
       const persisted = {

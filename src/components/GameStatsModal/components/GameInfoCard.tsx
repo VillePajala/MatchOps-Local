@@ -29,6 +29,8 @@ interface GameInfoCardProps {
   captainName?: string;
   /** Penalty-shootout tally (home-away), if the game had a shootout. */
   shootoutScore?: { home: number; away: number };
+  /** Goals in extra time (home-away), shown beside the final score (review 11.1). */
+  extraTimeScore?: { home: number; away: number };
 }
 
 export function GameInfoCard({
@@ -48,6 +50,7 @@ export function GameInfoCard({
   wentToPenalties,
   captainName,
   shootoutScore,
+  extraTimeScore,
 }: GameInfoCardProps) {
   const { t } = useTranslation();
   const mapsUrl = mapsSearchUrl(gameLocation, locationLat, locationLng);
@@ -65,10 +68,12 @@ export function GameInfoCard({
             </span>
             <span className="text-2xl text-amber-400 font-bold mx-4">
               {homeScore} - {awayScore}
-              {(wentToOvertime || wentToPenalties) && (
+              {(wentToOvertime || wentToPenalties || extraTimeScore) && (
                 <span className="text-sm text-slate-400 font-medium ml-2">
                   ({[
-                    wentToOvertime && t('gameResult.overtime', 'OT'),
+                    extraTimeScore
+                      ? `${t('gameResult.extraTime', 'ET')} ${extraTimeScore.home}-${extraTimeScore.away}`
+                      : wentToOvertime && t('gameResult.overtime', 'OT'),
                     wentToPenalties && (shootoutScore
                       ? `${shootoutScore.home}-${shootoutScore.away} ${t('gameResult.penalties', 'PKs')}`
                       : t('gameResult.penalties', 'PKs')),

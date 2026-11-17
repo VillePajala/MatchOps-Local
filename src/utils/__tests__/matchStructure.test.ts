@@ -5,7 +5,7 @@
  */
 import {
   structureFrom, extraTimePeriodCount, isExtraTimePeriod, isLastPeriod, periodEndSeconds,
-  periodStartSeconds, regulationEndSeconds, totalPeriods,
+  periodStartSeconds, regulationEndSeconds, totalPeriods, extraTimeGoals,
 } from '../matchStructure';
 
 describe('matchStructure', () => {
@@ -57,5 +57,23 @@ describe('matchStructure', () => {
   it('structureFrom keeps all four fields and fills missing regulation values', () => {
     expect(structureFrom({ extraTimePeriods: 2, extraTimeMinutes: 15 }, { numberOfPeriods: 2, periodDurationMinutes: 10 }))
       .toEqual({ numberOfPeriods: 2, periodDurationMinutes: 10, extraTimePeriods: 2, extraTimeMinutes: 15 });
+  });
+});
+
+describe('extraTimeGoals (review 11.1)', () => {
+  const events = [
+    { type: 'goal', time: 600 },
+    { type: 'opponentGoal', time: 2900 },
+    { type: 'goal', time: 3000 }, // on the regulation whistle: regulation
+    { type: 'goal', time: 3200 },
+    { type: 'opponentGoal', time: 4500 },
+    { type: 'substitution', time: 3500 },
+  ];
+  it('counts our and their goals after the regulation end', () => {
+    expect(extraTimeGoals({ numberOfPeriods: 2, periodDurationMinutes: 25, extraTimePeriods: 2, extraTimeMinutes: 15 }, events))
+      .toEqual({ us: 1, them: 1 });
+  });
+  it('is null for a game without extra time', () => {
+    expect(extraTimeGoals({ numberOfPeriods: 2, periodDurationMinutes: 25 }, events)).toBeNull();
   });
 });

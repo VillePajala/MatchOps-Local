@@ -96,7 +96,8 @@
     "onPenalties": "rangaistuslaukauksilla",
     "unknownPlayer": "Tuntematon",
     "staleEdits": "Olet muokannut tätä tekstiä, joten se ei muuttunut. Otetaanko uusi versio?",
-    "staleApply": "Rakenna uudelleen"
+    "staleApply": "Rakenna uudelleen",
+    "extraTime": "jatkoaika"
   },
   "taso": {
     "button": "Pöytäkirja Tasoon",
@@ -112,7 +113,8 @@
     "goalie": "Mv",
     "captain": "C",
     "noNumber": "-",
-    "unknownPlayer": "tuntematon"
+    "unknownPlayer": "tuntematon",
+    "extraTime": "jatkoaika"
   },
   "evidence": {
     "button": "Jaa pelaajakooste",
@@ -423,7 +425,8 @@
   },
   "gameResult": {
     "overtime": "JA",
-    "penalties": "RL"
+    "penalties": "RL",
+    "extraTime": "JA"
   },
   "teams": {
     "deleteError": "Joukkueen poistaminen epäonnistui. Yritä uudelleen.",
@@ -636,7 +639,16 @@
     "plannedSubsEarlier_other": "+{{count}} aiemmin",
     "plannedSubsOn": "Kentälle",
     "plannedSubsOff": "Pois",
-    "finishGameButton": "Viimeistele ottelu"
+    "finishGameButton": "Viimeistele ottelu",
+    "extraTimeTitle": "Jatkoaika",
+    "extraTimeLevelHint": "Tilanne on tasan.",
+    "extraTimePeriodCount_one": "{{count}} jakso",
+    "extraTimePeriodCount_other": "{{count}} jaksoa",
+    "extraTimeMinutes": "Minuuttia per jakso",
+    "startExtraTime": "Aloita jatkoaika",
+    "startExtraTimePeriod": "Aloita jatkoajan {{n}}. jakso",
+    "extraTimePill": "JA {{n}}/{{total}}",
+    "extraTimeShort": "JA"
   },
   "instructionsModal": {
     "title": "Näin se toimii",
@@ -1870,7 +1882,8 @@
     "periodOptionOne": "1",
     "periodOptionTwo": "2",
     "friendlyHint": "Ei näy kilpailutilastoissa",
-    "seasonOrTournament": "Kausi / turnaus"
+    "seasonOrTournament": "Kausi / turnaus",
+    "regulationLockedByExtraTime": "Lukittu: näiden jaksojen jälkeen pelattiin jatkoaika."
   },
   "gameStats": {
     "personnelSectionTitle": "Ottelun taustahenkilöt",
@@ -2484,7 +2497,9 @@
     "buttonTitle": "Vie kenttä kuvana",
     "positions": "Pelipaikat",
     "gameType": "Laji",
-    "gender": "Sukupuoli"
+    "gender": "Sukupuoli",
+    "extraTime": "Jatkoaika",
+    "extraTimeScore": "Jatkoajan tulos"
   },
   "reset": {
     "resetting": "Nollataan sovellusta...",

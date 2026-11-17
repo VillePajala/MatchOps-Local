@@ -219,6 +219,8 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             gameTime={data.gameSessionState.gameTime}
             numPeriods={data.gameSessionState.numberOfPeriods}
             periodDurationMinutes={data.gameSessionState.periodDurationMinutes}
+            extraTimePeriods={data.gameSessionState.extraTimePeriods}
+            extraTimeMinutes={data.gameSessionState.extraTimeMinutes}
             wentToOvertime={data.gameSessionState.wentToOvertime}
             wentToPenalties={data.gameSessionState.wentToPenalties}
             shootoutKicks={data.gameSessionState.shootoutKicks}
@@ -279,6 +281,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           onSelectedPersonnelChange={handlers.setGamePersonnel || (() => {})}
           numPeriods={data.gameSessionState.numberOfPeriods}
           periodDurationMinutes={data.gameSessionState.periodDurationMinutes}
+          extraTimePeriods={data.gameSessionState.extraTimePeriods}
           demandFactor={data.gameSessionState.demandFactor}
           onTeamNameChange={handlers.teamNameChange}
           onOpponentNameChange={handlers.opponentNameChange}

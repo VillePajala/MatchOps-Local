@@ -119,6 +119,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     startPause: handleStartPauseTimer,
     reset: handleResetTimer,
     endPeriodNow: handleEndPeriodNow,
+    startExtraTime: handleStartExtraTime,
     ackSubstitution: ackSubstitutionRaw,
     setSubInterval: handleSetSubInterval,
   } = useGameTimer({
@@ -251,6 +252,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     startPauseTimer: handleStartPauseTimer,
     resetTimer: handleResetTimer,
     endPeriodNow: handleEndPeriodNow,
+    startExtraTime: handleStartExtraTime,
   }), [
     handleToggleLargeTimerOverlay,
     handleToggleGoalLogModal,
@@ -262,6 +264,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     handleStartPauseTimer,
     handleResetTimer,
     handleEndPeriodNow,
+    handleStartExtraTime,
   ]);
 
   return {

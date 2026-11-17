@@ -70,6 +70,8 @@ export interface GameSettingsModalProps {
   availablePlayers: Player[];
   availablePersonnel: Personnel[];
   numPeriods: number;
+  /** Extra time started (review 11.1): the regulation structure is then locked. */
+  extraTimePeriods?: number;
   periodDurationMinutes: number;
   demandFactor?: number;
   selectedPlayerIds: string[];
@@ -232,6 +234,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   leagueId = '',
   customLeagueName = '',
   numPeriods,
+  extraTimePeriods,
   periodDurationMinutes,
   // Still accepted from callers; no longer shown (the slider left the form, 2026-09-30).
   demandFactor: _demandFactor = 1,
@@ -652,6 +655,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       { source: 'stateSync', expectedState: { gameTime: timeValue } }
     );
   };
+
+  // Extra time follows regulation on the match clock (review 11.1): changing the
+  // regulation periods afterwards would move every extra-time boundary and goal.
+  const regulationLocked = (extraTimePeriods ?? 0) > 0;
 
   const commitPeriodDuration = () => {
     editedSinceCommitRef.current.periodDuration = false;
@@ -2041,6 +2048,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 <select
                   id="numPeriodsSelect"
                   value={numPeriods}
+                  disabled={regulationLocked}
                   onChange={(e) => {
                     const periods = parseInt(e.target.value) as 1 | 2;
                       logger.log('[GameSettingsModal] Changing numberOfPeriods to:', periods);
@@ -2075,6 +2083,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     setPeriodDurationInput(e.target.value.replace(/[^0-9]/g, ''));
                   }}
                   onBlur={commitPeriodDuration}
+                  disabled={regulationLocked}
                   className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   autoComplete="off"
                   autoCorrect="off"
@@ -2083,6 +2092,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   placeholder="15"
                 />
               </div>
+
+              {regulationLocked && (
+                <p className="-mt-2 mb-4 text-xs text-slate-400">
+                  {t('gameSettingsModal.regulationLockedByExtraTime', 'Locked: extra time was played after these periods.')}
+                </p>
+              )}
 
               {/* The demand-level slider used to sit here; see NewGameSetupModal. */}
 

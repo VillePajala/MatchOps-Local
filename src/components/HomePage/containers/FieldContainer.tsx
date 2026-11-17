@@ -30,6 +30,7 @@ import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { HiOutlineSquares2X2, HiOutlineListBullet } from 'react-icons/hi2';
 import { usePlannedGhosts } from '@/hooks/usePlannedGhosts';
 import { usePlannedChains } from '@/hooks/usePlannedChains';
+import { isExtraTimePeriod } from '@/utils/matchStructure';
 
 
 /**
@@ -118,6 +119,8 @@ export interface TimerInteractions {
   resetTimer: () => void;
   /** End the current period now (review 4.31); the timer view confirms first. */
   endPeriodNow?: () => void;
+  /** Start extra time at full time (review 11.1). */
+  startExtraTime?: (periods: number, minutes: number) => void;
 }
 
 export interface FieldContainerProps {
@@ -256,6 +259,7 @@ export function FieldContainer({
     startPauseTimer,
     resetTimer,
     endPeriodNow,
+    startExtraTime,
   } = timerInteractions;
 
   // Consolidated locals (prefer VMs when provided)
@@ -338,12 +342,17 @@ export function FieldContainer({
   // Playing-Time Planner: the due group of planned subs for the timer overlay. A
   // pure function of the clock and the schedule - deliberately NOT of the discs on
   // the field, which coaches don't move during play (see usePlannedSubPrompts).
-  const { current: plannedSubGroup, overdueEarlier: plannedSubsEarlier } = usePlannedSubPrompts(
+  const plannedPrompts = usePlannedSubPrompts(
     currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
     tmTime,
     availablePlayers,
     plannedSubsRefreshKey,
   );
+  // The plan covers regulation time only (review 11.1): in extra time its last group
+  // would stay "due" for the rest of the match, so the reminders stop at full time.
+  const inExtraTime = isExtraTimePeriod(gameSessionState, gameSessionState.currentPeriod);
+  const plannedSubGroup = inExtraTime ? null : plannedPrompts.current;
+  const plannedSubsEarlier = inExtraTime ? 0 : plannedPrompts.overdueEarlier;
 
   return (
     <div className="flex-grow relative bg-black overflow-hidden">
@@ -378,6 +387,10 @@ export function FieldContainer({
           onStartPauseTimer={startPauseTimer}
           onResetTimer={resetTimer}
           onEndPeriod={endPeriodNow}
+          onStartExtraTime={startExtraTime}
+          extraTimePeriods={gameSessionState.extraTimePeriods}
+          extraTimeMinutes={gameSessionState.extraTimeMinutes}
+          gameType={gameSessionState.gameType}
           plannedSubGroup={plannedSubGroup}
           plannedSubsEarlier={plannedSubsEarlier}
           onToggleGoalLogModal={toggleGoalLogModal}

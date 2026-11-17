@@ -14,7 +14,7 @@ import { HiOutlineMicrophone } from 'react-icons/hi2';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import { clockContinuation } from '@/utils/clockContinuation';
 import { formatAppDecimal } from '@/utils/localeFormat';
-import { isLastPeriod, periodEndSeconds, type MatchStructure } from '@/utils/matchStructure';
+import { extraTimePeriodCount, isExtraTimePeriod, isLastPeriod, periodEndSeconds, type MatchStructure } from '@/utils/matchStructure';
 
 
 interface TimerOverlayProps {
@@ -55,6 +55,12 @@ interface TimerOverlayProps {
   wentToOvertime?: boolean;
   onWentToOvertimeChange?: (value: boolean) => void;
   onRecordShootout?: () => void;
+  /** Start extra time at full time (review 11.1). Absent: no extra-time panel. */
+  onStartExtraTime?: (periods: number, minutes: number) => void;
+  extraTimePeriods?: number;
+  extraTimeMinutes?: number;
+  /** Pre-fills the extra-time length: futsal 5 min, football 15 min. */
+  gameType?: 'soccer' | 'futsal';
   onClose?: () => void;
   isLoaded: boolean;
   /** Playing-Time Planner: the latest due group of planned subs, or null. */
@@ -98,6 +104,10 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   wentToOvertime = false,
   onWentToOvertimeChange = () => {},
   onRecordShootout = () => {},
+  onStartExtraTime,
+  extraTimePeriods,
+  extraTimeMinutes,
+  gameType,
   onClose,
   isLoaded,
   plannedSubGroup = null,
@@ -114,7 +124,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // --- State for Confirmation Modals ---
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showEndPeriodConfirm, setShowEndPeriodConfirm] = useState(false);
-  const structure: MatchStructure = { numberOfPeriods, periodDurationMinutes };
+  const structure: MatchStructure = { numberOfPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes };
+  const extraPeriodsPlanned = extraTimePeriodCount(structure);
+  // The extra-time panel's choices (review 11.1): 2 periods, futsal 5 / football 15 min.
+  const [extraPeriodsChoice, setExtraPeriodsChoice] = useState(2);
+  const [extraMinutesChoice, setExtraMinutesChoice] = useState(gameType === 'futsal' ? 5 : 15);
+  const extraMinutesValid = Number.isInteger(extraMinutesChoice) && extraMinutesChoice >= 1 && extraMinutesChoice <= 60;
   const onLastPeriod = isLastPeriod(structure, currentPeriod);
   const endPeriodLabel = onLastPeriod
     ? t('timerOverlay.endMatchButton', 'End match')
@@ -231,7 +246,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
     startPauseButtonText = isTimerRunning ? t('timerOverlay.pauseButton', 'Pause') : t('timerOverlay.resumeButton', 'Resume');
   } else if (gameStatus === 'periodEnd') {
     startPauseButtonText = !onLastPeriod
-      ? t('timerOverlay.startPeriodButton', 'Start Period {{period}}', { period: currentPeriod + 1 })
+      ? (isExtraTimePeriod(structure, currentPeriod + 1)
+        ? t('timerOverlay.startExtraTimePeriod', 'Start extra time {{n}}', { n: currentPeriod + 1 - numberOfPeriods })
+        : t('timerOverlay.startPeriodButton', 'Start Period {{period}}', { period: currentPeriod + 1 }))
       : t('timerOverlay.gameOverButton', 'Game Over');
   } else if (gameStatus === 'gameEnd') {
     startPauseButtonText =
@@ -302,7 +319,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // stopped clock and game-over state already convey the end, and a terse
   // "FT"/"LP" marker read unclearly (esp. in Finnish).
   const periodPillLabel: string | null =
-    gameStatus === 'gameEnd' ? null : `${currentPeriod}/${numberOfPeriods}`;
+    gameStatus === 'gameEnd'
+      ? null
+      : isExtraTimePeriod(structure, currentPeriod)
+        ? t('timerOverlay.extraTimePill', 'ET {{n}}/{{total}}', { n: currentPeriod - numberOfPeriods, total: extraPeriodsPlanned })
+        : `${currentPeriod}/${numberOfPeriods}`;
 
   const handleOpponentGoalClick = () => {
     setShowOpponentGoalConfirm(true);
@@ -314,9 +335,16 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   };
 
   // Game specs string, e.g., "2 x 20 min"
-  const gameSpecs = numberOfPeriods === 1
+  const regulationSpecs = numberOfPeriods === 1
     ? `${periodDurationMinutes} min`
     : `${numberOfPeriods} x ${periodDurationMinutes} min`;
+  const gameSpecs = extraPeriodsPlanned > 0
+    ? `${regulationSpecs} + ${extraPeriodsPlanned} x ${extraTimeMinutes} min ${t('timerOverlay.extraTimeShort', 'ET')}`
+    : regulationSpecs;
+  // Full time, nothing left to continue, and no extra time yet: offer it (review 11.1).
+  const offerExtraTime = Boolean(onStartExtraTime) && gameStatus === 'gameEnd'
+    && extraPeriodsPlanned === 0 && continueAfterEnd === null && !isTimerRunning;
+  const scoreLevel = homeScore === awayScore;
 
   return (
     <div className={`fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col items-center p-3 pt-6 ${bgColor} backdrop-blur-lg`}>
@@ -435,6 +463,59 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             <FaUndo size={14}/>
           </button>
         </div>
+
+        {offerExtraTime && (
+          <div
+            data-testid="extra-time-panel"
+            className={`w-full mb-3 p-3 rounded-lg border ${scoreLevel ? 'border-amber-500 bg-amber-900/20' : 'border-slate-600 bg-slate-800/60'}`}
+          >
+            <div className="text-sm font-semibold text-slate-100">{t('timerOverlay.extraTimeTitle', 'Extra time')}</div>
+            {scoreLevel && (
+              <p className="text-xs text-amber-300 mt-0.5">{t('timerOverlay.extraTimeLevelHint', 'The score is level.')}</p>
+            )}
+            <div className="flex items-center gap-2 mt-2">
+              {[1, 2].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setExtraPeriodsChoice(n)}
+                  aria-pressed={extraPeriodsChoice === n}
+                  aria-label={t('timerOverlay.extraTimePeriodCount', '{{count}} periods', { count: n })}
+                  className={`px-3 py-1.5 rounded-md text-sm font-semibold border ${
+                    extraPeriodsChoice === n ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-700/60 border-slate-600 text-slate-300'
+                  }`}
+                >
+                  {n} ×
+                </button>
+              ))}
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={60}
+                value={Number.isFinite(extraMinutesChoice) ? extraMinutesChoice : ''}
+                onChange={(e) => setExtraMinutesChoice(Number.parseInt(e.target.value, 10))}
+                aria-label={t('timerOverlay.extraTimeMinutes', 'Minutes per period')}
+                className="w-16 px-2 py-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-sm text-center"
+              />
+              <span className="text-sm text-slate-400">min</span>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <button
+                type="button"
+                data-testid="start-extra-time"
+                disabled={!extraMinutesValid}
+                onClick={() => onStartExtraTime?.(extraPeriodsChoice, extraMinutesChoice)}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-semibold bg-green-600 hover:bg-green-700 text-white ${extraMinutesValid ? '' : 'opacity-50 cursor-not-allowed'}`}
+              >
+                {t('timerOverlay.startExtraTime', 'Start extra time')}
+              </button>
+              <button type="button" onClick={onRecordShootout} className={`${secondaryActionStyle} flex-1`}>
+                {t('timerOverlay.recordShootout', 'Penalties')}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Planned subs (Playing-Time Planner): every change planned for the
             latest due moment, as one block. No dismiss - it moves on by itself

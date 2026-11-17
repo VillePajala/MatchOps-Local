@@ -108,6 +108,8 @@ const NO_HISTORY_ACTION_TYPES = [
   // are not undo steps - they used to be invisible ones (the "Goal logged - Undo" toast
   // tapped just after the whistle undid the whistle, not the goal).
   'START_PERIOD',
+  // Starting extra time is a clock transition too (review 11.1): not an undo step.
+  'START_EXTRA_TIME',
   'CONTINUE_CLOCK',
   'END_PERIOD_OR_GAME',
   'PAUSE_TIMER',
@@ -150,7 +152,7 @@ const STATE_REPLACING_ACTIONS: ReadonlySet<string> = new Set([
 ]);
 
 const PHASE_ACTIONS: ReadonlySet<string> = new Set([
-  'START_PERIOD', 'END_PERIOD_OR_GAME', 'CONTINUE_CLOCK', 'PAUSE_TIMER', 'RESUME_GAME', 'RESET_TIMER_ONLY',
+  'START_PERIOD', 'START_EXTRA_TIME', 'END_PERIOD_OR_GAME', 'CONTINUE_CLOCK', 'PAUSE_TIMER', 'RESUME_GAME', 'RESET_TIMER_ONLY',
 ]);
 
 /**

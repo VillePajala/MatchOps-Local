@@ -354,4 +354,53 @@ describe('TimerOverlay', () => {
       expect(screen.queryByTestId('timer-finish-game')).not.toBeInTheDocument();
     });
   });
+
+  /** Review 11.1 (owner 2026-11-17): extra time is offered at full time, never automatic. */
+  describe('Extra time', () => {
+    const fullTime = { ...baseProps, gameStatus: 'gameEnd' as const, currentPeriod: 2, timeElapsedInSeconds: 1200 };
+    const minutesInput = () => within(screen.getByTestId('extra-time-panel')).getByRole('spinbutton');
+
+    it('offers extra time at full time, 2 x 15 min by default, and starts it on tap', () => {
+      const onStartExtraTime = jest.fn();
+      render(<TimerOverlay {...fullTime} onStartExtraTime={onStartExtraTime} />);
+      expect(minutesInput()).toHaveValue(15);
+      fireEvent.click(screen.getByTestId('start-extra-time'));
+      expect(onStartExtraTime).toHaveBeenCalledWith(2, 15);
+    });
+
+    it('takes 1 period and the length typed in; futsal defaults to 5 min', () => {
+      const onStartExtraTime = jest.fn();
+      render(<TimerOverlay {...fullTime} gameType="futsal" onStartExtraTime={onStartExtraTime} />);
+      expect(minutesInput()).toHaveValue(5);
+      const panel = within(screen.getByTestId('extra-time-panel'));
+      fireEvent.click(panel.getAllByRole('button', { pressed: false })[0]);
+      fireEvent.change(minutesInput(), { target: { value: '10' } });
+      fireEvent.click(screen.getByTestId('start-extra-time'));
+      expect(onStartExtraTime).toHaveBeenCalledWith(1, 10);
+    });
+
+    it('cannot start with an empty length', () => {
+      const onStartExtraTime = jest.fn();
+      render(<TimerOverlay {...fullTime} onStartExtraTime={onStartExtraTime} />);
+      fireEvent.change(minutesInput(), { target: { value: '' } });
+      expect(screen.getByTestId('start-extra-time')).toBeDisabled();
+    });
+
+    it('is not offered before full time, once extra time exists, or without the handler', () => {
+      const { rerender } = render(<TimerOverlay {...baseProps} gameStatus="periodEnd" currentPeriod={1} timeElapsedInSeconds={600} onStartExtraTime={jest.fn()} />);
+      expect(screen.queryByTestId('extra-time-panel')).not.toBeInTheDocument();
+      rerender(<TimerOverlay {...fullTime} currentPeriod={4} timeElapsedInSeconds={2400} extraTimePeriods={2} extraTimeMinutes={5} onStartExtraTime={jest.fn()} />);
+      expect(screen.queryByTestId('extra-time-panel')).not.toBeInTheDocument();
+      rerender(<TimerOverlay {...fullTime} />);
+      expect(screen.queryByTestId('extra-time-panel')).not.toBeInTheDocument();
+    });
+
+    it('labels extra-time periods and their start button', () => {
+      const et = { ...baseProps, extraTimePeriods: 2, extraTimeMinutes: 5 };
+      const { rerender } = render(<TimerOverlay {...et} gameStatus="inProgress" isTimerRunning currentPeriod={3} timeElapsedInSeconds={1300} />);
+      expect(screen.getByText(/^(ET|JA) 1\/2$/)).toBeInTheDocument();
+      rerender(<TimerOverlay {...et} gameStatus="periodEnd" currentPeriod={3} timeElapsedInSeconds={1500} />);
+      expect(screen.getByTestId('tour-timer-startpause')).toHaveTextContent(/Start extra time 2|Aloita jatkoajan 2/);
+    });
+  });
 });

@@ -591,6 +591,10 @@ export function useGameSessionCoordination({
     delete present.timeElapsedInSeconds;
     delete present.currentPeriod;
     delete present.gameStatus;
+    // The match structure goes with the clock (review 11.1): undo must not remove extra
+    // time a running clock is in, or add it back to a game that has none.
+    delete present.extraTimePeriods;
+    delete present.extraTimeMinutes;
     if (!samePhase) {
       // Sub tracking belongs to the period it was recorded in: from another period
       // (or across a reset) it would point the reminder at the wrong half.

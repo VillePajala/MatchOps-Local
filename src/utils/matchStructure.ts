@@ -79,3 +79,21 @@ export function isExtraTimePeriod(s: MatchStructure, period: number): boolean {
 export function regulationEndSeconds(s: MatchStructure): number {
   return periodEndSeconds(s, s.numberOfPeriods);
 }
+
+/**
+ * Goals scored in extra time (review 11.1, owner 2026-11-17: the final score and the
+ * extra-time score are shown separately) - the goals logged after the regulation end,
+ * as our goals / opponent goals. Null when the game has no extra time.
+ */
+export function extraTimeGoals(
+  s: MatchStructure,
+  events: ReadonlyArray<{ type: string; time: number }>,
+): { us: number; them: number } | null {
+  if (extraTimePeriodCount(s) === 0) return null;
+  const end = regulationEndSeconds(s);
+  const late = events.filter((e) => e.time > end);
+  return {
+    us: late.filter((e) => e.type === 'goal').length,
+    them: late.filter((e) => e.type === 'opponentGoal').length,
+  };
+}

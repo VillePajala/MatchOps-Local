@@ -40,6 +40,7 @@ import GameNoteComposer from './GameStatsModal/components/GameNoteComposer';
 import { buildTasoReport } from '@/utils/tasoReport';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
+import { extraTimeGoals } from '@/utils/matchStructure';
 import { computeGameCompleteness } from '@/utils/gameCompleteness';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { dictationVocabularyFor } from '@/utils/transcription';
@@ -112,6 +113,9 @@ interface GameStatsModalProps {
   locationLng?: number;
   gameTime?: string;
   numPeriods?: number;
+  /** Extra time played (review 11.1): its score is shown beside the final one. */
+  extraTimePeriods?: number;
+  extraTimeMinutes?: number;
   periodDurationMinutes?: number;
   wentToOvertime?: boolean;
   wentToPenalties?: boolean;
@@ -186,6 +190,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   locationLng,
   gameTime,
   numPeriods,
+  extraTimePeriods,
+  extraTimeMinutes,
   periodDurationMinutes,
   wentToOvertime,
   wentToPenalties,
@@ -796,6 +802,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // Determine display names based on home/away
   const displayHomeTeamName = homeOrAway === 'home' ? teamName : opponentName;
   const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
+  // Goals in extra time (review 11.1), as home-away for the info card.
+  const extraTimeScore = useMemo(() => {
+    const extra = extraTimeGoals({ numberOfPeriods: numPeriods ?? 2, periodDurationMinutes: periodDurationMinutes ?? 0, extraTimePeriods, extraTimeMinutes }, gameEvents);
+    if (!extra) return undefined;
+    return homeOrAway === 'home' ? { home: extra.us, away: extra.them } : { home: extra.them, away: extra.us };
+  }, [numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, gameEvents, homeOrAway]);
 
   // Ready-to-paste text recap of the current game (score, our scorers/assisters,
   // the coach's match report).
@@ -812,10 +824,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       gameNotes,
       shootoutKicks,
       playerPositions,
+      numberOfPeriods: numPeriods ?? 2,
+      periodDurationMinutes: periodDurationMinutes ?? 0,
+      extraTimePeriods,
+      extraTimeMinutes,
     },
     availablePlayers,
     (key, fallback) => t(key, fallback) as string,
-  ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, playerPositions, availablePlayers, t]);
+  ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, playerPositions, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, availablePlayers, t]);
 
   /**
    * Who wore the armband. Captaincy is game metadata rather than live session
@@ -840,12 +856,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         captainId,
         numberOfPeriods: numPeriods ?? 2,
         periodDurationMinutes: periodDurationMinutes ?? 0,
+        extraTimePeriods,
+        extraTimeMinutes,
       },
       availablePlayers,
       (key, fallback) => t(key, fallback) as string,
     );
     return `${r.lineup}\n\n${r.report}`;
-  }, [teamName, opponentName, homeOrAway, homeScore, awayScore, gameEvents, selectedPlayerIds, captainId, numPeriods, periodDurationMinutes, availablePlayers, t]);
+  }, [teamName, opponentName, homeOrAway, homeScore, awayScore, gameEvents, selectedPlayerIds, captainId, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, availablePlayers, t]);
 
   // Completeness for the current game: live-editable fields from props over the
   // saved snapshot (which carries competition/team/assessments).
@@ -1478,6 +1496,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     wentToOvertime={wentToOvertime}
                     wentToPenalties={wentToPenalties}
                     captainName={captainName}
+                    extraTimeScore={extraTimeScore}
                     shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
                   />
                   {currentGameCompleteness?.applicable && (                    <GameWrapUpCard

@@ -3,7 +3,7 @@ import type { AiMeta } from '@/types/game';
 import logger from '@/utils/logger';
 import { todayIso } from '@/utils/todayIso';
 import { clockContinuation } from '@/utils/clockContinuation';
-import { isLastPeriod, periodEndSeconds, periodStartSeconds, structureFrom, type MatchStructure } from '@/utils/matchStructure';
+import { extraTimePeriodCount, isLastPeriod, periodEndSeconds, periodStartSeconds, regulationEndSeconds, structureFrom, type MatchStructure } from '@/utils/matchStructure';
 
 // --- State Definition ---
 export interface GameSessionState {
@@ -131,6 +131,7 @@ export type GameSessionAction =
   | { type: 'SET_PERIOD_DURATION'; payload: number }
   | { type: 'SET_GAME_STATUS'; payload: GameSessionState['gameStatus'] }
   | { type: 'START_PERIOD'; payload: { nextPeriod: number, periodDurationMinutes: number, subIntervalMinutes: number } }
+  | { type: 'START_EXTRA_TIME'; payload: { periods: number; minutes: number } }
   | { type: 'END_PERIOD_OR_GAME'; payload: { newStatus: 'periodEnd' | 'gameEnd', finalTime?: number; manual?: boolean } }
   | { type: 'START_TIMER' }
   | { type: 'PAUSE_TIMER'; payload?: number } // Optional payload: precise current time from precision timer
@@ -375,6 +376,31 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
             nextSubDueTimeSeconds: (nextPeriod === 1 ? 0 : previousPeriodEndTime) + (subIntervalMinutes * 60),
             subAlertLevel: 'none',
             completedIntervalDurations: nextPeriod === 1 ? [] : state.completedIntervalDurations,
+            startTimestamp: Date.now(),
+        };
+    }
+    case 'START_EXTRA_TIME': {
+        // Review 11.1 (owner 2026-11-17): at full time the coach starts extra time -
+        // 1 or 2 periods of whole minutes, after regulation. Only from a stopped full
+        // time with no extra time yet; it never starts by itself. The clock starts at
+        // the regulation end, like any next period.
+        const { periods, minutes } = action.payload;
+        if (state.gameStatus !== 'gameEnd' || state.isTimerRunning) return state;
+        if (extraTimePeriodCount(state) > 0) return state;
+        if (!(periods === 1 || periods === 2) || !Number.isInteger(minutes) || minutes < 1 || minutes > 60) return state;
+        const withExtra = { ...state, extraTimePeriods: periods, extraTimeMinutes: minutes };
+        const start = regulationEndSeconds(withExtra);
+        return {
+            ...withExtra,
+            wentToOvertime: true,
+            currentPeriod: state.numberOfPeriods + 1,
+            gameStatus: 'inProgress',
+            periodEndedManually: false,
+            timeElapsedInSeconds: start,
+            isTimerRunning: true,
+            lastSubConfirmationTimeSeconds: start,
+            nextSubDueTimeSeconds: start + state.subIntervalMinutes * 60,
+            subAlertLevel: 'none',
             startTimestamp: Date.now(),
         };
     }
@@ -631,6 +657,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const nextSubDue = state.subIntervalMinutes * 60;
       return {
         ...state,
+        // Back to kick-off: extra time is chosen again at full time (review 11.1).
+        extraTimePeriods: undefined,
+        extraTimeMinutes: undefined,
         timeElapsedInSeconds: 0,
         isTimerRunning: false,
         startTimestamp: null,
@@ -661,6 +690,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
             subAlertLevel: 'none',
             lastSubConfirmationTimeSeconds: 0,
             completedIntervalDurations: [],
+            // Back to kick-off: extra time is chosen again at full time (review 11.1).
+            extraTimePeriods: undefined,
+            extraTimeMinutes: undefined,
         };
     }
     case 'RESET_GAME_SESSION_STATE':
