@@ -32,7 +32,8 @@ export const MAX_SNAPSHOTS = 5;
 /**
  * The newest "before reset" / "before restore" points kept on top of MAX_SNAPSHOTS
  * (review 10.7): they are the only copy of the data a mistaken reset or restore
- * replaced, and daily auto snapshots must never push them out.
+ * replaced, and daily auto snapshots must never push them out. One shared pool for
+ * both reasons: at most MAX_SNAPSHOTS + KEPT_RECOVERY_POINTS (7) full backups stored.
  */
 export const KEPT_RECOVERY_POINTS = 2;
 const isRecoveryPoint = (reason: SnapshotReason) => reason === 'pre-clear' || reason === 'pre-restore';
@@ -150,7 +151,8 @@ function summarize(json: string): SnapshotSummary {
 
 /**
  * Keep the newest MAX_SNAPSHOTS automatic/manual snapshots and, separately, the
- * newest KEPT_RECOVERY_POINTS pre-clear/pre-restore ones; delete the rest. One
+ * newest KEPT_RECOVERY_POINTS pre-clear/pre-restore ones (one pool for both
+ * reasons); delete the rest. One
  * list for all of them let five days of auto snapshots (of the empty or wrong
  * data) delete the only copy of what a mistaken reset replaced (review 10.7).
  */

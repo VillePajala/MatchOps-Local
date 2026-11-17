@@ -145,7 +145,7 @@ describe('backupSnapshots (Layer 1 restore points)', () => {
     expect(list.filter((s) => s.reason === 'auto')).toHaveLength(MAX_SNAPSHOTS);
   });
 
-  it('keeps only the newest recovery points of their own kind', async () => {
+  it('keeps only the newest recovery points (pre-clear and pre-restore share one pool)', async () => {
     const ids: string[] = [];
     for (let i = 0; i < KEPT_RECOVERY_POINTS + 2; i++) {
       ids.push((await createSnapshot('user1', i % 2 ? 'pre-restore' : 'pre-clear'))!.id);
@@ -155,10 +155,12 @@ describe('backupSnapshots (Layer 1 restore points)', () => {
     expect(kept).toEqual(ids.slice(-KEPT_RECOVERY_POINTS).reverse());
   });
 
-  it('skips an automatic snapshot of empty data (a manual one is still taken)', async () => {
+  it('skips an automatic snapshot of empty data (manual and recovery ones are still taken)', async () => {
     mockGenerate.mockImplementation(() => Promise.resolve(buildBackupJson({ games: {}, players: [], seasons: [], tournaments: [] })));
     expect(await createSnapshot('user1', 'auto')).toBeNull();
     expect(await createSnapshot('user1', 'manual')).not.toBeNull();
+    expect(await createSnapshot('user1', 'pre-clear')).not.toBeNull();
+    expect(await createSnapshot('user1', 'pre-restore')).not.toBeNull();
   });
 
   it('isolates snapshots per user (separate databases)', async () => {
