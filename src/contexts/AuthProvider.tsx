@@ -30,6 +30,18 @@ import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import * as Sentry from '@sentry/nextjs';
 import type { AuthService } from '@/interfaces/AuthService';
 import logger from '@/utils/logger';
+
+/**
+ * The message an auth action returns to the UI (review 8.3). Only our own auth errors
+ * carry a message meant for the coach - translateAuthError maps each to a translation.
+ * Anything else (e.g. a database error from the consent RPC) is logged and replaced by
+ * the action's generic message, which is translated too.
+ */
+const userFacingAuthMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof AuthError || error instanceof NetworkError) return error.message;
+  logger.warn('[AuthProvider] Unexpected error in an auth action; showing the generic message', error);
+  return fallback;
+};
 import { getCachedUserIdentity, clearCachedSupabaseSession } from '@/auth/cachedSession';
 import { setAiAccount, forgetAiAccount } from '@/utils/aiProvider';
 import { forgetReplacedReport } from '@/utils/reportUndo';
@@ -932,7 +944,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error instanceof AuthError && error.authErrorCode === 'email_not_confirmed') {
         return { error: error.message, emailNotConfirmed: true };
       }
-      return { error: error instanceof Error ? error.message : 'Sign in failed' };
+      return { error: userFacingAuthMessage(error, 'Sign in failed') };
     } finally {
       // Always clear — even on failure — so onAuthStateChange resumes owning
       // user/session state for subsequent (non-interactive) events.
@@ -990,7 +1002,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return { confirmationRequired: result.confirmationRequired, existingUser: result.existingUser };
     } catch (error) {
-      return { error: error instanceof Error ? error.message : 'Sign up failed' };
+      return { error: userFacingAuthMessage(error, 'Sign up failed') };
     }
   }, [authService, markSignedInThisSession]);
 
@@ -1090,7 +1102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authService.resetPassword(email);
       return {};
     } catch (error) {
-      return { error: error instanceof Error ? error.message : 'Reset failed' };
+      return { error: userFacingAuthMessage(error, 'Reset failed') };
     }
   }, [authService]);
 
@@ -1125,7 +1137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         // Sentry failure is acceptable
       }
-      return { error: error instanceof Error ? error.message : 'Failed to record consent' };
+      return { error: userFacingAuthMessage(error, 'Failed to record consent') };
     }
   }, [authService]);
 
@@ -1156,7 +1168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         // Sentry failure is acceptable
       }
-      return { error: error instanceof Error ? error.message : 'Failed to record consent' };
+      return { error: userFacingAuthMessage(error, 'Failed to record consent') };
     }
   }, [authService]);
 
@@ -1282,7 +1294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return {};
     } catch (error) {
       logger.error('[AuthProvider] Account deletion failed:', error);
-      return { error: error instanceof Error ? error.message : 'Failed to delete account' };
+      return { error: userFacingAuthMessage(error, 'Failed to delete account') };
     }
   }, [authService, user?.id]);
 
@@ -1312,7 +1324,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return {};
     } catch (error) {
       logger.error('[AuthProvider] Failed to set marketing consent:', error);
-      return { error: error instanceof Error ? error.message : 'Failed to update marketing consent' };
+      return { error: userFacingAuthMessage(error, 'Failed to update marketing consent') };
     }
   }, [authService]);
 
@@ -1373,7 +1385,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return {};
     } catch (error) {
-      return { error: error instanceof Error ? error.message : 'Verification failed' };
+      return { error: userFacingAuthMessage(error, 'Verification failed') };
     }
   }, [authService, markSignedInThisSession]);
 
@@ -1387,7 +1399,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authService.resendSignUpConfirmation(email);
       return {};
     } catch (error) {
-      return { error: error instanceof Error ? error.message : 'Failed to resend' };
+      return { error: userFacingAuthMessage(error, 'Failed to resend') };
     }
   }, [authService]);
 
@@ -1415,7 +1427,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clear on failure — no recovery session was created
       isPasswordResetFlowRef.current = false;
       setPasswordResetInProgress(false);
-      return { error: error instanceof Error ? error.message : 'Verification failed' };
+      return { error: userFacingAuthMessage(error, 'Verification failed') };
     }
   }, [authService]);
 
@@ -1469,7 +1481,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         passwordResetTimeoutRef.current = null;
       }, 10 * 60 * 1000);
-      return { error: error instanceof Error ? error.message : 'Password update failed' };
+      return { error: userFacingAuthMessage(error, 'Password update failed') };
     }
   }, [authService]);
 

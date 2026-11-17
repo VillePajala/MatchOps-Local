@@ -8,6 +8,7 @@ import { DEFAULT_ARRIVAL_BUFFER_MINUTES } from '@/utils/travelPlan';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
+import { translateAuthError } from '@/utils/authHelpers';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
 import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath, HiOutlineCloudArrowDown, HiOutlineClipboardDocument, HiOutlineShare } from 'react-icons/hi2';
@@ -483,7 +484,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       const result = await deleteAccount();
 
       if (result.error) {
-        showToast(t('settingsModal.deleteAccountFailed', 'Failed to delete account') + result.error, 'error');
+        // The provider's message, translated (review 8.3) - it was appended in English.
+        showToast(translateAuthError(result.error, t), 'error');
         logger.error('[SettingsModal] Delete account failed:', result.error);
       } else {
         logger.info('[SettingsModal] Account deleted successfully');

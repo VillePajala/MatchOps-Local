@@ -242,3 +242,30 @@ describe('authHelpers', () => {
     });
   });
 });
+
+/**
+ * Review 8.3: a Finnish coach saw English on sign-in/sign-up/consent failures. Every
+ * message the auth service throws and every fallback the provider returns must have
+ * a translation (network messages are covered by the pattern).
+ * @critical
+ */
+describe('every auth error message the UI can receive is translated', () => {
+  const fs = require('fs') as typeof import('fs');
+  const read = (p: string) => fs.readFileSync(require.resolve(p), 'utf8');
+  const service = read('@/auth/SupabaseAuthService.ts');
+  const provider = read('@/contexts/AuthProvider.tsx');
+  const messages = new Set<string>([
+    ...[...service.matchAll(/new (?:AuthError|NetworkError)\('((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]),
+    ...[...provider.matchAll(/userFacingAuthMessage\(error, '([^']+)'\)/g)].map((m) => m[1]),
+    ...[...provider.matchAll(/return \{ error: '([^']+)' \}/g)].map((m) => m[1]),
+  ]);
+  const keyOnly = ((key: string) => `KEY:${key}`) as unknown as Parameters<typeof translateAuthError>[1];
+
+  it('finds the messages', () => {
+    expect(messages.size).toBeGreaterThan(30);
+  });
+
+  it.each([...messages])('%s', (message) => {
+    expect(translateAuthError(message, keyOnly)).toMatch(/^KEY:auth\./);
+  });
+});

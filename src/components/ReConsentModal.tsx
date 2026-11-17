@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { translateAuthError } from '@/utils/authHelpers';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthProvider';
 import { primaryButtonStyle, DialogBackdrop, secondaryButtonStyle } from '@/styles/modalStyles';
@@ -128,7 +129,7 @@ export function ReConsentModal() {
 
           {/* Error message */}
           {error && (
-            <p className="text-red-400 text-sm">{error}</p>
+            <p className="text-red-400 text-sm">{translateAuthError(error, t)}</p>
           )}
         </div>
 
