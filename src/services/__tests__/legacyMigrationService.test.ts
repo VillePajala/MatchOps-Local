@@ -1,3 +1,4 @@
+import { waitFor } from '@testing-library/react';
 /**
  * Legacy Migration Service Tests
  *
@@ -645,8 +646,8 @@ describe('legacyMigrationService', () => {
       const resultPromise = deleteLegacyDatabase();
 
       // Trigger the success callback
-      // Need to wait for the mock to be called
-      await new Promise(resolve => setTimeout(resolve, 0));
+      // Wait for the mock to be called (review 9.6: for the condition, not a fixed sleep)
+      await waitFor(() => expect(mockDeleteDatabase).toHaveBeenCalled());
       const request = mockDeleteDatabase.mock.results[0].value;
       request.onsuccess?.();
 
@@ -667,7 +668,7 @@ describe('legacyMigrationService', () => {
 
       const resultPromise = deleteLegacyDatabase();
 
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await waitFor(() => expect(mockDeleteDatabase).toHaveBeenCalled());
       const request = mockDeleteDatabase.mock.results[0].value;
       request.onblocked?.();
 
@@ -688,7 +689,7 @@ describe('legacyMigrationService', () => {
 
       const resultPromise = deleteLegacyDatabase();
 
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await waitFor(() => expect(mockDeleteDatabase).toHaveBeenCalled());
       const request = mockDeleteDatabase.mock.results[0].value;
       // Simulate error event
       request.onerror?.({ target: { error: new Error('Deletion failed') } });

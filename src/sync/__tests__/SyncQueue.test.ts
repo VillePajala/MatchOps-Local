@@ -165,12 +165,10 @@ describe('SyncQueue', () => {
       const originalCreatedAt = op1?.createdAt;
       expect(originalCreatedAt).toBeDefined();
 
-      // Wait to ensure different createdAt timestamps between enqueue operations.
-      // This is necessary because the test verifies that the original createdAt is
-      // preserved when a pending operation is deduplicated (updated with new data).
-      // Without this delay, both enqueue operations could have identical timestamps,
-      // making it impossible to verify that createdAt was actually preserved.
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // The second enqueue happens "later", so a preserved createdAt is distinguishable
+      // from a fresh one. A controlled clock instead of a real 50 ms sleep (review 9.6).
+      const later = Date.now() + 60_000;
+      const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(later);
 
       // Second enqueue replaces but should keep original createdAt
       const id2 = await queue.enqueue({
@@ -187,6 +185,8 @@ describe('SyncQueue', () => {
       expect(op2?.data).toEqual({ name: 'Second' });
       // createdAt should be preserved from original
       expect(op2?.createdAt).toBe(originalCreatedAt);
+      expect(originalCreatedAt).not.toBe(later);
+      nowSpy.mockRestore();
     });
 
     it('should merge CREATE + UPDATE into CREATE with new data', async () => {

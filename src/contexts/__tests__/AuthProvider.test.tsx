@@ -583,10 +583,8 @@ describe('AuthProvider', () => {
         authCallbacks.forEach(cb => cb('signed_out', null));
       });
 
-      // Wait a tick to ensure any async operations complete
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
-      });
+      // Let any async follow-up settle (review 9.6: act flushes it; no real-time sleep).
+      await act(async () => {});
 
       // Cache clearing should NOT be called (no userId available)
       expect(mockDataStore.clearUserCaches).not.toHaveBeenCalled();
