@@ -185,37 +185,14 @@ const originalConsoleError = console.error;
 // Console monitoring - fails tests on unexpected warnings/errors
 // List of allowed console warnings/errors (test environment noise and expected test outputs)
 const allowedConsolePatterns = [
-  'ResizeObserver loop',
-  'Not implemented: HTMLCanvasElement',
   'Not implemented: navigation',
-  'Warning: ReactDOM.render',
-  'Warning: useLayoutEffect',
-  'Warning: An update to',
-  'act(...) is not supported',
   'was not wrapped in act(...)',  // React state update warnings - will fix with act() wrappers
-  // React 19 warnings that are expected
-  'Warning: React does not recognize',
-  'Warning: Invalid DOM property',
   // Next.js Image component prop warnings (priority is valid for next/image but triggers warning in test mocks)
   'Received `%s` for a non-boolean attribute',
   // Test-specific expected console output (from error handling tests)
-  // Game-related errors
-  'Error saving game',
-  'Error loading game',
-  'Error getting game',
-  'Error deleting game',
-  'Error creating new game',
-  'Error adding game event',
-  'Error removing game event',
-  'Error updating game',
-  'Error getting saved games',
-  'Error filtering games',
   'Import games error',
   // Settings-related errors
-  'Error saving app settings',
   'Error getting app settings',
-  'Error saving last home team name',
-  'Error getting last home team name',
   '[resetAppSettings] Error',
   // Player assessment errors
   'Error saving player assessment',
@@ -225,53 +202,19 @@ const allowedConsolePatterns = [
   'Assessment for player',  // Warning: Assessment not found
   // Validation warnings (expected in error-handling tests)
   'gameId is null or empty',
-  'out of bounds',
   'Import completed with',
-  'Failed to parse import',
-  'Skipping IndexedDB test',
-  'Failed to get install prompt',
-  'Failed to set install prompt',
-  'Failed to save',
-  'Failed to load',
-  'Failed to delete',
-  'Failed to initialize',
-  'Failed to clear',
-  'Failed to fetch',
-  'Failed to parse',
-  'Failed to read',
-  'Failed to connect',
-  'Migration failed',
-  'Storage operation failed',
   'Storage adapter creation still in backoff period',
   // Storage bootstrap errors in test environment (IndexedDB not available in jsdom)
   '[StorageBootstrap]',
   '[StorageFactory]',
-  '[StorageConfigManager]',
   '[MutexManager]',
   '[StorageRecovery]',
-  'IndexedDB read failed',
-  'IndexedDB write failed',
-  'IDBRequest is not defined',
   // Canvas/DOM warnings in test environment
   'Canvas has invalid dimensions',
-  'Wake Lock request failed',
   // Club season validation warnings (expected in validation tests)
   '[getClubSeasonForDate] Invalid date format',
-  // Backend config warnings (expected in backendConfig tests)
-  '[backendConfig]',
-  '[factory]',
-  // SupabaseDataStore warnings (expected fallback behavior in tests)
-  '[SupabaseDataStore]',
-  // MigrationService errors/warnings (expected in migration failure tests)
-  '[MigrationService]',
-  // SyncEngine warnings/errors (expected in sync failure tests)
-  '[SyncEngine]',
-  // SyncExecutor warnings/errors (expected in sync failure tests)
-  '[SyncExecutor]',
   // PlayBilling errors (expected in billing error-handling tests)
   '[PlayBilling]',
-  // SeasonTournamentManagementModal errors (expected in delete tests)
-  '[SeasonTournamentManagementModal]',
   // Warmup plan errors (expected in warmup plan error-handling tests)
   '[useWarmupPlan]',
   // Premium access errors (expected in premium error-handling tests)
@@ -280,9 +223,19 @@ const allowedConsolePatterns = [
   'Failed to get premium',
 ];
 
+// Per-file allowances (review 9.5): a test file that deliberately drives a module's
+// error logging declares those messages itself (tests/utils/allowConsole), instead of
+// a global pattern that silences the same message in every other test. This setup
+// file runs once per test file, so the list is per file.
+const fileAllowedConsolePatterns = [];
+globalThis.__allowConsoleMessagesInThisFile = (patterns) => {
+  fileAllowedConsolePatterns.push(...patterns);
+};
+
 const shouldFailOnConsoleMessage = (message) => {
   const messageStr = typeof message === 'string' ? message : String(message);
-  return !allowedConsolePatterns.some(pattern => messageStr.includes(pattern));
+  return !allowedConsolePatterns.some(pattern => messageStr.includes(pattern))
+    && !fileAllowedConsolePatterns.some(pattern => messageStr.includes(pattern));
 };
 
 console.warn = (...args) => {

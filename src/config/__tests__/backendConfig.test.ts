@@ -47,6 +47,10 @@ import {
   cameToCloudFromLocal,
   clearCloudSwitchFromLocal,
 } from '../backendConfig';
+import { allowConsoleMessagesInThisFile } from '../../../tests/utils/allowConsole';
+
+// This file drives these error paths on purpose (review 9.5: allowed here only).
+allowConsoleMessagesInThisFile(['[backendConfig]']);
 
 describe('backendConfig', () => {
   beforeEach(() => {

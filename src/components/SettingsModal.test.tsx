@@ -7,6 +7,10 @@ import SettingsModal from './SettingsModal';
 import { ToastProvider } from '@/contexts/ToastProvider';
 import { PremiumProvider } from '@/contexts/PremiumContext';
 import { AuthProvider } from '@/contexts/AuthProvider';
+import { allowConsoleMessagesInThisFile } from '../../tests/utils/allowConsole';
+
+// This file drives these error paths on purpose (review 9.5: allowed here only).
+allowConsoleMessagesInThisFile(['Failed to save']);
 
 // Data Safety - Layer 1: the restore-points UI lazily imports this module.
 jest.mock('@/utils/backupSnapshots', () => ({

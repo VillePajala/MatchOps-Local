@@ -24,6 +24,10 @@ import { requestAnonymousDataImport, consumeAnonymousDataImportRequest } from '@
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
 import type { Player, Team, TeamPlayer, Season, Tournament, Personnel } from '@/types';
 import type { AppState } from '@/types';
+import { allowConsoleMessagesInThisFile } from '../../../tests/utils/allowConsole';
+
+// This file drives these error paths on purpose (review 9.5: allowed here only).
+allowConsoleMessagesInThisFile(['[MigrationService]']);
 
 // Mock the data stores
 jest.mock('@/datastore/LocalDataStore');

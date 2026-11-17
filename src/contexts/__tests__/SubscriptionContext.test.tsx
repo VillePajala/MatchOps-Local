@@ -23,6 +23,10 @@ import {
 import { useAuth } from '../AuthProvider';
 import { getSupabaseClient } from '@/datastore/supabase/client';
 import { getStorageItem, setStorageItem } from '@/utils/storage';
+import { allowConsoleMessagesInThisFile } from '../../../tests/utils/allowConsole';
+
+// This file drives these error paths on purpose (review 9.5: allowed here only).
+allowConsoleMessagesInThisFile(['Failed to clear']);
 
 // Mock dependencies
 jest.mock('../AuthProvider', () => ({
