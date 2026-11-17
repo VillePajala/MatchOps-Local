@@ -5,6 +5,16 @@
       "date": "2026-11-17",
       "internal": true,
       "en": [
+        "Groundwork for extra time: the match clock's period boundaries are calculated in one place."
+      ],
+      "fi": [
+        "Pohjatyö jatkoajalle: ottelukellon jaksojen rajat lasketaan yhdessä paikassa."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "internal": true,
+      "en": [
         "The website's user guide now covers the match planner, voice notes, the Taso match report, the finishing checklist, friendly matches and the rules directory."
       ],
       "fi": [

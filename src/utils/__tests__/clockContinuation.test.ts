@@ -35,4 +35,13 @@ describe('clockContinuation', () => {
     expect(at(2, 0, 100)).toBeNull();
     expect(at(0, 20, 100)).toBeNull();
   });
+
+  /** Review 11.1: with extra time configured the clock continues into it. */
+  it('2 x 25 + 2 x 15 extra time: next period at regulation end, resume inside, over at the end', () => {
+    const s = { numberOfPeriods: 2, periodDurationMinutes: 25, extraTimePeriods: 2, extraTimeMinutes: 15 };
+    expect(clockContinuation({ ...s, timeElapsedInSeconds: 3000 })).toEqual({ kind: 'nextPeriod', period: 3 });
+    expect(clockContinuation({ ...s, timeElapsedInSeconds: 3500 })).toEqual({ kind: 'resume', period: 3 });
+    expect(clockContinuation({ ...s, timeElapsedInSeconds: 3900 })).toEqual({ kind: 'nextPeriod', period: 4 });
+    expect(clockContinuation({ ...s, timeElapsedInSeconds: 4800 })).toBeNull();
+  });
 });

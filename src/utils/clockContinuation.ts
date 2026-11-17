@@ -9,9 +9,9 @@
  * period, where the stored "period 2" no longer exists.
  */
 
-export interface ClockStructure {
-  numberOfPeriods: number;
-  periodDurationMinutes: number;
+import { periodEndSeconds, periodStartSeconds, totalPeriods, type MatchStructure } from './matchStructure';
+
+export interface ClockStructure extends MatchStructure {
   timeElapsedInSeconds: number;
 }
 
@@ -23,17 +23,17 @@ export type ClockContinuation =
   /** At or past the end of the last period: the game is over. */
   | null;
 
-export function clockContinuation({
-  numberOfPeriods,
-  periodDurationMinutes,
-  timeElapsedInSeconds,
-}: ClockStructure): ClockContinuation {
-  const periodSeconds = periodDurationMinutes * 60;
-  if (!(periodSeconds > 0) || !(numberOfPeriods >= 1)) return null;
-  if (timeElapsedInSeconds >= numberOfPeriods * periodSeconds) return null;
-  const completedPeriods = Math.floor(timeElapsedInSeconds / periodSeconds);
-  if (completedPeriods >= 1 && timeElapsedInSeconds === completedPeriods * periodSeconds) {
-    return { kind: 'nextPeriod', period: completedPeriods + 1 };
+export function clockContinuation(structure: ClockStructure): ClockContinuation {
+  const { numberOfPeriods, periodDurationMinutes, timeElapsedInSeconds } = structure;
+  if (!(periodDurationMinutes * 60 > 0) || !(numberOfPeriods >= 1)) return null;
+  const last = totalPeriods(structure);
+  if (timeElapsedInSeconds >= periodEndSeconds(structure, last)) return null;
+  // The period the clock is in (matchStructure: with no extra time, the same as the
+  // old floor(elapsed / period length) arithmetic).
+  let period = 1;
+  while (period < last && timeElapsedInSeconds >= periodEndSeconds(structure, period)) period += 1;
+  if (period > 1 && timeElapsedInSeconds === periodStartSeconds(structure, period)) {
+    return { kind: 'nextPeriod', period };
   }
-  return { kind: 'resume', period: completedPeriods + 1 };
+  return { kind: 'resume', period };
 }

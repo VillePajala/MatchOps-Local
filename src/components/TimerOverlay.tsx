@@ -14,6 +14,7 @@ import { HiOutlineMicrophone } from 'react-icons/hi2';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import { clockContinuation } from '@/utils/clockContinuation';
 import { formatAppDecimal } from '@/utils/localeFormat';
+import { isLastPeriod, periodEndSeconds, type MatchStructure } from '@/utils/matchStructure';
 
 
 interface TimerOverlayProps {
@@ -113,11 +114,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // --- State for Confirmation Modals ---
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showEndPeriodConfirm, setShowEndPeriodConfirm] = useState(false);
-  const isLastPeriod = currentPeriod >= numberOfPeriods;
-  const endPeriodLabel = isLastPeriod
+  const structure: MatchStructure = { numberOfPeriods, periodDurationMinutes };
+  const onLastPeriod = isLastPeriod(structure, currentPeriod);
+  const endPeriodLabel = onLastPeriod
     ? t('timerOverlay.endMatchButton', 'End match')
     : t('timerOverlay.endPeriodButton', 'End period');
-  const periodEndClock = formatTime(currentPeriod * periodDurationMinutes * 60);
+  const periodEndClock = formatTime(periodEndSeconds(structure, currentPeriod));
   const [showOpponentGoalConfirm, setShowOpponentGoalConfirm] = useState(false);
   // Overtime/penalties are edge-of-game actions; keep them collapsed so the
   // substitution-interval list keeps its room. Open by default if OT is already on.
@@ -215,12 +217,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // Start continues the clock instead of staying disabled (review 1.11).
   const continueAfterEnd =
     gameStatus === 'gameEnd'
-      ? clockContinuation({ numberOfPeriods, periodDurationMinutes, timeElapsedInSeconds })
+      ? clockContinuation({ ...structure, timeElapsedInSeconds })
       : null;
   // Nothing to start: the game is over, or a break with no period after it.
   const startDisabled =
     (gameStatus === 'gameEnd' && continueAfterEnd === null) ||
-    (gameStatus === 'periodEnd' && currentPeriod >= numberOfPeriods) ||
+    (gameStatus === 'periodEnd' && onLastPeriod) ||
     !isLoaded;
 
   // Determine button text based on game status using translations
@@ -228,7 +230,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   if (gameStatus === 'inProgress') {
     startPauseButtonText = isTimerRunning ? t('timerOverlay.pauseButton', 'Pause') : t('timerOverlay.resumeButton', 'Resume');
   } else if (gameStatus === 'periodEnd') {
-    startPauseButtonText = currentPeriod < numberOfPeriods 
+    startPauseButtonText = !onLastPeriod
       ? t('timerOverlay.startPeriodButton', 'Start Period {{period}}', { period: currentPeriod + 1 })
       : t('timerOverlay.gameOverButton', 'Game Over');
   } else if (gameStatus === 'gameEnd') {
@@ -706,7 +708,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
       <ConfirmationModal
         isOpen={showEndPeriodConfirm}
         title={endPeriodLabel}
-        message={isLastPeriod
+        message={onLastPeriod
           ? t('timerOverlay.confirmEndMatch', 'End the match now? The clock moves to {{time}}, full time.', { time: periodEndClock })
           : t('timerOverlay.confirmEndPeriod', 'End period {{period}} now? The clock moves to {{time}}, the end of the period.', {
             period: currentPeriod,

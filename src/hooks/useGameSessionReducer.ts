@@ -3,6 +3,7 @@ import type { AiMeta } from '@/types/game';
 import logger from '@/utils/logger';
 import { todayIso } from '@/utils/todayIso';
 import { clockContinuation } from '@/utils/clockContinuation';
+import { isLastPeriod, periodEndSeconds, periodStartSeconds, structureFrom, type MatchStructure } from '@/utils/matchStructure';
 
 // --- State Definition ---
 export interface GameSessionState {
@@ -186,14 +187,13 @@ const safeElapsedSeconds = (value: unknown, fallback: number): number => {
  * the period while paused.
  */
 export function boundaryStop(
+  structure: MatchStructure,
   currentPeriod: number,
-  numberOfPeriods: number,
-  periodDurationMinutes: number,
   elapsed: number,
 ): { status: 'periodEnd' | 'gameEnd'; time: number } | null {
-  const boundary = currentPeriod * periodDurationMinutes * 60;
+  const boundary = periodEndSeconds(structure, currentPeriod);
   if (!(boundary > 0) || elapsed < boundary) return null;
-  return { status: currentPeriod >= numberOfPeriods ? 'gameEnd' : 'periodEnd', time: boundary };
+  return { status: isLastPeriod(structure, currentPeriod) ? 'gameEnd' : 'periodEnd', time: boundary };
 }
 
 /**
@@ -221,14 +221,14 @@ function reconcilePeriodBreak(state: GameSessionState): GameSessionState {
     // it is now the period break. Only the STATUS changes - the clock stays where the
     // game was, so re-entering the right length (a typo of 15 for 25) continues from
     // exactly there via clockContinuation instead of losing the minutes in between.
-    const stop = boundaryStop(state.currentPeriod, state.numberOfPeriods, state.periodDurationMinutes, state.timeElapsedInSeconds);
+    const stop = boundaryStop(state, state.currentPeriod, state.timeElapsedInSeconds);
     return stop ? { ...state, gameStatus: stop.status } : state;
   }
   if (state.gameStatus !== 'periodEnd') return state;
   // A break the coach made with "End period" (review 4.31) is never reopened by a length
   // edit - only the period COUNT can still turn it into full time.
   if (state.periodEndedManually) {
-    return state.currentPeriod >= state.numberOfPeriods ? { ...state, gameStatus: 'gameEnd' } : state;
+    return isLastPeriod(state, state.currentPeriod) ? { ...state, gameStatus: 'gameEnd' } : state;
   }
   // The break still stands when the clock is at or past the CURRENT period's end under
   // the new structure (review 4.30): shortening the length at half-time (2 x 25 played
@@ -237,7 +237,7 @@ function reconcilePeriodBreak(state: GameSessionState): GameSessionState {
   // Period 2 still starts the next period at its nominal time. On the last period it
   // is full time. Only a LONGER period (a false half-time) continues the clock below.
   // The clock is deliberately left where it stopped (as for a paused clock above).
-  const breakStands = boundaryStop(state.currentPeriod, state.numberOfPeriods, state.periodDurationMinutes, state.timeElapsedInSeconds);
+  const breakStands = boundaryStop(state, state.currentPeriod, state.timeElapsedInSeconds);
   if (breakStands) {
     return breakStands.status === 'gameEnd' ? { ...state, gameStatus: 'gameEnd' } : state;
   }
@@ -359,7 +359,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, gameStatus: action.payload };
     case 'START_PERIOD': {
         const { nextPeriod, periodDurationMinutes, subIntervalMinutes } = action.payload;
-        const previousPeriodEndTime = (nextPeriod - 1) * periodDurationMinutes * 60;
+        // The payload carries the regulation length the timer started with; extra time
+        // (if any) comes from the state.
+        const previousPeriodEndTime = periodStartSeconds({ ...structureFrom(state, state), periodDurationMinutes }, nextPeriod);
         return {
             ...state,
             currentPeriod: nextPeriod,
@@ -440,7 +442,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       // A pause in the last fraction of a second (precise time just past the end,
       // before the tick ended the period) is the period end (review 4.26).
       const stop = state.gameStatus === 'inProgress'
-        ? boundaryStop(state.currentPeriod, state.numberOfPeriods, state.periodDurationMinutes, timeElapsedAtPause)
+        ? boundaryStop(state, state.currentPeriod, timeElapsedAtPause)
         : null;
       return {
         ...state,
@@ -712,11 +714,12 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const gamePersonnel = loadedData.gamePersonnel ?? [];
 
       // Calculate fallback time based on period (used if no saved time exists)
+      const structureAtLoad: MatchStructure = structureFrom(loadedData, { numberOfPeriods, periodDurationMinutes });
       let fallbackTimeElapsed = 0;
       if (gameStatus === 'periodEnd' || gameStatus === 'gameEnd') {
-         fallbackTimeElapsed = currentPeriod * periodDurationMinutes * 60;
+         fallbackTimeElapsed = periodEndSeconds(structureAtLoad, currentPeriod);
       } else {
-         fallbackTimeElapsed = (currentPeriod - 1) * periodDurationMinutes * 60;
+         fallbackTimeElapsed = periodStartSeconds(structureAtLoad, currentPeriod);
       }
 
       // Use saved timeElapsedInSeconds if available, otherwise fall back to calculated value
@@ -730,7 +733,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       // An in-progress game stored (or recovered) at or past its period end loads as
       // the period break / full time it is, not as a startable clock (review 4.26).
       const stopAtLoad = loadedData.gameStatus === 'inProgress'
-        ? boundaryStop(currentPeriod, numberOfPeriods, periodDurationMinutes, timeElapsedAtLoad)
+        ? boundaryStop(structureAtLoad, currentPeriod, timeElapsedAtLoad)
         : null;
       const clockAtLoad = stopAtLoad ? stopAtLoad.time : timeElapsedAtLoad;
 

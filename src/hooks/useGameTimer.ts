@@ -8,6 +8,7 @@ import { useRecordingSessionActive } from '@/utils/recordingSessionSignal';
 import { usePrecisionTimer } from './usePrecisionTimer';
 import { GameSessionState, GameSessionAction } from './useGameSessionReducer';
 import { clockContinuation } from '@/utils/clockContinuation';
+import { isLastPeriod, periodEndSeconds, periodStartSeconds } from '@/utils/matchStructure';
 
 interface UseGameTimerArgs {
   state: GameSessionState;
@@ -34,7 +35,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   const hiddenWhileRunningRef = useRef<{ elapsedAtHide: number; hiddenAt: number } | null>(null);
 
   // Destructure only the fields used by startPause to avoid recreation on every tick
-  const { gameStatus, isTimerRunning, currentPeriod, numberOfPeriods, periodDurationMinutes, subIntervalMinutes } = state;
+  const { gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes } = state;
 
   const stateRef = useRef(state);
 
@@ -79,7 +80,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         anchorStart(0);
       }
     } else if (gameStatus === 'periodEnd') {
-      if (currentPeriod >= numberOfPeriods) return; // nothing left to start
+      if (isLastPeriod(stateRef.current, currentPeriod)) return; // nothing left to start
       dispatch({
         type: 'START_PERIOD',
         payload: {
@@ -88,15 +89,11 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
           subIntervalMinutes,
         },
       });
-      anchorStart(currentPeriod * periodDurationMinutes * 60);
+      anchorStart(periodEndSeconds(stateRef.current, currentPeriod));
     } else if (gameStatus === 'gameEnd') {
       // Full time came early and the coach has since corrected the period length
       // or count (review 1.11): continue from where the clock stopped.
-      const next = clockContinuation({
-        numberOfPeriods,
-        periodDurationMinutes,
-        timeElapsedInSeconds: stateRef.current.timeElapsedInSeconds,
-      });
+      const next = clockContinuation(stateRef.current);
       if (next?.kind === 'resume') {
         dispatch({ type: 'CONTINUE_CLOCK', payload: { period: next.period } });
         if (!stateRef.current.isTimerRunning) anchorStart(stateRef.current.timeElapsedInSeconds);
@@ -105,7 +102,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
           type: 'START_PERIOD',
           payload: { nextPeriod: next.period, periodDurationMinutes, subIntervalMinutes },
         });
-        anchorStart((next.period - 1) * periodDurationMinutes * 60);
+        anchorStart(periodStartSeconds(stateRef.current, next.period));
       }
     } else if (gameStatus === 'inProgress') {
       // Use proper START_TIMER/PAUSE_TIMER actions instead of SET_TIMER_RUNNING
@@ -129,7 +126,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         anchorStart(stateRef.current.timeElapsedInSeconds);
       }
     }
-  }, [dispatch, gameStatus, isTimerRunning, currentPeriod, numberOfPeriods, periodDurationMinutes, subIntervalMinutes, currentGameId]);
+  }, [dispatch, gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes, currentGameId]);
 
   const reset = useCallback(async () => {
     // Reset NOW, in the tap (review 4.33): awaiting IndexedDB first kept the clock
@@ -164,8 +161,8 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     dispatch({
       type: 'END_PERIOD_OR_GAME',
       payload: {
-        newStatus: s.currentPeriod >= s.numberOfPeriods ? 'gameEnd' : 'periodEnd',
-        finalTime: s.currentPeriod * s.periodDurationMinutes * 60,
+        newStatus: isLastPeriod(s, s.currentPeriod) ? 'gameEnd' : 'periodEnd',
+        finalTime: periodEndSeconds(s, s.currentPeriod),
         manual: true, // a later length edit must not reopen it as a false half-time
       },
     });
@@ -185,7 +182,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   // Precision timer callback
   const handleTimerTick = useCallback((elapsedSeconds: number) => {
     const s = stateRef.current;
-    const periodEnd = s.currentPeriod * s.periodDurationMinutes * 60;
+    const periodEnd = periodEndSeconds(s, s.currentPeriod);
 
     // Refresh the durable wall-clock anchor synchronously every tick. Cheap (one
     // localStorage write) and means a freeze/kill at any moment leaves a fresh anchor
@@ -211,7 +208,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
       // Period/game ended — drop the anchor so boot won't resume past the end.
       if (currentGameId) clearTimerAnchor(currentGameId);
       // >= : a corrected structure must never leave a period past the last one.
-      if (s.currentPeriod >= s.numberOfPeriods) {
+      if (isLastPeriod(s, s.currentPeriod)) {
         dispatch({ type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'gameEnd', finalTime: periodEnd } });
       } else {
         dispatch({ type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'periodEnd', finalTime: periodEnd } });
