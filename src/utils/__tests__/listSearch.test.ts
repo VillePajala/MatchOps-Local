@@ -24,6 +24,12 @@ describe('listSearch', () => {
     expect(matchesSearch('ainska', playerSearchFields({ name: 'Aino Virta', nickname: 'Ainska' }))).toBe(true);
   });
 
+  it('treats slashes and dashes as spaces on both sides, but keeps dots', () => {
+    expect(matchesSearch('ips/sininen', ['IPS Sininen'])).toBe(true);
+    expect(matchesSearch('ips sininen', ['IPS-Sininen'])).toBe(true);
+    expect(matchesSearch('17.9.', ['17.9.2026'])).toBe(true);
+  });
+
   it('an empty query matches everything', () => {
     expect(matchesSearch('   ', ['anything'])).toBe(true);
   });

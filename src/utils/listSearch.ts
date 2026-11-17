@@ -11,13 +11,16 @@
  *   shirt number (playerSearchFields).
  */
 
-/** Lowercase, accents removed, runs of whitespace collapsed. */
+/** Lowercase, accents removed, slashes and dashes as spaces, whitespace collapsed. */
 export function foldForSearch(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return '';
   return String(value)
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '') // combining accent marks
     .toLowerCase()
+    // Slashes and dashes separate words, as in opponent names ("ips/sininen" finds
+    // "IPS Sininen"); dots stay, so a date like "17.9." is still one word.
+    .replace(/[/\-\u2010-\u2015]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }

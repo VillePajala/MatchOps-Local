@@ -170,7 +170,7 @@ describe('LoadGameModal', () => {
     (games['game_1659123456_abc'] as unknown as { opponentName: string }).opponentName = 'IPS/Sininen';
     await renderModal({ savedGames: games });
     await screen.findByText('Lions');
-    fireEvent.change(screen.getByPlaceholderText('loadGameModal.filterPlaceholder'), { target: { value: 'ips sininen' } });
+    fireEvent.change(screen.getByPlaceholderText('loadGameModal.filterPlaceholder'), { target: { value: 'ips/sininen' } });
     expect(await screen.findByText('Lions')).toBeInTheDocument();
     expect(screen.queryByText('Hawks')).not.toBeInTheDocument();
   });
