@@ -40,6 +40,11 @@ describe('appStateSchema', () => {
     expect(appStateSchema.safeParse({ ...valid, currentPeriod: 3, extraTimePeriods: 2, extraTimeMinutes: 15 }).success).toBe(true);
     expect(appStateSchema.safeParse({ ...valid, currentPeriod: 5 }).success).toBe(false);
     expect(appStateSchema.safeParse({ ...valid, extraTimePeriods: 3 }).success).toBe(false);
+    // Bounded by the game's own structure: a plain 2-period game cannot be in period 3.
+    expect(appStateSchema.safeParse({ ...valid, numberOfPeriods: 2, currentPeriod: 3 }).success).toBe(false);
+    // Extra time needs whole-minute lengths.
+    expect(appStateSchema.safeParse({ ...valid, currentPeriod: 3, extraTimePeriods: 2 }).success).toBe(false);
+    expect(appStateSchema.safeParse({ ...valid, currentPeriod: 3, extraTimePeriods: 2, extraTimeMinutes: 7.5 }).success).toBe(false);
   });
 
   it('fails for invalid data', () => {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { totalPeriods } from './matchStructure';
 
 export const pointSchema = z.object({
   relX: z.number().min(0).max(1),
@@ -96,13 +97,15 @@ export const appStateSchema = z.object({
     .max(120, 'Period duration cannot exceed 120 minutes')
     .int('Period duration must be an integer'),
   // Up to 4: two regulation periods + up to two extra-time periods (review 11.1). The
-  // exact bound against the game's own structure is checked in savedGames.
+  // exact bound against the game's own structure is the refinement below.
   currentPeriod: z.number()
     .min(1, 'Current period must be at least 1')
     .max(4, 'Current period cannot exceed 4')
     .int('Current period must be an integer'),
   extraTimePeriods: z.number().int().min(0).max(2).optional(),
-  extraTimeMinutes: z.number().min(1).max(60).optional(),
+  // Whole minutes, as the cloud stores them (smallint) - a fraction would give the
+  // local and the synced copy different period boundaries.
+  extraTimeMinutes: z.number().int().min(1).max(60).optional(),
   gameStatus: z.enum(['notStarted', 'inProgress', 'periodEnd', 'gameEnd']),
   selectedPlayerIds: z.array(z.string()),
   assessments: z.record(z.string(), playerAssessmentSchema).optional(),
@@ -139,6 +142,16 @@ export const appStateSchema = z.object({
   gamePersonnel: z.array(z.string()).optional(),
   leagueId: z.string().optional(),
   customLeagueName: z.string().max(100, 'Custom league name cannot exceed 100 characters').optional(),
+}).superRefine((state, ctx) => {
+  // Review 11.1: extra-time periods need a length, and the current period is bounded by
+  // the game's own regulation + extra-time periods (the old .max(2) for plain games).
+  if ((state.extraTimePeriods ?? 0) > 0 && state.extraTimeMinutes === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['extraTimeMinutes'], message: 'Extra time needs a period length' });
+  }
+  const last = totalPeriods(state);
+  if (state.currentPeriod > last) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['currentPeriod'], message: `Current period cannot exceed ${last}` });
+  }
 });
 
 export type AppStateSchema = typeof appStateSchema;
