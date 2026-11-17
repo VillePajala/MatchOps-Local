@@ -72,6 +72,19 @@ export type SyncCheckedTable =
   | 'players' | 'teams' | 'seasons' | 'tournaments' | 'personnel'
   | 'user_settings' | 'player_adjustments' | 'warmup_plans';
 
+/**
+ * Extra-time columns (migrations 060/061): 1 or 2 periods with a positive whole-minute
+ * length, else none (0 / NULL) - matching the DB CHECKs.
+ */
+const extraTimeColumns = (game: { extraTimePeriods?: number; extraTimeMinutes?: number }) => {
+  const periods = game.extraTimePeriods === 1 || game.extraTimePeriods === 2 ? game.extraTimePeriods : 0;
+  const minutes = typeof game.extraTimeMinutes === 'number' && Number.isFinite(game.extraTimeMinutes)
+    ? Math.round(game.extraTimeMinutes) : 0;
+  return periods > 0 && minutes >= 1
+    ? { extra_time_periods: periods, extra_time_minutes: minutes }
+    : { extra_time_periods: 0, extra_time_minutes: null };
+};
+
 const editedAtColumn = (options?: SyncWriteOptions): { edited_at?: string } =>
   options?.editedAt ? { edited_at: options.editedAt } : {};
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
@@ -3248,6 +3261,8 @@ export class SupabaseDataStore implements DataStore {
         game_type: normalizeGameType(game.gameType),
         gender: normalizeGender(game.gender),
         went_to_overtime: game.wentToOvertime ?? false,
+        // Extra time (migrations 060/061): 0 = none; minutes NULL when none.
+        ...extraTimeColumns(game),
         went_to_penalties: game.wentToPenalties ?? false,
         show_position_labels: game.showPositionLabels ?? true,
         // Penalty-shootout kicks (migration 032). Defensive: only persist an array.
@@ -3446,6 +3461,9 @@ export class SupabaseDataStore implements DataStore {
       gameType: normalizeGameType(game.game_type) ?? undefined,
       gender: normalizeGender(game.gender) ?? undefined,
       wentToOvertime: game.went_to_overtime ?? undefined,
+      // Legacy rows / no extra time read as absent (Rule 2: ?? undefined).
+      extraTimePeriods: game.extra_time_periods || undefined,
+      extraTimeMinutes: game.extra_time_minutes ?? undefined,
       wentToPenalties: game.went_to_penalties ?? undefined,
       showPositionLabels: game.show_position_labels ?? true,
       // Penalty-shootout kicks (migration 032). Defensive: only accept an array.

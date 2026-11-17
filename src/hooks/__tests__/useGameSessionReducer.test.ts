@@ -105,6 +105,24 @@ describe('gameSessionReducer', () => {
       expect(gameSessionReducer(running, { type: 'RESUME_GAME' })).toBe(running);
     });
 
+    /**
+     * Review 11.1: a game paused in extra time loads in extra time - the boundary is
+     * the extra-time period's end, not "period 3 × regulation length".
+     * @critical
+     */
+    test('a game loaded in extra time keeps its structure and boundaries', () => {
+      const persisted = {
+        gameStatus: 'inProgress' as const, currentPeriod: 3, numberOfPeriods: 2 as const,
+        periodDurationMinutes: 25, extraTimePeriods: 2, extraTimeMinutes: 15,
+        timeElapsedInSeconds: 3500, teamName: 'My Team', opponentName: 'Rivals',
+      };
+      const loaded = gameSessionReducer(baseState, { type: 'LOAD_PERSISTED_GAME_DATA', payload: persisted });
+      expect(loaded).toMatchObject({ extraTimePeriods: 2, extraTimeMinutes: 15, currentPeriod: 3, timeElapsedInSeconds: 3500 });
+      // At its end (3900 = 2x25 + 15 min) period 3 is a break before extra-time period 4.
+      const atEnd = gameSessionReducer(baseState, { type: 'LOAD_PERSISTED_GAME_DATA', payload: { ...persisted, timeElapsedInSeconds: 3950 } });
+      expect(atEnd).toMatchObject({ gameStatus: 'periodEnd', timeElapsedInSeconds: 3900 });
+    });
+
     test('full reload scenario: LOAD_PERSISTED_GAME_DATA then RESUME_GAME restores the match', () => {
       // An in-progress game as persisted by auto-save mid-period-2
       const persisted = {

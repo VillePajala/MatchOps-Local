@@ -4616,6 +4616,43 @@ describe('SupabaseDataStore', () => {
       });
     });
 
+    /** Review 11.1 / migrations 060-061: extra time round-trips; none reads as absent. @critical */
+    describe('extra time fields', () => {
+      const baseGame = {
+        teamName: 'T', opponentName: 'O', gameDate: '2024-01-15', homeOrAway: 'home' as const,
+        numberOfPeriods: 2 as const, periodDurationMinutes: 25, currentPeriod: 3,
+        gameStatus: 'inProgress' as const, homeScore: 0, awayScore: 0, gameNotes: '', showPlayerNames: true,
+        playersOnField: [], availablePlayers: [], selectedPlayerIds: [], opponents: [], drawings: [],
+        tacticalDiscs: [], tacticalDrawings: [], tacticalBallPosition: null, gameEvents: [],
+      };
+
+      it('writes the count and length; none is 0 and NULL; anything but 1/2 is none', () => {
+        const toTables = getPrivateMethod('transformGameToTables');
+        expect(toTables('g', { ...baseGame, extraTimePeriods: 2, extraTimeMinutes: 15 }, 'u').game)
+          .toMatchObject({ extra_time_periods: 2, extra_time_minutes: 15 });
+        expect(toTables('g', { ...baseGame, currentPeriod: 2 }, 'u').game)
+          .toMatchObject({ extra_time_periods: 0, extra_time_minutes: null });
+        expect(toTables('g', { ...baseGame, currentPeriod: 2, extraTimePeriods: 3, extraTimeMinutes: 15 }, 'u').game)
+          .toMatchObject({ extra_time_periods: 0, extra_time_minutes: null });
+      });
+
+      it('reads them back; 0 / NULL read as absent', () => {
+        const fromTables = getPrivateMethod('transformTablesToGame');
+        const row = {
+          id: 'g', user_id: 'u', team_name: 'T', opponent_name: 'O', game_date: '2024-01-15', home_or_away: 'home',
+          number_of_periods: 2, period_duration_minutes: 25, current_period: 3, game_status: 'inProgress',
+          is_played: true, home_score: 0, away_score: 0, game_notes: '', show_player_names: true, game_personnel: [],
+          created_at: 'x', updated_at: 'x',
+        };
+        const tables = (game: Record<string, unknown>) => ({ game, players: [], events: [], assessments: [], tacticalData: null });
+        expect(fromTables(tables({ ...row, extra_time_periods: 2, extra_time_minutes: 15 })))
+          .toMatchObject({ extraTimePeriods: 2, extraTimeMinutes: 15 });
+        const none = fromTables(tables({ ...row, extra_time_periods: 0, extra_time_minutes: null }));
+        expect(none.extraTimePeriods).toBeUndefined();
+        expect(none.extraTimeMinutes).toBeUndefined();
+      });
+    });
+
     describe('transformTablesToGame', () => {
       it('should convert NULL fields to empty strings', () => {
         const transformTablesToGame = getPrivateMethod('transformTablesToGame');

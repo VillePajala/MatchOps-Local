@@ -5,6 +5,16 @@
       "date": "2026-11-17",
       "internal": true,
       "en": [
+        "Groundwork for extra time: matches can store extra-time periods."
+      ],
+      "fi": [
+        "Pohjatyö jatkoajalle: otteluihin voidaan tallentaa jatkoajan jaksot."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "internal": true,
+      "en": [
         "Groundwork for extra time: the match clock's period boundaries are calculated in one place."
       ],
       "fi": [

@@ -31,6 +31,8 @@ export interface GameSessionState {
   gameType?: GameType; // Sport type: 'soccer' or 'futsal' (defaults to 'soccer')
   gender?: Gender; // Gender: 'boys' or 'girls' (optional for backward compatibility)
   wentToOvertime?: boolean; // Game went to overtime/extra time
+  extraTimePeriods?: number; // Extra-time periods after regulation (review 11.1; 0/absent = none)
+  extraTimeMinutes?: number; // Length of each extra-time period
   wentToPenalties?: boolean; // Game decided by penalty shootout
   shootoutKicks?: ShootoutKick[]; // Penalty-shootout kicks (free-form log; result derived)
   ageGroup?: string;
@@ -695,6 +697,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const gameType = loadedData.gameType;
       const gender = loadedData.gender;
       const wentToOvertime = loadedData.wentToOvertime;
+      const extraTimePeriods = loadedData.extraTimePeriods;
+      const extraTimeMinutes = loadedData.extraTimeMinutes;
       const wentToPenalties = loadedData.wentToPenalties;
       const shootoutKicks = loadedData.shootoutKicks;
       const ageGroup = loadedData.ageGroup;
@@ -771,6 +775,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         gameType,
         gender,
         wentToOvertime,
+        extraTimePeriods,
+        extraTimeMinutes,
         wentToPenalties,
         shootoutKicks,
         ageGroup,
