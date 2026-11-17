@@ -61,7 +61,10 @@ const FORMATS: WizardFormat[] = ['5v5', '8v8', '11v11'];
 /**
  * The wizard's input, kept for the tab (review 7.1b). Android may destroy a
  * backgrounded app's page while the coach reads names from another app; without
- * this the restored page started the wizard empty. It also carries what a failed
+ * this the restored page started the wizard empty. Scope: sessionStorage survives
+ * a reload, a tab discard and a TWA page recreation - not a full process kill
+ * followed by a cold start, which begins a new session (a deliberate trade-off:
+ * no stale half-finished wizard weeks later). It also carries what a failed
  * finish already created, so finishing after a restore does not create those
  * players or the team twice (the 7.6 retry rule, across a reload).
  */
@@ -174,6 +177,28 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
     });
   }, [userId, step, teamName, format, ageGroup, names, draft]);
   const finishedRef = useRef(false);
+
+  // The account id can settle after the first render (auth rehydrating in cloud
+  // mode): the draft is under the real id, so look again then - but only while
+  // nothing has been typed, never over the coach's input.
+  const draftReadForRef = useRef(userId);
+  useEffect(() => {
+    if (draftReadForRef.current === userId) return;
+    draftReadForRef.current = userId;
+    if (teamName || names.length > 0 || draft) return;
+    const late = readWizardDraft(userId);
+    if (!late) return;
+    setStep(late.step);
+    setTeamName(late.teamName);
+    setFormat(late.format);
+    setAgeGroup(late.ageGroup);
+    setNames(late.names);
+    setDraft(late.draft);
+    nextRowIdRef.current = late.nextRowId;
+    createdPlayersRef.current = new Map(late.created);
+    createdTeamRef.current = late.createdTeam;
+  }, [userId, teamName, names.length, draft]);
+
   useEffect(() => {
     if (!finishedRef.current) saveDraftNow();
   }, [saveDraftNow]);

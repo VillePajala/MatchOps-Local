@@ -28,8 +28,9 @@ jest.mock('@/contexts/ToastProvider', () => ({
   useToast: () => ({ showToast: mockShowToast }),
 }));
 
+let mockUserId: string | null = 'user-1';
 jest.mock('@/hooks/useDataStore', () => ({
-  useDataStore: () => ({ userId: 'user-1' }),
+  useDataStore: () => ({ userId: mockUserId }),
 }));
 
 const mockAddPlayer = jest.fn();
@@ -81,6 +82,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   localStorage.clear();
   sessionStorage.clear();
+  mockUserId = 'user-1';
   mockAddPlayer.mockImplementation(async (data: { name: string }) => ({
     id: `p-${data.name}`,
     name: data.name,
@@ -330,6 +332,24 @@ describe('SetupWizard', () => {
         [expect.objectContaining({ id: 'p-Aino' }), expect.objectContaining({ id: 'p-Eetu' })],
         'user-1',
       );
+    });
+
+    it('finds the draft when the account id settles after the first render', () => {
+      const first = renderWizard();
+      toStepTwo('FC Draft');
+      addPlayerRow('Aino');
+      first.unmount();
+
+      mockUserId = null; // auth still rehydrating on the recreated page
+      const { rerender } = renderWizard();
+      expect(screen.queryByText('Aino')).not.toBeInTheDocument();
+      mockUserId = 'user-1';
+      rerender(
+        <QueryClientProvider client={new QueryClient()}>
+          <SetupWizard onComplete={jest.fn()} />
+        </QueryClientProvider>,
+      );
+      expect(screen.getByText('Aino')).toBeInTheDocument();
     });
 
     it('is gone once the wizard is finished or skipped', async () => {
