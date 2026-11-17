@@ -3,6 +3,16 @@
   "releases": [
     {
       "date": "2026-11-17",
+      "internal": true,
+      "en": [
+        "Developer tooling: a smoke test checks the cloud database's access rules and sync checks on the test environment."
+      ],
+      "fi": [
+        "Kehitystyökalu: savutesti tarkistaa pilvitietokannan käyttöoikeudet ja synkronointitarkistukset testiympäristössä."
+      ]
+    },
+    {
+      "date": "2026-11-17",
       "en": [
         "Applying an app update during a match now saves the latest changes (for example a goal entered just before) before the app restarts."
       ],

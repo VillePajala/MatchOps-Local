@@ -4,31 +4,34 @@
 # =============================================================================
 # The SQL (migrations, RPCs, RLS, grants) is otherwise covered only by tests with a
 # mocked client. This drives the real staging API with throwaway users:
-#   1. the anon key cannot call service-only functions (057);
+#   1. the service-only functions (057) exist and anon/authenticated cannot execute them;
 #   2. one user cannot read another user's rows (RLS);
 #   3. sync_write_check answers apply / stale / deleted (059);
 #   4. sync_tombstones is closed to clients;
 #   5. clear_all_user_data runs.
 # Test users are deleted at the end (Management API, the Supabase CLI's token).
 #
-# STAGING ONLY. Refuses the production project. Usage:
+# STAGING ONLY: the target is fixed to the staging project (no override). Usage:
 #   scripts/supabase-staging-smoke.sh
 # Needs: curl, jq, ~/.supabase/access-token (`supabase login`), .env.development.
 # =============================================================================
 set -uo pipefail
 
-PROD_REF="aybjmnxxtgspqesdiqxd"
-REF="${SMOKE_PROJECT_REF:-uncyxrffqrloypgjalzz}"
-if [ "$REF" = "$PROD_REF" ]; then
-  echo "Refusing to run against production ($PROD_REF)." >&2
+# Allowlist, not a denylist: the script runs SQL (incl. deleting auth users) with a
+# Management API token, so it must never target any other project.
+STAGING_REF="uncyxrffqrloypgjalzz"
+REF="$STAGING_REF"
+if [ -n "${SMOKE_PROJECT_REF:-}" ] && [ "$SMOKE_PROJECT_REF" != "$STAGING_REF" ]; then
+  echo "Refusing: this script only runs against staging ($STAGING_REF)." >&2
   exit 2
 fi
 URL="https://$REF.supabase.co"
-ANON=$(grep '^NEXT_PUBLIC_SUPABASE_ANON_KEY=' .env.development | cut -d= -f2-)
+env_value() { grep "^$1=" .env.development | head -1 | cut -d= -f2- | tr -d '\r' | sed -e 's/^["'"'"']//' -e 's/["'"'"']$//'; }
+ANON=$(env_value NEXT_PUBLIC_SUPABASE_ANON_KEY)
 TOKEN=$(cat ~/.supabase/access-token 2>/dev/null || true)
 [ -n "$ANON" ] || { echo ".env.development has no NEXT_PUBLIC_SUPABASE_ANON_KEY" >&2; exit 2; }
 [ -n "$TOKEN" ] || { echo "No ~/.supabase/access-token (run: supabase login)" >&2; exit 2; }
-grep -q "$REF" .env.development || { echo ".env.development does not point at $REF" >&2; exit 2; }
+[ "$(env_value NEXT_PUBLIC_SUPABASE_URL)" = "$URL" ] || { echo ".env.development does not point at staging ($URL)" >&2; exit 2; }
 
 PASS=0; FAIL=0; USERS=()
 ok()   { PASS=$((PASS+1)); echo "  ok   $1"; }
@@ -41,36 +44,51 @@ sql() {
     --data-binary "$(jq -n --arg s "$1" '{query:$s}')"
 }
 signup() {  # prints "<jwt> <user id>"
-  local email="smoke-$(date +%s%N)@example.com"
+  local email="smoke-$(date +%s)-$(od -An -N4 -tx4 /dev/urandom | tr -d ' ')@example.com"
   local r; r=$(curl -s --http1.1 -X POST "$URL/auth/v1/signup" -H "apikey: $ANON" -H "Content-Type: application/json" \
     -d "{\"email\":\"$email\",\"password\":\"Smoke-$(date +%s)-pw!\"}")
   echo "$(echo "$r" | jq -r .access_token) $(echo "$r" | jq -r .user.id)"
 }
-rest() {  # method path jwt [body] -> prints "<http code> <body>"
+BODY_FILE=$(mktemp)
+rest() {  # method path jwt [body] -> prints "<http code> <body on one line>"
   local m=$1 p=$2 jwt=$3 body=${4:-}
-  curl -s --http1.1 -o /tmp/smoke_body.$$ -w "%{http_code}" -X "$m" "$URL/rest/v1/$p" \
+  local code
+  code=$(curl -s --http1.1 -o "$BODY_FILE" -w "%{http_code}" -X "$m" "$URL/rest/v1/$p" \
     -H "apikey: $ANON" -H "Authorization: Bearer $jwt" -H "Content-Type: application/json" \
-    ${body:+-d "$body"}
-  echo " $(cat /tmp/smoke_body.$$)"
+    ${body:+-d "$body"})
+  echo "$code $(tr -d '\n' < "$BODY_FILE")"
 }
 check() { rest POST rpc/sync_write_check "$1" "{\"p_table\":\"$2\",\"p_row_id\":\"$3\",\"p_edit_age_ms\":$4}" | cut -d' ' -f2- | jq -r 'if type == "array" then .[0].verdict else .message end'; }
 
 cleanup() {
-  for u in "${USERS[@]}"; do
+  local status=$? left
+  for u in ${USERS[@]+"${USERS[@]}"}; do
+    [[ "$u" =~ ^[0-9a-f-]{36}$ ]] || continue
     sql "delete from public.sync_tombstones where user_id='$u'; delete from auth.users where id='$u';" >/dev/null
+    left=$(sql "select count(*) as n from auth.users where id='$u'" | jq -r '.[0].n // "?"')
+    if [ "$left" != "0" ]; then
+      echo "WARNING: test user $u was not removed from staging (left: $left)" >&2
+      status=1
+    fi
   done
-  rm -f /tmp/smoke_body.$$
+  rm -f "$BODY_FILE"
+  exit $status
 }
 trap cleanup EXIT
 
 echo "Supabase staging smoke ($REF)"
-read -r JWT_A UID_A <<<"$(signup)"; USERS+=("$UID_A")
-read -r JWT_B UID_B <<<"$(signup)"; USERS+=("$UID_B")
+read -r JWT_A UID_A <<<"$(signup)"; [ "$UID_A" != "null" ] && USERS+=("$UID_A")
+read -r JWT_B UID_B <<<"$(signup)"; [ "$UID_B" != "null" ] && USERS+=("$UID_B")
 [ "$JWT_A" != "null" ] && [ "$JWT_B" != "null" ] || { echo "Sign-up failed (is auto-confirm on for staging?)" >&2; exit 1; }
 
 echo "1. grants"
-code=$(rest POST rpc/check_rate_limit "$ANON" '{"p_key":"x","p_limit":1,"p_window_seconds":60}' | cut -d' ' -f1)
-case "$code" in 401|403|404) ok "anon cannot execute check_rate_limit ($code)";; *) bad "anon cannot execute check_rate_limit" "$code";; esac
+# Checked in the catalog, not through the API: a 404 from the API also means
+# "function not found", which would pass for the wrong reason.
+for fn in check_rate_limit upsert_subscription; do
+  row=$(sql "select count(*) as n, bool_or(has_function_privilege('anon', p.oid, 'execute')) as anon, bool_or(has_function_privilege('authenticated', p.oid, 'execute')) as auth from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = 'public' and p.proname = '$fn'")
+  expect "$fn exists" "$(echo "$row" | jq -r '.[0].n > 0')" "true"
+  expect "$fn not executable by anon or authenticated" "$(echo "$row" | jq -r '.[0].anon or .[0].auth')" "false"
+done
 
 echo "2. RLS"
 expect "user A inserts a player" "$(rest POST players "$JWT_A" "{\"id\":\"smoke_p\",\"user_id\":\"$UID_A\",\"name\":\"A\"}" | cut -d' ' -f1)" "201"
@@ -91,7 +109,8 @@ case "$body" in *"permission denied"*) ok "tombstones not readable";; *) bad "to
 
 echo "5. clear_all_user_data"
 rest POST players "$JWT_A" "{\"id\":\"smoke_q\",\"user_id\":\"$UID_A\",\"name\":\"Q\"}" >/dev/null
-rest POST rpc/clear_all_user_data "$JWT_A" '{}' >/dev/null
+code=$(rest POST rpc/clear_all_user_data "$JWT_A" '{}' | cut -d' ' -f1)
+case "$code" in 2??) ok "clear_all_user_data succeeds ($code)";; *) bad "clear_all_user_data succeeds" "$code";; esac
 expect "user A's rows are gone" "$(rest GET "players?select=id" "$JWT_A" | cut -d' ' -f2-)" "[]"
 
 echo
