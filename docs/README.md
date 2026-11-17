@@ -18,7 +18,7 @@ This documentation covers everything about the MatchOps-Local project - what it 
 | Cloud Backend | ✅ **Supabase** (PostgreSQL, Auth, Edge Functions) |
 | Performance | ✅ React.memo optimization complete |
 
-All P0/P1/P2 refactoring and cloud backend work is **complete**. The codebase is healthy and ready for Play Store release.
+All P0/P1/P2 refactoring and cloud backend work is **complete**. The app is **live on Google Play** (free, released 2026-06-09).
 
 ---
 
@@ -35,7 +35,7 @@ All P0/P1/P2 refactoring and cloud backend work is **complete**. The codebase is
 
 ### ⭐ **Start Here** (For Developers)
 - **[03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md)** - 📊 **Single source of truth** for all project work
-- **[03-active-plans/master-execution-guide.md](./03-active-plans/master-execution-guide.md)** - Play Store release plan
+- **[03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md)** - what is open and what is done (the Play Store release plan is archived)
 - **[01-project/overview.md](./01-project/overview.md)** - What MatchOps-Local is and why it exists
 
 ### 📂 **Documentation Categories**
@@ -104,9 +104,9 @@ Advanced analytics, multi-team management, performance tracking, and comprehensi
 ### **5. PWA Technology**
 Modern Progressive Web App architecture provides native-like experience across all devices while maintaining web-based flexibility and easy updates.
 
-## 📊 Project Maturity: Release Candidate
+## 📊 Project Maturity: Live in Production
 
-MatchOps-Local has completed all feature development and is preparing for **Play Store release** (blocked by business entity setup).
+MatchOps-Local is **live on Google Play** since 2026-06-09 (free; cloud-only TWA build).
 
 - ✅ **Core Features**: Stable and thoroughly tested (~7,700 tests)
 - ✅ **Cloud Backend**: Supabase with auth, RLS, Edge Functions
@@ -118,7 +118,7 @@ MatchOps-Local has completed all feature development and is preparing for **Play
 ## 🎯 Strategic Vision
 
 ### **Near-Term (2026)**
-Play Store release. Establish as the privacy-first choice for soccer coaching in Finland with local-first performance and optional cloud sync.
+Live on Google Play (2026-06-09). Establish as the privacy-first choice for soccer coaching in Finland with local-first performance and cloud sync.
 
 ### **Medium-Term (2026-2027)**
 Expand internationally with multi-language support and become the recognized leader in local-first sports applications.
@@ -165,7 +165,7 @@ In youth sports, where we handle sensitive information about minors, the local-f
 
 ### **Planning Work?**
 1. Check [03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md) ⭐ - Single source of truth
-2. Review [03-active-plans/master-execution-guide.md](./03-active-plans/master-execution-guide.md) - Play Store release plan
+2. Review [03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md) - prioritized roadmap
 
 ## 🔄 Documentation Maintenance
 
