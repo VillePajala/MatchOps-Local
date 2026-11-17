@@ -3,6 +3,15 @@
   "releases": [
     {
       "date": "2026-11-17",
+      "en": [
+        "First-time setup keeps what you typed even if the phone closes the app in the background while you look up names elsewhere."
+      ],
+      "fi": [
+        "Ensimmäinen käyttöönotto säilyttää kirjoittamasi tiedot, vaikka puhelin sulkisi sovelluksen taustalla sillä aikaa kun katsot nimiä muualta."
+      ]
+    },
+    {
+      "date": "2026-11-17",
       "internal": true,
       "en": [
         "When the app is already open in another tab, the second tab now stays idle instead of syncing in the background alongside the first."
