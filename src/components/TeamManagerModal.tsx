@@ -67,6 +67,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const [unifiedModalMode, setUnifiedModalMode] = useState<'create' | 'edit'>('create');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const archivedTeamCount = useMemo(() => teams.filter((team) => team.archived).length, [teams]);
   const [searchText, setSearchText] = useState('');
   const [actionsMenuTeamId, setActionsMenuTeamId] = useState<string | null>(null);
   const [deleteConfirmTeamId, setDeleteConfirmTeamId] = useState<string | null>(null);
@@ -336,16 +337,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               aria-label={t('teamManager.searchAriaLabel', 'Search teams by name')}
               className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
-            <button
-              type="button"
-              onClick={() => setShowArchived(v => !v)}
-              aria-pressed={showArchived}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                showArchived ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              {t('teamManager.showArchived', 'Show Archived')}
-            </button>
           </div>
 
           {/* Teams List */}
@@ -385,7 +376,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   <p className="text-slate-400 mb-4">
                     {searchText
                       ? t('teamManager.noSearchResults', 'No teams match your search for "{{search}}".', { search: searchText })
-                      : t('teamManager.noArchivedTeams', 'No archived teams to show.')
+                      : t('common.allArchived', 'Everything here is archived.')
                     }
                   </p>
                 </div>
@@ -572,6 +563,21 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
             </div>
             );
           })()}
+          {archivedTeamCount > 0 && (
+            // One Show-archived control app-wide (review 7.L7): a link under the list
+            // with the count, shown only when something is archived - as in the roster.
+            <button
+              type="button"
+              onClick={() => setShowArchived((v) => !v)}
+              aria-pressed={showArchived}
+              data-testid="teams-toggle-archived"
+              className="w-full mt-3 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              {showArchived
+                ? t('common.hideArchived', 'Hide archived')
+                : t('common.showArchivedCount', 'Show archived ({{count}})', { count: archivedTeamCount })}
+            </button>
+          )}
 
           {/* Utility action, inline at the bottom of the content (chrome
               slimming): games left behind by deleted teams. */}

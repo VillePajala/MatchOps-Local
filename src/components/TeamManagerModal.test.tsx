@@ -433,7 +433,7 @@ describe('TeamManagerModal', () => {
       await renderWithQueryClient(<TeamManagerModal {...defaultProps} teams={teamsWithArchived} />);
 
       // Enable show archived
-      const showArchivedCheckbox = screen.getByRole('button', { name: 'Show Archived' });
+      const showArchivedCheckbox = screen.getByTestId('teams-toggle-archived');
       fireEvent.click(showArchivedCheckbox);
 
       // Search for "Delta"
@@ -444,6 +444,12 @@ describe('TeamManagerModal', () => {
       expect(screen.queryByText('Team Alpha')).not.toBeInTheDocument();
     });
 
+    /** Review 7.L7: the archived link shows only when something is archived. */
+    it('offers no Show-archived link when nothing is archived', async () => {
+      await renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
+      expect(screen.queryByTestId('teams-toggle-archived')).not.toBeInTheDocument();
+    });
+
     it('shows archived empty message when only archived teams are hidden', async () => {
       const archivedOnlyTeams: Team[] = [
         { id: 't1', name: 'Team Alpha', color: '#6366F1', archived: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
@@ -451,7 +457,9 @@ describe('TeamManagerModal', () => {
 
       await renderWithQueryClient(<TeamManagerModal {...defaultProps} teams={archivedOnlyTeams} />);
 
-      expect(screen.getByText('No archived teams to show.')).toBeInTheDocument();
+      // Review 7.L7: they exist, archived - not "none"; the link under the list shows them.
+      expect(screen.getByText('Everything here is archived.')).toBeInTheDocument();
+      expect(screen.getByTestId('teams-toggle-archived')).toHaveTextContent('Show archived (1)');
     });
   });
 
@@ -586,7 +594,7 @@ describe('TeamManagerModal - Premium Limit Enforcement', () => {
       );
 
       // Enable show archived
-      const showArchivedCheckbox = screen.getByRole('button', { name: 'Show Archived' });
+      const showArchivedCheckbox = screen.getByTestId('teams-toggle-archived');
       fireEvent.click(showArchivedCheckbox);
 
       // Open actions menu for archived team. Wait for it to be listed first: under

@@ -530,7 +530,10 @@
     "all": "All",
     "checkOnMap": "Check on map",
     "hourShort": "h",
-    "noPlayersToShow": "No player statistics for this selection."
+    "noPlayersToShow": "No player statistics for this selection.",
+    "hideArchived": "Hide archived",
+    "showArchivedCount": "Show archived ({{count}})",
+    "allArchived": "Everything here is archived."
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
@@ -949,7 +952,9 @@
     "sortBy": "Sort by",
     "sortByLastName": "Last Name",
     "sortByNewest": "Newest",
-    "sortByOldest": "Oldest"
+    "sortByOldest": "Oldest",
+    "noSearchResults": "No player matches \"{{search}}\".",
+    "noPlayersYet": "No players yet. Add your first player above."
   },
   "status": {
     "loadingGameData": "Loading Game Data..."

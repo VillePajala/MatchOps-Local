@@ -274,6 +274,16 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
             {/* Player List */}
             <div className={`${cardStyle} -mx-2 sm:-mx-4 md:-mx-6`}>
               <div className="space-y-3">
+                {filteredPlayers.length === 0 && (
+                  // Say why the list is empty (review 7.L7) - it was a blank card.
+                  <p className="text-sm text-slate-400 py-2" data-testid="roster-empty">
+                    {searchText.trim()
+                      ? t('rosterSettingsModal.noSearchResults', 'No player matches "{{search}}".', { search: searchText.trim() })
+                      : archivedCount > 0 && !showArchived
+                        ? t('common.allArchived', 'Everything here is archived.')
+                        : t('rosterSettingsModal.noPlayersYet', 'No players yet. Add your first player above.')}
+                  </p>
+                )}
                 {filteredPlayers.map((player) => (
                   <div
                     key={player.id}
