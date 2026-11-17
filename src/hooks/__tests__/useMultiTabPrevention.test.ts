@@ -227,6 +227,23 @@ describe('useMultiTabPrevention', () => {
       await waitFor(() => expect(result.current.status).toBe('unsupported'));
     });
 
+    it('a late failure after the answer does not overwrite it', async () => {
+      Object.defineProperty(navigator, 'locks', {
+        value: {
+          request: async (_n: string, _o: LockOptions, cb: (lock: Lock | null) => Promise<void>) => {
+            await cb(null); // blocked
+            throw new Error('late');
+          },
+        },
+        configurable: true,
+        writable: true,
+      });
+      const { result } = renderHook(() => useMultiTabPrevention());
+      await waitFor(() => expect(result.current.status).toBe('blocked'));
+      await act(async () => { await Promise.resolve(); });
+      expect(result.current.status).toBe('blocked');
+    });
+
     it('unsupported without the Web Locks API - the app runs as before', async () => {
       Object.defineProperty(navigator, 'locks', { value: undefined, configurable: true, writable: true });
       const { result } = renderHook(() => useMultiTabPrevention());

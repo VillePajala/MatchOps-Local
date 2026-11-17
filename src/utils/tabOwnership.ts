@@ -37,6 +37,55 @@ export const onTabOwnershipChange = (listener: (value: TabOwnership) => void): (
   };
 };
 
+/**
+ * Start a sync engine only in the tab that owns the app (review 7.19).
+ * - owner / no lock support: start now;
+ * - still pending: start when the answer is ours, or after `waitMs` if no guard
+ *   ever answers (a page without one);
+ * - blocked: never.
+ * After starting, keeps listening: if the tab turns out blocked after all (the
+ * fallback fired before a slow lock answer), the engine is stopped.
+ * Returns a function that stops listening (and cancels a pending start).
+ */
+export function startSyncWhenTabOwned(
+  store: { startSync: () => void; stopSync: () => void },
+  waitMs: number,
+): () => void {
+  let started = false;
+  let fallback: ReturnType<typeof setTimeout> | null = null;
+  const start = () => {
+    if (started) return;
+    started = true;
+    store.startSync();
+  };
+  const stopListening = onTabOwnershipChange((value) => {
+    if (value === 'blocked') {
+      if (fallback) clearTimeout(fallback);
+      fallback = null;
+      if (started) {
+        started = false;
+        store.stopSync();
+      }
+      return;
+    }
+    if (value === 'owner' || value === 'unsupported') {
+      if (fallback) clearTimeout(fallback);
+      fallback = null;
+      start();
+    }
+  });
+
+  const now = getTabOwnership();
+  if (now === 'owner' || now === 'unsupported') start();
+  else if (now === 'pending') fallback = setTimeout(() => { fallback = null; start(); }, waitMs);
+
+  return () => {
+    stopListening();
+    if (fallback) clearTimeout(fallback);
+    fallback = null;
+  };
+}
+
 /** Test-only reset. */
 export const __resetTabOwnershipForTests = (): void => {
   ownership = 'pending';

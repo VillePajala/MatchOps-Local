@@ -13,7 +13,7 @@
  * @see docs/03-active-plans/supabase-implementation-guide.md
  */
 
-import { getTabOwnership, onTabOwnershipChange, tabMayRunDataLayer } from '@/utils/tabOwnership';
+import { getTabOwnership, startSyncWhenTabOwned } from '@/utils/tabOwnership';
 import type { DataStore } from '@/interfaces/DataStore';
 import type { AuthService } from '@/interfaces/AuthService';
 import { LocalDataStore } from './LocalDataStore';
@@ -581,34 +581,12 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
       const syncedStore = new SyncedDataStore(initUserId);
       await syncedStore.initialize();
 
-      // TRUE LOCAL-FIRST: Start sync engine immediately (can run without executor)
+      // TRUE LOCAL-FIRST: the sync engine can run without an executor
       // Engine will process queue once executor is set (see SyncEngine.setExecutor)
       // Never in a tab another tab owns (review 7.19): two engines would drain one
-      // IndexedDB sync queue. If ownership is still being decided, start once it is
-      // known to be ours. (An engine already running is not stopped later.)
-      if (tabMayRunDataLayer()) {
-        log.info('[factory] Starting sync engine (local-first, cloud setup in background)', { userId: initUserId });
-        syncedStore.startSync();
-      } else if (getTabOwnership() === 'pending') {
-        // The lock answers in milliseconds where the guard is mounted (the main
-        // page). On a page without it ownership stays 'pending': start after a
-        // short wait rather than never.
-        let settled = false;
-        const settle = (start: boolean) => {
-          if (settled) return;
-          settled = true;
-          stopWatching();
-          clearTimeout(fallback);
-          if (start) syncedStore.startSync();
-        };
-        const stopWatching = onTabOwnershipChange((value) => {
-          if (value === 'pending') return;
-          settle(value === 'owner' || value === 'unsupported');
-        });
-        const fallback = setTimeout(() => settle(getTabOwnership() !== 'blocked'), TAB_OWNERSHIP_WAIT_MS);
-      } else {
-        log.info('[factory] Another tab owns the app - sync engine not started');
-      }
+      // IndexedDB sync queue. See startSyncWhenTabOwned for the pending/blocked rules.
+      log.info('[factory] Starting sync engine once this tab owns the app', { userId: initUserId, ownership: getTabOwnership() });
+      startSyncWhenTabOwned(syncedStore, TAB_OWNERSHIP_WAIT_MS);
 
       // Set up cloud in background - DON'T BLOCK the return
       // This eliminates the long loading time after login

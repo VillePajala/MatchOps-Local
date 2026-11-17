@@ -21,7 +21,9 @@ export function useMultiTabPrevention(): { isBlocked: boolean; status: TabOwners
   const isBlocked = status === 'blocked';
 
   useEffect(() => {
+    let answered = false;
     const publish = (value: TabOwnership) => {
+      answered = true;
       setStatus(value);
       setTabOwnership(value);
     };
@@ -52,8 +54,9 @@ export function useMultiTabPrevention(): { isBlocked: boolean; status: TabOwners
         });
       }
     ).catch(() => {
-      // Web Locks API failure is non-critical — app works without multi-tab prevention
-      publish('unsupported');
+      // Web Locks API failure is non-critical — app works without multi-tab prevention.
+      // Only if the lock never answered: a late failure must not overwrite owner/blocked.
+      if (!answered) publish('unsupported');
     });
 
     return () => { released = true; };
