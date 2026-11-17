@@ -77,14 +77,14 @@ describe('SubscriptionContext', () => {
       expect(isSubscriptionActive('grace')).toBe(true);
     });
 
-    // TEMPORARY: These tests are skipped while subscription is always active (free sync)
-    // TODO: Restore when implementing paid subscriptions (see issue #354)
-    it.skip('should return false for none status', () => {
-      expect(isSubscriptionActive('none')).toBe(false);
-    });
-
-    it.skip('should return false for expired status', () => {
-      expect(isSubscriptionActive('expired')).toBe(false);
+    /**
+     * Review 9.7 (were it.skip): the app is free and enforcement is parked, so every
+     * status has access. This pins that; when paid subscriptions return, flip these
+     * to false for none/expired (issue #354).
+     */
+    it('gives access for none and expired too while the app is free', () => {
+      expect(isSubscriptionActive('none')).toBe(true);
+      expect(isSubscriptionActive('expired')).toBe(true);
     });
   });
 
