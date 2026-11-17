@@ -114,7 +114,9 @@ export default function Home() {
     }
   }, [screen]);
   const { initialAction, hasDeepLink, setAction, clearAction } = useDeepLinkHandler();
-  const { isBlocked: isBlockedByOtherTab } = useMultiTabPrevention();
+  const { isBlocked: isBlockedByOtherTab, status: tabStatus } = useMultiTabPrevention();
+  // The data layer runs only in the tab that owns the app (review 7.19).
+  const tabMayBoot = tabStatus === 'owner' || tabStatus === 'unsupported';
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
   // Session-level dismissal of the first-sign-in setup wizard, scoped to the
@@ -246,9 +248,10 @@ export default function Home() {
   useEffect(() => {
     if (isAuthLoading) return;
     if (mode === 'cloud' && !userId) return;
+    if (!tabMayBoot) return; // the owning tab does it (review 7.19)
     void rotateOldClips(Date.now(), userId ?? undefined)
       .catch((error) => logger.warn('[page] Voice clip rotation at start failed', { error }));
-  }, [isAuthLoading, mode, userId]);
+  }, [isAuthLoading, mode, userId, tabMayBoot]);
 
   // Toggle the Home view (gear sheet). Optimistic: flip immediately, persist
   // in the background so the switch feels instant.
@@ -958,6 +961,9 @@ export default function Home() {
 
     // Skip if auth is still loading
     if (isAuthLoading) return;
+    // Not before this tab is known to own the app, and never in a blocked tab
+    // (review 7.19): it showed "Already open" but still migrated and read storage.
+    if (!tabMayBoot) return;
 
     // In cloud mode, only check state when authenticated AND userId is available
     // userId is required for user-scoped storage queries
@@ -979,7 +985,7 @@ export default function Home() {
     }
 
     void checkAppState({ inBackground });
-  }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId]);
+  }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId, tabMayBoot]);
 
   // Deep-review fix (stale Home): all Home flags (canResume, hasPlayers,
   // hasSavedGames, first-time mode, setup card) were computed once at boot;
@@ -1053,6 +1059,10 @@ export default function Home() {
       migrationCheckInitiatedRef.current = false;
       return;
     }
+
+    // A blocked tab stays passive (review 7.19): this hydrates the user's local
+    // store from the cloud - removals included - which the owning tab is doing.
+    if (!tabMayBoot) return;
 
     // Wait for subscription status to load before checking migration
     // This ensures the post-login subscription check runs first
@@ -1404,7 +1414,7 @@ export default function Home() {
 
     checkMigrationNeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, isAuthenticated, userId, isSubscriptionLoading, hasActiveSubscription, pendingPostLoginCheckState]);
+  }, [mode, isAuthenticated, userId, isSubscriptionLoading, hasActiveSubscription, pendingPostLoginCheckState, tabMayBoot]);
 
   // ============================================================================
   // POST-LOGIN CHECK (Cloud Mode Only)
@@ -1430,6 +1440,9 @@ export default function Home() {
       hasActiveSubscription,
       hasPendingCheck: pendingPostLoginCheckState,
     });
+
+    // Not in a blocked tab: it would consume the shared post-login flag (review 7.19).
+    if (!tabMayBoot) return;
 
     // Skip if not in cloud mode, not authenticated, or still loading
     if (mode !== 'cloud' || !isAuthenticated || isAuthLoading || isSubscriptionLoading) {
@@ -1466,7 +1479,7 @@ export default function Home() {
       // (migration check won't run because no subscription)
       setPostLoginCheckComplete(true);
     }
-  }, [mode, isAuthenticated, isAuthLoading, isSubscriptionLoading, hasActiveSubscription, pendingPostLoginCheckState]);
+  }, [mode, isAuthenticated, isAuthLoading, isSubscriptionLoading, hasActiveSubscription, pendingPostLoginCheckState, tabMayBoot]);
 
   // Handle post-login upgrade modal close
   const handlePostLoginUpgradeClose = useCallback(() => {

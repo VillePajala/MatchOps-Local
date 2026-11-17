@@ -13,6 +13,7 @@
  * @see docs/03-active-plans/supabase-implementation-guide.md
  */
 
+import { getTabOwnership, startSyncWhenTabOwned } from '@/utils/tabOwnership';
 import type { DataStore } from '@/interfaces/DataStore';
 import type { AuthService } from '@/interfaces/AuthService';
 import { LocalDataStore } from './LocalDataStore';
@@ -29,6 +30,9 @@ const log = {
 };
 
 // Singleton instances
+/** How long sync waits for the tab-ownership answer before starting anyway (review 7.19). */
+const TAB_OWNERSHIP_WAIT_MS = 5000;
+
 let dataStoreInstance: DataStore | null = null;
 let authServiceInstance: AuthService | null = null;
 
@@ -577,10 +581,12 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
       const syncedStore = new SyncedDataStore(initUserId);
       await syncedStore.initialize();
 
-      // TRUE LOCAL-FIRST: Start sync engine immediately (can run without executor)
+      // TRUE LOCAL-FIRST: the sync engine can run without an executor
       // Engine will process queue once executor is set (see SyncEngine.setExecutor)
-      log.info('[factory] Starting sync engine (local-first, cloud setup in background)', { userId: initUserId });
-      syncedStore.startSync();
+      // Never in a tab another tab owns (review 7.19): two engines would drain one
+      // IndexedDB sync queue. See startSyncWhenTabOwned for the pending/blocked rules.
+      log.info('[factory] Starting sync engine once this tab owns the app', { userId: initUserId, ownership: getTabOwnership() });
+      startSyncWhenTabOwned(syncedStore, TAB_OWNERSHIP_WAIT_MS);
 
       // Set up cloud in background - DON'T BLOCK the return
       // This eliminates the long loading time after login
