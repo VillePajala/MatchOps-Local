@@ -57,7 +57,7 @@ import { getPlan } from '@/utils/playtimePlanner/storage';
 import { getPlanLink, type PlanLink } from '@/utils/playtimePlanner/planLinks';
 import { mergeClubRosterIntoGamePlayers, playerIdsReferencedByGame } from '@/utils/gamePlayerList';
 import { gameReplacementCount } from '@/sync/syncEvents';
-import { periodEndSeconds, type MatchStructure } from '@/utils/matchStructure';
+import { periodEndSeconds, structureFrom, type MatchStructure } from '@/utils/matchStructure';
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
@@ -1334,10 +1334,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           // The game was live when the app was hidden and a force-reload followed.
           // Same defaults as LOAD_PERSISTED_GAME_DATA, so the boundary (and the stop
           // saved below) is the one the reducer loads.
-          const structureOnLoad: MatchStructure = {
-            numberOfPeriods: gameData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods,
-            periodDurationMinutes: gameData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes,
-          };
+          const structureOnLoad: MatchStructure = structureFrom(gameData, initialGameSessionStatePlaceholder);
           const periodBoundarySeconds = periodEndSeconds(structureOnLoad, gameData.currentPeriod ?? 1);
           const recoveredElapsed = pendingCorrection.elapsedAtRecord
             + Math.max(0, (Date.now() - pendingCorrection.recordWallClockMs) / 1000);
@@ -1395,10 +1392,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
       const loadStop = gameData.gameStatus === 'inProgress'
         ? boundaryStop(
-          {
-            numberOfPeriods: gameData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods,
-            periodDurationMinutes: gameData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes,
-          },
+          structureFrom(gameData, initialGameSessionStatePlaceholder),
           gameData.currentPeriod ?? 1,
           payload.timeElapsedInSeconds ?? gameData.timeElapsedInSeconds ?? 0,
         )

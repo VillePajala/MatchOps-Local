@@ -4,7 +4,7 @@
  * @critical
  */
 import {
-  extraTimePeriodCount, isExtraTimePeriod, isLastPeriod, periodEndSeconds,
+  structureFrom, extraTimePeriodCount, isExtraTimePeriod, isLastPeriod, periodEndSeconds,
   periodStartSeconds, regulationEndSeconds, totalPeriods,
 } from '../matchStructure';
 
@@ -41,5 +41,21 @@ describe('matchStructure', () => {
     expect(periodEndSeconds(s, 2)).toBe(2700);
     expect(isLastPeriod(s, 1)).toBe(false);
     expect(isLastPeriod(s, 2)).toBe(true);
+  });
+
+  it('counts no extra time for unusable values (no length, NaN, negative or fractional periods)', () => {
+    const base = { numberOfPeriods: 2, periodDurationMinutes: 25 };
+    for (const extra of [
+      { extraTimePeriods: 2 }, { extraTimePeriods: 2, extraTimeMinutes: NaN },
+      { extraTimePeriods: -1, extraTimeMinutes: 15 }, { extraTimePeriods: 1.5, extraTimeMinutes: 15 },
+    ]) {
+      expect(extraTimePeriodCount({ ...base, ...extra })).toBe(0);
+      expect(periodEndSeconds({ ...base, ...extra }, 3)).toBe(3 * 25 * 60);
+    }
+  });
+
+  it('structureFrom keeps all four fields and fills missing regulation values', () => {
+    expect(structureFrom({ extraTimePeriods: 2, extraTimeMinutes: 15 }, { numberOfPeriods: 2, periodDurationMinutes: 10 }))
+      .toEqual({ numberOfPeriods: 2, periodDurationMinutes: 10, extraTimePeriods: 2, extraTimeMinutes: 15 });
   });
 });

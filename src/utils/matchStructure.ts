@@ -21,11 +21,28 @@ export interface MatchStructure {
   extraTimeMinutes?: number;
 }
 
-/** Extra-time periods that actually count (a length is needed). */
+/**
+ * The structure of a game or session state - all four fields, so a site cannot
+ * forget extra time by building `{ numberOfPeriods, periodDurationMinutes }` itself.
+ * Missing regulation values take the given defaults.
+ */
+export function structureFrom(
+  source: Partial<MatchStructure>,
+  defaults: Pick<MatchStructure, 'numberOfPeriods' | 'periodDurationMinutes'>,
+): MatchStructure {
+  return {
+    numberOfPeriods: source.numberOfPeriods ?? defaults.numberOfPeriods,
+    periodDurationMinutes: source.periodDurationMinutes ?? defaults.periodDurationMinutes,
+    extraTimePeriods: source.extraTimePeriods,
+    extraTimeMinutes: source.extraTimeMinutes,
+  };
+}
+
+/** Extra-time periods that actually count (a whole number of periods with a length). */
 export function extraTimePeriodCount(s: MatchStructure): number {
   const periods = s.extraTimePeriods ?? 0;
   const minutes = s.extraTimeMinutes ?? 0;
-  return periods > 0 && minutes > 0 ? periods : 0;
+  return Number.isInteger(periods) && periods > 0 && minutes > 0 ? periods : 0;
 }
 
 /** Regulation plus extra-time periods. */

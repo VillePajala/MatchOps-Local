@@ -3,7 +3,7 @@ import type { AiMeta } from '@/types/game';
 import logger from '@/utils/logger';
 import { todayIso } from '@/utils/todayIso';
 import { clockContinuation } from '@/utils/clockContinuation';
-import { isLastPeriod, periodEndSeconds, periodStartSeconds, type MatchStructure } from '@/utils/matchStructure';
+import { isLastPeriod, periodEndSeconds, periodStartSeconds, structureFrom, type MatchStructure } from '@/utils/matchStructure';
 
 // --- State Definition ---
 export interface GameSessionState {
@@ -359,7 +359,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, gameStatus: action.payload };
     case 'START_PERIOD': {
         const { nextPeriod, periodDurationMinutes, subIntervalMinutes } = action.payload;
-        const previousPeriodEndTime = periodStartSeconds({ ...state, periodDurationMinutes }, nextPeriod);
+        // The payload carries the regulation length the timer started with; extra time
+        // (if any) comes from the state.
+        const previousPeriodEndTime = periodStartSeconds({ ...structureFrom(state, state), periodDurationMinutes }, nextPeriod);
         return {
             ...state,
             currentPeriod: nextPeriod,
@@ -712,7 +714,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const gamePersonnel = loadedData.gamePersonnel ?? [];
 
       // Calculate fallback time based on period (used if no saved time exists)
-      const structureAtLoad: MatchStructure = { numberOfPeriods, periodDurationMinutes };
+      const structureAtLoad: MatchStructure = structureFrom(loadedData, { numberOfPeriods, periodDurationMinutes });
       let fallbackTimeElapsed = 0;
       if (gameStatus === 'periodEnd' || gameStatus === 'gameEnd') {
          fallbackTimeElapsed = periodEndSeconds(structureAtLoad, currentPeriod);
