@@ -28,7 +28,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { getMasterRoster } from '@/utils/masterRosterManager';
-import { getTeams, getTeamRoster, getTeamDisplayName } from '@/utils/teams';
+import { getTeams, getTeamRoster, getTeamDisplayName, sortTeamsByName } from '@/utils/teams';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
 import type { Team, Season, Tournament } from '@/types';
@@ -507,7 +507,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           getTournaments(user?.id),
         ]);
         if (!cancelled) {
-          setTeams(teamList.filter((tm) => !tm.archived));
+          setTeams(sortTeamsByName(teamList.filter((tm) => !tm.archived)));
           setSeasons(seasonList);
           setTournaments(tournamentList);
         }

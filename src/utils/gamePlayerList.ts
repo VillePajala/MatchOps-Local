@@ -120,11 +120,25 @@ const lastName = (fullName: string) => {
   return parts[parts.length - 1] || fullName;
 };
 
-/** Players in the club roster's default order: by last name, then full name. */
-export function sortPlayersByLastName<T extends { name: string }>(players: T[]): T[] {
+/**
+ * Players in the app's one player order (review 7.L5): by last name, then full
+ * name - every player list and dropdown uses it. Finnish collation, fixed rather
+ * than the browser's: Ä and Ö sort after Z, as a Finnish coach expects, on every
+ * device.
+ */
+export function sortPlayersByLastName<T extends { name: string }>(players: readonly T[]): T[] {
   return [...players].sort(
     (a, b) =>
-      lastName(a.name).localeCompare(lastName(b.name), undefined, { sensitivity: 'base' }) ||
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+      lastName(a.name).localeCompare(lastName(b.name), 'fi', { sensitivity: 'base' }) ||
+      a.name.localeCompare(b.name, 'fi', { sensitivity: 'base' }),
   );
+}
+
+/**
+ * How a player is named in lists and dropdowns (owner decision 7.L8): "Name
+ * (nickname)", or the name alone when there is no nickname or it is the same.
+ */
+export function playerListLabel(player: { name: string; nickname?: string }): string {
+  const nickname = player.nickname?.trim();
+  return nickname && nickname !== player.name.trim() ? `${player.name} (${nickname})` : player.name;
 }

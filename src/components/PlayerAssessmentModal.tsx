@@ -1,5 +1,6 @@
 'use client';
 
+import { sortPlayersByLastName } from '@/utils/gamePlayerList';
 import React, { useState, useEffect } from 'react';
 import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
@@ -214,9 +215,10 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
             )}
             <div className={cardStyle}>
               <div className="space-y-3">
-                {selectedPlayerIds.map((pid) => {
-                  const player = getPlayer(pid);
-                  if (!player) return null;
+                {/* The squad in the app's one player order (review 7.L5) - this followed
+                    the order players were ticked in. */}
+                {sortPlayersByLastName(selectedPlayerIds.map(getPlayer).filter((p): p is Player => !!p)).map((player) => {
+                  const pid = player.id;
                   return (
                     <div
                       key={pid}

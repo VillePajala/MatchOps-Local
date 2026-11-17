@@ -1,5 +1,6 @@
 'use client';
 
+import { sortPlayersByLastName, playerListLabel } from '@/utils/gamePlayerList';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
@@ -50,7 +51,8 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const shooterOptions = useMemo(
-    () => (squadIds ? availablePlayers.filter((p) => squadIds.includes(p.id)) : availablePlayers),
+    // The app's one player order (review 7.L5).
+    () => sortPlayersByLastName(squadIds ? availablePlayers.filter((p) => squadIds.includes(p.id)) : availablePlayers),
     [availablePlayers, squadIds],
   );
   const headerCollapse = useCollapsingHeader();
@@ -207,7 +209,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
             >
               <option value="">{t('shootoutModal.unknownShooter', 'Shooter (optional)')}</option>
               {shooterOptions.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>{playerListLabel(p)}</option>
               ))}
             </select>
             <div className="flex gap-2">

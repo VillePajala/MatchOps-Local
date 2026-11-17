@@ -3,6 +3,7 @@
  * Supports viewing, editing, and deleting goal events
  */
 
+import { sortPlayersByLastName, playerListLabel } from '@/utils/gamePlayerList';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
@@ -53,6 +54,8 @@ export function GoalEventList({
   onEditGoalAssisterChange,
 }: GoalEventListProps) {
   const { t } = useTranslation();
+  // The app's one player order and name format (review 7.L5/7.L8).
+  const orderedPlayers = React.useMemo(() => sortPlayersByLastName(availablePlayers), [availablePlayers]);
 
   // State for actions menu
   const [goalActionsMenuId, setGoalActionsMenuId] = useState<string | null>(null);
@@ -125,9 +128,9 @@ export function GoalEventList({
                       className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1.5 text-sm"
                     >
                       <option value="">{t('common.select', 'Select')}</option>
-                      {availablePlayers.map((p) => (
+                      {orderedPlayers.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name}
+                          {playerListLabel(p)}
                         </option>
                       ))}
                     </select>
@@ -142,9 +145,9 @@ export function GoalEventList({
                       className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1.5 text-sm"
                     >
                       <option value="">{t('common.none', 'None')}</option>
-                      {availablePlayers.map((p) => (
+                      {orderedPlayers.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name}
+                          {playerListLabel(p)}
                         </option>
                       ))}
                     </select>

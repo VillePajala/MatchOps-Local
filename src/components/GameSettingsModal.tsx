@@ -9,7 +9,7 @@ import { Season, Tournament, Player, Team, Personnel, GameType, Gender, AppState
 import type { ShootoutKick } from '@/types/game';
 import ShootoutModal from './ShootoutModal';
 import { getShootoutTally } from '@/utils/shootout';
-import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
+import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries, sortTeamsByName } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { useArchiveInclusiveLists, archivedCurrent } from '@/hooks/useArchiveInclusiveLists';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -34,7 +34,7 @@ import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { HiOutlineMapPin } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
-import { teamMemberIds, activePlayers } from '@/utils/gamePlayerList';
+import { teamMemberIds, activePlayers, sortPlayersByLastName, playerListLabel } from '@/utils/gamePlayerList';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -581,6 +581,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // State for team selection
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(teamId || null);
   const archivedTeam = archivedCurrent(selectedTeamId, teams.filter((team) => !team.archived), allTeams);
+  // The squad for the captain / fair-play dropdowns, in the app's one player order
+  // and name format (review 7.L5/7.L8) - they listed storage order.
+  const squadInOrder = useMemo(
+    () => sortPlayersByLastName(availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))),
+    [availablePlayers, selectedPlayerIds],
+  );
   const teamSelectionRequestRef = useRef<number>(0); // Track current team selection request for race condition protection
 
   // League filter state (UI helpers only - not saved)
@@ -1326,7 +1332,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   <option value="">
                     {t('gameSettingsModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
                   </option>
-                  {teams.filter(team => !team.archived).map((team) => (
+                  {sortTeamsByName(teams.filter(team => !team.archived)).map((team) => (
                     <option key={team.id} value={team.id}>
                       {getTeamDisplayName(team, seasons, tournaments, { futsalLabel: t('common.futsal', 'Futsal') })}
                     </option>
@@ -1501,9 +1507,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   >
                     <option value="">{t('gameSettingsModal.noCaptain', '-- No captain --')}</option>
-                    {availablePlayers.filter(p => selectedPlayerIds.includes(p.id)).map((player) => (
+                    {squadInOrder.map((player) => (
                       <option key={player.id} value={player.id}>
-                        {player.name}
+                        {playerListLabel(player)}
                       </option>
                     ))}
                     {/* A captain who was dropped from the squad afterwards is
@@ -1535,9 +1541,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     >
                       <option value="">{t('gameSettingsModal.selectPlayerForFairPlay', '-- Select Player --')}</option>
-                      {availablePlayers.filter(p => selectedPlayerIds.includes(p.id)).map((player) => (
+                      {squadInOrder.map((player) => (
                         <option key={player.id} value={player.id}>
-                          {player.name}
+                          {playerListLabel(player)}
                           {player.receivedFairPlayCard ? ` (${t('gameSettingsModal.currentFairPlayHolder', 'Current')})` : ''}
                         </option>
                       ))}

@@ -419,3 +419,11 @@ export const getTeamDisplayName = (
   const context = getTeamContextDisplay(team, seasons, tournaments, options);
   return context ? `${team.name} (${context})` : team.name;
 };
+
+/**
+ * Teams in dropdown order: by name, Finnish collation (review 7.L5). The team
+ * pickers used storage order while seasons and tournaments were sorted.
+ */
+export function sortTeamsByName<T extends { name: string }>(teams: readonly T[]): T[] {
+  return [...teams].sort((a, b) => a.name.localeCompare(b.name, 'fi', { sensitivity: 'base' }));
+}

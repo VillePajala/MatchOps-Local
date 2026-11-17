@@ -478,7 +478,7 @@ describe('Error handling', () => {
  * @see src/datastore/__tests__/LocalDataStore.test.ts
  */
 
-import { getTeamContextDisplay, getTeamDisplayName, getTeamBoundSeries } from './teams';
+import { getTeamContextDisplay, getTeamDisplayName, getTeamBoundSeries, sortTeamsByName } from './teams';
 import type { Season, Tournament } from '@/types';
 
 describe('Team Context Display Helpers', () => {
@@ -855,5 +855,14 @@ describe('Team Context Display Helpers', () => {
       const result = getTeamContextDisplay(team, seasons, tournaments);
       expect(result).toBe('');
     });
+  });
+});
+
+/** Review 7.L5: team dropdowns were in storage order. */
+describe('sortTeamsByName', () => {
+  it('sorts by name in Finnish order, without changing the input', () => {
+    const teams = [{ name: 'Ässät' }, { name: 'PEPO P12' }, { name: 'ahti' }];
+    expect(sortTeamsByName(teams).map((t) => t.name)).toEqual(['ahti', 'PEPO P12', 'Ässät']);
+    expect(teams[0].name).toBe('Ässät');
   });
 });

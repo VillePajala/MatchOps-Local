@@ -7,7 +7,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { Player, Season, Tournament, Team, Personnel, GameType, Gender, Point } from '@/types';
 import type { SavedGamesCollection } from '@/types/game';
 import logger from '@/utils/logger';
-import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
+import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries, sortTeamsByName } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import { getPlans } from '@/utils/playtimePlanner/storage';
@@ -1187,7 +1187,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   <option value="">
                     {t('newGameSetupModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
                   </option>
-                  {teams.filter(team => !team.archived).map((team) => (
+                  {sortTeamsByName(teams.filter(team => !team.archived)).map((team) => (
                     <option key={team.id} value={team.id}>
                       {getTeamDisplayName(team, seasons, tournaments, { futsalLabel: t('common.futsal', 'Futsal') })}
                     </option>

@@ -1,5 +1,6 @@
 'use client';
 
+import { sortPlayersByLastName, playerListLabel } from '@/utils/gamePlayerList';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
@@ -132,15 +133,15 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   };
 
   // Memoize player options to avoid recalculating on every render
-  const playerOptions = useMemo(() => {
-    // Sort players alphabetically for easier selection
-    const sortedPlayers = [...availablePlayers].sort((a, b) => a.name.localeCompare(b.name));
-    return sortedPlayers.map(player => (
-      <option key={player.id} value={player.id}>
-        {player.name}
-      </option>
-    ));
-  }, [availablePlayers]);
+  // Every player select here: the app's one order and name format (review 7.L5/7.L8)
+  // - the scorer list sorted by first name while the assister list right below it
+  // was unsorted.
+  const orderedPlayers = useMemo(() => sortPlayersByLastName(availablePlayers), [availablePlayers]);
+  const playerOptions = useMemo(() => orderedPlayers.map(player => (
+    <option key={player.id} value={player.id}>
+      {playerListLabel(player)}
+    </option>
+  )), [orderedPlayers]);
 
   // Close actions menu when clicking outside
   useEffect(() => {
@@ -447,8 +448,8 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                         disabled={!scorerId}
                       >
                         <option value="">{t('goalLogModal.noAssisterPlaceholder', '-- No Assist --')}</option>
-                        {availablePlayers.filter(p => p.id !== scorerId).map(player => (
-                          <option key={player.id} value={player.id}>{player.name}</option>
+                        {orderedPlayers.filter(p => p.id !== scorerId).map(player => (
+                          <option key={player.id} value={player.id}>{playerListLabel(player)}</option>
                         ))}
                       </select>
                     </div>
@@ -557,8 +558,8 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
                                 >
                                   <option value="">{t('gameSettingsModal.selectScorer', 'Select Scorer...')}</option>
-                                  {availablePlayers.map(player => (
-                                    <option key={player.id} value={player.id}>{player.name}</option>
+                                  {orderedPlayers.map(player => (
+                                    <option key={player.id} value={player.id}>{playerListLabel(player)}</option>
                                   ))}
                                   <option value={UNKNOWN_SCORER}>{t('goalLogModal.unknownScorer', 'Unknown / not sure')}</option>
                                 </select>
@@ -568,8 +569,8 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
                                 >
                                   <option value="">{t('gameSettingsModal.selectAssister', 'Select Assister (Optional)...')}</option>
-                                  {availablePlayers.map(player => (
-                                    <option key={player.id} value={player.id}>{player.name}</option>
+                                  {orderedPlayers.map(player => (
+                                    <option key={player.id} value={player.id}>{playerListLabel(player)}</option>
                                   ))}
                                 </select>
                               </>
