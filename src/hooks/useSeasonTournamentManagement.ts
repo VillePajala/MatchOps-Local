@@ -32,6 +32,9 @@ import logger from '@/utils/logger';
 export interface UseSeasonTournamentManagementReturn {
   seasons: Season[];
   tournaments: Tournament[];
+  /** Archived included - for the manager screen only, where they can be restored (review 7.20). */
+  allSeasons: Season[];
+  allTournaments: Tournament[];
   masterRoster: Player[];
   addSeasonMutation: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
   addTournamentMutation: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
@@ -59,6 +62,16 @@ export function useSeasonTournamentManagement(): UseSeasonTournamentManagementRe
   const tournamentsQuery: UseQueryResult<Tournament[], Error> = useQuery({
     queryKey: [...queryKeys.tournaments, userId],
     queryFn: () => getTournaments(userId),
+  });
+  // Under the same key prefixes, so every invalidation of seasons/tournaments
+  // refreshes these too.
+  const allSeasonsQuery: UseQueryResult<Season[], Error> = useQuery({
+    queryKey: [...queryKeys.seasons, userId, 'withArchived'],
+    queryFn: () => getSeasons(userId, true),
+  });
+  const allTournamentsQuery: UseQueryResult<Tournament[], Error> = useQuery({
+    queryKey: [...queryKeys.tournaments, userId, 'withArchived'],
+    queryFn: () => getTournaments(userId, true),
   });
   const masterRosterQuery: UseQueryResult<Player[], Error> = useQuery({
     queryKey: [...queryKeys.masterRoster, userId],
@@ -141,6 +154,8 @@ export function useSeasonTournamentManagement(): UseSeasonTournamentManagementRe
   return {
     seasons: seasonsQuery.data ?? NO_SEASONS,
     tournaments: tournamentsQuery.data ?? NO_TOURNAMENTS,
+    allSeasons: allSeasonsQuery.data ?? NO_SEASONS,
+    allTournaments: allTournamentsQuery.data ?? NO_TOURNAMENTS,
     masterRoster: masterRosterQuery.data ?? NO_PLAYERS,
     addSeasonMutation,
     addTournamentMutation,

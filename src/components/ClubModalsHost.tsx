@@ -66,7 +66,7 @@ import { useRosterSettingsController } from '@/hooks/useRosterSettingsController
 import { useLoadGameController } from '@/hooks/useLoadGameController';
 import { useClubStatsController } from '@/hooks/useClubStatsController';
 import { useNewGameSetupController } from '@/hooks/useNewGameSetupController';
-import { useTeamsQuery } from '@/hooks/useTeamQueries';
+import { useTeamsQuery, useAllTeamsQuery } from '@/hooks/useTeamQueries';
 import { useOpponentRename } from '@/hooks/useOpponentRename';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
@@ -151,6 +151,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   const personnelManager = usePersonnelManager();
   const rosterSettings = useRosterSettingsController();
   const { data: teams = [] } = useTeamsQuery();
+  const { data: allTeams = [] } = useAllTeamsQuery(isTeamManagerOpen);
   // The match registers this while mounted (L.3c hooks) - the crossings
   // reuse it to land pending edits before switching games.
   const flushLiveMatch = plannerLiveGameHooks
@@ -392,8 +393,9 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           isOpen
           kind={competitionManagerKind}
           onClose={() => setIsSeasonTournamentModalOpen(false)}
-          seasons={seasonTournament.seasons}
-          tournaments={seasonTournament.tournaments}
+          // Archived ones too: "Show archived" restores them (review 7.20).
+          seasons={seasonTournament.allSeasons}
+          tournaments={seasonTournament.allTournaments}
           masterRoster={seasonTournament.masterRoster}
           addSeasonMutation={seasonTournament.addSeasonMutation}
           addTournamentMutation={seasonTournament.addTournamentMutation}
@@ -565,7 +567,8 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
         <TeamManagerModal
           isOpen
           onClose={() => setIsTeamManagerOpen(false)}
-          teams={teams}
+          // Archived teams too: "Show Archived" restores them (review 7.20).
+          teams={allTeams}
           masterRoster={rosterSettings.availablePlayers}
         />
       )}

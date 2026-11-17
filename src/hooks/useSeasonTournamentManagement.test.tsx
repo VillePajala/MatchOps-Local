@@ -82,6 +82,17 @@ describe('useSeasonTournamentManagement (L.1)', () => {
     mockedGetTournaments.mockResolvedValue([]);
   });
 
+  /** Review 7.20: the manager screen lists archived leagues/tournaments too, so they can be restored. */
+  it('exposes the archive-inclusive lists for the manager screen', async () => {
+    const archived = createSeason({ id: 'old', archived: true });
+    mockedGetSeasons.mockImplementation(async (_u?: string, includeArchived?: boolean) =>
+      includeArchived ? [createSeason(), archived] : [createSeason()]);
+    const { result } = renderHook(() => useSeasonTournamentManagement(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.allSeasons).toHaveLength(2));
+    expect(result.current.seasons).toHaveLength(1);
+    expect(mockedGetTournaments).toHaveBeenCalledWith(expect.anything(), true);
+  });
+
   describe('season mutations', () => {
     it('should expose addSeason mutation', async () => {
       const newSeason = createSeason({ id: 'new-season', name: 'New Season' });

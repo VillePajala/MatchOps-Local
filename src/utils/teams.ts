@@ -44,10 +44,11 @@ export const getAllTeams = async (userId?: string): Promise<TeamsIndex> => {
  * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to an array of Team objects.
  */
-export const getTeams = async (userId?: string): Promise<Team[]> => {
+/** `includeArchived`: the manager screens list archived ones too, so they can be restored (review 7.20). */
+export const getTeams = async (userId?: string, includeArchived = false): Promise<Team[]> => {
   try {
     const dataStore = await getDataStore(userId);
-    return await dataStore.getTeams();
+    return await dataStore.getTeams(includeArchived);
   } catch (error) {
     // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
     // Don't log as error to avoid Sentry noise

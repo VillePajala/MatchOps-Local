@@ -23,6 +23,7 @@ import {
   useAddPlayerToRosterMutation,
   useUpdatePlayerInRosterMutation,
   useRemovePlayerFromRosterMutation,
+  useAllTeamsQuery,
 } from '../useTeamQueries';
 import { queryKeys } from '@/config/queryKeys';
 import type { Team, TeamPlayer } from '@/types';
@@ -137,6 +138,29 @@ describe('useTeamQueries', () => {
     addPlayerToRoster.mockResolvedValue(mockPlayers[0]);
     updatePlayerInRoster.mockResolvedValue(true);
     removePlayerFromRoster.mockResolvedValue(true);
+  });
+
+  /**
+   * Review 7.20: the Team manager needs archived teams too - without them "Show
+   * Archived" showed nothing and an archived team could never be restored.
+   * @critical
+   */
+  describe('useAllTeamsQuery', () => {
+    it('asks for archived teams too, under the teams key prefix', async () => {
+      const queryClient = createTestQueryClient();
+      const wrapper = createTestWrapper(queryClient);
+      const { result } = renderHook(() => useAllTeamsQuery(), { wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(getTeams).toHaveBeenCalledWith(TEST_USER_ID, true);
+      expect(queryClient.getQueryCache().findAll({ queryKey: ['teams'] }).length).toBeGreaterThan(0);
+    });
+
+    it('does not load while the manager is closed', () => {
+      const queryClient = createTestQueryClient();
+      const wrapper = createTestWrapper(queryClient);
+      renderHook(() => useAllTeamsQuery(false), { wrapper });
+      expect(getTeams).not.toHaveBeenCalled();
+    });
   });
 
   describe('useTeamsQuery', () => {

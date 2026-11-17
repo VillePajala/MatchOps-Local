@@ -34,6 +34,18 @@ export const useTeamsQuery = () => {
   });
 };
 
+/** Archived teams included - for the Team manager only, where they can be restored (review 7.20). */
+export const useAllTeamsQuery = (enabled = true) => {
+  const { userId } = useDataStore();
+
+  return useQuery({
+    // Under the teams prefix: every teams invalidation refreshes it too.
+    queryKey: [...queryKeys.teams, userId, 'withArchived'],
+    queryFn: () => getTeams(userId, true),
+    enabled,
+  });
+};
+
 export const useTeamRosterQuery = (teamId: string | null) => {
   const { userId } = useDataStore();
 
