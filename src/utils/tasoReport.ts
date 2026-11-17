@@ -22,6 +22,7 @@
 
 import type { GameEvent } from '@/types/game';
 import type { Player } from '@/types';
+import { extraTimeGoals } from './matchStructure';
 
 export interface TasoGame {
   teamName: string;
@@ -35,6 +36,9 @@ export interface TasoGame {
   captainId?: string;
   numberOfPeriods: number;
   periodDurationMinutes: number;
+  /** Extra time (review 11.1): its score is shown separately in the header. */
+  extraTimePeriods?: number;
+  extraTimeMinutes?: number;
 }
 
 export type TasoTranslate = (key: string, fallback: string) => string;
@@ -122,9 +126,15 @@ export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTransl
   const teams = home ? `${game.teamName} - ${game.opponentName}` : `${game.opponentName} - ${game.teamName}`;
   const usGoals = home ? game.homeScore : game.awayScore;
   const themGoals = home ? game.awayScore : game.homeScore;
-  const halfPart = atHalf
-    ? ` (${t('taso.halfTime', 'half-time')} ${score(ours(atHalf), theirs(atHalf))})`
-    : '';
+  // Extra-time score beside the final one (review 11.1, owner 2026-11-17), from the
+  // goals after the regulation end - only when the goal log accounts for the score
+  // (the same rule as the recap, the info card and Excel).
+  const extra = extraTimeGoals(game, goals, { us: usGoalsTotal, them: themGoalsTotal });
+  const headerParts = [
+    atHalf ? `${t('taso.halfTime', 'half-time')} ${score(ours(atHalf), theirs(atHalf))}` : '',
+    extra ? `${t('taso.extraTime', 'extra time')} ${score(extra.us, extra.them)}` : '',
+  ].filter(Boolean);
+  const halfPart = headerParts.length ? ` (${headerParts.join(', ')})` : '';
   const header = `${teams} ${score(usGoals, themGoals)}${halfPart}`;
 
   const ref = (id?: string) => {

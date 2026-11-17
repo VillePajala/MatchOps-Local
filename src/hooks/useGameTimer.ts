@@ -8,7 +8,7 @@ import { useRecordingSessionActive } from '@/utils/recordingSessionSignal';
 import { usePrecisionTimer } from './usePrecisionTimer';
 import { GameSessionState, GameSessionAction } from './useGameSessionReducer';
 import { clockContinuation } from '@/utils/clockContinuation';
-import { isLastPeriod, periodEndSeconds, periodStartSeconds } from '@/utils/matchStructure';
+import { extraTimePeriodCount, isLastPeriod, periodEndSeconds, periodStartSeconds, regulationEndSeconds } from '@/utils/matchStructure';
 
 interface UseGameTimerArgs {
   state: GameSessionState;
@@ -139,6 +139,21 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     }
     dispatch({ type: 'RESET_TIMER_ONLY' });
     await clearTimerState();
+  }, [dispatch, currentGameId]);
+
+  /**
+   * Start extra time at full time (review 11.1): `periods` (1-2) of `minutes` each,
+   * from the regulation end. The reducer refuses it unless the clock is stopped at full
+   * time with no extra time yet.
+   */
+  const startExtraTime = useCallback((periods: number, minutes: number) => {
+    const s = stateRef.current;
+    // Same checks as the reducer, so a refused start never writes a recovery anchor.
+    if (s.gameStatus !== 'gameEnd' || s.isTimerRunning || extraTimePeriodCount(s) > 0) return;
+    if (!(periods === 1 || periods === 2) || !Number.isInteger(minutes) || minutes < 1 || minutes > 60) return;
+    dispatch({ type: 'START_EXTRA_TIME', payload: { periods, minutes } });
+    // Recovery anchor at once, as startPause does (review 4.22).
+    if (currentGameId) writeTimerAnchor(currentGameId, regulationEndSeconds(s));
   }, [dispatch, currentGameId]);
 
   /**
@@ -371,12 +386,13 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     startPause,
     reset,
     endPeriodNow,
+    startExtraTime,
     ackSubstitution,
     setSubInterval,
   }), [
     state.timeElapsedInSeconds, state.isTimerRunning,
     state.nextSubDueTimeSeconds, state.subAlertLevel,
     state.lastSubConfirmationTimeSeconds,
-    startPause, reset, endPeriodNow, ackSubstitution, setSubInterval,
+    startPause, reset, endPeriodNow, startExtraTime, ackSubstitution, setSubInterval,
   ]);
 };

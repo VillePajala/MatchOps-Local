@@ -18,6 +18,7 @@ import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDi
 import { adjustmentInScope, type AdjustmentScope } from '@/utils/adjustmentScope';
 import { computeHeadToHead } from '@/utils/headToHead';
 import { ASSESSMENT_METRICS } from '@/config/assessmentMetrics';
+import { extraTimeGoals } from './matchStructure';
 
 // Only export columns for metrics that actually have data, so a coach using a
 // smaller template doesn't get empty columns for unused library metrics.
@@ -294,6 +295,7 @@ export const exportCurrentGameExcel = (
 
   const fieldLabel = translate('export.field', 'Field');
   const valueLabel = translate('export.value', 'Value');
+  const extraScore = extraTimeGoals(game, game.gameEvents ?? [], { us: ourScore, them: theirScore });
   const gameInfo = [
     { [fieldLabel]: translate('export.gameId', 'Game ID'), [valueLabel]: gameId },
     { [fieldLabel]: translate('export.gameDate', 'Game Date'), [valueLabel]: game.gameDate },
@@ -318,6 +320,11 @@ export const exportCurrentGameExcel = (
     { [fieldLabel]: translate('export.gameSettings', 'Match details'), [valueLabel]: '' },
     { [fieldLabel]: translate('export.numberOfPeriods', 'Number of Periods'), [valueLabel]: game.numberOfPeriods },
     { [fieldLabel]: translate('export.periodDuration', 'Period Duration (min)'), [valueLabel]: game.periodDurationMinutes },
+    // Extra time (review 11.1): only for a game that had it, with its own score.
+    ...(extraScore ? [
+      { [fieldLabel]: translate('export.extraTime', 'Extra Time'), [valueLabel]: `${game.extraTimePeriods} x ${game.extraTimeMinutes} min` },
+      { [fieldLabel]: translate('export.extraTimeScore', 'Extra Time Score'), [valueLabel]: game.homeOrAway === 'home' ? `${extraScore.us}-${extraScore.them}` : `${extraScore.them}-${extraScore.us}` },
+    ] : []),
     { [fieldLabel]: translate('export.substitutionInterval', 'Substitution Interval (min)'), [valueLabel]: game.subIntervalMinutes ?? '' },
     { [fieldLabel]: translate('export.currentPeriod', 'Current Period'), [valueLabel]: game.currentPeriod },
     { [fieldLabel]: translate('export.totalGameDuration', 'Total Game Duration'), [valueLabel]: formatTime(totalDuration) },

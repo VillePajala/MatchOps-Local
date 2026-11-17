@@ -12,6 +12,7 @@ import type { GameEvent, ShootoutKick } from '@/types/game';
 import type { Player } from '@/types';
 import { resolveGameResult } from '@/utils/gameResult';
 import { orderPositionIds, POSITION_ABBREV_FALLBACK } from '@/config/positions';
+import { extraTimeGoals } from './matchStructure';
 
 /** Minimal shape needed to build a recap (a subset of AppState). */
 export interface RecapGame {
@@ -27,6 +28,11 @@ export interface RecapGame {
   shootoutKicks?: ShootoutKick[];
   /** Position id(s) each player was assigned, keyed by player id. */
   playerPositions?: Record<string, string[]>;
+  /** Match structure, for the extra-time score (review 11.1). */
+  numberOfPeriods?: number;
+  periodDurationMinutes?: number;
+  extraTimePeriods?: number;
+  extraTimeMinutes?: number;
 }
 
 /** key + fallback -> localized string (a thin slice of i18next's `t`). */
@@ -102,7 +108,16 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   // when the raw score alone can't show it: a level score decided by a shootout.
   const onPenalties = game.homeScore === game.awayScore && result !== 'D';
   const resultLabel = result === 'W' ? t('recap.resultWin', 'Win') : t('recap.resultLoss', 'Loss');
-  const resultSuffix = onPenalties ? ` (${resultLabel}, ${t('recap.onPenalties', 'on penalties')})` : '';
+  // Extra time is shown as its own score beside the final one (review 11.1, owner
+  // 2026-11-17), so the recap tells how the match went.
+  const extra = game.numberOfPeriods !== undefined && game.periodDurationMinutes !== undefined
+    ? extraTimeGoals({ ...game, numberOfPeriods: game.numberOfPeriods, periodDurationMinutes: game.periodDurationMinutes }, game.gameEvents, { us: teamGoals, them: oppGoals })
+    : null;
+  const suffixParts = [
+    extra ? `${t('recap.extraTime', 'extra time')} ${extra.us}-${extra.them}` : '',
+    onPenalties ? `${resultLabel}, ${t('recap.onPenalties', 'on penalties')}` : '',
+  ].filter(Boolean);
+  const resultSuffix = suffixParts.length ? ` (${suffixParts.join(', ')})` : '';
 
   const goalEvents = game.gameEvents.filter(e => e.type === 'goal');
   const scorerIds = goalEvents.map(e => e.scorerId).filter((id): id is string => !!id);

@@ -94,6 +94,7 @@ describe('useTimerManagement', () => {
     startPause: jest.fn(),
     reset: jest.fn(),
     endPeriodNow: jest.fn(),
+      startExtraTime: jest.fn(),
     ackSubstitution: jest.fn(),
     setSubInterval: jest.fn(),
   };

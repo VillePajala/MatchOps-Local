@@ -96,7 +96,8 @@
     "onPenalties": "on penalties",
     "unknownPlayer": "Unknown",
     "staleEdits": "You have edited this text, so it did not change. Take the new version?",
-    "staleApply": "Rebuild"
+    "staleApply": "Rebuild",
+    "extraTime": "extra time"
   },
   "taso": {
     "button": "Match report for Taso",
@@ -112,7 +113,8 @@
     "goalie": "GK",
     "captain": "C",
     "noNumber": "-",
-    "unknownPlayer": "unknown"
+    "unknownPlayer": "unknown",
+    "extraTime": "extra time"
   },
   "evidence": {
     "button": "Share player summary",
@@ -423,7 +425,8 @@
   },
   "gameResult": {
     "overtime": "OT",
-    "penalties": "PKs"
+    "penalties": "PKs",
+    "extraTime": "ET"
   },
   "teams": {
     "deleteError": "Failed to delete team. Please try again.",
@@ -767,7 +770,17 @@
     "plannedSubsEarlier_other": "+{{count}} earlier",
     "plannedSubsOn": "On",
     "plannedSubsOff": "Off",
-    "finishGameButton": "Finish this game"
+    "finishGameButton": "Finish this game",
+    "extraTimeTitle": "Extra time",
+    "extraTimeLevelHint": "The score is level.",
+    "extraTimePeriodCount_one": "{{count}} period",
+    "extraTimePeriodCount_other": "{{count}} periods",
+    "extraTimeMinutes": "Minutes per period",
+    "startExtraTime": "Start extra time",
+    "startExtraTimePeriod": "Start extra time {{n}}",
+    "extraTimePill": "ET {{n}}/{{total}}",
+    "extraTimeShort": "ET",
+    "minutesShort": "min"
   },
   "instructionsModal": {
     "title": "How It Works",
@@ -1297,7 +1310,8 @@
     "periodOptionOne": "1",
     "periodOptionTwo": "2",
     "friendlyHint": "Kept out of competitive stats",
-    "seasonOrTournament": "Season / Tournament"
+    "seasonOrTournament": "Season / Tournament",
+    "regulationLockedByExtraTime": "Locked: extra time was played after these periods."
   },
   "errors": {
     "failedToSaveDrawingMode": "Failed to save drawing mode setting. Changes may not persist.",
@@ -2484,7 +2498,9 @@
     "buttonTitle": "Export field as image",
     "positions": "Positions",
     "gameType": "Sport",
-    "gender": "Gender"
+    "gender": "Gender",
+    "extraTime": "Extra Time",
+    "extraTimeScore": "Extra Time Score"
   },
   "reset": {
     "resetting": "Resetting Application...",
