@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Fixed a startup error when the app is used in English, and screen readers now read the English app with English pronunciation."
+      ],
+      "fi": [
+        "Korjattu käynnistysvirhe englanninkielisessä sovelluksessa, ja ruudunlukijat lukevat englanninkielisen sovelluksen nyt englannin ääntämyksellä."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Dates and numbers now follow the app language: the Home date chips show the day first (5.9.), and Finnish statistics use a decimal comma (57,1 %)."
       ],
       "fi": [
