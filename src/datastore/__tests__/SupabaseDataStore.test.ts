@@ -772,6 +772,27 @@ describe('SupabaseDataStore', () => {
         expect(mockQueryBuilder.upsert).toHaveBeenCalled();
       });
 
+      /** Review 10.8: the label the record arrives with is stored, as in LocalDataStore. @critical */
+      it('keeps the club-season label the season arrives with', async () => {
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+
+        // Default dates would make 2025-07-15 '24/25'; the backup said '25/26'.
+        await dataStore.upsertSeason({ id: 'season_r', name: 'Restored', startDate: '2025-07-15', clubSeason: '25/26' });
+
+        expect(mockQueryBuilder.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({ club_season: '25/26' }),
+          expect.anything()
+        );
+      });
+
       it('preserves the original created_at on upsert (sync push must not reset it)', async () => {
         await dataStore.upsertPlayer({
           id: 'player_123',

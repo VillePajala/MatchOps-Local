@@ -2071,7 +2071,10 @@ export class SupabaseDataStore implements DataStore {
     }
 
     const { start, end } = await this.getSeasonDates();
-    const clubSeason = calculateClubSeason(season.startDate, start, end);
+    // Keep the label the record arrives with, as LocalDataStore does (review 10.8):
+    // restore, migration and sync write seasons/tournaments before or apart from the
+    // settings whose dates computed it. Only a record without a label is computed.
+    const clubSeason = season.clubSeason ?? calculateClubSeason(season.startDate, start, end);
 
     const now = new Date().toISOString();
     const userId = await this.getUserId();
@@ -2445,7 +2448,10 @@ export class SupabaseDataStore implements DataStore {
     }
 
     const { start, end } = await this.getSeasonDates();
-    const clubSeason = calculateClubSeason(tournament.startDate, start, end);
+    // Keep the label the record arrives with, as LocalDataStore does (review 10.8):
+    // restore, migration and sync write seasons/tournaments before or apart from the
+    // settings whose dates computed it. Only a record without a label is computed.
+    const clubSeason = tournament.clubSeason ?? calculateClubSeason(tournament.startDate, start, end);
 
     const now = new Date().toISOString();
     const userId = await this.getUserId();
