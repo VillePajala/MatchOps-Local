@@ -13,7 +13,7 @@ jest.mock('@/utils/logger', () => ({
 jest.mock('@/i18n', () => ({
   __esModule: true,
   default: {
-    language: 'en',  // Test environment defaults to English
+    language: 'en', on: jest.fn(), off: jest.fn(),  // Test environment defaults to English
   },
 }));
 

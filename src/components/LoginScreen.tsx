@@ -12,9 +12,9 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n, { saveLanguagePreference } from '@/i18n';
+import { useAppLanguage } from '@/hooks/useAppLanguage';
 import AuthForm from './AuthForm';
 
 interface LoginScreenProps {
@@ -42,21 +42,9 @@ interface LoginScreenProps {
 export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration = true, initialMode = 'signIn' }: LoginScreenProps) {
   const { t } = useTranslation();
 
-  // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
-  // HTML and the first client render produce identical markup. Reading i18n.language
-  // here directly causes a hydration mismatch when localStorage holds a non-default
-  // language — the language toggle's conditional className diverges, and a later
-  // commit-phase unmount throws NotFoundError on removeChild (MATCHOPS-LOCAL-8K /
-  // MATCHOPS-LOCAL-3). The real value is adopted post-hydration via useEffect below.
-  const [language, setLanguage] = useState<string>('fi');
-
-  // Adopt the real i18n language once on the client, after hydration has completed.
-  useEffect(() => {
-    if (i18n.language !== language) {
-      setLanguage(i18n.language);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // The app language (shared with every other language control; hydration-safe -
+  // see useAppLanguage, MATCHOPS-LOCAL-8K).
+  const [language, changeLanguage] = useAppLanguage();
 
   /**
    * Switching the language is an ACTION, not a state sync. As an effect keyed
@@ -66,15 +54,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
    * rather than catastrophic, but it is the same mistake, so it gets the same
    * fix rather than waiting to find out what it costs.
    */
-  const handleChangeLanguage = (next: string) => {
-    if (next === language) return;
-    setLanguage(next);
-    i18n.changeLanguage(next);
-    // Save to localStorage (i18n loads from here on init).
-    // DO NOT call updateAppSettings here - LoginScreen is shown before login,
-    // so there's no userId and it would cause DataStore initialization conflicts.
-    saveLanguagePreference(next);
-  };
+  const handleChangeLanguage = changeLanguage;
 
   return (
     <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">

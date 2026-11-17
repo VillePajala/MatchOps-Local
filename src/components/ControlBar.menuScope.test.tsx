@@ -10,7 +10,7 @@
 
 jest.mock('@/i18n', () => ({
   __esModule: true,
-  default: { isInitialized: true, language: 'en', changeLanguage: jest.fn(() => Promise.resolve()) },
+  default: { isInitialized: true, language: 'en', on: jest.fn(), off: jest.fn(), changeLanguage: jest.fn(() => Promise.resolve()) },
 }));
 jest.mock('@/utils/storage', () => {
   const actual = jest.requireActual('@/utils/storage');

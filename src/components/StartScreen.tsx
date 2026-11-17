@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n, { saveLanguagePreference } from '@/i18n';
+import { useAppLanguage } from '@/hooks/useAppLanguage';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
@@ -287,12 +287,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // gear-sheet "restart the guide" entry - the safety net for an accidental
   // skip (skipping otherwise marks the tour done forever) and a refresher.
   const guidedTour = useGuidedTourOptional();
-  // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
-  // HTML and the first client render produce identical markup. Reading i18n.language
-  // here directly causes a hydration mismatch when localStorage holds a non-default
-  // language (MATCHOPS-LOCAL-8K / MATCHOPS-LOCAL-3). The real value is adopted
-  // post-hydration via useEffect below.
-  const [language, setLanguage] = useState<string>('fi');
+  // The app language (shared with every other language control; hydration-safe).
+  const [language, changeLanguage] = useAppLanguage();
   // Which Home panel the body shows (restructure 1.3b): the tabs became REAL
   // tabs - Games (front page) and Team (club entry rows) switch panels here;
   // Seasons/Stats stay one-tap openers for their single-purpose scopes.
@@ -301,8 +297,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // device- or account-scoped lives here, off the front page.
   const [showGearSheet, setShowGearSheet] = useState(false);
 
-  // Recommended-setup card dismissal. Read post-hydration (SSR-safe, like language):
-  // both server and first client render show nothing until setupHydrated flips true.
+  // Recommended-setup card dismissal. Read post-hydration (SSR-safe): both server and
+  // first client render show nothing until setupHydrated flips true.
   const [setupDismissed, setSetupDismissed] = useState(false);
   const [setupHydrated, setSetupHydrated] = useState(false);
   const setupDismissKey = `matchops_recommended_setup_dismissed_${user?.id ?? 'local'}`;
@@ -311,7 +307,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   useEffect(() => {
     try {
-      // eslint-disable-next-line no-restricted-globals -- one-time UI dismissal flag, not app data
+      // Setting state here is the point: a post-hydration read of a client-only value
+      // (the server cannot know it), once per key.
+      // eslint-disable-next-line no-restricted-globals, react-hooks/set-state-in-effect -- one-time UI dismissal flag, not app data
       setSetupDismissed(localStorage.getItem(setupDismissKey) === '1');
     } catch {
       // localStorage unavailable — treat as not dismissed
@@ -340,14 +338,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
     : 0;
   const [showSetupSheet, setShowSetupSheet] = useState(false);
 
-  // Adopt the real i18n language once on the client, after hydration has completed.
-  useEffect(() => {
-    if (i18n.language !== language) {
-      setLanguage(i18n.language);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   /**
    * Switching the language is an ACTION, not a state sync.
    *
@@ -364,15 +354,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
    * Doing the work in the click handler makes that structurally impossible:
    * nothing changes the language unless a coach asked for it.
    */
-  const handleChangeLanguage = (next: string) => {
-    if (next === language) return;
-    setLanguage(next);
-    i18n.changeLanguage(next);
-    // localStorage, since i18n loads from here on init.
-    // DO NOT call updateAppSettings here - StartScreen is shown in local mode,
-    // so calling it could cause DataStore initialization conflicts if user switches modes.
-    saveLanguagePreference(next);
-  };
+  const handleChangeLanguage = changeLanguage;
 
   return (
     <div className="relative flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-hidden">
