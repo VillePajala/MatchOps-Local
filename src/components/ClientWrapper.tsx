@@ -10,7 +10,8 @@ const ClientWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     <ToastProvider>
       <PremiumProvider>
         <UpgradePromptManager>
-          {children}
+          {/* The app root the full-height CSS targets (globals.css, review 10.9). */}
+          <div id="app-root">{children}</div>
         </UpgradePromptManager>
       </PremiumProvider>
     </ToastProvider>

@@ -36,8 +36,12 @@ body {
   font-family: var(--font-rajdhani), sans-serif;
 }
 
-/* Fix for app root to take full height */
-body > div {
+/* The app root and the page inside it take the full height (review 10.9). Scoped to
+   #app-root (ClientWrapper): as `body > div` it also hit every portal and overlay
+   rendered straight into <body>, stretching any fixed element without its own height
+   to full screen (how incident 1.1 happened). */
+#app-root,
+#app-root > div {
   height: 100%;
   display: flex;
   flex-direction: column;
