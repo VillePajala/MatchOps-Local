@@ -3,6 +3,15 @@
   "releases": [
     {
       "date": "2026-11-17",
+      "en": [
+        "Extra time: at full time you can start extra time (one or two periods) on the clock. The recap, the Taso report and the match info show the extra-time score next to the final score."
+      ],
+      "fi": [
+        "Jatkoaika: täyden ajan jälkeen voit aloittaa jatkoajan (yksi tai kaksi jaksoa) kelloon. Yhteenveto, Taso-raportti ja ottelun tiedot näyttävät jatkoajan tuloksen lopputuloksen vieressä."
+      ]
+    },
+    {
+      "date": "2026-11-17",
       "internal": true,
       "en": [
         "Groundwork for extra time: matches can store extra-time periods."
