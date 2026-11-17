@@ -58,6 +58,69 @@ function markSetupWizardDone(userId: string | null | undefined): void {
 type WizardFormat = '5v5' | '8v8' | '11v11';
 const FORMATS: WizardFormat[] = ['5v5', '8v8', '11v11'];
 
+/**
+ * The wizard's input, kept for the tab (review 7.1b). Android may destroy a
+ * backgrounded app's page while the coach reads names from another app; without
+ * this the restored page started the wizard empty. Scope: sessionStorage survives
+ * a reload, a tab discard and a TWA page recreation - not a full process kill
+ * followed by a cold start, which begins a new session (a deliberate trade-off:
+ * no stale half-finished wizard weeks later). It also carries what a failed
+ * finish already created, so finishing after a restore does not create those
+ * players or the team twice (the 7.6 retry rule, across a reload).
+ */
+interface WizardDraft {
+  step: 1 | 2;
+  teamName: string;
+  format: WizardFormat;
+  ageGroup: string;
+  names: Array<{ id: number; name: string }>;
+  draft: string;
+  nextRowId: number;
+  created: Array<[number, Player]>;
+  createdTeam: Team | null;
+}
+
+const DRAFT_PREFIX = 'matchops_setup_wizard_draft_';
+
+function readWizardDraft(userId: string | null | undefined): WizardDraft | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(`${DRAFT_PREFIX}${userId ?? 'local'}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<WizardDraft> | null;
+    if (!parsed || !Array.isArray(parsed.names) || typeof parsed.teamName !== 'string') return null;
+    return {
+      step: parsed.step === 2 ? 2 : 1,
+      teamName: parsed.teamName,
+      format: FORMATS.includes(parsed.format as WizardFormat) ? (parsed.format as WizardFormat) : '8v8',
+      ageGroup: typeof parsed.ageGroup === 'string' ? parsed.ageGroup : '',
+      names: parsed.names.filter((r) => r && typeof r.id === 'number' && typeof r.name === 'string'),
+      draft: typeof parsed.draft === 'string' ? parsed.draft : '',
+      nextRowId: typeof parsed.nextRowId === 'number' ? parsed.nextRowId : 1,
+      created: Array.isArray(parsed.created) ? parsed.created : [],
+      createdTeam: parsed.createdTeam ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeWizardDraft(userId: string | null | undefined, value: WizardDraft): void {
+  try {
+    sessionStorage.setItem(`${DRAFT_PREFIX}${userId ?? 'local'}`, JSON.stringify(value));
+  } catch {
+    // Not persistable: the wizard still works for this page load.
+  }
+}
+
+function clearWizardDraft(userId: string | null | undefined): void {
+  try {
+    sessionStorage.removeItem(`${DRAFT_PREFIX}${userId ?? 'local'}`);
+  } catch {
+    // Nothing to clear.
+  }
+}
+
 
 interface SetupWizardProps {
   /** Called after the wizard is done (finished or skipped) - hide it and refresh signals. */
@@ -73,28 +136,72 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const { userId } = useDataStore();
   const { showToast } = useToast();
 
-  const [step, setStep] = useState<1 | 2>(1);
-  const [teamName, setTeamName] = useState('');
-  const [format, setFormat] = useState<WizardFormat>('8v8');
+  // A draft from before Android recreated the page, if there is one (review 7.1b).
+  const [restored] = useState(() => readWizardDraft(userId));
+  const [step, setStep] = useState<1 | 2>(restored?.step ?? 1);
+  const [teamName, setTeamName] = useState(restored?.teamName ?? '');
+  const [format, setFormat] = useState<WizardFormat>(restored?.format ?? '8v8');
   /**
    * Optional, like the format. Empty means the coach skipped it and gets
    * today's behaviour - it must never become a gate on creating a team.
    */
-  const [ageGroup, setAgeGroup] = useState('');
+  const [ageGroup, setAgeGroup] = useState(restored?.ageGroup ?? '');
   // Each row has its own id (review 7.6): a retry after a partial failure must
   // match created players to the rows on screen, not to positions that shift
   // when the coach removes a row in between.
-  const [names, setNames] = useState<Array<{ id: number; name: string }>>([]);
-  const nextRowIdRef = useRef(1);
-  const [draft, setDraft] = useState('');
+  const [names, setNames] = useState<Array<{ id: number; name: string }>>(restored?.names ?? []);
+  const nextRowIdRef = useRef(restored?.nextRowId ?? 1);
+  const [draft, setDraft] = useState(restored?.draft ?? '');
   const [isSaving, setIsSaving] = useState(false);
 
   // Committed rows + a non-empty draft: what Valmis will actually create.
   const totalCount = names.length + (draft.trim() ? 1 : 0);
 
   // Retry safety: a failed finish must not duplicate what already got created.
-  const createdPlayersRef = useRef<Map<number, Player>>(new Map());
-  const createdTeamRef = useRef<Team | null>(null);
+  const createdPlayersRef = useRef<Map<number, Player>>(new Map(restored?.created ?? []));
+  const createdTeamRef = useRef<Team | null>(restored?.createdTeam ?? null);
+  // Kept current as the coach types; also after each create (see saveDraftNow).
+  // `over`: the finish path passes the rows it is creating, which state has not
+  // caught up with yet (a pending draft just became a row).
+  const saveDraftNow = useCallback((over?: Pick<WizardDraft, 'names' | 'draft'>) => {
+    writeWizardDraft(userId, {
+      step,
+      teamName,
+      format,
+      ageGroup,
+      names: over?.names ?? names,
+      draft: over?.draft ?? draft,
+      nextRowId: nextRowIdRef.current,
+      created: Array.from(createdPlayersRef.current.entries()),
+      createdTeam: createdTeamRef.current,
+    });
+  }, [userId, step, teamName, format, ageGroup, names, draft]);
+  const finishedRef = useRef(false);
+
+  // The account id can settle after the first render (auth rehydrating in cloud
+  // mode): the draft is under the real id, so look again then - but only while
+  // nothing has been typed, never over the coach's input.
+  const draftReadForRef = useRef(userId);
+  useEffect(() => {
+    if (draftReadForRef.current === userId) return;
+    draftReadForRef.current = userId;
+    if (teamName || names.length > 0 || draft) return;
+    const late = readWizardDraft(userId);
+    if (!late) return;
+    setStep(late.step);
+    setTeamName(late.teamName);
+    setFormat(late.format);
+    setAgeGroup(late.ageGroup);
+    setNames(late.names);
+    setDraft(late.draft);
+    nextRowIdRef.current = late.nextRowId;
+    createdPlayersRef.current = new Map(late.created);
+    createdTeamRef.current = late.createdTeam;
+  }, [userId, teamName, names.length, draft]);
+
+  useEffect(() => {
+    if (!finishedRef.current) saveDraftNow();
+  }, [saveDraftNow]);
   // Re-entrancy guard as a REF (state commits too late to stop a double tap)
   // and an unmount guard for the async save chain (review #725).
   const savingRef = useRef(false);
@@ -113,6 +220,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   }, []);
 
   const finish = useCallback(() => {
+    finishedRef.current = true;
+    clearWizardDraft(userId);
     markSetupWizardDone(userId);
     onComplete();
   }, [userId, onComplete]);
@@ -163,6 +272,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           throw new Error(`player removal failed: ${player.id}`);
         }
         created.delete(rowId);
+        saveDraftNow({ names: rows, draft: '' });
       }
 
       // Create players sequentially, skipping rows an earlier failed attempt
@@ -181,6 +291,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
         );
         if (!player) throw new Error(`player creation failed: ${name}`);
         created.set(row.id, player);
+        saveDraftNow({ names: rows, draft: '' }); // a reload now must not create this player again
       }
       // In the order on screen.
       const players = rows.map((r) => created.get(r.id)).filter((p): p is Player => !!p);
@@ -192,6 +303,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           ageGroup ? { name: teamName.trim(), ageGroup } : { name: teamName.trim() },
           userId ?? undefined,
         );
+        saveDraftNow({ names: rows, draft: '' });
       }
 
       if (players.length > 0) {
@@ -236,7 +348,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       showToast(t('setupWizard.error', 'Saving failed - please try again.'), 'error');
       setIsSaving(false);
     }
-  }, [draft, names, teamName, format, ageGroup, userId, queryClient, showToast, t, finish]);
+  }, [draft, names, teamName, format, ageGroup, userId, queryClient, showToast, t, finish, saveDraftNow]);
 
   const skipLabel = t('setupWizard.skip', "Skip, I'll do this later");
 

@@ -28,8 +28,9 @@ jest.mock('@/contexts/ToastProvider', () => ({
   useToast: () => ({ showToast: mockShowToast }),
 }));
 
+let mockUserId: string | null = 'user-1';
 jest.mock('@/hooks/useDataStore', () => ({
-  useDataStore: () => ({ userId: 'user-1' }),
+  useDataStore: () => ({ userId: mockUserId }),
 }));
 
 const mockAddPlayer = jest.fn();
@@ -80,6 +81,8 @@ const addPlayerRow = (name: string) => {
 beforeEach(() => {
   jest.clearAllMocks();
   localStorage.clear();
+  sessionStorage.clear();
+  mockUserId = 'user-1';
   mockAddPlayer.mockImplementation(async (data: { name: string }) => ({
     id: `p-${data.name}`,
     name: data.name,
@@ -286,6 +289,79 @@ describe('SetupWizard', () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(mockRemovePlayer).toHaveBeenCalledTimes(2);
     expect(mockSetTeamRoster).toHaveBeenCalledWith('team-1', [expect.objectContaining({ id: 'p-Eetu' })], 'user-1');
+  });
+
+  /**
+   * Review 7.1b: Android can destroy a backgrounded app's page while the coach
+   * reads names from another app. The wizard comes back with what was typed.
+   * @critical
+   */
+  describe('survives the page being recreated', () => {
+    it('restores the team name, step and player rows', () => {
+      const first = renderWizard();
+      toStepTwo('FC Draft');
+      addPlayerRow('Aino');
+      addPlayerRow('Eetu');
+      first.unmount(); // the page is gone
+
+      renderWizard();
+      expect(screen.getByText('Aino')).toBeInTheDocument();
+      expect(screen.getByText('Eetu')).toBeInTheDocument();
+      expect(screen.getByTestId('wizard-player-count')).toHaveTextContent('2 players added');
+    });
+
+    it('does not create again what a failed finish created before the reload', async () => {
+      mockAddPlayer.mockImplementation(async (data: { name: string }) =>
+        data.name === 'Eetu' && mockAddPlayer.mock.calls.length === 2
+          ? null
+          : { id: `p-${data.name}`, name: data.name, nickname: '', jerseyNumber: '', notes: '', isGoalie: false, receivedFairPlayCard: false });
+      const first = renderWizard();
+      toStepTwo();
+      addPlayerRow('Aino');
+      addPlayerRow('Eetu');
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1)); // Aino created, Eetu failed
+      first.unmount();
+
+      const { onComplete } = renderWizard();
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+      expect(mockAddPlayer.mock.calls.map((c) => (c[0] as { name: string }).name)).toEqual(['Aino', 'Eetu', 'Eetu']);
+      expect(mockSetTeamRoster).toHaveBeenCalledWith(
+        'team-1',
+        [expect.objectContaining({ id: 'p-Aino' }), expect.objectContaining({ id: 'p-Eetu' })],
+        'user-1',
+      );
+    });
+
+    it('finds the draft when the account id settles after the first render', () => {
+      const first = renderWizard();
+      toStepTwo('FC Draft');
+      addPlayerRow('Aino');
+      first.unmount();
+
+      mockUserId = null; // auth still rehydrating on the recreated page
+      const { rerender } = renderWizard();
+      expect(screen.queryByText('Aino')).not.toBeInTheDocument();
+      mockUserId = 'user-1';
+      rerender(
+        <QueryClientProvider client={new QueryClient()}>
+          <SetupWizard onComplete={jest.fn()} />
+        </QueryClientProvider>,
+      );
+      expect(screen.getByText('Aino')).toBeInTheDocument();
+    });
+
+    it('is gone once the wizard is finished or skipped', async () => {
+      const first = renderWizard();
+      toStepTwo('FC Draft');
+      addPlayerRow('Aino');
+      fireEvent.click(screen.getByText("Skip, I'll do this later"));
+      first.unmount();
+      renderWizard();
+      expect(screen.queryByText('Aino')).not.toBeInTheDocument();
+      expect(screen.getByTestId('wizard-team-name')).toHaveValue('');
+    });
   });
 
   it('limits the team and player names to what the store accepts', () => {
