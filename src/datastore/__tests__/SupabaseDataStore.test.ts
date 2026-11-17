@@ -8,7 +8,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { TeamPlayer, Season, Tournament } from '@/types';
+import type { Player, TeamPlayer, Season, Tournament } from '@/types';
 import type { AppState } from '@/types/game';
 import type { PersonnelRole } from '@/types/personnel';
 import type { AppSettings } from '@/types/settings';
@@ -738,6 +738,17 @@ describe('SupabaseDataStore', () => {
      * Upsert semantics differ from create/update - ensures idempotent sync operations.
      */
     describe('upsertPlayer', () => {
+      /** Review 3.13b: a sync write carries the server's edit time; others do not. @critical */
+      it('sends edited_at only for a checked sync write', async () => {
+        await dataStore.upsertPlayer({ id: 'p1', name: 'A' } as Player, { editedAt: '2027-01-15T08:00:00.000Z' });
+        expect(mockQueryBuilder.upsert).toHaveBeenLastCalledWith(
+          expect.objectContaining({ id: 'p1', edited_at: '2027-01-15T08:00:00.000Z' }),
+          expect.anything(),
+        );
+        await dataStore.upsertPlayer({ id: 'p2', name: 'B' } as Player);
+        expect((mockQueryBuilder.upsert as jest.Mock).mock.calls.at(-1)[0]).not.toHaveProperty('edited_at');
+      });
+
       it('should upsert player successfully (insert or update)', async () => {
         const mockRow = {
           id: 'player_123',
@@ -6152,6 +6163,28 @@ describe('SupabaseDataStore', () => {
       // Second call should pass expected version 7
       const secondCall = (mockSupabaseClient.rpc as jest.Mock).mock.calls[1];
       expect(secondCall[1].p_expected_version).toBe(7);
+    });
+  });
+
+  /** Review 3.13b: the check a queued non-game write makes first (migration 059). */
+  describe('checkSyncWrite', () => {
+    it('passes table, row and a non-negative whole-ms age, and returns the verdict', async () => {
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({
+        data: [{ verdict: 'stale', edit_at: '2027-01-15T08:00:00+00:00' }], error: null,
+      });
+      const result = await dataStore.checkSyncWrite('players', 'p1', -5.4);
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('sync_write_check', { p_table: 'players', p_row_id: 'p1', p_edit_age_ms: 0 });
+      expect(result).toEqual({ verdict: 'stale', editedAt: '2027-01-15T08:00:00+00:00' });
+    });
+
+    it('returns null when the database has no check yet (function not found)', async () => {
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: null, error: { code: 'PGRST202', message: 'Could not find the function' } });
+      expect(await dataStore.checkSyncWrite('players', 'p1', 0)).toBeNull();
+    });
+
+    it('rejects a malformed reply instead of guessing a verdict', async () => {
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: [{ verdict: 'maybe' }], error: null });
+      await expect(dataStore.checkSyncWrite('players', 'p1', 0)).rejects.toThrow(ValidationError);
     });
   });
 });

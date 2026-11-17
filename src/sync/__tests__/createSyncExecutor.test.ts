@@ -3,7 +3,7 @@
  */
 
 import { createSyncExecutor } from '../createSyncExecutor';
-import { GAME_REPLACED_BY_CLOUD_EVENT, gameReplacementCount } from '../syncEvents';
+import { CLOUD_COPY_ADOPTED_EVENT, GAME_REPLACED_BY_CLOUD_EVENT, gameReplacementCount } from '../syncEvents';
 import type { AppState } from '@/types';
 import { AlreadyExistsError, ConflictError } from '@/interfaces/DataStoreErrors';
 import type { SyncOperation } from '../types';
@@ -395,6 +395,126 @@ describe('createSyncExecutor', () => {
 
     expect(isOperationSuperseded).toHaveBeenCalledWith(op.id);
     expect(upsertPlayer).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Review 3.13b: queued non-game writes ask the cloud first; the newer edit wins and
+   * a record deleted on another device stays deleted.
+   * @critical
+   */
+  describe('checked sync writes (newer edit wins)', () => {
+    const NOW = 1_800_000_000_000;
+    let checkSyncWrite: jest.Mock;
+    let local: Record<string, jest.Mock>;
+    let exec: ReturnType<typeof createSyncExecutor>;
+
+    beforeEach(() => {
+      jest.spyOn(Date, 'now').mockReturnValue(NOW);
+      checkSyncWrite = jest.fn().mockResolvedValue({ verdict: 'apply', editedAt: '2027-01-15T08:00:00.000Z' });
+      (mockStore as unknown as { checkSyncWrite: jest.Mock }).checkSyncWrite = checkSyncWrite;
+      local = {
+        upsertPlayer: jest.fn().mockResolvedValue(undefined),
+        deletePlayer: jest.fn().mockResolvedValue(true),
+        saveSettings: jest.fn().mockResolvedValue(undefined),
+        getSettings: jest.fn().mockResolvedValue({ currentGameId: 'game_here', language: 'fi' }),
+        getSeasonReferences: jest.fn(),
+        deleteSeason: jest.fn().mockResolvedValue(true),
+      };
+      exec = createSyncExecutor(mockStore, local as unknown as DataStore, {
+        isOperationSuperseded: jest.fn().mockResolvedValue(false),
+      });
+    });
+    afterEach(() => jest.restoreAllMocks());
+
+    it('apply: writes with the server edit time; the age is measured on this clock', async () => {
+      const op = createOperation({ entityType: 'player', entityId: 'p1', timestamp: NOW - 90_000, data: { id: 'p1', name: 'A' } });
+      await exec(op);
+      expect(checkSyncWrite).toHaveBeenCalledWith('players', 'p1', 90_000);
+      expect(mockStore.upsertPlayer).toHaveBeenCalledWith({ id: 'p1', name: 'A' }, { editedAt: '2027-01-15T08:00:00.000Z' });
+    });
+
+    it('stale: nothing is written to the cloud; the cloud copy is stored here', async () => {
+      checkSyncWrite.mockResolvedValue({ verdict: 'stale', editedAt: 'x' });
+      mockStore.getPlayers.mockResolvedValue([{ id: 'p1', name: 'Newer' }] as unknown as Awaited<ReturnType<DataStore['getPlayers']>>);
+      await exec(createOperation({ entityType: 'player', entityId: 'p1', data: { id: 'p1', name: 'Older' } }));
+      expect(mockStore.upsertPlayer).not.toHaveBeenCalled();
+      expect(local.upsertPlayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'p1', name: 'Newer' }));
+    });
+
+    it('stale settings keep the game this device has open', async () => {
+      checkSyncWrite.mockResolvedValue({ verdict: 'stale', editedAt: 'x' });
+      mockStore.getSettings = jest.fn().mockResolvedValue({ currentGameId: 'game_there', language: 'en' });
+      await exec(createOperation({ entityType: 'settings', entityId: 'settings', data: { currentGameId: 'game_here' } }));
+      expect(local.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ language: 'en', currentGameId: 'game_here' }));
+    });
+
+    it('deleted: the record is removed here too', async () => {
+      checkSyncWrite.mockResolvedValue({ verdict: 'deleted', editedAt: 'x' });
+      await exec(createOperation({ entityType: 'player', entityId: 'p1', data: { id: 'p1', name: 'A' } }));
+      expect(mockStore.upsertPlayer).not.toHaveBeenCalled();
+      expect(local.deletePlayer).toHaveBeenCalledWith('p1');
+    });
+
+    it('deleted, but this device still uses it: pushed back as an ordinary write', async () => {
+      checkSyncWrite.mockResolvedValue({ verdict: 'deleted', editedAt: 'x' });
+      local.getSeasonReferences.mockResolvedValue({ canDelete: false, counts: { games: 2 }, summary: '' });
+      await exec(createOperation({ entityType: 'season', entityId: 's1', data: { id: 's1', name: 'Kevät' } }));
+      expect(local.deleteSeason).not.toHaveBeenCalled();
+      expect(mockStore.upsertSeason).toHaveBeenCalledWith({ id: 's1', name: 'Kevät' });
+    });
+
+    it('a superseded op leaves the newer local change alone', async () => {
+      checkSyncWrite.mockResolvedValue({ verdict: 'deleted', editedAt: 'x' });
+      exec = createSyncExecutor(mockStore, local as unknown as DataStore, {
+        isOperationSuperseded: jest.fn().mockResolvedValue(true),
+      });
+      await exec(createOperation({ entityType: 'player', entityId: 'p1', data: { id: 'p1' } }));
+      expect(local.deletePlayer).not.toHaveBeenCalled();
+    });
+
+    it('passes the edit time to adjustment and settings writes too', async () => {
+      const adj = { id: 'a1', playerId: 'p1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0 };
+      await exec(createOperation({ entityType: 'playerAdjustment', entityId: 'a1', data: adj }));
+      expect(mockStore.upsertPlayerAdjustment).toHaveBeenCalledWith(adj, { editedAt: '2027-01-15T08:00:00.000Z' });
+      mockStore.saveSettings = jest.fn().mockResolvedValue(undefined);
+      await exec(createOperation({ entityType: 'settings', entityId: 'settings', data: { language: 'fi' } }));
+      expect(mockStore.saveSettings).toHaveBeenCalledWith({ language: 'fi' }, { editedAt: '2027-01-15T08:00:00.000Z' });
+    });
+
+    it('deleted adjustment: removed here using the op\'s playerId; screens are told to re-read', async () => {
+      checkSyncWrite.mockResolvedValue({ verdict: 'deleted', editedAt: 'x' });
+      local.deletePlayerAdjustment = jest.fn().mockResolvedValue(true);
+      const events: string[] = [];
+      const listener = (e: Event) => events.push(e.type);
+      window.addEventListener(CLOUD_COPY_ADOPTED_EVENT, listener);
+      await exec(createOperation({ entityType: 'playerAdjustment', entityId: 'a1', data: { id: 'a1', playerId: 'p1' } }));
+      window.removeEventListener(CLOUD_COPY_ADOPTED_EVENT, listener);
+      expect(local.deletePlayerAdjustment).toHaveBeenCalledWith('p1', 'a1');
+      expect(events).toEqual([CLOUD_COPY_ADOPTED_EVENT]);
+    });
+
+    it('a team deleted elsewhere but used here is pushed back with its roster', async () => {
+      checkSyncWrite.mockResolvedValue({ verdict: 'deleted', editedAt: 'x' });
+      local.getTeamReferences = jest.fn().mockResolvedValue({ canDelete: false, counts: { games: 1 }, summary: '' });
+      const roster = [{ id: 'p1', name: 'A' }];
+      local.getTeamRoster = jest.fn().mockResolvedValue(roster);
+      const team = { id: 't1', name: 'PK', createdAt: 'x', updatedAt: 'x' };
+      await exec(createOperation({ entityType: 'team', entityId: 't1', data: team }));
+      expect(mockStore.upsertTeam).toHaveBeenCalledWith(team);
+      expect(mockStore.setTeamRoster).toHaveBeenCalledWith('t1', roster);
+    });
+
+    it('no check in the database yet (null): the write goes through unchecked', async () => {
+      checkSyncWrite.mockResolvedValue(null);
+      await exec(createOperation({ entityType: 'player', entityId: 'p1', data: { id: 'p1', name: 'A' } }));
+      expect(mockStore.upsertPlayer).toHaveBeenCalledWith({ id: 'p1', name: 'A' });
+    });
+
+    it('deletes and unchecked entities are not checked', async () => {
+      await exec(createOperation({ entityType: 'player', entityId: 'p1', operation: 'delete', data: null }));
+      await exec(createOperation({ entityType: 'teamRoster', entityId: 't1', data: [] }));
+      expect(checkSyncWrite).not.toHaveBeenCalled();
+    });
   });
 
   /**
