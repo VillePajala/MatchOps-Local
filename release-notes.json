@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Applying an app update during a match now saves the latest changes (for example a goal entered just before) before the app restarts."
+      ],
+      "fi": [
+        "Sovelluspäivityksen käyttöönotto kesken ottelun tallentaa nyt viimeisimmät muutokset (esimerkiksi juuri kirjatun maalin) ennen sovelluksen uudelleenkäynnistystä."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Accessibility: while a match dialog (goal log, game statistics, game settings) is open, keyboard and screen-reader users can no longer reach the screen behind it."
       ],
       "fi": [
