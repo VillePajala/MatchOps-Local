@@ -187,11 +187,9 @@ const originalConsoleError = console.error;
 const allowedConsolePatterns = [
   'Not implemented: navigation',
   'was not wrapped in act(...)',  // React state update warnings - will fix with act() wrappers
-  // React 19 warnings that are expected
   // Next.js Image component prop warnings (priority is valid for next/image but triggers warning in test mocks)
   'Received `%s` for a non-boolean attribute',
   // Test-specific expected console output (from error handling tests)
-  // Game-related errors
   'Import games error',
   // Settings-related errors
   'Error getting app settings',
@@ -215,14 +213,8 @@ const allowedConsolePatterns = [
   'Canvas has invalid dimensions',
   // Club season validation warnings (expected in validation tests)
   '[getClubSeasonForDate] Invalid date format',
-  // Backend config warnings (expected in backendConfig tests)
-  // SupabaseDataStore warnings (expected fallback behavior in tests)
-  // MigrationService errors/warnings (expected in migration failure tests)
-  // SyncEngine warnings/errors (expected in sync failure tests)
-  // SyncExecutor warnings/errors (expected in sync failure tests)
   // PlayBilling errors (expected in billing error-handling tests)
   '[PlayBilling]',
-  // SeasonTournamentManagementModal errors (expected in delete tests)
   // Warmup plan errors (expected in warmup plan error-handling tests)
   '[useWarmupPlan]',
   // Premium access errors (expected in premium error-handling tests)
