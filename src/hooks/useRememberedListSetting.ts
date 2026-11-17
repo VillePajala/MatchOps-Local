@@ -8,7 +8,7 @@
  * a name no game uses any more) falls back to the default.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import logger from '@/utils/logger';
 
 const PREFIX = 'matchops_list_';
@@ -43,14 +43,28 @@ export function useRememberedListSetting<T>(
   fallback: T,
   isValid: (value: unknown) => value is T,
 ): [T, (next: T | ((previous: T) => T)) => void] {
-  const [value, setValue] = useState<T>(() => read(key, fallback, isValid));
+  const [state, setState] = useState<{ key: string; value: T }>(() => ({ key, value: read(key, fallback, isValid) }));
+  // A different key (e.g. one modal serving leagues and tournaments) is a different
+  // setting: read it, adjusted during render rather than in an effect.
+  let current = state;
+  if (state.key !== key) {
+    current = { key, value: read(key, fallback, isValid) };
+    setState(current);
+  }
+  const value = current.value;
+
+  // The latest value for functional updates, so the write happens here - outside
+  // the state updater, which React may call twice.
+  const valueRef = useRef(value);
+  useEffect(() => {
+    valueRef.current = value;
+  });
   const set = useCallback(
     (next: T | ((previous: T) => T)) => {
-      setValue((previous) => {
-        const resolved = typeof next === 'function' ? (next as (p: T) => T)(previous) : next;
-        write(key, resolved);
-        return resolved;
-      });
+      const resolved = typeof next === 'function' ? (next as (p: T) => T)(valueRef.current) : next;
+      valueRef.current = resolved;
+      write(key, resolved);
+      setState({ key, value: resolved });
     },
     [key],
   );
