@@ -57,6 +57,7 @@ import { getPlan } from '@/utils/playtimePlanner/storage';
 import { getPlanLink, type PlanLink } from '@/utils/playtimePlanner/planLinks';
 import { mergeClubRosterIntoGamePlayers, playerIdsReferencedByGame } from '@/utils/gamePlayerList';
 import { gameReplacementCount } from '@/sync/syncEvents';
+import { periodEndSeconds, type MatchStructure } from '@/utils/matchStructure';
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
@@ -1333,9 +1334,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           // The game was live when the app was hidden and a force-reload followed.
           // Same defaults as LOAD_PERSISTED_GAME_DATA, so the boundary (and the stop
           // saved below) is the one the reducer loads.
-          const periodBoundarySeconds =
-            (gameData.currentPeriod ?? 1)
-            * (gameData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes) * 60;
+          const structureOnLoad: MatchStructure = {
+            numberOfPeriods: gameData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods,
+            periodDurationMinutes: gameData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes,
+          };
+          const periodBoundarySeconds = periodEndSeconds(structureOnLoad, gameData.currentPeriod ?? 1);
           const recoveredElapsed = pendingCorrection.elapsedAtRecord
             + Math.max(0, (Date.now() - pendingCorrection.recordWallClockMs) / 1000);
           const corrected = Math.min(recoveredElapsed, periodBoundarySeconds);
@@ -1351,12 +1354,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           // the period), leave it paused so the user taps to acknowledge the period
           // end — we never silently auto-advance periods.
           shouldAutoResume = pendingCorrection.resume && corrected < periodBoundarySeconds;
-          const stopWhileAway = boundaryStop(
-            gameData.currentPeriod ?? 1,
-            gameData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods,
-            gameData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes,
-            recoveredElapsed,
-          );
+          const stopWhileAway = boundaryStop(structureOnLoad, gameData.currentPeriod ?? 1, recoveredElapsed);
           if (stopWhileAway) {
             // The period ended while the app was away (review 4.26). The reducer loads
             // this as the period break / full time at the boundary; save that now -
@@ -1397,9 +1395,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
       const loadStop = gameData.gameStatus === 'inProgress'
         ? boundaryStop(
+          {
+            numberOfPeriods: gameData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods,
+            periodDurationMinutes: gameData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes,
+          },
           gameData.currentPeriod ?? 1,
-          gameData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods,
-          gameData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes,
           payload.timeElapsedInSeconds ?? gameData.timeElapsedInSeconds ?? 0,
         )
         : null;
