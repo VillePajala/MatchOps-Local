@@ -236,14 +236,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         return isoDate;
       }
 
-      const currentLanguage = i18n.language;
-
-      // Use consistent Intl.DateTimeFormat for both locales
+      // One source for the locale (review 8.4): Finnish writes the month as a number.
+      const locale = appLocale(i18n.language);
       const formatter = new Intl.DateTimeFormat(
-        appLocale(),
+        locale,
         {
           day: 'numeric',
-          month: currentLanguage.startsWith('fi') ? 'numeric' : 'short',
+          month: locale === 'fi-FI' ? 'numeric' : 'short',
           year: 'numeric'
         }
       );

@@ -39,9 +39,12 @@ const scoreColour: Record<'W' | 'D' | 'L', string> = {
   L: 'text-red-300',
 };
 
-/** "2026-09-20" -> "20.9." - the form a Finnish coach writes on a whiteboard. */
+/**
+ * "2026-09-20" -> "20.9." - the form a Finnish coach writes on a whiteboard. A date
+ * with a time part ("2026-09-20T...") uses its date part.
+ */
 const formatDayMonth = (iso: string): string => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   if (!m) return '';
   return `${Number(m[3])}.${Number(m[2])}.`;
 };
