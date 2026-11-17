@@ -332,6 +332,24 @@ describe('<RosterSettingsModal />', () => {
     expect(screen.getByText('Player Two')).toBeInTheDocument();
   });
 
+  /** Review 7.L7: an empty roster card used to say nothing. */
+  test('says why the list is empty: no search hits, or no players yet', () => {
+    const { unmount } = render(
+      <TestWrapper>
+        <RosterSettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+    fireEvent.change(screen.getByPlaceholderText('Search players...'), { target: { value: 'zzz' } });
+    expect(screen.getByTestId('roster-empty')).toHaveTextContent('No player matches'); // this mock does not interpolate
+    unmount();
+    render(
+      <TestWrapper>
+        <RosterSettingsModal {...defaultProps} availablePlayers={[]} />
+      </TestWrapper>
+    );
+    expect(screen.getByTestId('roster-empty')).toHaveTextContent('No players yet');
+  });
+
   /** Review 7.L6: players are also found by shirt number. */
   test('finds a player by shirt number', () => {
     render(

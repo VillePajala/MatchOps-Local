@@ -75,6 +75,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
     const [searchText, setSearchText] = useState('');
     const [showArchived, setShowArchived] = useState(false);
+    const archivedCount = (kind === 'season' ? seasons : tournaments).filter((d) => d.archived).length;
     // Cleanup for names that got in before the competition lists existed.
     const [showNameSweep, setShowNameSweep] = useState(false);
     // Back closes the sweep first, leaving this manager open underneath.
@@ -286,7 +287,11 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                             {t('seasonTournamentModal.noSearchResults', 'Nothing matches "{{search}}".', { search: searchText.trim() })}
                         </p>
                     )}
-                    {filtered.length === 0 && searchText.trim() === '' && (
+                    {filtered.length === 0 && searchText.trim() === '' && archivedCount > 0 && !showArchived && (
+                        // Not "none yet": they exist, archived (review 7.L7).
+                        <p className="text-sm text-slate-400 py-2">{t('common.allArchived', 'Everything here is archived.')}</p>
+                    )}
+                    {filtered.length === 0 && searchText.trim() === '' && !(archivedCount > 0 && !showArchived) && (
                         <p className="text-sm text-slate-400 py-2">
                             {type === 'season'
                                 ? t('seasonTournamentModal.noSeasonsNudge', 'No leagues yet. Create one, then link your teams and games to it to track league-level stats.')
@@ -459,19 +464,23 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                 autoComplete="off"
                 className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
-              <button
-                type="button"
-                onClick={() => setShowArchived(v => !v)}
-                aria-pressed={showArchived}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                  showArchived ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
-              >
-                {t('seasonTournamentModal.showArchived', 'Show Archived')}
-              </button>
             </div>
 
             {renderList(kind)}
+            {archivedCount > 0 && (
+              // One Show-archived control app-wide (review 7.L7), as in the roster.
+              <button
+                type="button"
+                onClick={() => setShowArchived((v) => !v)}
+                aria-pressed={showArchived}
+                data-testid="competitions-toggle-archived"
+                className="w-full mt-3 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                {showArchived
+                  ? t('common.hideArchived', 'Hide archived')
+                  : t('common.showArchivedCount', 'Show archived ({{count}})', { count: archivedCount })}
+              </button>
+            )}
         </div>
 
       </div>

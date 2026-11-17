@@ -530,7 +530,10 @@
     "all": "Kaikki",
     "checkOnMap": "Tarkista kartalta",
     "hourShort": "t",
-    "noPlayersToShow": "Tälle valinnalle ei ole pelaajatilastoja."
+    "noPlayersToShow": "Tälle valinnalle ei ole pelaajatilastoja.",
+    "hideArchived": "Piilota arkistoidut",
+    "showArchivedCount": "Näytä arkistoidut ({{count}})",
+    "allArchived": "Kaikki täällä on arkistoitu."
   },
   "backupRestore": {
     "resultsTitle": "Varmuuskopion palautus valmis",
@@ -820,7 +823,9 @@
     "sortBy": "Järjestä",
     "sortByLastName": "Sukunimi",
     "sortByNewest": "Uusimmat",
-    "sortByOldest": "Vanhimmat"
+    "sortByOldest": "Vanhimmat",
+    "noSearchResults": "Haulla \"{{search}}\" ei löytynyt pelaajaa.",
+    "noPlayersYet": "Ei vielä pelaajia. Lisää ensimmäinen pelaaja yllä."
   },
   "gameStatsModal": {
     "headToHeadPlayed": "O",
@@ -1313,7 +1318,6 @@
     "archive": "Arkistoi",
     "unarchive": "Palauta arkistosta",
     "archiveLabel": "Arkistoi",
-    "showArchived": "Näytä arkistoidut",
     "archivedBadge": "Arkistoitu",
     "notesLabel": "Muistiinpanot",
     "statsGames": "Ottelut",
@@ -1509,7 +1513,6 @@
     "teamColor": "Joukkueen väri",
     "noTeams": "Ei joukkueita vielä. Luo ensimmäinen joukkue aloittaaksesi.",
     "noSearchResults": "Haku \"{{search}}\" ei löytänyt joukkueita.",
-    "noArchivedTeams": "Ei arkistoituja joukkueita.",
     "searchPlaceholder": "Etsi joukkueita...",
     "searchAriaLabel": "Etsi joukkueita nimen perusteella",
     "onePlayer": "1 pelaaja",
@@ -1524,7 +1527,6 @@
     "unarchive": "Palauta arkistosta",
     "editRoster": "Muokkaa kokoonpanoa",
     "archivedLabel": "Arkistoitu",
-    "showArchived": "Näytä arkistoidut",
     "archivedBadge": "Arkistoitu",
     "manageOrphanedGames": "Hallinnoi poistettujen joukkueiden pelejä",
     "orphanedGames": "Orvot pelit",

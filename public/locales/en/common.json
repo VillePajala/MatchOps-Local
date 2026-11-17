@@ -530,7 +530,10 @@
     "all": "All",
     "checkOnMap": "Check on map",
     "hourShort": "h",
-    "noPlayersToShow": "No player statistics for this selection."
+    "noPlayersToShow": "No player statistics for this selection.",
+    "hideArchived": "Hide archived",
+    "showArchivedCount": "Show archived ({{count}})",
+    "allArchived": "Everything here is archived."
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
@@ -949,7 +952,9 @@
     "sortBy": "Sort by",
     "sortByLastName": "Last Name",
     "sortByNewest": "Newest",
-    "sortByOldest": "Oldest"
+    "sortByOldest": "Oldest",
+    "noSearchResults": "No player matches \"{{search}}\".",
+    "noPlayersYet": "No players yet. Add your first player above."
   },
   "status": {
     "loadingGameData": "Loading Game Data..."
@@ -1460,7 +1465,6 @@
     "archive": "Archive",
     "unarchive": "Unarchive",
     "archiveLabel": "Archive",
-    "showArchived": "Show Archived",
     "archivedBadge": "Archived",
     "notesLabel": "Notes",
     "statsGames": "Games",
@@ -1656,7 +1660,6 @@
     "teamColor": "Team Color",
     "noTeams": "No teams yet. Create your first team to get started.",
     "noSearchResults": "No teams match your search for \"{{search}}\".",
-    "noArchivedTeams": "No archived teams to show.",
     "searchPlaceholder": "Search teams...",
     "searchAriaLabel": "Search teams by name",
     "onePlayer": "1 player",
@@ -1671,7 +1674,6 @@
     "unarchive": "Unarchive",
     "editRoster": "Edit Roster",
     "archivedLabel": "Archived",
-    "showArchived": "Show Archived",
     "archivedBadge": "Archived",
     "manageOrphanedGames": "Manage games from deleted teams",
     "orphanedGames": "Orphaned Games",

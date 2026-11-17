@@ -4,6 +4,17 @@
     {
       "date": "2026-11-17",
       "en": [
+        "\"Show archived\" works the same in the roster, teams, leagues and tournaments: a link under the list with the number of archived items, shown only when there are some.",
+        "Empty lists now say why: nothing matches the search, everything is archived, or nothing has been added yet."
+      ],
+      "fi": [
+        "\"Näytä arkistoidut\" toimii samoin pelaajissa, joukkueissa, sarjoissa ja turnauksissa: linkki listan alla arkistoitujen määrän kanssa, näkyvissä vain kun niitä on.",
+        "Tyhjät listat kertovat nyt syyn: haku ei osu, kaikki on arkistoitu tai mitään ei ole vielä lisätty."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Search works the same everywhere: it ignores accents and capitals (\"maki\" finds \"Mäki\"), every word you type must match, and players can also be found by shirt number."
       ],
       "fi": [
