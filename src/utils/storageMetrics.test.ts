@@ -12,6 +12,17 @@ import { StorageMetrics, OperationType, OperationTimer, OperationTiming } from '
 import { StorageErrorType } from './storageAdapter';
 
 describe('StorageMetrics', () => {
+  // A controlled clock for the timing tests (review 9.6): real sleeps made them slow
+  // and flaky under CI load.
+  let clock = 1000;
+  beforeEach(() => {
+    clock = 1000;
+    jest.spyOn(performance, 'now').mockImplementation(() => clock);
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   let metrics: StorageMetrics;
 
   beforeEach(() => {
@@ -35,14 +46,14 @@ describe('StorageMetrics', () => {
         capturedTiming = timing;
       });
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      clock += 50; // time passes - controlled clock, not a real sleep (review 9.6)
 
       timer.success({ testData: 'value' });
 
       expect(capturedTiming).not.toBeNull();
       expect(capturedTiming!.operation).toBe(OperationType.READ);
       expect(capturedTiming!.success).toBe(true);
-      expect(capturedTiming!.duration).toBeGreaterThanOrEqual(45);
+      expect(capturedTiming!.duration).toBe(50);
       // Use generous upper bound to avoid flaky test failures under CI load
       expect(capturedTiming!.duration).toBeLessThan(150);
       expect(capturedTiming!.metadata?.testData).toBe('value');
@@ -61,7 +72,7 @@ describe('StorageMetrics', () => {
         capturedTiming = timing;
       });
 
-      await new Promise(resolve => setTimeout(resolve, 30));
+      clock += 30; // time passes - controlled clock, not a real sleep (review 9.6)
 
       timer.failure('Test error', StorageErrorType.WRITE_ERROR, { errorCode: 500 });
 
@@ -96,12 +107,10 @@ describe('StorageMetrics', () => {
     it('should track elapsed time without completing', async () => {
       const timer = new OperationTimer(OperationType.READ, () => {});
 
-      await new Promise(resolve => setTimeout(resolve, 25));
+      clock += 25; // time passes - controlled clock, not a real sleep (review 9.6)
 
       const elapsed = timer.getElapsedTime();
-      expect(elapsed).toBeGreaterThanOrEqual(20);
-      // Use generous upper bound (100ms) to avoid flaky test failures under CI load
-      expect(elapsed).toBeLessThan(100);
+      expect(elapsed).toBe(25);
 
       timer.success();
     });
