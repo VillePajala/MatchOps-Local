@@ -12,6 +12,15 @@ import { UseMutationResult } from '@tanstack/react-query';
 import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock i18n
+// Archive-inclusive lists (review 7.L3) come from a data hook; tests feed them directly.
+const mockArchiveLists: { allSeasons: unknown[]; allTournaments: unknown[]; allTeams: unknown[] } = {
+  allSeasons: [], allTournaments: [], allTeams: [],
+};
+jest.mock('@/hooks/useArchiveInclusiveLists', () => ({
+  useArchiveInclusiveLists: () => mockArchiveLists,
+  archivedCurrent: jest.requireActual('@/hooks/useArchiveInclusiveLists').archivedCurrent,
+}));
+
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { [key: string]: string | number | undefined }) => {
@@ -678,6 +687,26 @@ describe('<GameSettingsModal />', () => {
   });
 
   describe('R3: wrap-up scroll targets', () => {
+    /**
+     * Review 7.L3: a game linked to a league archived later rendered an empty select,
+     * as if linked to nothing. The league is shown as "Name (Archived)".
+     */
+    it('shows an archived current league instead of an empty field', async () => {
+      mockArchiveLists.allSeasons = [{ id: 'old-league', name: 'Old League', archived: true }];
+      try {
+        renderModal({ ...defaultProps, seasons: [], seasonId: 'old-league' });
+        const select = await waitFor(() => {
+          const el = document.getElementById('seasonSelect') as HTMLSelectElement | null;
+          expect(el).not.toBeNull();
+          return el as HTMLSelectElement;
+        });
+        expect(select.value).toBe('old-league');
+        expect(within(select).getByRole('option', { name: /Old League \(/ })).toBeInTheDocument();
+      } finally {
+        mockArchiveLists.allSeasons = [];
+      }
+    });
+
     it('scrolls to the requested section anchor on open; none without the prop', async () => {
       const scrollSpy = jest.fn();
       window.HTMLElement.prototype.scrollIntoView = scrollSpy;

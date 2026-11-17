@@ -454,7 +454,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         try {
           const plans = await getPlans();
           setPlaytimePlans(
-            Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+            Object.values(plans)
+              // Archived plans are hidden in the planner by default; offering them
+              // here as prefill sources made them reappear (review 7.L3).
+              .filter((plan) => !plan.archived)
+              .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
           );
         } catch (err) {
           logger.error('[NewGameSetupModal] Failed to load playtime plans (non-fatal):', err);

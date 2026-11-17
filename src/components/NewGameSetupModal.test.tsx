@@ -1,6 +1,6 @@
  
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import NewGameSetupModal from './NewGameSetupModal';
 import { getLastHomeTeamName, saveLastHomeTeamName } from '@/utils/appSettings';
@@ -1381,6 +1381,19 @@ describe('NewGameSetupModal', () => {
         },
       ],
     };
+
+    /** Review 7.L3: archived plans are hidden in the planner, and here too. */
+    test('does not offer archived plans as a prefill source', async () => {
+      (getPlans as jest.Mock).mockResolvedValueOnce({
+        plan1: planFixture,
+        plan2: { ...planFixture, id: 'plan2', name: 'Old plan', archived: true },
+      });
+      renderModal();
+      const planSelect = await screen.findByLabelText('Prefill from plan (optional)');
+      const options = within(planSelect).getAllByRole('option').map((o) => (o as HTMLOptionElement).value);
+      expect(options).toContain('plan1');
+      expect(options).not.toContain('plan2');
+    });
 
     test('threads the planned lineup to onStart when a plan game is chosen', async () => {
       (getPlans as jest.Mock).mockResolvedValueOnce({ plan1: planFixture });
