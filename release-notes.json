@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Finnish wording tidied: labels use normal sentence case, periods are called \"Jaksot\" everywhere, and the two purple kit colours have different names."
+      ],
+      "fi": [
+        "Suomenkielisiä tekstejä siistitty: otsikot kirjoitetaan normaalisti pienellä alkukirjaimella, jaksoista käytetään kaikkialla sanaa \"Jaksot\", ja kahdella violetilla asuvärillä on nyt eri nimet."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Cloud sync: a team, season or tournament created with the same name on two devices while offline no longer leaves a sync error that never clears."
       ],
       "fi": [
