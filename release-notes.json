@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Restoring a backup keeps each league's and tournament's season label (for example 25/26) even when your club season starts on a non-default date."
+      ],
+      "fi": [
+        "Varmuuskopion palautus säilyttää sarjojen ja turnausten kausimerkinnän (esimerkiksi 25/26), vaikka seuran kausi alkaisi muuna kuin oletuspäivänä."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Finnish wording tidied: labels use normal sentence case, periods are called \"Jaksot\" everywhere, and the two purple kit colours have different names."
       ],
       "fi": [

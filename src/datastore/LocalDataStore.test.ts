@@ -1129,6 +1129,24 @@ describe('LocalDataStore', () => {
      * @integration
      */
     describe('upsertSeason', () => {
+      /**
+       * Review 10.8: a restore writes seasons/tournaments before the backup's settings;
+       * recomputing the label from the device's current dates relabelled them.
+       * @critical
+       */
+      it('keeps the club-season label the record arrives with', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        // Default dates would make 2025-07-15 '24/25'; the backup said '25/26'.
+        const result = await dataStore.upsertSeason({ ...mockSeason, id: 'x_restored', startDate: '2025-07-15', clubSeason: '25/26' });
+        expect(result.clubSeason).toBe('25/26');
+      });
+
+      it('computes the label when the record has none', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const result = await dataStore.upsertSeason({ ...mockSeason, id: 'x_legacy', startDate: '2024-10-01', clubSeason: undefined });
+        expect(result.clubSeason).toMatch(/^\d{2}\/\d{2}$/);
+      });
+
       it('should insert new season when not exists', async () => {
         mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
 
@@ -1312,6 +1330,24 @@ describe('LocalDataStore', () => {
      * @integration
      */
     describe('upsertTournament', () => {
+      /**
+       * Review 10.8: a restore writes seasons/tournaments before the backup's settings;
+       * recomputing the label from the device's current dates relabelled them.
+       * @critical
+       */
+      it('keeps the club-season label the record arrives with', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        // Default dates would make 2025-07-15 '24/25'; the backup said '25/26'.
+        const result = await dataStore.upsertTournament({ ...mockTournament, id: 'x_restored', startDate: '2025-07-15', clubSeason: '25/26' });
+        expect(result.clubSeason).toBe('25/26');
+      });
+
+      it('computes the label when the record has none', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const result = await dataStore.upsertTournament({ ...mockTournament, id: 'x_legacy', startDate: '2024-10-01', clubSeason: undefined });
+        expect(result.clubSeason).toMatch(/^\d{2}\/\d{2}$/);
+      });
+
       it('should insert new tournament when not exists', async () => {
         mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
 
