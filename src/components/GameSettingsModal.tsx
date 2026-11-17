@@ -2291,6 +2291,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         isOpen={isShootoutModalOpen}
         onClose={() => setIsShootoutModalOpen(false)}
         availablePlayers={availablePlayers}
+        squadIds={selectedPlayerIds}
         initialKicks={shootoutKicks ?? []}
         homeOrAway={homeOrAway}
         teamName={teamName}

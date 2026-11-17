@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
 import type { ShootoutKick } from '@/types/game';
@@ -13,8 +13,13 @@ import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 interface ShootoutModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Your selectable players (for naming your shooters). */
+  /** The game's players - names of recorded shooters are looked up here. */
   availablePlayers: Player[];
+  /**
+   * The match squad (review 7.L2): only they are offered as a new shooter, like
+   * every other match picker. Without it, the whole game list is offered.
+   */
+  squadIds?: string[];
   /** The game's existing kicks (edited as a working copy). */
   initialKicks: ShootoutKick[];
   /** Persist the kicks (commits the working copy). */
@@ -36,6 +41,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
   isOpen,
   onClose,
   availablePlayers,
+  squadIds,
   initialKicks,
   onSave,
   homeOrAway,
@@ -43,6 +49,10 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
   opponentName,
 }) => {
   const { t } = useTranslation();
+  const shooterOptions = useMemo(
+    () => (squadIds ? availablePlayers.filter((p) => squadIds.includes(p.id)) : availablePlayers),
+    [availablePlayers, squadIds],
+  );
   const headerCollapse = useCollapsingHeader();
   const [kicks, setKicks] = useState<ShootoutKick[]>(initialKicks);
   const [scorerId, setScorerId] = useState<string>('');
@@ -196,7 +206,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               <option value="">{t('shootoutModal.unknownShooter', 'Shooter (optional)')}</option>
-              {availablePlayers.map((p) => (
+              {shooterOptions.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>

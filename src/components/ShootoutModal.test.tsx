@@ -76,6 +76,22 @@ describe('ShootoutModal', () => {
     expect(screen.getByText(/log each shot as it happens/i)).toBeInTheDocument();
   });
 
+  /**
+   * Review 7.L2: the shooter list offered the whole game list, not the squad, unlike
+   * every other match picker. A kick already recorded for someone outside the squad
+   * still shows their name.
+   */
+  it('offers only the squad as shooters, and still names a recorded non-squad shooter', () => {
+    renderModal({
+      squadIds: ['p1'],
+      initialKicks: [{ id: 'k1', team: 'home', scorerId: 'p2', scored: true }],
+    });
+    const options = screen.getAllByRole('option').map((o) => o.textContent);
+    expect(options).toContain('Alice');
+    expect(options).not.toContain('Bob');
+    expect(screen.getByText(/Bob/)).toBeInTheDocument(); // the recorded kick
+  });
+
   it('builds the tally from logged kicks and shows the winner', () => {
     renderModal();
     // Your section is rendered before the opponent section, so index 0 = yours.
