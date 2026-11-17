@@ -25,36 +25,33 @@ jest.mock('@/utils/logger', () => {
 /**
  * Restore re-stamps records (createdAt/updatedAt: the restored rows are written now)
  * and selects a game to open (settings.currentGameId) - bookkeeping, not the coach's
- * data, so they are left out of the comparison.
+ * data. Only those record-level fields are left out; nested data (e.g. assessment
+ * timestamps inside a game) is compared in full.
  */
-const withoutStamps = (value: unknown): unknown => {
-  if (Array.isArray(value)) return value.map(withoutStamps);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .filter(([k]) => k !== 'createdAt' && k !== 'updatedAt' && k !== 'currentGameId')
-        .map(([k, v]) => [k, withoutStamps(v)]),
-    );
-  }
-  return value;
+const unstamp = <T,>(record: T): T => {
+  if (!record || typeof record !== 'object' || Array.isArray(record)) return record;
+  const copy = { ...(record as Record<string, unknown>) };
+  delete copy.createdAt;
+  delete copy.updatedAt;
+  return copy as T;
 };
 
 /** Everything the coach would notice after a restore, in a comparable form. */
 async function snapshot(ds: DataStore) {
   const byId = <T extends { id: string }>(list: T[]) => [...list].sort((a, b) => a.id.localeCompare(b.id));
   const adjustments = await ds.getAllPlayerAdjustments();
-  return withoutStamps({
-    players: byId(await ds.getPlayers()),
-    teams: byId(await ds.getTeams(true)),
-    rosters: await ds.getAllTeamRosters(),
-    seasons: byId(await ds.getSeasons(true)),
-    tournaments: byId(await ds.getTournaments(true)),
-    personnel: byId(await ds.getAllPersonnel()),
+  const settings = unstamp(await ds.getSettings()) as unknown as Record<string, unknown>;
+  delete settings.currentGameId;
+  return {
+    players: byId(await ds.getPlayers()).map(unstamp),
+    teams: byId(await ds.getTeams(true)).map(unstamp),
+    rosters: Object.fromEntries(Object.entries(await ds.getAllTeamRosters()).map(([k, v]) => [k, v.map(unstamp)])),
+    seasons: byId(await ds.getSeasons(true)).map(unstamp),
+    tournaments: byId(await ds.getTournaments(true)).map(unstamp),
+    personnel: byId(await ds.getAllPersonnel()).map(unstamp),
     games: await ds.getGames(),
-    settings: await ds.getSettings(),
+    settings,
     adjustments: Object.fromEntries([...adjustments.entries()].map(([k, v]) => [k, byId(v)])),
-  }) as {
-    players: { id: string }[]; seasons: { clubSeason?: string }[]; [key: string]: unknown;
   };
 }
 
@@ -73,7 +70,7 @@ describe('full backup round trip', () => {
     const alice = await ds.createPlayer({ name: 'Alice', jerseyNumber: '7', isGoalie: false });
     const bob = await ds.createPlayer({ name: 'Bob', nickname: 'B', jerseyNumber: '1', isGoalie: true });
     const season = await ds.createSeason('Kevät', { startDate: '2025-07-15', gameType: 'soccer' });
-    const tournament = await ds.createTournament('Cup', { startDate: '2025-07-20' });
+    await ds.createTournament('Cup', { startDate: '2025-07-20' });
     const team = await ds.createTeam({ name: 'PK-35 P12', color: '#ff0000', boundSeasonId: season.id });
     await ds.setTeamRoster(team.id, [{ id: alice.id, name: 'Alice', jerseyNumber: '7' }, { id: bob.id, name: 'Bob', isGoalie: true }]);
     await ds.addPersonnelMember({ name: 'Coach Carla', role: 'head_coach', phone: '', email: '', certifications: ['UEFA C'], notes: '' });
