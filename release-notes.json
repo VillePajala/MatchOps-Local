@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Cloud sync: a team, season or tournament created with the same name on two devices while offline no longer leaves a sync error that never clears."
+      ],
+      "fi": [
+        "Pilvisynkronointi: kahdella laitteella ilman yhteyttä samalla nimellä luotu joukkue, kausi tai turnaus ei enää jätä pysyvää synkronointivirhettä."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Fixed a startup error when the app is used in English, and screen readers now read the English app with English pronunciation."
       ],
       "fi": [
