@@ -134,6 +134,26 @@ describe('LoadGameModal', () => {
     expect(screen.queryByText('Hawks')).not.toBeInTheDocument();
     });
 
+  /**
+   * Review 7.17 (owner: the game keeps its own team name): a renamed team's games
+   * show the name they were saved under, as the match screen does - and a search
+   * for the team's new name still finds them.
+   */
+  it("shows the game's own team name, and finds it by the team's new name", async () => {
+    const games = createSampleGames();
+    (games['game_1659123456_abc'] as unknown as { teamId: string }).teamId = 'team_lions';
+    await renderModal({
+      savedGames: games,
+      teams: [{ id: 'team_lions', name: 'Lions P12', createdAt: '', updatedAt: '' }],
+    });
+    expect(await screen.findByText('Lions')).toBeInTheDocument();
+    expect(screen.queryByText('Lions P12')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText('loadGameModal.filterPlaceholder'), { target: { value: 'P12' } });
+    expect(await screen.findByText('Lions')).toBeInTheDocument();
+    expect(screen.queryByText('Hawks')).not.toBeInTheDocument();
+  });
+
   it('shows a not-played status dot for unplayed games', async () => {
     await renderModal();
     // The badge is now a small red status dot carrying the label as its title.
