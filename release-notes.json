@@ -3,6 +3,15 @@
   "releases": [
     {
       "date": "2026-11-17",
+      "en": [
+        "The restore points taken before a reset or a restore are now kept even as daily backups accumulate, so a mistake can still be undone later."
+      ],
+      "fi": [
+        "Ennen nollausta tai palautusta otetut palautuspisteet säilyvät nyt päivittäisten varmuuskopioiden kertyessäkin, joten virheen voi perua myöhemminkin."
+      ]
+    },
+    {
+      "date": "2026-11-17",
       "internal": true,
       "en": [
         "A brief storage hiccup on the device is now retried as intended instead of failing at once."
