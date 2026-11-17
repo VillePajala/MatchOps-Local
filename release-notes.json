@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Archived teams, leagues and tournaments now appear under \"Show archived\" again, so you can restore them."
+      ],
+      "fi": [
+        "Arkistoidut joukkueet, sarjat ja turnaukset näkyvät taas kohdassa \"Näytä arkistoidut\", joten voit palauttaa ne."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "First-time setup keeps what you typed even if the phone closes the app in the background while you look up names elsewhere."
       ],
       "fi": [

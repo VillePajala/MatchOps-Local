@@ -78,6 +78,8 @@ jest.mock('@/hooks/useSeasonTournamentManagement', () => ({
   useSeasonTournamentManagement: () => ({
     seasons: [{ id: 's1', name: 'Ita P11', opponents: ['IPS'] }],
     tournaments: [], masterRoster: [],
+    allSeasons: [{ id: 's1', name: 'Ita P11', opponents: ['IPS'] }],
+    allTournaments: [],
     addSeasonMutation: {}, addTournamentMutation: {},
     updateSeasonMutation: { mutateAsync: mockUpdateSeasonMutateAsync },
     deleteSeasonMutation: {}, updateTournamentMutation: {}, deleteTournamentMutation: {},
@@ -131,6 +133,7 @@ jest.mock('@/hooks/useRosterSettingsController', () => ({
 }));
 jest.mock('@/hooks/useTeamQueries', () => ({
   useTeamsQuery: () => ({ data: [] }),
+  useAllTeamsQuery: () => ({ data: [] }),
 }));
 
 jest.mock('@/components/LoadGameModal', () => ({

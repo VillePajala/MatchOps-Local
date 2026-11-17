@@ -25,10 +25,11 @@ const isExpectedDataStoreError = (error: unknown): boolean =>
  * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns A promise that resolves to an array of Tournament objects.
  */
-export const getTournaments = async (userId?: string): Promise<Tournament[]> => {
+/** `includeArchived`: the manager screens list archived ones too, so they can be restored (review 7.20). */
+export const getTournaments = async (userId?: string, includeArchived = false): Promise<Tournament[]> => {
   try {
     const dataStore = await getDataStore(userId);
-    return await dataStore.getTournaments();
+    return await dataStore.getTournaments(includeArchived);
   } catch (error) {
     // NotInitializedError is expected during user transitions (DataStore closed mid-operation)
     // Don't log as error to avoid Sentry noise
