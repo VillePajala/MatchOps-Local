@@ -47,4 +47,9 @@ describe('DeleteBlockedDialog language', () => {
     expect(screen.getByText(/toiseen joukkueeseen tai poista ne/)).toBeInTheDocument();
     expect(screen.queryByText(/used by|Used by/)).not.toBeInTheDocument();
   });
+
+  it('falls back to the store summary when no known reference is counted', () => {
+    renderDialog('season', { ...refs, counts: {}, summary: 'Used by 2 widgets' });
+    expect(screen.getByText('Used by 2 widgets')).toBeInTheDocument();
+  });
 });

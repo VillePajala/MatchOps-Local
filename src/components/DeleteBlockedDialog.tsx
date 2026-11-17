@@ -48,10 +48,14 @@ const DeleteBlockedDialog: React.FC<DeleteBlockedDialogProps> = ({
   const usedByList = new Intl.ListFormat(i18n.language?.startsWith('en') ? 'en' : 'fi', {
     type: 'conjunction',
   }).format(usedBy);
-  const reason = t('deleteBlocked.reason', 'This {{type}} is used by {{list}}.', {
-    type: t(`entityType.${entityType}`, entityType),
-    list: usedByList,
-  });
+  // A reference kind this dialog doesn't know yet: fall back to the store's summary
+  // rather than "used by ." (untranslated, but not broken).
+  const reason = usedBy.length > 0
+    ? t('deleteBlocked.reason', 'This {{type}} is used by {{list}}.', {
+      type: t(`entityType.${entityType}`, entityType),
+      list: usedByList,
+    })
+    : references.summary;
   const modalRef = useRef<HTMLDivElement>(null);
 
   useFocusTrap(modalRef, isOpen);
