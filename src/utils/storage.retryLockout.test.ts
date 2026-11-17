@@ -31,7 +31,7 @@ jest.mock('@sentry/nextjs', () => ({
   addBreadcrumb: jest.fn(),
 }));
 
-import { getStorageAdapter, clearAdapterCache } from './storage';
+import { getStorageAdapter, clearAdapterCache, getStorageItem, setStorageItem, removeStorageItem, clearStorage } from './storage';
 import { createStorageAdapter } from './storageFactory';
 import type { StorageAdapter } from './storageAdapter';
 
@@ -77,5 +77,69 @@ describe('getStorageAdapter retry lockout recovery (CR-H8)', () => {
     const adapter = await getStorageAdapter();
     expect(adapter).toBe(fakeAdapter);
     expect(mockCreate.mock.calls.length).toBe(callsAfterLockout + 1);
+  });
+});
+
+/**
+ * Review 10.6: the item operations returned the adapter's promise without awaiting
+ * it, so a rejection skipped the retry loop - the first transient IndexedDB failure
+ * was final and the user-friendly error mapping never ran.
+ * @critical
+ */
+describe('storage item operations retry a transient failure', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    clearAdapterCache();
+    mockCreate.mockReset();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const flakyAdapter = () => {
+    const transient = () => Promise.reject(new Error('Transaction aborted'));
+    return {
+      getItem: jest.fn().mockImplementationOnce(transient).mockResolvedValue('value'),
+      setItem: jest.fn().mockImplementationOnce(transient).mockResolvedValue(undefined),
+      removeItem: jest.fn().mockImplementationOnce(transient).mockResolvedValue(undefined),
+      clear: jest.fn().mockImplementationOnce(transient).mockResolvedValue(undefined),
+    } as unknown as StorageAdapter & Record<'getItem' | 'setItem' | 'removeItem' | 'clear', jest.Mock>;
+  };
+
+  it.each([
+    ['getStorageItem', (a: ReturnType<typeof flakyAdapter>) => a.getItem, () => getStorageItem('k')],
+    ['setStorageItem', (a: ReturnType<typeof flakyAdapter>) => a.setItem, () => setStorageItem('k', 'v')],
+    ['removeStorageItem', (a: ReturnType<typeof flakyAdapter>) => a.removeItem, () => removeStorageItem('k')],
+    ['clearStorage', (a: ReturnType<typeof flakyAdapter>) => a.clear, () => clearStorage()],
+  ] as const)('%s succeeds on the retry', async (_name, op, call) => {
+    const adapter = flakyAdapter();
+    mockCreate.mockResolvedValue(adapter);
+    const pending = call();
+    await jest.advanceTimersByTimeAsync(5000);
+    await pending; // rejects - and fails the test - if the retry did not happen
+    expect(op(adapter)).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry a full disk, and keeps the error name for callers', async () => {
+    const quota = Object.assign(new Error('The quota has been exceeded.'), { name: 'QuotaExceededError' });
+    const adapter = { setItem: jest.fn().mockRejectedValue(quota) } as unknown as StorageAdapter;
+    mockCreate.mockResolvedValue(adapter);
+    const error = (await setStorageItem('k', 'v').catch((e: unknown) => e)) as Error;
+    expect((adapter as unknown as { setItem: jest.Mock }).setItem).toHaveBeenCalledTimes(1);
+    expect(error.name).toBe('QuotaExceededError');
+    expect(error.message).toMatch(/storage is full/i);
+    expect(error.cause).toBe(quota);
+  });
+
+  it('gives up with a user-friendly error after the last attempt', async () => {
+    const adapter = { getItem: jest.fn().mockRejectedValue(new Error('Operation timed out')) } as unknown as StorageAdapter;
+    mockCreate.mockResolvedValue(adapter);
+    const pending = getStorageItem('k');
+    const settled = pending.catch((e: unknown) => e);
+    await jest.advanceTimersByTimeAsync(20000);
+    const error = (await settled) as Error;
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toMatch(/took too long/i); // the user-friendly mapping ran
+    expect((adapter as unknown as { getItem: jest.Mock }).getItem).toHaveBeenCalledTimes(3);
   });
 });

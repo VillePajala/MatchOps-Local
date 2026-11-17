@@ -3,6 +3,16 @@
   "releases": [
     {
       "date": "2026-11-17",
+      "internal": true,
+      "en": [
+        "A brief storage hiccup on the device is now retried as intended instead of failing at once."
+      ],
+      "fi": [
+        "Laitteen tallennustilan hetkellinen häiriö yritetään nyt uudelleen tarkoitetusti sen sijaan, että toiminto epäonnistuisi heti."
+      ]
+    },
+    {
+      "date": "2026-11-17",
       "en": [
         "New Game has the same level and area filters for the official league list as Match details."
       ],
