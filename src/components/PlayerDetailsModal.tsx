@@ -130,7 +130,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         });
         if (added === false) {
           // Not added: keep the form and what was typed.
-          setSaveError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {playerName}. Please try again.', { playerName: trimmedName }));
+          setSaveError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {{playerName}}. Please try again.', { playerName: trimmedName }));
           return;
         }
       } else {

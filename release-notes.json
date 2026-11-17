@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "About 50 messages and labels that were shown in English in the Finnish app are now translated, including sync and backup error messages and screen-reader labels."
+      ],
+      "fi": [
+        "Noin 50 viestiä ja tekstiä, jotka näkyivät suomenkielisessä sovelluksessa englanniksi, on nyt käännetty, mukaan lukien synkronoinnin ja varmuuskopioinnin virheilmoitukset sekä ruudunlukijan tekstit."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "The language chosen in Settings is now remembered after closing or reloading the app, and the language switches on every screen stay in step."
       ],
       "fi": [

@@ -161,7 +161,7 @@ export function getClubSeasonForDate(
  * **i18n Limitation**: This function returns English month names and "Off-Season".
  * For internationalized display in production UI, handle i18n at the component level:
  * - Display seasonLabel directly (e.g., "24/25") without translation
- * - For off-season, use `t('playerStats.offSeason')` in the UI
+ * - For off-season, use the playerStats.offSeason translation key in the UI
  * - For month names in UI, use `t('months.january')`, `t('months.february')`, etc.
  *
  * This utility is primarily for testing, logging, or English-only contexts.

@@ -44,16 +44,19 @@ const openLink = (url: string) => {
 };
 
 // Link button component
-const LinkButton = ({ url, label }: { url: string; label: string }) => (
+const LinkButton = ({ url, label }: { url: string; label: string }) => {
+  const { t } = useTranslation();
+  return (
   <button
     onClick={() => openLink(url)}
-    aria-label={`Open ${label} in new window`}
+    aria-label={t('rulesDirectory.openInNewWindow', 'Open {{label}} in a new window', { label })}
     className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-lg text-left transition-all group"
   >
     <span className="text-slate-200 text-sm font-medium">{label}</span>
     <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-400 group-hover:text-slate-200 flex-shrink-0" />
   </button>
-);
+  );
+};
 
 // Section component
 const Section = ({

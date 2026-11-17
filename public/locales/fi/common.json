@@ -533,7 +533,12 @@
     "noPlayersToShow": "Tälle valinnalle ei ole pelaajatilastoja.",
     "hideArchived": "Piilota arkistoidut",
     "showArchivedCount": "Näytä arkistoidut ({{count}})",
-    "allArchived": "Kaikki täällä on arkistoitu."
+    "allArchived": "Kaikki täällä on arkistoitu.",
+    "dismiss": "Sulje",
+    "errorOccurred": "Jokin meni vikaan. Yritä uudelleen.",
+    "no": "Ei",
+    "yes": "Kyllä",
+    "resetting": "Palautetaan..."
   },
   "backupRestore": {
     "resultsTitle": "Varmuuskopion palautus valmis",
@@ -785,7 +790,8 @@
     "formatsSource": "Lähde: {{title}}",
     "allRules": "Kaikki säännöt ja määräykset",
     "footer": "Sääntökirjat ja linkit avautuvat selaimessa. Säännöt ylläpitää Palloliitto.",
-    "checkedOn": "Linkit tarkistettu {{date}}."
+    "checkedOn": "Linkit tarkistettu {{date}}.",
+    "openInNewWindow": "Avaa {{label}} uudessa ikkunassa"
   },
   "rosterSettingsModal": {
     "removedBadge": "poistettu pelaajalistasta",
@@ -797,7 +803,9 @@
     "errors": {
       "nameRequired": "Pelaajan nimi ei voi olla tyhjä.",
       "duplicateName": "Pelaaja tällä nimellä on jo olemassa. Käytä eri nimeä.",
-      "duplicateNumber": "Pelaaja tällä pelinumerolla on jo olemassa. Käytä eri numeroa tai jätä tyhjäksi."
+      "duplicateNumber": "Pelaaja tällä pelinumerolla on jo olemassa. Käytä eri numeroa tai jätä tyhjäksi.",
+      "addFailed": "Pelaajan {{playerName}} lisääminen epäonnistui. Yritä uudelleen.",
+      "playerNotFound": "Pelaajaa ei löytynyt. Maalivahtivalintaa ei voi muuttaa."
     },
     "title": "Kaikki pelaajat",
     "unsetGoalie": "Poista maalivahdin merkintä",
@@ -1046,7 +1054,8 @@
     "showErrorDetails": "Näytä virhetiedot (vain kehityksessä)",
     "soccerFieldCrashed": "Kenttänäkymä kaatui",
     "pleaseRefreshPage": "Päivitä sivu jatkaaksesi.",
-    "playerBarCrashed": "Pelaajapalkki kaatui. Päivitä sivu."
+    "playerBarCrashed": "Pelaajapalkki kaatui. Päivitä sivu.",
+    "playerDropFailed": "Pelaajan sijoittaminen kentälle epäonnistui"
   },
   "newGameSetupModal": {
     "formatNudge": "{{ageGroup}} pelaa virallisesti muotoa {{official}}. Voit silti valita toisen - sarja voi poiketa.",
@@ -1147,7 +1156,9 @@
     "fieldNumberPlaceholder": "esim. TN 2",
     "periodOptionOne": "1",
     "periodOptionTwo": "2",
-    "friendlyHint": "Ei näy kilpailutilastoissa"
+    "friendlyHint": "Ei näy kilpailutilastoissa",
+    "saveGameFailed": "Uuden ottelun tallennus epäonnistui. Yritä uudelleen.",
+    "seriesLabel": "Sarja"
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Oivalla",
@@ -1273,7 +1284,8 @@
     "orExperiment": "Tai kokeile ensin:",
     "experimentOption": "Käytä väliaikaista työtilaa testaamiseen",
     "workspaceWarning": "Väliaikainen työtila - muutoksia ei tallenneta",
-    "createRealGame": "Luo ottelu"
+    "createRealGame": "Luo ottelu",
+    "descNoPlayersSimple": "Lisää joukkueesi pelaajat aloittaaksesi otteluiden seurannan."
   },
   "firstGameGuide": {
     "playerSelection": "Pelaajien valinta (yläpalkki)",
@@ -1330,7 +1342,8 @@
     "searchPlaceholder": "Etsi...",
     "noSeasonsNudge": "Ei vielä sarjoja. Luo sarja ja liitä siihen joukkueesi ja ottelusi seurataksesi sarjatason tilastoja.",
     "noTournamentsNudge": "Ei vielä turnauksia. Luo turnaus ja liitä siihen joukkueesi ja ottelusi seurataksesi turnaustason tilastoja.",
-    "noSearchResults": "Haulla \"{{search}}\" ei löytynyt mitään."
+    "noSearchResults": "Haulla \"{{search}}\" ei löytynyt mitään.",
+    "itemActions": "Toiminnot: {{name}}"
   },
   "teamDetailsModal": {
     "createTitle": "Luo joukkue",
@@ -1392,7 +1405,8 @@
       "nameRequired": "Henkilöstön nimi ei voi olla tyhjä.",
       "duplicateName": "Henkilöstöjäsen tällä nimellä on jo olemassa. Valitse eri nimi.",
       "createFailed": "Henkilöstön lisääminen epäonnistui. Yritä uudelleen.",
-      "updateFailed": "Henkilöstön päivittäminen epäonnistui. Yritä uudelleen."
+      "updateFailed": "Henkilöstön päivittäminen epäonnistui. Yritä uudelleen.",
+      "validationFailed": "Virheellinen syöte. Tarkista lomake ja yritä uudelleen."
     }
   },
   "seasonDetailsModal": {
@@ -1545,7 +1559,13 @@
     "seasonContext": "Sarja: {{name}}",
     "tournamentContext": "Turnaus: {{name}}",
     "gameTypeContext": "Pelityyppi: Futsal",
-    "noTeamsNudge": "Joukkueiden avulla voit käyttää samaa kokoonpanoa uudelleen ja liittää ottelut kilpailuun, jolloin tilastosi kertyvät joukkue- ja kilpailutasolla."
+    "noTeamsNudge": "Joukkueiden avulla voit käyttää samaa kokoonpanoa uudelleen ja liittää ottelut kilpailuun, jolloin tilastosi kertyvät joukkue- ja kilpailutasolla.",
+    "deleteWithGames_one": "Poista ({{count}} ottelu)",
+    "deleteWithGames_other": "Poista ({{count}} ottelua)",
+    "deleting": "Poistetaan...",
+    "manageRoster": "Hallitse pelaajia",
+    "selectColor": "Valitse väri",
+    "teamNamePlaceholder": "Joukkueen nimi"
   },
   "unifiedTeamModal": {
     "addPlayers": "Lisää pelaajia",
@@ -1601,7 +1621,9 @@
       "grey": "Harmaa",
       "brown": "Ruskea"
     },
-    "kitColorCustom": "Oma väri"
+    "kitColorCustom": "Oma väri",
+    "tournamentPlacementFor": "Sijoitus turnauksessa {{name}}",
+    "seasonPlacementFor": "Sijoitus kaudella {{name}}"
   },
   "personnel": {
     "selected": "valittu",
@@ -1834,7 +1856,8 @@
     "fieldNumberPlaceholder": "esim. TN 2",
     "periodOptionOne": "1",
     "periodOptionTwo": "2",
-    "friendlyHint": "Ei näy kilpailutilastoissa"
+    "friendlyHint": "Ei näy kilpailutilastoissa",
+    "seasonOrTournament": "Kausi / turnaus"
   },
   "gameStats": {
     "personnelSectionTitle": "Ottelun taustahenkilöt",
@@ -2031,7 +2054,8 @@
     "arrivalBufferHint": "Lämmittely, kokoonpano ja vaihtuminen. Yksittäiselle ottelulle voi antaa oman lukunsa.",
     "seasonThis": "Tämä kausi",
     "seasonNext": "Seuraava kausi",
-    "seasonSaveFailed": "Kauden alkua ei voitu tallentaa. Yritä uudelleen."
+    "seasonSaveFailed": "Kauden alkua ei voitu tallentaa. Yritä uudelleen.",
+    "restoringReloading": "Varmuuskopio palautettu. Ladataan uudelleen..."
   },
   "playerAssessmentModal": {
     "title": "Kirjaa ottelusuoritukset",
@@ -2212,7 +2236,16 @@
     "addToStats": "Täydennä tilastoja",
     "viewingFilteredStats": "Näytetään vain valitun kauden tilastot ({{filtered}}/{{total}} ottelua)",
     "noGamesForSeason": "Valituilla suodattimilla ei löydy otteluita.",
-    "changeSeasonFilter": "Pelaajalla on {{count}} ottelu(a) näiden suodattimien ulkopuolella. Laajenna suodattimia yllä nähdäksesi ne."
+    "changeSeasonFilter": "Pelaajalla on {{count}} ottelu(a) näiden suodattimien ulkopuolella. Laajenna suodattimia yllä nähdäksesi ne.",
+    "addError": "Ulkoisen ottelun tallennus epäonnistui.",
+    "decreaseAssists": "Vähennä syöttöjä",
+    "decreaseGames": "Vähennä otteluita",
+    "decreaseGoals": "Vähennä maaleja",
+    "increaseAssists": "Lisää syöttöjä",
+    "increaseGames": "Lisää otteluita",
+    "increaseGoals": "Lisää maaleja",
+    "fairPlayCard": "Fair Play -kortti",
+    "updateError": "Ulkoisen ottelun päivitys epäonnistui."
   },
   "months": {
     "january": "Tammikuu",
@@ -2270,7 +2303,8 @@
     "migrationFlagWarning": "Varmuuskopio palautetaan, mutta pilvisynkronointikehote ei ehkä näy automaattisesti. Voit synkronoida Asetuksista myöhemmin.",
     "cloudDownloadSuccess": "Pilvitiedot ladattu onnistuneesti.",
     "cloudDownloadError": "Pilvitietojen lataus epäonnistui. Yritä uudelleen.",
-    "cloudDownloadOfflineError": "Pilvitietoja ei voi ladata offline-tilassa."
+    "cloudDownloadOfflineError": "Pilvitietoja ei voi ladata offline-tilassa.",
+    "restoreFailed": "Varmuuskopion palautus epäonnistui. Tiedosto voi olla vioittunut tai virheellinen."
   },
   "cloudModeImport": {
     "title": "Tuo varmuuskopio",
@@ -3473,7 +3507,13 @@
     "factoryResetFailed": "Palautus epäonnistui. Yritä uudelleen.",
     "factoryResetOffline": "Pilvitietoja ei voi poistaa offline-tilassa. Tarkista yhteys ja yritä uudelleen.",
     "loading": "Ladataan...",
-    "offlineGracePeriod": "Offline — muutokset tallennetaan paikallisesti, synkronoidaan kun yhteys palaa"
+    "offlineGracePeriod": "Offline — muutokset tallennetaan paikallisesti, synkronoidaan kun yhteys palaa",
+    "factoryResetPartial": "Laitteen tiedot tyhjennettiin. Pilven tietoja ei ehkä poistettu kokonaan – yritä tarvittaessa uudelleen.",
+    "failedToClearLocalData": "Laitteen tietojen tyhjennys epäonnistui. Yritä uudelleen.",
+    "importSucceededReloading": "Tuonti valmis. Ladataan...",
+    "localDataDiscarded": "Laitteen tiedot tyhjennettiin.",
+    "switchingToLocalMode": "Vaihdetaan paikalliseen tilaan...",
+    "syncFailedSavedLocally": "Kaikkia muutoksia ei voitu synkronoida pilveen. Ne on tallennettu tälle laitteelle."
   },
   "positions": {
     "GK": "GK",
@@ -3950,7 +3990,10 @@
     "mergeWarning_one": "Joukkueella \"{{name}}\" on jo {{count}} ottelu. Yhdistetäänkö? Niitä ei voi erottaa uudelleen.",
     "mergeWarning_other": "Joukkueella \"{{name}}\" on jo {{count}} ottelua. Yhdistetäänkö? Niitä ei voi erottaa uudelleen.",
     "mergeConfirm": "Yhdistä",
-    "noSearchResults": "Haulla \"{{search}}\" ei löytynyt joukkuetta."
+    "noSearchResults": "Haulla \"{{search}}\" ei löytynyt joukkuetta.",
+    "allTeamsHint": "Nimeä mikä tahansa joukkue uudelleen, myös sellainen, joka on kirjoitettu kaikkialla samoin.",
+    "allTeamsTitle": "Kaikki joukkueet",
+    "filterPlaceholder": "Hae joukkueita"
   },
   "venueInput": {
     "pinned": "Kiinnitetty karttasijaintiin",
@@ -3971,5 +4014,20 @@
     "intro": "Pelit, joita ei kirjattu sovelluksessa otteluina. Ne lasketaan vain tämän pelaajan tilastoihin.",
     "noPlayers": "Lisää ensin pelaajat Seura-välilehdeltä.",
     "choosePlaceholder": "Valitse pelaaja"
+  },
+  "field": {
+    "togglePositionLabels": "Näytä tai piilota pelipaikkojen nimet"
+  },
+  "goalLog": {
+    "title": "Maaliloki"
+  },
+  "playerAssessment": {
+    "title": "Pelaaja-arviot"
+  },
+  "rosterSettings": {
+    "title": "Pelaajaluettelon asetukset"
+  },
+  "soccerField": {
+    "ariaLabel": "Jalkapallokenttä, jossa pelaajien sijainnit ja taktiikkapiirrokset"
   }
 }

@@ -195,7 +195,7 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
 
-    const actionsButton = screen.getByLabelText('season actions');
+    const actionsButton = screen.getByLabelText('Actions for Season 1');
     await user.click(actionsButton);
 
     const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
@@ -226,7 +226,7 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
 
-    const actionsButton = screen.getByLabelText('tournament actions');
+    const actionsButton = screen.getByLabelText('Actions for Tournament 1');
     await user.click(actionsButton);
 
     const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
@@ -243,7 +243,7 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
 
-    const seasonActionsButton = screen.getByLabelText('season actions');
+    const seasonActionsButton = screen.getByLabelText('Actions for Season 1');
     await user.click(seasonActionsButton);
 
     const deleteOption = await screen.findByRole('button', { name: i18n.t('common.delete', 'Delete') });
@@ -269,7 +269,7 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
 
-    const tournamentActionsButton = screen.getByLabelText('tournament actions');
+    const tournamentActionsButton = screen.getByLabelText('Actions for Tournament 1');
     await user.click(tournamentActionsButton);
 
     const deleteOption = await screen.findByRole('button', { name: i18n.t('common.delete', 'Delete') });
@@ -329,7 +329,7 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
 
-    const seasonActionsButton = screen.getByLabelText('season actions');
+    const seasonActionsButton = screen.getByLabelText('Actions for Season 1');
     await user.click(seasonActionsButton);
 
     const archiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.archive', 'Archive') });
@@ -355,7 +355,7 @@ describe('SeasonTournamentManagementModal', () => {
     const showArchivedCheckbox = screen.getByTestId('competitions-toggle-archived');
     await user.click(showArchivedCheckbox);
 
-    const seasonActionsButton = screen.getByLabelText('season actions');
+    const seasonActionsButton = screen.getByLabelText('Actions for Season 1');
     await user.click(seasonActionsButton);
 
     const unarchiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.unarchive', 'Unarchive') });
@@ -375,7 +375,7 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
 
-    const tournamentActionsButton = screen.getByLabelText('tournament actions');
+    const tournamentActionsButton = screen.getByLabelText('Actions for Tournament 1');
     await user.click(tournamentActionsButton);
 
     const archiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.archive', 'Archive') });
@@ -402,7 +402,7 @@ describe('SeasonTournamentManagementModal', () => {
     const showArchivedCheckbox = screen.getByTestId('competitions-toggle-archived');
     await user.click(showArchivedCheckbox);
 
-    const tournamentActionsButton = screen.getByLabelText('tournament actions');
+    const tournamentActionsButton = screen.getByLabelText('Actions for Tournament 1');
     await user.click(tournamentActionsButton);
 
     const unarchiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.unarchive', 'Unarchive') });
@@ -457,7 +457,7 @@ describe('SeasonTournamentManagementModal', () => {
       await act(async () => {});
 
       // Open actions menu and choose edit
-      const actionsButton = screen.getByLabelText('tournament actions');
+      const actionsButton = screen.getByLabelText('Actions for Championship Cup');
       await user.click(actionsButton);
 
       const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
@@ -713,8 +713,7 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
     expect(archivedSeasonItem).toBeInTheDocument();
 
     // Get the actions button within the archived season's row
-    const actionsButtons = screen.getAllByLabelText('season actions');
-    await user.click(actionsButtons[1]); // Second season is archived
+    await user.click(screen.getByLabelText('Actions for Archived Season'));
 
     const unarchiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.unarchive', 'Unarchive') });
     await user.click(unarchiveOption);
@@ -776,8 +775,7 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
     await user.click(showArchivedCheckbox);
 
     // Get the actions button for archived tournament
-    const actionsButtons = screen.getAllByLabelText('tournament actions');
-    await user.click(actionsButtons[1]); // Second tournament is archived
+    await user.click(screen.getByLabelText('Actions for Archived Tournament'));
 
     const unarchiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.unarchive', 'Unarchive') });
     await user.click(unarchiveOption);
