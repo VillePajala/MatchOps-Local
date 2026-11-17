@@ -91,6 +91,26 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
 
   // SECURITY: Password input ref (uncontrolled) - prevents password from appearing in React DevTools/state snapshots
   const passwordInputRef = useRef<HTMLInputElement>(null);
+  // The auth service this modal signed in with, while its temporary session lives
+  // (review 3.12b). Cleanup keys off this, not the step: Back and a failed deletion
+  // leave the confirm step with the session still stored.
+  const signedInServiceRef = useRef<InstanceType<SupabaseAuthServiceType> | null>(null);
+
+  /**
+   * End the temporary session through the auth service: this device only (3.12),
+   * and the stored session is removed directly, which is what works offline (3.11).
+   * Best-effort and idempotent; reuses the signed-in instance (no second initialize).
+   */
+  const endTemporarySession = useCallback(async (context: string) => {
+    const service = signedInServiceRef.current;
+    signedInServiceRef.current = null;
+    if (!service) return;
+    try {
+      await service.signOut();
+    } catch (signOutErr) {
+      logger.warn(`[CloudAuthModal] Sign out ${context} failed (non-critical):`, signOutErr);
+    }
+  }, []);
 
   // Modal state
   const [step, setStep] = useState<ModalStep>('auth');
@@ -132,26 +152,13 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
     }
     setHasPassword(false);
 
-    // If user authenticated but then cancelled, sign out to clean up the session.
-    // This modal creates a temporary session just for deletion — leaving it active
-    // after cancel would be a stale session lingering in the Supabase client.
-    if (step === 'confirm') {
-      try {
-        // Through the auth service (review 3.12b): it signs out on this device only
-        // (3.12) and also removes the stored session directly, which is what works
-        // offline (3.11) - a bare supabase-js signOut left it stored there.
-        const { SupabaseAuthService } = await import('@/auth/SupabaseAuthService');
-        const authService = new (SupabaseAuthService as SupabaseAuthServiceType)();
-        await authService.initialize();
-        await authService.signOut();
-      } catch (signOutErr) {
-        // Best-effort cleanup — don't block cancel on sign-out failure
-        logger.warn('[CloudAuthModal] Failed to sign out on cancel:', signOutErr);
-      }
-    }
+    // If the user signed in but then cancelled (from any step), end the temporary
+    // session - this modal creates it just for deletion.
+    // Only awaited when there is one, so a plain cancel closes at once.
+    if (signedInServiceRef.current) await endTemporarySession('on cancel');
 
     onCancel();
-  }, [onCancel, step]);
+  }, [onCancel, endTemporarySession]);
 
   // Handle Escape key to close modal (when not busy)
   useEffect(() => {
@@ -196,6 +203,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       const authService = new SupabaseAuthService();
       await authService.initialize();
       await authService.signIn(email, password);
+      signedInServiceRef.current = authService;
 
       // Authentication successful, proceed to confirm step
       setStep('confirm');
@@ -299,15 +307,8 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       // SECURITY: Invalidate the Supabase session to prevent session hijacking
       // The session was created for deletion only - don't leave it active
       // This is non-critical cleanup - if it fails, deletion still succeeded
-      try {
-        const { SupabaseAuthService } = await import('@/auth/SupabaseAuthService');
-        const authService = new (SupabaseAuthService as SupabaseAuthServiceType)();
-        await authService.initialize();
-        await authService.signOut();
-      } catch (signOutErr) {
-        // Non-critical: data is already deleted, session will expire naturally
-        logger.warn('[CloudAuthModal] Sign out after deletion failed (non-critical):', signOutErr);
-      }
+      // Non-critical: data is already deleted, the session will expire naturally.
+      await endTemporarySession('after deletion');
 
       // Clear stored cloud account info AFTER signOut completes
       // This ensures proper ordering: delete data → invalidate session → clear local info
@@ -345,7 +346,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       deletionInProgressRef.current = false;
       setIsDeleting(false);
     }
-  }, [confirmText, queryClient, t]);
+  }, [confirmText, queryClient, t, endTemporarySession]);
 
   /**
    * Handle key press for form submission
