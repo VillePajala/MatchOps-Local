@@ -3,6 +3,15 @@
   "releases": [
     {
       "date": "2026-11-17",
+      "en": [
+        "Accessibility: while a match dialog (goal log, game statistics, game settings) is open, keyboard and screen-reader users can no longer reach the screen behind it."
+      ],
+      "fi": [
+        "Saavutettavuus: kun ottelun ikkuna (maaliloki, ottelutilastot, ottelun asetukset) on auki, näppäimistön ja ruudunlukijan käyttäjät eivät enää pääse sen takana olevaan näkymään."
+      ]
+    },
+    {
+      "date": "2026-11-17",
       "internal": true,
       "en": [
         "The \"already open in another tab\" check double-checks before blocking the app, so it cannot be triggered by the app itself."
