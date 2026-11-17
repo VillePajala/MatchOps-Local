@@ -866,7 +866,9 @@ export async function getStorageItem(
   for (let attempt = 0; attempt <= retryCount; attempt++) {
     try {
       const adapter = await getStorageAdapter();
-      return adapter.getItem(key);
+      // Awaited (review 10.6): returning the bare promise let a rejection skip this
+      // try, so the retries and the error mapping below never ran.
+      return await adapter.getItem(key);
     } catch (error) {
       // Non-final retries are usually recovered transient IndexedDB failures — log at
       // warn so they don't flood Sentry; only the final failure (which throws) is error.
@@ -911,7 +913,9 @@ export async function setStorageItem(
   for (let attempt = 0; attempt <= retryCount; attempt++) {
     try {
       const adapter = await getStorageAdapter();
-      return adapter.setItem(key, value);
+      // Awaited (review 10.6): returning the bare promise let a rejection skip this
+      // try, so the retries and the error mapping below never ran.
+      return await adapter.setItem(key, value);
     } catch (error) {
       // Non-final retries are usually recovered transient failures — warn (no Sentry);
       // only the final failure (which throws) logs error.
@@ -951,7 +955,9 @@ export async function removeStorageItem(
   for (let attempt = 0; attempt <= retryCount; attempt++) {
     try {
       const adapter = await getStorageAdapter();
-      return adapter.removeItem(key);
+      // Awaited (review 10.6): returning the bare promise let a rejection skip this
+      // try, so the retries and the error mapping below never ran.
+      return await adapter.removeItem(key);
     } catch (error) {
       // Non-final retries are usually recovered transient failures — warn (no Sentry);
       // only the final failure (which throws) logs error.
@@ -986,7 +992,9 @@ export async function clearStorage(
   for (let attempt = 0; attempt <= retryCount; attempt++) {
     try {
       const adapter = await getStorageAdapter();
-      return adapter.clear();
+      // Awaited (review 10.6): returning the bare promise let a rejection skip this
+      // try, so the retries and the error mapping below never ran.
+      return await adapter.clear();
     } catch (error) {
       // Non-final retries are usually recovered transient failures — warn (no Sentry);
       // only the final failure (which throws) logs error.
