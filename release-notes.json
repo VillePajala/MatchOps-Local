@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Saved games now show each game under the team name it was saved with, the same as the match screen, recap and Taso text. Searching for a team's new name still finds its older games."
+      ],
+      "fi": [
+        "Tallennetut ottelut näyttävät nyt kunkin ottelun sillä joukkueen nimellä, jolla se tallennettiin, samoin kuin otteluruutu, yhteenveto ja Taso-teksti. Haku joukkueen uudella nimellä löytää edelleen sen vanhemmat ottelut."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Removing a player now also removes them from every team, so team player counts are right. Past games keep the player in their statistics."
       ],
       "fi": [

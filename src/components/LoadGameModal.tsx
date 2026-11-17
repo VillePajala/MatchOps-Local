@@ -180,7 +180,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
       // Use live entity names for search (fallback to empty string if entity not found)
       const displayNames = getDisplayNames(gameData, entityMaps);
-      const teamName = (displayNames.teamName || '').toLowerCase();
+      // The game's own name, and the team's current one: a renamed team's old games
+      // are still found by searching for the new name.
+      const teamName = `${displayNames.teamName || ''} ${displayNames.currentTeamName || ''}`.toLowerCase();
       const opponentName = (gameData.opponentName || '').toLowerCase();
       const gameDate = (gameData.gameDate || '').toLowerCase();
       const seasonName = (displayNames.seasonName || '').toLowerCase();
@@ -366,7 +368,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             // Get series level for tournament games (with validation)
             const seriesLevel = getValidatedSeriesLevel(tournament, game.tournamentSeriesId);
 
-            // Get live entity names (or fallback to snapshots)
+            // The team name stored with the game (as the match screen shows it)
             const { teamName: liveTeamName } = getDisplayNames(game, entityMaps);
 
             // Determine display names based on the specific game's homeOrAway setting

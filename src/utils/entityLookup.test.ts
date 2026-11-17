@@ -64,17 +64,20 @@ describe('entityLookup', () => {
      * Tests live entity name resolution when all IDs are valid
      * @critical
      */
-    it('should return live entity names when IDs exist and entities found', () => {
+    it('keeps the game\'s own team name; seasons and tournaments resolve live', () => {
       const game: Partial<AppState> = {
         teamId: 'team_1',
-        teamName: 'Old Team Name', // Snapshot (should be ignored when entity exists)
+        teamName: 'Old Team Name', // The name the game was saved under
         seasonId: 'season_1',
         tournamentId: 'tournament_1',
       };
 
       const result = getDisplayNames(game as AppState, maps);
 
-      expect(result.teamName).toBe('FC United'); // Live name from entity
+      // Review 7.17 (owner): the game keeps its own team name, as the match screen,
+      // recap and Taso text show it; the current name comes separately for search.
+      expect(result.teamName).toBe('Old Team Name');
+      expect(result.currentTeamName).toBe('FC United');
       expect(result.seasonName).toBe('Spring 2024'); // Live name from entity
       expect(result.tournamentName).toBe('City Cup'); // Live name from entity
     });
@@ -148,16 +151,16 @@ describe('entityLookup', () => {
 
       const result = getDisplayNames(game as AppState, maps);
 
-      expect(result.teamName).toBe('FC United'); // Live from entity
+      expect(result.teamName).toBe('Old Team'); // The game's own name (review 7.17)
       expect(result.seasonName).toBeUndefined(); // Entity not found, no snapshot
       expect(result.tournamentName).toBeUndefined(); // No ID, no entity
     });
 
     /**
-     * Tests that renamed entities show updated names
+     * A team rename does not rewrite how past games are shown
      * @critical
      */
-    it('should reflect entity renames (live name updates)', () => {
+    it('a team rename leaves the game\'s name; the new name is there for search (review 7.17)', () => {
       // Initial state
       const game: Partial<AppState> = {
         teamId: 'team_1',
@@ -173,7 +176,8 @@ describe('entityLookup', () => {
       const updatedMaps = createEntityMaps(updatedTeams, mockSeasons, mockTournaments);
 
       result = getDisplayNames(game as AppState, updatedMaps);
-      expect(result.teamName).toBe('FC United 2025'); // Shows new name!
+      expect(result.teamName).toBe('FC United'); // What the game was played under
+      expect(result.currentTeamName).toBe('FC United 2025'); // Found by a search for it
     });
 
     /**

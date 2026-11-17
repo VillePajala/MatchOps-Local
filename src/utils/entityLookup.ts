@@ -34,17 +34,19 @@ export function createEntityMaps(
  * Resolve display names for a game using entity lookups with fallback to snapshots
  *
  * Strategy:
- * - Team: If game has teamId AND entity exists: Use entity's current name (live)
- *         If game has teamId BUT entity missing: Fall back to snapshot teamName (deleted entity)
- *         If game has no teamId: Use snapshot teamName (legacy or "No Team" games)
+ * - Team: The name stored with the game (owner decision 2026-11-17, review 7.17):
+ *         the match screen, the recap and the Taso text all show it, so the list
+ *         does too - a renamed team's old games keep the name they were played
+ *         under, and a name customised for one game is never hidden. The team's
+ *         current name fills in only when the game has none, and is returned
+ *         separately (currentTeamName) so a search for it still finds the games.
  * - Season/Tournament: Always look up by ID (no snapshots stored in game)
  *                      If entity missing: Return undefined (will display as empty)
  *
  * This ensures:
- * 1. Renamed entities show updated names everywhere
- * 2. Deleted team entities gracefully fall back to last known name
+ * 1. Every screen shows a game under the same team name
+ * 2. Renamed seasons/tournaments show their updated names
  * 3. Deleted season/tournament entities return undefined (handled by UI)
- * 4. Legacy games continue working with snapshot team names
  *
  * @param game - Game state containing entity IDs and team snapshot name
  * @param maps - Entity lookup maps created by createEntityMaps()
@@ -56,7 +58,8 @@ export function getDisplayNames(game: AppState, maps: EntityMaps) {
   const tournament = game.tournamentId ? maps.tournaments.get(game.tournamentId) : null;
 
   return {
-    teamName: team?.name ?? game.teamName,
+    teamName: game.teamName || team?.name || '',
+    currentTeamName: team?.name,
     seasonName: season?.name,
     tournamentName: tournament?.name,
   };
