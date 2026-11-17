@@ -360,7 +360,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                     <button
                                         onClick={(e) => handleActionsMenuToggle(e, item.id)}
                                         className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
-                                        aria-label={`${type} actions`}
+                                        aria-label={t('seasonTournamentModal.itemActions', 'Actions for {{name}}', { name: item.name })}
                                     >
                                         <HiOutlineEllipsisVertical className="w-4 h-4" />
                                     </button>

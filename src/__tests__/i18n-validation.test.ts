@@ -738,7 +738,8 @@ describe('Translation File Validation', () => {
       // +5 empty/archived texts shared by the lists, -3 the replaced Show Archived
       // pill texts (review 7.L7). 3415.
       // +4 Saved games sort (review 7.L11). 3419.
-      expect(enKeys.length).toBe(3419);
+      // +48 keys used in code but missing from both locales (review 8.2). 3467.
+      expect(enKeys.length).toBe(3467);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -942,7 +943,8 @@ describe('Translation File Validation', () => {
       // +5 list empty/no-results texts (review 7.L4). 3413.
       // +5 / -3 (review 7.L7). 3415.
       // +4 (review 7.L11). 3419.
-      expect(fiKeys.length).toBe(3419);
+      // +48 (review 8.2). 3467.
+      expect(fiKeys.length).toBe(3467);
     });
   });
 });
@@ -965,5 +967,48 @@ describe('i18n-types.ts Validation', () => {
     const enKeys = getAllKeys(en);
 
     expect(keyCount).toBe(enKeys.length);
+  });
+});
+
+/**
+ * Review 8.2: ~45 keys were used in code but missing from both locales, so a Finnish
+ * coach saw the English fallback (error toasts, labels, screen-reader names). Every
+ * static key passed to t() in src/ must exist in both locale files (a plural key
+ * counts as present through its _one/_other forms).
+ * @critical
+ */
+describe('Keys used in code', () => {
+  const srcRoot = path.join(process.cwd(), 'src');
+  const sourceFiles: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== '__tests__') walk(full);
+      } else if (/\.(ts|tsx)$/.test(entry.name) && !/\.test\.|i18n-types/.test(entry.name)) {
+        sourceFiles.push(full);
+      }
+    }
+  };
+  walk(srcRoot);
+
+  const flatKeys = (locale: string) =>
+    new Set(getAllKeys(JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/locales', locale, 'common.json'), 'utf8'))));
+  const present = (keys: Set<string>, key: string) =>
+    keys.has(key) || keys.has(`${key}_one`) || keys.has(`${key}_other`);
+
+  // t('a.b' ...) / i18n.t('a.b' ...) with a literal, dotted key (template keys skipped).
+  const keyPattern = /(?<![\w.])(?:t|i18n\.t)\(\s*(['"])([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+)\1/g;
+
+  it.each(['en', 'fi'])('every static t() key exists in %s', (locale) => {
+    const keys = flatKeys(locale);
+    const missing = new Set<string>();
+    for (const file of sourceFiles) {
+      const source = fs.readFileSync(file, 'utf8');
+      for (const match of source.matchAll(keyPattern)) {
+        if (!present(keys, match[2])) missing.add(`${match[2]} (${path.relative(srcRoot, file)})`);
+      }
+    }
+    expect([...missing].sort()).toEqual([]);
   });
 });

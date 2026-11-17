@@ -166,14 +166,14 @@ export function useRosterSettingsController(): UseRosterSettingsControllerReturn
       // handleAddPlayer reports a failed write as null (it never throws).
       const saved = await handleAddPlayer(playerData);
       if (!saved) {
-        setRosterError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {playerName}. Please try again.', { playerName: playerData.name }));
+        setRosterError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {{playerName}}. Please try again.', { playerName: playerData.name }));
         return false;
       }
       logger.log(`[useRosterSettingsController] add player success: ${playerData.name}.`);
       return true;
     } catch (error) {
       logger.error(`[useRosterSettingsController] Exception during add of player ${playerData.name}:`, error);
-      setRosterError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {playerName}. Please try again.', { playerName: playerData.name }));
+      setRosterError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {{playerName}}. Please try again.', { playerName: playerData.name }));
       return false;
     }
   }, [masterRoster, handleAddPlayer, t, setRosterError]);

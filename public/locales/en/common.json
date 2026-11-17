@@ -533,7 +533,12 @@
     "noPlayersToShow": "No player statistics for this selection.",
     "hideArchived": "Hide archived",
     "showArchivedCount": "Show archived ({{count}})",
-    "allArchived": "Everything here is archived."
+    "allArchived": "Everything here is archived.",
+    "dismiss": "Dismiss",
+    "errorOccurred": "Something went wrong. Please try again.",
+    "no": "No",
+    "yes": "Yes",
+    "resetting": "Resetting..."
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
@@ -914,7 +919,8 @@
     "formatsSource": "Source: {{title}}",
     "allRules": "All Rules & Regulations",
     "footer": "Rulebook links open in your browser. Rules maintained by Palloliitto.",
-    "checkedOn": "Links checked {{date}}."
+    "checkedOn": "Links checked {{date}}.",
+    "openInNewWindow": "Open {{label}} in a new window"
   },
   "rosterSettingsModal": {
     "removedBadge": "removed from player list",
@@ -926,7 +932,9 @@
     "errors": {
       "nameRequired": "Player name cannot be empty.",
       "duplicateName": "A player with this name already exists. Please use a different name.",
-      "duplicateNumber": "A player with this jersey number already exists. Please use a different number or leave it blank."
+      "duplicateNumber": "A player with this jersey number already exists. Please use a different number or leave it blank.",
+      "addFailed": "Error adding player {{playerName}}. Please try again.",
+      "playerNotFound": "Player not found. Cannot toggle goalie status."
     },
     "title": "All Players",
     "unsetGoalie": "Unset Goalie",
@@ -1135,7 +1143,9 @@
     "fieldNumberPlaceholder": "e.g., TN 2",
     "periodOptionOne": "1",
     "periodOptionTwo": "2",
-    "friendlyHint": "Kept out of competitive stats"
+    "friendlyHint": "Kept out of competitive stats",
+    "saveGameFailed": "Failed to save the new game. Please try again.",
+    "seriesLabel": "Series"
   },
   "gameSettingsModal": {
     "playerIsArchived": "{{name}} is archived - restore them in the player list first.",
@@ -1278,7 +1288,8 @@
     "fieldNumberPlaceholder": "e.g., TN 2",
     "periodOptionOne": "1",
     "periodOptionTwo": "2",
-    "friendlyHint": "Kept out of competitive stats"
+    "friendlyHint": "Kept out of competitive stats",
+    "seasonOrTournament": "Season / Tournament"
   },
   "errors": {
     "failedToSaveDrawingMode": "Failed to save drawing mode setting. Changes may not persist.",
@@ -1290,7 +1301,8 @@
     "showErrorDetails": "Show error details (dev only)",
     "soccerFieldCrashed": "Soccer Field Crashed",
     "pleaseRefreshPage": "Please refresh the page to continue.",
-    "playerBarCrashed": "Player bar crashed. Please refresh the page."
+    "playerBarCrashed": "Player bar crashed. Please refresh the page.",
+    "playerDropFailed": "Failed to place player on field"
   },
   "gameStats": {
     "personnelSectionTitle": "Game Personnel",
@@ -1420,7 +1432,8 @@
     "orExperiment": "Or experiment first:",
     "experimentOption": "Use temporary workspace for testing",
     "workspaceWarning": "Temporary workspace - changes won't be saved",
-    "createRealGame": "Create Game"
+    "createRealGame": "Create Game",
+    "descNoPlayersSimple": "Set up your team roster to start tracking games."
   },
   "firstGameGuide": {
     "playerSelection": "Player Selection (Top Bar)",
@@ -1477,7 +1490,8 @@
     "searchPlaceholder": "Search...",
     "noSeasonsNudge": "No leagues yet. Create one, then link your teams and games to it to track league-level stats.",
     "noTournamentsNudge": "No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats.",
-    "noSearchResults": "Nothing matches \"{{search}}\"."
+    "noSearchResults": "Nothing matches \"{{search}}\".",
+    "itemActions": "Actions for {{name}}"
   },
   "teamDetailsModal": {
     "createTitle": "Create Team",
@@ -1524,7 +1538,8 @@
       "nameRequired": "Personnel name cannot be empty.",
       "duplicateName": "A personnel member with this name already exists. Please choose a different name.",
       "createFailed": "Failed to add personnel. Please try again.",
-      "updateFailed": "Failed to update personnel. Please try again."
+      "updateFailed": "Failed to update personnel. Please try again.",
+      "validationFailed": "Invalid input. Please check the form and try again."
     },
     "createTitle": "Add Personnel",
     "editTitle": "Personnel Details",
@@ -1692,7 +1707,13 @@
     "seasonContext": "League: {{name}}",
     "tournamentContext": "Tournament: {{name}}",
     "gameTypeContext": "Game type: Futsal",
-    "noTeamsNudge": "Teams let you reuse a roster and link games to a competition, so your stats add up by team and competition."
+    "noTeamsNudge": "Teams let you reuse a roster and link games to a competition, so your stats add up by team and competition.",
+    "deleteWithGames_one": "Delete ({{count}} game)",
+    "deleteWithGames_other": "Delete ({{count}} games)",
+    "deleting": "Deleting...",
+    "manageRoster": "Manage Roster",
+    "selectColor": "Select color",
+    "teamNamePlaceholder": "Team name"
   },
   "unifiedTeamModal": {
     "addPlayers": "Add players",
@@ -1748,7 +1769,9 @@
       "grey": "Grey",
       "brown": "Brown"
     },
-    "kitColorCustom": "Custom colour"
+    "kitColorCustom": "Custom colour",
+    "tournamentPlacementFor": "Tournament placement for {{name}}",
+    "seasonPlacementFor": "Season placement for {{name}}"
   },
   "personnel": {
     "selected": "selected",
@@ -2031,7 +2054,8 @@
     "arrivalBufferHint": "Warm-up, lineup and changing. A single match can be given its own figure.",
     "seasonThis": "This season",
     "seasonNext": "Next season",
-    "seasonSaveFailed": "Could not save the season start. Please try again."
+    "seasonSaveFailed": "Could not save the season start. Please try again.",
+    "restoringReloading": "Backup restored. Reloading..."
   },
   "playerAssessmentModal": {
     "title": "Record Performance",
@@ -2212,7 +2236,16 @@
     "addToStats": "Add to stats",
     "viewingFilteredStats": "Showing the selected club season only ({{filtered}} of {{total}} games)",
     "noGamesForSeason": "No games match the selected filters.",
-    "changeSeasonFilter": "This player has {{count}} game(s) outside these filters. Widen the filters above to see them."
+    "changeSeasonFilter": "This player has {{count}} game(s) outside these filters. Widen the filters above to see them.",
+    "addError": "Failed to save the external game entry.",
+    "decreaseAssists": "Decrease assists",
+    "decreaseGames": "Decrease games",
+    "decreaseGoals": "Decrease goals",
+    "increaseAssists": "Increase assists",
+    "increaseGames": "Increase games",
+    "increaseGoals": "Increase goals",
+    "fairPlayCard": "Fair Play Card",
+    "updateError": "Failed to update the external game entry."
   },
   "months": {
     "january": "January",
@@ -2270,7 +2303,8 @@
     "migrationFlagWarning": "Backup will be restored, but cloud sync prompt may not appear automatically. You can sync via Settings later.",
     "cloudDownloadSuccess": "Cloud data downloaded successfully.",
     "cloudDownloadError": "Failed to download cloud data. Please try again.",
-    "cloudDownloadOfflineError": "Cannot download while offline."
+    "cloudDownloadOfflineError": "Cannot download while offline.",
+    "restoreFailed": "Failed to restore backup. The file may be corrupted or invalid."
   },
   "cloudModeImport": {
     "title": "Import Backup",
@@ -3473,7 +3507,13 @@
     "factoryResetFailed": "Failed to reset. Please try again.",
     "factoryResetOffline": "Cannot delete cloud data while offline. Please check your connection and try again.",
     "loading": "Loading...",
-    "offlineGracePeriod": "Offline — changes saved locally, will sync when connected"
+    "offlineGracePeriod": "Offline — changes saved locally, will sync when connected",
+    "factoryResetPartial": "Local data cleared. Cloud data may not have been fully removed — try again if needed.",
+    "failedToClearLocalData": "Failed to clear local data. Please try again.",
+    "importSucceededReloading": "Import complete. Loading...",
+    "localDataDiscarded": "Local data cleared.",
+    "switchingToLocalMode": "Switching to local mode...",
+    "syncFailedSavedLocally": "Some changes could not be synced to the cloud. They are saved on this device."
   },
   "positions": {
     "GK": "GK",
@@ -3950,7 +3990,10 @@
     "mergeWarning_one": "\"{{name}}\" already has {{count}} game. Merge them? They cannot be split again.",
     "mergeWarning_other": "\"{{name}}\" already has {{count}} games. Merge them? They cannot be split again.",
     "mergeConfirm": "Merge",
-    "noSearchResults": "No team matches \"{{search}}\"."
+    "noSearchResults": "No team matches \"{{search}}\".",
+    "allTeamsHint": "Rename any team, even one that is spelled the same way everywhere.",
+    "allTeamsTitle": "All teams",
+    "filterPlaceholder": "Search teams"
   },
   "venueInput": {
     "pinned": "Pinned to a map location",
@@ -3971,5 +4014,20 @@
     "intro": "Games not recorded in the app as matches. They count only in this player's stats.",
     "noPlayers": "Add your players on the Club tab first.",
     "choosePlaceholder": "Select a player"
+  },
+  "field": {
+    "togglePositionLabels": "Toggle position labels"
+  },
+  "goalLog": {
+    "title": "Goal Log"
+  },
+  "playerAssessment": {
+    "title": "Player Assessments"
+  },
+  "rosterSettings": {
+    "title": "Roster Settings"
+  },
+  "soccerField": {
+    "ariaLabel": "Soccer field with player positions and tactical drawings"
   }
 }

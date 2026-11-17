@@ -478,7 +478,7 @@ describe('RulesDirectoryModal', () => {
     // being true when the page gained controls that are not links.
     const linkButtons = screen
       .getAllByRole('button')
-      .filter((btn) => /^Open .* in new window$/.test(btn.getAttribute('aria-label') ?? ''));
+      .filter((btn) => /^Open .* in a new window$/.test(btn.getAttribute('aria-label') ?? ''));
 
     expect(linkButtons).toHaveLength(ruleLinks.links.length);
 

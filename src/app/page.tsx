@@ -1647,8 +1647,10 @@ export default function Home() {
       const entity = detail?.entityType ?? 'data';
       const errorMsg = detail?.error ?? 'Unknown error';
       logger.warn('[page.tsx] Sync queue error:', { entity, error: errorMsg });
+      // The entity type is internal (e.g. "playtimePlanLink") - logged above, not shown
+      // to the coach (review 8.2).
       showToast(
-        t('page.syncError', 'Failed to sync {{entity}} to cloud. Changes saved locally.', { entity }),
+        t('page.syncFailedSavedLocally', 'Some changes could not be synced to the cloud. They are saved on this device.'),
         'error'
       );
     };
