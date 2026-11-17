@@ -32,7 +32,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, normalizeOptionalString } from '@/datastore/validation';
+import { validateGame, normalizeOptionalString, isNewCompositeDuplicate } from '@/datastore/validation';
 import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
 import { adjustScoreForRemovedEvent } from '@/datastore/gameEventScore';
 import { validateUserId } from '@/datastore/userDatabase';
@@ -966,16 +966,15 @@ export class LocalDataStore implements DataStore {
       }
 
       const compositeKey = createTeamCompositeKey(finalName, finalSeasonId, finalTournamentId, finalSeriesId, finalGameType);
-      const duplicateExists = Object.values(teamsIndex).some(team =>
-        team.id !== id &&
-        createTeamCompositeKey(
-          team.name,
-          team.boundSeasonId,
-          team.boundTournamentId,
-          team.boundTournamentSeriesId,
-          team.gameType
-        ) === compositeKey
+      // Only a key CHANGE onto another record's key is a duplicate (review 3.21b) - see isNewCompositeDuplicate.
+      const keyOf = (team: Team) => createTeamCompositeKey(
+        team.name,
+        team.boundSeasonId,
+        team.boundTournamentId,
+        team.boundTournamentSeriesId,
+        team.gameType,
       );
+      const duplicateExists = isNewCompositeDuplicate(Object.values(teamsIndex), id, compositeKey, keyOf);
 
       if (duplicateExists) {
         throw new AlreadyExistsError('team', finalName);
@@ -1212,18 +1211,18 @@ export class LocalDataStore implements DataStore {
         season.ageGroup,
         season.leagueId
       );
-      const duplicateExists = currentSeasons.some(
-        (item) => item.id !== season.id && createSeasonCompositeKey(
-          item.name,
-          // Compute clubSeason when missing (legacy rows), matching getSeasons()/the UI
-          // and SupabaseDataStore — keeps Local/Cloud uniqueness consistent.
-          item.clubSeason ?? calculateClubSeason(item.startDate, start, end),
-          item.gameType,
-          item.gender,
-          item.ageGroup,
-          item.leagueId
-        ) === compositeKey
+      // Only a key CHANGE onto another record's key is a duplicate (review 3.21b) - see isNewCompositeDuplicate.
+      // clubSeason is computed when missing (legacy rows), matching getSeasons()/the UI
+      // and SupabaseDataStore - keeps Local/Cloud uniqueness consistent.
+      const keyOf = (item: (typeof currentSeasons)[number]) => createSeasonCompositeKey(
+        item.name,
+        item.clubSeason ?? calculateClubSeason(item.startDate, start, end),
+        item.gameType,
+        item.gender,
+        item.ageGroup,
+        item.leagueId,
       );
+      const duplicateExists = isNewCompositeDuplicate(currentSeasons, season.id, compositeKey, keyOf);
 
       if (duplicateExists) {
         throw new AlreadyExistsError('season', trimmedName);
@@ -1444,15 +1443,9 @@ export class LocalDataStore implements DataStore {
         tournament.gender,
         tournament.ageGroup
       );
-      const duplicateExists = currentTournaments.some(
-        (item) => item.id !== tournament.id && createTournamentCompositeKey(
-          item.name,
-          item.clubSeason,
-          item.gameType,
-          item.gender,
-          item.ageGroup
-        ) === compositeKey
-      );
+      // Only a key CHANGE onto another record's key is a duplicate (review 3.21b) - see isNewCompositeDuplicate.
+      const keyOf = (item: (typeof currentTournaments)[number]) => createTournamentCompositeKey(item.name, item.clubSeason, item.gameType, item.gender, item.ageGroup);
+      const duplicateExists = isNewCompositeDuplicate(currentTournaments, tournament.id, compositeKey, keyOf);
 
       if (duplicateExists) {
         throw new AlreadyExistsError('tournament', trimmedName);

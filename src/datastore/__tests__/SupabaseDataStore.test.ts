@@ -1137,7 +1137,9 @@ describe('SupabaseDataStore', () => {
           data: null,
           error: {
             code: '23505',
-            message: 'duplicate key value violates unique constraint "idx_teams_composite_unique"',
+            // Generic 23505 handling. (The composite index was dropped by migration 058;
+            // a unique violation can still come from the primary key.)
+            message: 'duplicate key value violates unique constraint "teams_pkey"',
           },
         });
 
@@ -1739,7 +1741,9 @@ describe('SupabaseDataStore', () => {
           data: null,
           error: {
             code: '23505',
-            message: 'duplicate key value violates unique constraint "idx_seasons_composite_unique"',
+            // Generic 23505 handling. (The composite index was dropped by migration 058;
+            // a unique violation can still come from the primary key.)
+            message: 'duplicate key value violates unique constraint "seasons_pkey"',
           },
         });
 
@@ -2299,7 +2303,9 @@ describe('SupabaseDataStore', () => {
           data: null,
           error: {
             code: '23505',
-            message: 'duplicate key value violates unique constraint "idx_tournaments_composite_unique"',
+            // Generic 23505 handling. (The composite index was dropped by migration 058;
+            // a unique violation can still come from the primary key.)
+            message: 'duplicate key value violates unique constraint "tournaments_pkey"',
           },
         });
 

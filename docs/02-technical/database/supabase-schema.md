@@ -148,9 +148,9 @@ CREATE TABLE teams (
   updated_at timestamptz DEFAULT now()
 
   -- NOTE: LocalDataStore uses composite uniqueness (name + context bindings + gameType)
-  -- Database: composite unique index (011), mirroring the app-level composite key
-  -- No plain name constraint (003 dropped teams_name_user_unique). Migration 011 adds
-  -- idx_teams_composite_unique: UNIQUE (user_id, LOWER(name), bound_season_id, bound_tournament_id, bound_tournament_series_id, game_type) (NULLs as '').
+  -- Database: no uniqueness constraint. 003 dropped teams_name_user_unique; 058 dropped
+  -- 011's idx_teams_composite_unique - two devices creating the same team offline give it
+  -- different ids, and the index failed the second one's sync forever (review 3.21b).
 );
 
 CREATE INDEX idx_teams_user_id ON teams(user_id);
@@ -289,9 +289,8 @@ CREATE TABLE seasons (
   updated_at timestamptz DEFAULT now()
 
   -- NOTE: LocalDataStore uses composite uniqueness (name + clubSeason + gameType + gender + ageGroup + leagueId)
-  -- Database: composite unique index (011), mirroring the app-level composite key
-  -- No plain name constraint (003 dropped seasons_name_user_unique). Migration 011 adds
-  -- idx_seasons_composite_unique: UNIQUE (user_id, LOWER(name), club_season, game_type, gender, age_group, league_id) (NULLs as '').
+  -- Database: no uniqueness constraint. 003 dropped seasons_name_user_unique; 058 dropped
+  -- 011's idx_seasons_composite_unique (review 3.21b, as for teams).
 );
 
 CREATE INDEX idx_seasons_user_id ON seasons(user_id);
@@ -352,9 +351,8 @@ CREATE TABLE tournaments (
   updated_at timestamptz DEFAULT now()
 
   -- NOTE: LocalDataStore uses composite uniqueness (name + clubSeason + gameType + gender + ageGroup)
-  -- Database: composite unique index (011), mirroring the app-level composite key
-  -- No plain name constraint (003 dropped tournaments_name_user_unique). Migration 011 adds
-  -- idx_tournaments_composite_unique: UNIQUE (user_id, LOWER(name), club_season, game_type, gender, age_group) (NULLs as '').
+  -- Database: no uniqueness constraint. 003 dropped tournaments_name_user_unique; 058
+  -- dropped 011's idx_tournaments_composite_unique (review 3.21b, as for teams).
 );
 
 CREATE INDEX idx_tournaments_user_id ON tournaments(user_id);

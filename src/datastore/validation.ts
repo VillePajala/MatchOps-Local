@@ -109,3 +109,22 @@ export const validateGame = (game: AppState, context?: string): void => {
     );
   }
 };
+
+/**
+ * Whether updating record `id` to `newKey` would ADD a composite-key duplicate
+ * (CLAUDE.md Rule 6; review 3.21b). An update that keeps the record's own stored key
+ * adds none: since migration 058 a same-key pair can reach a device from two
+ * devices, and checking it anyway blocked every edit - even archiving - of either
+ * copy. Changing the key onto another record's key is still a duplicate.
+ * Used by both data stores' updateTeam / updateSeason / updateTournament.
+ */
+export function isNewCompositeDuplicate<T extends { id: string }>(
+  records: readonly T[],
+  id: string,
+  newKey: string,
+  keyOf: (record: T) => string,
+): boolean {
+  const own = records.find((record) => record.id === id);
+  if (own && keyOf(own) === newKey) return false;
+  return records.some((record) => record.id !== id && keyOf(record) === newKey);
+}
