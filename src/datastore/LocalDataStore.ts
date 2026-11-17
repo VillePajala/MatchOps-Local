@@ -1293,7 +1293,11 @@ export class LocalDataStore implements DataStore {
       const existingIndex = currentSeasons.findIndex((s) => s.id === season.id);
       const now = new Date().toISOString();
 
-      const clubSeason = calculateClubSeason(season.startDate, start, end);
+      // Keep the label the record arrives with (review 10.8): a restore writes seasons
+      // and tournaments BEFORE the backup's settings, so recomputing here used the
+      // device's previous club-season dates and gave e.g. '24/25' for a '25/26' item.
+      // Only a record without a label is computed.
+      const clubSeason = season.clubSeason ?? calculateClubSeason(season.startDate, start, end);
 
       const normalizedSeason: Season = {
         ...season,
@@ -1549,7 +1553,11 @@ export class LocalDataStore implements DataStore {
       const existingIndex = currentTournaments.findIndex((t) => t.id === tournament.id);
       const now = new Date().toISOString();
 
-      const clubSeason = calculateClubSeason(tournament.startDate, start, end);
+      // Keep the label the record arrives with (review 10.8): a restore writes seasons
+      // and tournaments BEFORE the backup's settings, so recomputing here used the
+      // device's previous club-season dates and gave e.g. '24/25' for a '25/26' item.
+      // Only a record without a label is computed.
+      const clubSeason = tournament.clubSeason ?? calculateClubSeason(tournament.startDate, start, end);
 
       const normalizedTournament: Tournament = {
         ...tournament,
@@ -2517,6 +2525,8 @@ export class LocalDataStore implements DataStore {
     // - User-scoped mode: clears matchops_user_{userId} database
     // - Legacy mode: clears MatchOpsLocal database
     await this.storageClear();
+    // The cached club-season dates belonged to the settings just cleared (review 10.8).
+    this.seasonDatesCache = null;
 
     logger.info('[LocalDataStore] All user data cleared from local storage', {
       userId: this.userId ?? '(legacy)',
