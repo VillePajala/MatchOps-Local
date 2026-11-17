@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "The \"Cannot delete\" message for a league, tournament or team now explains the reason in Finnish too, in full sentences."
+      ],
+      "fi": [
+        "Sarjan, turnauksen tai joukkueen \"Ei voida poistaa\" -ilmoitus kertoo nyt syyn myös suomeksi kokonaisin lausein."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Counts of one now read correctly, for example \"1 voice note\" and \"1 change waiting to sync\" instead of \"1 voice notes\"."
       ],
       "fi": [

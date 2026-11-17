@@ -98,7 +98,7 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flush
       // another tab / cloud sync) must error here, not send the match view
       // booting after a ghost.
       if (!savedGames[gameId]) {
-        const notFound = t('loadGameModal.errors.notFound', 'Could not find saved game: {gameId}', { gameId });
+        const notFound = t('loadGameModal.errors.notFound', 'Could not find the saved game.');
         setGameLoadError(notFound);
         // Toast too: callers outside the LoadGame modal (the club-stats game
         // log, L.4) have no inline banner to surface gameLoadError in.
@@ -185,7 +185,7 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flush
             onActiveGameDeleted?.();
           }
         } else {
-          setGameDeleteError(t('loadGameModal.errors.deleteFailedNotFound', 'Error deleting game: {gameId}. Game not found or ID was invalid.', { gameId }));
+          setGameDeleteError(t('loadGameModal.errors.deleteFailedNotFound', 'Could not delete the game: it was not found.'));
         }
       } catch (error) {
         logger.error('[useLoadGameController] Game delete failed:', error);

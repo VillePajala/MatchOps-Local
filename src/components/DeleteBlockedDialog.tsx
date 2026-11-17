@@ -19,6 +19,14 @@ interface DeleteBlockedDialogProps {
  * Dialog shown when user tries to delete an entity that has references.
  * Explains why deletion is blocked and offers archive as an alternative.
  */
+/** One full sentence per type (review 8.8): a Finnish suffix glued onto the type word
+ * gave "toiseen joukkuen" / "toiseen turnausn". */
+const HINT_KEYS = {
+  season: 'deleteBlocked.deleteHintSeason',
+  tournament: 'deleteBlocked.deleteHintTournament',
+  team: 'deleteBlocked.deleteHintTeam',
+} as const;
+
 const DeleteBlockedDialog: React.FC<DeleteBlockedDialogProps> = ({
   isOpen,
   onClose,
@@ -27,7 +35,27 @@ const DeleteBlockedDialog: React.FC<DeleteBlockedDialogProps> = ({
   references,
   onArchive,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // What the entity is used by, from the counts (review 8.8): the stores' summary is
+  // an English sentence, which the Finnish dialog printed as is.
+  const { games = 0, teams = 0, adjustments = 0 } = references.counts;
+  const usedBy = [
+    games > 0 ? t('deleteBlocked.refGames', { count: games }) : null,
+    teams > 0 ? t('deleteBlocked.refTeams', { count: teams }) : null,
+    adjustments > 0 ? t('deleteBlocked.refAdjustments', { count: adjustments }) : null,
+  ].filter((part): part is string => part !== null);
+  const usedByList = new Intl.ListFormat(i18n.language?.startsWith('en') ? 'en' : 'fi', {
+    type: 'conjunction',
+  }).format(usedBy);
+  // A reference kind this dialog doesn't know yet: fall back to the store's summary
+  // rather than "used by ." (untranslated, but not broken).
+  const reason = usedBy.length > 0
+    ? t('deleteBlocked.reason', 'This {{type}} is used by {{list}}.', {
+      type: t(`entityType.${entityType}`, entityType),
+      list: usedByList,
+    })
+    : references.summary;
   const modalRef = useRef<HTMLDivElement>(null);
 
   useFocusTrap(modalRef, isOpen);
@@ -68,12 +96,7 @@ const DeleteBlockedDialog: React.FC<DeleteBlockedDialogProps> = ({
         </h3>
 
         <div className="text-slate-300 mb-6 space-y-4">
-          <p>
-            {t('deleteBlocked.reason', 'This {{type}} is {{summary}}.', {
-              type: t(`entityType.${entityType}`, entityType),
-              summary: references.summary.toLowerCase(),
-            })}
-          </p>
+          <p>{reason}</p>
 
           <p>{t('deleteBlocked.archiveOption', 'You can archive it instead, which will:')}</p>
 
@@ -84,11 +107,7 @@ const DeleteBlockedDialog: React.FC<DeleteBlockedDialogProps> = ({
           </ul>
 
           <p className="text-sm text-slate-400">
-            {t(
-              'deleteBlocked.deleteHint',
-              'To permanently delete, first remove all references (reassign games to another {{type}} or delete them).',
-              { type: t(`entityType.${entityType}`, entityType) }
-            )}
+            {t(HINT_KEYS[entityType])}
           </p>
         </div>
 

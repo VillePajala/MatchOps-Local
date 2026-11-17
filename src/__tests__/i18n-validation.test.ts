@@ -741,7 +741,8 @@ describe('Translation File Validation', () => {
       // +48 keys used in code but missing from both locales (review 8.2). 3467.
       // +7 auth error messages (review 8.3). 3474.
       // +24: 24 count messages split into _one/_other (review 8.7). 3498.
-      expect(enKeys.length).toBe(3498);
+      // +9 / -1: the "cannot delete" reason and hints built from counts (review 8.8). 3506.
+      expect(enKeys.length).toBe(3506);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -948,7 +949,8 @@ describe('Translation File Validation', () => {
       // +48 (review 8.2). 3467.
       // +7 (review 8.3). 3474.
       // +24 (review 8.7). 3498.
-      expect(fiKeys.length).toBe(3498);
+      // +9 / -1 (review 8.8). 3506.
+      expect(fiKeys.length).toBe(3506);
     });
   });
 });

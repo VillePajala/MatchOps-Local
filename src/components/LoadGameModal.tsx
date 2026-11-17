@@ -754,7 +754,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       <ConfirmationModal
         isOpen={showDeleteConfirm}
         title={t('loadGameModal.deleteConfirmTitle', 'Delete Game')}
-        message={t('loadGameModal.deleteConfirm', `Are you sure you want to delete the saved game "{gameName}"? This action cannot be undone.`).replace('{gameName}', gameToDelete?.name || '')}
+        message={t('loadGameModal.deleteConfirm', 'Are you sure you want to delete the saved game "{{gameName}}"? This action cannot be undone.', { gameName: gameToDelete?.name || '' })}
         warningMessage={t('loadGameModal.deleteWarning', 'This action is permanent and cannot be undone.')}
         onConfirm={handleDeleteConfirmed}
         onCancel={() => {
