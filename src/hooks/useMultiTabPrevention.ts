@@ -33,33 +33,46 @@ export function useMultiTabPrevention(): { isBlocked: boolean; status: TabOwners
     }
 
     let released = false;
+    // Releases the held lock at once on unmount (it used to poll every 500 ms).
+    let releaseLock: (() => void) | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    navigator.locks.request(
-      'matchops-active-tab',
-      { ifAvailable: true },
-      (lock) => {
-        if (!lock) {
-          // Another tab holds the lock
-          publish('blocked');
-          return Promise.resolve();
+    // A "not available" answer is asked once more before the app is blocked (review
+    // 10.9c): under React StrictMode (development) the first mount's request is
+    // granted only after its cleanup, so the second mount's request saw that lock
+    // still held and showed "MatchOps is already open" in a single tab. Another real
+    // tab holds the lock for as long as it is open, so it is still blocked.
+    const RECHECK_DELAY_MS = 300;
+    const attempt = (isRetry: boolean) => {
+      navigator.locks.request(
+        'matchops-active-tab',
+        { ifAvailable: true },
+        (lock) => {
+          if (released) return Promise.resolve(); // unmounted meanwhile: publish nothing
+          if (!lock) {
+            if (isRetry) publish('blocked');
+            else retryTimer = setTimeout(() => { if (!released) attempt(true); }, RECHECK_DELAY_MS);
+            return Promise.resolve();
+          }
+          publish('owner');
+          // We got the lock — hold it until component unmounts
+          return new Promise<void>((resolve) => {
+            releaseLock = resolve;
+          });
         }
-        publish('owner');
-        // We got the lock — hold it until component unmounts
-        return new Promise<void>((resolve) => {
-          const check = () => {
-            if (released) resolve();
-            else setTimeout(check, 500);
-          };
-          check();
-        });
-      }
-    ).catch(() => {
-      // Web Locks API failure is non-critical — app works without multi-tab prevention.
-      // Only if the lock never answered: a late failure must not overwrite owner/blocked.
-      if (!answered) publish('unsupported');
-    });
+      ).catch(() => {
+        // Web Locks API failure is non-critical — app works without multi-tab prevention.
+        // Only if the lock never answered: a late failure must not overwrite owner/blocked.
+        if (!answered && !released) publish('unsupported');
+      });
+    };
+    attempt(false);
 
-    return () => { released = true; };
+    return () => {
+      released = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      releaseLock?.();
+    };
   }, []);
 
   return { isBlocked, status };

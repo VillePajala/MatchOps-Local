@@ -251,4 +251,27 @@ describe('useMultiTabPrevention', () => {
       expect(getTabOwnership()).toBe('unsupported');
     });
   });
+
+  /**
+   * Review 10.9c: under React StrictMode (development) the first answer could be "not
+   * available" because the double-mounted effect's own lock was still being released;
+   * a single tab then showed "MatchOps is already open". A "not available" is asked
+   * once more before the app is blocked.
+   */
+  it('a first "not available" that clears on the recheck makes this tab the owner', async () => {
+    let calls = 0;
+    const mockRequest = jest.fn(
+      (_name: string, _options: LockOptions, callback: (lock: Lock | null) => Promise<void>) => {
+        calls += 1;
+        return callback(calls === 1 ? null : ({ name: 'matchops-active-tab' } as Lock));
+      }
+    );
+    Object.defineProperty(navigator, 'locks', { value: { request: mockRequest }, configurable: true, writable: true });
+
+    const { result } = renderHook(() => useMultiTabPrevention());
+
+    await waitFor(() => expect(result.current.status).toBe('owner'));
+    expect(result.current.isBlocked).toBe(false);
+    expect(mockRequest).toHaveBeenCalledTimes(2);
+  });
 });
