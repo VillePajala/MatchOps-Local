@@ -120,14 +120,26 @@ describe('storage item operations retry a transient failure', () => {
     expect(op(adapter)).toHaveBeenCalledTimes(2);
   });
 
+  it('does not retry a full disk, and keeps the error name for callers', async () => {
+    const quota = Object.assign(new Error('The quota has been exceeded.'), { name: 'QuotaExceededError' });
+    const adapter = { setItem: jest.fn().mockRejectedValue(quota) } as unknown as StorageAdapter;
+    mockCreate.mockResolvedValue(adapter);
+    const error = (await setStorageItem('k', 'v').catch((e: unknown) => e)) as Error;
+    expect((adapter as unknown as { setItem: jest.Mock }).setItem).toHaveBeenCalledTimes(1);
+    expect(error.name).toBe('QuotaExceededError');
+    expect(error.message).toMatch(/storage is full/i);
+    expect(error.cause).toBe(quota);
+  });
+
   it('gives up with a user-friendly error after the last attempt', async () => {
-    const adapter = { getItem: jest.fn().mockRejectedValue(new Error('QuotaExceededError')) } as unknown as StorageAdapter;
+    const adapter = { getItem: jest.fn().mockRejectedValue(new Error('Operation timed out')) } as unknown as StorageAdapter;
     mockCreate.mockResolvedValue(adapter);
     const pending = getStorageItem('k');
     const settled = pending.catch((e: unknown) => e);
     await jest.advanceTimersByTimeAsync(20000);
-    const error = await settled;
+    const error = (await settled) as Error;
     expect(error).toBeInstanceOf(Error);
+    expect(error.message).toMatch(/took too long/i); // the user-friendly mapping ran
     expect((adapter as unknown as { getItem: jest.Mock }).getItem).toHaveBeenCalledTimes(3);
   });
 });

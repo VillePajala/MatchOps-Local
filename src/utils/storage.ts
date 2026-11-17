@@ -629,6 +629,26 @@ function validateStorageValue(value: string): void {
 /**
  * Convert technical error messages to user-friendly ones
  */
+/**
+ * Retrying cannot help a full disk (review 10.6): such a failure is final at once
+ * instead of costing the coach the backoff waits first.
+ */
+function isPermanentStorageError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.name === 'QuotaExceededError' || /quota|storage full/i.test(error.message);
+}
+
+/**
+ * The error thrown after the last attempt: a user-friendly message, but keeping the
+ * original error's `name` (callers test for QuotaExceededError / InvalidStateError)
+ * and the original as `cause` (review 10.6).
+ */
+function storageError(message: string, original: unknown): Error {
+  const error = new Error(message, { cause: original });
+  if (original instanceof Error && original.name) error.name = original.name;
+  return error;
+}
+
 function getUserFriendlyErrorMessage(technicalMessage: string): string {
   const lowerMessage = technicalMessage.toLowerCase();
 
@@ -873,13 +893,15 @@ export async function getStorageItem(
       // Non-final retries are usually recovered transient IndexedDB failures — log at
       // warn so they don't flood Sentry; only the final failure (which throws) is error.
       const readFailMsg = `IndexedDB read failed for key "${key}" (attempt ${attempt + 1}/${retryCount + 1}):`;
-      if (attempt === retryCount) { logger.error(readFailMsg, error); } else { logger.warn(readFailMsg, error); }
+      // A permanent failure (storage full) is not retried (review 10.6): waiting cannot help.
+      const final = attempt === retryCount || isPermanentStorageError(error);
+      if (final) { logger.error(readFailMsg, error); } else { logger.warn(readFailMsg, error); }
 
       // If this is the last attempt, throw error (IndexedDB-only, no fallback)
-      if (attempt === retryCount) {
+      if (final) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         const userFriendlyMessage = getUserFriendlyErrorMessage(errorMessage);
-        throw new Error(userFriendlyMessage);
+        throw storageError(userFriendlyMessage, error);
       }
 
       // Wait before retry with exponential backoff
@@ -920,13 +942,15 @@ export async function setStorageItem(
       // Non-final retries are usually recovered transient failures — warn (no Sentry);
       // only the final failure (which throws) logs error.
       const writeFailMsg = `IndexedDB write failed for key "${key}" (attempt ${attempt + 1}/${retryCount + 1}):`;
-      if (attempt === retryCount) { logger.error(writeFailMsg, error); } else { logger.warn(writeFailMsg, error); }
+      // A permanent failure (storage full) is not retried (review 10.6): waiting cannot help.
+      const final = attempt === retryCount || isPermanentStorageError(error);
+      if (final) { logger.error(writeFailMsg, error); } else { logger.warn(writeFailMsg, error); }
 
       // If this is the last attempt, throw the error
-      if (attempt === retryCount) {
+      if (final) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         const userFriendlyMessage = getUserFriendlyErrorMessage(errorMessage);
-        throw new Error(`Unable to save data: ${userFriendlyMessage}`);
+        throw storageError(`Unable to save data: ${userFriendlyMessage}`, error);
       }
 
       // Wait before retry with exponential backoff
@@ -962,13 +986,15 @@ export async function removeStorageItem(
       // Non-final retries are usually recovered transient failures — warn (no Sentry);
       // only the final failure (which throws) logs error.
       const removeFailMsg = `IndexedDB remove failed for key "${key}" (attempt ${attempt + 1}/${retryCount + 1}):`;
-      if (attempt === retryCount) { logger.error(removeFailMsg, error); } else { logger.warn(removeFailMsg, error); }
+      // A permanent failure (storage full) is not retried (review 10.6): waiting cannot help.
+      const final = attempt === retryCount || isPermanentStorageError(error);
+      if (final) { logger.error(removeFailMsg, error); } else { logger.warn(removeFailMsg, error); }
 
       // If this is the last attempt, throw the error
-      if (attempt === retryCount) {
+      if (final) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         const userFriendlyMessage = getUserFriendlyErrorMessage(errorMessage);
-        throw new Error(`Unable to remove data: ${userFriendlyMessage}`);
+        throw storageError(`Unable to remove data: ${userFriendlyMessage}`, error);
       }
 
       // Wait before retry with exponential backoff
@@ -999,13 +1025,15 @@ export async function clearStorage(
       // Non-final retries are usually recovered transient failures — warn (no Sentry);
       // only the final failure (which throws) logs error.
       const clearFailMsg = `IndexedDB clear failed (attempt ${attempt + 1}/${retryCount + 1}):`;
-      if (attempt === retryCount) { logger.error(clearFailMsg, error); } else { logger.warn(clearFailMsg, error); }
+      // A permanent failure (storage full) is not retried (review 10.6): waiting cannot help.
+      const final = attempt === retryCount || isPermanentStorageError(error);
+      if (final) { logger.error(clearFailMsg, error); } else { logger.warn(clearFailMsg, error); }
 
       // If this is the last attempt, throw the error
-      if (attempt === retryCount) {
+      if (final) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         const userFriendlyMessage = getUserFriendlyErrorMessage(errorMessage);
-        throw new Error(`Unable to clear storage: ${userFriendlyMessage}`);
+        throw storageError(`Unable to clear storage: ${userFriendlyMessage}`, error);
       }
 
       // Wait before retry with exponential backoff
