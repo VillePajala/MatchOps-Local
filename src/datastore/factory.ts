@@ -585,7 +585,7 @@ export async function getDataStore(userId?: string): Promise<DataStore> {
       // Engine will process queue once executor is set (see SyncEngine.setExecutor)
       // Never in a tab another tab owns (review 7.19): two engines would drain one
       // IndexedDB sync queue. If ownership is still being decided, start once it is
-      // known to be ours; if this tab turns out blocked later, stop.
+      // known to be ours. (An engine already running is not stopped later.)
       if (tabMayRunDataLayer()) {
         log.info('[factory] Starting sync engine (local-first, cloud setup in background)', { userId: initUserId });
         syncedStore.startSync();

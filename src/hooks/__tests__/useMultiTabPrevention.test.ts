@@ -217,6 +217,16 @@ describe('useMultiTabPrevention', () => {
       expect(getTabOwnership()).toBe('blocked');
     });
 
+    it('unsupported when the lock request fails - the app runs as before', async () => {
+      Object.defineProperty(navigator, 'locks', {
+        value: { request: () => Promise.reject(new Error('SecurityError')) },
+        configurable: true,
+        writable: true,
+      });
+      const { result } = renderHook(() => useMultiTabPrevention());
+      await waitFor(() => expect(result.current.status).toBe('unsupported'));
+    });
+
     it('unsupported without the Web Locks API - the app runs as before', async () => {
       Object.defineProperty(navigator, 'locks', { value: undefined, configurable: true, writable: true });
       const { result } = renderHook(() => useMultiTabPrevention());
