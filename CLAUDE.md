@@ -6,11 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ✅ Project Status: Live in Production (Free)
 
-**Last Updated**: 2026-06-10
+**Last Updated**: 2026-11-17
 **Released to Google Play**: 2026-06-09 — distributed as a cloud-only TWA (Play Store users must sign in; cloud mode required). The app is **free**; monetization is parked.
 
 ### Quick Stats
-- ✅ **~4,500+ tests** passing
+- ✅ **~7,700 tests** passing (the count grows; `npm test` is the source)
 - ✅ **0 security vulnerabilities**
 - ✅ **Next.js 16 + React 19 + Supabase**
 - ✅ **Dual-mode**: Local (IndexedDB) + Cloud (Supabase)
@@ -137,7 +137,7 @@ selection, and every reader tests it with `=== player.id`.
 #### Rule 2: Legacy Defaults (CRITICAL for test data compatibility)
 
 ```typescript
-// These defaults MUST match LocalDataStore.ts lines 1337 and 1342
+// These defaults MUST match LocalDataStore's game transform (same ?? defaults)
 home_or_away: game.homeOrAway ?? 'home',  // NOT || 'home'
 is_played: game.isPlayed ?? true,          // undefined → true (legacy games)
 ```
@@ -222,7 +222,7 @@ Schema uses simple `UNIQUE(user_id, name)`. **SupabaseDataStore MUST implement t
 
 #### Rule 7: Cascade Delete for Personnel
 
-When `removePersonnelMember(id)` is called, MUST also remove that ID from all games' `gamePersonnel` arrays. See LocalDataStore.ts lines 1223-1291.
+When `removePersonnelMember(id)` is called, MUST also remove that ID from all games' `gamePersonnel` arrays. See LocalDataStore.removePersonnelMember.
 
 #### Rule 8: Tactical JSONB Defaults
 

@@ -1,6 +1,6 @@
 # Google Play Billing Implementation Guide (P4C)
 
-**Status**: ✅ Implementation Complete (January 2026)
+**Status**: ⏸️ **Parked - not shipped.** The app is free; Play Billing was removed from the TWA build (1.0.8) and enforcement is off (`PREMIUM_ENFORCEMENT_ENABLED = false`). This guide describes the code that exists but is dormant; a paid version would need a replan (see the archived billing plan). The implementation itself was completed in January 2026.
 **Last Updated**: January 26, 2026
 
 > **Note**: This guide has been updated to reflect the implemented architecture. The actual implementation uses Supabase Edge Functions for verification and monthly subscriptions (not one-time purchases).
