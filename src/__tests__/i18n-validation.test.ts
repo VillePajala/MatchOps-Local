@@ -735,8 +735,9 @@ describe('Translation File Validation', () => {
       // +3 opponentSweep.mergeWarning_one/_other, mergeConfirm (review 7.14). 3407.
       // +1 tournamentDetailsModal.levelInUse (review 7.15). 3408.
       // +5 list empty/no-results texts (review 7.L4; two were used but never existed). 3413.
-      // +5 empty/archived texts shared by the lists (review 7.L7). 3418.
-      expect(enKeys.length).toBe(3418);
+      // +5 empty/archived texts shared by the lists, -3 the replaced Show Archived
+      // pill texts (review 7.L7). 3415.
+      expect(enKeys.length).toBe(3415);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -938,8 +939,8 @@ describe('Translation File Validation', () => {
       // +3 opponentSweep.mergeWarning_one/_other, mergeConfirm (review 7.14). 3407.
       // +1 tournamentDetailsModal.levelInUse (review 7.15). 3408.
       // +5 list empty/no-results texts (review 7.L4). 3413.
-      // +5 (review 7.L7). 3418.
-      expect(fiKeys.length).toBe(3418);
+      // +5 / -3 (review 7.L7). 3415.
+      expect(fiKeys.length).toBe(3415);
     });
   });
 });
