@@ -13,6 +13,10 @@ import {
   MAX_USER_ID_LENGTH,
 } from '../userDatabase';
 import { SYNC_DB_NAME_PREFIX } from '@/sync/SyncQueue';
+import { allowConsoleMessagesInThisFile } from '../../../tests/utils/allowConsole';
+
+// This file drives these error paths on purpose (review 9.5: allowed here only).
+allowConsoleMessagesInThisFile(['Failed to delete']);
 
 describe('userDatabase', () => {
   describe('getUserDatabaseName', () => {

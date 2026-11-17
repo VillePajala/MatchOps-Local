@@ -2,6 +2,10 @@ import { renderHook, act } from '@testing-library/react';
 import usePlayerAssessments, { validateAssessment } from '../usePlayerAssessments';
 import { getPlayerAssessments, savePlayerAssessment, deletePlayerAssessment } from '@/utils/playerAssessments';
 import type { AppState } from '@/types';
+import { allowConsoleMessagesInThisFile } from '../../../tests/utils/allowConsole';
+
+// This file drives these error paths on purpose (review 9.5: allowed here only).
+allowConsoleMessagesInThisFile(['Failed to load']);
 
 jest.mock('@/utils/playerAssessments');
 

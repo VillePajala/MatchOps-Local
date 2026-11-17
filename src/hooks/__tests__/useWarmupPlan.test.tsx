@@ -15,6 +15,10 @@ import React from 'react';
 import { useWarmupPlan } from '../useWarmupPlan';
 import { queryKeys } from '@/config/queryKeys';
 import type { WarmupPlan } from '@/types/warmupPlan';
+import { allowConsoleMessagesInThisFile } from '../../../tests/utils/allowConsole';
+
+// This file drives these error paths on purpose (review 9.5: allowed here only).
+allowConsoleMessagesInThisFile(['Failed to save']);
 
 // Mock the warmup plan utilities
 jest.mock('@/utils/warmupPlan', () => ({

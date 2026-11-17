@@ -27,6 +27,10 @@ import { SyncStatusInfo } from '../types';
 import logger from '@/utils/logger';
 import { SyncEntityType, SyncOperationType } from '../types';
 import { StorageError } from '@/interfaces/DataStoreErrors';
+import { allowConsoleMessagesInThisFile } from '../../../tests/utils/allowConsole';
+
+// This file drives these error paths on purpose (review 9.5: allowed here only).
+allowConsoleMessagesInThisFile(['[SyncEngine]']);
 
 /**
  * Helper to create a sync operation input for testing.

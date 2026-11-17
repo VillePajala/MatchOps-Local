@@ -5,6 +5,10 @@ import {
 import type { AppSettings } from './appSettings';
 import type { DataStore } from '@/interfaces/DataStore';
 import { ValidationError } from '@/interfaces/DataStoreErrors';
+import { allowConsoleMessagesInThisFile } from '../../tests/utils/allowConsole';
+
+// This file drives these error paths on purpose (review 9.5: allowed here only).
+allowConsoleMessagesInThisFile(['Failed to save']);
 
 // Default settings matching the implementation
 const DEFAULT_APP_SETTINGS: AppSettings = {
