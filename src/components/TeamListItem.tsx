@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentDuplicate, HiOutlineUserGroup } from 'react-icons/hi2';
 import { Team } from '@/types';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
+import { formatAppDate } from '@/utils/localeFormat';
 
 interface TeamListItemProps {
   team: Team;
@@ -113,7 +114,7 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
           <h3 className="text-slate-200 font-medium">{team.name}</h3>
           <p className="text-sm text-slate-400">
             {t('teamManager.createdAt', 'Created {{date}}', {
-              date: new Date(team.createdAt).toLocaleDateString()
+              date: formatAppDate(team.createdAt)
             })}
           </p>
         </div>

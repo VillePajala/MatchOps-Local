@@ -2,6 +2,7 @@
 import React from 'react';
 import { ResponsiveContainer, Tooltip, YAxis, ReferenceLine, CartesianGrid, ComposedChart, Area, Legend } from 'recharts';
 import type { TooltipProps } from 'recharts';
+import { formatAppDate } from '@/utils/localeFormat';
 
 interface MetricPoint {
   date: string;
@@ -18,7 +19,7 @@ const CustomTooltip: React.FC<TooltipProps<number, string> & { label: string }> 
     const d = payload[0].payload;
     return (
       <div className="bg-slate-700 text-white p-2 rounded-md border border-slate-600 shadow-lg text-xs">
-        <p className="font-bold">{new Date(d.date).toLocaleDateString()}</p>
+        <p className="font-bold">{formatAppDate(d.date)}</p>
         <p style={{ color: '#facc15' }}>{`${label}: ${d.value}`}</p>
       </div>
     );

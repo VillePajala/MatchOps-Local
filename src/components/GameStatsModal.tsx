@@ -81,6 +81,7 @@ import { useDraftEstimate } from '@/hooks/useDraftEstimate';
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { formatAppDecimal, formatAppPercent } from '@/utils/localeFormat';
 
 /** Stable no-op callback to avoid creating new function references on each render */
 const NOOP = () => {};
@@ -1598,7 +1599,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.winPercentage', 'Win Percentage')}</span>
-                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
+                                <span className="text-amber-400 font-bold">{formatAppPercent(tournamentSeasonStats.overallWinPercentage)}</span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.goalDifference', 'Goal Difference')}</span>
@@ -1619,11 +1620,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
                                 <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
+                                <span className="text-amber-400 font-bold">{formatAppDecimal(tournamentSeasonStats.averageGoalsFor)}</span>
                               </div>
                               <div className="flex justify-between items-center py-1.5 px-2">
                                 <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
+                                <span className="text-amber-400 font-bold">{formatAppDecimal(tournamentSeasonStats.averageGoalsAgainst)}</span>
                               </div>
                             </div>
                           </div>

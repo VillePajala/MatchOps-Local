@@ -34,6 +34,7 @@ import ExternalGamesSection, { getResultClass } from './ExternalGamesSection';
 import logger from '@/utils/logger';
 import { getClubSeasonForDate, currentClubSeasonForPlayer } from '@/utils/clubSeason';
 import PlayerNotesSummaryCard from './PlayerNotesSummaryCard';
+import { formatAppDecimal } from '@/utils/localeFormat';
 
 // Line badge colours mirror the position-category colours used in the positions editor.
 interface PlayerStatsViewProps {
@@ -104,7 +105,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const formatRatingBand = useCallback((canonical: number): string => {
     const word = t(`assessmentScale.level${ratingBandLevel(canonical)}` as TranslationKey);
     if (ratingStyle === 'words') return word;
-    const num = ratingDisplayNumber(canonical, RATING_STYLE_MAX[ratingStyle]).toFixed(1);
+    const num = formatAppDecimal(ratingDisplayNumber(canonical, RATING_STYLE_MAX[ratingStyle]));
     return `${word} · ${num}`;
   }, [ratingStyle, t]);
 
@@ -463,17 +464,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             <div>
               <p className="text-3xl font-bold text-amber-400">{playerStats.totalGoals}</p>
               <p className="text-sm text-slate-300 font-medium">{t('playerStats.goals', 'Goals')}</p>
-              <p className="text-sm text-slate-400 mt-1">({playerStats.avgGoalsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-sm text-slate-400 mt-1">({formatAppDecimal(playerStats.avgGoalsPerGame)}/{t('playerStats.perGameShort', 'game')})</p>
             </div>
             <div>
               <p className="text-3xl font-bold text-amber-400">{playerStats.totalAssists}</p>
               <p className="text-sm text-slate-300 font-medium">{t('playerStats.assists', 'Assists')}</p>
-              <p className="text-sm text-slate-400 mt-1">({playerStats.avgAssistsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-sm text-slate-400 mt-1">({formatAppDecimal(playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')})</p>
             </div>
             <div>
               <p className="text-3xl font-bold text-amber-400">{playerStats.totalGoals + playerStats.totalAssists}</p>
               <p className="text-sm text-slate-300 font-medium">{t('playerStats.points', 'Points')}</p>
-              <p className="text-sm text-slate-400 mt-1">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-sm text-slate-400 mt-1">({formatAppDecimal(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')})</p>
             </div>
           </div>
           {/* Wearing the armband, only when it happened. A zero here would

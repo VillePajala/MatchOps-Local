@@ -366,7 +366,7 @@ describe('GameStatsModal', () => {
     expect(cells[2]).toHaveTextContent('2'); // goals total
     expect(cells[3]).toHaveTextContent('1'); // assists total
     expect(cells[4]).toHaveTextContent('3'); // total score
-    expect(cells[5]).toHaveTextContent('1.0'); // average points
+    expect(cells[5]).toHaveTextContent('1,0'); // average points - this suite runs in Finnish: decimal comma (review 8.4)
   });
 
   test('displays game event log correctly', async () => {

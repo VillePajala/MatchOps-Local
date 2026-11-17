@@ -25,6 +25,7 @@ import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { ENTITY_DOT } from '@/config/palette';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
+import { formatAppDate } from '@/utils/localeFormat';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
@@ -317,7 +318,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         )}
                                     </div>
                                     {type==='tournament' && ((item as Tournament).startDate || (item as Tournament).endDate) && (
-                                        <p className="text-sm text-slate-400">{(item as Tournament).startDate || ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' - ' : ''}{(item as Tournament).endDate || ''}</p>
+                                        <p className="text-sm text-slate-400">{(item as Tournament).startDate ? formatAppDate((item as Tournament).startDate!) : ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' – ' : ''}{(item as Tournament).endDate ? formatAppDate((item as Tournament).endDate!) : ''}</p>
                                     )}
                                     <p className="text-sm text-slate-400">{t('seasonTournamentModal.statsGames')}: {stats[item.id]?.games || 0} | {t('seasonTournamentModal.statsGoals')}: {stats[item.id]?.goals || 0}</p>
                                     {/* Context badges */}

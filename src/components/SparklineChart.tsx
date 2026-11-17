@@ -3,6 +3,7 @@
 import React from 'react';
 import { ResponsiveContainer, Tooltip, YAxis, ReferenceLine, CartesianGrid, ComposedChart, Area, Legend } from 'recharts';
 import type { TooltipProps } from 'recharts';
+import { formatAppDate } from '@/utils/localeFormat';
 
 interface SparklineChartProps {
   data: { date: string; points: number; goals: number; assists: number; result: 'W' | 'L' | 'D' | 'N/A' }[];
@@ -15,7 +16,7 @@ const CustomTooltip: React.FC<TooltipProps<number, string> & { goalsLabel: strin
     const data = payload[0].payload;
     return (
       <div className="bg-slate-700 text-white p-2 rounded-md border border-slate-600 shadow-lg text-xs">
-        <p className="font-bold">{new Date(data.date).toLocaleDateString()}</p>
+        <p className="font-bold">{formatAppDate(data.date)}</p>
         <p style={{ color: '#22c55e' }}>{`${goalsLabel}: ${data.goals}`}</p>
         <p style={{ color: '#3b82f6' }}>{`${assistsLabel}: ${data.assists}`}</p>
       </div>

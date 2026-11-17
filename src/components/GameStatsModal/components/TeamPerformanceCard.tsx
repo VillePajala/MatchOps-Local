@@ -9,6 +9,7 @@ import type { TranslationKey } from '@/i18n-types';
 import RatingBar from '../../RatingBar';
 import { ASSESSMENT_MAX, RATING_STYLE_MAX, ratingBandLevel, ratingDisplayNumber } from '@/config/assessmentMetrics';
 import type { AssessmentRatingStyle } from '@/types/settings';
+import { formatAppDecimal, formatAppPercent } from '@/utils/localeFormat';
 
 interface TeamAssessmentAverages {
   count: number;
@@ -59,7 +60,7 @@ export function TeamPerformanceCard({
   const formatRatingBand = (canonical: number): string => {
     const word = t(`assessmentScale.level${ratingBandLevel(canonical)}` as TranslationKey);
     if (ratingStyle === 'words') return word;
-    return `${word} · ${ratingDisplayNumber(canonical, RATING_STYLE_MAX[ratingStyle]).toFixed(1)}`;
+    return `${word} · ${formatAppDecimal(ratingDisplayNumber(canonical, RATING_STYLE_MAX[ratingStyle]))}`;
   };
 
   const cardClassName = useGradient
@@ -83,7 +84,7 @@ export function TeamPerformanceCard({
         </div>
         <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
           <span className="text-slate-300">{t('common.winPercentage', 'Win Percentage')}</span>
-          <span className="text-amber-400 font-bold">{winPercentage.toFixed(1)}%</span>
+          <span className="text-amber-400 font-bold">{formatAppPercent(winPercentage)}</span>
         </div>
         <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
           <span className="text-slate-300">{t('common.goalDifference', 'Goal Difference')}</span>
@@ -104,11 +105,11 @@ export function TeamPerformanceCard({
         </div>
         <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
           <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-          <span className="text-amber-400 font-bold">{averageGoalsFor.toFixed(1)}</span>
+          <span className="text-amber-400 font-bold">{formatAppDecimal(averageGoalsFor)}</span>
         </div>
         <div className="flex justify-between items-center py-1.5 px-2">
           <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-          <span className="text-amber-400 font-bold">{averageGoalsAgainst.toFixed(1)}</span>
+          <span className="text-amber-400 font-bold">{formatAppDecimal(averageGoalsAgainst)}</span>
         </div>
         {lastGameDate && (
           <div className="flex justify-between items-center py-1.5 px-2 border-t border-white/10">
