@@ -4,7 +4,7 @@
  * picked for that game, and team pre-selection matched by name only.
  * @critical
  */
-import { mergeClubRosterIntoGamePlayers, teamMemberIds, activePlayers, playerIdsReferencedByGame, sortPlayersByLastName } from '@/utils/gamePlayerList';
+import { mergeClubRosterIntoGamePlayers, teamMemberIds, activePlayers, playerIdsReferencedByGame, sortPlayersByLastName, playerListLabel } from '@/utils/gamePlayerList';
 import type { Player } from '@/types';
 
 const p = (id: string, name: string, extra: Partial<Player> = {}): Player => ({ id, name, isGoalie: false, ...extra });
@@ -134,5 +134,25 @@ describe('sortPlayersByLastName', () => {
   it('sorts like the club roster: last name, then full name', () => {
     const sorted = sortPlayersByLastName([p('1', 'Väinö Virtanen'), p('2', 'Aino Lahti'), p('3', 'Eetu Aho'), p('4', 'Sanni Lahti')]);
     expect(sorted.map((x) => x.name)).toEqual(['Eetu Aho', 'Aino Lahti', 'Sanni Lahti', 'Väinö Virtanen']);
+  });
+});
+
+/** Review 7.L5/7.L8: one player order and one name format for every list. */
+describe('one player order and name format', () => {
+  it('sorts by last name in Finnish order (Ä/Ö after Z) on every device', () => {
+    const sorted = sortPlayersByLastName([
+      { name: 'Aino Öhman' },
+      { name: 'Eetu Ahonen' },
+      { name: 'Leo Zetterberg' },
+      { name: 'Mia Äijälä' },
+    ]);
+    expect(sorted.map((p) => p.name)).toEqual(['Eetu Ahonen', 'Leo Zetterberg', 'Mia Äijälä', 'Aino Öhman']);
+  });
+
+  it('names a player "Name (nickname)", or the name alone', () => {
+    expect(playerListLabel({ name: 'Matti Meikäläinen', nickname: 'Masa' })).toBe('Matti Meikäläinen (Masa)');
+    expect(playerListLabel({ name: 'Aino Virta' })).toBe('Aino Virta');
+    expect(playerListLabel({ name: 'Aino', nickname: 'Aino' })).toBe('Aino');
+    expect(playerListLabel({ name: 'Aino Virta', nickname: '  ' })).toBe('Aino Virta');
   });
 });

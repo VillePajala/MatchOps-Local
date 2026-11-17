@@ -1,5 +1,6 @@
 'use client';
 
+import { sortPlayersByLastName, playerListLabel } from '@/utils/gamePlayerList';
 import { playersForRedaction } from '@/utils/gamePacket';
 import type { AdjustmentScope } from '@/utils/adjustmentScope';
 import { DEFAULT_GAME_ID } from '@/config/constants';
@@ -376,7 +377,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     (availablePlayers || []).forEach(p => {
       if (!map.has(p.id)) map.set(p.id, p);
     });
-    return Array.from(map.values());
+    // The app's one player order (review 7.L5) - this followed roster storage order.
+    return sortPlayersByLastName(Array.from(map.values()));
   }, [masterRoster, availablePlayers]);
 
   // Defensive: warn if player pool is empty while modal is open (likely missing data)
@@ -1395,7 +1397,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                               }`
                             }
                           >
-                            {p.name}
+                            {playerListLabel(p)}
                           </Combobox.Option>
                         ))}
                       </Combobox.Options>

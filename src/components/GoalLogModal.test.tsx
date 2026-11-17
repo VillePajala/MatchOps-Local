@@ -57,6 +57,27 @@ const renderModal = (props = {}) =>
   );
 
 describe('GoalLogModal', () => {
+  /**
+   * Review 7.L5/7.L8: the scorer list sorted by first name while the assister list
+   * below it was unsorted, and both showed the name only.
+   */
+  it('lists scorers and assisters in the same last-name order, as "Name (nickname)"', () => {
+    renderModal({
+      availablePlayers: [
+        { id: 'z', name: 'Aino Virta', nickname: 'Ainska' },
+        { id: 'a', name: 'Bea Aalto' },
+        { id: 'm', name: 'Cid Mäki' },
+      ],
+    });
+    const optionsOf = (label: RegExp) =>
+      Array.from((screen.getByLabelText(label) as HTMLSelectElement).options)
+        .filter((o) => o.value && o.value !== '__unknown__')
+        .map((o) => o.textContent);
+    expect(optionsOf(/Scorer/i)).toEqual(['Bea Aalto', 'Cid Mäki', 'Aino Virta (Ainska)']);
+    fireEvent.change(screen.getByLabelText(/Scorer/i), { target: { value: 'a' } });
+    expect(optionsOf(/Assister/i)).toEqual(['Cid Mäki', 'Aino Virta (Ainska)']);
+  });
+
   it('calls onLogGoal with selected scorer', () => {
     const onLogGoal = jest.fn();
     renderModal({ onLogGoal });

@@ -25,6 +25,7 @@
  * never overrules a choice they made first.
  */
 
+import { sortPlayersByLastName, playerListLabel } from '@/utils/gamePlayerList';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineMicrophone, HiOutlineStop } from 'react-icons/hi2';
@@ -237,8 +238,9 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         className="w-full mb-3 bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
       >
         <option value="">{t('noteComposer.wholeMatch', 'The match')}</option>
-        {players.map((p) => (
-          <option key={p.id} value={p.id}>{p.name}</option>
+        {/* The app's one player order and name format (review 7.L5/7.L8). */}
+        {sortPlayersByLastName(players).map((p) => (
+          <option key={p.id} value={p.id}>{playerListLabel(p)}</option>
         ))}
       </select>
       <textarea

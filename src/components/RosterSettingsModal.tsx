@@ -1,5 +1,6 @@
 'use client';
 
+import { sortPlayersByLastName } from '@/utils/gamePlayerList';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   CollapsibleModalHeader,
@@ -26,12 +27,6 @@ import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { extractTimestampFromId } from '@/utils/idGenerator';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
-
-// Helper to extract last name (last word of full name) - pure function, no dependencies
-const getLastName = (fullName: string): string => {
-  const parts = fullName.trim().split(/\s+/);
-  return parts[parts.length - 1] || fullName;
-};
 
 /** How long row taps are ignored after a player form closes (a double tap's second half). */
 const CHILD_FORM_TAP_GUARD_MS = 400;
@@ -192,10 +187,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   const filteredPlayers = useMemo(() => {
     // Sort players based on selected sort option
     const listed = showArchived ? availablePlayers : availablePlayers.filter((p) => !p.archived);
-    const sorted = [...listed].sort((a, b) => {
+    // Last name is the app's one player order (review 7.L5): the shared helper, with
+    // its full-name tie-break and Finnish collation, rather than a local copy.
+    const sorted = sortBy === 'lastName' ? sortPlayersByLastName(listed) : [...listed].sort((a, b) => {
       switch (sortBy) {
-        case 'lastName':
-          return getLastName(a.name).localeCompare(getLastName(b.name), undefined, { sensitivity: 'base' });
         case 'creationNewest': {
           const timeA = extractTimestampFromId(a.id);
           const timeB = extractTimestampFromId(b.id);

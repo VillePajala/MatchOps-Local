@@ -79,6 +79,7 @@ jest.mock('@/utils/teams', () => ({
   getTeamRoster: (...a: unknown[]) => mockGetTeamRoster(...a),
   // Pure formatter - use the real one so option labels are tested for real.
   getTeamDisplayName: jest.requireActual('@/utils/teams').getTeamDisplayName,
+  sortTeamsByName: jest.requireActual('@/utils/teams').sortTeamsByName,
 }));
 jest.mock('@/utils/seasons', () => ({ getSeasons: (...a: unknown[]) => mockGetSeasons(...a) }));
 jest.mock('@/utils/tournaments', () => ({ getTournaments: (...a: unknown[]) => mockGetTournaments(...a) }));

@@ -258,9 +258,22 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
     const renderList = (type: 'season' | 'tournament') => {
         const data = type === 'season' ? seasons : tournaments;
+        // Same order as the league/tournament pickers (review 7.L5): newest start
+        // date first (undated last), then name - this list was in storage order.
         const filtered = data
             .filter(d => showArchived || !d.archived)
-            .filter(d => d.name.toLowerCase().includes(searchText.toLowerCase()));
+            .filter(d => d.name.toLowerCase().includes(searchText.toLowerCase()))
+            .sort((a, b) => {
+                if (a.startDate && b.startDate) {
+                    const byDate = b.startDate.localeCompare(a.startDate);
+                    if (byDate !== 0) return byDate;
+                } else if (a.startDate) {
+                    return -1;
+                } else if (b.startDate) {
+                    return 1;
+                }
+                return a.name.localeCompare(b.name, 'fi', { sensitivity: 'base' });
+            });
 
         return (
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">

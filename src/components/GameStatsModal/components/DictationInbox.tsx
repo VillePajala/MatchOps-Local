@@ -11,6 +11,7 @@
 
 'use client';
 
+import { sortPlayersByLastName, playerListLabel } from '@/utils/gamePlayerList';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { useTranslation } from 'react-i18next';
@@ -232,10 +233,8 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
     [claim, draftFor, onAccept, release, removeClip, resolvePlayerId],
   );
 
-  const sortedPlayers = useMemo(
-    () => [...availablePlayers].sort((a, b) => a.name.localeCompare(b.name)),
-    [availablePlayers],
-  );
+  // The app's one player order (review 7.L5) - this sorted by first name.
+  const sortedPlayers = useMemo(() => sortPlayersByLastName(availablePlayers), [availablePlayers]);
 
   // Clips whose text field is still empty - the batch works on these only.
   // A clip is the only copy of what the coach said and cannot be re-recorded,
@@ -432,7 +431,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                   <option value="">{t('dictation.gameNote', 'The match')}</option>
                   {sortedPlayers.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name}{p.nickname ? ` (${p.nickname})` : ''}
+                      {playerListLabel(p)}
                     </option>
                   ))}
                 </select>

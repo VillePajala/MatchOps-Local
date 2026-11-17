@@ -4,6 +4,17 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Player lists and dropdowns now all use the same order (by last name, Finnish alphabetical order) and show players as \"Name (nickname)\".",
+        "Team dropdowns are sorted by name, and leagues and tournaments are listed newest first in their manager too."
+      ],
+      "fi": [
+        "Pelaajalistat ja -valikot käyttävät nyt kaikki samaa järjestystä (sukunimen mukaan, suomalaisessa aakkosjärjestyksessä) ja näyttävät pelaajat muodossa \"Nimi (lempinimi)\".",
+        "Joukkuevalikot on järjestetty nimen mukaan, ja sarjat ja turnaukset näytetään hallinnassakin uusin ensin."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Lists now say clearly when a search or filter hides everything, instead of claiming there is nothing yet.",
         "Added games for a player are listed by game date, and \"Select all\" works correctly."
       ],

@@ -27,6 +27,7 @@ jest.mock('@/utils/teams', () => ({
   getTeamRoster: jest.fn(async () => [{ id: 'tp1', name: 'John Doe' }]),
   getTeamDisplayName: jest.fn((team: { name: string }) => team.name),
   getTeamBoundSeries: jest.fn(async () => []),
+  sortTeamsByName: jest.requireActual('@/utils/teams').sortTeamsByName,
 }));
 
 
