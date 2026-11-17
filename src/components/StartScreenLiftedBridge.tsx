@@ -74,6 +74,7 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
     isLoadGameModalOpen,
     isSettingsModalOpen,
     isExternalGamesOpen,
+    isClubStatsOpen,
   } = useModalContext();
 
   // The page's Home flags (hasPlayers -> isFirstTimeUser, the setup tracker) and
@@ -94,9 +95,12 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
   //
   // AND THE EXTERNAL GAMES WINDOW (review 5.8): its goals count toward the Home top
   // scorer, so a game added from "Täydennä pelaajan tilastoja" must show on closing.
+  //
+  // AND TEAM STATISTICS (review 7.18): its "Check team names" renames opponents in
+  // games, and Home's recent-results strip and last-opened card kept the old spelling.
   const anyHomeAffectingModalOpen = isRosterModalOpen || isNewGameSetupModalOpen ||
     isSeasonTournamentModalOpen || isTeamManagerOpen || isPersonnelManagerOpen ||
-    isLoadGameModalOpen || isSettingsModalOpen || isExternalGamesOpen;
+    isLoadGameModalOpen || isSettingsModalOpen || isExternalGamesOpen || isClubStatsOpen;
   const prevOpen = React.useRef(anyHomeAffectingModalOpen);
   React.useEffect(() => {
     if (prevOpen.current && !anyHomeAffectingModalOpen) onSetupModalsClosed?.();
