@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "New Game has the same level and area filters for the official league list as Match details."
+      ],
+      "fi": [
+        "Uudessa ottelussa on samat taso- ja aluesuodattimet virallisten sarjojen listalle kuin ottelun tiedoissa."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Saved games can be sorted by date, opponent or result.",
         "Lists remember their filters, sort order and \"Show archived\" on this device the next time you open them."
       ],

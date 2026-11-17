@@ -756,6 +756,11 @@ describe('NewGameSetupModal', () => {
         expect(document.getElementById('leagueSelect')).toBeInTheDocument();
       });
       const leagueSelect = document.getElementById('leagueSelect') as HTMLSelectElement;
+      // The filters follow the season's league (review 7.L11); widen them to reach
+      // a league on another level, as a coach would.
+      await act(async () => {
+        fireEvent.change(document.getElementById('league-level-filter-new') as HTMLSelectElement, { target: { value: 'all' } });
+      });
       await act(async () => {
         fireEvent.change(leagueSelect, { target: { value: 'harrastesarja' } });
       });
@@ -764,6 +769,28 @@ describe('NewGameSetupModal', () => {
       await waitFor(() => {
         expect(leagueSelect.value).toBe('harrastesarja');
       });
+    });
+
+    /** Review 7.L11: New Game has the league Level/Area filters Match details has. */
+    it('narrows the official leagues with the level filter', async () => {
+      renderModal();
+      await screen.findByLabelText(/Opponent Name/i);
+      const sessionTab = screen.queryByRole('button', { name: /^(League|Kausi|Sarja)$/i });
+      if (sessionTab) await act(async () => { fireEvent.click(sessionTab); });
+      await waitFor(() => expect(document.getElementById('seasonSelect')).toBeInTheDocument());
+      await act(async () => {
+        fireEvent.change(document.getElementById('seasonSelect') as HTMLSelectElement, { target: { value: 'season1' } });
+      });
+      const level = await waitFor(() => {
+        const el = document.getElementById('league-level-filter-new') as HTMLSelectElement | null;
+        expect(el).not.toBeNull();
+        return el as HTMLSelectElement;
+      });
+      const leagueSelect = document.getElementById('leagueSelect') as HTMLSelectElement;
+      await act(async () => { fireEvent.change(level, { target: { value: 'all' } }); });
+      const all = leagueSelect.options.length;
+      await act(async () => { fireEvent.change(level, { target: { value: 'national' } }); });
+      expect(leagueSelect.options.length).toBeLessThan(all);
     });
 
     it('should show custom name input when "Muu" selected', async () => {

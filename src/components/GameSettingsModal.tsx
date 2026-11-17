@@ -1,5 +1,6 @@
 'use client';
 
+import LeagueSelectWithFilters from './LeagueSelectWithFilters';
 import { addOpponentToList } from '@/utils/opponentNames';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { KnownVenue } from '@/utils/venueBook';
@@ -18,15 +19,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
-import {
-  FINNISH_YOUTH_LEAGUES,
-  CUSTOM_LEAGUE_ID,
-  LEAGUE_AREA_FILTERS,
-  LEAGUE_LEVEL_FILTERS,
-  getLeagueById,
-  type LeagueAreaFilter,
-  type LeagueLevelFilter,
-} from '@/config/leagues';
+import { CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, secondaryButtonStyle, ModalSwitch } from '@/styles/modalStyles';
@@ -494,28 +487,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     }
   }, [isOpen, currentGameId, tournamentId, seasonId, updateGameDetailsMutation, availablePlayers]);
 
-  // Clear error state when modal opens
-  // Set league filters when modal opens based on current leagueId
+  // Clear error state when modal opens. (The league filters follow the shown league
+  // inside LeagueSelectWithFilters - review 7.L11.)
   useEffect(() => {
     if (isOpen) {
       setError(null);
-      // Set filters based on the leagueId prop (if present) to ensure the league is visible
-      if (leagueId) {
-        const league = getLeagueById(leagueId);
-        if (league) {
-          // Auto-set filters to match the league being displayed.
-          // Falls back to 'all' for custom/other leagues without area/level metadata.
-          setLeagueLevelFilter(league.level || 'all');
-          setLeagueAreaFilter(league.area || 'all');
-        }
-      } else if (!seasonId) {
-        // No league and no season - reset to 'all'
-        setLeagueAreaFilter('all');
-        setLeagueLevelFilter('all');
-      }
-      // If there's a seasonId but no leagueId, let the season prefill effect handle filters
     }
-  }, [isOpen, seasonId, leagueId]);
+  }, [isOpen]);
 
   // Optimistic echo for the Friendly-match toggle (the persisted value arrives a
   // tick later via the mutation's savedGames update). Re-syncs to the prop on a
@@ -606,25 +584,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   );
   const teamSelectionRequestRef = useRef<number>(0); // Track current team selection request for race condition protection
 
-  // League filter state (UI helpers only - not saved)
-  const [leagueAreaFilter, setLeagueAreaFilter] = useState<LeagueAreaFilter>('all');
-  const [leagueLevelFilter, setLeagueLevelFilter] = useState<LeagueLevelFilter>('all');
-
-  // Filtered leagues based on area and level selection
-  const filteredLeagues = useMemo(() => {
-    return FINNISH_YOUTH_LEAGUES.filter(league => {
-      // Always include custom option
-      if (league.isCustom) return true;
-      // Filter by level
-      if (leagueLevelFilter !== 'all' && league.level !== leagueLevelFilter) return false;
-      // Filter by area - only applies to leagues that HAVE an area (regional/local)
-      // National/Other leagues have no area and should pass area filter
-      if (leagueAreaFilter !== 'all' && league.area) {
-        return league.area === leagueAreaFilter;
-      }
-      return true;
-    });
-  }, [leagueAreaFilter, leagueLevelFilter]);
 
   // Sync selectedTeamId with teamId prop when modal opens or teamId changes
   useEffect(() => {
@@ -902,23 +861,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       batchedUpdates.customLeagueName = effectiveCustomLeagueName;
       hasUpdates = true;
 
-      // Auto-set league filters to match the league being displayed
-      // Priority: current leagueId prop (game's league) > season's league > 'all'
-      // This ensures the selected league is visible in the filtered dropdown
-      const displayedLeagueId = leagueId || effectiveLeagueId;
-      if (displayedLeagueId) {
-        const league = getLeagueById(displayedLeagueId);
-        if (league) {
-          // Auto-set filters to match the league being displayed.
-          // Falls back to 'all' for custom/other leagues without area/level metadata.
-          setLeagueLevelFilter(league.level || 'all');
-          setLeagueAreaFilter(league.area || 'all');
-        }
-      } else {
-        // No league - reset filters to 'all'
-        setLeagueLevelFilter('all');
-        setLeagueAreaFilter('all');
-      }
+      // (The league filters follow the shown league inside LeagueSelectWithFilters.)
 
       // Mark this season as applied AFTER handlers succeed to allow retry on failure
       appliedSeasonRef.current = seasonId;
@@ -1644,60 +1587,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         {t('gameSettingsModal.leagueLabel', 'Official league')}
                       </label>
 
-                      {/* League Filters */}
-                      <div className="flex gap-2 mb-2">
-                        <div className="flex-1">
-                          <label htmlFor="league-level-filter-game" className="sr-only">
-                            {t('leagues.filterByLevel', 'Filter by level')}
-                          </label>
-                          <select
-                            id="league-level-filter-game"
-                            value={leagueLevelFilter}
-                            onChange={(e) => {
-                              // CR-M4: filters are a BROWSE control — they only narrow the
-                              // visible list. Do NOT clear/persist the saved league here, or
-                              // just looking around would silently wipe it. The current
-                              // selection stays shown via the option rendered below.
-                              setLeagueLevelFilter(e.target.value as LeagueLevelFilter);
-                            }}
-                            className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
-                          >
-                            {LEAGUE_LEVEL_FILTERS.map(level => (
-                              <option key={level.id} value={level.id}>
-                                {t(level.labelKey as TranslationKey, level.id === 'all' ? 'All Levels' : level.id)}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex-1">
-                          <label htmlFor="league-area-filter-game" className="sr-only">
-                            {t('leagues.filterByArea', 'Filter by area')}
-                          </label>
-                          <select
-                            id="league-area-filter-game"
-                            value={leagueAreaFilter}
-                            onChange={(e) => {
-                              // CR-M4: see the level filter above — browsing filters must
-                              // not clear/persist the saved league.
-                              setLeagueAreaFilter(e.target.value as LeagueAreaFilter);
-                            }}
-                            className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
-                          >
-                            {LEAGUE_AREA_FILTERS.map(area => (
-                              <option key={area.id} value={area.id}>
-                                {t(area.labelKey as TranslationKey, area.id === 'all' ? 'All Areas' : area.id)}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* League Dropdown */}
-                      <select
+                      {/* Filters + dropdown, shared with New Game (review 7.L11). */}
+                      <LeagueSelectWithFilters
                         id="leagueSelectGameSettings"
-                        value={leagueId}
-                        onChange={(e) => {
-                          const value = e.target.value;
+                        filterIdSuffix="game"
+                        value={leagueId ?? ''}
+                        placeholder={t('gameSettingsModal.selectLeague', '-- Select official league --')}
+                        onChange={(value) => {
                           onLeagueIdChange(value || undefined);
                           // Clear custom name when switching away from "Muu" (intentional)
                           // This provides clean state and prevents stale data. If user switches
@@ -1710,30 +1606,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                             { source: 'stateSync' }
                           );
                         }}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                      >
-                        <option value="">{t('gameSettingsModal.selectLeague', '-- Select official league --')}</option>
-                        {/* CR-M4: keep the saved league visible even when the current
-                            filters would exclude it, so changing a filter never makes the
-                            selection "disappear" (and never tempts a clear-on-filter). */}
-                        {(() => {
-                          const selected = leagueId && leagueId !== CUSTOM_LEAGUE_ID ? getLeagueById(leagueId) : undefined;
-                          if (selected && !filteredLeagues.some(l => l.id === selected.id)) {
-                            return <option key={selected.id} value={selected.id}>{selected.name}</option>;
-                          }
-                          return null;
-                        })()}
-                        {filteredLeagues.map(league => (
-                          <option key={league.id} value={league.id}>{league.name}</option>
-                        ))}
-                      </select>
+                      />
 
-                      {/* Show count when filters active */}
-                      {(leagueAreaFilter !== 'all' || leagueLevelFilter !== 'all') && (
-                        <p className="mt-1 text-sm text-slate-400">
-                          {t('leagues.showingCount', '{{count}} leagues', { count: filteredLeagues.filter(l => !l.isCustom).length })}
-                        </p>
-                      )}
                       {/* Custom League Name - shown when "Muu" selected */}
                       {leagueId === CUSTOM_LEAGUE_ID && (
                         <div className="mt-2">

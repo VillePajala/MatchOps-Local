@@ -1545,9 +1545,11 @@ describe('<GameSettingsModal />', () => {
       const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
       await user.selectOptions(seasonSelect, 's1');
 
+      // The parent applies the season's league (onLeagueIdChange) and passes it back
+      // in; the filters follow the shown league (review 7.L11).
       rerender(
         <ToastProvider>
-          <GameSettingsModal {...leagueProps} seasonId="s1" />
+          <GameSettingsModal {...leagueProps} seasonId="s1" leagueId="sm-sarja" />
         </ToastProvider>
       );
 
