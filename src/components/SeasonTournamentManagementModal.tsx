@@ -1,5 +1,6 @@
 'use client';
 
+import { useRememberedListSetting, isBoolean } from '@/hooks/useRememberedListSetting';
 import { matchesSearch } from '@/utils/listSearch';
 import React, { useState } from 'react';
 import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
@@ -74,7 +75,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const [stats, setStats] = useState<Record<string, { games: number; goals: number }>>({});
 
     const [searchText, setSearchText] = useState('');
-    const [showArchived, setShowArchived] = useState(false);
+    // Remembered on this device, per list (review 7.L10).
+    const [showArchived, setShowArchived] = useRememberedListSetting(`competitions.${kind}.showArchived`, false, isBoolean);
     const archivedCount = (kind === 'season' ? seasons : tournaments).filter((d) => d.archived).length;
     // Cleanup for names that got in before the competition lists existed.
     const [showNameSweep, setShowNameSweep] = useState(false);

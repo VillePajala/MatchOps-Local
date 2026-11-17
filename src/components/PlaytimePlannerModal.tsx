@@ -10,6 +10,7 @@
  * are added in later PRs; this modal owns setup + the plan overview.
  */
 
+import { useRememberedListSetting, isBoolean } from '@/hooks/useRememberedListSetting';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   HiChevronDown,
@@ -182,7 +183,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // whether archived plans are listed (same pattern as the competitions modal).
   const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
-  const [showArchived, setShowArchived] = useState(false);
+  // Remembered on this device (review 7.L10).
+  const [showArchived, setShowArchived] = useRememberedListSetting('plans.showArchived', false, isBoolean);
   // Overview "Games & format" editor (collapsed by default - the header line
   // doubles as the format summary) and the pending remove-last-game confirm.
   const [showFormatEditor, setShowFormatEditor] = useState(false);

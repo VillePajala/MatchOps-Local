@@ -737,7 +737,8 @@ describe('Translation File Validation', () => {
       // +5 list empty/no-results texts (review 7.L4; two were used but never existed). 3413.
       // +5 empty/archived texts shared by the lists, -3 the replaced Show Archived
       // pill texts (review 7.L7). 3415.
-      expect(enKeys.length).toBe(3415);
+      // +4 Saved games sort (review 7.L11). 3419.
+      expect(enKeys.length).toBe(3419);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -940,7 +941,8 @@ describe('Translation File Validation', () => {
       // +1 tournamentDetailsModal.levelInUse (review 7.15). 3408.
       // +5 list empty/no-results texts (review 7.L4). 3413.
       // +5 / -3 (review 7.L7). 3415.
-      expect(fiKeys.length).toBe(3415);
+      // +4 (review 7.L11). 3419.
+      expect(fiKeys.length).toBe(3419);
     });
   });
 });

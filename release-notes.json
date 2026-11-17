@@ -4,6 +4,17 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Saved games can be sorted by date, opponent or result.",
+        "Lists remember their filters, sort order and \"Show archived\" on this device the next time you open them."
+      ],
+      "fi": [
+        "Tallennetut ottelut voi järjestää päivämäärän, vastustajan tai tuloksen mukaan.",
+        "Listat muistavat suodattimensa, järjestyksensä ja \"Näytä arkistoidut\" -valinnan tällä laitteella seuraavalla avauskerralla."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Picking players for a game or team now has a search box when the list is long (by name, nickname or shirt number).",
         "Match details suggests opponent names like New Game does."
       ],
