@@ -5,13 +5,7 @@
  * back in (e.g. 10.8: club-season labels recomputed from the wrong dates).
  * @critical @integration
  */
-// fake-indexeddb needs structuredClone, which jsdom lacks.
-if (typeof structuredClone === 'undefined') {
-  global.structuredClone = (obj: unknown) => JSON.parse(JSON.stringify(obj));
-}
-
-import 'fake-indexeddb/auto';
-import { IDBFactory } from 'fake-indexeddb';
+import { freshLocalStore } from '../../../tests/utils/realLocalDataStore';
 import { generateFullBackupJson, importFullBackup } from '../fullBackup';
 import { getDataStore, resetFactory } from '@/datastore/factory';
 import type { DataStore } from '@/interfaces/DataStore';
@@ -57,8 +51,7 @@ async function snapshot(ds: DataStore) {
 
 describe('full backup round trip', () => {
   beforeEach(async () => {
-    (globalThis as unknown as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
-    await resetFactory();
+    await freshLocalStore();
   });
 
   it('restores a populated store to exactly what was exported', async () => {
