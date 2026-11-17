@@ -662,6 +662,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
   const commitPeriodDuration = () => {
     editedSinceCommitRef.current.periodDuration = false;
+    if (regulationLocked) return;
     const parsed = parseInt(periodDurationInput, 10);
     // Empty/invalid reverts to the current value; otherwise clamp 1-999.
     const finalDuration = isNaN(parsed)
@@ -2050,6 +2051,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   value={numPeriods}
                   disabled={regulationLocked}
                   onChange={(e) => {
+                    if (regulationLocked) return;
                     const periods = parseInt(e.target.value) as 1 | 2;
                       logger.log('[GameSettingsModal] Changing numberOfPeriods to:', periods);
                       onNumPeriodsChange(periods);

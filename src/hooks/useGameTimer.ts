@@ -142,6 +142,21 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   }, [dispatch, currentGameId]);
 
   /**
+   * Start extra time at full time (review 11.1): `periods` (1-2) of `minutes` each,
+   * from the regulation end. The reducer refuses it unless the clock is stopped at full
+   * time with no extra time yet.
+   */
+  const startExtraTime = useCallback((periods: number, minutes: number) => {
+    const s = stateRef.current;
+    // Same checks as the reducer, so a refused start never writes a recovery anchor.
+    if (s.gameStatus !== 'gameEnd' || s.isTimerRunning || extraTimePeriodCount(s) > 0) return;
+    if (!(periods === 1 || periods === 2) || !Number.isInteger(minutes) || minutes < 1 || minutes > 60) return;
+    dispatch({ type: 'START_EXTRA_TIME', payload: { periods, minutes } });
+    // Recovery anchor at once, as startPause does (review 4.22).
+    if (currentGameId) writeTimerAnchor(currentGameId, regulationEndSeconds(s));
+  }, [dispatch, currentGameId]);
+
+  /**
    * End the current period now (review 4.31, owner decision 2026-11-16): the referee
    * blew early, or the clock was set up longer than the match. The clock moves to the
    * period's end - the football convention the next period starts from anyway (Start
@@ -149,19 +164,6 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
    * ended match never offers "Resume", and a later length edit never reopens the half.
    * On the last period this is full time. The timer view asks for confirmation.
    */
-  /**
-   * Start extra time at full time (review 11.1): `periods` (1-2) of `minutes` each,
-   * from the regulation end. The reducer refuses it unless the clock is stopped at full
-   * time with no extra time yet.
-   */
-  const startExtraTime = useCallback((periods: number, minutes: number) => {
-    const s = stateRef.current;
-    if (s.gameStatus !== 'gameEnd' || s.isTimerRunning || extraTimePeriodCount(s) > 0) return;
-    dispatch({ type: 'START_EXTRA_TIME', payload: { periods, minutes } });
-    // Recovery anchor at once, as startPause does (review 4.22).
-    if (currentGameId) writeTimerAnchor(currentGameId, regulationEndSeconds(s));
-  }, [dispatch, currentGameId]);
-
   const endPeriodNow = useCallback(() => {
     const s = stateRef.current;
     if (s.gameStatus !== 'inProgress') return;

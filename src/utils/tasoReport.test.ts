@@ -89,6 +89,9 @@ describe('buildTasoReport', () => {
     };
     const { report } = buildTasoReport(game, players, t);
     expect(report.split('\n')[1]).toBe('Lions - Tigers 1-2 (half-time 1-0, extra time 0-1)');
+    // The goal log missing a goal: neither half-time nor extra-time score.
+    const partial = buildTasoReport({ ...game, gameEvents: game.gameEvents.slice(1) }, players, t);
+    expect(partial.report.split('\n')[1]).toBe('Lions - Tigers 1-2');
   });
 
   it('puts the opponent first when we were away', () => {

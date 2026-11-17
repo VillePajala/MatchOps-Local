@@ -379,6 +379,16 @@ describe('TimerOverlay', () => {
       expect(onStartExtraTime).toHaveBeenCalledWith(1, 10);
     });
 
+    it('follows the game type until a length is typed (the game can load after mount)', () => {
+      const { rerender } = render(<TimerOverlay {...fullTime} onStartExtraTime={jest.fn()} />);
+      expect(minutesInput()).toHaveValue(15);
+      rerender(<TimerOverlay {...fullTime} gameType="futsal" onStartExtraTime={jest.fn()} />);
+      expect(minutesInput()).toHaveValue(5);
+      fireEvent.change(minutesInput(), { target: { value: '8' } });
+      rerender(<TimerOverlay {...fullTime} gameType="soccer" onStartExtraTime={jest.fn()} />);
+      expect(minutesInput()).toHaveValue(8);
+    });
+
     it('cannot start with an empty length', () => {
       const onStartExtraTime = jest.fn();
       render(<TimerOverlay {...fullTime} onStartExtraTime={onStartExtraTime} />);

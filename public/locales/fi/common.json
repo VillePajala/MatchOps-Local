@@ -648,7 +648,8 @@
     "startExtraTime": "Aloita jatkoaika",
     "startExtraTimePeriod": "Aloita jatkoajan {{n}}. jakso",
     "extraTimePill": "JA {{n}}/{{total}}",
-    "extraTimeShort": "JA"
+    "extraTimeShort": "JA",
+    "minutesShort": "min"
   },
   "instructionsModal": {
     "title": "Näin se toimii",

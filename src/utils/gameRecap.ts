@@ -111,7 +111,7 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   // Extra time is shown as its own score beside the final one (review 11.1, owner
   // 2026-11-17), so the recap tells how the match went.
   const extra = game.numberOfPeriods !== undefined && game.periodDurationMinutes !== undefined
-    ? extraTimeGoals({ ...game, numberOfPeriods: game.numberOfPeriods, periodDurationMinutes: game.periodDurationMinutes }, game.gameEvents)
+    ? extraTimeGoals({ ...game, numberOfPeriods: game.numberOfPeriods, periodDurationMinutes: game.periodDurationMinutes }, game.gameEvents, { us: teamGoals, them: oppGoals })
     : null;
   const suffixParts = [
     extra ? `${t('recap.extraTime', 'extra time')} ${extra.us}-${extra.them}` : '',

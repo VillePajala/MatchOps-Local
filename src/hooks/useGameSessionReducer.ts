@@ -657,9 +657,11 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const nextSubDue = state.subIntervalMinutes * 60;
       return {
         ...state,
-        // Back to kick-off: extra time is chosen again at full time (review 11.1).
+        // Back to kick-off: extra time is chosen again at full time (review 11.1), and
+        // the Overtime flag starting it set goes with it.
         extraTimePeriods: undefined,
         extraTimeMinutes: undefined,
+        wentToOvertime: extraTimePeriodCount(state) > 0 ? false : state.wentToOvertime,
         timeElapsedInSeconds: 0,
         isTimerRunning: false,
         startTimestamp: null,
@@ -690,9 +692,11 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
             subAlertLevel: 'none',
             lastSubConfirmationTimeSeconds: 0,
             completedIntervalDurations: [],
-            // Back to kick-off: extra time is chosen again at full time (review 11.1).
+            // Back to kick-off: extra time is chosen again at full time (review 11.1), and
+            // the Overtime flag starting it set goes with it.
             extraTimePeriods: undefined,
             extraTimeMinutes: undefined,
+            wentToOvertime: extraTimePeriodCount(state) > 0 ? false : state.wentToOvertime,
         };
     }
     case 'RESET_GAME_SESSION_STATE':

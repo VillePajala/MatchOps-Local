@@ -779,7 +779,8 @@
     "startExtraTime": "Start extra time",
     "startExtraTimePeriod": "Start extra time {{n}}",
     "extraTimePill": "ET {{n}}/{{total}}",
-    "extraTimeShort": "ET"
+    "extraTimeShort": "ET",
+    "minutesShort": "min"
   },
   "instructionsModal": {
     "title": "How It Works",

@@ -3258,6 +3258,7 @@ export type TranslationKey =
   | 'timerOverlay.intervalLabel'
   | 'timerOverlay.intervalLogFormat'
   | 'timerOverlay.logGoalButton'
+  | 'timerOverlay.minutesShort'
   | 'timerOverlay.numPeriods'
   | 'timerOverlay.opponentGoalButton'
   | 'timerOverlay.pauseButton'

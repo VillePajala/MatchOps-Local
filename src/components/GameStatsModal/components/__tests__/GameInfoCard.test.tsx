@@ -43,3 +43,19 @@ describe('GameInfoCard captain', () => {
     expect(screen.queryByText('Captain')).not.toBeInTheDocument();
   });
 });
+
+/** Review 11.1 (owner 2026-11-17): the extra-time score beside the final one. */
+describe('GameInfoCard extra time', () => {
+  it('shows the extra-time score in place of the bare OT mark, before the shootout', () => {
+    render(
+      <GameInfoCard {...base} homeScore={2} awayScore={2} wentToOvertime wentToPenalties
+        extraTimeScore={{ home: 1, away: 1 }} shootoutScore={{ home: 4, away: 3 }} />,
+    );
+    expect(screen.getByText('(ET 1-1, 4-3 PKs)')).toBeInTheDocument();
+  });
+
+  it('keeps the OT mark for an overtime recorded without extra time on the clock', () => {
+    render(<GameInfoCard {...base} wentToOvertime />);
+    expect(screen.getByText('(OT)')).toBeInTheDocument();
+  });
+});

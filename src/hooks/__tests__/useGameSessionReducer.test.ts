@@ -151,7 +151,7 @@ describe('gameSessionReducer', () => {
       expect(gameSessionReducer(end, { type: 'START_EXTRA_TIME', payload: { periods: 1, minutes: 10 } })).toBe(end);
       // A reset goes back to kick-off: extra time is chosen again at full time.
       for (const reset of [{ type: 'RESET_TIMER_ONLY' as const }, { type: 'RESET_TIMER_AND_GAME_PROGRESS' as const }]) {
-        expect(gameSessionReducer(end, reset)).toMatchObject({ extraTimePeriods: undefined, extraTimeMinutes: undefined, currentPeriod: 1 });
+        expect(gameSessionReducer(end, reset)).toMatchObject({ extraTimePeriods: undefined, extraTimeMinutes: undefined, currentPeriod: 1, wentToOvertime: false });
       }
     });
 

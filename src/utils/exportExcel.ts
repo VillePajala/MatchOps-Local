@@ -295,7 +295,7 @@ export const exportCurrentGameExcel = (
 
   const fieldLabel = translate('export.field', 'Field');
   const valueLabel = translate('export.value', 'Value');
-  const extraScore = extraTimeGoals(game, game.gameEvents ?? []);
+  const extraScore = extraTimeGoals(game, game.gameEvents ?? [], { us: ourScore, them: theirScore });
   const gameInfo = [
     { [fieldLabel]: translate('export.gameId', 'Game ID'), [valueLabel]: gameId },
     { [fieldLabel]: translate('export.gameDate', 'Game Date'), [valueLabel]: game.gameDate },

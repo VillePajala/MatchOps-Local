@@ -804,10 +804,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
   // Goals in extra time (review 11.1), as home-away for the info card.
   const extraTimeScore = useMemo(() => {
-    const extra = extraTimeGoals({ numberOfPeriods: numPeriods ?? 2, periodDurationMinutes: periodDurationMinutes ?? 0, extraTimePeriods, extraTimeMinutes }, gameEvents);
+    const us = homeOrAway === 'home' ? homeScore : awayScore;
+    const them = homeOrAway === 'home' ? awayScore : homeScore;
+    const extra = extraTimeGoals({ numberOfPeriods: numPeriods ?? 2, periodDurationMinutes: periodDurationMinutes ?? 0, extraTimePeriods, extraTimeMinutes }, gameEvents, { us, them });
     if (!extra) return undefined;
     return homeOrAway === 'home' ? { home: extra.us, away: extra.them } : { home: extra.them, away: extra.us };
-  }, [numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, gameEvents, homeOrAway]);
+  }, [numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, gameEvents, homeOrAway, homeScore, awayScore]);
 
   // Ready-to-paste text recap of the current game (score, our scorers/assisters,
   // the coach's match report).

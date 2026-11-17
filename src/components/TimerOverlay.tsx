@@ -128,7 +128,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const extraPeriodsPlanned = extraTimePeriodCount(structure);
   // The extra-time panel's choices (review 11.1): 2 periods, futsal 5 / football 15 min.
   const [extraPeriodsChoice, setExtraPeriodsChoice] = useState(2);
-  const [extraMinutesChoice, setExtraMinutesChoice] = useState(gameType === 'futsal' ? 5 : 15);
+  // Untouched, the length follows the game type (it may load after the overlay mounts).
+  const [extraMinutesTyped, setExtraMinutesChoice] = useState<number | null>(null);
+  const extraMinutesChoice = extraMinutesTyped ?? (gameType === 'futsal' ? 5 : 15);
   const extraMinutesValid = Number.isInteger(extraMinutesChoice) && extraMinutesChoice >= 1 && extraMinutesChoice <= 60;
   const onLastPeriod = isLastPeriod(structure, currentPeriod);
   const endPeriodLabel = onLastPeriod
@@ -498,7 +500,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 aria-label={t('timerOverlay.extraTimeMinutes', 'Minutes per period')}
                 className="w-16 px-2 py-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-sm text-center"
               />
-              <span className="text-sm text-slate-400">min</span>
+              <span className="text-sm text-slate-400">{t('timerOverlay.minutesShort', 'min')}</span>
             </div>
             <div className="flex gap-2 mt-3">
               <button
