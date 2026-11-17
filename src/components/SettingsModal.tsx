@@ -28,6 +28,7 @@ import AiSettingsCard from '@/components/AiSettingsCard';
 import CloudSyncSection from './CloudSyncSection';
 import TransitionOverlay from './TransitionOverlay';
 import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
+import { formatAppDateTime } from '@/utils/localeFormat';
 
 /**
  * MarketingConsentToggle - Toggle for granting/withdrawing marketing consent.
@@ -993,7 +994,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     {restorePoints === null
                       ? t('settingsModal.restorePoints.loading', 'Loading restore points...')
                       : restorePoints.length > 0
-                        ? t('settingsModal.restorePoints.lastBackup', 'Last automatic backup: {{when}}', { when: new Date(restorePoints[0].createdAt).toLocaleString() })
+                        ? t('settingsModal.restorePoints.lastBackup', 'Last automatic backup: {{when}}', { when: formatAppDateTime(restorePoints[0].createdAt) })
                         : t('settingsModal.restorePoints.lastBackupNever', 'No automatic backup yet.')}
                   </p>
                 </div>
@@ -1007,7 +1008,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       <li key={snap.id} className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-slate-200">
-                            {new Date(snap.createdAt).toLocaleString()}
+                            {formatAppDateTime(snap.createdAt)}
                             <span className="ml-2 text-xs text-slate-400">({restorePointReasonLabel(snap.reason)})</span>
                           </p>
                           <p className="text-sm text-slate-400">
@@ -1016,7 +1017,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                         <button
                           onClick={() => handleRestoreSnapshot(snap.id)}
-                          aria-label={t('settingsModal.restorePoints.restoreAriaLabel', 'Restore backup from {{when}}', { when: new Date(snap.createdAt).toLocaleString() })}
+                          aria-label={t('settingsModal.restorePoints.restoreAriaLabel', 'Restore backup from {{when}}', { when: formatAppDateTime(snap.createdAt) })}
                           className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors shrink-0"
                         >
                           {t('settingsModal.restorePoints.restore', 'Restore')}

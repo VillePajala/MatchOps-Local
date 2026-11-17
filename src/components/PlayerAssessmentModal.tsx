@@ -8,6 +8,7 @@ import type { Player, PlayerAssessment } from '@/types';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import PlayerAssessmentCard from './PlayerAssessmentCard';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { formatAppDate } from '@/utils/localeFormat';
 
 interface PlayerAssessmentModalProps {
   isOpen: boolean;
@@ -107,11 +108,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
           return isoDate;
       }
 
-      const day = date.getDate();
-      const month = date.getMonth() + 1;
-      const year = date.getFullYear();
-
-      return `${day}.${month}.${year}`;
+      return formatAppDate(date);
     } catch {
       return 'Date Error';
     }

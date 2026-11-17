@@ -39,9 +39,12 @@ const scoreColour: Record<'W' | 'D' | 'L', string> = {
   L: 'text-red-300',
 };
 
-/** "2026-09-20" -> "20.9." - the form a Finnish coach writes on a whiteboard. */
+/**
+ * "2026-09-20" -> "20.9." - the form a Finnish coach writes on a whiteboard. A date
+ * with a time part ("2026-09-20T...") uses its date part.
+ */
 const formatDayMonth = (iso: string): string => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   if (!m) return '';
   return `${Number(m[3])}.${Number(m[2])}.`;
 };
@@ -479,7 +482,7 @@ function UpcomingCard({ game, onOpen, t }: { game: HomeUpcomingGame; onOpen?: (i
         {game.opponent || t('startScreen.dashResumeGame', 'Game')}
       </span>
       <span className="block text-xs font-bold text-indigo-200">{game.time || '–'}</span>
-      <span className="block text-[9.5px] text-slate-500">{game.date.slice(5).replace('-', '.')}.</span>
+      <span className="block text-[9.5px] text-slate-500">{formatDayMonth(game.date)}</span>
       {game.venueTown && (
         <span className="block truncate text-[9.5px] text-slate-500">{game.venueTown}</span>
       )}
@@ -539,7 +542,7 @@ function RecentCard({ game, onOpen, accented }: { game: HomeRecentGame; onOpen?:
     >
       <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
       <div className={`text-sm font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
-      <div className="text-xs text-slate-400 tabular-nums">{game.date?.slice(5).replace('-', '.')}</div>
+      <div className="text-xs text-slate-400 tabular-nums">{game.date ? formatDayMonth(game.date) : ''}</div>
       {/* Town only - see HomeRecentGame.venueTown for why not the venue. */}
       {game.venueTown && (
         <div className="truncate text-[9.5px] text-slate-500">{game.venueTown}</div>

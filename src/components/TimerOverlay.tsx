@@ -13,6 +13,7 @@ import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { HiOutlineMicrophone } from 'react-icons/hi2';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import { clockContinuation } from '@/utils/clockContinuation';
+import { formatAppDecimal } from '@/utils/localeFormat';
 
 
 interface TimerOverlayProps {
@@ -479,7 +480,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                   -
                 </button>
                 <span className={controlValueStyle}>
-                  {Number.isInteger(subIntervalMinutes) ? subIntervalMinutes : subIntervalMinutes.toFixed(1)}
+                  {Number.isInteger(subIntervalMinutes) ? subIntervalMinutes : formatAppDecimal(subIntervalMinutes)}
                 </span>
                 <button
                   onClick={() => onSetSubInterval(subIntervalMinutes + 0.5)}

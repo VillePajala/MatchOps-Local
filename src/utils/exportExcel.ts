@@ -1,4 +1,7 @@
 import * as XLSX from 'xlsx';
+// Number and date formats here are deliberate (review 8.4): exported cells keep a
+// '.' decimal point and the device's date format, which spreadsheet apps parse as
+// values - unlike the in-app text, which follows the app language (localeFormat).
 import {
   AppState,
   Player,

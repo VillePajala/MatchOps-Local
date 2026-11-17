@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { PlayerStatRow } from '@/types';
 import { SortableColumn, SortDirection } from '../types';
+import { formatAppDecimal } from '@/utils/localeFormat';
 
 interface PlayerStatsTableProps {
   playerStats: PlayerStatRow[];
@@ -154,7 +155,7 @@ export function PlayerStatsTable({
                 {player.totalScore}
               </td>
               <td className="px-0.5 py-2 text-center text-amber-400 font-semibold">
-                {player.avgPoints.toFixed(1)}
+                {formatAppDecimal(player.avgPoints)}
               </td>
             </tr>
           ))
@@ -177,7 +178,7 @@ export function PlayerStatsTable({
               {totals.totalScore}
             </td>
             <td className="px-0.5 py-2 text-center text-amber-400">
-              {totals.gamesPlayed > 0 ? (totals.totalScore / totals.gamesPlayed).toFixed(1) : '0.0'}
+              {totals.gamesPlayed > 0 ? formatAppDecimal(totals.totalScore / totals.gamesPlayed) : formatAppDecimal(0)}
             </td>
           </tr>
         )}

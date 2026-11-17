@@ -37,6 +37,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { ENTITY_DOT } from '@/config/palette';
 import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
+import { formatAppDate } from '@/utils/localeFormat';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
@@ -478,7 +479,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                           </span>
                           <span className="text-slate-400 text-xs">
                             {t('teamManager.createdAt', 'Created {{date}}', {
-                              date: new Date(team.createdAt).toLocaleDateString()
+                              date: formatAppDate(team.createdAt)
                             })}
                           </span>
                           {/* Placement Badges */}

@@ -667,4 +667,20 @@ describe('the result colour on the top card', () => {
     const n = screen.getByText('0–0').className;
     expect(n).not.toMatch(/text-(green|red)-300|text-slate-200/);
   });
+
+  /**
+   * Review 8.4: the strip chips showed "09.05" (month.day) for 5 September - read
+   * by a Finnish coach as 9 May - while the big card showed "5.9.".
+   */
+  it('dates the result and fixture chips day-first, like the big card', () => {
+    const { unmount } = render(<HomeDashboard summary={base({
+      recent: [{ ...recent('r1', 'HJK'), date: '2026-09-05' }],
+    })} t={t} />);
+    expect(screen.getByText('5.9.')).toBeInTheDocument();
+    expect(screen.queryByText('09.05')).not.toBeInTheDocument();
+    unmount();
+
+    render(<HomeDashboard summary={base({ upcomingList: [fixture({ id: 'f1', date: '2026-10-03' })] })} t={t} />);
+    expect(screen.getByText('3.10.')).toBeInTheDocument();
+  });
 });
