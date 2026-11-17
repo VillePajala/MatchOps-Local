@@ -529,7 +529,8 @@
     "futsal": "Futsal",
     "all": "Kaikki",
     "checkOnMap": "Tarkista kartalta",
-    "hourShort": "t"
+    "hourShort": "t",
+    "noPlayersToShow": "Tälle valinnalle ei ole pelaajatilastoja."
   },
   "backupRestore": {
     "resultsTitle": "Varmuuskopion palautus valmis",
@@ -1320,7 +1321,8 @@
     "editDetails": "Muokkaa tietoja",
     "searchPlaceholder": "Etsi...",
     "noSeasonsNudge": "Ei vielä sarjoja. Luo sarja ja liitä siihen joukkueesi ja ottelusi seurataksesi sarjatason tilastoja.",
-    "noTournamentsNudge": "Ei vielä turnauksia. Luo turnaus ja liitä siihen joukkueesi ja ottelusi seurataksesi turnaustason tilastoja."
+    "noTournamentsNudge": "Ei vielä turnauksia. Luo turnaus ja liitä siihen joukkueesi ja ottelusi seurataksesi turnaustason tilastoja.",
+    "noSearchResults": "Haulla \"{{search}}\" ei löytynyt mitään."
   },
   "teamDetailsModal": {
     "createTitle": "Luo joukkue",
@@ -2202,7 +2204,9 @@
     "externalScopeHint": "Laji ja sukupuoli asettavat pelin tilastosuodattimien alle. Jos jompikumpi puuttuu, peli jää suodatetun näkymän ulkopuolelle.",
     "positionsLabel": "Toteutuneet pelipaikat",
     "addToStats": "Täydennä tilastoja",
-    "viewingFilteredStats": "Näytetään vain valitun kauden tilastot ({{filtered}}/{{total}} ottelua)"
+    "viewingFilteredStats": "Näytetään vain valitun kauden tilastot ({{filtered}}/{{total}} ottelua)",
+    "noGamesForSeason": "Valituilla suodattimilla ei löydy otteluita.",
+    "changeSeasonFilter": "Pelaajalla on {{count}} ottelu(a) näiden suodattimien ulkopuolella. Laajenna suodattimia yllä nähdäksesi ne."
   },
   "months": {
     "january": "Tammikuu",
@@ -3939,7 +3943,8 @@
     "appliedListsOnly": "Nimetty sarjan joukkuelistassa.",
     "mergeWarning_one": "Joukkueella \"{{name}}\" on jo {{count}} ottelu. Yhdistetäänkö? Niitä ei voi erottaa uudelleen.",
     "mergeWarning_other": "Joukkueella \"{{name}}\" on jo {{count}} ottelua. Yhdistetäänkö? Niitä ei voi erottaa uudelleen.",
-    "mergeConfirm": "Yhdistä"
+    "mergeConfirm": "Yhdistä",
+    "noSearchResults": "Haulla \"{{search}}\" ei löytynyt joukkuetta."
   },
   "venueInput": {
     "pinned": "Kiinnitetty karttasijaintiin",

@@ -80,3 +80,23 @@ describe('PlayerSelectionSection - order and removed players', () => {
     expect(screen.getAllByText('removed from player list')).toHaveLength(1);
   });
 });
+
+/** Review 7.L4: Select All compared counts only, and selected in storage order. */
+describe('PlayerSelectionSection - Select All', () => {
+  const squad = [
+    { id: 'a', name: 'Aino Virta', isGoalie: false },
+    { id: 'b', name: 'Bea Aalto', isGoalie: false },
+  ] as Player[];
+
+  it('is ticked only when every listed player is selected, whatever the count', () => {
+    render(<PlayerSelectionSection {...baseProps} availablePlayers={squad} selectedPlayerIds={['a', 'gone']} />);
+    expect(screen.getByRole('checkbox', { name: 'Select All' })).not.toBeChecked();
+  });
+
+  it('selects everyone in the order shown (last name)', () => {
+    const onSelectedPlayersChange = jest.fn();
+    render(<PlayerSelectionSection {...baseProps} availablePlayers={squad} onSelectedPlayersChange={onSelectedPlayersChange} />);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select All' }));
+    expect(onSelectedPlayersChange).toHaveBeenCalledWith(['b', 'a']); // Aalto before Virta
+  });
+});

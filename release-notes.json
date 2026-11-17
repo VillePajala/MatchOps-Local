@@ -4,6 +4,17 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Lists now say clearly when a search or filter hides everything, instead of claiming there is nothing yet.",
+        "Added games for a player are listed by game date, and \"Select all\" works correctly."
+      ],
+      "fi": [
+        "Listat kertovat nyt selvästi, kun haku tai suodatin piilottaa kaiken, sen sijaan että väittäisivät, ettei mitään ole vielä.",
+        "Pelaajalle lisätyt ottelut listataan ottelupäivän mukaan, ja \"Valitse kaikki\" toimii oikein."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Match details shows a game's league, tournament or team even after it was archived (marked \"Archived\") instead of an empty field, and New Game no longer offers archived plans."
       ],
       "fi": [

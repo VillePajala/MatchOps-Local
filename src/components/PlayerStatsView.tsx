@@ -943,13 +943,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             ) : (
               <div className="text-center py-6">
                 {unfilteredPlayerStats && unfilteredPlayerStats.totalGames > 0 ? (
-                  // Player has games, but they're filtered out by club season
+                  // Player has games, but the filters hide them (club season, sport,
+                  // gender - review 7.L4: the message used to blame the season only)
                   <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
                     <p className="text-slate-300 mb-2">
-                      {t('playerStats.noGamesForSeason', 'No games found for the selected club season.')}
+                      {t('playerStats.noGamesForSeason', 'No games match the selected filters.')}
                     </p>
                     <p className="text-sm text-slate-400">
-                      {t('playerStats.changeSeasonFilter', 'This player has {count} game(s) in other seasons. Change the club season filter above to "All seasons" to view all games.', { count: unfilteredPlayerStats.totalGames })}
+                      {t('playerStats.changeSeasonFilter', 'This player has {{count}} game(s) outside these filters. Widen the filters above to see them.', { count: unfilteredPlayerStats.totalGames })}
                     </p>
                   </div>
                 ) : (

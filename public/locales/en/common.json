@@ -529,7 +529,8 @@
     "futsal": "Futsal",
     "all": "All",
     "checkOnMap": "Check on map",
-    "hourShort": "h"
+    "hourShort": "h",
+    "noPlayersToShow": "No player statistics for this selection."
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
@@ -1467,7 +1468,8 @@
     "editDetails": "Edit Details",
     "searchPlaceholder": "Search...",
     "noSeasonsNudge": "No leagues yet. Create one, then link your teams and games to it to track league-level stats.",
-    "noTournamentsNudge": "No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats."
+    "noTournamentsNudge": "No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats.",
+    "noSearchResults": "Nothing matches \"{{search}}\"."
   },
   "teamDetailsModal": {
     "createTitle": "Create Team",
@@ -2202,7 +2204,9 @@
     "externalScopeHint": "Sport and gender place the game under the stats filters. If either is missing, the game stays out of a filtered view.",
     "positionsLabel": "Positions played",
     "addToStats": "Add to stats",
-    "viewingFilteredStats": "Showing the selected club season only ({{filtered}} of {{total}} games)"
+    "viewingFilteredStats": "Showing the selected club season only ({{filtered}} of {{total}} games)",
+    "noGamesForSeason": "No games match the selected filters.",
+    "changeSeasonFilter": "This player has {{count}} game(s) outside these filters. Widen the filters above to see them."
   },
   "months": {
     "january": "January",
@@ -3939,7 +3943,8 @@
     "appliedListsOnly": "Renamed in the competition list.",
     "mergeWarning_one": "\"{{name}}\" already has {{count}} game. Merge them? They cannot be split again.",
     "mergeWarning_other": "\"{{name}}\" already has {{count}} games. Merge them? They cannot be split again.",
-    "mergeConfirm": "Merge"
+    "mergeConfirm": "Merge",
+    "noSearchResults": "No team matches \"{{search}}\"."
   },
   "venueInput": {
     "pinned": "Pinned to a map location",
