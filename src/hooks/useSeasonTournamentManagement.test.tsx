@@ -87,10 +87,18 @@ describe('useSeasonTournamentManagement (L.1)', () => {
     const archived = createSeason({ id: 'old', archived: true });
     mockedGetSeasons.mockImplementation(async (_u?: string, includeArchived?: boolean) =>
       includeArchived ? [createSeason(), archived] : [createSeason()]);
-    const { result } = renderHook(() => useSeasonTournamentManagement(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useSeasonTournamentManagement(true), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.allSeasons).toHaveLength(2));
     expect(result.current.seasons).toHaveLength(1);
     expect(mockedGetTournaments).toHaveBeenCalledWith(expect.anything(), true);
+  });
+
+  it('does not load the archive-inclusive lists while the manager is closed', async () => {
+    const { result } = renderHook(() => useSeasonTournamentManagement(), { wrapper: createWrapper() });
+    await waitFor(() => expect(mockedGetSeasons).toHaveBeenCalled());
+    expect(mockedGetSeasons).not.toHaveBeenCalledWith(expect.anything(), true);
+    expect(mockedGetTournaments).not.toHaveBeenCalledWith(expect.anything(), true);
+    expect(result.current.allSeasons).toEqual([]);
   });
 
   describe('season mutations', () => {

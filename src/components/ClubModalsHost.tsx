@@ -147,7 +147,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   }, []);
 
   const settings = useAppSettingsController();
-  const seasonTournament = useSeasonTournamentManagement();
+  const seasonTournament = useSeasonTournamentManagement(isSeasonTournamentModalOpen);
   const personnelManager = usePersonnelManager();
   const rosterSettings = useRosterSettingsController();
   const { data: teams = [] } = useTeamsQuery();

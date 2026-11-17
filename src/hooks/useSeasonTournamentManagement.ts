@@ -50,7 +50,11 @@ const NO_PLAYERS: Player[] = [];
 const NO_SEASONS: Season[] = [];
 const NO_TOURNAMENTS: Tournament[] = [];
 
-export function useSeasonTournamentManagement(): UseSeasonTournamentManagementReturn {
+/**
+ * @param managerOpen  load the archive-inclusive lists (allSeasons/allTournaments)
+ *                     only while the manager screen is open
+ */
+export function useSeasonTournamentManagement(managerOpen = false): UseSeasonTournamentManagementReturn {
   const queryClient = useQueryClient();
   const { userId } = useDataStore();
 
@@ -68,10 +72,12 @@ export function useSeasonTournamentManagement(): UseSeasonTournamentManagementRe
   const allSeasonsQuery: UseQueryResult<Season[], Error> = useQuery({
     queryKey: [...queryKeys.seasons, userId, 'withArchived'],
     queryFn: () => getSeasons(userId, true),
+    enabled: managerOpen,
   });
   const allTournamentsQuery: UseQueryResult<Tournament[], Error> = useQuery({
     queryKey: [...queryKeys.tournaments, userId, 'withArchived'],
     queryFn: () => getTournaments(userId, true),
+    enabled: managerOpen,
   });
   const masterRosterQuery: UseQueryResult<Player[], Error> = useQuery({
     queryKey: [...queryKeys.masterRoster, userId],
