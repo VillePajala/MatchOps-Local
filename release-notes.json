@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Penalty shootout: the shooter list now offers only the match squad, like the other match lists."
+      ],
+      "fi": [
+        "Rangaistuspotkukilpailu: laukojalista tarjoaa nyt vain ottelun kokoonpanon, kuten muutkin ottelun listat."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Saved games: search now finds a game by the date as shown (e.g. 17.9.) and an opponent however it is written, and the \"unplayed only\" filter no longer claims there are no saved games."
       ],
       "fi": [

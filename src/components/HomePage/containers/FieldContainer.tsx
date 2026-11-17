@@ -410,6 +410,7 @@ export function FieldContainer({
         isOpen={isShootoutModalOpen}
         onClose={() => setIsShootoutModalOpen(false)}
         availablePlayers={availablePlayers}
+        squadIds={gameSessionState.selectedPlayerIds}
         initialKicks={gameSessionState.shootoutKicks ?? []}
         homeOrAway={gameSessionState.homeOrAway}
         teamName={gameSessionState.teamName}
