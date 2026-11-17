@@ -1,5 +1,6 @@
 'use client';
 
+import { addOpponentToList } from '@/utils/opponentNames';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { KnownVenue } from '@/utils/venueBook';
 import { useTranslation } from 'react-i18next';
@@ -181,6 +182,11 @@ export interface GameSettingsModalProps {
   updateGameDetailsMutation: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
   // Fresh data from React Query
   seasons: Season[];
+  /**
+   * Every opponent name the coach has used (curated lists + past games), for the
+   * opponent suggestion chips as in New Game (review 7.L9).
+   */
+  opponentPool?: string[];
   tournaments: Tournament[];
   masterRoster?: Player[]; // Full roster for tournament player award display
   teams: Team[]; // Available teams for selection
@@ -267,6 +273,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   hasGameStarted,
   updateGameDetailsMutation,
   seasons,
+  opponentPool,
   tournaments,
   teams,
   onTeamIdChange,
@@ -366,6 +373,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const archivedSeason = archivedCurrent(seasonId, sortedSeasons, allSeasons);
   const archivedTournament = archivedCurrent(tournamentId, sortedTournaments, allTournaments);
   const archivedSuffix = ` (${t('teamManager.archivedLabel', 'Archived')})`;
+
+  // The opponent suggestion chips, as in New Game (review 7.L9): the current
+  // league's curated teams first, then every name the coach has used.
+  const opponentOptions = useMemo<string[]>(
+    () => [
+      ...(seasonId ? seasons.find((s) => s.id === seasonId)?.opponents ?? [] : []),
+      ...(opponentPool ?? []),
+    ].reduce<string[]>((kept, name) => addOpponentToList(kept, name), []),
+    [seasonId, seasons, opponentPool],
+  );
 
   // Track if we've already applied season/tournament updates to prevent infinite loops.
   // Initialize with current prop values so prefill doesn't re-run for already-assigned
@@ -1384,6 +1401,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   teamPlaceholder={t('gameSettingsModal.teamNamePlaceholder', 'Enter team name')}
                   opponentLabel={t('gameSettingsModal.opponentName', 'Opponent Name') + ' *'}
                   opponentPlaceholder={t('gameSettingsModal.opponentNamePlaceholder', 'Enter opponent name')}
+                  opponentOptions={opponentOptions}
                 />
               </div>
 

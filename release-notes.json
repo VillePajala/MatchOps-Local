@@ -4,6 +4,17 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Picking players for a game or team now has a search box when the list is long (by name, nickname or shirt number).",
+        "Match details suggests opponent names like New Game does."
+      ],
+      "fi": [
+        "Pelaajien valinnassa otteluun tai joukkueeseen on nyt hakukenttä, kun lista on pitkä (nimellä, lempinimellä tai pelinumerolla).",
+        "Ottelun tiedot ehdottavat vastustajien nimiä kuten uusi ottelu."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "\"Show archived\" works the same in the roster, teams, leagues and tournaments: a link under the list with the number of archived items, shown only when there are some.",
         "Empty lists now say why: nothing matches the search, everything is archived, or nothing has been added yet."
       ],

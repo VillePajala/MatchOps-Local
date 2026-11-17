@@ -1,4 +1,5 @@
 import React from 'react';
+import { knownOpponentPool } from '@/utils/opponentNames';
 import { useKnownVenues } from '@/hooks/useKnownVenues';
 import type { AiMeta, GameNoteInput } from '@/types/game';
 import type { DictationControls } from '@/hooks/useDictationCapture';
@@ -151,6 +152,11 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
   // as creating one does - a venue the map cannot find is only findable from
   // the book, and Ottelutiedot was the one place it never reached.
   const knownVenues = useKnownVenues(data.savedGames);
+  // Opponent suggestions for Match details, built as New Game builds them (review 7.L9).
+  const opponentPool = React.useMemo(
+    () => knownOpponentPool(data.seasons, Object.values(data.savedGames ?? {})),
+    [data.seasons, data.savedGames],
+  );
   const { t } = useTranslation();
   const assessmentsEnabled = useAssessmentsEnabled();
 
@@ -249,6 +255,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
 
         <GameSettingsModal
           isOpen={state.isGameSettingsModalOpen}
+          opponentPool={opponentPool}
           onClose={handlers.closeGameSettingsModal}
           initialScrollSection={state.gameSettingsInitialSection}
           currentGameId={data.currentGameId}
