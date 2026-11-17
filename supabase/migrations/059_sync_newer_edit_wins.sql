@@ -45,25 +45,7 @@ UPDATE warmup_plans  SET edited_at = GREATEST(updated_at, last_modified) WHERE e
 -- No write time on legacy adjustments: never refuse a write against them (as today).
 UPDATE player_adjustments SET edited_at = '-infinity' WHERE edited_at IS NULL;
 
--- 2. Stamp now() for every write that does not carry a fresh sync edit time.
---    On UPDATE a writer that omits the column keeps OLD's value - so "unchanged"
---    also means "not a sync write" (a sync write never carries OLD's exact value).
-CREATE OR REPLACE FUNCTION sync_stamp_edited_at()
-RETURNS trigger
-LANGUAGE plpgsql
-SET search_path = public, pg_temp
-AS $$
-BEGIN
-  IF TG_OP = 'INSERT' THEN
-    IF NEW.edited_at IS NULL THEN NEW.edited_at := now(); END IF;
-  ELSIF NEW.edited_at IS NULL OR NEW.edited_at IS NOT DISTINCT FROM OLD.edited_at THEN
-    NEW.edited_at := now();
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
--- 3. Deletions record.
+-- 2. Deletions record.
 CREATE TABLE IF NOT EXISTS sync_tombstones (
   user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   table_name text NOT NULL,
@@ -75,6 +57,31 @@ CREATE TABLE IF NOT EXISTS sync_tombstones (
 ALTER TABLE sync_tombstones ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON sync_tombstones FROM anon, authenticated;
 
+-- 3. Stamp now() for every write that does not carry a fresh sync edit time.
+--    On UPDATE a writer that omits the column keeps OLD's value - so "unchanged"
+--    also means "not a sync write" (a sync write never carries OLD's exact value).
+CREATE OR REPLACE FUNCTION sync_stamp_edited_at()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.edited_at IS NULL THEN NEW.edited_at := now(); END IF;
+    -- The record exists again: forget its deletion - only once it really is
+    -- (re)inserted, so a write that then fails cannot lose the deletion record.
+    IF TG_TABLE_NAME <> 'user_settings' THEN
+      DELETE FROM sync_tombstones t
+      WHERE t.user_id = NEW.user_id AND t.table_name = TG_TABLE_NAME AND t.row_id = NEW.id;
+    END IF;
+  ELSIF NEW.edited_at IS NULL OR NEW.edited_at IS NOT DISTINCT FROM OLD.edited_at THEN
+    NEW.edited_at := now();
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION sync_record_tombstone()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -82,6 +89,11 @@ SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
 BEGIN
+  -- The whole account is being deleted (auth.users cascade): no record needed, and
+  -- inserting one would point at the user row being deleted.
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = OLD.user_id) THEN
+    RETURN OLD;
+  END IF;
   INSERT INTO sync_tombstones (user_id, table_name, row_id, deleted_at)
   VALUES (OLD.user_id, TG_TABLE_NAME, OLD.id, now())
   ON CONFLICT (user_id, table_name, row_id) DO UPDATE SET deleted_at = EXCLUDED.deleted_at;
@@ -89,6 +101,7 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION sync_record_tombstone() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION sync_stamp_edited_at() FROM PUBLIC, anon, authenticated;
 
 DO $$
 DECLARE t text;
@@ -160,9 +173,8 @@ BEGIN
     RETURN;
   END IF;
 
-  -- (Re)creating: the edit is newer than any deletion - forget the deletion.
-  DELETE FROM sync_tombstones t
-  WHERE t.user_id = v_user_id AND t.table_name = p_table AND t.row_id = p_row_id;
+  -- (Re)creating: the edit is newer than any deletion. The deletion record is
+  -- removed by the insert itself (sync_stamp_edited_at), not here.
   RETURN QUERY SELECT 'apply'::text, v_edit_at;
 END;
 $$;

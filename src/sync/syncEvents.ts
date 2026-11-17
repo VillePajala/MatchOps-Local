@@ -6,6 +6,13 @@
 export const GAME_REPLACED_BY_CLOUD_EVENT = 'matchops:game-replaced-by-cloud';
 
 /**
+ * Sync stored another device's newer copy of a non-game record on this device, or
+ * removed one deleted there (review 3.13b). Screens and caches must re-read, or a
+ * save from an open form would write the older copy back as a fresh edit.
+ */
+export const CLOUD_COPY_ADOPTED_EVENT = 'matchops:cloud-copy-adopted';
+
+/**
  * How many times a game's local copy has been replaced by the cloud copy in this tab
  * (per tab, like the app's other locks - see CLAUDE.md, multi-tab limitation).
  * A match loaded before a replacement holds the outdated game in memory: its saves must

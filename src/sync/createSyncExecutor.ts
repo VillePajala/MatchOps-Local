@@ -46,7 +46,7 @@ import {
 import logger from '@/utils/logger';
 import { ConflictError } from '@/interfaces/DataStoreErrors';
 
-import { GAME_REPLACED_BY_CLOUD_EVENT, markGameReplacedByCloud } from './syncEvents';
+import { CLOUD_COPY_ADOPTED_EVENT, GAME_REPLACED_BY_CLOUD_EVENT, markGameReplacedByCloud } from './syncEvents';
 import * as Sentry from '@sentry/nextjs';
 
 /** Optional hooks into the queue that owns the executor. */
@@ -92,7 +92,7 @@ interface SyncWriteAwareStore {
     table: SyncCheckedTable,
     rowId: string,
     editAgeMs: number,
-  ): Promise<{ verdict: 'apply' | 'stale' | 'deleted'; editedAt: string }>;
+  ): Promise<{ verdict: 'apply' | 'stale' | 'deleted'; editedAt: string } | null>;
 }
 const isSyncWriteAware = (store: unknown): store is SyncWriteAwareStore =>
   typeof (store as Partial<SyncWriteAwareStore>)?.checkSyncWrite === 'function';
@@ -261,10 +261,20 @@ export function createSyncExecutor(
    * checked on its own. The op completes either way: no retry loop.
    */
   const handleRefusedSyncWrite = async (verdict: 'stale' | 'deleted', op: SyncOperation): Promise<void> => {
-    const { entityType, entityId, data } = op;
+    const { entityType, entityId } = op;
     logger.info('[SyncExecutor] Cloud refused a queued write; the cloud copy wins', { entityType, entityId, verdict });
     if (!localStore) return;
     if (await isSuperseded(op)) return;
+    await adoptCloudOutcome(verdict, op);
+    // Open screens and caches still hold the older copy - re-read.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(CLOUD_COPY_ADOPTED_EVENT, { detail: { entityType, entityId } }));
+    }
+  };
+
+  const adoptCloudOutcome = async (verdict: 'stale' | 'deleted', op: SyncOperation): Promise<void> => {
+    if (!localStore) return;
+    const { entityType, entityId, data } = op;
 
     if (verdict === 'stale') {
       const cloudRecord = await cloudFetcher(entityType, entityId, data);
@@ -312,6 +322,10 @@ export function createSyncExecutor(
         }
         logger.info('[SyncExecutor] Deleted elsewhere but still used here - pushing it back', { entityType, entityId });
         await executeSyncOperation(cloudStore, op, localStore, () => isSuperseded(op));
+        if (entityType === 'team') {
+          // The cloud delete cascaded the team's roster rows: push this device's back.
+          await cloudStore.setTeamRoster(entityId, await localStore.getTeamRoster(entityId));
+        }
         return;
       }
       default:
@@ -335,12 +349,13 @@ export function createSyncExecutor(
       let writeStore: DataStore = cloudStore;
       const checkedTable = SYNC_CHECKED_TABLES[entityType];
       if (checkedTable && operation !== 'delete' && isSyncWriteAware(cloudStore)) {
+        // null: the database has no check yet (migration 059 not applied) - write unchecked.
         const check = await cloudStore.checkSyncWrite(checkedTable, entityId, Date.now() - op.timestamp);
-        if (check.verdict !== 'apply') {
+        if (check && check.verdict !== 'apply') {
           await handleRefusedSyncWrite(check.verdict, op);
           return;
         }
-        writeStore = withSyncWriteOptions(cloudStore, { editedAt: check.editedAt });
+        if (check) writeStore = withSyncWriteOptions(cloudStore, { editedAt: check.editedAt });
       }
 
       await executeSyncOperation(writeStore, op, localStore, () => isSuperseded(op));

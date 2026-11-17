@@ -19,7 +19,7 @@ import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useLaunchPullGate } from '@/hooks/useLaunchPullGate';
-import { GAME_REPLACED_BY_CLOUD_EVENT } from '@/sync/syncEvents';
+import { CLOUD_COPY_ADOPTED_EVENT, GAME_REPLACED_BY_CLOUD_EVENT } from '@/sync/syncEvents';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
@@ -1712,6 +1712,17 @@ export default function Home() {
     window.addEventListener(GAME_REPLACED_BY_CLOUD_EVENT, onGameReplaced);
     return () => window.removeEventListener(GAME_REPLACED_BY_CLOUD_EVENT, onGameReplaced);
   }, [showToast, t, queryClient, screen, enterMatch]);
+
+  // Sync stored another device's newer copy of a player/team/season/... (or removed
+  // one deleted there - review 3.13b): re-read, so an open form cannot save the
+  // older copy back as a fresh edit.
+  useEffect(() => {
+    const onCloudCopyAdopted = () => {
+      void queryClient.invalidateQueries();
+    };
+    window.addEventListener(CLOUD_COPY_ADOPTED_EVENT, onCloudCopyAdopted);
+    return () => window.removeEventListener(CLOUD_COPY_ADOPTED_EVENT, onCloudCopyAdopted);
+  }, [queryClient]);
 
   // Open a specific game (Home dashboard recent strip). Same level-crossing as
   // the Load Game modal: persist the id first, then freshly mount the match,

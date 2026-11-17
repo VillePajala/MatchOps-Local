@@ -3,7 +3,7 @@
  */
 
 import { createSyncExecutor } from '../createSyncExecutor';
-import { GAME_REPLACED_BY_CLOUD_EVENT, gameReplacementCount } from '../syncEvents';
+import { CLOUD_COPY_ADOPTED_EVENT, GAME_REPLACED_BY_CLOUD_EVENT, gameReplacementCount } from '../syncEvents';
 import type { AppState } from '@/types';
 import { AlreadyExistsError, ConflictError } from '@/interfaces/DataStoreErrors';
 import type { SyncOperation } from '../types';
@@ -470,6 +470,44 @@ describe('createSyncExecutor', () => {
       });
       await exec(createOperation({ entityType: 'player', entityId: 'p1', data: { id: 'p1' } }));
       expect(local.deletePlayer).not.toHaveBeenCalled();
+    });
+
+    it('passes the edit time to adjustment and settings writes too', async () => {
+      const adj = { id: 'a1', playerId: 'p1', gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0 };
+      await exec(createOperation({ entityType: 'playerAdjustment', entityId: 'a1', data: adj }));
+      expect(mockStore.upsertPlayerAdjustment).toHaveBeenCalledWith(adj, { editedAt: '2027-01-15T08:00:00.000Z' });
+      mockStore.saveSettings = jest.fn().mockResolvedValue(undefined);
+      await exec(createOperation({ entityType: 'settings', entityId: 'settings', data: { language: 'fi' } }));
+      expect(mockStore.saveSettings).toHaveBeenCalledWith({ language: 'fi' }, { editedAt: '2027-01-15T08:00:00.000Z' });
+    });
+
+    it('deleted adjustment: removed here using the op\'s playerId; screens are told to re-read', async () => {
+      checkSyncWrite.mockResolvedValue({ verdict: 'deleted', editedAt: 'x' });
+      local.deletePlayerAdjustment = jest.fn().mockResolvedValue(true);
+      const events: string[] = [];
+      const listener = (e: Event) => events.push(e.type);
+      window.addEventListener(CLOUD_COPY_ADOPTED_EVENT, listener);
+      await exec(createOperation({ entityType: 'playerAdjustment', entityId: 'a1', data: { id: 'a1', playerId: 'p1' } }));
+      window.removeEventListener(CLOUD_COPY_ADOPTED_EVENT, listener);
+      expect(local.deletePlayerAdjustment).toHaveBeenCalledWith('p1', 'a1');
+      expect(events).toEqual([CLOUD_COPY_ADOPTED_EVENT]);
+    });
+
+    it('a team deleted elsewhere but used here is pushed back with its roster', async () => {
+      checkSyncWrite.mockResolvedValue({ verdict: 'deleted', editedAt: 'x' });
+      local.getTeamReferences = jest.fn().mockResolvedValue({ canDelete: false, counts: { games: 1 }, summary: '' });
+      const roster = [{ id: 'p1', name: 'A' }];
+      local.getTeamRoster = jest.fn().mockResolvedValue(roster);
+      const team = { id: 't1', name: 'PK', createdAt: 'x', updatedAt: 'x' };
+      await exec(createOperation({ entityType: 'team', entityId: 't1', data: team }));
+      expect(mockStore.upsertTeam).toHaveBeenCalledWith(team);
+      expect(mockStore.setTeamRoster).toHaveBeenCalledWith('t1', roster);
+    });
+
+    it('no check in the database yet (null): the write goes through unchecked', async () => {
+      checkSyncWrite.mockResolvedValue(null);
+      await exec(createOperation({ entityType: 'player', entityId: 'p1', data: { id: 'p1', name: 'A' } }));
+      expect(mockStore.upsertPlayer).toHaveBeenCalledWith({ id: 'p1', name: 'A' });
     });
 
     it('deletes and unchecked entities are not checked', async () => {

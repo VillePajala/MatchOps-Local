@@ -6177,6 +6177,11 @@ describe('SupabaseDataStore', () => {
       expect(result).toEqual({ verdict: 'stale', editedAt: '2027-01-15T08:00:00+00:00' });
     });
 
+    it('returns null when the database has no check yet (function not found)', async () => {
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: null, error: { code: 'PGRST202', message: 'Could not find the function' } });
+      expect(await dataStore.checkSyncWrite('players', 'p1', 0)).toBeNull();
+    });
+
     it('rejects a malformed reply instead of guessing a verdict', async () => {
       (mockSupabaseClient.rpc as jest.Mock).mockResolvedValueOnce({ data: [{ verdict: 'maybe' }], error: null });
       await expect(dataStore.checkSyncWrite('players', 'p1', 0)).rejects.toThrow(ValidationError);

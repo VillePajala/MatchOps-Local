@@ -1165,13 +1165,13 @@ export class SupabaseDataStore implements DataStore {
    * offset cancels out. Returns 'apply' with that edit time (pass it to the upsert
    * as `editedAt`), 'stale' (another device made a newer edit) or 'deleted'
    * (another device deleted the record). Transient failures throw as usual - a
-   * network error is never read as a verdict.
+   * network error is never read as a verdict. null: the database has no check yet.
    */
   async checkSyncWrite(
     table: SyncCheckedTable,
     rowId: string,
     editAgeMs: number,
-  ): Promise<{ verdict: 'apply' | 'stale' | 'deleted'; editedAt: string }> {
+  ): Promise<{ verdict: 'apply' | 'stale' | 'deleted'; editedAt: string } | null> {
     this.ensureInitialized();
     checkOnline();
     const { data, error } = await this.withRetry(async () => {
@@ -1185,6 +1185,12 @@ export class SupabaseDataStore implements DataStore {
       throwIfTransient(result as never);
       return result;
     }, 'checkSyncWrite');
+    // The database does not have the check yet (migration 059 not applied - an app
+    // released before the migration): null = write unchecked, as before.
+    if (error && (error.code === 'PGRST202' || error.code === '42883')) {
+      logger.warn('[SupabaseDataStore] sync_write_check not available; sync writes go unchecked');
+      return null;
+    }
     if (error) this.classifyAndThrowError(error as never, 'checkSyncWrite');
     const row = (Array.isArray(data) ? data[0] : data) as { verdict?: string; edit_at?: string } | null;
     const verdict = row?.verdict;
