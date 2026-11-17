@@ -100,3 +100,25 @@ describe('PlayerSelectionSection - Select All', () => {
     expect(onSelectedPlayersChange).toHaveBeenCalledWith(['b', 'a']); // Aalto before Virta
   });
 });
+
+/** Review 7.L9: a search box once the picker list is long. */
+describe('PlayerSelectionSection - search', () => {
+  const many = Array.from({ length: 14 }, (_, i) => ({ id: `p${i}`, name: `Player ${String.fromCharCode(65 + i)}`, jerseyNumber: String(i + 1), isGoalie: false })) as Player[];
+
+  it('has no search box for a short list', () => {
+    render(<PlayerSelectionSection {...baseProps} />);
+    expect(screen.queryByTestId('player-picker-search')).not.toBeInTheDocument();
+  });
+
+  it('narrows a long list by name or shirt number; ticks still work', () => {
+    const onSelectedPlayersChange = jest.fn();
+    render(<PlayerSelectionSection {...baseProps} availablePlayers={many} onSelectedPlayersChange={onSelectedPlayersChange} />);
+    fireEvent.change(screen.getByTestId('player-picker-search'), { target: { value: '12' } });
+    expect(screen.getByText('Player L')).toBeInTheDocument();
+    expect(screen.queryByText('Player A')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: /Player L/ }));
+    expect(onSelectedPlayersChange).toHaveBeenCalledWith(['p11']);
+    fireEvent.change(screen.getByTestId('player-picker-search'), { target: { value: 'zzz' } });
+    expect(screen.getByTestId('player-picker-no-results')).toBeInTheDocument();
+  });
+});

@@ -4,6 +4,10 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
 import { sortPlayersByLastName } from '@/utils/gamePlayerList';
+import { matchesSearch, playerSearchFields } from '@/utils/listSearch';
+
+/** Longer lists than this get a search box. */
+const PICKER_SEARCH_THRESHOLD = 12;
 
 export interface PlayerSelectionSectionProps {
   availablePlayers: Player[];
@@ -91,6 +95,15 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
   const { t } = useTranslation();
   // Same order as the club roster list: by last name.
   const sortedPlayers = React.useMemo(() => sortPlayersByLastName(availablePlayers), [availablePlayers]);
+  // A search box once the list is long enough to scroll (review 7.L9): a squad is
+  // picked from a club roster of 50-100. It only narrows what is shown - ticks and
+  // "Select all" still work on every player.
+  const [query, setQuery] = React.useState('');
+  const showSearch = availablePlayers.length > PICKER_SEARCH_THRESHOLD;
+  const visiblePlayers = React.useMemo(
+    () => (showSearch && query.trim() ? sortedPlayers.filter((p) => matchesSearch(query, playerSearchFields(p))) : sortedPlayers),
+    [sortedPlayers, query, showSearch],
+  );
   const allSelected = availablePlayers.length > 0 && availablePlayers.every((p) => selectedPlayerIds.includes(p.id));
   const [newPlayerNickname, setNewPlayerNickname] = useState('');
   const [isAddingOpen, setIsAddingOpen] = useState(false);
@@ -155,10 +168,26 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
               <span className="ml-2">{selectAllText}</span>
             </label>
           </div>
+          {showSearch && (
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
+              aria-label={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
+              data-testid="player-picker-search"
+              className="w-full mb-2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          )}
           <div
             className={`space-y-1 overflow-y-auto pl-1 pr-1 pb-2 ${useFlexHeight ? 'flex-1 min-h-0' : 'max-h-60'}`}
           >
-            {sortedPlayers.map((player) => (
+            {showSearch && query.trim() && visiblePlayers.length === 0 && (
+              <p className="py-2 text-sm text-slate-400" data-testid="player-picker-no-results">
+                {t('rosterSettingsModal.noSearchResults', 'No player matches "{{search}}".', { search: query.trim() })}
+              </p>
+            )}
+            {visiblePlayers.map((player) => (
               <div key={player.id} className="flex items-center py-1.5 px-1 rounded hover:bg-slate-800/40 transition-colors">
                 <label className="flex items-center flex-1 cursor-pointer">
                   <input

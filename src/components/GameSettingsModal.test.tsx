@@ -707,6 +707,14 @@ describe('<GameSettingsModal />', () => {
       }
     });
 
+    /** Review 7.L9: Match details offers the opponent suggestions New Game does. */
+    it('offers opponent suggestions from the coach\'s pool', async () => {
+      renderModal({ ...defaultProps, opponentName: '', opponentPool: ['IPS Sininen', 'KuPS'] });
+      const chips = await screen.findByTestId('opponent-options');
+      expect(within(chips).getByText('IPS Sininen')).toBeInTheDocument();
+      expect(within(chips).getByText('KuPS')).toBeInTheDocument();
+    });
+
     it('scrolls to the requested section anchor on open; none without the prop', async () => {
       const scrollSpy = jest.fn();
       window.HTMLElement.prototype.scrollIntoView = scrollSpy;
