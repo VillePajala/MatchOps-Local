@@ -1311,6 +1311,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         tournamentLevel: gameData.tournamentLevel,
         tournamentSeriesId: gameData.tournamentSeriesId,
         wentToOvertime: gameData.wentToOvertime,
+        extraTimePeriods: gameData.extraTimePeriods,
+        extraTimeMinutes: gameData.extraTimeMinutes,
         wentToPenalties: gameData.wentToPenalties,
         shootoutKicks: gameData.shootoutKicks,
       };

@@ -5,6 +5,7 @@ import logger from '@/utils/logger';
 import { appStateSchema } from './appStateSchema';
 import { getDataStore } from '@/datastore';
 import { withKeyLock } from '@/utils/storageKeyLock';
+import { totalPeriods } from '@/utils/matchStructure';
 
 /**
  * One write queue per game for the writes made through this module (review 4.33b):
@@ -620,8 +621,10 @@ export const validateAndGetResumableGame = async (
       result.errors.push('Scores cannot be negative');
     }
 
-    if (game.currentPeriod < 1 || game.currentPeriod > game.numberOfPeriods) {
-      result.errors.push(`Invalid current period: ${game.currentPeriod} (must be between 1 and ${game.numberOfPeriods})`);
+    // Regulation plus any extra-time periods (review 11.1).
+    const lastPeriod = totalPeriods(game);
+    if (game.currentPeriod < 1 || game.currentPeriod > lastPeriod) {
+      result.errors.push(`Invalid current period: ${game.currentPeriod} (must be between 1 and ${lastPeriod})`);
     }
 
     if (game.periodDurationMinutes < 1 || game.periodDurationMinutes > 120) {

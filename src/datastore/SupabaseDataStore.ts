@@ -72,6 +72,10 @@ export type SyncCheckedTable =
   | 'players' | 'teams' | 'seasons' | 'tournaments' | 'personnel'
   | 'user_settings' | 'player_adjustments' | 'warmup_plans';
 
+/** Extra-time period count for the DB CHECK (0-2); anything else is none. */
+const normalizeExtraTimePeriods = (value: unknown): number =>
+  value === 1 || value === 2 ? value : 0;
+
 const editedAtColumn = (options?: SyncWriteOptions): { edited_at?: string } =>
   options?.editedAt ? { edited_at: options.editedAt } : {};
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
@@ -3248,6 +3252,10 @@ export class SupabaseDataStore implements DataStore {
         game_type: normalizeGameType(game.gameType),
         gender: normalizeGender(game.gender),
         went_to_overtime: game.wentToOvertime ?? false,
+        // Extra time (migrations 060/061): 0 = none; minutes NULL when none.
+        extra_time_periods: normalizeExtraTimePeriods(game.extraTimePeriods),
+        extra_time_minutes: normalizeExtraTimePeriods(game.extraTimePeriods) > 0 && Number.isFinite(game.extraTimeMinutes)
+          ? Math.round(game.extraTimeMinutes as number) : null,
         went_to_penalties: game.wentToPenalties ?? false,
         show_position_labels: game.showPositionLabels ?? true,
         // Penalty-shootout kicks (migration 032). Defensive: only persist an array.
@@ -3446,6 +3454,9 @@ export class SupabaseDataStore implements DataStore {
       gameType: normalizeGameType(game.game_type) ?? undefined,
       gender: normalizeGender(game.gender) ?? undefined,
       wentToOvertime: game.went_to_overtime ?? undefined,
+      // Legacy rows / no extra time read as absent (Rule 2: ?? undefined).
+      extraTimePeriods: game.extra_time_periods || undefined,
+      extraTimeMinutes: game.extra_time_minutes ?? undefined,
       wentToPenalties: game.went_to_penalties ?? undefined,
       showPositionLabels: game.show_position_labels ?? true,
       // Penalty-shootout kicks (migration 032). Defensive: only accept an array.

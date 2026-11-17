@@ -654,6 +654,8 @@ export function useGamePersistence({
         // game), so persist instantly — otherwise a recorded shootout wouldn't
         // save (auto-save only fires on the fields watched here).
         wentToOvertime: gameSessionState.wentToOvertime,
+        extraTimePeriods: gameSessionState.extraTimePeriods,
+        extraTimeMinutes: gameSessionState.extraTimeMinutes,
         wentToPenalties: gameSessionState.wentToPenalties,
         shootoutKicks: gameSessionState.shootoutKicks,
         // Save the clock when the timer STOPS/STARTS (isTimerRunning flips), not on

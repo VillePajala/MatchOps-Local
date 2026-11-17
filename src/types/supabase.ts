@@ -258,6 +258,8 @@ export type Database = {
           user_id: string
           version: number
           went_to_overtime: boolean
+          extra_time_periods: number
+          extra_time_minutes: number | null
           went_to_penalties: boolean
         }
         Insert: {
@@ -309,6 +311,8 @@ export type Database = {
           user_id: string
           version?: number
           went_to_overtime?: boolean
+          extra_time_periods?: number
+          extra_time_minutes?: number | null
           went_to_penalties?: boolean
         }
         Update: {
@@ -360,6 +364,8 @@ export type Database = {
           user_id?: string
           version?: number
           went_to_overtime?: boolean
+          extra_time_periods?: number
+          extra_time_minutes?: number | null
           went_to_penalties?: boolean
         }
         Relationships: [

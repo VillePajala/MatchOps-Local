@@ -95,10 +95,14 @@ export const appStateSchema = z.object({
     .min(1, 'Period duration must be at least 1 minute')
     .max(120, 'Period duration cannot exceed 120 minutes')
     .int('Period duration must be an integer'),
+  // Up to 4: two regulation periods + up to two extra-time periods (review 11.1). The
+  // exact bound against the game's own structure is checked in savedGames.
   currentPeriod: z.number()
     .min(1, 'Current period must be at least 1')
-    .max(2, 'Current period cannot exceed 2')
+    .max(4, 'Current period cannot exceed 4')
     .int('Current period must be an integer'),
+  extraTimePeriods: z.number().int().min(0).max(2).optional(),
+  extraTimeMinutes: z.number().min(1).max(60).optional(),
   gameStatus: z.enum(['notStarted', 'inProgress', 'periodEnd', 'gameEnd']),
   selectedPlayerIds: z.array(z.string()),
   assessments: z.record(z.string(), playerAssessmentSchema).optional(),

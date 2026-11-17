@@ -309,6 +309,13 @@ export interface AppState {
   gender?: Gender;
   /** Whether the game went to overtime/extra time (manual label; OT goals are logged as normal goals) */
   wentToOvertime?: boolean;
+  /**
+   * Extra time played as periods after regulation (review 11.1): 0/absent = none, 1 or 2.
+   * `numberOfPeriods` stays the regulation count. See utils/matchStructure.
+   */
+  extraTimePeriods?: number;
+  /** Length of each extra-time period, in minutes (with extraTimePeriods). */
+  extraTimeMinutes?: number;
   /** Whether the game was decided by penalty shootout (derived from shootoutKicks when present) */
   wentToPenalties?: boolean;
   /**

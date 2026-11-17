@@ -35,6 +35,13 @@ describe('appStateSchema', () => {
     expect(result.demandFactor).toBe(1);
   });
 
+  /** Review 11.1: a game in extra time (period 3-4) is valid; period 5 is not. */
+  it('accepts extra-time periods and their fields', () => {
+    expect(appStateSchema.safeParse({ ...valid, currentPeriod: 3, extraTimePeriods: 2, extraTimeMinutes: 15 }).success).toBe(true);
+    expect(appStateSchema.safeParse({ ...valid, currentPeriod: 5 }).success).toBe(false);
+    expect(appStateSchema.safeParse({ ...valid, extraTimePeriods: 3 }).success).toBe(false);
+  });
+
   it('fails for invalid data', () => {
     expect(() => appStateSchema.parse({ ...valid, homeScore: 'bad' })).toThrow();
   });
