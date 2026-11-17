@@ -11,6 +11,7 @@ import ShootoutModal from './ShootoutModal';
 import { getShootoutTally } from '@/utils/shootout';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
+import { useArchiveInclusiveLists, archivedCurrent } from '@/hooks/useArchiveInclusiveLists';
 import { UseMutationResult } from '@tanstack/react-query';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
@@ -359,6 +360,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       });
   }, [tournaments]);
 
+  // A game linked to a season/tournament/team archived later: show it in its select
+  // as "Name (Archived)" rather than an empty field (review 7.L3).
+  const { allSeasons, allTournaments, allTeams } = useArchiveInclusiveLists(isOpen);
+  const archivedSeason = archivedCurrent(seasonId, sortedSeasons, allSeasons);
+  const archivedTournament = archivedCurrent(tournamentId, sortedTournaments, allTournaments);
+  const archivedSuffix = ` (${t('teamManager.archivedLabel', 'Archived')})`;
+
   // Track if we've already applied season/tournament updates to prevent infinite loops.
   // Initialize with current prop values so prefill doesn't re-run for already-assigned
   // seasons/tournaments when opening game settings for existing games.
@@ -572,6 +580,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
   // State for team selection
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(teamId || null);
+  const archivedTeam = archivedCurrent(selectedTeamId, teams.filter((team) => !team.archived), allTeams);
   const teamSelectionRequestRef = useRef<number>(0); // Track current team selection request for race condition protection
 
   // League filter state (UI helpers only - not saved)
@@ -1322,6 +1331,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       {getTeamDisplayName(team, seasons, tournaments, { futsalLabel: t('common.futsal', 'Futsal') })}
                     </option>
                   ))}
+                  {archivedTeam && (
+                    <option value={archivedTeam.id}>
+                      {getTeamDisplayName(archivedTeam, seasons, tournaments, { futsalLabel: t('common.futsal', 'Futsal') })}{archivedSuffix}
+                    </option>
+                  )}
                 </select>
                 {selectedTeamId && (
                   <p className="mt-1 text-sm text-slate-400">
@@ -1594,6 +1608,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         {getSeasonDisplayName(season)}
                       </option>
                     ))}
+                    {archivedSeason && (
+                      <option value={archivedSeason.id}>{getSeasonDisplayName(archivedSeason)}{archivedSuffix}</option>
+                    )}
                   </select>
 
                   {/* League Selection - shows when season is selected */}
@@ -1732,6 +1749,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         {getTournamentDisplayName(tournament)}
                       </option>
                     ))}
+                    {archivedTournament && (
+                      <option value={archivedTournament.id}>{getTournamentDisplayName(archivedTournament)}{archivedSuffix}</option>
+                    )}
                   </select>
                 </div>
               )}

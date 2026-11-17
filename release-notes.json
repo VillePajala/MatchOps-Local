@@ -4,6 +4,15 @@
     {
       "date": "2026-11-17",
       "en": [
+        "Match details shows a game's league, tournament or team even after it was archived (marked \"Archived\") instead of an empty field, and New Game no longer offers archived plans."
+      ],
+      "fi": [
+        "Ottelun tiedot näyttävät ottelun sarjan, turnauksen tai joukkueen myös arkistoinnin jälkeen (merkintä \"Arkistoitu\") tyhjän kentän sijaan, eikä uusi ottelu enää tarjoa arkistoituja suunnitelmia."
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "en": [
         "Penalty shootout: the shooter list now offers only the match squad, like the other match lists."
       ],
       "fi": [
