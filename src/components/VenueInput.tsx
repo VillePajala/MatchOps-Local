@@ -6,6 +6,11 @@ import { HiOutlineMapPin, HiOutlinePlus } from 'react-icons/hi2';
 import { venuePinLabel, type VenueSuggestion } from '@/utils/venueSearch';
 import { matchVenues, isKnownVenue, type KnownVenue } from '@/utils/venueBook';
 import { useVenueSuggestions, VENUE_MIN_QUERY } from '@/hooks/useVenueSuggestions';
+import { labelStyle, sectionLabelStyle, fieldHintStyle } from '@/styles/modalStyles';
+
+/** The suggestion list under a venue field: a raised navy panel. */
+const dropdownStyle =
+  'absolute z-20 mt-1.5 w-full overflow-hidden rounded-2xl bg-surface-2 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)]';
 
 /**
  * The match location: two labelled fields, because it is two facts.
@@ -219,7 +224,7 @@ export const VenueInput: React.FC<VenueInputProps> = ({
   return (
     <div ref={containerRef} className="space-y-3">
       <div className="relative">
-        <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-300">
+        <label htmlFor={id} className={labelStyle}>
           {t('venueInput.nameLabel', 'Venue name (optional)')}
         </label>
         <input
@@ -249,9 +254,9 @@ export const VenueInput: React.FC<VenueInputProps> = ({
           <ul
             id={`${id}-own`}
             role="listbox"
-            className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-slate-600 bg-slate-800 shadow-lg"
+            className={dropdownStyle}
           >
-            <li role="presentation" className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <li role="presentation" className={`px-3.5 pb-1 pt-2.5 ${sectionLabelStyle}`}>
               {t('venueInput.yourVenues', 'Your venues')}
             </li>
             {ownVenues.map((venue, i) => (
@@ -264,19 +269,19 @@ export const VenueInput: React.FC<VenueInputProps> = ({
                     e.preventDefault();
                     pickKnown(venue);
                   }}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
-                    i === nameActive ? 'bg-slate-700 text-white' : 'text-slate-200 hover:bg-slate-700/70'
+                  className={`flex w-full min-h-11 items-center gap-2 px-3.5 py-2 text-left font-ui text-[15px] transition-colors ${
+                    i === nameActive ? 'bg-white/[0.08] text-ink' : 'text-ink-2 hover:bg-white/[0.05]'
                   }`}
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{venue.name}</span>
                     {venue.address ? (
-                      <span className="block truncate text-xs text-slate-400">{venue.address}</span>
+                      <span className="block truncate text-[13px] text-ink-3">{venue.address}</span>
                     ) : null}
                   </span>
                   {venue.latitude !== undefined ? (
                     <HiOutlineMapPin
-                      className="h-4 w-4 shrink-0 text-indigo-300"
+                      className="h-4 w-4 shrink-0 text-ink-3"
                       aria-label={t('venueInput.pinned', 'Pinned to a map location')}
                     />
                   ) : null}
@@ -292,13 +297,13 @@ export const VenueInput: React.FC<VenueInputProps> = ({
                     e.preventDefault();
                     keepTypedName();
                   }}
-                  className={`flex w-full items-center gap-2 border-t border-slate-700 px-3 py-2 text-left text-sm transition-colors ${
+                  className={`flex w-full min-h-11 items-center gap-2 border-t border-hairline px-3.5 py-2 text-left font-ui text-[15px] transition-colors ${
                     nameActive === ownVenues.length
-                      ? 'bg-slate-700 text-white'
-                      : 'text-slate-300 hover:bg-slate-700/70'
+                      ? 'bg-white/[0.08] text-ink'
+                      : 'text-ink-2 hover:bg-white/[0.05]'
                   }`}
                 >
-                  <HiOutlinePlus className="h-4 w-4 shrink-0 text-indigo-300" aria-hidden="true" />
+                  <HiOutlinePlus className="h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
                   <span className="truncate">
                     {t('venueInput.useTypedName', 'Use "{{name}}" as a new place', { name: typedName })}
                   </span>
@@ -359,7 +364,7 @@ const AddressField: React.FC<{
 
   return (
     <div className="relative">
-      <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-300">
+      <label htmlFor={id} className={labelStyle}>
         {t('venueInput.addressLabel', 'Street address (optional)')}
       </label>
       <div className="relative">
@@ -388,13 +393,13 @@ const AddressField: React.FC<{
           <span
             role="status"
             aria-label={t('venueInput.searching', 'Searching for places')}
-            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2"
+            className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2"
           >
-            <span className="block h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-indigo-300" />
+            <span className="block h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-ink-2" />
           </span>
         ) : hasCoordinates ? (
           <HiOutlineMapPin
-            className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-300"
+            className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3"
             aria-label={t('venueInput.pinned', 'Pinned to a map location')}
           />
         ) : null}
@@ -402,14 +407,14 @@ const AddressField: React.FC<{
 
       {/* Says what the pin is FOR. Without it, nothing on screen explains why
           picking a result matters more than typing one. */}
-      <p className="mt-1 text-xs text-slate-500">
+      <p className={fieldHintStyle}>
         {hasCoordinates
           ? t('venueInput.addressPinned', 'Directions will go straight here.')
           : t('venueInput.addressHint', 'Pick one from the list to get exact directions.')}
       </p>
 
       {nothingFound ? (
-        <p role="status" aria-live="polite" className="mt-1 text-xs text-slate-400">
+        <p role="status" aria-live="polite" className={fieldHintStyle}>
           {t('venueInput.addressNothing', 'No match for that address.')}
         </p>
       ) : null}
@@ -418,7 +423,7 @@ const AddressField: React.FC<{
         <ul
           id={`${id}-results`}
           role="listbox"
-          className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-slate-600 bg-slate-800 shadow-lg"
+          className={dropdownStyle}
         >
           {results.map((s) => (
             <li key={s.key} role="option" aria-selected={false}>
@@ -428,11 +433,11 @@ const AddressField: React.FC<{
                   e.preventDefault();
                   onPick(s);
                 }}
-                className="w-full px-3 py-2 text-left text-sm text-slate-200 transition-colors hover:bg-slate-700/70"
+                className="w-full min-h-11 px-3.5 py-2 text-left font-ui text-[15px] text-ink-2 transition-colors hover:bg-white/[0.05]"
               >
                 <span className="block truncate font-medium">{venuePinLabel(s)}</span>
                 {s.name !== venuePinLabel(s) ? (
-                  <span className="block truncate text-xs text-slate-400">{s.name}</span>
+                  <span className="block truncate text-[13px] text-ink-3">{s.name}</span>
                 ) : null}
               </button>
             </li>

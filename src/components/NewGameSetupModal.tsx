@@ -25,14 +25,33 @@ import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import { CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalSwitch } from '@/styles/modalStyles';
+import {
+  CollapsibleModalHeader,
+  useCollapsingHeader,
+  ModalStickyPrimary,
+  ModalSwitch,
+  modalContainerStyle,
+  cardStyle,
+  sectionLabelStyle,
+  labelStyle,
+  inputBaseStyle,
+  inputErrorStyle,
+  selectStyle,
+  fieldHintStyle,
+  fieldErrorStyle,
+  chipStyle,
+  secondaryButtonStyle,
+  segmentTrackStyle,
+  segmentStyle,
+  segmentSelectedStyle,
+} from '@/styles/modalStyles';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
 import { officialFieldSize } from '@/config/officialFieldSize';
 import { getStoredSetupAgeGroup, getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
 import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
-import { HiOutlineMapPin } from 'react-icons/hi2';
+import { HiOutlineMapPin, HiOutlineArrowPath } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
 import { teamMemberIds, activePlayers } from '@/utils/gamePlayerList';
@@ -1127,15 +1146,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
-      <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
-        {/* Background effects */}
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
-        <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
-
+      <div className={`${modalContainerStyle} relative h-full w-full`}>
         {/* Content wrapper */}
-        <div className="relative z-10 flex flex-col min-h-0">
+        <div className="relative z-10 flex flex-col min-h-0 h-full font-ui">
           {/* Modal-chrome slimming: X-header + pinned primary (Create) replace
               the header and the Cancel/Create footer. "Repeat last game"
               (utility) sits in the collapsing region below the title. */}
@@ -1147,12 +1160,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             collapse={headerCollapse}
           >
             {lastGame && (
-              <div className="px-4 pb-3 pt-1 backdrop-blur-sm bg-slate-900/20">
+              <div className="px-4 pb-3 pt-1">
                 <button
                   type="button"
                   onClick={handleRepeatLastGame}
-                  className="w-full px-4 py-2 rounded-md bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 text-sm font-medium border border-indigo-500/40 transition-colors"
+                  className={`${secondaryButtonStyle} w-full min-h-12`}
                 >
+                  <HiOutlineArrowPath className="w-[18px] h-[18px] text-action" aria-hidden="true" />
                   {t('newGameSetupModal.repeatLastGame', 'Repeat last game')}
                 </button>
               </div>
@@ -1160,30 +1174,32 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           </CollapsibleModalHeader>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4" onScroll={headerCollapse.onScroll}>
-            {/* CARD 1: Teams & Roster */}
-            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              {/* First-visit note INSIDE the card (audit #2: as a sibling it
-                  made space-y-4 defeat this card's -mt bleed, giving new users
-                  a different layout from everyone else). */}
-              <FirstVisitIntro
-                surface="game-setup"
-                text={t('firstVisit.gameSetup', 'Pick your team - a league or tournament can be added now or later.')}
-              />
-              <h3 className="text-lg font-semibold text-slate-200 mb-3">
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-2 pb-6 space-y-6" onScroll={headerCollapse.onScroll}>
+            {/* First-visit note above the first section (the old cards' negative
+                margins that once made its placement matter are gone). */}
+            <FirstVisitIntro
+              surface="game-setup"
+              text={t('firstVisit.gameSetup', 'Pick your team - a league or tournament can be added now or later.')}
+            />
+            {/* SECTION 1: Teams & Roster - a section label over one solid
+                list surface; the player and personnel pickers follow as their
+                own lists instead of nesting inside this card. */}
+            <section>
+              <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>
                 {t('newGameSetupModal.teamsAndRosterLabel', 'Teams & Roster')}
               </h3>
+              <div className={`${cardStyle} space-y-4`}>
 
               {/* Team Selection */}
-              <div className="mb-4">
-                <label htmlFor="teamSelectTop" className="block text-sm font-medium text-slate-300 mb-1">
+              <div>
+                <label htmlFor="teamSelectTop" className={labelStyle}>
                   {t('newGameSetupModal.selectTeamLabel', 'Select Team')}
                 </label>
                 <select
                   id="teamSelectTop"
                   value={selectedTeamId || ''}
                   onChange={(e) => handleTeamSelection(e.target.value || null)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                  className={selectStyle}
                 >
                   <option value="">
                     {t('newGameSetupModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
@@ -1195,12 +1211,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   ))}
                 </select>
                 {selectedTeamId && (
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className={fieldHintStyle}>
                     {t('newGameSetupModal.teamSelectedNote', 'Player roster will be loaded from selected team.')}
                   </p>
                 )}
                 {!selectedTeamId && (
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className={fieldHintStyle}>
                     {teams.some((team) => !team.archived)
                       ? t('newGameSetupModal.selectTeamTip', 'Tip: pick a team to auto-fill its roster and linked competition.')
                       : t('newGameSetupModal.masterRosterNote', 'Using master roster - all players available.')}
@@ -1209,7 +1225,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               </div>
 
               {/* Team & Opponent Names */}
-              <div className="mb-4">
+              <div>
                 <TeamOpponentInputs
                   teamName={homeTeamName}
                   opponentName={opponentName}
@@ -1233,7 +1249,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                        invitation to curate. */
                     adoptedOver && onRenameOpponent ? (
                       <div className="mt-2" data-testid="opponent-adopted-notice">
-                        <p className="text-xs text-slate-400">
+                        <p className="text-[13px] leading-snug text-ink-3">
                           {t(
                             'newGameSetupModal.opponentAdopted',
                             'Changed to “{{adopted}}”, the spelling you have used before.',
@@ -1245,7 +1261,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           onClick={handleKeepTypedSpelling}
                           disabled={keepingTyped}
                           data-testid="opponent-keep-typed"
-                          className="mt-1.5 px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-100 text-xs font-semibold shadow-sm transition-colors disabled:opacity-50"
+                          className={`${chipStyle} mt-2`}
                         >
                           {keepingTyped
                             ? t('newGameSetupModal.keepSpellingWorking', 'Changing…')
@@ -1260,7 +1276,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         onClick={handleAddOpponentToSeason}
                         disabled={addingOpponent}
                         data-testid="opponent-add-to-season"
-                        className="mt-2 px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-100 text-xs font-semibold shadow-sm transition-colors disabled:opacity-50"
+                        className={`${chipStyle} mt-2.5`}
                       >
                         {t('newGameSetupModal.addOpponentToSeason', 'Add to this league')}
                       </button>
@@ -1271,15 +1287,15 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
               {/* Prefill from a Playing-Time Planner plan (optional) */}
               {playtimePlans.length > 0 && (
-                <div className="mb-4">
-                  <label htmlFor="prefillPlanSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                <div>
+                  <label htmlFor="prefillPlanSelect" className={labelStyle}>
                     {t('newGameSetupModal.prefillFromPlanLabel', 'Prefill from plan (optional)')}
                   </label>
                   <select
                     id="prefillPlanSelect"
                     value={prefillPlanId}
                     onChange={(e) => handlePrefillPlanChange(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    className={selectStyle}
                   >
                     <option value="">{t('newGameSetupModal.prefillNoPlan', 'No plan')}</option>
                     {playtimePlans.map((plan) => (
@@ -1293,7 +1309,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                       aria-label={t('newGameSetupModal.prefillGameLabel', 'Plan game')}
                       value={prefillGameId}
                       onChange={(e) => handlePrefillGameChange(e.target.value)}
-                      className="mt-2 w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                      className={`${selectStyle} mt-2`}
                     >
                       <option value="">{t('newGameSetupModal.prefillChooseGame', 'Choose a game…')}</option>
                       {(playtimePlans.find((p) => p.id === prefillPlanId)?.games ?? []).map((g) => (
@@ -1304,7 +1320,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     </select>
                   )}
                   {prefillMissingCount > 0 && (
-                    <p className="mt-1 text-sm text-amber-400">
+                    <p className={fieldHintStyle}>
                       {t('newGameSetupModal.prefillMissingPlayers', '{{count}} planned players are not in this roster and were skipped.', {
                         count: prefillMissingCount,
                       })}
@@ -1312,6 +1328,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   )}
                 </div>
               )}
+
+              </div>
+            </section>
 
               {/* Player Selection */}
               <PlayerSelectionSection
@@ -1360,47 +1379,38 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 onSelectedPersonnelChange={setSelectedPersonnelIds}
                 title={t('newGameSetupModal.selectPersonnel', 'Select Personnel (Coaches, Trainers, etc.)')}
               />
-            </div>
 
-            {/* CARD 2: Game Details */}
-            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              <h3 className="text-lg font-semibold text-slate-200 mb-3">
+            {/* SECTION 2: Game Details */}
+            <section>
+              <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>
                 {t('newGameSetupModal.gameDetailsLabel', 'Game Details')}
               </h3>
+              <div className={`${cardStyle} space-y-4`}>
 
               {/* Game Type Tabs */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+              <div>
+                <label className={labelStyle}>
                   {t('gameSettingsModal.gameTypeLabel', 'Link to Competition')}
                 </label>
-                <div className="flex gap-2">
+                <div className={segmentTrackStyle}>
                         <button
                           onClick={() => handleTabChange('none')}
-                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            activeTab === 'none'
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                          }`}
+                          aria-pressed={activeTab === 'none'}
+                          className={activeTab === 'none' ? segmentSelectedStyle : segmentStyle}
                         >
                           {t('gameSettingsModal.eiMitaan', 'None')}
                         </button>
                         <button
                           onClick={() => handleTabChange('season')}
-                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            activeTab === 'season'
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                          }`}
+                          aria-pressed={activeTab === 'season'}
+                          className={activeTab === 'season' ? segmentSelectedStyle : segmentStyle}
                         >
                           {t('gameSettingsModal.kausi', 'League')}
                         </button>
                         <button
                           onClick={() => handleTabChange('tournament')}
-                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            activeTab === 'tournament'
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                          }`}
+                          aria-pressed={activeTab === 'tournament'}
+                          className={activeTab === 'tournament' ? segmentSelectedStyle : segmentStyle}
                         >
                           {t('gameSettingsModal.turnaus', 'Tournament')}
                         </button>
@@ -1409,12 +1419,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
                       {/* Season Selection */}
                       {activeTab === 'season' && (
-                        <div className="mb-4">
+                        <div>
                           <select
                             id="seasonSelect"
                             value={selectedSeasonId || ''}
                             onChange={handleSeasonChange}
-                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                            className={selectStyle}
                           >
                             <option value="">{t('newGameSetupModal.selectSeason', '-- Select League --')}</option>
                             {sortedSeasons.map((season) => (
@@ -1427,7 +1437,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           {/* League Selection - shows when season is selected */}
                           {selectedSeasonId && (
                             <div className="mt-3">
-                              <label htmlFor="leagueSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                              <label htmlFor="leagueSelect" className={labelStyle}>
                                 {t('newGameSetupModal.leagueLabel', 'Official league')}
                               </label>
                               {/* The Level/Area filters Match details has (review 7.L11). */}
@@ -1452,9 +1462,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                     onChange={(e) => { setCustomLeagueName(e.target.value); if (customLeagueError) setCustomLeagueError(null); }}
                                     onKeyDown={handleKeyDown}
                                     placeholder={t('newGameSetupModal.customLeaguePlaceholder', 'Enter the official league name')}
-                                    className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${customLeagueError ? 'border-red-500' : 'border-slate-600'}`}
+                                    className={`${inputBaseStyle} ${customLeagueError ? inputErrorStyle : ''}`}
                                   />
-                                  {customLeagueError && <p className="mt-1 text-sm text-red-400">{customLeagueError}</p>}
+                                  {customLeagueError && <p className={fieldErrorStyle}>{customLeagueError}</p>}
                                 </div>
                               )}
                             </div>
@@ -1464,12 +1474,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
                       {/* Tournament Selection */}
                       {activeTab === 'tournament' && (
-                        <div className="mb-4">
+                        <div>
                           <select
                             id="tournamentSelect"
                             value={selectedTournamentId || ''}
                             onChange={handleTournamentChange}
-                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                            className={selectStyle}
                           >
                             <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
                             {sortedTournaments.map((tournament) => (
@@ -1480,7 +1490,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           </select>
                           {selectedTournament && (
                             <div className="mt-2">
-                              <label htmlFor="tournamentLevelInput" className="block text-sm font-medium text-slate-300 mb-1">
+                              <label htmlFor="tournamentLevelInput" className={labelStyle}>
                                 {hasSeries
                                   ? t('newGameSetupModal.seriesLabel', 'Series')
                                   : t('newGameSetupModal.levelLabel', 'Level')}
@@ -1498,7 +1508,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                     setTournamentLevel(series?.level || '');
                                   }}
                                   onKeyDown={handleKeyDown}
-                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                  className={selectStyle}
                                 >
                                   <option value="">{t('common.selectSeries', '-- Select level --')}</option>
                                   {validSeries.map((series) => (
@@ -1514,7 +1524,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                   value={tournamentLevel}
                                   onChange={(e) => setTournamentLevel(e.target.value)}
                                   onKeyDown={handleKeyDown}
-                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                  className={selectStyle}
                                 >
                                   <option value="">{t('common.none', 'None')}</option>
                                   {LEVELS.map((lvl) => (
@@ -1530,8 +1540,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                       )}
 
               {/* Age Group */}
-                      <div className="mb-4">
-                        <label htmlFor="ageGroupSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                      <div>
+                        <label htmlFor="ageGroupSelect" className={labelStyle}>
                           {t('newGameSetupModal.ageGroupLabel', 'Age Group (Optional)')}
                         </label>
                         <select
@@ -1539,7 +1549,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           value={ageGroup}
                           onChange={(e) => setAgeGroup(e.target.value)}
                           onKeyDown={handleKeyDown}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                          className={selectStyle}
 
                         >
                           <option value="">{t('common.none', 'None')}</option>
@@ -1552,30 +1562,24 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                       </div>
 
               {/* Sport Type (Soccer/Futsal) */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+              <div>
+                <label className={labelStyle}>
                   {t('common.gameTypeLabel', 'Sport Type')}
                 </label>
-                <div className="flex gap-2">
+                <div className={segmentTrackStyle}>
                   <button
                     type="button"
                     onClick={() => setGameType('soccer')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gameType === 'soccer'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gameType === 'soccer'}
+                    className={gameType === 'soccer' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.gameTypeSoccer', 'Soccer')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setGameType('futsal')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gameType === 'futsal'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gameType === 'futsal'}
+                    className={gameType === 'futsal' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.gameTypeFutsal', 'Futsal')}
                   </button>
@@ -1584,8 +1588,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
               {/* Formation (owner round 2): choose the starting shape; options
                   follow the squad size selected above. */}
-              <div className="mb-4">
-                <label htmlFor="formationSelect" className="block text-sm font-medium text-slate-300 mb-1">
+              <div>
+                <label htmlFor="formationSelect" className={labelStyle}>
                   {t('newGameSetupModal.formationLabel', 'Formation')}
                 </label>
                 <select
@@ -1601,7 +1605,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                       : getDefaultPresetIdForSize(preferredFormationSize)
                   }
                   onChange={(e) => setFormationPresetId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                  className={selectStyle}
                 >
                   {FIELD_SIZES.map((size) => (
                     <optgroup key={size} label={size}>
@@ -1619,7 +1623,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 </select>
                 {formatMismatch && (
                   <p
-                    className="mt-1.5 text-xs text-amber-200/90"
+                    className={fieldHintStyle}
                     data-testid="format-nudge"
                   >
                     {t(
@@ -1632,41 +1636,32 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               </div>
 
               {/* Gender (Boys/Girls) */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+              <div>
+                <label className={labelStyle}>
                   {t('common.genderLabel', 'Gender')}
                 </label>
-                <div className="flex gap-2">
+                <div className={segmentTrackStyle}>
                   <button
                     type="button"
                     onClick={() => setGender(undefined)}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === undefined
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gender === undefined}
+                    className={gender === undefined ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.genderNotSet', 'Not Set')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setGender('boys')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === 'boys'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gender === 'boys'}
+                    className={gender === 'boys' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.genderBoys', 'Boys')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setGender('girls')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === 'girls'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gender === 'girls'}
+                    className={gender === 'girls' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.genderGirls', 'Girls')}
                   </button>
@@ -1674,8 +1669,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               </div>
 
                       {/* Game Date */}
-                      <div className="mb-6">
-                        <label htmlFor="gameDateInput" className="block text-sm font-medium text-slate-300 mb-2">
+                      <div>
+                        <label htmlFor="gameDateInput" className={labelStyle}>
                           {t('newGameSetupModal.gameDateLabel', 'Game Date')}
                         </label>
                         <input
@@ -1685,14 +1680,14 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           value={gameDate}
                           onChange={(e) => setGameDate(e.target.value)}
                           onKeyDown={handleKeyDown}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                          className={`${inputBaseStyle} [color-scheme:dark]`}
                           autoComplete="off"
 
                         />
                       </div>
 
                       {/* Game Location */}
-                      <div className="mb-4">
+                      <div>
                         {/* No label here: VenueInput is TWO labelled fields -
                             the name and the street address - and a heading over
                             both would only re-introduce the ambiguity about
@@ -1707,7 +1702,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           knownVenues={knownVenues}
                           onChange={handleVenueChange}
                           onKeyDown={handleKeyDown}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                          className={inputBaseStyle}
                         />
                         {/* Confirm the venue resolves BEFORE the drive, which is
                             the only moment it can still be corrected cheaply. */}
@@ -1716,9 +1711,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             href={locationMapUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="mt-1 inline-flex items-center gap-1 text-xs text-indigo-300 hover:text-indigo-200 hover:underline"
+                            className="mt-1 inline-flex items-center gap-1.5 min-h-11 rounded font-ui text-sm font-semibold text-ink-2 underline-offset-[3px] hover:text-ink hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                           >
-                            <HiOutlineMapPin className="w-3.5 h-3.5" aria-hidden="true" />
+                            <HiOutlineMapPin className="w-4 h-4 text-ink-3" aria-hidden="true" />
                             {t('common.checkOnMap', 'Check on map')}
                           </a>
                         ) : null}
@@ -1727,8 +1722,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                       {/* Pitch. Its own field because the venue above is what a
                           map searches for, and "TN 2" is exactly what stops one
                           finding it - see migration 047. */}
-                      <div className="mb-4">
-                        <label htmlFor="fieldNumberInput" className="block text-sm font-medium text-slate-300 mb-1">
+                      <div>
+                        <label htmlFor="fieldNumberInput" className={labelStyle}>
                           {t('newGameSetupModal.fieldNumberLabel', 'Pitch (optional)')}
                         </label>
                         <input
@@ -1738,16 +1733,16 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           onChange={(e) => setFieldNumber(e.target.value)}
                           onKeyDown={handleKeyDown}
                           placeholder={t('newGameSetupModal.fieldNumberPlaceholder', 'e.g., TN 2')}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                          className={inputBaseStyle}
                         />
                       </div>
 
                       {/* Game Time */}
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                      <div>
+                        <label className={labelStyle}>
                           {t('newGameSetupModal.gameTimeLabel', 'Time (Optional)')}
                         </label>
-                        <div className="flex items-center space-x-3 max-w-xs">
+                        <div className="flex items-center gap-2.5 max-w-[220px]">
                           <input
                             type="text"
                             inputMode="numeric"
@@ -1757,7 +1752,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             onChange={handleHourChange}
                             onKeyDown={handleKeyDown}
                             placeholder={t('newGameSetupModal.hourPlaceholder', 'HH')}
-                            className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
+                            className={`${inputBaseStyle} min-w-0 flex-1 text-center tabular-nums`}
                             autoComplete="off"
                             autoCorrect="off"
                             autoCapitalize="off"
@@ -1765,7 +1760,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
                             onFocus={(e) => e.target.select()}
                           />
-                          <span className="text-slate-400 font-mono">:</span>
+                          <span aria-hidden="true" className="font-ui text-lg font-semibold text-ink-3">:</span>
                           <input
                             type="text"
                             inputMode="numeric"
@@ -1775,7 +1770,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             onChange={handleMinuteChange}
                             onKeyDown={handleKeyDown}
                             placeholder={t('newGameSetupModal.minutePlaceholder', 'MM')}
-                            className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
+                            className={`${inputBaseStyle} min-w-0 flex-1 text-center tabular-nums`}
                             autoComplete="off"
                             autoCorrect="off"
                             autoCapitalize="off"
@@ -1787,51 +1782,47 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                       </div>
 
               {/* Home/Away Selection */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+              <div>
+                <label className={labelStyle}>
                   {t('newGameSetupModal.homeOrAwayLabel', 'Your Team is')}
                 </label>
-                <div className="flex gap-2">
+                <div className={segmentTrackStyle}>
                   <button
                     onClick={() => setLocalHomeOrAway('home')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      localHomeOrAway === 'home'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={localHomeOrAway === 'home'}
+                    className={localHomeOrAway === 'home' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.home', 'Home')}
                   </button>
                   <button
                     onClick={() => setLocalHomeOrAway('away')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      localHomeOrAway === 'away'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={localHomeOrAway === 'away'}
+                    className={localHomeOrAway === 'away' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.away', 'Away')}
                   </button>
                 </div>
               </div>
-            </div>
+              </div>
+            </section>
 
-            {/* CARD 3: Pelin asetukset (Game Configuration) */}
-            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              <h3 className="text-lg font-semibold text-slate-200 mb-3">
+            {/* SECTION 3: Pelin asetukset (Game Configuration) */}
+            <section>
+              <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>
                 {t('newGameSetupModal.gameConfigLabel', 'Game Configuration')}
               </h3>
+              <div className={`${cardStyle} space-y-4`}>
 
               {/* Number of Periods */}
-              <div className="mb-4">
-                <label htmlFor="numPeriodsSelect" className="block text-sm font-medium text-slate-300 mb-1">
+              <div>
+                <label htmlFor="numPeriodsSelect" className={labelStyle}>
                   {t('newGameSetupModal.numPeriodsLabel', 'Number of Periods')}
                 </label>
                 <select
                   id="numPeriodsSelect"
                   value={localNumPeriods}
                   onChange={(e) => setLocalNumPeriods(parseInt(e.target.value) as 1 | 2)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                  className={selectStyle}
                 >
                   <option value={1}>{t('newGameSetupModal.periodOptionOne', '1')}</option>
                   <option value={2}>{t('newGameSetupModal.periodOptionTwo', '2')}</option>
@@ -1839,8 +1830,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               </div>
 
               {/* Period Duration */}
-              <div className="mb-4">
-                <label htmlFor="periodDurationInput" className="block text-sm font-medium text-slate-300 mb-1">
+              <div>
+                <label htmlFor="periodDurationInput" className={labelStyle}>
                   {t('newGameSetupModal.periodDurationLabel', 'Period Duration (minutes)')}
                 </label>
                 <input
@@ -1858,14 +1849,14 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     }
                     if (periodDurationError) setPeriodDurationError(null);
                   }}
-                  className={`w-full max-w-xs px-3 py-2 bg-slate-700 border rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${periodDurationError ? 'border-red-500' : 'border-slate-600'}`}
+                  className={`${inputBaseStyle} max-w-[160px] ${periodDurationError ? inputErrorStyle : ''}`}
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck="false"
                   placeholder="15"
                 />
-                {periodDurationError && <p className="mt-1 text-sm text-red-400">{periodDurationError}</p>}
+                {periodDurationError && <p className={fieldErrorStyle}>{periodDurationError}</p>}
               </div>
 
               {/* The demand-level slider used to sit here. Only the assessment
@@ -1874,19 +1865,20 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   data model and the props so old games and callers are untouched. */}
 
               {/* Not Played Yet toggle */}
-              <div className="mb-4">
+              <div>
                 <ModalSwitch checked={!isPlayed} onToggle={() => setIsPlayed(v => !v)}>
                   {t('newGameSetupModal.unplayedToggle', 'Not played yet')}
                 </ModalSwitch>
               </div>
 
               {/* Friendly / practice match toggle */}
-              <div className="mb-4">
+              <div>
                 <ModalSwitch checked={isFriendly} onToggle={() => setIsFriendly(v => !v)} hint={t('newGameSetupModal.friendlyHint', 'Kept out of competitive stats')}>
                   {t('newGameSetupModal.friendlyToggle', 'Friendly match')}
                 </ModalSwitch>
               </div>
-            </div>
+              </div>
+            </section>
           </div>
 
           {/* Chrome slimming: the ONE commit action as a sticky bottom bar

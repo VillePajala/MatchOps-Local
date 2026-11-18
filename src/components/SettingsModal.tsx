@@ -18,7 +18,27 @@ import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
 // backendConfig import removed — migration flag is now handled entirely by importFullBackup
 import { useAuth } from '@/contexts/AuthProvider';
-import { CollapsibleModalHeader, useCollapsingHeader, modalContainerStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+import {
+  CollapsibleModalHeader,
+  useCollapsingHeader,
+  modalContainerStyle,
+  secondaryButtonStyle,
+  dangerButtonStyle,
+  groupedListStyle,
+  listRowStyle,
+  sectionLabelStyle,
+  inputBaseStyle,
+  labelStyle,
+  subtextStyle,
+  inlineFieldStyle,
+  inlineSelectStyle,
+  switchInputStyle,
+  segmentTrackStyle,
+  segmentStyle,
+  segmentSelectedStyle,
+  linkStyle,
+  pillAmberStyle,
+} from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE } from '@/utils/appSettings';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
@@ -55,36 +75,32 @@ function MarketingConsentToggle() {
   };
 
   return (
-    <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <h3 className="text-lg font-semibold text-slate-200">
+    <section className="space-y-2">
+      <h3 className={`${sectionLabelStyle} px-1`}>
         {t('marketingConsent.settingsTitle', 'Email Preferences')}
       </h3>
-      <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-slate-200">
-            {t('marketingConsent.settingsLabel', 'Product updates & tips')}
-          </p>
-          <p className="text-sm text-slate-400">
-            {t('marketingConsent.settingsDescription', 'Receive occasional emails about new features, tips, and announcements.')}
-          </p>
-        </div>
-        <button
-          onClick={handleToggle}
-          disabled={isUpdating}
-          role="switch"
-          aria-checked={isGranted}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 ${
-            isGranted ? 'bg-indigo-600' : 'bg-slate-600'
-          }`}
-        >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              isGranted ? 'translate-x-6' : 'translate-x-1'
-            }`}
+      <div className={groupedListStyle}>
+        <div className={`${listRowStyle} py-3 pr-4`}>
+          <div className="flex-1 min-w-0">
+            <label htmlFor="marketing-consent-toggle" className="block font-ui text-base font-medium text-ink cursor-pointer">
+              {t('marketingConsent.settingsLabel', 'Product updates & tips')}
+            </label>
+            <p className={`${subtextStyle} mt-1`}>
+              {t('marketingConsent.settingsDescription', 'Receive occasional emails about new features, tips, and announcements.')}
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            role="switch"
+            id="marketing-consent-toggle"
+            checked={isGranted}
+            onChange={handleToggle}
+            disabled={isUpdating}
+            className={switchInputStyle}
           />
-        </button>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -592,18 +608,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const getTabStyle = (tab: SettingsTab) => {
-    const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors';
-    if (activeTab === tab) {
-      return `${baseStyle} bg-indigo-600 text-white`;
-    }
-    return `${baseStyle} bg-slate-700 text-slate-300 hover:bg-slate-600`;
-  };
-
-
-  const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
-  const inputStyle =
-    'block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white';
+  const inputStyle = inputBaseStyle;
+  const rowIconButton = 'inline-flex items-center justify-center min-h-11 min-w-11 rounded-full s1-ghost text-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
   const feedbackSubject = t('settingsModal.feedbackEmailSubject', 'MatchOps feedback');
   const feedbackBody = t(
     'settingsModal.feedbackEmailBody',
@@ -645,11 +651,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'Settings')}>
-      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full`}>
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
-        <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
+      <div className={`${modalContainerStyle} relative overflow-hidden h-full w-full`}>
 
         <div className="relative z-10 flex flex-col h-full">
           {/* Chrome slimming: X-header + collapsing tab strip; close-only
@@ -660,35 +662,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             closeLabel={t('settingsModal.doneButton', 'Done')}
             collapse={headerCollapse}
           >
-          {/* Tab Navigation */}
-          <div className="flex w-full gap-2 px-6 py-3 bg-slate-900/50 flex-shrink-0">
-            <button onClick={() => setActiveTab('general')} className={`${getTabStyle('general')} flex-1`} aria-pressed={activeTab === 'general'}>
-              {t('settingsModal.tabs.general', 'General')}
-            </button>
-            <button onClick={() => setActiveTab('data')} className={`${getTabStyle('data')} flex-1`} aria-pressed={activeTab === 'data'}>
-              {t('settingsModal.tabs.data', 'Data')}
-            </button>
-            <button onClick={() => setActiveTab('account')} className={`${getTabStyle('account')} flex-1`} aria-pressed={activeTab === 'account'}>
-              {t('settingsModal.tabs.account', 'Account')}
-            </button>
-            <button onClick={() => setActiveTab('about')} className={`${getTabStyle('about')} flex-1`} aria-pressed={activeTab === 'about'}>
-              {t('settingsModal.tabs.about', 'About')}
-            </button>
+          {/* Tab Navigation: one segmented control */}
+          <div className="px-4 pt-1 pb-3">
+            <div className={segmentTrackStyle}>
+              {([
+                ['general', t('settingsModal.tabs.general', 'General')],
+                ['data', t('settingsModal.tabs.data', 'Data')],
+                ['account', t('settingsModal.tabs.account', 'Account')],
+                ['about', t('settingsModal.tabs.about', 'About')],
+              ] as [SettingsTab, string][]).map(([tab, label]) => (
+                <button key={tab} onClick={() => setActiveTab(tab)} className={activeTab === tab ? segmentSelectedStyle : segmentStyle} aria-pressed={activeTab === tab}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
           </CollapsibleModalHeader>
 
-          <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-4" onScroll={headerCollapse.onScroll}>
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-2 pb-6 space-y-5" onScroll={headerCollapse.onScroll}>
             {/* General Tab - App preferences and season settings */}
             {activeTab === 'general' && (
             <>
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-2">
-              <h3 className="text-lg font-semibold text-slate-200 mb-3">
+            <section className="space-y-2">
+              <h3 className={`${sectionLabelStyle} px-1`}>
                 {t('settingsModal.preferencesTitle', 'Preferences')}
               </h3>
+              <div className={groupedListStyle}>
               {/* Language */}
-              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-200">
+              <div className={`${listRowStyle} py-3 pr-4`}>
+                <div className="flex-1 min-w-0">
+                  <p className="font-ui text-base font-medium text-ink">
                     {t('settingsModal.languageLabel', 'Language')}
                   </p>
                 </div>
@@ -696,7 +699,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   id="language-select"
                   value={language}
                   onChange={(e) => onLanguageChange(e.target.value)}
-                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={inlineSelectStyle}
                 >
                   <option value="en">English</option>
                   <option value="fi">Suomi</option>
@@ -705,32 +708,33 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* Player assessments: off by default (owner decision 2026-09-09).
                   Ratings already recorded are kept; the style and metric
                   choices below only matter while this is on. */}
-              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
-                <div className="flex-1">
-                  <label htmlFor="assessments-enabled-toggle" className="block text-sm font-medium text-slate-200 cursor-pointer">
+              <div className={`${listRowStyle} py-3 pr-4`}>
+                <div className="flex-1 min-w-0">
+                  <label htmlFor="assessments-enabled-toggle" className="block font-ui text-base font-medium text-ink cursor-pointer">
                     {t('settingsModal.assessmentsEnabledLabel', 'Player assessments')}
                   </label>
-                  <p className="text-sm text-slate-400">
+                  <p className={`${subtextStyle} mt-1`}>
                     {t('settingsModal.assessmentsEnabledHint', 'Rate players after each game on a set of qualities. Off by default. Ratings you have already made are kept either way.')}
                   </p>
                 </div>
                 <input
                   type="checkbox"
+                  role="switch"
                   id="assessments-enabled-toggle"
                   checked={assessmentsEnabled}
                   onChange={(e) => handleAssessmentsEnabledChange(e.target.checked)}
                   aria-label={t('settingsModal.assessmentsEnabledLabel', 'Player assessments')}
-                  className="w-5 h-5 rounded border-slate-500 bg-slate-700 text-indigo-600 focus:ring-indigo-500"
+                  className={switchInputStyle}
                 />
               </div>
               {assessmentsEnabled && (<>
               {/* Assessment rating style */}
-              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-200">
+              <div className={`${listRowStyle} py-3 pr-4`}>
+                <div className="flex-1 min-w-0">
+                  <p className="font-ui text-base font-medium text-ink">
                     {t('settingsModal.assessmentRatingStyleLabel', 'Assessment rating style')}
                   </p>
-                  <p className="text-sm text-slate-400">
+                  <p className={`${subtextStyle} mt-1`}>
                     {t('settingsModal.assessmentRatingStyleHint', 'How player ratings are shown and entered. Switching is safe - existing ratings are kept.')}
                   </p>
                 </div>
@@ -738,7 +742,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   id="assessment-rating-style-select"
                   value={assessmentRatingStyle}
                   onChange={(e) => handleAssessmentRatingStyleChange(e.target.value as AssessmentRatingStyle)}
-                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={inlineSelectStyle}
                 >
                   <option value="words">{t('settingsModal.assessmentRatingStyleWords', 'Words (5 levels)')}</option>
                   <option value="num5">{t('settingsModal.assessmentRatingStyleNum5', 'Numbers 1-5')}</option>
@@ -746,12 +750,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </select>
               </div>
               {/* Assessment metric template */}
-              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-200">
+              <div className={`${listRowStyle} py-3 pr-4`}>
+                <div className="flex-1 min-w-0">
+                  <p className="font-ui text-base font-medium text-ink">
                     {t('settingsModal.assessmentTemplateLabel', 'Assessment metrics')}
                   </p>
-                  <p className="text-sm text-slate-400">
+                  <p className={`${subtextStyle} mt-1`}>
                     {t('settingsModal.assessmentTemplateHint', 'Which set of qualities to assess. Switching is safe - past ratings are kept.')}
                   </p>
                 </div>
@@ -759,7 +763,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   id="assessment-template-select"
                   value={assessmentTemplate}
                   onChange={(e) => handleAssessmentTemplateChange(e.target.value as AssessmentTemplate)}
-                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={inlineSelectStyle}
                 >
                   <option value="balanced">{t('settingsModal.assessmentTemplateBalanced', 'Balanced (10)')}</option>
                   <option value="light6">{t('settingsModal.assessmentTemplateLight6', 'Light 6 (U7-U9)')}</option>
@@ -768,9 +772,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
               </>)}
               {/* Default Team Name */}
-              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-200">
+              <div className={`${listRowStyle} py-3 pr-4`}>
+                <div className="flex-1 min-w-0">
+                  <p className="font-ui text-base font-medium text-ink">
                     {t('settingsModal.defaultTeamNameLabel', 'Default Team Name')}
                   </p>
                 </div>
@@ -780,10 +784,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   onBlur={() => onDefaultTeamNameChange(teamName)}
-                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 w-40"
+                  className={`${inlineFieldStyle} w-36! shrink-0`}
                 />
               </div>
             </div>
+            </section>
 
             {/* Kirjuri (PR 4): own AI provider behind the consent gate */}
             <AiSettingsCard userId={userId} />
@@ -792,11 +797,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 time live here, because both are club facts rather than
                 per-match ones - and because a derived starting point was
                 invisible and uncorrectable, which is why it is asked for. */}
-            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-              <h3 className="text-lg font-semibold text-slate-200">
+            <section className="space-y-2">
+              <h3 className={`${sectionLabelStyle} px-1`}>
                 {t('settingsModal.travelTitle', 'Getting to matches')}
               </h3>
-              <p className="text-sm text-slate-300">
+              <div className={`${groupedListStyle} p-4 space-y-3`}>
+              <p className="font-ui text-sm leading-snug text-ink-2">
                 {t('settingsModal.travelDescription', 'Used to work out when to leave for your next match. Without a starting point no departure time is shown.')}
               </p>
 
@@ -824,18 +830,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   onChange={(e) => handleArrivalBufferChange(Number(e.target.value))}
                   className={inputStyle}
                 />
-                <p className="mt-1 text-xs text-slate-400">
+                <p className={`${subtextStyle} mt-1.5`}>
                   {t('settingsModal.arrivalBufferHint', 'Warm-up, lineup and changing. A single match can be given its own figure.')}
                 </p>
               </div>
             </div>
+            </section>
 
             {/* Season Settings - merged from Season tab */}
-            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-              <h3 className="text-lg font-semibold text-slate-200">
+            <section className="space-y-2">
+              <h3 className={`${sectionLabelStyle} px-1`}>
                 {t('settingsModal.seasonStartTitle', 'Season Start Date')}
               </h3>
-              <p id="club-season-description" className="text-sm text-slate-300">
+              <div className={`${groupedListStyle} p-4 space-y-3`}>
+              <p id="club-season-description" className="font-ui text-sm leading-snug text-ink-2">
                 {t('settingsModal.seasonStartDescription', 'When does your club\'s new season begin? This is typically when players move to new age groups. The previous season automatically ends the day before.')}
               </p>
               <div className="space-y-3">
@@ -862,18 +870,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     and never configured: it is the day before the next season
                     begins, which is what makes every date belong to exactly one
                     season instead of falling into an 'off-season' gap. */}
-                <div className="rounded-md border border-slate-600 bg-slate-800/50 px-3 py-2 text-sm text-slate-300">
+                <div className="rounded-2xl bg-white/[0.04] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] px-4 py-3 font-ui text-sm text-ink-2">
                   <div>
                     {t('settingsModal.seasonThis', 'This season')}:{' '}
-                    <span className="font-semibold text-slate-100">{clubSeasonPreview.current}</span>
+                    <span className="font-semibold text-ink">{clubSeasonPreview.current}</span>
                   </div>
                   <div className="mt-0.5">
                     {t('settingsModal.seasonNext', 'Next season')}:{' '}
-                    <span className="font-semibold text-slate-100">{clubSeasonPreview.next}</span>
+                    <span className="font-semibold text-ink">{clubSeasonPreview.next}</span>
                   </div>
                 </div>
               </div>
             </div>
+            </section>
             </>
             )}
 
@@ -891,10 +900,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             {activeTab === 'data' && (
             <>
             {/* Backup & Export Section */}
-            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-              <h3 className="text-lg font-semibold text-slate-200">
+            <section className="space-y-2">
+              <h3 className={`${sectionLabelStyle} px-1`}>
                 {t('settingsModal.backupExportTitle', 'Backup & Export')}
               </h3>
+              <div className={`${groupedListStyle}`}>
               <input
                 type="file"
                 ref={restoreFileInputRef}
@@ -903,13 +913,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 style={{ display: "none" }}
                 data-testid="restore-backup-input"
               />
-              <div className="space-y-2">
-                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-200">
+              <>
+                <div className={`${listRowStyle} items-start py-3 pr-4`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-ui text-base font-medium text-ink">
                       {t('settingsModal.backupButton', 'Backup All Data')}
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className={`${subtextStyle} mt-1`}>
                       {t('settingsModal.backupCardDesc', 'Export all your data to a backup file you can keep.')}
                     </p>
                   </div>
@@ -918,7 +928,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       onClick={onCreateBackup}
                       aria-label={t('settingsModal.backupShareAria', 'Share backup')}
                       title={t('settingsModal.backupShareAria', 'Share backup')}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors"
+                      className={rowIconButton}
                     >
                       <HiOutlineShare className="h-5 w-5" />
                     </button>
@@ -926,19 +936,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       onClick={() => downloadFullBackup(showToast, userId)}
                       aria-label={t('settingsModal.backupDownloadAria', 'Download backup to device')}
                       title={t('settingsModal.backupDownloadAria', 'Download backup to device')}
-                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm font-medium transition-colors"
+                      className={rowIconButton}
                     >
                       <HiOutlineDocumentArrowDown className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
                 {/* Download Cloud Data - cloud mode only */}
-                <div className={`flex items-start gap-3 p-3 bg-slate-800/50 rounded-md${authMode !== 'cloud' ? ' opacity-50' : ''}`}>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-200">
+                <div className={`${listRowStyle} items-start py-3 pr-4${authMode !== 'cloud' ? ' opacity-50' : ''}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-ui text-base font-medium text-ink">
                       {t('settingsModal.gdpr.downloadTitle', 'Download Your Data')}
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className={`${subtextStyle} mt-1`}>
                       {authMode === 'cloud'
                         ? t('settingsModal.gdpr.downloadDescriptionCloud', 'Download all data stored on the server to a file you can keep.')
                         : t('settingsModal.gdpr.downloadDescriptionLocal', 'Cloud account required. Your local data can be exported using Backup above.')}
@@ -955,42 +965,42 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       }
                     }}
                     disabled={authMode !== 'cloud' || isDownloadingCloudData}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+                    className={rowIconButton}
                     aria-label={t('settingsModal.gdpr.downloadButton', 'Download')}
                   >
                     {isDownloadingCloudData
-                      ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-400 border-t-white" />
+                      ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-ink-3 border-t-white" />
                       : <HiOutlineCloudArrowDown className="h-5 w-5" />}
                   </button>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-200">
+                <div className={`${listRowStyle} items-start py-3 pr-4`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-ui text-base font-medium text-ink">
                       {t('settingsModal.restoreButton', 'Restore from Backup')}
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className={`${subtextStyle} mt-1`}>
                       {t('settingsModal.restoreCardDesc', 'Replace current data with a backup file.')}
                     </p>
                   </div>
                   <button
                     onClick={handleRestore}
-                    className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors"
+                    className={rowIconButton}
                   >
                     <HiOutlineDocumentArrowUp className="h-5 w-5" />
                   </button>
                 </div>
-              </div>
+              </>
 
               {/* Automatic Restore Points (Data Safety - Layer 1) */}
-              <div className="pt-3 mt-1 border-t border-white/10 space-y-2">
+              <div className={`${listRowStyle} flex-col items-stretch gap-2 py-3 pr-4`}>
                 <div>
-                  <p className="text-sm font-medium text-slate-200">
+                  <p className="font-ui text-base font-medium text-ink">
                     {t('settingsModal.restorePoints.title', 'Automatic Restore Points')}
                   </p>
-                  <p className="text-sm text-slate-400">
+                  <p className={`${subtextStyle} mt-1`}>
                     {t('settingsModal.restorePoints.description', 'The app automatically keeps recent on-device backups. Restore one if something goes wrong.')}
                   </p>
-                  <p className="text-sm text-slate-400 mt-1">
+                  <p className={`${subtextStyle} mt-1`}>
                     {restorePoints === null
                       ? t('settingsModal.restorePoints.loading', 'Loading restore points...')
                       : restorePoints.length > 0
@@ -999,26 +1009,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </p>
                 </div>
                 {restorePoints !== null && (restorePoints.length === 0 ? (
-                  <p className="text-sm text-slate-400 italic">
+                  <p className="font-ui text-sm text-ink-3 italic">
                     {t('settingsModal.restorePoints.empty', 'No restore points yet - one is created automatically.')}
                   </p>
                 ) : (
-                  <ul className="space-y-2">
+                  <ul className="divide-y divide-hairline">
                     {restorePoints.map((snap) => (
-                      <li key={snap.id} className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                      <li key={snap.id} className="flex items-center gap-3 py-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-slate-200">
+                          <p className="font-ui text-base text-ink">
                             {formatAppDateTime(snap.createdAt)}
-                            <span className="ml-2 text-xs text-slate-400">({restorePointReasonLabel(snap.reason)})</span>
+                            <span className="ml-2 text-xs text-ink-3">({restorePointReasonLabel(snap.reason)})</span>
                           </p>
-                          <p className="text-sm text-slate-400">
+                          <p className={`${subtextStyle} mt-1`}>
                             {t('settingsModal.restorePoints.summary', '{{games}} games, {{players}} players', { games: snap.summary.games, players: snap.summary.players })}
                           </p>
                         </div>
                         <button
                           onClick={() => handleRestoreSnapshot(snap.id)}
                           aria-label={t('settingsModal.restorePoints.restoreAriaLabel', 'Restore backup from {{when}}', { when: formatAppDateTime(snap.createdAt) })}
-                          className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors shrink-0"
+                          className={`${secondaryButtonStyle} shrink-0 min-h-10! px-4! text-sm!`}
                         >
                           {t('settingsModal.restorePoints.restore', 'Restore')}
                         </button>
@@ -1028,21 +1038,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 ))}
               </div>
             </div>
+            </section>
 
             {/* Danger Zone */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-red-700/50 shadow-inner">
-              <h3 className="text-lg font-semibold text-red-300">
+            <section className="space-y-2">
+              <h3 className={`${sectionLabelStyle} px-1 text-red-400!`}>
                 {t('settingsModal.dangerZoneTitle', 'Danger Zone')}
               </h3>
+              <div className={`${groupedListStyle} p-4 space-y-4`}>
 
               {authMode === 'cloud' ? (
                 <>
                   {/* Re-sync from Cloud */}
                   <div className="space-y-2">
-                    <h4 className="text-md font-semibold text-amber-300">
+                    <h4 className="font-ui text-base font-semibold text-ink">
                       {t('settingsModal.resyncTitle', 'Re-sync from Cloud')}
                     </h4>
-                    <p className="text-sm text-amber-200">
+                    <p className={subtextStyle}>
                       {t('settingsModal.resyncDescription',
                         'Clear local data and re-download from cloud. Your cloud backup will be restored.')}
                     </p>
@@ -1067,7 +1079,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                           setResyncConfirm('');
                         }
                       }}
-                      className="w-full py-2 px-4 rounded-md text-sm font-medium bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className={`${secondaryButtonStyle} w-full`}
                       disabled={resyncConfirm.trim() !== 'RESYNC'}
                     >
                       {t('settingsModal.resyncButton', 'Re-sync from Cloud')}
@@ -1075,11 +1087,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   {/* Delete All Data (Factory Reset) */}
-                  <div className="space-y-2 mt-4 pt-4 border-t border-red-700/30">
-                    <h4 className="text-md font-semibold text-red-300">
+                  <div className="space-y-2 pt-4 border-t border-hairline">
+                    <h4 className="font-ui text-base font-semibold text-red-400">
                       {t('settingsModal.factoryResetTitle', 'Delete All Data')}
                     </h4>
-                    <p className="text-sm text-red-200">
+                    <p className={subtextStyle}>
                       {t('settingsModal.factoryResetDescription',
                         'Permanently delete ALL data - both local and cloud. This cannot be undone.')}
                     </p>
@@ -1112,19 +1124,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   {/* Delete Account */}
-                  <div className="mt-4 pt-4 border-t border-red-700/30">
-                    <h4 className="text-md font-semibold text-red-300 mb-2">
+                  <div className="pt-4 border-t border-hairline">
+                    <h4 className="font-ui text-base font-semibold text-red-400 mb-2">
                       {t('settingsModal.deleteAccountTitle', 'Delete Account')}
                     </h4>
-                    <p className="text-sm text-red-200 mb-3">
+                    <p className={`${subtextStyle} mb-3`}>
                       {t(
                         'settingsModal.deleteAccountDescription',
                         'Permanently delete your account and all of its data — both in the cloud and on this device. This action cannot be undone. You will need to create a new account to use cloud features again.'
                       )}
                     </p>
                     {/* Keep-data affordance: let users who only want out of cloud export first */}
-                    <div className="mb-3 p-2 rounded-md bg-slate-800/60 border border-slate-700">
-                      <p className="text-sm text-slate-300 mb-2">
+                    <div className="mb-3 p-3 rounded-2xl bg-white/[0.04] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]">
+                      <p className="font-ui text-sm text-ink-2 mb-3">
                         {t(
                           'settingsModal.deleteAccountKeepDataHint',
                           'Want to keep your data? Export a backup first — you can restore it on another device or after creating a new account.'
@@ -1173,7 +1185,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               ) : (
                 /* Local mode: Delete All Data */
                 <div className="space-y-2">
-                  <p className="text-sm text-red-200">
+                  <p className={subtextStyle}>
                     {t(
                       'settingsModal.deleteAllDataDescription',
                       'Permanently delete all games, players, teams and settings from this device. This action cannot be undone.'
@@ -1207,10 +1219,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </button>
                 </div>
               )}
-            </div>
+              </div>
+            </section>
 
             {/* GDPR Data Rights footnote */}
-            <p className="text-sm text-slate-400 px-1">
+            <p className={`${subtextStyle} px-1`}>
               {t('settingsModal.gdpr.footnote', 'Under GDPR, you can export your data using Backup or Download above, delete it using Danger Zone, or correct any data directly in the app.')}
             </p>
             </>
@@ -1218,23 +1231,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* About Tab */}
             {activeTab === 'about' && (
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-              <h3 className="text-lg font-semibold text-slate-200">
+            <section className="space-y-2">
+              <h3 className={`${sectionLabelStyle} px-1`}>
                 {t('settingsModal.aboutTitle', 'About')}
               </h3>
+              <div className={`${groupedListStyle}`}>
 
               <div className="space-y-2">
                 {/* Version */}
-                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-200">
+                <div className={`${listRowStyle} py-3 pr-4`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-ui text-base font-medium text-ink">
                       {t('settingsModal.appVersion', 'App Version')}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-300">{packageJson.version}</span>
+                    <span className="font-ui text-base text-ink-2">{packageJson.version}</span>
                     {process.env.NEXT_PUBLIC_GIT_BRANCH && process.env.NEXT_PUBLIC_GIT_BRANCH !== 'master' && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      <span className={pillAmberStyle}>
                         {t('settingsModal.previewBadge', 'Preview')}
                       </span>
                     )}
@@ -1242,12 +1256,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
 
                 {/* Storage Usage */}
-                <div className="p-3 bg-slate-800/50 rounded-md space-y-2">
+                <div className={`${listRowStyle} flex-col items-stretch gap-2 py-3 pr-4`}>
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-slate-200">
+                    <p className="font-ui text-base font-medium text-ink">
                       {t('settingsModal.storageUsageLabel', 'Storage Usage')}
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className={`${subtextStyle} mt-1`}>
                       {storageEstimate
                         ? t('settingsModal.storageUsageDetails', {
                             used: formatBytes(storageEstimate.usage),
@@ -1257,9 +1271,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </p>
                   </div>
                   {storageEstimate && (
-                    <div className="w-full bg-slate-700 rounded-md h-2 overflow-hidden">
+                    <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
                       <div
-                        className="bg-indigo-500 h-2"
+                        className="bg-action h-2 rounded-full"
                         style={{ width: `${Math.min(100, (storageEstimate.usage / storageEstimate.quota) * 100)}%` }}
                       />
                     </div>
@@ -1267,19 +1281,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
 
                 {/* Check for Updates */}
-                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-200">
+                <div className={`${listRowStyle} py-3 pr-4`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-ui text-base font-medium text-ink">
                       {t('settingsModal.checkForUpdates', 'Check for Updates')}
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className={`${subtextStyle} mt-1`}>
                       {t('settingsModal.checkForUpdatesDesc', 'Check if a new version is available.')}
                     </p>
                   </div>
                   <button
                     onClick={handleCheckForUpdates}
                     disabled={checkingForUpdates}
-                    className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+                    className={rowIconButton}
+                    aria-label={t('settingsModal.checkForUpdates', 'Check for Updates')}
                   >
                     {checkingForUpdates ? (
                       <HiOutlineArrowPath className="h-5 w-5 animate-spin" />
@@ -1292,40 +1307,40 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Send Feedback */}
-              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-200">
+              <div className={`${listRowStyle} py-3 pr-4`}>
+                <div className="flex-1 min-w-0">
+                  <p className="font-ui text-base font-medium text-ink">
                     {t('settingsModal.sendFeedback', 'Send Feedback')}
                   </p>
-                  <p className="text-sm text-slate-400">
+                  <p className={`${subtextStyle} mt-1`}>
                     {t('settingsModal.sendFeedbackDesc', 'Share feedback, questions, or ideas.')}
                   </p>
-                  <p className="text-sm text-slate-400 mt-1">
+                  <p className={`${subtextStyle} mt-1`}>
                     {t('settingsModal.sendFeedbackPrivacy', 'No game, roster, or player data is attached automatically.')}
                   </p>
                 </div>
                 <a
                   href={feedbackHref}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+                  className={`${secondaryButtonStyle} shrink-0 min-h-10! px-4! text-sm!`}
                 >
                   ✉ {t('settingsModal.emailButton', 'Email')}
                 </a>
               </div>
 
               {/* Copy App Info */}
-              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-200">
+              <div className={`${listRowStyle} py-3 pr-4`}>
+                <div className="flex-1 min-w-0">
+                  <p className="font-ui text-base font-medium text-ink">
                     {t('settingsModal.copyAppInfo', 'Copy app info')}
                   </p>
-                  <p className="text-sm text-slate-400">
+                  <p className={`${subtextStyle} mt-1`}>
                     {t('settingsModal.copyAppInfoDesc', 'Copy version and device details you can paste into feedback.')}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={handleCopyAppInfo}
-                  className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+                  className={`${secondaryButtonStyle} shrink-0 min-h-10! px-4! text-sm!`}
                 >
                   <HiOutlineClipboardDocument className="h-5 w-5" />
                   {t('settingsModal.copyAppInfoButton', 'Copy')}
@@ -1333,13 +1348,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Legal Links */}
-              <div className="pt-2 border-t border-white/10">
-                <div className="flex gap-4 text-sm">
+              <div className={`${listRowStyle} py-3`}>
+                <div className="flex gap-5 font-ui text-sm">
                   <a
                     href="/privacy-policy"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-indigo-400 hover:text-indigo-300 underline"
+                    className={linkStyle}
                   >
                     {t('settingsModal.privacyPolicy', 'Privacy Policy')}
                   </a>
@@ -1347,13 +1362,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     href="/terms"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-indigo-400 hover:text-indigo-300 underline"
+                    className={linkStyle}
                   >
                     {t('settingsModal.termsOfService', 'Terms of Service')}
                   </a>
                 </div>
               </div>
             </div>
+            </section>
             )}
           </div>
         </div>
@@ -1386,16 +1402,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       {/* Restoring Loading Overlay */}
       {isRestoring && (
         <div className={`${MODAL_BACKDROP_BLOCKING} ${Z_LAYER.modalNested}`}>
-          <div className="bg-slate-800 rounded-xl p-6 max-w-sm mx-4 shadow-xl border border-slate-700 text-center">
+          <div className="s1-sheet rounded-3xl p-6 max-w-sm mx-4 text-center font-ui">
             <div
-              className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500 mx-auto mb-4"
+              className="animate-spin rounded-full h-10 w-10 border-b-2 border-action mx-auto mb-4"
               role="status"
               aria-label={t('settingsModal.restoring', 'Restoring backup...')}
             />
-            <h3 className="text-lg font-semibold text-slate-100 mb-2">
+            <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
               {t('settingsModal.restoringTitle', 'Restoring Backup')}
             </h3>
-            <p className="text-slate-300 text-sm">
+            <p className="text-ink-2 text-sm">
               {t('settingsModal.restoringDescription', 'Please wait while your data is being restored. This may take a moment.')}
             </p>
           </div>

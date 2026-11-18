@@ -10,6 +10,14 @@ import RatingBar from '../../RatingBar';
 import { ASSESSMENT_MAX, RATING_STYLE_MAX, ratingBandLevel, ratingDisplayNumber } from '@/config/assessmentMetrics';
 import type { AssessmentRatingStyle } from '@/types/settings';
 import { formatAppDecimal, formatAppPercent } from '@/utils/localeFormat';
+import { sectionLabelStyle, cardStyle } from '@/styles/modalStyles';
+
+/** A summary figure: a list-surface tile with a big italic numeral over a tracked label. */
+const tile = 's1-list flex flex-col items-center justify-start min-w-0 overflow-hidden pt-4 pb-3 text-center';
+const tileNumeral = 'font-display text-[34px] font-extrabold italic leading-[0.9] tabular-nums whitespace-nowrap drop-shadow-[0_2px_0_rgb(0_0_0/0.35)]';
+const tileLabel = 'mt-2 px-0.5 text-xs font-semibold uppercase leading-tight text-ink-3 whitespace-nowrap';
+const kvKey = 'text-[15px] text-ink-2';
+const kvValue = 'text-base font-bold text-ink tabular-nums';
 
 interface TeamAssessmentAverages {
   count: number;
@@ -32,6 +40,10 @@ interface TeamPerformanceCardProps {
   averageGoalsAgainst: number;
   teamAssessmentAverages?: TeamAssessmentAverages | null;
   lastGameDate?: string;
+  /**
+   * Used to pick a second card fill. The S1 system has one list surface, so it
+   * no longer changes anything; kept so existing callers compile.
+   */
   useGradient?: boolean;
   ratingStyle?: AssessmentRatingStyle;
 }
@@ -50,7 +62,6 @@ export function TeamPerformanceCard({
   averageGoalsAgainst,
   teamAssessmentAverages,
   lastGameDate,
-  useGradient = false,
   ratingStyle = 'words',
 }: TeamPerformanceCardProps) {
   const { t } = useTranslation();
@@ -63,88 +74,96 @@ export function TeamPerformanceCard({
     return `${word} · ${formatAppDecimal(ratingDisplayNumber(canonical, RATING_STYLE_MAX[ratingStyle]))}`;
   };
 
-  const cardClassName = useGradient
-    ? "bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all"
-    : "bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner";
+  const gdTone = goalDifference > 0 ? 'text-win' : goalDifference < 0 ? 'text-loss' : 'text-draw';
+  const kvRow = 'relative flex items-center justify-between gap-3 min-h-12 px-4 before:absolute before:top-0 before:left-4 before:right-0 before:h-px before:bg-hairline first:before:hidden';
 
   return (
-    <div className={cardClassName}>
-      <h3 className="text-xl font-semibold text-slate-200 mb-4">{title}</h3>
-      <div className="space-y-0 text-sm">
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-          <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
-          <span className="text-amber-400 font-bold">{gamesPlayed}</span>
+    <div className="font-ui">
+      <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>{title}</h3>
+      {/* The three figures that summarise the scope as numeral tiles; the
+          rest as plain rows below. */}
+      <div className="grid grid-cols-[1.1fr_0.8fr_1.2fr] gap-2">
+        <div className={tile}>
+          <div className={tileNumeral}>
+            {/* Wins-draws-losses everywhere (review 5.2), as on Home and in the
+                opponent table. Coloured by part for the eye; one plain string
+                for screen readers. */}
+            <span className="sr-only">{wins}-{ties}-{losses}</span>
+            <span aria-hidden="true">
+              <span className={wins > 0 ? 'text-win' : 'text-ink-3'}>{wins}</span>
+              <span className="text-draw">-{ties}-</span>
+              <span className={losses > 0 ? 'text-loss' : 'text-ink-3'}>{losses}</span>
+            </span>
+          </div>
+          <div className={tileLabel}>{t('common.record', 'Record (W-D-L)')}</div>
         </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-          <span className="text-slate-300">{t('common.record', 'Record (W-D-L)')}</span>
-          <span className="text-amber-400 font-bold">
-            {/* Wins-draws-losses everywhere (review 5.2), as on Home and in the opponent table. */}
-            {wins}-{ties}-{losses}
-          </span>
-        </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-          <span className="text-slate-300">{t('common.winPercentage', 'Win Percentage')}</span>
-          <span className="text-amber-400 font-bold">{formatAppPercent(winPercentage)}</span>
-        </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-          <span className="text-slate-300">{t('common.goalDifference', 'Goal Difference')}</span>
-          <span
-            className={`font-bold ${goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
-          >
-            {goalDifference >= 0 ? '+' : ''}
+        <div className={tile}>
+          <div className={`${tileNumeral} ${gdTone}`}>
+            {goalDifference > 0 ? '+' : ''}
             {goalDifference}
-          </span>
+          </div>
+          <div className={tileLabel}>{t('common.goalDifference', 'Goal Difference')}</div>
         </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-          <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
-          <span className="text-amber-400 font-bold">{goalsFor}</span>
+        <div className={tile}>
+          <div className={`${tileNumeral} text-ink`}>{formatAppPercent(winPercentage)}</div>
+          <div className={tileLabel}>{t('common.winPercentage', 'Win Percentage')}</div>
         </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-          <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
-          <span className="text-amber-400 font-bold">{goalsAgainst}</span>
+      </div>
+      <div className="s1-list mt-2.5 overflow-hidden">
+        <div className={kvRow}>
+          <span className={kvKey}>{t('common.gamesPlayed', 'Games Played')}</span>
+          <span className={kvValue}>{gamesPlayed}</span>
         </div>
-        <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-          <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-          <span className="text-amber-400 font-bold">{formatAppDecimal(averageGoalsFor)}</span>
+        <div className={kvRow}>
+          <span className={kvKey}>{t('common.goalsFor', 'Goals For')}</span>
+          <span className={kvValue}>{goalsFor}</span>
         </div>
-        <div className="flex justify-between items-center py-1.5 px-2">
-          <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-          <span className="text-amber-400 font-bold">{formatAppDecimal(averageGoalsAgainst)}</span>
+        <div className={kvRow}>
+          <span className={kvKey}>{t('common.goalsAgainst', 'Goals Against')}</span>
+          <span className={kvValue}>{goalsAgainst}</span>
+        </div>
+        <div className={kvRow}>
+          <span className={kvKey}>{t('common.avgGoalsFor', 'Avg Goals For')}</span>
+          <span className={kvValue}>{formatAppDecimal(averageGoalsFor)}</span>
+        </div>
+        <div className={kvRow}>
+          <span className={kvKey}>{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
+          <span className={kvValue}>{formatAppDecimal(averageGoalsAgainst)}</span>
         </div>
         {lastGameDate && (
-          <div className="flex justify-between items-center py-1.5 px-2 border-t border-white/10">
-            <span className="text-slate-300">{t('common.lastGame', 'Last Game')}</span>
-            <span className="text-slate-400 text-xs">{lastGameDate}</span>
+          <div className={kvRow}>
+            <span className={kvKey}>{t('common.lastGame', 'Last Game')}</span>
+            <span className="text-[15px] text-ink-2">{lastGameDate}</span>
           </div>
         )}
       </div>
       {teamAssessmentAverages && (
-        <div className="mt-4">
-          <h4 className="text-md font-semibold text-slate-100 mb-2">
+        <div className={`${cardStyle} mt-2.5`}>
+          <h4 className="text-[15px] font-semibold text-ink mb-3">
             {t('playerStats.performanceRatings', 'Performance Ratings')}
           </h4>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2.5 text-sm">
             {Object.entries(teamAssessmentAverages.averages).filter(([, avg]) => avg > 0).map(([metric, avg]) => (
-              <div key={metric} className="flex items-center space-x-2 px-2">
-                <span className="w-28 shrink-0 text-slate-100">
+              <div key={metric} className="flex items-center gap-2">
+                <span className="w-28 shrink-0 text-ink-2">
                   {t(`assessmentMetrics.${metric}` as TranslationKey, metric)}
                 </span>
                 <RatingBar value={avg} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(avg)} />
               </div>
             ))}
-            <div className="flex items-center space-x-2 px-2 mt-2">
-              <span className="w-28 shrink-0 text-slate-100">
+            <div className="flex items-center gap-2 pt-1">
+              <span className="w-28 shrink-0 text-ink-2">
                 {t('playerAssessmentModal.overallLabel', 'Overall')}
               </span>
               <RatingBar value={teamAssessmentAverages.overall} valueLabel={formatRatingBand(teamAssessmentAverages.overall)} />
             </div>
-            <div className="flex items-center space-x-2 px-2">
-              <span className="w-28 shrink-0 text-slate-100">
+            <div className="flex items-center gap-2">
+              <span className="w-28 shrink-0 text-ink-2">
                 {t('playerStats.avgRating', 'Avg Rating')}
               </span>
               <RatingBar value={teamAssessmentAverages.finalScore} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(teamAssessmentAverages.finalScore)} />
             </div>
-            <div className="text-xs text-slate-400 text-right">
+            <div className="text-[13px] text-ink-3 text-right">
               {teamAssessmentAverages.count} {t('playerStats.ratedGames', 'rated games')}
             </div>
           </div>

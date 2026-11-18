@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { chipStyle, chipSelectedStyle } from '@/styles/modalStyles';
 
 interface OverallRatingSelectorProps {
   value: number;
@@ -10,17 +11,14 @@ interface OverallRatingSelectorProps {
 const OverallRatingSelector: React.FC<OverallRatingSelectorProps> = ({ value, onChange }) => {
   const numbers = Array.from({ length: 10 }, (_, i) => i + 1);
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1.5">
       {numbers.map((n) => (
         <button
           key={n}
           type="button"
           aria-label={n.toString()}
-          className={`px-2 py-1 rounded-md text-sm font-medium transition-colors ${
-            value === n
-              ? 'bg-indigo-600 text-white'
-              : 'bg-slate-800/40 text-slate-300 hover:bg-slate-800/60'
-          }`}
+          aria-pressed={value === n}
+          className={`${value === n ? chipSelectedStyle : chipStyle} min-w-11 justify-center`}
           onClick={() => onChange(n)}
         >
           {n}

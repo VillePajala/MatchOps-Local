@@ -31,6 +31,7 @@ import {
 import { playerRef, redactPlayerNames } from '@/utils/gamePacket';
 import { resolveRefsInText } from '@/utils/applyReportDraft';
 import WorkingIndicator from '@/components/WorkingIndicator';
+import { secondaryButtonStyle, selectStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import type { AppState } from '@/types/game';
 import type { Player } from '@/types';
@@ -45,11 +46,11 @@ interface TranslateReportPanelProps {
   pseudonymizeOverride?: boolean;
 }
 
-const CARD = 'bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner';
+const CARD = 's1-list p-4 font-ui';
 const PRIMARY =
-  'w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors';
+  `${secondaryButtonStyle} w-full`;
 const SECONDARY =
-  'w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-slate-500 transition-colors';
+  `${secondaryButtonStyle} w-full`;
 
 const TranslateReportPanel: React.FC<TranslateReportPanelProps> = ({
   report,
@@ -157,17 +158,17 @@ const TranslateReportPanel: React.FC<TranslateReportPanelProps> = ({
 
   return (
     <div className={CARD} data-testid="translate-report">
-      <h4 className="text-sm font-semibold text-slate-200 mb-1">
+      <h4 className="text-sm font-semibold text-ink mb-1">
         {t('translateReport.title', 'Read this report in another language')}
       </h4>
-      <p className="text-sm text-slate-400 mb-3">
+      <p className="text-sm text-ink-3 mb-3">
         {t(
           'translateReport.blurb',
           'For sharing with a family who reads another language. This never changes your report.',
         )}
       </p>
 
-      <label className="block text-xs text-slate-400 mb-1" htmlFor="translate-language">
+      <label className="block text-xs text-ink-3 mb-1" htmlFor="translate-language">
         {t('translateReport.language', 'Language')}
       </label>
       <select
@@ -175,7 +176,7 @@ const TranslateReportPanel: React.FC<TranslateReportPanelProps> = ({
         value={language}
         onChange={(e) => setLanguage(e.target.value as TranslationLanguage)}
         data-testid="translate-language"
-        className="w-full mb-3 px-3 py-2 rounded-md bg-slate-800 border border-slate-600 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        className={`${selectStyle} mb-3`}
       >
         {TRANSLATION_LANGUAGES.map((code) => (
           <option key={code} value={code}>
@@ -211,7 +212,7 @@ const TranslateReportPanel: React.FC<TranslateReportPanelProps> = ({
           {/* Read-only: this is a view of the translation, not an editor.
               There is nowhere for it to be saved, by design. */}
           <p
-            className="whitespace-pre-wrap rounded-md bg-slate-800/70 border border-slate-700 p-3 text-sm text-slate-200"
+            className="whitespace-pre-wrap rounded-[14px] bg-carbon p-3.5 text-[15px] leading-relaxed text-ink shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)]"
             data-testid="translate-output"
           >
             {translated}

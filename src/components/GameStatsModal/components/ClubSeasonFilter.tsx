@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiCog6Tooth } from 'react-icons/hi2';
+import { selectStyle, modalCloseButtonStyle } from '@/styles/modalStyles';
 
 interface ClubSeasonFilterProps {
   /** Lets a caller's <label htmlFor> reach the select. */
@@ -37,7 +38,7 @@ export const ClubSeasonFilter: React.FC<ClubSeasonFilterProps> = ({
         value={selectedSeason}
         onChange={(e) => onChange(e.target.value)}
         disabled={!hasConfigured || isLoading}
-        className={`flex-1 min-w-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+        className={`${selectStyle} flex-1 min-w-0 ${
           !hasConfigured || isLoading ? 'opacity-50 cursor-not-allowed' : ''
         }`}
       >
@@ -53,8 +54,8 @@ export const ClubSeasonFilter: React.FC<ClubSeasonFilterProps> = ({
       </select>
       <button
         onClick={onOpenSettings}
-        className={`p-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-300 hover:text-indigo-400 hover:border-indigo-500 transition-colors ${
-          !hasConfigured && !isLoading ? 'animate-pulse ring-2 ring-indigo-500' : ''
+        className={`${modalCloseButtonStyle} flex ${
+          !hasConfigured && !isLoading ? 'animate-pulse ring-2 ring-action' : ''
         }`}
         aria-label={t('playerStats.configurePeriodDates', 'Configure Period Dates')}
       >

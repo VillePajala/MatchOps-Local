@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { HiCheckCircle, HiXCircle } from 'react-icons/hi';
+import { HiOutlineChevronDown, HiCheck } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
 import type { TranslationKey } from '@/i18n-types';
@@ -10,6 +10,7 @@ import AssessmentLevelSelector from './AssessmentLevelSelector';
 import { validateAssessment } from '@/hooks/usePlayerAssessments';
 import { ASSESSMENT_DEFAULT, makeDefaultSliders, templateMetricIds } from '@/config/assessmentMetrics';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
+import { textareaStyle, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 
 interface PlayerAssessmentCardProps {
   player: Player;
@@ -91,30 +92,36 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
   };
 
   return (
-    <div className="text-slate-100">
+    // One row of the modal's grouped list: a 56px header, with an inset divider
+    // above every row but the first; opens in place.
+    <div className="relative font-ui text-ink before:absolute before:top-0 before:left-[50px] before:right-0 before:h-px before:bg-hairline first:before:hidden">
       <button
         type="button"
-        className="flex items-center justify-between w-full py-2 px-1 hover:bg-slate-800/40 rounded transition-colors"
+        className="flex items-center gap-3.5 w-full min-h-14 px-4 text-left hover:bg-white/[0.03] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action"
         onClick={() => setExpanded(v => !v)}
         aria-expanded={expanded}
         title={expanded ? t('playerAssessmentModal.collapse', { name: player.name }) : t('playerAssessmentModal.expand', { name: player.name })}
       >
-        <span className="font-semibold">{player.name}</span>
+        {/* Not assessed yet: a dashed ring. Assessed: filled green with a check. */}
         {isSaved ? (
-          <HiCheckCircle className="text-indigo-400" />
+          <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-win/[0.18] text-win">
+            <HiCheck className="h-4 w-4" aria-hidden="true" />
+          </span>
         ) : (
-          <HiXCircle className="text-slate-500" />
+          <span className="h-6 w-6 flex-none rounded-full border-[1.5px] border-dashed border-ink-3/70" aria-hidden="true" />
         )}
+        <span className="flex-1 min-w-0 truncate font-semibold">{player.name}</span>
+        <HiOutlineChevronDown className={`h-[18px] w-[18px] flex-none text-ink-3 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
       {expanded && (
-        <div className="mt-3 pt-3 space-y-4">
-          <div className="flex items-center space-x-2">
-            <label className="text-sm text-slate-300 w-24 shrink-0">
+        <div className="px-4 pb-4 pt-1 space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-ink-2 w-24 shrink-0">
               {t('playerAssessmentModal.overallLabel', 'Overall')}
-            </label>
+            </span>
             <OverallRatingSelector value={overall} onChange={setOverall} />
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {metricIds.map((id) => (
               <AssessmentLevelSelector
                 key={id}
@@ -131,17 +138,17 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               maxLength={280}
-              className="w-full bg-slate-700 border border-slate-600 rounded-md text-white p-2"
+              className={textareaStyle}
               placeholder={t('playerAssessmentModal.notesPlaceholder', 'Add notes...')}
               aria-label={t('playerAssessmentModal.notesPlaceholder', 'Add notes...')}
               rows={3}
             />
-            <div className="text-xs text-slate-400 text-right">{notes.length}/280</div>
+            <div className="mt-1 text-xs text-ink-3 text-right">{notes.length}/280</div>
           </div>
           <div className="flex gap-2">
             <button
               type="button"
-              className="px-4 py-2 rounded-sm text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 border border-indigo-400/30"
+              className={`${primaryButtonStyle} min-h-11`}
               onClick={handleSave}
               disabled={!isValid}
               aria-label={t('playerAssessmentModal.saveButton', 'Save')}
@@ -151,7 +158,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
             {assessment && onDelete && (
               <button
                 type="button"
-                className="px-3 py-2 rounded-sm text-sm font-medium transition-colors bg-red-600 hover:bg-red-500 text-white border border-red-400/30"
+                className={`${dangerButtonStyle} min-h-11`}
                 onClick={() => { deletedRef.current = true; onDelete(); }}
               >
                 {t('playerAssessmentModal.resetButton', 'Reset')}

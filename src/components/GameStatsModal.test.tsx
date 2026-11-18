@@ -315,7 +315,7 @@ describe('GameStatsModal', () => {
     // Check for team names and scores
     expect(within(gameInfoContainer).getByText(props.teamName)).toBeInTheDocument();
     expect(within(gameInfoContainer).getByText(props.opponentName)).toBeInTheDocument();
-    expect(within(gameInfoContainer).getByText(`${props.homeScore} - ${props.awayScore}`)).toBeInTheDocument();
+    expect(within(gameInfoContainer).getByText(`${props.homeScore}–${props.awayScore}`)).toBeInTheDocument();
     
     // Check for date
     expect(within(gameInfoContainer).getByText(/2\.8\.2024/)).toBeInTheDocument();

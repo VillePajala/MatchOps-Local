@@ -2,6 +2,7 @@
 
 import React from 'react';
 import SuggestionChips from './SuggestionChips';
+import { labelStyle, inputBaseStyle, inputErrorStyle, fieldErrorStyle } from '@/styles/modalStyles';
 
 export interface TeamOpponentInputsProps {
   teamName: string;
@@ -55,8 +56,8 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
 }) => {
   return (
     <>
-      <div className="mb-4">
-        <label htmlFor="teamNameInput" className="block text-sm font-medium text-slate-300 mb-1">
+      <div className="mb-3.5">
+        <label htmlFor="teamNameInput" className={labelStyle}>
           {teamLabel}
         </label>
         <input
@@ -67,7 +68,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           value={teamName}
           onChange={(e) => onTeamNameChange(e.target.value)}
           placeholder={teamPlaceholder}
-          className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${teamError ? 'border-red-500' : 'border-slate-600'}`}
+          className={`${inputBaseStyle} ${teamError ? inputErrorStyle : ''}`}
           onKeyDown={onKeyDown}
           disabled={disabled}
           autoComplete="off"
@@ -75,10 +76,10 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           autoCapitalize="words"
           spellCheck="true"
         />
-        {teamError && <p className="mt-1 text-sm text-red-400">{teamError}</p>}
+        {teamError && <p className={fieldErrorStyle}>{teamError}</p>}
       </div>
-      <div className="mb-4">
-        <label htmlFor="opponentNameInput" className="block text-sm font-medium text-slate-300 mb-1">
+      <div>
+        <label htmlFor="opponentNameInput" className={labelStyle}>
           {opponentLabel}
         </label>
         <input
@@ -90,7 +91,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           onChange={(e) => onOpponentNameChange(e.target.value)}
           onBlur={onOpponentBlur}
           placeholder={opponentPlaceholder}
-          className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${opponentError ? 'border-red-500' : 'border-slate-600'}`}
+          className={`${inputBaseStyle} ${opponentError ? inputErrorStyle : ''}`}
           onKeyDown={onKeyDown}
           disabled={disabled}
           autoComplete="off"
@@ -102,7 +103,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
             so the two name boxes in the app suggest the same way. */}
         <SuggestionChips value={opponentName} options={opponentOptions} onPick={onOpponentNameChange} disabled={disabled} />
         {opponentFooter}
-        {opponentError && <p className="mt-1 text-sm text-red-400">{opponentError}</p>}
+        {opponentError && <p className={fieldErrorStyle}>{opponentError}</p>}
       </div>
     </>
   );

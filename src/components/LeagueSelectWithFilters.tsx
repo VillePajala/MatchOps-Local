@@ -12,6 +12,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { selectStyle, fieldHintStyle } from '@/styles/modalStyles';
 import {
   FINNISH_YOUTH_LEAGUES,
   CUSTOM_LEAGUE_ID,
@@ -80,8 +81,9 @@ export default function LeagueSelectWithFilters({
   const hiddenSelected =
     value && value !== CUSTOM_LEAGUE_ID && !filteredLeagues.some((l) => l.id === value) ? getLeagueById(value) : undefined;
 
-  const filterClass =
-    'w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500';
+  // The two narrowing filters: the house select at 44px with 15px text, so
+  // two fit side by side on a phone.
+  const filterClass = `${selectStyle} min-h-11! py-2! text-[15px]!`;
 
   return (
     <>
@@ -126,7 +128,7 @@ export default function LeagueSelectWithFilters({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
-        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+        className={selectStyle}
       >
         <option value="">{placeholder}</option>
         {hiddenSelected && <option value={hiddenSelected.id}>{hiddenSelected.name}</option>}
@@ -135,7 +137,7 @@ export default function LeagueSelectWithFilters({
         ))}
       </select>
       {(areaFilter !== 'all' || levelFilter !== 'all') && (
-        <p className="mt-1 text-sm text-slate-400">
+        <p className={fieldHintStyle}>
           {t('leagues.showingCount', '{{count}} leagues', { count: filteredLeagues.filter((l) => !l.isCustom).length })}
         </p>
       )}

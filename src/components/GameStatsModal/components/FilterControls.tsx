@@ -11,6 +11,7 @@ import { getTeamDisplayName } from '@/utils/teams';
 import type { TranslationKey } from '@/i18n-types';
 import type { GameType } from '@/types/game';
 import { StatsTab } from '../types';
+import { selectStyle } from '@/styles/modalStyles';
 
 interface FilterControlsProps {
   activeTab: StatsTab;
@@ -76,12 +77,12 @@ export function FilterControls({
   else if (filterCount === 2) gridCols = 'grid-cols-2';
 
   return (
-    <div className={`mt-0.5 mb-3 mx-1 grid ${gridCols} gap-2`}>
+    <div className={`mt-0.5 mb-4 grid ${gridCols} gap-2 font-ui`}>
       {activeTab === 'season' && (
         <select
           value={selectedSeasonIdFilter}
           onChange={(e) => onSeasonFilterChange(e.target.value)}
-          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className={`${selectStyle} min-h-11! py-2! text-[15px]!`}
         >
           <option value="all">{t('gameStatsModal.filterAllSeasons', 'All Leagues')}</option>
           {seasons.map((s) => (
@@ -99,7 +100,7 @@ export function FilterControls({
             // Reset series filter when tournament changes
             onSeriesFilterChange('all');
           }}
-          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className={`${selectStyle} min-h-11! py-2! text-[15px]!`}
         >
           <option value="all">{t('gameStatsModal.filterAllTournaments', 'All Tournaments')}</option>
           {tournaments.map((tour) => (
@@ -114,7 +115,7 @@ export function FilterControls({
         <select
           value={selectedSeriesIdFilter}
           onChange={(e) => onSeriesFilterChange(e.target.value)}
-          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-amber-300 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
+          className={`${selectStyle} min-h-11! py-2! text-[15px]!`}
         >
           <option value="all">{t('gameStatsModal.filterAllSeries', 'All Levels')}</option>
           {selectedTournament.series.map((s) => (
@@ -131,7 +132,7 @@ export function FilterControls({
           onChange={(e) =>
             onTeamFilterChange(e.target.value as 'all' | 'legacy' | string)
           }
-          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className={`${selectStyle} min-h-11! py-2! text-[15px]!`}
         >
           <option value="all">{t('loadGameModal.allTeamsFilter', 'All Teams')}</option>
           <option value="legacy">{t('loadGameModal.legacyGamesFilter', 'Legacy Games')}</option>
@@ -147,7 +148,7 @@ export function FilterControls({
         <select
           value={selectedGameTypeFilter}
           onChange={(e) => onGameTypeFilterChange?.(e.target.value as GameType | 'all')}
-          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className={`${selectStyle} min-h-11! py-2! text-[15px]!`}
         >
           <option value="all">{t('gameStatsModal.filterAllGameTypes', 'All Sports')}</option>
           <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>

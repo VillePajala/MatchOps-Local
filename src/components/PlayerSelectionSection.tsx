@@ -5,6 +5,16 @@ import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
 import { sortPlayersByLastName } from '@/utils/gamePlayerList';
 import { matchesSearch, playerSearchFields } from '@/utils/listSearch';
+import { HiOutlineMagnifyingGlass } from 'react-icons/hi2';
+import {
+  sectionLabelStyle,
+  checkboxStyle,
+  inputBaseStyle,
+  secondaryButtonStyle,
+  iconButtonCancelStyle,
+  badgeArchivedStyle,
+  fieldErrorStyle,
+} from '@/styles/modalStyles';
 
 /** Longer lists than this get a search box. */
 const PICKER_SEARCH_THRESHOLD = 12;
@@ -28,12 +38,12 @@ export interface PlayerSelectionSectionProps {
    *
    * When true:
    * - Component wrapper gets `h-full` class
-   * - Player list uses `flex-1 min-h-0` instead of `max-h-60`
+   * - Player list uses `flex-1 min-h-0` instead of `max-h-[336px]`
    * - Component stretches to fill available vertical space
    *
    * When false (default):
    * - Component uses natural height
-   * - Player list has fixed `max-h-60` (240px) with internal scrolling
+   * - Player list has fixed `max-h-[336px]` (six 56px rows) with internal scrolling
    *
    * Use Cases:
    * - Set to `true` when component is in a fixed-height container (e.g., UnifiedTeamModal roster edit)
@@ -67,7 +77,7 @@ export interface PlayerSelectionSectionProps {
    * - Custom spacing or padding adjustments
    * - Additional styling that doesn't conflict with base styles
    *
-   * Note: Base styles (flexbox, background gradient, padding, border radius) are always applied.
+   * Note: Base styles (the section label row and the list surface) are always applied.
    *
    * @default ''
    */
@@ -135,19 +145,22 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
   };
 
   return (
-    <div className={`flex flex-col bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all ${useFlexHeight ? 'h-full' : ''} ${className}`}>
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <h3 className="text-lg font-semibold text-slate-200">{title}</h3>
-        <div className="text-sm text-slate-400">
-          <span className="text-amber-400 font-semibold">{selectedPlayerIds.length}</span>{' / '}
-          <span className="text-amber-400 font-semibold">{availablePlayers.length}</span>{' '}
+    <div className={`flex flex-col font-ui ${useFlexHeight ? 'h-full' : ''} ${className}`}>
+      {/* Section label with the count in the same row; the list is its own
+          surface below it (no card-in-a-card). */}
+      <div className="flex items-baseline justify-between gap-3 px-1 mb-2.5 flex-shrink-0">
+        <h3 className={sectionLabelStyle}>{title}</h3>
+        <div className="text-[13px] text-ink-3 whitespace-nowrap">
+          <span className="font-bold text-ink">{selectedPlayerIds.length}</span>{' / '}
+          <span>{availablePlayers.length}</span>{' '}
           {playersSelectedText}
         </div>
       </div>
+      <div className={`s1-list overflow-hidden flex flex-col ${useFlexHeight ? 'flex-1 min-h-0' : ''}`}>
       {availablePlayers.length > 0 ? (
         <>
-          <div className="flex items-center py-2 px-1 border-b border-white/10 mb-4 flex-shrink-0">
-            <label className="flex items-center text-sm text-slate-300 hover:text-slate-200 cursor-pointer">
+          <div className="flex-shrink-0 border-b border-hairline">
+            <label className="flex items-center gap-3.5 min-h-14 px-4 text-base font-semibold text-ink cursor-pointer">
               <input
                 type="checkbox"
                 disabled={disabled || isSubmittingAdd}
@@ -163,33 +176,39 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
                     onSelectedPlayersChange(sortedPlayers.map((p) => p.id));
                   }
                 }}
-                className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+                className={checkboxStyle}
               />
-              <span className="ml-2">{selectAllText}</span>
+              <span>{selectAllText}</span>
             </label>
           </div>
           {showSearch && (
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
-              aria-label={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
-              data-testid="player-picker-search"
-              className="w-full mb-2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
+            <div className="relative px-4 py-3 flex-shrink-0 border-b border-hairline">
+              <HiOutlineMagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-[30px] top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-ink-3" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
+                aria-label={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
+                data-testid="player-picker-search"
+                className={`${inputBaseStyle} min-h-11! py-2! pl-10! text-[15px]!`}
+              />
+            </div>
           )}
           <div
-            className={`space-y-1 overflow-y-auto pl-1 pr-1 pb-2 ${useFlexHeight ? 'flex-1 min-h-0' : 'max-h-60'}`}
+            className={`overflow-y-auto ${useFlexHeight ? 'flex-1 min-h-0' : 'max-h-[336px]'}`}
           >
             {showSearch && query.trim() && visiblePlayers.length === 0 && (
-              <p className="py-2 text-sm text-slate-400" data-testid="player-picker-no-results">
+              <p className="px-4 py-4 text-sm text-ink-3" data-testid="player-picker-no-results">
                 {t('rosterSettingsModal.noSearchResults', 'No player matches "{{search}}".', { search: query.trim() })}
               </p>
             )}
             {visiblePlayers.map((player) => (
-              <div key={player.id} className="flex items-center py-1.5 px-1 rounded hover:bg-slate-800/40 transition-colors">
-                <label className="flex items-center flex-1 cursor-pointer">
+              <div
+                key={player.id}
+                className="relative transition-colors hover:bg-white/[0.03] before:absolute before:top-0 before:left-[54px] before:right-0 before:h-px before:bg-hairline first:before:hidden"
+              >
+                <label className="flex items-center gap-3.5 min-h-14 px-4 py-2 cursor-pointer">
                   <input
                     type="checkbox"
                     disabled={disabled || isSubmittingAdd}
@@ -201,20 +220,20 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
                         onSelectedPlayersChange([...selectedPlayerIds, player.id]);
                       }
                     }}
-                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+                    className={checkboxStyle}
                   />
-                  <span className="ml-2 text-slate-200">
+                  <span className="min-w-0 text-base font-medium text-ink">
                     {player.name}
-                    {player.nickname && <span className="text-slate-400 ml-1">({player.nickname})</span>}
+                    {player.nickname && <span className="text-sm font-normal text-ink-3 ml-1.5">({player.nickname})</span>}
                     {/* Archived players are only listed where they already belong (this
                         game, team or plan); the badge says why they are not offered elsewhere. */}
                     {removedPlayerIds?.has(player.id) && (
-                      <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-amber-700/40 text-amber-200">
+                      <span className={`ml-2 align-middle ${badgeArchivedStyle}`}>
                         {t('rosterSettingsModal.removedBadge', 'removed from player list')}
                       </span>
                     )}
                     {player.archived && (
-                      <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-slate-600/60 text-slate-300">
+                      <span className={`ml-2 align-middle ${badgeArchivedStyle}`}>
                         {t('rosterSettingsModal.archivedBadge', 'archived')}
                       </span>
                     )}
@@ -225,15 +244,15 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
           </div>
         </>
       ) : (
-        <div className="text-center py-4 text-slate-400">{noPlayersText}</div>
+        <div className="text-center px-4 py-5 text-sm text-ink-3">{noPlayersText}</div>
       )}
       {onAddPlayer && (
-        <div className="mt-3 flex-shrink-0">
+        <div className="p-4 flex-shrink-0 border-t border-hairline">
           {isAddingOpen ? (
             <>
             <form
               onSubmit={(e) => { e.preventDefault(); void submitAddPlayer(); }}
-              className="flex flex-col gap-2"
+              className="flex flex-col gap-2.5"
             >
               <input
                 type="text"
@@ -243,7 +262,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
                 aria-label={addPlayerPlaceholder}
                 autoFocus
                 disabled={disabled || isSubmittingAdd}
-                className="w-full px-3 py-2.5 rounded-md bg-slate-700 border border-slate-500 text-slate-100 text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                className={inputBaseStyle}
               />
               <input
                 type="text"
@@ -252,17 +271,13 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
                 placeholder={addPlayerNicknamePlaceholder}
                 aria-label={addPlayerNicknamePlaceholder}
                 disabled={disabled || isSubmittingAdd}
-                className="w-full px-3 py-2.5 rounded-md bg-slate-700 border border-slate-500 text-slate-100 text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                className={inputBaseStyle}
               />
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
                   disabled={disabled || !newPlayerName.trim() || isSubmittingAdd}
-                  className={`flex-1 px-4 py-2.5 rounded-md text-sm font-semibold transition-colors ${
-                    !disabled && newPlayerName.trim() && !isSubmittingAdd
-                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                      : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                  }`}
+                  className={`${secondaryButtonStyle} flex-1`}
                 >
                   {addPlayerConfirmLabel ?? addPlayerLabel}
                 </button>
@@ -270,7 +285,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
                   type="button"
                   onClick={() => { setIsAddingOpen(false); setNewPlayerName(''); setNewPlayerNickname(''); setAddError(null); }}
                   disabled={disabled || isSubmittingAdd}
-                  className="px-4 py-2.5 rounded-md text-sm text-slate-300 hover:text-slate-100 bg-slate-700/60 hover:bg-slate-700 transition-colors disabled:opacity-50"
+                  className={iconButtonCancelStyle}
                   aria-label={`${addPlayerLabel} - cancel`}
                 >
                   ✕
@@ -278,7 +293,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
               </div>
             </form>
             {addError && (
-              <p role="alert" className="mt-2 text-sm text-red-400">{addError}</p>
+              <p role="alert" className={fieldErrorStyle}>{addError}</p>
             )}
             </>
           ) : (
@@ -286,13 +301,14 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
               type="button"
               onClick={() => setIsAddingOpen(true)}
               disabled={disabled}
-              className="w-full px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-semibold transition-colors"
+              className={`${secondaryButtonStyle} w-full`}
             >
               + {addPlayerLabel}
             </button>
           )}
         </div>
       )}
+      </div>
     </div>
   );
 };

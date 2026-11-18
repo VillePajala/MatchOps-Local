@@ -9,6 +9,17 @@ import { useTranslation } from 'react-i18next';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { GameEvent, Player } from '@/types';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
+import {
+  cardStyle,
+  labelStyle,
+  inputBaseStyle,
+  selectStyle,
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  iconButtonEditStyle,
+  popoverMenuStyle,
+  popoverItemStyle,
+} from '@/styles/modalStyles';
 
 interface GoalEventListProps {
   goals: GameEvent[];
@@ -82,12 +93,12 @@ export function GoalEventList({
   };
 
   return (
-    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <h3 className="text-xl font-semibold text-slate-200 mb-4">
+    <div className={`${cardStyle} font-ui`}>
+      <h3 className="text-base font-semibold text-ink mb-3">
         {t('gameStatsModal.goalLogTitle', 'Goal Log')}
       </h3>
       {goals.length === 0 ? (
-        <p className="text-sm text-slate-400 italic">
+        <p className="text-sm text-ink-3">
           {t('gameStatsModal.noGoals', 'No goals recorded.')}
         </p>
       ) : (
@@ -95,17 +106,17 @@ export function GoalEventList({
         {goals.map(goal => (
           <div
             key={goal.id}
-            className={`p-3 rounded-md border transition-all ${
+            className={`p-3 rounded-2xl transition-colors ${
               editingGoalId === goal.id
-                ? 'bg-slate-700/75 border-indigo-500'
-                : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 border-slate-700/50'
+                ? 'bg-surface-2 shadow-[inset_0_0_0_1.5px_var(--color-action)]'
+                : 'bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] hover:bg-white/[0.05]'
             }`}
           >
             {editingGoalId === goal.id ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                    <label className={labelStyle}>
                       {t('common.time', 'Time')}
                     </label>
                     <input
@@ -115,17 +126,17 @@ export function GoalEventList({
                       onChange={(e) => onEditGoalTimeChange(e.target.value)}
                       onKeyDown={onGoalEditKeyDown}
                       placeholder="MM:SS"
-                      className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1.5 text-sm"
+                      className={inputBaseStyle}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                    <label className={labelStyle}>
                       {t('common.scorer', 'Scorer')}
                     </label>
                     <select
                       value={editGoalScorerId}
                       onChange={(e) => onEditGoalScorerChange(e.target.value)}
-                      className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1.5 text-sm"
+                      className={selectStyle}
                     >
                       <option value="">{t('common.select', 'Select')}</option>
                       {orderedPlayers.map((p) => (
@@ -136,13 +147,13 @@ export function GoalEventList({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                    <label className={labelStyle}>
                       {t('common.assist', 'Assist')}
                     </label>
                     <select
                       value={editGoalAssisterId}
                       onChange={(e) => onEditGoalAssisterChange(e.target.value || undefined)}
-                      className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1.5 text-sm"
+                      className={selectStyle}
                     >
                       <option value="">{t('common.none', 'None')}</option>
                       {orderedPlayers.map((p) => (
@@ -156,13 +167,13 @@ export function GoalEventList({
                 <div className="flex justify-end gap-2 pt-2">
                   <button
                     onClick={onCancelEditGoal}
-                    className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm text-sm font-medium transition-colors border border-slate-400/30"
+                    className={secondaryButtonStyle}
                   >
                     {t('common.cancel', 'Cancel')}
                   </button>
                   <button
                     onClick={onSaveEditGoal}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors border border-indigo-400/30"
+                    className={primaryButtonStyle}
                   >
                     {t('common.save', 'Save')}
                   </button>
@@ -171,17 +182,17 @@ export function GoalEventList({
             ) : (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <span className="font-mono text-slate-300 text-lg w-16">
+                  <span className="font-display text-xl font-bold text-ink-2 tabular-nums w-14">
                     {formatTime(goal.time)}
                   </span>
                   <div className="flex flex-col">
-                    <span className="font-semibold text-slate-100">
+                    <span className="font-semibold text-ink">
                       {goal.type === 'goal'
                         ? availablePlayers.find((p) => p.id === goal.scorerId)?.name || 'N/A'
                         : opponentName}
                     </span>
                     {goal.type === 'goal' && goal.assisterId && (
-                      <span className="text-sm text-slate-400">
+                      <span className="text-sm text-ink-3">
                         {t('common.assist', 'Assist')}:{' '}
                         {availablePlayers.find((p) => p.id === goal.assisterId)?.name || ''}
                       </span>
@@ -191,21 +202,21 @@ export function GoalEventList({
                 <div className="relative" ref={goalActionsMenuId === goal.id ? actionsMenuRef : null}>
                   <button
                     onClick={(e) => handleActionsMenuToggle(e, goal.id)}
-                    className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
+                    className={iconButtonEditStyle}
                     aria-label={t('common.actions', 'Actions')}
                   >
                     <HiOutlineEllipsisVertical className="w-5 h-5" />
                   </button>
 
                   {goalActionsMenuId === goal.id && (
-                    <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[goal.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                    <div className={`${popoverMenuStyle} ${menuPositions[goal.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                       {goal.type === 'goal' && (
                         <button
                           onClick={() => {
                             setGoalActionsMenuId(null);
                             onStartEditGoal(goal);
                           }}
-                          className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
+                          className={popoverItemStyle}
                         >
                           <HiOutlinePencil className="w-4 h-4" />
                           {t('common.edit', 'Edit')}
@@ -216,7 +227,7 @@ export function GoalEventList({
                           setGoalActionsMenuId(null);
                           onDeleteGoal(goal.id);
                         }}
-                        className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
+                        className={`${popoverItemStyle} text-red-400!`}
                       >
                         <HiOutlineTrash className="w-4 h-4" />
                         {t('common.delete', 'Delete')}

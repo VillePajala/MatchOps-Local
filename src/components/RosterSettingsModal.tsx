@@ -8,8 +8,14 @@ import {
   CollapsibleModalHeader,
   useCollapsingHeader,
   primaryButtonStyle,
-  cardStyle,
-  iconButtonBaseStyle,
+  groupedListStyle,
+  listRowStyle,
+  searchInputStyle,
+  selectStyle,
+  popoverMenuStyle,
+  popoverItemStyle,
+  iconButtonEditStyle,
+  badgeArchivedStyle,
   modalContainerStyle
 } from '@/styles/modalStyles';
 import type { Player } from '@/types'; // Import Player type from the central types file
@@ -18,6 +24,8 @@ import {
     HiOutlineChartBar,
     HiOutlineEllipsisVertical,
     HiOutlineGlobeAlt,
+    HiOutlineMagnifyingGlass,
+    HiOutlinePlus,
   HiOutlineArchiveBox,
   HiOutlineArrowUturnLeft,
 } from 'react-icons/hi2';
@@ -225,13 +233,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('rosterSettings.title', 'Roster Settings')}>
-      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
-        {/* Background effects */}
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
-        <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
-
+      <div className={`${modalContainerStyle} relative overflow-hidden h-full w-full flex flex-col`}>
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col min-h-0 flex-1">
           {/* Modal-chrome slimming: X-header replaces the header + the
@@ -242,33 +244,38 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
             closeLabel={t('common.doneButton', 'Done')}
             collapse={headerCollapse}
           >
-            <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
+            <div className="px-4 pt-2 pb-4">
               <button
                 onClick={handleAddPlayer}
                 data-testid="tour-add-player"
-                className={`${primaryButtonStyle} w-full`}
+                className={`${primaryButtonStyle} w-full min-h-[52px] text-base`}
                 disabled={isRosterUpdating}
               >
+                <HiOutlinePlus className="w-5 h-5" aria-hidden="true" />
                 {t('rosterSettingsModal.addPlayerButton', 'Add Player')}
               </button>
             </div>
           </CollapsibleModalHeader>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-2 pb-6" onScroll={headerCollapse.onScroll}>
-            <div className="mt-0.5 mb-3 flex items-center gap-2">
-              <input
-                type="text"
-                placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
-                value={searchText}
-                onChange={handleSearchChange}
-                autoComplete="off"
-                className="flex-1 min-w-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6" onScroll={headerCollapse.onScroll}>
+            <div className="mb-3 flex items-center gap-2.5">
+              <div className="relative flex-1 min-w-0">
+                <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
+                <input
+                  type="text"
+                  placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
+                  value={searchText}
+                  onChange={handleSearchChange}
+                  autoComplete="off"
+                  aria-label={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
+                  className={searchInputStyle}
+                />
+              </div>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="flex-shrink-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className={`${selectStyle} w-auto! flex-shrink-0`}
                 aria-label={t('rosterSettingsModal.sortBy', 'Sort by')}
               >
                 <option value="lastName">{t('rosterSettingsModal.sortByLastName', 'Last Name')}</option>
@@ -277,123 +284,122 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
               </select>
             </div>
 
-            {/* Player List */}
-            <div className={`${cardStyle} -mx-2 sm:-mx-4 md:-mx-6`}>
-              <div className="space-y-3">
-                {filteredPlayers.length === 0 && (
-                  // Say why the list is empty (review 7.L7) - it was a blank card.
-                  <p className="text-sm text-slate-400 py-2" data-testid="roster-empty">
-                    {searchText.trim()
-                      ? t('rosterSettingsModal.noSearchResults', 'No player matches "{{search}}".', { search: searchText.trim() })
-                      : archivedCount > 0 && !showArchived
-                        ? t('common.allArchived', 'Everything here is archived.')
-                        : t('rosterSettingsModal.noPlayersYet', 'No players yet. Add your first player above.')}
-                  </p>
-                )}
+            {/* Player List: one grouped surface, rows split by inset dividers */}
+            {filteredPlayers.length === 0 && (
+              // Say why the list is empty (review 7.L7) - it was a blank card.
+              <p className="font-ui text-sm text-ink-3 px-1 py-2" data-testid="roster-empty">
+                {searchText.trim()
+                  ? t('rosterSettingsModal.noSearchResults', 'No player matches "{{search}}".', { search: searchText.trim() })
+                  : archivedCount > 0 && !showArchived
+                    ? t('common.allArchived', 'Everything here is archived.')
+                    : t('rosterSettingsModal.noPlayersYet', 'No players yet. Add your first player above.')}
+              </p>
+            )}
+            {filteredPlayers.length > 0 && (
+              <div className={groupedListStyle}>
                 {filteredPlayers.map((player) => (
                   <div
                     key={player.id}
-                    className={`p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer ${player.archived ? 'opacity-60' : ''}`}
+                    className={`${listRowStyle} cursor-pointer transition-colors hover:bg-white/[0.03] ${player.archived ? 'opacity-60' : ''}`}
                     onClick={() => handleEditPlayer(player.id)}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex-grow flex items-center gap-2 truncate">
-                        <span
-                          className="text-base text-slate-100 truncate"
-                          title={player.name}
-                        >
-                          {player.name}{player.nickname ? <span className="text-slate-400"> ({player.nickname})</span> : ''}
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <span
+                        className="truncate text-base font-semibold text-ink"
+                        title={player.name}
+                      >
+                        {player.name}{player.nickname ? <span className="ml-2 text-sm font-normal text-ink-3">{player.nickname}</span> : ''}
+                      </span>
+                      {player.archived && (
+                        <span className={`${badgeArchivedStyle} flex-shrink-0`}>
+                          {t('rosterSettingsModal.archivedBadge', 'archived')}
                         </span>
-                        {player.archived && (
-                          <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-xs bg-slate-600/60 text-slate-300">
-                            {t('rosterSettingsModal.archivedBadge', 'archived')}
-                          </span>
-                        )}
-                      </div>
-                      <div className="relative" ref={actionsMenuPlayerId === player.id ? actionsMenuRef : null}>
-                        <button
-                          onClick={(e) => handleActionsMenuToggle(e, player.id)}
-                          className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
-                          title={t('common.actions', 'Actions')}
-                          disabled={isRosterUpdating}
-                        >
-                          <HiOutlineEllipsisVertical className="w-5 h-5" />
-                        </button>
-                        {actionsMenuPlayerId === player.id && (
-                          <div className={`absolute right-0 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[140px] ${menuPositions[player.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                      )}
+                    </div>
+                    <div className="relative flex-shrink-0" ref={actionsMenuPlayerId === player.id ? actionsMenuRef : null}>
+                      <button
+                        onClick={(e) => handleActionsMenuToggle(e, player.id)}
+                        className={iconButtonEditStyle}
+                        title={t('common.actions', 'Actions')}
+                        aria-label={t('common.actions', 'Actions')}
+                        disabled={isRosterUpdating}
+                      >
+                        <HiOutlineEllipsisVertical className="w-5 h-5" />
+                      </button>
+                      {actionsMenuPlayerId === player.id && (
+                        <div className={`${popoverMenuStyle} ${menuPositions[player.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenPlayerStats(player.id);
+                              setActionsMenuPlayerId(null);
+                            }}
+                            className={popoverItemStyle}
+                          >
+                            <HiOutlineChartBar className="w-4 h-4" />
+                            {t('common.stats', 'Stats')}
+                          </button>
+                          {onOpenExternalGames && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onOpenPlayerStats(player.id);
+                                onOpenExternalGames(player.id);
                                 setActionsMenuPlayerId(null);
                               }}
-                              className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-lg transition-colors"
+                              className={popoverItemStyle}
                             >
-                              <HiOutlineChartBar className="w-4 h-4" />
-                              {t('common.stats', 'Stats')}
+                              <HiOutlineGlobeAlt className="w-4 h-4" />
+                              {t('playerStats.addToStats', 'Add to stats')}
                             </button>
-                            {onOpenExternalGames && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onOpenExternalGames(player.id);
-                                  setActionsMenuPlayerId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
-                              >
-                                <HiOutlineGlobeAlt className="w-4 h-4" />
-                                {t('playerStats.addToStats', 'Add to stats')}
-                              </button>
-                            )}
-                            {onUpdatePlayer && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActionsMenuPlayerId(null);
-                                  // Archive keeps every game, stat and export; it only stops
-                                  // offering the player for new games, teams and plans.
-                                  void onUpdatePlayer(player.id, { archived: !player.archived });
-                                }}
-                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
-                              >
-                                {player.archived
-                                  ? <><HiOutlineArrowUturnLeft className="w-4 h-4" />{t('rosterSettingsModal.restorePlayer', 'Restore')}</>
-                                  : <><HiOutlineArchiveBox className="w-4 h-4" />{t('rosterSettingsModal.archivePlayer', 'Archive')}</>}
-                              </button>
-                            )}
+                          )}
+                          {onUpdatePlayer && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setPlayerToDelete({ id: player.id, name: player.name });
-                                setShowDeleteConfirm(true);
                                 setActionsMenuPlayerId(null);
+                                // Archive keeps every game, stat and export; it only stops
+                                // offering the player for new games, teams and plans.
+                                void onUpdatePlayer(player.id, { archived: !player.archived });
                               }}
-                              className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-lg transition-colors"
+                              className={popoverItemStyle}
                             >
-                              <HiOutlineTrash className="w-4 h-4" />
-                              {t('common.delete', 'Delete')}
+                              {player.archived
+                                ? <><HiOutlineArrowUturnLeft className="w-4 h-4" />{t('rosterSettingsModal.restorePlayer', 'Restore')}</>
+                                : <><HiOutlineArchiveBox className="w-4 h-4" />{t('rosterSettingsModal.archivePlayer', 'Archive')}</>}
                             </button>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPlayerToDelete({ id: player.id, name: player.name });
+                              setShowDeleteConfirm(true);
+                              setActionsMenuPlayerId(null);
+                            }}
+                            className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
+                          >
+                            <HiOutlineTrash className="w-4 h-4" />
+                            {t('common.delete', 'Delete')}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
-              {archivedCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowArchived((v) => !v)}
-                  data-testid="roster-toggle-archived"
-                  className="w-full mt-3 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
-                >
-                  {showArchived
-                    ? t('rosterSettingsModal.hideArchived', 'Hide archived players')
-                    : t('rosterSettingsModal.showArchived', 'Show archived players ({{count}})', { count: archivedCount })}
-                </button>
-              )}
-              {rosterError && <div className="mt-3 text-sm text-red-400">{rosterError}</div>}
-            </div>
+            )}
+            {archivedCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowArchived((v) => !v)}
+                data-testid="roster-toggle-archived"
+                className="w-full mt-3 min-h-11 font-ui text-sm font-medium text-ink-3 hover:text-ink transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action rounded-full"
+              >
+                {showArchived
+                  ? t('rosterSettingsModal.hideArchived', 'Hide archived players')
+                  : t('rosterSettingsModal.showArchived', 'Show archived players ({{count}})', { count: archivedCount })}
+              </button>
+            )}
+            {rosterError && <div className="mt-3 font-ui text-sm text-red-400">{rosterError}</div>}
           </div>
 
         </div>

@@ -181,7 +181,7 @@ describe('LoadGameModal', () => {
     (games['game_1659223456_def'] as unknown as { isPlayed: boolean }).isPlayed = true;
     await renderModal({ savedGames: games });
     await screen.findByText('Lions');
-    fireEvent.click(screen.getByRole('button', { name: /loadGameModal.showUnplayedOnly|unplayed/i }));
+    fireEvent.click(screen.getByRole('switch', { name: /loadGameModal.showUnplayedOnly|unplayed/i }));
     expect(await screen.findByText('loadGameModal.noGamesMatchFilter')).toBeInTheDocument();
     expect(screen.queryByText('loadGameModal.noGamesSaved')).not.toBeInTheDocument();
   });
@@ -218,7 +218,7 @@ describe('LoadGameModal', () => {
   it('remembers the unplayed filter and the sort between visits', async () => {
     const first = await renderModal();
     await screen.findByText('Lions');
-    fireEvent.click(screen.getByRole('button', { name: /loadGameModal.showUnplayedOnly|unplayed/i }));
+    fireEvent.click(screen.getByRole('switch', { name: /loadGameModal.showUnplayedOnly|unplayed/i }));
     fireEvent.change(screen.getByTestId('load-game-sort'), { target: { value: 'opponent' } });
     first.unmount();
 
@@ -239,7 +239,7 @@ describe('LoadGameModal', () => {
     await renderModal();
     await screen.findByText('Lions');
 
-    const toggle = screen.getByRole('button', { name: 'loadGameModal.showUnplayedOnly' });
+    const toggle = screen.getByRole('switch', { name: 'loadGameModal.showUnplayedOnly' });
     fireEvent.click(toggle);
 
     expect(screen.queryByText('Lions')).not.toBeInTheDocument();
@@ -338,8 +338,8 @@ describe('LoadGameModal', () => {
     await renderModal({ currentGameId: 'game_1659123456_abc' });
     const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
 
-    // Check for the indigo ring indicator (current game styling)
-    expect(gameCard).toHaveClass('ring-1', 'ring-indigo-400/60', 'bg-indigo-900/20');
+    // The open game carries a faint amber wash from the left
+    expect(gameCard).toHaveClass('bg-gradient-to-r', 'from-action/[0.09]');
   });
 
   describe('orphaned tournamentSeriesId handling', () => {

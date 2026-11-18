@@ -4,6 +4,7 @@ import React from 'react';
 import { Personnel } from '@/types/personnel';
 import { useTranslation } from 'react-i18next';
 import { getRoleLabelKey } from '@/utils/personnelRoles';
+import { sectionLabelStyle, checkboxStyle } from '@/styles/modalStyles';
 
 export interface PersonnelSelectionSectionProps {
   availablePersonnel: Personnel[];
@@ -23,22 +24,24 @@ const PersonnelSelectionSection: React.FC<PersonnelSelectionSectionProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-200">{title}</h3>
-        <div className="text-sm text-slate-400">
-          <span className="text-amber-400 font-semibold">{selectedPersonnelIds.length}</span>
+    <div className="font-ui">
+      {/* Same shape as the player picker: label + count, then one list. */}
+      <div className="flex items-baseline justify-between gap-3 px-1 mb-2.5">
+        <h3 className={sectionLabelStyle}>{title}</h3>
+        <div className="text-[13px] text-ink-3 whitespace-nowrap">
+          <span className="font-bold text-ink">{selectedPersonnelIds.length}</span>
           {' / '}
-          <span className="text-amber-400 font-semibold">{availablePersonnel.length}</span>
+          <span>{availablePersonnel.length}</span>
           {' '}
           {t('personnel.selected', 'selected')}
         </div>
       </div>
 
+      <div className="s1-list overflow-hidden">
       {availablePersonnel.length > 0 ? (
         <>
-          <div className="flex items-center py-2 px-1 border-b border-white/10">
-            <label className="flex items-center text-sm text-slate-300 hover:text-slate-200 cursor-pointer">
+          <div className="border-b border-hairline">
+            <label className="flex items-center gap-3.5 min-h-14 px-4 text-base font-semibold text-ink cursor-pointer">
               <input
                 type="checkbox"
                 disabled={disabled}
@@ -51,19 +54,19 @@ const PersonnelSelectionSection: React.FC<PersonnelSelectionSectionProps> = ({
                     onSelectedPersonnelChange(availablePersonnel.map((p) => p.id));
                   }
                 }}
-                className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+                className={checkboxStyle}
               />
-              <span className="ml-2">{t('personnel.selectAll', 'Select All')}</span>
+              <span>{t('personnel.selectAll', 'Select All')}</span>
             </label>
           </div>
 
-          <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
+          <div className="max-h-[336px] overflow-y-auto">
             {availablePersonnel.map((person) => (
               <div
                 key={person.id}
-                className="flex items-center py-1.5 px-1 rounded hover:bg-slate-800/40 transition-colors"
+                className="relative transition-colors hover:bg-white/[0.03] before:absolute before:top-0 before:left-[54px] before:right-0 before:h-px before:bg-hairline first:before:hidden"
               >
-                <label className="flex items-center flex-1 cursor-pointer">
+                <label className="flex items-center gap-3.5 min-h-14 px-4 py-2 cursor-pointer">
                   <input
                     type="checkbox"
                     disabled={disabled}
@@ -78,11 +81,11 @@ const PersonnelSelectionSection: React.FC<PersonnelSelectionSectionProps> = ({
                         onSelectedPersonnelChange([...selectedPersonnelIds, person.id]);
                       }
                     }}
-                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+                    className={checkboxStyle}
                   />
-                  <div className="ml-2">
-                    <span className="text-slate-200">{person.name}</span>
-                    <span className="text-slate-400 text-sm ml-2">
+                  <div className="min-w-0">
+                    <span className="text-base font-medium text-ink">{person.name}</span>
+                    <span className="text-ink-3 text-sm ml-1.5">
                       ({t(getRoleLabelKey(person.role), person.role)})
                     </span>
                   </div>
@@ -92,10 +95,11 @@ const PersonnelSelectionSection: React.FC<PersonnelSelectionSectionProps> = ({
           </div>
         </>
       ) : (
-        <div className="text-center py-4 text-slate-400">
+        <div className="text-center px-4 py-5 text-sm text-ink-3">
           {t('personnel.noPersonnel', 'No personnel available. Add personnel in Personnel Manager.')}
         </div>
       )}
+      </div>
     </div>
   );
 };

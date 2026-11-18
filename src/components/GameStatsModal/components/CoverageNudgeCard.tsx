@@ -30,7 +30,7 @@ interface CoverageNudgeCardProps {
   limit?: number;
 }
 
-const CARD = 'bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner';
+const CARD = 's1-list p-4 font-ui';
 
 const CoverageNudgeCard: React.FC<CoverageNudgeCardProps> = ({ games, players, limit = 6 }) => {
   const { t } = useTranslation();
@@ -44,10 +44,10 @@ const CoverageNudgeCard: React.FC<CoverageNudgeCardProps> = ({ games, players, l
 
   return (
     <div className={CARD} data-testid="coverage-nudge">
-      <h3 className="text-lg font-semibold text-slate-200 mb-1">
+      <h3 className="text-base font-semibold text-ink mb-1">
         {t('coverageNudge.title', 'Who you have written about')}
       </h3>
-      <p className="text-sm text-slate-400 mb-3" data-testid="coverage-nudge-summary">
+      <p className="text-sm text-ink-3 mb-3" data-testid="coverage-nudge-summary">
         {t('coverageNudge.summary', 'Notes on {{covered}} of {{total}} players over {{matches}} matches.', {
           covered: coverage.playersWithNotes,
           total: coverage.players,
@@ -61,23 +61,23 @@ const CoverageNudgeCard: React.FC<CoverageNudgeCardProps> = ({ games, players, l
         </p>
       ) : (
         <>
-          <p className="text-sm text-slate-400 mb-2">
+          <p className="text-sm text-ink-3 mb-2">
             {t('coverageNudge.lead', 'Nothing written yet about:')}
           </p>
           <ul className="space-y-1" data-testid="coverage-nudge-list">
             {shown.map((player) => (
               <li key={player.id} className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-slate-200">{player.name}</span>
+                <span className="text-ink">{player.name}</span>
                 {/* The denominator is the point: no notes across eight matches
                     is a gap, no notes across one is a substitute. */}
-                <span className="shrink-0 text-xs text-slate-400 tabular-nums">
+                <span className="shrink-0 text-xs text-ink-3 tabular-nums">
                   {t('coverageNudge.matchesPlayed', '{{count}} matches', { count: player.matches })}
                 </span>
               </li>
             ))}
           </ul>
           {rest > 0 && (
-            <p className="mt-2 text-sm text-slate-400" data-testid="coverage-nudge-rest">
+            <p className="mt-2 text-sm text-ink-3" data-testid="coverage-nudge-rest">
               {t('coverageNudge.andMore', 'and {{count}} more', { count: rest })}
             </p>
           )}

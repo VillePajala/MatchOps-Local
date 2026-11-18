@@ -388,9 +388,9 @@ describe('SpokenReportPanel - the transcript', () => {
     const insert = screen.getByTestId('spoken-report-insert');
     const save = screen.getByTestId('spoken-report-save');
     expect(insert).toHaveTextContent(/match report/i);
-    expect(insert.className).toContain('bg-indigo-600');
+    expect(insert.className).toContain('s1-primary');
     expect(save).toHaveTextContent(/note for the AI/i);
-    expect(save.className).toContain('bg-slate-700');
+    expect(save.className).toContain('s1-ghost');
 
     await act(async () => {
       fireEvent.click(save);

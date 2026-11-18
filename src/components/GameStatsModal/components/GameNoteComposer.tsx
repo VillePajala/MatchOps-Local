@@ -40,6 +40,7 @@ import { estimateTranscriptionUsd, getTranscriptionEngine, TranscriptionError } 
 import { useToast } from '@/contexts/ToastProvider';
 import WorkingIndicator from '@/components/WorkingIndicator';
 import { matchPlayerInText } from '@/utils/playerNameMatch';
+import { dangerButtonStyle, labelStyle, secondaryButtonStyle, selectStyle, textareaStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 
 interface GameNoteComposerProps {
@@ -226,16 +227,16 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
   };
 
   return (
-    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner" data-testid="note-composer">
-      <h3 className="text-xl font-semibold text-slate-200 mb-3">{t('noteComposer.title', 'Add a note')}</h3>
-      <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor="note-composer-player">
+    <div className="s1-list p-4 font-ui" data-testid="note-composer">
+      <h3 className="text-base font-semibold text-ink mb-3">{t('noteComposer.title', 'Add a note')}</h3>
+      <label className={labelStyle} htmlFor="note-composer-player">
         {t('noteComposer.playerLabel', 'About')}
       </label>
       <select
         id="note-composer-player"
         value={entityId}
         onChange={(e) => setEntityId(e.target.value)}
-        className="w-full mb-3 bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className={`${selectStyle} mb-3`}
       >
         <option value="">{t('noteComposer.wholeMatch', 'The match')}</option>
         {/* The app's one player order and name format (review 7.L5/7.L8). */}
@@ -249,12 +250,12 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         rows={3}
         aria-label={t('noteComposer.title', 'Add a note')}
         placeholder={t('noteComposer.placeholder', 'What did you see? One observation is enough.')}
-        className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className={`${textareaStyle} text-[15px]!`}
       />
       {canRecord && dictation && (
         <div className="mt-2">
           {dictation.permission === 'denied' ? (
-            <p className="text-sm text-amber-300">
+            <p className="text-sm text-ink-2">
               {t('dictation.permissionDenied', "Microphone access was denied. Allow it in your phone's app settings to dictate notes.")}
             </p>
           ) : (
@@ -278,20 +279,16 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
                 // page): say so by going quiet rather than offering to stop it.
                 disabled={transcribing || busy || (dictation.isRecording && !startedHere)}
                 data-testid="note-composer-record"
-                className={`w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  dictation.isRecording && startedHere
-                    ? 'bg-red-600 hover:bg-red-500 text-white'
-                    : 'bg-slate-700 hover:bg-slate-600 text-slate-100'
-                }`}
+                className={`${dictation.isRecording && startedHere ? dangerButtonStyle : secondaryButtonStyle} w-full`}
               >
                 {dictation.isRecording && startedHere ? (
                   <>
-                    <HiOutlineStop className="text-base" />
+                    <HiOutlineStop className="w-[18px] h-[18px]" aria-hidden="true" />
                     {t('noteComposer.recordStop', 'Stop dictating')}
                   </>
                 ) : (
                   <>
-                    <HiOutlineMicrophone className="text-base" />
+                    <HiOutlineMicrophone className="w-[18px] h-[18px] text-action" aria-hidden="true" />
                     {t('noteComposer.record', 'Dictate a note')}
                   </>
                 )}
@@ -304,7 +301,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
                 />
               )}
               {recorded && !dictation.isRecording && !transcribing && (
-                <p className="text-sm text-slate-400 mt-1" data-testid="note-composer-recorded">
+                <p className="text-sm text-ink-3 mt-1" data-testid="note-composer-recorded">
                   {t('noteComposer.recordedHint', 'Waiting in the voice notes above, where you write it out and choose the player.')}
                 </p>
               )}
@@ -317,7 +314,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         onClick={() => void save()}
         disabled={!text.trim() || transcribing || busy}
         data-testid="note-composer-save"
-        className="mt-2 w-full px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className={`${secondaryButtonStyle} mt-2.5 w-full`}
       >
         {t('noteComposer.save', 'Add the note')}
       </button>

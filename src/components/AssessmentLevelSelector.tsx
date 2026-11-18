@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { chipStyle, chipSelectedStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineInformationCircle } from 'react-icons/hi2';
 import type { TranslationKey } from '@/i18n-types';
@@ -45,7 +46,7 @@ const AssessmentLevelSelector: React.FC<AssessmentLevelSelectorProps> = ({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
-        <span className="text-sm text-slate-300">{label}</span>
+        <span className="text-sm font-medium text-ink-2">{label}</span>
         {description && (
           <button
             type="button"
@@ -53,16 +54,16 @@ const AssessmentLevelSelector: React.FC<AssessmentLevelSelectorProps> = ({
             aria-pressed={showDescription}
             aria-label={t('playerAssessmentModal.whatIsThis', 'What does this mean?')}
             title={t('playerAssessmentModal.whatIsThis', 'What does this mean?')}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
+            className="inline-flex items-center justify-center min-h-9 min-w-9 -my-1.5 rounded-full text-ink-3 hover:text-ink transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
           >
-            <HiOutlineInformationCircle className="w-4 h-4" />
+            <HiOutlineInformationCircle className="w-5 h-5" />
           </button>
         )}
       </div>
       {description && showDescription && (
-        <p className="text-sm text-slate-400 -mt-0.5 mb-0.5">{description}</p>
+        <p className="text-sm text-ink-3 -mt-0.5 mb-0.5">{description}</p>
       )}
-      <div className="flex flex-wrap gap-1" role="group" aria-label={label}>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label={label}>
         {positions.map((pos) => {
           const optionLabel = isWords
             ? t(`assessmentScale.level${pos}` as TranslationKey, String(pos))
@@ -75,11 +76,7 @@ const AssessmentLevelSelector: React.FC<AssessmentLevelSelectorProps> = ({
               aria-pressed={selected}
               aria-label={optionLabel}
               onClick={() => onChange(displayToCanonical(pos, styleMax))}
-              className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                selected
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-800/40 text-slate-300 hover:bg-slate-800/60'
-              }`}
+              className={selected ? chipSelectedStyle : chipStyle}
             >
               {optionLabel}
             </button>

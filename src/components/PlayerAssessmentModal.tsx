@@ -2,7 +2,7 @@
 
 import { sortPlayersByLastName } from '@/utils/gamePlayerList';
 import React, { useState, useEffect } from 'react';
-import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader, modalContainerStyle, groupedListStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
@@ -75,15 +75,6 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
 
   if (!isOpen) return null;
 
-  const modalContainerStyle =
-    'bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden';
-  const cardStyle =
-    'bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner';
-  const buttonBaseStyle =
-    'px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed';
-  const _secondaryButtonStyle =
-    `${buttonBaseStyle} bg-gradient-to-b from-slate-600 to-slate-700 text-slate-200 hover:from-slate-700 hover:to-slate-600`;
-
   const getPlayer = (id: string) => availablePlayers.find(p => p.id === id);
 
   const handleSave = async (playerId: string, assessment: Partial<PlayerAssessment>) => {
@@ -117,15 +108,13 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
   const displayHomeTeamName = homeOrAway === 'home' ? teamName : opponentName;
   const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
 
+  const players = sortPlayersByLastName(selectedPlayerIds.map(getPlayer).filter((p): p is Player => !!p));
+  const progressPct = selectedPlayerIds.length > 0 ? Math.min(100, (savedIds.length / selectedPlayerIds.length) * 100) : 0;
+
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('playerAssessment.title', 'Player Assessments')}>
-      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
-        <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
-
-        <div className="relative z-10 flex flex-col min-h-0">
+      <div className={`${modalContainerStyle} relative overflow-hidden h-full w-full flex flex-col`}>
+        <div className="relative z-10 flex flex-col min-h-0 h-full">
           {/* Chrome slimming: X-header; progress counter collapses on scroll. */}
           <CollapsibleModalHeader
             title={t('playerAssessmentModal.title', 'Record Performance')}
@@ -133,113 +122,92 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
             closeLabel={t('common.doneButton', 'Done')}
             collapse={headerCollapse}
           >
-            <div className="px-4 sm:px-6 pt-1 pb-4 text-center text-sm">
-              <div className="flex justify-center items-center text-slate-300">
+            <div className="px-5 pt-1 pb-4">
+              <div className="flex items-center gap-3 font-ui text-xs font-semibold uppercase tracking-[0.14em] text-ink-3 whitespace-nowrap">
                 <span>
-                  <span className="text-amber-400 font-semibold">{savedIds.length}/{selectedPlayerIds.length}</span>
+                  <b className="font-bold text-action">{savedIds.length}/{selectedPlayerIds.length}</b>
                   {" "}{t('playerAssessmentModal.assessed', 'assessed')}
                 </span>
+                <div className="flex-1 h-1 rounded bg-white/[0.08] overflow-hidden" aria-hidden="true">
+                  <div className="h-full rounded bg-action" style={{ width: `${progressPct}%` }} />
+                </div>
               </div>
             </div>
           </CollapsibleModalHeader>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6" onScroll={headerCollapse.onScroll}>
-            {/* Game Information Section */}
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6 font-ui" onScroll={headerCollapse.onScroll}>
+            {/* Game Information: one quiet hero card, the score the only big numeral */}
             {(teamName || opponentName) && (
-              <div className={`${cardStyle} mb-4`}>
-                <h3 className="text-lg font-semibold text-slate-200 mb-3">
+              <div className="s1-hero s1-hero-quiet px-[18px] pt-[18px] pb-4 mb-5">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">
                   {t('gameStatsModal.gameInfoTitle', 'Game Information')}
                 </h3>
-                <div className="space-y-3">
-                  <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-3 rounded-md transition-all">
-                    <div className="flex justify-center items-center text-center">
-                      <span className="font-semibold text-slate-100 flex-1 text-right">
-                        {displayHomeTeamName || 'Home'}
-                      </span>
-                      <span className="text-2xl text-amber-400 font-bold mx-4">
-                        {homeScore} - {awayScore}
-                      </span>
-                      <span className="font-semibold text-slate-100 flex-1 text-left">
-                        {displayAwayTeamName || 'Away'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {gameDate && (
-                      <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
-                        <label className="block text-xs text-slate-400">
-                          {t('common.date', 'Date')}
-                        </label>
-                        <span className="font-medium text-slate-200">
-                          {formatDisplayDate(gameDate)}
-                        </span>
-                      </div>
-                    )}
-                    {gameTime && (
-                      <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
-                        <label className="block text-xs text-slate-400">
-                          {t('common.time', 'Time')}
-                        </label>
-                        <span className="font-medium text-slate-200">
-                          {gameTime}
-                        </span>
-                      </div>
-                    )}
-                    {gameLocation && (
-                      <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
-                        <label className="block text-xs text-slate-400">
-                          {t('common.location', 'Location')}
-                        </label>
-                        <span className="font-medium text-slate-200">
-                          {gameLocation}
-                        </span>
-                      </div>
-                    )}
-                    {numberOfPeriods && periodDurationMinutes && (
-                      <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
-                        <label className="block text-xs text-slate-400">
-                          {t('newGameSetupModal.periodsLabel', 'Periods')}
-                        </label>
-                        <span className="font-medium text-slate-200">
-                          {numberOfPeriods} x {periodDurationMinutes} min
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 mt-3 mb-3.5">
+                  <span className="font-display text-[23px] font-bold italic leading-[1.05] text-ink">
+                    {displayHomeTeamName || 'Home'}
+                  </span>
+                  <span className="s1-numeral pr-[0.08em] font-display text-[46px] font-extrabold italic leading-[0.9]">
+                    {homeScore}-{awayScore}
+                  </span>
+                  <span className="font-display text-[23px] font-bold italic leading-[1.05] text-ink text-right">
+                    {displayAwayTeamName || 'Away'}
+                  </span>
                 </div>
+                <dl className="grid grid-cols-[1.35fr_1fr] gap-x-3.5 border-t border-hairline">
+                  {gameDate && (
+                    <div className="pt-2.5">
+                      <dt className="text-xs text-ink-3">{t('common.date', 'Date')}</dt>
+                      <dd className="text-[15px] font-semibold text-ink">{formatDisplayDate(gameDate)}</dd>
+                    </div>
+                  )}
+                  {gameTime && (
+                    <div className="pt-2.5">
+                      <dt className="text-xs text-ink-3">{t('common.time', 'Time')}</dt>
+                      <dd className="text-[15px] font-semibold text-ink">{gameTime}</dd>
+                    </div>
+                  )}
+                  {gameLocation && (
+                    <div className="pt-2.5">
+                      <dt className="text-xs text-ink-3">{t('common.location', 'Location')}</dt>
+                      <dd className="text-[15px] font-semibold text-ink">{gameLocation}</dd>
+                    </div>
+                  )}
+                  {numberOfPeriods && periodDurationMinutes && (
+                    <div className="pt-2.5">
+                      <dt className="text-xs text-ink-3">{t('newGameSetupModal.periodsLabel', 'Periods')}</dt>
+                      <dd className="text-[15px] font-semibold text-ink">{numberOfPeriods} x {periodDurationMinutes} min</dd>
+                    </div>
+                  )}
+                </dl>
               </div>
             )}
-            <div className={cardStyle}>
-              <div className="space-y-3">
-                {/* The squad in the app's one player order (review 7.L5) - this followed
-                    the order players were ticked in. */}
-                {sortPlayersByLastName(selectedPlayerIds.map(getPlayer).filter((p): p is Player => !!p)).map((player) => {
+            {/* The squad in the app's one player order (review 7.L5) - this followed
+                the order players were ticked in. One list, a row per player. */}
+            {players.length > 0 && (
+              <div className={groupedListStyle}>
+                {players.map((player) => {
                   const pid = player.id;
                   return (
-                    <div
+                    <PlayerAssessmentCard
                       key={pid}
-                      className="p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 transition-all"
-                    >
-                      <PlayerAssessmentCard
-                        player={player}
-                        isSaved={savedIds.includes(pid)}
-                        assessment={assessments[pid]}
-                        onSave={(assessment) => handleSave(pid, assessment)}
-                        onDelete={onDelete ? () => handleDelete(pid) : undefined}
-                        ratingStyle={ratingStyle}
-                        assessmentTemplate={assessmentTemplate}
-                      />
-                    </div>
+                      player={player}
+                      isSaved={savedIds.includes(pid)}
+                      assessment={assessments[pid]}
+                      onSave={(assessment) => handleSave(pid, assessment)}
+                      onDelete={onDelete ? () => handleDelete(pid) : undefined}
+                      ratingStyle={ratingStyle}
+                      assessmentTemplate={assessmentTemplate}
+                    />
                   );
                 })}
-                {selectedPlayerIds.length === 0 && (
-                  <p className="text-slate-300 text-center py-8">
-                    {t('playerAssessmentModal.noPlayers', 'No players selected')}
-                  </p>
-                )}
               </div>
-            </div>
+            )}
+            {selectedPlayerIds.length === 0 && (
+              <p className="text-ink-2 text-center py-8">
+                {t('playerAssessmentModal.noPlayers', 'No players selected')}
+              </p>
+            )}
           </div>
 
         </div>

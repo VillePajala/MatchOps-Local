@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import type { TranslationKey } from '@/i18n-types';
 import { reportSectionHeadings } from '@/utils/reportSections';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { inputBaseStyle, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 
 interface GameNotesEditorProps {
   gameNotes: string;
@@ -32,7 +33,7 @@ interface GameNotesEditorProps {
 }
 
 // One-line, full-width buttons in the app's segmented-control style.
-const ROW_BTN = 'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800';
+const ROW_BTN = `${secondaryButtonStyle} flex-1 min-w-0 px-3!`;
 
 export function GameNotesEditor({
   gameNotes,
@@ -54,7 +55,7 @@ export function GameNotesEditor({
     <button
       type="button"
       onClick={onTidy}
-      className={`${ROW_BTN} bg-slate-700 text-slate-300 hover:bg-slate-600`}
+      className={ROW_BTN}
       data-testid="report-editor-tidy"
     >
       {tidyEstimateUsd > 0
@@ -72,8 +73,8 @@ export function GameNotesEditor({
   };
 
   return (
-    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <h3 className="text-xl font-semibold text-slate-200 mb-4">
+    <div className="s1-list p-4 font-ui">
+      <h3 className="text-base font-semibold text-ink mb-4">
         {t('gameStatsModal.notesTitle', 'Match report')}
       </h3>
       {isEditingNotes ? (
@@ -88,13 +89,13 @@ export function GameNotesEditor({
             // hides its own errors - after which nothing about the match
             // persists and nothing on screen says so. Stop at the cap instead.
             maxLength={VALIDATION_LIMITS.GAME_NOTES_MAX}
-            className="w-full h-64 min-h-[10rem] resize-y p-3 bg-slate-700 border border-slate-600 rounded-md shadow-sm text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+            className={`${inputBaseStyle} h-64 min-h-[10rem] resize-y text-[15px]! leading-relaxed`}
             placeholder={t('gameStatsModal.notesPlaceholder', 'Add notes here...') ?? undefined}
           />
           {/* Silent until it matters: a counter over a long report is noise,
               but running out of room without warning is a lost paragraph. */}
           {editGameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX * 0.9 && (
-            <p className="text-sm text-amber-300 tabular-nums" data-testid="report-editor-remaining">
+            <p className="font-ui text-[13px] text-ink-2 tabular-nums" data-testid="report-editor-remaining">
               {t('gameStatsModal.notesRemaining', '{{remaining}} characters left', {
                 // Older data can already sit past the cap, and "-50 characters
                 // left" is not a thing. Zero is the honest floor.
@@ -106,7 +107,7 @@ export function GameNotesEditor({
             <button
               type="button"
               onClick={handleUseTemplate}
-              className={`${ROW_BTN} bg-slate-700 text-slate-300 hover:bg-slate-600`}
+              className={ROW_BTN}
             >
               {t('gameSettingsModal.useTemplate' as TranslationKey, 'Template')}
             </button>
@@ -116,14 +117,14 @@ export function GameNotesEditor({
             <button
               type="button"
               onClick={onCancelEdit}
-              className={`${ROW_BTN} bg-slate-700 text-slate-300 hover:bg-slate-600`}
+              className={ROW_BTN}
             >
               {t('common.cancel', 'Cancel')}
             </button>
             <button
               type="button"
               onClick={onSaveNotes}
-              className={`${ROW_BTN} bg-indigo-600 text-white hover:bg-indigo-500`}
+              className={`${primaryButtonStyle} flex-1 min-w-0 px-3!`}
             >
               {t('common.save', 'Save')}
             </button>
@@ -132,11 +133,11 @@ export function GameNotesEditor({
       ) : (
         <div
           data-testid="report-editor-open"
-          className="cursor-pointer whitespace-pre-wrap min-h-[6rem] p-3 rounded-md border border-slate-700/50 bg-slate-700/50 text-sm text-slate-300 hover:text-amber-400 transition-colors"
+          className="cursor-pointer whitespace-pre-wrap min-h-[6rem] p-3.5 rounded-[14px] bg-carbon text-[15px] leading-relaxed text-ink-2 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] hover:text-ink transition-colors"
           onClick={onStartEdit}
         >
           {gameNotes || (
-            <span className="italic text-slate-400">
+            <span className="italic text-ink-3">
               {t('gameStatsModal.noNotes', 'No notes added')}
             </span>
           )}

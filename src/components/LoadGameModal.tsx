@@ -17,15 +17,27 @@ import { getLeagueName, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import { LEVELS } from '@/config/gameOptions';
 import {
   HiOutlineTrash,
+  HiOutlineMagnifyingGlass,
   HiOutlineDocumentText,
   HiOutlineTableCells,
   HiOutlineEllipsisVertical
 } from 'react-icons/hi2';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import ConfirmationModal from './ConfirmationModal';
-import { CollapsibleModalHeader } from '@/styles/modalStyles';
+import {
+  CollapsibleModalHeader,
+  modalContainerStyle,
+  groupedListStyle,
+  searchInputStyle,
+  selectStyle,
+  switchInputStyle,
+  popoverMenuStyle,
+  popoverItemStyle,
+  iconButtonEditStyle,
+  errorBoxStyle,
+  pillQuietStyle,
+} from '@/styles/modalStyles';
 import { extractTimestampFromId } from '@/utils/idGenerator';
-import { ENTITY_DOT } from '@/config/palette';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { formatAppDate } from '@/utils/localeFormat';
 
@@ -305,8 +317,8 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   let mainContent;
   if (isLoadingGamesList) {
     mainContent = (
-      <div className="flex flex-col items-center justify-center h-full text-slate-400 py-10">
-        <svg className="animate-spin h-8 w-8 text-indigo-400 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <div className="flex flex-col items-center justify-center h-full text-ink-3 font-ui py-10">
+        <svg className="animate-spin h-8 w-8 text-action mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
@@ -315,7 +327,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     );
   } else if (loadGamesListError) {
     mainContent = (
-      <div className="bg-red-700/20 border border-red-600 text-red-300 px-4 py-3 rounded-md text-sm my-4 mx-2" role="alert">
+      <div className={`${errorBoxStyle} font-ui text-sm text-ink my-4`} role="alert">
         <p className="font-semibold mb-1">{t('common.error', 'Error')}:</p>
         <p>{loadGamesListError}</p>
       </div>
@@ -325,28 +337,28 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     // matching, the coach was told "No games saved yet".
     const hasFilters = searchText || opponentFilter !== 'all' || showUnplayedOnly;
     mainContent = (
-      <div className="flex flex-col items-center justify-center py-16 px-4">
+      <div className="flex flex-col items-center justify-center py-16 px-4 font-ui">
         {/* Soccer ball illustration */}
-        <div className="w-20 h-20 mb-6 text-slate-600">
+        <div className="w-20 h-20 mb-6 text-ink-3 opacity-60">
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full" aria-hidden="true">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 13v1c0 1.1.9 2 2 2v4.93zM17 12c0-.55-.45-1-1-1h-2v-1c0-.55-.45-1-1-1H9V7h4c.55 0 1-.45 1-1V4.59c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39-.26-.81-1-1.39-1.9-1.39h-1v-3z"/>
           </svg>
         </div>
         {hasFilters ? (
           <>
-            <h3 className="text-lg font-medium text-slate-300 mb-2">
+            <h3 className="text-lg font-semibold text-ink-2 mb-2">
               {t('loadGameModal.noGamesMatchFilter', 'No games match your filter')}
             </h3>
-            <p className="text-slate-400 text-sm">
+            <p className="text-ink-3 text-sm">
               {t('loadGameModal.tryDifferentFilter', 'Try a different search term or clear the filter')}
             </p>
           </>
         ) : (
           <>
-            <h3 className="text-lg font-medium text-slate-300 mb-2">
+            <h3 className="text-lg font-semibold text-ink-2 mb-2">
               {t('loadGameModal.noGamesSaved', 'No games saved yet')}
             </h3>
-            <p className="text-slate-400 text-sm text-center max-w-xs">
+            <p className="text-ink-3 text-sm text-center max-w-xs">
               {t('loadGameModal.startFirstGame', 'Start your first game from the home screen to begin tracking matches')}
             </p>
           </>
@@ -355,25 +367,26 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     );
   } else {
     mainContent = (
-      <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+      <div className="font-ui">
         {/* Display general game load/delete errors here */}
         {gameLoadError && processingGameId === null && (
-          <div className="px-3 py-2 mb-3 bg-red-700/20 border border-red-600 text-red-300 text-xs rounded" role="alert">
+          <div className={`${errorBoxStyle} p-3! mb-3 text-sm text-ink`} role="alert">
             {gameLoadError}
           </div>
         )}
         {gameDeleteError && processingGameId === null && (
-          <div className="px-3 py-2 mb-3 bg-red-700/20 border border-red-600 text-red-300 text-xs rounded" role="alert">
+          <div className={`${errorBoxStyle} p-3! mb-3 text-sm text-ink`} role="alert">
             {gameDeleteError}
           </div>
         )}
-        <div className="space-y-3">
+        <div className={groupedListStyle}>
           {filteredGameIds.map((gameId) => {
             const game = savedGames[gameId];
             if (!game) return null;
             const isCurrent = gameId === currentGameId;
-            // A single status dot before the team names: red = not played yet;
-            // otherwise (played) green = complete record, amber = needs finishing.
+            // Not played yet: the amber dot in the badge. Played: the result letter.
+            // A played game whose record is still incomplete gets a quiet chip
+            // (the actionable case); a complete one is announced to screen readers only.
             const completeness = computeGameCompleteness(game);
             const isUnplayed = game.isPlayed === false;
             const showReadinessDot = !isUnplayed && completeness.applicable;
@@ -418,11 +431,10 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             const displayHomeScore = game.homeScore ?? 0;
             const displayAwayScore = game.awayScore ?? 0;
 
-            // Calculate score display color using display scores
-            // Determine win/loss/draw state via the shared resolver (shootout-aware),
-            // using the display scores (which may reflect the live session).
+            // Win/loss/draw via the shared resolver (shootout-aware), using the
+            // display scores.
             // TODO(PR 2): when the shootout UI lands, pass live session shootoutKicks
-            // for the current game (not just the persisted ones) so the colour isn't
+            // for the current game (not just the persisted ones) so the result isn't
             // computed from live score + stale kicks while the coach is logging.
             const displayResult = resolveGameResult({
               homeScore: displayHomeScore,
@@ -432,25 +444,20 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             });
             const isDraw = displayResult === 'D';
             const isWin = displayResult === 'W';
-            // Score color based on result
-            const scoreColor = isDraw ? 'text-slate-300' : isWin ? 'text-green-400' : 'text-red-400';
+            const badgeTone = isDraw ? 'bg-white/[0.09] text-ink-2' : isWin ? 'bg-win/[0.14] text-win' : 'bg-loss/[0.14] text-loss';
+            const badgeLetter = isDraw ? t('export.tieShort', 'T') : isWin ? t('export.winShort', 'W') : t('export.lossShort', 'L');
 
-            // Left border accent for result
-            const resultBorderClass = isDraw
-              ? 'border-l-4 border-slate-500'
-              : isWin
-                ? 'border-l-4 border-green-500'
-                : 'border-l-4 border-red-500';
-
-            // Current game highlight with glow
+            // The game open in the match view: a faint amber wash from the left.
             const currentGameClass = isCurrent
-              ? 'ring-1 ring-indigo-400/60 bg-indigo-900/20'
+              ? 'bg-gradient-to-r from-action/[0.09] to-transparent'
               : '';
+
+            const chipClass = 'inline-flex items-center px-[9px] py-1 rounded-full bg-white/[0.06] text-xs font-medium text-ink-2';
 
             return (
               <div
                 key={gameId}
-                className={`px-4 py-6 rounded-lg cursor-pointer transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:brightness-110 ${resultBorderClass} ${currentGameClass}`}
+                className={`relative grid grid-cols-[36px_1fr_auto_44px] gap-x-3 items-start py-3.5 pl-3.5 pr-1 cursor-pointer transition-colors hover:bg-white/[0.03] before:absolute before:top-0 before:left-[62px] before:right-0 before:h-px before:bg-hairline first:before:hidden first:rounded-t-[22px] last:rounded-b-[22px] ${currentGameClass}`}
                 data-testid={`game-item-${gameId}`}
                 onClick={() => {
                   if (!disableActions && !isLoadActionActive) {
@@ -461,207 +468,163 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                   }
                 }}
               >
-                {/* Card layout with two rows */}
-                <div className="flex flex-col gap-3">
-                  {/* Top row: Team names and score */}
-                  <div className="flex items-start justify-between gap-4">
-                    {/* Team names */}
-                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-                      {isUnplayed ? (
-                        <>
-                          <span
-                            className="w-2 h-2 rounded-full shrink-0 bg-red-500"
-                            title={t('loadGameModal.unplayedBadge', 'Not played')}
-                            aria-hidden="true"
-                          />
-                          <span className="sr-only">{t('loadGameModal.unplayedBadge', 'Not played')}</span>
-                        </>
-                      ) : showReadinessDot ? (
-                        <>
-                          <span
-                            className={`w-2 h-2 rounded-full shrink-0 ${isRecordComplete ? 'bg-emerald-500' : 'bg-amber-400'}`}
-                            title={isRecordComplete
-                              ? t('loadGameModal.readyTitle', 'Record complete')
-                              : t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
-                            aria-hidden="true"
-                          />
-                          <span className="sr-only">
-                            {isRecordComplete
-                              ? t('loadGameModal.readyTitle', 'Record complete')
-                              : t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
-                          </span>
-                        </>
-                      ) : null}
-                      {rowTeamColor && (
-                        <span
-                          aria-hidden="true"
-                          className="w-1 h-4 rounded-full shrink-0 mr-1.5"
-                          style={{ backgroundColor: rowTeamColor }}
-                        />
-                      )}
-                      <span className="font-semibold text-base text-slate-100">
-                        {displayHomeTeamName}
-                      </span>
-                      <span className="text-slate-400 text-sm">vs</span>
-                      <span className="font-medium text-base text-slate-200">
-                        {displayAwayTeamName}
-                      </span>
-                    </div>
+                {/* Result badge: the letter, or the amber dot for a game not played yet */}
+                {isUnplayed ? (
+                  <span
+                    className="mt-0.5 grid h-9 w-9 place-items-center rounded-full shadow-[inset_0_0_0_1.5px_rgb(255_255_255/0.16)]"
+                    title={t('loadGameModal.unplayedBadge', 'Not played')}
+                  >
+                    <i className="s1-live-dot" aria-hidden="true" />
+                    <span className="sr-only">{t('loadGameModal.unplayedBadge', 'Not played')}</span>
+                  </span>
+                ) : (
+                  <span className={`mt-0.5 grid h-9 w-9 place-items-center rounded-full text-xs font-bold tracking-[0.02em] ${badgeTone}`}>
+                    {badgeLetter}
+                  </span>
+                )}
 
-                    {/* Score and actions */}
-                    <div className="flex items-start gap-2 flex-shrink-0">
-                      {/* Score - prominent display */}
-                      <div className="text-right">
-                        <div className={`text-2xl font-black tracking-tight ${scoreColor}`}>
-                          {displayHomeScore} <span className="text-slate-400">-</span> {displayAwayScore}
-                        </div>
-                        {(game.wentToOvertime || game.wentToPenalties) && (
-                          <div className="text-xs text-slate-400 font-medium">
-                            {[
-                              game.wentToOvertime && t('gameResult.overtime', 'OT'),
-                              game.wentToPenalties && t('gameResult.penalties', 'PKs'),
-                            ].filter(Boolean).join(', ')}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Actions menu button */}
-                      <div className="relative" ref={actionsMenuId === gameId ? actionsMenuRef : null}>
-                        <button
-                          onClick={(e) => handleActionsMenuToggle(e, gameId)}
-                          className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
-                          aria-label={t('loadGameModal.gameActions', 'Game actions')}
-                          aria-haspopup="menu"
-                          aria-expanded={actionsMenuId === gameId}
-                          disabled={disableActions}
-                        >
-                          {isLoadActionActive ? (
-                            <svg className="animate-spin h-4 w-4 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          ) : (
-                            <HiOutlineEllipsisVertical className="w-4 h-4" />
-                          )}
-                        </button>
-
-                        {/* Actions dropdown menu */}
-                        {actionsMenuId === gameId && (
-                          <div role="menu" className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[gameId] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
-                            <button
-                              role="menuitem"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onExportOneJson(gameId);
-                                setActionsMenuId(null);
-                              }}
-                              className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
-                              disabled={disableActions}
-                            >
-                              <HiOutlineDocumentText className="w-4 h-4" />
-                              Export JSON
-                            </button>
-                            <button
-                              role="menuitem"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onExportOneExcel(gameId);
-                                setActionsMenuId(null);
-                              }}
-                              className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
-                              disabled={disableActions}
-                            >
-                              <HiOutlineTableCells className="w-4 h-4" />
-                              Export Excel
-                            </button>
-                            <button
-                              role="menuitem"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteClick(gameId, `${displayHomeTeamName} vs ${displayAwayTeamName}`);
-                              }}
-                              className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2"
-                              disabled={disableActions}
-                            >
-                              <HiOutlineTrash className="w-4 h-4" />
-                              {t('common.delete', 'Delete')}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                {/* Teams and date line */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-x-1.5 flex-wrap font-semibold leading-tight text-ink">
+                    {rowTeamColor && (
+                      <span
+                        aria-hidden="true"
+                        className="w-1 h-4 rounded-full shrink-0"
+                        style={{ backgroundColor: rowTeamColor }}
+                      />
+                    )}
+                    <span>{displayHomeTeamName}</span>
+                    <em className="not-italic font-normal text-sm text-ink-3">vs</em>
+                    <span>{displayAwayTeamName}</span>
                   </div>
-
-                  {/* Bottom row: Game data left, category labels right */}
-                  <div className="flex items-end justify-between gap-4 text-xs">
-                    {/* Left: Game data (date, duration, status) */}
-                    <div className="flex items-end gap-3">
-                      {/* Date and duration stacked */}
-                      {(game.gameDate || (game.numberOfPeriods && game.periodDurationMinutes)) && (
-                        <div className="flex flex-col text-slate-400">
-                          {game.gameDate && (
-                            <span>
-                              {formatAppDate(game.gameDate, i18n.language)}
-                              {game.gameTime && ` ${game.gameTime}`}
-                            </span>
-                          )}
-                          {game.numberOfPeriods && game.periodDurationMinutes && (
-                            <span className="text-slate-400 text-xs">
-                              {game.numberOfPeriods}×{game.periodDurationMinutes}min
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right: Category labels - wrap upward from bottom right */}
-                    <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
-                      {/* Game type */}
-                      {game.gameType === 'futsal' && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gameType}`}></span>
-                          {t('common.gameTypeFutsal', 'Futsal')}
-                        </span>
-                      )}
-                      {/* Gender */}
-                      {game.gender && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gender}`}></span>
-                          {game.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
-                        </span>
-                      )}
-                      {/* Season */}
-                      {season && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.season}`} aria-hidden="true"></span>
-                          <span className="sr-only">{t('common.season', 'League')}: </span>
-                          {getSeasonDisplayName(season)}
-                        </span>
-                      )}
-                      {/* League */}
-                      {leagueName && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.league}`}></span>
-                          {leagueName}
-                        </span>
-                      )}
-                      {/* Tournament */}
-                      {tournament && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`} aria-hidden="true"></span>
-                          <span className="sr-only">{t('common.tournament', 'Tournament')}: </span>
-                          {getTournamentDisplayName(tournament)}
-                        </span>
-                      )}
-                      {/* Series level */}
-                      {seriesLevel && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.series}`}></span>
-                          {t(`common.level${seriesLevel}` as TranslationKey, seriesLevel)}
-                        </span>
-                      )}
-                    </div>
+                  <div className="mt-[3px] text-[13px] text-ink-3">
+                    {[
+                      game.gameDate ? formatAppDate(game.gameDate, i18n.language) : null,
+                      game.gameDate && game.gameTime ? game.gameTime : null,
+                      game.numberOfPeriods && game.periodDurationMinutes ? `${game.numberOfPeriods}×${game.periodDurationMinutes}min` : null,
+                    ].filter(Boolean).join(' · ')}
                   </div>
+                  {(game.wentToOvertime || game.wentToPenalties) && (
+                    <div className="text-xs text-ink-3 font-medium">
+                      {[
+                        game.wentToOvertime && t('gameResult.overtime', 'OT'),
+                        game.wentToPenalties && t('gameResult.penalties', 'PKs'),
+                      ].filter(Boolean).join(', ')}
+                    </div>
+                  )}
+                </div>
+
+                {/* Score: italic numerals (grey while not a result yet) */}
+                <div
+                  className={`mt-[3px] whitespace-nowrap pr-[0.08em] font-display text-[30px] font-extrabold italic leading-[0.9] ${isUnplayed ? 'text-ink-3' : 's1-numeral'}`}
+                >
+                  {displayHomeScore}-{displayAwayScore}
+                </div>
+
+                {/* Actions menu button */}
+                <div className="relative" ref={actionsMenuId === gameId ? actionsMenuRef : null}>
+                  <button
+                    onClick={(e) => handleActionsMenuToggle(e, gameId)}
+                    className={iconButtonEditStyle}
+                    aria-label={t('loadGameModal.gameActions', 'Game actions')}
+                    aria-haspopup="menu"
+                    aria-expanded={actionsMenuId === gameId}
+                    disabled={disableActions}
+                  >
+                    {isLoadActionActive ? (
+                      <svg className="animate-spin h-4 w-4 text-action" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <HiOutlineEllipsisVertical className="w-5 h-5" />
+                    )}
+                  </button>
+
+                  {/* Actions dropdown menu */}
+                  {actionsMenuId === gameId && (
+                    <div role="menu" className={`${popoverMenuStyle} ${menuPositions[gameId] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                      <button
+                        role="menuitem"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onExportOneJson(gameId);
+                          setActionsMenuId(null);
+                        }}
+                        className={popoverItemStyle}
+                        disabled={disableActions}
+                      >
+                        <HiOutlineDocumentText className="w-4 h-4" />
+                        Export JSON
+                      </button>
+                      <button
+                        role="menuitem"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onExportOneExcel(gameId);
+                          setActionsMenuId(null);
+                        }}
+                        className={popoverItemStyle}
+                        disabled={disableActions}
+                      >
+                        <HiOutlineTableCells className="w-4 h-4" />
+                        Export Excel
+                      </button>
+                      <button
+                        role="menuitem"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(gameId, `${displayHomeTeamName} vs ${displayAwayTeamName}`);
+                        }}
+                        className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
+                        disabled={disableActions}
+                      >
+                        <HiOutlineTrash className="w-4 h-4" />
+                        {t('common.delete', 'Delete')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Chips: plain text (no coloured dots - green/red mean results only) */}
+                <div className="col-start-2 col-end-[-1] mt-2 flex flex-wrap gap-1.5 pr-1.5 empty:hidden">
+                  {showReadinessDot && (
+                    isRecordComplete ? (
+                      <span className="sr-only">{t('loadGameModal.readyTitle', 'Record complete')}</span>
+                    ) : (
+                      <span className={pillQuietStyle} title={t('loadGameModal.needsFinishingTitle', 'Needs finishing')}>
+                        {t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
+                      </span>
+                    )
+                  )}
+                  {game.gameType === 'futsal' && (
+                    <span className={chipClass}>{t('common.gameTypeFutsal', 'Futsal')}</span>
+                  )}
+                  {game.gender && (
+                    <span className={chipClass}>
+                      {game.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
+                    </span>
+                  )}
+                  {season && (
+                    <span className={chipClass}>
+                      <span className="sr-only">{t('common.season', 'League')}: </span>
+                      {getSeasonDisplayName(season)}
+                    </span>
+                  )}
+                  {leagueName && (
+                    <span className={chipClass}>{leagueName}</span>
+                  )}
+                  {tournament && (
+                    <span className={chipClass}>
+                      <span className="sr-only">{t('common.tournament', 'Tournament')}: </span>
+                      {getTournamentDisplayName(tournament)}
+                    </span>
+                  )}
+                  {seriesLevel && (
+                    <span className={chipClass}>
+                      {t(`common.level${seriesLevel}` as TranslationKey, seriesLevel)}
+                    </span>
+                  )}
                 </div>
               </div>
             );
@@ -673,10 +636,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('loadGame.title', 'Load Game')}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-
+      <div className={`${modalContainerStyle} h-full w-full relative`}>
         {/* Modal-chrome slimming: X-header replaces the header + the
             close-only footer. Filter/checkbox stay in the scroll body. */}
         <CollapsibleModalHeader
@@ -686,65 +646,65 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
         />
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pt-4 pb-6">
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-2 pb-6">
           {/* Search and filters */}
-          <div className="relative mb-4">
-            <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+          <div className="relative">
+            <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
+            <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} aria-label={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className={searchInputStyle} />
           </div>
-          <div className="mb-4">
-            <label htmlFor="savedGamesSortSelect" className="sr-only">
-              {t('loadGameModal.sortLabel', 'Sort by')}
-            </label>
-            <select
-              id="savedGamesSortSelect"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SavedGamesSort)}
-              data-testid="load-game-sort"
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="date">{t('loadGameModal.sortDate', 'Newest first')}</option>
-              <option value="opponent">{t('loadGameModal.sortOpponent', 'By opponent')}</option>
-              <option value="result">{t('loadGameModal.sortResult', 'By result')}</option>
-            </select>
-          </div>
-          {/* Only worth a control when there is a choice to make. */}
-          {opponentOptions.length > 1 && (
-            <div className="mb-4">
-              <label htmlFor="opponentFilterSelect" className="sr-only">
-                {t('loadGameModal.opponentFilterLabel', 'Opponent')}
+          <div className={`mt-2.5 grid gap-2.5 ${opponentOptions.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <div>
+              <label htmlFor="savedGamesSortSelect" className="sr-only">
+                {t('loadGameModal.sortLabel', 'Sort by')}
               </label>
               <select
-                id="opponentFilterSelect"
-                value={opponentFilter}
-                onChange={(e) => setOpponentFilter(e.target.value)}
-                data-testid="load-game-opponent-filter"
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                id="savedGamesSortSelect"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SavedGamesSort)}
+                data-testid="load-game-sort"
+                className={`${selectStyle} text-[15px]! pl-3.5! min-w-0`}
               >
-                <option value="all">
-                  {t('loadGameModal.allOpponentsFilter', 'All opponents')}
-                </option>
-                {opponentOptions.map((opponent) => (
-                  <option key={opponent.key} value={opponent.key}>
-                    {opponent.spelling} ({opponent.count})
-                  </option>
-                ))}
+                <option value="date">{t('loadGameModal.sortDate', 'Newest first')}</option>
+                <option value="opponent">{t('loadGameModal.sortOpponent', 'By opponent')}</option>
+                <option value="result">{t('loadGameModal.sortResult', 'By result')}</option>
               </select>
             </div>
-          )}
-          <div className="mb-4">
-            {/* Filter toggle button - matches the "Show archived" toggles in
-                the Team/Season managers (aria-pressed, indigo when active). */}
-            <button
-              type="button"
-              onClick={() => setShowUnplayedOnly(v => !v)}
-              aria-pressed={showUnplayedOnly}
-              className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                showUnplayedOnly ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              {t('loadGameModal.showUnplayedOnly', 'Show only unplayed games')}
-            </button>
+            {/* Only worth a control when there is a choice to make. */}
+            {opponentOptions.length > 1 && (
+              <div>
+                <label htmlFor="opponentFilterSelect" className="sr-only">
+                  {t('loadGameModal.opponentFilterLabel', 'Opponent')}
+                </label>
+                <select
+                  id="opponentFilterSelect"
+                  value={opponentFilter}
+                  onChange={(e) => setOpponentFilter(e.target.value)}
+                  data-testid="load-game-opponent-filter"
+                  className={`${selectStyle} text-[15px]! pl-3.5! min-w-0`}
+                >
+                  <option value="all">
+                    {t('loadGameModal.allOpponentsFilter', 'All opponents')}
+                  </option>
+                  {opponentOptions.map((opponent) => (
+                    <option key={opponent.key} value={opponent.key}>
+                      {opponent.spelling} ({opponent.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
+          {/* The unplayed-only filter: a switch row (amber when on) */}
+          <label className="flex items-center justify-between gap-3 min-h-11 px-1 pt-3.5 pb-1 mb-4 font-ui text-[15px] text-ink-2 cursor-pointer">
+            <span>{t('loadGameModal.showUnplayedOnly', 'Show only unplayed games')}</span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={showUnplayedOnly}
+              onChange={(e) => setShowUnplayedOnly(e.target.checked)}
+              className={switchInputStyle}
+            />
+          </label>
 
           {mainContent}
         </div>

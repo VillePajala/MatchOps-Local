@@ -40,6 +40,7 @@ import WorkingIndicator from '@/components/WorkingIndicator';
 import { recordAiUsage } from '@/utils/aiUsage';
 import { useToast } from '@/contexts/ToastProvider';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { checkboxStyle, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 
 export interface ReportDraftPanelProps {
@@ -79,13 +80,13 @@ export interface ReportDraftPanelProps {
   onApply: (payload: { gameNotes: string; aiMeta?: { model: string; packet: string }; noteEvents: GameEvent[] }) => boolean;
 }
 
-const CARD = 'bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner';
+const CARD = 's1-list p-4 font-ui';
 const PRIMARY =
-  'w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors';
+  `${primaryButtonStyle} w-full`;
 const SECONDARY =
-  'w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-slate-500 transition-colors';
+  `${secondaryButtonStyle} w-full`;
 const CHECKBOX =
-  'mt-0.5 h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer';
+  checkboxStyle;
 
 /**
  * What the report editor can ask this panel to do.
@@ -323,10 +324,10 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   if (!ai.connected) {
     return (
       <div className={CARD} data-testid="report-draft-unavailable">
-        <h4 className="text-sm font-semibold text-slate-200 mb-1">
+        <h4 className="text-sm font-semibold text-ink mb-1">
           {t('reportDraft.title', 'Draft with AI')}
         </h4>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-ink-3">
           {t(
             'reportDraft.notConnected',
             'Connect your own AI provider in Settings to draft a report from this match. Your notes stay on this phone until you press Draft.',
@@ -350,11 +351,11 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
 
   return (
     <div id="report-draft-panel" className={CARD} data-testid="report-draft-panel">
-      <h4 className="text-sm font-semibold text-slate-200 mb-1">{t('reportDraft.title', 'Draft with AI')}</h4>
+      <h4 className="text-sm font-semibold text-ink mb-1">{t('reportDraft.title', 'Draft with AI')}</h4>
 
       {!draft && (
         <>
-          <p className="text-sm text-slate-400 mb-3">
+          <p className="text-sm text-ink-3 mb-3">
             {t(
               'reportDraft.intro',
               'Sends this match to your own AI provider and brings back a draft. Nothing is saved until you approve it.',
@@ -388,20 +389,20 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
 
       {draft && preview && (
         <div className="space-y-4" data-testid="report-draft-review">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-ink-3">
             {draftedAs === 'tidy'
               ? t('reportDraft.reviewHintTidy', 'Your own account, organised under the headings. Untick anything that lost your meaning.')
               : t('reportDraft.reviewHint', 'Untick anything you do not want. Only ticked items are saved.')}
           </p>
 
           {draft.dataCaveat && (
-            <p className="text-sm text-amber-300" data-testid="report-draft-caveat">
+            <p className="text-sm text-ink-2" data-testid="report-draft-caveat">
               {draft.dataCaveat}
             </p>
           )}
 
           <fieldset className="space-y-2">
-            <legend className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <legend className="text-xs font-semibold uppercase tracking-wider text-ink-3 mb-1">
               {t('reportDraft.sectionsTitle', 'Report')}
             </legend>
             {draft.sections.map(({ section, text }) => (
@@ -420,7 +421,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
                   }
                   data-testid={`report-draft-section-${section}`}
                 />
-                <span className="text-sm text-slate-200">
+                <span className="text-sm text-ink">
                   <span className="font-semibold">{reportSectionLabel(t, section)}: </span>
                   {display(text)}
                 </span>
@@ -430,7 +431,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
 
           {draft.playerNotes.length > 0 && (
             <fieldset className="space-y-2">
-              <legend className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <legend className="text-xs font-semibold uppercase tracking-wider text-ink-3 mb-1">
                 {t('reportDraft.notesTitle', 'Player notes')}
               </legend>
               {draft.playerNotes.map((note, index) => (
@@ -449,7 +450,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
                     }
                     data-testid={`report-draft-note-${index}`}
                   />
-                  <span className="text-sm text-slate-200">
+                  <span className="text-sm text-ink">
                     <span className="font-semibold">{nameForRef(note.ref)}: </span>
                     {display(note.text)}
                   </span>
@@ -459,10 +460,10 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
           )}
 
           <fieldset className="space-y-1">
-            <legend className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <legend className="text-xs font-semibold uppercase tracking-wider text-ink-3 mb-1">
               {t('reportDraft.modeTitle', 'Existing report text')}
             </legend>
-            <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-200">
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-ink">
               <input
                 type="radio"
                 name="report-draft-mode"
@@ -473,7 +474,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
               />
               {t('reportDraft.modeAppend', 'Keep it and add the draft below')}
             </label>
-            <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-200">
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-ink">
               <input
                 type="radio"
                 name="report-draft-mode"
@@ -488,19 +489,19 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
               // The coach's own report was sent as source material, so the draft
               // can cover the same ground. Say so where the choice is made,
               // rather than after they are looking at it twice.
-              <p className="text-sm text-slate-400" data-testid="report-draft-duplication-note">
+              <p className="text-sm text-ink-3" data-testid="report-draft-duplication-note">
                 {t('reportDraft.duplicationNote', 'The draft was written knowing what you already wrote, so it may cover the same ground twice. Replace avoids that, and you can undo it.')}
               </p>
             )}
             {mode === 'replace' && existingReport.trim() && (
-              <p className="text-sm text-amber-300" data-testid="report-draft-replace-warning">
+              <p className="text-sm text-ink-2" data-testid="report-draft-replace-warning">
                 {t('reportDraft.replaceWarning', 'Your current report text will be overwritten. You can undo it right after.')}
               </p>
             )}
           </fieldset>
 
           {preview.reportTruncated && (
-            <p className="text-sm text-amber-300" data-testid="report-draft-truncation-warning">
+            <p className="text-sm text-ink-2" data-testid="report-draft-truncation-warning">
               {t('reportDraft.truncationWarning', 'This would exceed the {{max}} character limit, so the end would be cut. Untick a section or choose Replace.', {
                 max: VALIDATION_LIMITS.GAME_NOTES_MAX,
               })}
@@ -508,7 +509,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
           )}
 
           {preview.droppedRefs.length > 0 && (
-            <p className="text-sm text-amber-300" data-testid="report-draft-dropped-warning">
+            <p className="text-sm text-ink-2" data-testid="report-draft-dropped-warning">
               {t('reportDraft.droppedWarning', '{{count}} note(s) could not be matched to a player and will not be saved.', {
                 count: new Set(preview.droppedRefs).size,
               })}
@@ -531,9 +532,9 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
           </div>
 
           {approvedSections.length > 0 && (
-            <details className="text-xs text-slate-400">
+            <details className="text-xs text-ink-3">
               <summary className="cursor-pointer">{t('reportDraft.previewToggle', 'Preview the text')}</summary>
-              <pre className="mt-2 whitespace-pre-wrap font-sans text-slate-300" data-testid="report-draft-preview">
+              <pre className="mt-2 whitespace-pre-wrap font-sans text-ink-2" data-testid="report-draft-preview">
                 {composeReportText(
                   draft,
                   approvedSections,

@@ -35,6 +35,7 @@ import { useAiProviderState } from '@/utils/aiProvider';
 import { TranscriptionError, dictationVocabularyFor, estimateTranscriptionUsd, getTranscriptionEngine } from '@/utils/transcription';
 import { recordAiUsage } from '@/utils/aiUsage';
 import WorkingIndicator from '@/components/WorkingIndicator';
+import { chipStyle, inputBaseStyle, secondaryButtonStyle, selectStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 
 interface DictationInboxProps {
@@ -340,13 +341,13 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
     <div
       id="dictation-inbox"
       data-testid="dictation-inbox"
-      className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner"
+      className="s1-list p-4 font-ui"
     >
-      <h3 className="text-xl font-semibold text-slate-200 mb-1">
+      <h3 className="text-base font-semibold text-ink mb-1">
         {t('dictation.inboxTitle', 'Voice notes to review')}{' '}
-        <span className="text-sm font-medium text-slate-400">({clips.length})</span>
+        <span className="text-sm font-medium text-ink-3">({clips.length})</span>
       </h3>
-      <p className="text-sm text-slate-400 mb-2">
+      <p className="text-sm text-ink-3 mb-2">
         {t('dictation.inboxHint', 'Listen, write what you said, check the player, save.')}
       </p>
       {ai.connected ? (
@@ -366,19 +367,19 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
               type="button"
               onClick={() => void transcribeAll()}
               data-testid="dictation-transcribe"
-              className="w-full mb-3 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              className={`${secondaryButtonStyle} w-full mb-3`}
             >
               {t('dictation.transcribe', 'Transcribe {{count}} clips (about ${{cost}})', { count: untranscribed.length, cost: costUsd })}
             </button>
           )
         )
       ) : (
-        <p className="text-sm text-slate-400 mb-3" data-testid="dictation-transcribe-hint">
+        <p className="text-sm text-ink-3 mb-3" data-testid="dictation-transcribe-hint">
           {t('dictation.transcribeHint', 'The recordings are kept here so you can write them out when you have a moment.')}
         </p>
       )}
-      <details className="mb-3 rounded-md bg-slate-800/60 border border-slate-700/60 px-3 py-2">
-        <summary className="text-xs font-medium text-slate-300 cursor-pointer">{t('aiConsent.rulesTitle', 'Dictation rules')}</summary>
+      <details className="mb-3 rounded-md bg-white/[0.03] border border-hairline px-3 py-2">
+        <summary className="text-xs font-medium text-ink-2 cursor-pointer">{t('aiConsent.rulesTitle', 'Dictation rules')}</summary>
         <div className="mt-2">
           <DictationRules />
         </div>
@@ -393,17 +394,17 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
           const busy = busyIds.has(clip.id) || !!transcribing;
           const canSave = draft.text.trim().length > 0 && !busy;
           return (
-            <li key={clip.id} data-testid="dictation-clip" className="rounded-md bg-slate-800/60 border border-slate-700/60 p-3 space-y-2">
+            <li key={clip.id} data-testid="dictation-clip" className="rounded-md bg-white/[0.03] border border-hairline p-3 space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-300 rounded-full bg-slate-700/60 px-2 py-0.5">
+                <span className="text-xs font-semibold text-ink-2 rounded-full bg-white/[0.08] px-2 py-0.5">
                   {t('dictation.periodClock', 'P{{period}} {{clock}}', { period: clip.period, clock: formatClock(clip.time) })}
                 </span>
-                <span className="text-xs text-slate-500">{Math.round(clip.durationMs / 1000)} s</span>
+                <span className="text-xs text-ink-3">{Math.round(clip.durationMs / 1000)} s</span>
                 <button
                   type="button"
                   onClick={() => void play(clip.id)}
                   aria-label={playingId === clip.id ? t('dictation.stop', 'Stop') : t('dictation.play', 'Play')}
-                  className="ml-auto inline-flex items-center gap-1 rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-3 py-1.5 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                  className={`${chipStyle} ml-auto`}
                 >
                   {playingId === clip.id ? <HiOutlineStop className="h-4 w-4" /> : <HiOutlinePlay className="h-4 w-4" />}
                   {playingId === clip.id ? t('dictation.stop', 'Stop') : t('dictation.play', 'Play')}
@@ -417,16 +418,16 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                 maxLength={MAX_NOTE_CHARS}
                 aria-label={t('dictation.textPlaceholder', 'What did you say?')}
                 data-testid="dictation-text"
-                className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+                className={inputBaseStyle}
               />
               <div className="flex items-center gap-2">
-                <label htmlFor={`dictation-player-${clip.id}`} className="text-xs text-slate-400 shrink-0">{t('dictation.playerLabel', 'About')}</label>
+                <label htmlFor={`dictation-player-${clip.id}`} className="text-xs text-ink-3 shrink-0">{t('dictation.playerLabel', 'About')}</label>
                 <select
                   id={`dictation-player-${clip.id}`}
                   value={guessedId}
                   onChange={(e) => setDrafts((prev) => ({ ...prev, [clip.id]: { ...draftFor(clip.id), playerId: e.target.value } }))}
                   data-testid="dictation-player"
-                  className="flex-1 min-w-0 rounded-md bg-slate-700 border border-slate-600 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className={`${selectStyle} flex-1 min-w-0 min-h-11! py-2! text-[15px]!`}
                 >
                   <option value="">{t('dictation.gameNote', 'The match')}</option>
                   {sortedPlayers.map((p) => (
@@ -437,7 +438,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                 </select>
               </div>
               {draft.text.length >= MAX_NOTE_CHARS - 100 && (
-                <p className="text-right text-sm text-slate-400" data-testid="dictation-char-count">
+                <p className="text-right text-sm text-ink-3" data-testid="dictation-char-count">
                   {draft.text.length}/{MAX_NOTE_CHARS}
                 </p>
               )}
@@ -448,7 +449,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                   onClick={() => void accept(clip)}
                   disabled={!canSave}
                   data-testid="dictation-accept"
-                  className="flex-1 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+                  className={`${secondaryButtonStyle} flex-1`}
                 >
                   {t('dictation.accept', 'Save note')}
                 </button>
@@ -458,7 +459,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                   onClick={() => setPendingDiscard(clip.id)}
                   disabled={busy}
                   data-testid="dictation-discard"
-                  className="rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+                  className={secondaryButtonStyle}
                 >
                   {t('dictation.discard', 'Discard')}
                 </button>

@@ -1109,7 +1109,7 @@ describe('NewGameSetupModal', () => {
 
       // Find the Soccer button by text and verify it's selected (has active styling)
       const soccerButton = screen.getByRole('button', { name: /Soccer/i });
-      expect(soccerButton).toHaveClass('bg-indigo-600');
+      expect(soccerButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('should prefill game type from selected season', async () => {
@@ -1142,7 +1142,7 @@ describe('NewGameSetupModal', () => {
       // Verify Futsal is now selected
       await waitFor(() => {
         const futsalButton = screen.getByRole('button', { name: /Futsal/i });
-        expect(futsalButton).toHaveClass('bg-indigo-600');
+        expect(futsalButton).toHaveAttribute('aria-pressed', 'true');
       });
     });
 
@@ -1176,7 +1176,7 @@ describe('NewGameSetupModal', () => {
       // Verify Futsal is now selected
       await waitFor(() => {
         const futsalButton = screen.getByRole('button', { name: /Futsal/i });
-        expect(futsalButton).toHaveClass('bg-indigo-600');
+        expect(futsalButton).toHaveAttribute('aria-pressed', 'true');
       });
     });
 
@@ -1193,7 +1193,7 @@ describe('NewGameSetupModal', () => {
 
       // Initially Soccer should be selected
       const soccerButton = screen.getByRole('button', { name: /Soccer/i });
-      expect(soccerButton).toHaveClass('bg-indigo-600');
+      expect(soccerButton).toHaveAttribute('aria-pressed', 'true');
 
       // Click Futsal button
       const futsalButton = screen.getByRole('button', { name: /Futsal/i });
@@ -1203,8 +1203,8 @@ describe('NewGameSetupModal', () => {
 
       // Verify Futsal is now selected and Soccer is not
       await waitFor(() => {
-        expect(futsalButton).toHaveClass('bg-indigo-600');
-        expect(soccerButton).not.toHaveClass('bg-indigo-600');
+        expect(futsalButton).toHaveAttribute('aria-pressed', 'true');
+        expect(soccerButton).toHaveAttribute('aria-pressed', 'false');
       });
     });
 
@@ -1338,7 +1338,7 @@ describe('NewGameSetupModal', () => {
       // Verify Soccer remains selected (default)
       await waitFor(() => {
         const soccerButton = screen.getByRole('button', { name: /Soccer/i });
-        expect(soccerButton).toHaveClass('bg-indigo-600');
+        expect(soccerButton).toHaveAttribute('aria-pressed', 'true');
       });
     });
   });

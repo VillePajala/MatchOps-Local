@@ -82,6 +82,46 @@ export const cardStyle =
 export const itemRowStyle =
   "bg-white/[0.03] border border-hairline rounded-2xl hover:bg-white/[0.06] transition-colors";
 
+/**
+ * One grouped list: a single `s1-list` surface whose rows are separated by
+ * inset hairlines (no card per row). Rows use `listRowStyle`.
+ */
+export const groupedListStyle =
+  "s1-list overflow-hidden";
+
+/**
+ * A 56px row of a grouped list with an inset divider above it (not above the
+ * first row). Add `cursor-pointer` / hover where the row is tappable.
+ */
+export const listRowStyle =
+  "relative min-h-14 flex items-center gap-3 pl-[18px] pr-2 font-ui before:absolute before:top-0 before:left-[18px] before:right-0 before:h-px before:bg-hairline first:before:hidden";
+
+/** The small actions popover opened by a row's "more" button. */
+export const popoverMenuStyle =
+  "absolute right-0 z-50 min-w-[190px] overflow-hidden rounded-2xl bg-surface-2 py-1 font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)]";
+
+/** One entry of `popoverMenuStyle` (44px target); add `text-red-400` for destructive. */
+export const popoverItemStyle =
+  "flex w-full min-h-11 items-center gap-2.5 px-4 text-left text-[15px] font-medium text-ink-2 transition-colors hover:bg-white/[0.06] focus:outline-none focus-visible:bg-white/[0.08]";
+
+/**
+ * A native checkbox drawn as a 50x30 switch (amber when on). Keeping the real
+ * `<input type="checkbox">` keeps `.checked`, label association, the keyboard
+ * and form semantics; `role="switch"` announces it as a switch.
+ */
+export const switchInputStyle =
+  `relative flex-none appearance-none w-[50px] h-[30px] rounded-full cursor-pointer bg-white/10 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] transition-colors checked:bg-action checked:shadow-none before:content-[''] before:absolute before:top-[3px] before:left-[3px] before:w-6 before:h-6 before:rounded-full before:bg-ink-2 before:shadow-[0_1px_3px_rgb(0_0_0/0.5)] before:transition-transform checked:before:translate-x-5 checked:before:bg-white disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+
+/** An inline text link: amber, underlined. */
+export const linkStyle =
+  "font-semibold text-action underline underline-offset-[3px] hover:brightness-110 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
+
+/** A small status pill: amber outline (e.g. experimental) / quiet grey. */
+export const pillAmberStyle =
+  "inline-flex items-center h-[22px] px-2.5 rounded-full bg-action/[0.08] shadow-[inset_0_0_0_1px_rgb(255_178_36/0.45)] font-ui text-[11px] font-bold uppercase tracking-[0.1em] text-action whitespace-nowrap";
+export const pillQuietStyle =
+  "inline-flex items-center h-[22px] px-2.5 rounded-full bg-white/[0.08] font-ui text-xs font-semibold text-ink-2 whitespace-nowrap";
+
 export const itemRowEditingStyle =
   "bg-surface-2 border-action/60";
 
@@ -103,6 +143,21 @@ export const textareaStyle =
 export const selectStyle =
   `${inputBaseStyle} s1-select pr-10 [color-scheme:dark]`;
 
+/** A search field: the house input with room for a leading magnifier icon. */
+export const searchInputStyle =
+  `${inputBaseStyle} pl-11`;
+
+/**
+ * A compact (40px) field that sits at the right end of a settings row.
+ * Width is the caller's (`w-36`, ...).
+ */
+export const inlineFieldStyle =
+  `${inputBaseStyle} min-h-10! py-1.5! px-3! text-[15px]! rounded-xl!`;
+
+/** The compact field drawn as a select (chevron). */
+export const inlineSelectStyle =
+  `${inlineFieldStyle} s1-select pr-9! w-auto! shrink-0 [color-scheme:dark]`;
+
 // ============================================================================
 // Choice chips
 // ============================================================================
@@ -118,6 +173,43 @@ export const chipStyle =
 /** The chosen chip: raised navy with an amber ring. */
 export const chipSelectedStyle =
   `inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-full font-ui text-sm font-semibold text-ink s1-seg-on shadow-[inset_0_0_0_1.5px_var(--color-action),0_2px_6px_-2px_rgb(2_6_23/0.75)] disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+
+// ============================================================================
+// Segmented control, checkbox and field messages (form system)
+// ============================================================================
+
+/**
+ * A one-of-few choice (Home/Away, Soccer/Futsal, stats tabs): a raised pill
+ * track holding equal segments. The chosen segment is lifted (`s1-seg-on`),
+ * like the EN/FI switch on home - a segment is a view/option, not an action,
+ * so it is not amber.
+ */
+export const segmentTrackStyle =
+  "flex gap-0.5 p-1 rounded-full s1-raised";
+
+/** One segment of `segmentTrackStyle`: 44px target, quiet until chosen. */
+export const segmentStyle =
+  `flex-1 min-w-0 min-h-11 px-2 rounded-full font-ui text-sm font-semibold text-ink-3 transition-colors hover:text-ink-2 disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+
+/** The chosen segment. */
+export const segmentSelectedStyle =
+  `flex-1 min-w-0 min-h-11 px-2 rounded-full font-ui text-sm font-semibold text-ink s1-seg-on disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+
+/** The native checkbox drawn as the house 24px amber check (`.s1-check`). */
+export const checkboxStyle =
+  "s1-check";
+
+/** The hint under a field (13px, tertiary ink). */
+export const fieldHintStyle =
+  "mt-1.5 font-ui text-[13px] leading-snug text-ink-3";
+
+/** A field's validation message (13px, red). */
+export const fieldErrorStyle =
+  "mt-1.5 font-ui text-[13px] leading-snug text-loss";
+
+/** Add to an input/select whose value is invalid: a red ring in place of the hairline. */
+export const inputErrorStyle =
+  "shadow-[inset_0_0_0_1.5px_var(--color-loss)]!";
 
 // ============================================================================
 // Button Styles
