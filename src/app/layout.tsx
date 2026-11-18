@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Rajdhani } from 'next/font/google';
+import { Rajdhani, Barlow_Condensed, Inter } from 'next/font/google';
 import "./globals.css";
 import ClientWrapper from "@/components/ClientWrapper";
 import QueryProvider from './QueryProvider';
@@ -13,11 +13,31 @@ import InstallPrompt from "@/components/InstallPrompt";
 import I18nInitializer from "@/components/I18nInitializer";
 import { manifestConfig } from "@/config/manifest.config.js";
 
-// Configure Rajdhani font
+// Configure Rajdhani font. 700 is loaded too: without it every font-bold in the
+// app was a browser-synthesised smear of the 600.
 const rajdhani = Rajdhani({
   subsets: ['latin'],
-  weight: ['400', '600'], // We'll use 600 for Semi-bold
+  weight: ['400', '600', '700'],
   variable: '--font-rajdhani',
+  display: 'swap',
+});
+
+// Home screen (S1 redesign) only: Barlow Condensed for numerals and names,
+// Inter for text. Exposed as CSS variables and applied through the
+// font-display / font-ui theme tokens in globals.css - the app-wide body font
+// stays Rajdhani.
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  style: ['normal', 'italic'],
+  variable: '--font-barlow-condensed',
+  display: 'swap',
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
   display: 'swap',
 });
 
@@ -81,7 +101,7 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/splash/apple-splash-750-1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         <link rel="apple-touch-startup-image" href="/splash/apple-splash-640-1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
       </head>
-      <body className={rajdhani.variable}>
+      <body className={`${rajdhani.variable} ${barlowCondensed.variable} ${inter.variable}`}>
         <I18nInitializer>
           <ServiceWorkerRegistration />
           <InstallPrompt />

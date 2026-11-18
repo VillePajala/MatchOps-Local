@@ -3,6 +3,15 @@
   "releases": [
     {
       "date": "2026-11-18",
+      "en": [
+        "New look for the home screen: a clearer next-match card with the kick-off time up front, recent results as a list, and the tabs at the bottom of the screen."
+      ],
+      "fi": [
+        "Kotinäkymä uudistui: selkeämpi seuraavan ottelun kortti alkamisaika etusijalla, viimeisimmät tulokset listana ja välilehdet näytön alareunassa."
+      ]
+    },
+    {
+      "date": "2026-11-18",
       "internal": true,
       "en": [
         "Documentation: one manual testing checklist."

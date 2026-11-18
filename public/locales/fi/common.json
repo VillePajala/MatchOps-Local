@@ -1282,6 +1282,8 @@
     "arriveBefore": "Paikalla ennen alkamisaikaa",
     "actualDrive": "Paljonko ajomatka oikeasti kestää",
     "dashNoMatchesYet": "Ei vielä otteluita.",
+    "dashDeparture": "Lähtö",
+    "dashPitch": "Kenttä",
     "addExternalGame": "Täydennä pelaajan tilastoja"
   },
   "workspace": {

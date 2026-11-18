@@ -1431,6 +1431,8 @@
     "arriveBefore": "At the ground before kick-off",
     "actualDrive": "How long the drive really takes",
     "dashNoMatchesYet": "No matches yet.",
+    "dashDeparture": "Departure",
+    "dashPitch": "Pitch",
     "addExternalGame": "Add to player stats"
   },
   "workspace": {
