@@ -75,6 +75,64 @@ describe('PlayerAssessmentCard', () => {
     expect(screen.getByDisplayValue('note')).toBeInTheDocument();
   });
 
+  /**
+   * Round 2 (2a): an untouched default must not read as a given rating - it is
+   * not announced as chosen (grey outline), and only a tap makes it a rating.
+   * The values SAVED are unchanged: untouched metrics still save the default.
+   */
+  it('shows untouched defaults as not chosen, but saves them exactly as before', () => {
+    const onSave = jest.fn();
+    render(
+      <I18nextProvider i18n={i18n}>
+        <PlayerAssessmentCard player={player} onSave={onSave} />
+      </I18nextProvider>
+    );
+    fireEvent.click(screen.getByText('Test'));
+    // Nothing is pressed before the coach taps.
+    const pressedBefore = screen.queryAllByRole('button', { pressed: true });
+    expect(pressedBefore).toHaveLength(0);
+    // Tap overall 7: it becomes the one chosen value.
+    fireEvent.click(screen.getByRole('button', { name: '7' }));
+    expect(screen.getByRole('button', { name: '7' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: /Save/i }));
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.overall).toBe(7);
+    // Every untouched metric saves the default (canonical 5), as before.
+    expect(Object.values(saved.sliders).every((v) => v === 5)).toBe(true);
+  });
+
+  it('keeps untouched defaults grey after the auto-save stores the assessment', () => {
+    const onSave = jest.fn();
+    const { rerender } = render(
+      <I18nextProvider i18n={i18n}>
+        <PlayerAssessmentCard player={player} onSave={onSave} />
+      </I18nextProvider>
+    );
+    fireEvent.click(screen.getByText('Test'));
+    fireEvent.click(screen.getByRole('button', { name: '7' }));
+    act(() => { jest.advanceTimersByTime(900); });
+    expect(onSave).toHaveBeenCalledTimes(1);
+    const stored = { ...createAssessment(), ...onSave.mock.calls[0][0] } as PlayerAssessment;
+    // The stored assessment comes back as a prop (our own save's echo).
+    rerender(
+      <I18nextProvider i18n={i18n}>
+        <PlayerAssessmentCard player={player} onSave={onSave} assessment={stored} />
+      </I18nextProvider>
+    );
+    // Only the overall the coach tapped reads as chosen.
+    expect(screen.getAllByRole('button', { pressed: true }).map((b) => b.getAttribute('aria-label'))).toEqual(['7']);
+  });
+
+  it('shows a stored assessment as chosen ratings', () => {
+    render(
+      <I18nextProvider i18n={i18n}>
+        <PlayerAssessmentCard player={player} onSave={jest.fn()} assessment={createAssessment({ overall: 8 })} />
+      </I18nextProvider>
+    );
+    fireEvent.click(screen.getByText('Test'));
+    expect(screen.getByRole('button', { name: '8' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   describe('auto-save prevention after assessment reset', () => {
     /**
      * Tests that auto-save does not trigger when assessment is reset

@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import tinycolor from 'tinycolor2';
 import { getFieldConfig } from '@/config/fieldConfigs';
+import { getFieldEdgeColors } from '@/utils/fieldDrawing';
 import { matchGlassStyle } from '@/styles/modalStyles';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -55,13 +55,12 @@ export function GameContainer({
   // colours the field's own background has at its top and bottom edges, so
   // the pitch reads as one surface from edge to edge.
   const gameType = fieldProps.gameSessionState?.gameType;
-  const surround = useMemo(() => {
-    const base = getFieldConfig(gameType).style.fieldColor;
-    const futsal = gameType === 'futsal';
-    const top = tinycolor.mix(base, futsal ? '#000000' : '#ffffff', futsal ? 14 : 6).toHexString();
-    const bottom = tinycolor.mix(base, '#000000', futsal ? 14 : 25).toHexString();
-    return { top, bottom };
-  }, [gameType]);
+  // getFieldEdgeColors gives the field's own edge colours (exact for the
+  // clean grass), so there is no darker band where the canvas box ends.
+  const surround = useMemo(() => getFieldEdgeColors(getFieldConfig(gameType)), [gameType]);
+  // Players already on the pitch are dimmed in the bar (same order).
+  const playersOnField = fieldProps.fieldVM?.playersOnField;
+  const onFieldPlayerIds = useMemo(() => new Set((playersOnField ?? []).map((p) => p.id)), [playersOnField]);
 
   return (
     <main
@@ -72,8 +71,13 @@ export function GameContainer({
       <FieldContainer {...fieldProps} />
 
       {/* Top panel: the score over the player bar, frosted navy over the
-          grass. Below the timer view (z-30) so that view covers it. */}
-      <div className={`absolute left-2 right-2 top-2 z-[26] rounded-[26px] overflow-hidden font-ui ${matchGlassStyle}`}>
+          grass. Docked to the top edge, straight under the status bar (no
+          grass sliver above it), rounded only below. Below the timer view
+          (z-30) so that view covers it. */}
+      <div
+        className={`absolute inset-x-0 top-0 z-[26] rounded-b-[26px] overflow-hidden font-ui ${matchGlassStyle}`}
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         <GameInfoBar
           teamName={gameInfo.teamName}
           opponentName={gameInfo.opponentName}
@@ -98,6 +102,7 @@ export function GameContainer({
             gameEvents={playerBar.gameEvents}
             onPlayerTapInBar={onPlayerTapInBar}
             onToggleGoalie={onToggleGoalie}
+            onFieldPlayerIds={onFieldPlayerIds}
           />
         </ErrorBoundary>
       </div>

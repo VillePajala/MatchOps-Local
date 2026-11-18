@@ -175,7 +175,11 @@ export interface HomeSummary {
    * opens your latest match beats a prompt that opens nothing.
    */
   lastPlayed: HomeResumeGame | null;
-  /** Current club-season record - null when season dates are not configured. */
+  /**
+   * Club-season record - null when season dates are not configured. It is the
+   * current season's, or the previous season's (with its own label) while the
+   * current one has no game yet.
+   */
   vuosi: HomeVuosi | null;
   /** Most recent played games, newest first. */
   recent: HomeRecentGame[];
@@ -285,17 +289,39 @@ export function buildHomeSummary(
   let vuosi: HomeVuosi | null = null;
   let topScorer: HomeTopScorer | null = null;
   if (opts.hasConfiguredSeasonDates) {
-    const label = getClubSeasonForDate(opts.today, opts.clubSeasonStartDate, opts.clubSeasonEndDate);
-    const ids = filterGameIds(all, {
-      playedOnly: true,
-      teamFilter: opts.teamFilter ?? 'all',
-      clubSeasonFilter: label,
-      clubSeasonStartDate: opts.clubSeasonStartDate,
-      clubSeasonEndDate: opts.clubSeasonEndDate,
-      activeTab: 'overall',
-      includeFriendlies: false,
-    });
-    const seasonGames = ids.map((id) => all[id]).filter(Boolean) as AppState[];
+    const gamesOfSeason = (seasonLabel: string): AppState[] =>
+      filterGameIds(all, {
+        playedOnly: true,
+        teamFilter: opts.teamFilter ?? 'all',
+        clubSeasonFilter: seasonLabel,
+        clubSeasonStartDate: opts.clubSeasonStartDate,
+        clubSeasonEndDate: opts.clubSeasonEndDate,
+        activeTab: 'overall',
+        includeFriendlies: false,
+      })
+        .map((id) => all[id])
+        .filter(Boolean) as AppState[];
+
+    let label = getClubSeasonForDate(opts.today, opts.clubSeasonStartDate, opts.clubSeasonEndDate);
+    let seasonGames = gamesOfSeason(label);
+    // A season that has not seen a game yet (the new one opens in the autumn,
+    // the first fixture is weeks away) would read "0-0-0" and hide the record
+    // the coach actually wants to see. Show the previous season - under its OWN
+    // label - until the current one has a game; then it switches back by itself.
+    if (seasonGames.length === 0) {
+      const previousLabel = getClubSeasonForDate(
+        oneYearBefore(opts.today),
+        opts.clubSeasonStartDate,
+        opts.clubSeasonEndDate,
+      );
+      if (previousLabel !== label && previousLabel !== 'off-season') {
+        const previousGames = gamesOfSeason(previousLabel);
+        if (previousGames.length > 0) {
+          label = previousLabel;
+          seasonGames = previousGames;
+        }
+      }
+    }
     vuosi = { label, ...computeTeamRecord(seasonGames) };
 
     // Top scorer over the same season set: tally goal events by scorer, but ONLY
@@ -479,6 +505,13 @@ export function buildHomeSummary(
     : null;
 
   return { resume, lastPlayed, vuosi, recent, upcoming, upcomingList, counts, countsReady, topScorer };
+}
+
+/** The same calendar day a year earlier (29 February clamps to the 28th). */
+function oneYearBefore(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return iso;
+  return `${String(y - 1).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(Math.min(d, 28)).padStart(2, '0')}`;
 }
 
 /**

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useId } from 'react';
+import React, { useState, useCallback, useId, useLayoutEffect, useRef } from 'react';
 import {
   primaryButtonStyle,
   secondaryButtonStyle,
@@ -28,6 +28,21 @@ interface TrainingResourcesModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+/** A textarea that is always as tall as its text, so no line is ever clipped. */
+const AutoGrowTextarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = ({ value, ...rest }) => {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return <textarea ref={ref} value={value} {...rest} />;
+};
+
+/** "• item" / "- item" / "* item" lines as list items; everything else as paragraphs. */
+const BULLET_LINE = /^\s*[•\-*·]\s+(.*)$/;
 
 const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
@@ -120,14 +135,33 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
 
   const displayPlan = isEditMode ? editedPlan : plan;
 
-  // Render content as formatted text (preserves bullet points)
+  // Render content as paragraphs and real lists: consecutive bullet lines
+  // become one list with a hanging indent, so a wrapped line lines up under
+  // its own text instead of under the bullet.
   const renderContent = (content: string) => {
-    return content.split('\n').map((line, index) => (
-      <React.Fragment key={index}>
-        {line}
-        {index < content.split('\n').length - 1 && <br />}
-      </React.Fragment>
-    ));
+    const blocks: React.ReactNode[] = [];
+    let bullets: string[] = [];
+    const flush = () => {
+      if (bullets.length === 0) return;
+      const items = bullets;
+      bullets = [];
+      blocks.push(
+        <ul key={`ul-${blocks.length}`} className="list-disc pl-5 space-y-1 marker:text-ink-3">
+          {items.map((item, i) => <li key={i}>{item}</li>)}
+        </ul>
+      );
+    };
+    content.split('\n').forEach((line) => {
+      const m = BULLET_LINE.exec(line);
+      if (m) {
+        bullets.push(m[1]);
+        return;
+      }
+      flush();
+      blocks.push(line.trim() === '' ? <div key={`sp-${blocks.length}`} className="h-2" aria-hidden="true" /> : <p key={`p-${blocks.length}`}>{line}</p>);
+    });
+    flush();
+    return blocks;
   };
 
   // Render a section
@@ -135,48 +169,50 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
     <section key={section.id} className={`${cardStyle} font-ui`}>
       {isEditMode ? (
         <div className="space-y-3">
-          {/* Title with controls */}
-          <div className="space-y-2">
+          {/* Title full width on phones with the 44px controls on their own row under
+              it (sharing the row cut the title off at ~366px); one row from sm up. */}
+          <div className="flex flex-wrap items-center gap-x-1 gap-y-2">
             <input
               type="text"
               value={section.title}
               onChange={(e) => updateSection(section.id, { title: e.target.value })}
-              className={`${inputBaseStyle} text-lg font-semibold`}
+              className={`${inputBaseStyle} flex-1 basis-full sm:basis-36 min-w-0 text-lg font-semibold`}
               placeholder={t('warmupPlanModal.sectionTitlePlaceholder', 'Section Title')}
             />
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => moveSection(section.id, 'up')}
-                  disabled={index === 0}
-                  className={`${iconButtonEditStyle} disabled:opacity-30`}
-                  title={t('warmupPlanModal.moveUp', 'Move Up')}
-                >
-                  <FaChevronUp className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => moveSection(section.id, 'down')}
-                  disabled={index === totalSections - 1}
-                  className={`${iconButtonEditStyle} disabled:opacity-30`}
-                  title={t('warmupPlanModal.moveDown', 'Move Down')}
-                >
-                  <FaChevronDown className="w-4 h-4" />
-                </button>
-              </div>
+            <div className="flex items-center gap-1 ml-auto">
+              <button
+                onClick={() => moveSection(section.id, 'up')}
+                disabled={index === 0}
+                className={`${iconButtonEditStyle} disabled:opacity-30`}
+                title={t('warmupPlanModal.moveUp', 'Move Up')}
+                aria-label={t('warmupPlanModal.moveUp', 'Move Up')}
+              >
+                <FaChevronUp className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => moveSection(section.id, 'down')}
+                disabled={index === totalSections - 1}
+                className={`${iconButtonEditStyle} disabled:opacity-30`}
+                title={t('warmupPlanModal.moveDown', 'Move Down')}
+                aria-label={t('warmupPlanModal.moveDown', 'Move Down')}
+              >
+                <FaChevronDown className="w-4 h-4" />
+              </button>
               <button
                 onClick={() => removeSection(section.id)}
                 className={iconButtonDangerStyle}
                 title={t('warmupPlanModal.deleteSection', 'Delete Section')}
+                aria-label={t('warmupPlanModal.deleteSection', 'Delete Section')}
               >
                 <FaTimes className="w-4 h-4" />
               </button>
             </div>
           </div>
           {/* Free-form content textarea */}
-          <textarea
+          <AutoGrowTextarea
             value={section.content}
             onChange={(e) => updateSection(section.id, { content: e.target.value })}
-            className={`${textareaStyle} resize-y min-h-[120px] text-[15px] font-normal`}
+            className={`${textareaStyle} resize-none overflow-hidden min-h-[120px] text-[15px] font-normal`}
             placeholder={t('warmupPlanModal.contentPlaceholder', 'Enter content here... Use • for bullet points')}
             rows={5}
           />
@@ -184,7 +220,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
       ) : (
         <>
           <h3 className="font-display text-2xl font-bold text-ink mb-2">{section.title}</h3>
-          <div className="text-ink-2 text-[15px] leading-relaxed whitespace-pre-wrap">
+          <div className="text-ink-2 text-[15px] leading-relaxed space-y-1">
             {renderContent(section.content)}
           </div>
         </>

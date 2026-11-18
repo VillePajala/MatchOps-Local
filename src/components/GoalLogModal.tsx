@@ -463,7 +463,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                     }}
                     className={pickerSelectStyle}
                   >
-                    <option value="" disabled>{stripPlaceholderDashes(t('goalLogModal.selectPlaceholder', '-- Select Scorer --'))}</option>
+                    <option value="" disabled>{stripPlaceholderDashes(t('goalLogModal.selectPlaceholder', 'Select Scorer'))}</option>
                     {playerOptions}
                     <option value={UNKNOWN_SCORER}>{t('goalLogModal.unknownScorer', 'Unknown / not sure')}</option>
                   </select>
@@ -481,7 +481,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                     className={pickerSelectStyle}
                     disabled={!scorerId}
                   >
-                    <option value="">{stripPlaceholderDashes(t('goalLogModal.noAssisterPlaceholder', '-- No Assist --'))}</option>
+                    <option value="">{stripPlaceholderDashes(t('goalLogModal.noAssisterPlaceholder', 'No Assist'))}</option>
                     {orderedPlayers.filter(p => p.id !== scorerId).map(player => (
                       <option key={player.id} value={player.id}>{playerListLabel(player)}</option>
                     ))}

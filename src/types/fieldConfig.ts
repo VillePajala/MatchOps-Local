@@ -114,6 +114,16 @@ export interface FieldStyleConfig {
   showGrassTexture: boolean;
   /** Number of mowing stripes (soccer only) */
   stripeCount: number;
+  /**
+   * How the grass is painted. 'classic' (the default when absent): noise
+   * texture, vertical mowing stripes and lighting overlays. 'clean': a flat
+   * deep green that brightens gently toward the halfway line
+   * (`centerColor`), with faint horizontal mowing bands and nothing else.
+   * See PITCH_GRASS in config/fieldConfigs.ts.
+   */
+  grass?: 'classic' | 'clean';
+  /** 'clean' grass only: the colour at the halfway line (`fieldColor` is the edge colour). */
+  centerColor?: string;
 }
 
 /**

@@ -385,7 +385,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                   onChange={(e) => setAgeGroup(e.target.value)}
                   className={selectStyle}
                 >
-                  <option value="">{t('common.selectAgeGroup', '-- Select Age Group --')}</option>
+                  <option value="">{t('common.selectAgeGroup', 'Select Age Group')}</option>
                   {AGE_GROUPS.map(group => (
                     <option key={group} value={group}>{group}</option>
                   ))}
@@ -543,9 +543,9 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                   value={awardedPlayerId || ''}
                   onChange={(e) => setAwardedPlayerId(e.target.value || undefined)}
                   className={selectStyle}
-                  aria-label={t('tournaments.selectAwardWinner', '-- Select Player of Tournament --')}
+                  aria-label={t('tournaments.selectAwardWinner', 'Select Player of Tournament')}
                 >
-                  <option value="">{t('tournaments.selectAwardWinner', '-- Select Player of Tournament --')}</option>
+                  <option value="">{t('tournaments.selectAwardWinner', 'Select Player of Tournament')}</option>
                   {masterRoster.map(player => (
                     <option key={player.id} value={player.id}>{player.name}</option>
                   ))}

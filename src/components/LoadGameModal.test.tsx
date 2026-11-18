@@ -485,10 +485,36 @@ describe('LoadGameModal', () => {
       const gameCard = await screen.findByTestId('game-item-game_with_league');
 
       // Season name badge should display
-      expect(within(gameCard).getByText('Spring Season')).toBeInTheDocument();
+      expect(within(gameCard).getByText(/Spring Season/)).toBeInTheDocument();
 
       // League badge should display with full league name
-      expect(within(gameCard).getByText('Valtakunnallinen SM-sarja')).toBeInTheDocument();
+      expect(within(gameCard).getByText(/Valtakunnallinen SM-sarja/)).toBeInTheDocument();
+    });
+
+    /** @edge-case Competition is one grey line; the duration is not repeated on the date line. */
+    it('shows the competition as one line and leaves the period length off the date line', async () => {
+      const games: SavedGamesCollection = {
+        'game_one_line': {
+          teamName: 'Line Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-03-15',
+          gameTime: '10:00',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+          gender: 'boys',
+          homeOrAway: 'home',
+          seasonId: 'season_one_line',
+          tournamentId: '',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+      await renderModal({ savedGames: games, seasons: [{ id: 'season_one_line', name: 'P12 Harrastesarja 2026' }] });
+      const gameCard = await screen.findByTestId('game-item-game_one_line');
+      const line = within(gameCard).getByTestId('game-competition-game_one_line');
+      expect(line).toHaveTextContent(/^P12 Harrastesarja 2026 · /);
+      expect(gameCard.textContent).not.toContain('2×25');
     });
 
     it('does not display league badge when season has no leagueId', async () => {
@@ -560,10 +586,10 @@ describe('LoadGameModal', () => {
       const gameCard = await screen.findByTestId('game-item-game_with_series');
 
       // Tournament name badge should display
-      expect(within(gameCard).getByText('Championship Cup')).toBeInTheDocument();
+      expect(within(gameCard).getByText(/Championship Cup/)).toBeInTheDocument();
 
       // Series level badge should display (translation key pattern: common.levelElite)
-      expect(within(gameCard).getByText('common.levelElite')).toBeInTheDocument();
+      expect(within(gameCard).getByText(/common\.levelElite/)).toBeInTheDocument();
     });
 
     it('does not display series badge when tournament game has no tournamentSeriesId', async () => {
@@ -677,7 +703,7 @@ describe('LoadGameModal', () => {
         const gameCard = await screen.findByTestId(`game-item-game_${level.toLowerCase()}`);
 
         // Verify translation key format: common.level${Level}
-        expect(within(gameCard).getByText(`common.level${level}`)).toBeInTheDocument();
+        expect(within(gameCard).getByText(new RegExp(`common\\.level${level}`))).toBeInTheDocument();
 
         unmount();
       }

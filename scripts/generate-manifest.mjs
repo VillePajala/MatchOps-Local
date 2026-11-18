@@ -30,7 +30,10 @@ async function generateManifest() {
     "id": "/",
     "display": config.displayMode || "standalone",
     "orientation": "portrait-primary",
-    "background_color": "#1e293b",
+    // = the app canvas (--color-carbon) and the maskable icons' fill
+    // (scripts/generate-splash-icons.mjs), so the OS splash, LoadingScreen and Home
+    // are one colour. theme_color stays per-branch (status bar).
+    "background_color": "#0f172a",
     "theme_color": config.themeColor,
     "categories": ["sports", "productivity", "utilities"],
     "lang": "fi",
@@ -50,7 +53,7 @@ async function generateManifest() {
         "purpose": "any"
       },
       {
-        "src": "/icons/icon-192x192.png",
+        "src": "/icons/icon-maskable-192x192.png",
         "sizes": "192x192",
         "type": "image/png",
         "purpose": "maskable"
@@ -62,7 +65,7 @@ async function generateManifest() {
         "purpose": "any"
       },
       {
-        "src": "/icons/icon-512x512.png",
+        "src": "/icons/icon-maskable-512x512.png",
         "sizes": "512x512",
         "type": "image/png",
         "purpose": "maskable"

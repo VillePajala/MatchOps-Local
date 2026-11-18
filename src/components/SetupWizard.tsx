@@ -15,6 +15,7 @@ import { AGE_GROUPS } from '@/config/gameOptions';
 import { setSetupWizardActive, storeSetupFormat, storeSetupAgeGroup } from './setupWizardActive';
 import type { Player, Team, TeamPlayer } from '@/types';
 import logger from '@/utils/logger';
+import { selectStyle } from '@/styles/modalStyles';
 
 /**
  * SetupWizard - the Onboarding v2 first-sign-in flow (cloud/Play only).
@@ -489,7 +490,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               data-testid="wizard-age-group"
               value={ageGroup}
               onChange={(e) => setAgeGroup(e.target.value)}
-              className="w-full h-12 px-4 rounded-md bg-slate-800 border border-slate-700 text-base text-white focus:outline-none focus:ring-2 focus:ring-action focus:border-transparent"
+              className={selectStyle}
             >
               <option value="">{t('setupWizard.ageGroupNone', 'Not set')}</option>
               {AGE_GROUPS.map((g) => (

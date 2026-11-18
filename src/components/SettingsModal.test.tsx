@@ -372,10 +372,10 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    // Backup button is in Data tab - button has icon only, text is in a sibling <p>
+    // Backup buttons are in the Data tab, each a labelled button (icon + text)
     navigateToTab('Data');
     const backupLabel = screen.getByText('Backup All Data');
-    const card = backupLabel.closest('.flex.items-start')!;
+    const card = backupLabel.closest('.flex.flex-col')!;
     // The card now has a Share button (onCreateBackup) and a Download button.
     const shareButton = within(card as HTMLElement).getByRole('button', { name: 'Share backup' });
     fireEvent.click(shareButton);

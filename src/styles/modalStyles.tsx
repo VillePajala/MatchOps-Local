@@ -144,7 +144,7 @@ export const textareaStyle =
 
 /** A select is the same field with a chevron (`.s1-select`) and dark native options. */
 export const selectStyle =
-  `${inputBaseStyle} s1-select pr-10 [color-scheme:dark] text-ellipsis`;
+  `${inputBaseStyle} s1-select pr-10 [color-scheme:dark] text-ellipsis has-[option[value='']:checked]:font-normal has-[option[value='']:checked]:text-ink-3`;
 
 /** A search field: the house input with room for a leading magnifier icon. */
 export const searchInputStyle =
@@ -159,7 +159,7 @@ export const inlineFieldStyle =
 
 /** The compact field drawn as a select (chevron). */
 export const inlineSelectStyle =
-  `${inlineFieldStyle} s1-select pr-9! w-auto! shrink-0 [color-scheme:dark]`;
+  `${inlineFieldStyle} s1-select pr-9! w-auto! shrink-0 [color-scheme:dark] has-[option[value='']:checked]:font-normal has-[option[value='']:checked]:text-ink-3`;
 
 // ============================================================================
 // Choice chips
@@ -803,13 +803,15 @@ export type ZLayer = keyof typeof Z_LAYER;
 export const matchGlassStyle =
   "bg-[rgb(15_23_42/0.84)] backdrop-blur-[16px] backdrop-saturate-[1.3] shadow-[inset_0_1px_0_rgb(255_255_255/0.12),inset_0_0_0_1px_rgb(255_255_255/0.07),0_14px_26px_-12px_rgb(2_6_23/0.75)]";
 
-/** A 44px round tool button sitting on the grass (field tools, sync status). */
+/** A round tool button sitting on the grass (field tools, sync status):
+ *  40px of light navy glass, with an invisible pad taking the touch target
+ *  to 44px. */
 export const matchFieldToolStyle =
-  `inline-flex items-center justify-center w-11 h-11 rounded-full text-white bg-[rgb(15_23_42/0.7)] backdrop-blur-[12px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_8px_14px_-8px_rgb(2_6_23/0.8)] transition-colors hover:bg-[rgb(15_23_42/0.82)] active:scale-95 ${focusRing}`;
+  `relative inline-flex items-center justify-center w-10 h-10 rounded-full text-white bg-[rgb(15_23_42/0.7)] backdrop-blur-[12px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_6px_12px_-8px_rgb(2_6_23/0.7)] transition-colors hover:bg-[rgb(15_23_42/0.82)] active:scale-95 before:absolute before:-inset-0.5 before:rounded-full before:content-[''] ${focusRing}`;
 
 /** The "on" state of a field tool: white disc, navy icon. */
 export const matchFieldToolOnStyle =
-  `inline-flex items-center justify-center w-11 h-11 rounded-full text-carbon bg-white shadow-[0_8px_14px_-8px_rgb(2_6_23/0.8)] active:scale-95 ${focusRing}`;
+  `relative inline-flex items-center justify-center w-10 h-10 rounded-full text-carbon bg-white shadow-[0_6px_12px_-8px_rgb(2_6_23/0.7)] active:scale-95 before:absolute before:-inset-0.5 before:rounded-full before:content-[''] ${focusRing}`;
 
 /** A 44px round button inside the control capsule (44, not 48, so five of
  *  them plus the clock fit a 360px phone without the capsule scrolling). */

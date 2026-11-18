@@ -34,15 +34,19 @@ import {
   subtextStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
-  dangerButtonStyle,
   sectionLabelStyle,
   chipStyle,
   errorBoxStyle,
 } from '@/styles/modalStyles';
 
-/** Whole-field reset tools: destructive, but undoable and always on screen - so
- *  a ghost pill with red text rather than two standing solid-red buttons. */
-const resetButtonStyle = `${secondaryButtonStyle} flex-1 text-red-400! hover:bg-red-500/10!`;
+/** Clear field: destructive, but undoable and always on screen - so a compact
+ *  red-text button at the side, not a standing pill (round 2, owner). */
+const resetButtonStyle =
+  'inline-flex items-center min-h-11 px-3 -mr-1 rounded-full font-ui text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+
+/** Clear / Remove sub on a selected placement: a red OUTLINE pill, so the amber
+ *  Sub action beside it stays the one primary (round 2, owner). */
+const selectionDangerStyle = `${secondaryButtonStyle} flex-1 text-red-400! shadow-[inset_0_0_0_1.5px_rgb(248_113_113/0.6)]! hover:bg-red-500/10!`;
 
 /** A fold-out section toggle (bench availability): the uppercase section label as a 44px button. */
 const foldToggleStyle =
@@ -87,8 +91,6 @@ interface PlanFieldViewProps {
   onClearSlot?: (slotId: string) => void;
   /** Empty EVERY position (all starters + the whole sub schedule). */
   onClearAll?: () => void;
-  /** Empty every game's field in the WHOLE PLAN (asks for confirmation). */
-  onClearAllGames?: () => void;
   /** Remove one scheduled sub (per-stint delete from the field). */
   onRemoveSub?: (subId: string) => void;
   /** Move one scheduled sub to another (starter-empty) position. */
@@ -124,7 +126,6 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   onSwapPlayers,
   onClearSlot,
   onClearAll,
-  onClearAllGames,
   onRemoveSub,
   onMoveSub,
   onPromoteSub,
@@ -485,7 +486,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                           textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                         }}
                       >
-                        <span className="text-[8px] font-extrabold text-amber-200 leading-none tabular-nums bg-black/30 rounded px-0.5 py-px">
+                        <span className="text-xs font-extrabold text-amber-200 leading-none tabular-nums bg-black/30 rounded px-1 py-0.5">
                           {Math.round(sub.timeSeconds / 60)}&#39;
                         </span>
                         {shortName(inName)}
@@ -528,9 +529,15 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   {filled ? shortName(name ?? '') : slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : '+'}
                 </button>
               )}
+              {/* Minutes under the disc - the keeper's ABOVE it, clear of the
+                  goal line it stands on. Absolutely placed so the disc stays
+                  anchored to its slot point either way. */}
               {!hasSubs && filled && playerId && minutesByPlayer?.[playerId] && (
                 <span
-                  className="mt-0.5 text-[10px] font-semibold tabular-nums leading-tight"
+                  data-testid="plan-disc-minutes"
+                  className={`absolute left-1/2 -translate-x-1/2 text-xs font-semibold tabular-nums leading-tight whitespace-nowrap pointer-events-none ${
+                    slot.isGoalie ? 'bottom-full mb-0.5' : 'top-full mt-0.5'
+                  }`}
                   style={{
                     color: fairnessText(minutesByPlayer[playerId].ratio),
                     textShadow: '0 1px 2px rgba(0,0,0,0.6)',
@@ -599,13 +606,13 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               <button
                 type="button"
                 onClick={handleRemoveSelectedSub}
-                className={`${dangerButtonStyle} flex-1`}
+                className={selectionDangerStyle}
               >
                 {t('playtimePlanner.lineup.removeSubAction', 'Remove sub')}
               </button>
             )}
             {selection?.type === 'slot' && onClearSlot && (activeOccupant || selectedSlotSubs.length > 0) && (
-              <button type="button" onClick={handleClearSlot} className={`${dangerButtonStyle} flex-1`}>
+              <button type="button" onClick={handleClearSlot} className={selectionDangerStyle}>
                 {t('playtimePlanner.lineup.clearSlot', 'Clear')}
               </button>
             )}
@@ -695,20 +702,13 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           </div>
         )}
 
-        {/* Field-reset tools live UNDER the bench (owner placement): empty
-            THIS game's field, or every game in the plan (confirmed upstream). */}
-        {((anyPlacement && onClearAll) || onClearAllGames) && (
-          <div className="flex gap-2">
-            {anyPlacement && onClearAll && (
-              <button type="button" onClick={handleClearAll} className={resetButtonStyle}>
-                {t('playtimePlanner.lineup.clearAll', 'Clear field')}
-              </button>
-            )}
-            {onClearAllGames && (
-              <button type="button" onClick={onClearAllGames} className={resetButtonStyle}>
-                {t('playtimePlanner.lineup.clearAllGames', 'Clear all games')}
-              </button>
-            )}
+        {/* Clear field lives UNDER the bench, at the side (owner placement).
+            Clearing every game is a plan-level action on the Settings tab. */}
+        {anyPlacement && onClearAll && (
+          <div className="flex justify-end">
+            <button type="button" onClick={handleClearAll} className={resetButtonStyle}>
+              {t('playtimePlanner.lineup.clearAll', 'Clear field')}
+            </button>
           </div>
         )}
 

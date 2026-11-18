@@ -417,8 +417,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   if (!player || !playerStats) {
     return (
-        <div className="flex items-center justify-center h-full">
-            <p className="text-ink-3">{t('playerStats.selectPlayer', 'Select a player to view their stats.')}</p>
+        <div className="flex items-center justify-center px-4 py-12 text-center">
+            <p className="text-[15px] text-ink-3">{t('playerStats.selectPlayer', 'Search for a player to see their stats')}</p>
         </div>
     );
   }
@@ -433,12 +433,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   return (
     <div className="s1-list p-4 sm:p-6 font-ui">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h2 className="font-display text-3xl font-bold text-ink">{player.name}</h2>
-          </div>
-        </div>
+        {/* The name heading is visually hidden: the player picker right above
+            already shows the name (review round 2, 11b), but screen readers still
+            get a heading that says whose statistics follow. */}
+        <h2 className="sr-only">{player.name}</h2>
 
         {/* Filter Status Indicator */}
         {selectedClubSeason !== 'all' && unfilteredPlayerStats && unfilteredPlayerStats.totalGames > playerStats.totalGames && (
@@ -467,17 +465,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             <div>
               <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalGoals}</p>
               <p className="text-sm text-ink-2 font-medium">{t('playerStats.goals', 'Goals')}</p>
-              <p className="text-xs leading-tight text-ink-3 mt-1">({formatAppDecimal(playerStats.avgGoalsPerGame)}/{'\u200b'}{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-xs leading-tight text-ink-3 mt-1 whitespace-nowrap">{formatAppDecimal(playerStats.avgGoalsPerGame)}/{t('playerStats.perGameShort', 'game')}</p>
             </div>
             <div>
               <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalAssists}</p>
               <p className="text-sm text-ink-2 font-medium">{t('playerStats.assists', 'Assists')}</p>
-              <p className="text-xs leading-tight text-ink-3 mt-1">({formatAppDecimal(playerStats.avgAssistsPerGame)}/{'\u200b'}{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-xs leading-tight text-ink-3 mt-1 whitespace-nowrap">{formatAppDecimal(playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')}</p>
             </div>
             <div>
               <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalGoals + playerStats.totalAssists}</p>
               <p className="text-sm text-ink-2 font-medium">{t('playerStats.points', 'Points')}</p>
-              <p className="text-xs leading-tight text-ink-3 mt-1">({formatAppDecimal(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame)}/{'\u200b'}{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-xs leading-tight text-ink-3 mt-1 whitespace-nowrap">{formatAppDecimal(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')}</p>
             </div>
           </div>
           {/* Wearing the armband, only when it happened. A zero here would
@@ -859,7 +857,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       <div><p className="font-bold text-ink tabular-nums">{stats.goals}</p><p className="text-sm text-ink-3">{t('playerStats.goals', 'Goals')}</p></div>
                       <div><p className="font-bold text-ink tabular-nums">{stats.assists}</p><p className="text-sm text-ink-3">{t('playerStats.assists', 'Assists')}</p></div>
                       <div><p className="font-bold text-ink tabular-nums">{stats.points}</p><p className="text-sm text-ink-3">{t('playerStats.points', 'Points')}</p></div>
-                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-sm text-ink-3"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.fairPlayCards || 0}</p><p className="text-sm text-ink-3">{t('playerStats.fairPlayLabel', 'Fair play')}</p></div>
                     </div>
                   </div>
                 ))}
@@ -885,7 +883,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       <div><p className="font-bold text-ink tabular-nums">{stats.goals}</p><p className="text-sm text-ink-3">{t('playerStats.goals', 'Goals')}</p></div>
                       <div><p className="font-bold text-ink tabular-nums">{stats.assists}</p><p className="text-sm text-ink-3">{t('playerStats.assists', 'Assists')}</p></div>
                       <div><p className="font-bold text-ink tabular-nums">{stats.points}</p><p className="text-sm text-ink-3">{t('playerStats.points', 'Points')}</p></div>
-                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-sm text-ink-3"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.fairPlayCards || 0}</p><p className="text-sm text-ink-3">{t('playerStats.fairPlayLabel', 'Fair play')}</p></div>
                     </div>
                   </div>
                 ))}

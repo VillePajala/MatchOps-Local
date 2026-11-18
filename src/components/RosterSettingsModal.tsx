@@ -308,7 +308,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                         className="truncate text-base font-semibold text-ink"
                         title={player.name}
                       >
-                        {player.name}{player.nickname ? <span className="ml-2 text-sm font-normal text-ink-3">{player.nickname}</span> : ''}
+                        {player.name}{player.nickname && player.nickname.trim().toLowerCase() !== player.name.trim().split(/\s+/)[0].toLowerCase() ? <span className="ml-2 text-sm font-normal text-ink-3">{player.nickname}</span> : ''}
                       </span>
                       {player.archived && (
                         <span className={`${badgeArchivedStyle} flex-shrink-0`}>

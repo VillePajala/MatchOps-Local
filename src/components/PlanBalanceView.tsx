@@ -5,8 +5,8 @@
  * standalone planner's Minutes-tab design).
  *
  * Top to bottom: actionable warnings (0-minute players, big spread, lone GK) →
- * a grid of chunky chips, each painted ENTIRELY in the player's fairness colour
- * (sorted least-played first, so the grid reads as a red→green gradient) → a
+ * a grid of calm navy tiles, each with a stripe on its left edge in the player's
+ * (muted) fairness colour, sorted least-played first → a
  * focus stack: one rich card per highlighted player (worst-off by default) with
  * a %-of-fair-share bar and a per-game tile row (position + minutes, tinted by
  * how much of that game they play). One shared highlight selection drives the
@@ -21,7 +21,10 @@ import { computePlanPositions, PLAN_ZONES, zoneOfLabel, type PlanZone } from '@/
 import { gameTotalSeconds, type PlaytimePlan, type PlanGame } from '@/utils/playtimePlanner/types';
 import { getGameSlots } from '@/utils/playtimePlanner/lineup';
 import { getPositionLabel } from '@/utils/positionLabels';
-import { fairnessChipColors } from '@/utils/playtimePlanner/colors';
+import { fairnessColor } from '@/utils/playtimePlanner/colors';
+
+/** The tile label: first name (the plan stores the nickname first), so it fits. */
+const firstName = (name: string): string => name.trim().split(/\s+/)[0] || '?';
 import {
   cardStyle,
   subtextStyle,
@@ -95,6 +98,16 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
   const [mode, setMode] = useState<'minutes' | 'positions'>('minutes');
   // Within Positions: coarse zones (GK/DEF/MID/ATT) or specific roles (RM, CDM…).
   const [granularity, setGranularity] = useState<'zones' | 'roles'>('zones');
+  // The one three-way switch (Minutes / Zones / Roles) drives both.
+  const read: 'minutes' | 'zones' | 'roles' = mode === 'minutes' ? 'minutes' : granularity;
+  const selectRead = (next: 'minutes' | 'zones' | 'roles') => {
+    if (next === 'minutes') {
+      setMode('minutes');
+    } else {
+      setMode('positions');
+      setGranularity(next);
+    }
+  };
 
   // Short zone labels for the position read (GK/DEF/MID/ATT).
   const zoneLabel = useMemo<Record<PlanZone, string>>(() => ({
@@ -337,20 +350,22 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
         </p>
       </div>
 
-      {/* Minutes / Positions toggle: the tab reads both time AND position
-          variety (hence "Balance" / "Tasapaino"). */}
+      {/* Minutes / Zones / Roles: ONE switch - the tab reads time AND position
+          variety (hence "Balance" / "Tasapaino"); zones and roles are the
+          coarse and the detailed position read. */}
       <div className={segmentTrackStyle} role="tablist" aria-label={t('playtimePlanner.balance.readToggle', 'Balance view')}>
         {([
           ['minutes', t('playtimePlanner.balance.modeMinutes', 'Minutes')],
-          ['positions', t('playtimePlanner.balance.modePositions', 'Positions')],
+          ['zones', t('playtimePlanner.balance.granularityZones', 'Zones')],
+          ['roles', t('playtimePlanner.balance.granularityRoles', 'Roles')],
         ] as const).map(([m, label]) => (
           <button
             key={m}
             type="button"
             role="tab"
-            aria-selected={mode === m}
-            onClick={() => setMode(m)}
-            className={mode === m ? segmentSelectedStyle : segmentStyle}
+            aria-selected={read === m}
+            onClick={() => selectRead(m)}
+            className={read === m ? segmentSelectedStyle : segmentStyle}
           >
             {label}
           </button>
@@ -376,11 +391,12 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
         </div>
       )}
 
-      {/* Chip grid: whole-chip fairness colour, least-played first. */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+      {/* Tile grid, least-played first: calm navy tiles; the playing-time
+          level is the stripe on the left edge (the same muted colour as the
+          Games tab's chips and discs), the number always printed beside it. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {rows.map((p) => {
           const name = nameById.get(p.playerId) ?? p.playerId;
-          const c = fairnessChipColors(p.ratio);
           const highlighted = highlightPlayerIds.includes(p.playerId);
           return (
             <button
@@ -388,17 +404,23 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
               type="button"
               onClick={() => onToggleHighlight(p.playerId)}
               aria-pressed={highlighted}
+              aria-label={`${name} ${toMin(p.totalSeconds)}'`}
+              title={name}
               className={[
-                'flex items-center justify-between gap-2 px-4 py-3 min-h-[3.25rem] rounded-2xl',
-                'text-left font-semibold text-sm shadow-[0_1px_2px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.14)]',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80',
-                highlighted ? 'ring-2 ring-amber-300 ring-offset-2 ring-offset-surface brightness-110' : '',
+                'relative overflow-hidden flex items-center justify-between gap-2 pl-4 pr-3 py-2.5 min-h-12 rounded-xl',
+                'text-left font-semibold text-[15px] text-ink bg-surface-2 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)]',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
+                highlighted ? 'shadow-[inset_0_0_0_1.5px_var(--color-action)]!' : '',
                 anyHighlight && !highlighted ? 'opacity-40' : '',
               ].join(' ')}
-              style={{ backgroundColor: c.bg, color: c.fg }}
             >
-              <span className="flex-1 min-w-0 truncate">{name}</span>
-              <span className="shrink-0 font-bold text-base tabular-nums opacity-90">
+              <span
+                aria-hidden="true"
+                className="absolute left-0 top-0 bottom-0 w-1.5"
+                style={{ backgroundColor: fairnessColor(p.ratio) }}
+              />
+              <span className="flex-1 min-w-0 truncate">{firstName(name)}</span>
+              <span className="shrink-0 font-bold text-base tabular-nums text-ink-2">
                 {toMin(p.totalSeconds)}&#39;
               </span>
             </button>
@@ -414,7 +436,6 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
           const p = rowById.get(playerId);
           if (!p) return null;
           const name = nameById.get(playerId) ?? playerId;
-          const c = fairnessChipColors(p.ratio);
           const pct = p.ratio !== null ? Math.round(p.ratio * 100) : null;
           const barW = p.ratio !== null ? Math.min(100, Math.round(p.ratio * FAIR_SHARE_BAR_PCT)) : 0;
           // Per-player deviation from the ENGINE: with absences each player has
@@ -449,7 +470,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                   <div className="h-1.5 rounded-full bg-carbon shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] overflow-hidden">
                     <div
                       className="h-full rounded-full"
-                      style={{ width: `${barW}%`, backgroundColor: c.bg }}
+                      style={{ width: `${barW}%`, backgroundColor: fairnessColor(p.ratio) }}
                     />
                   </div>
                   <p className="mt-1.5 text-sm font-medium text-ink-3">
@@ -520,25 +541,6 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
             </p>
           ) : (
             <>
-              {/* Zones | Roles: coarse zones vs specific positions. Roles reads
-                  the switching load INSIDE a zone (RM vs CDM are both mid). */}
-              <div className={segmentTrackStyle} role="group" aria-label={t('playtimePlanner.balance.granularityToggle', 'Position detail')}>
-                {([
-                  ['zones', t('playtimePlanner.balance.granularityZones', 'Zones')],
-                  ['roles', t('playtimePlanner.balance.granularityRoles', 'Roles')],
-                ] as const).map(([g, label]) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => setGranularity(g)}
-                    aria-pressed={granularity === g}
-                    className={granularity === g ? segmentSelectedStyle : segmentStyle}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
               {/* Zone legend (colours are shared - a role is tinted by its zone). */}
               <div className="flex flex-wrap gap-x-3 gap-y-1">
                 {PLAN_ZONES.map((z) => (

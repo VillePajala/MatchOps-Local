@@ -7,7 +7,7 @@ import type { AdjustmentScope } from '@/utils/adjustmentScope';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Combobox } from '@headlessui/react';
-import { HiOutlineChevronUpDown, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
+import { HiChevronDown, HiOutlineChevronUpDown, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 import { HiOutlineShare } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -316,6 +316,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [showTaso, setShowTaso] = useState(false);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [sortColumn, setSortColumn] = useState<SortableColumn>('totalScore');
+  // Finish view: the player-stats table is folded away until asked for.
+  const [finishStatsOpen, setFinishStatsOpen] = useState(false);
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filterText, setFilterText] = useState<string>('');
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -569,6 +571,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     clubSeasonStartDate,
     clubSeasonEndDate,
   });
+
+  // Nothing to aggregate on a league / tournament / overall tab: say so once,
+  // instead of a card of zero tiles over an empty table. A specific league or
+  // tournament that was picked keeps its own "no games found for this" message.
+  const scopeIsEmpty =
+    (activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') &&
+    processedGameIds.length === 0 &&
+    !Array.isArray(tournamentSeasonStats);
 
   const goalEditorHook = useGoalEditor({
     gameEvents,
@@ -963,12 +973,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       case 'season': return t('gameStatsModal.titleSeason', 'League Stats');
       case 'tournament': return t('gameStatsModal.titleTournament', 'Tournament Stats');
       case 'overall': return t('gameStatsModal.titleOverall', 'Overall Stats');
-      case 'player': {
-        const selectedTeamName = selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy'
-          ? teams.find(team => team.id === selectedTeamIdFilter)?.name
-          : null;
-        return `${selectedPlayer?.name || t('playerStats.selectPlayerLabel', 'Select Player')}${selectedTeamName ? ` - ${selectedTeamName}` : ''}`;
-      }
+      // The title names the view and stays put; the chosen player is named in the view itself.
+      case 'player': return t('startScreen.statsPlayer', 'Player stats');
       default: return t('gameStatsModal.titleCurrentGame', 'Finish this game');
     }
   };
@@ -1088,12 +1094,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             onEditGoalTimeChange={goalEditorHook.setEditGoalTime}
             onEditGoalScorerChange={goalEditorHook.setEditGoalScorerId}
             onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
+            onAddGoal={onAddGoal}
           />
-          {onAddGoal && (
-            <button type="button" onClick={onAddGoal} data-testid="spine-add-goal" className={`${secondaryButtonStyle} w-full`}>
-              {t('gameStatsModal.spineAddGoal', 'Add a goal')}
-            </button>
-          )}
         </>
       ),
     });
@@ -1394,7 +1396,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 >
                   <div className="relative flex-1 min-w-0">
                     <Combobox.Input
-                      className={`${inputBaseStyle} min-h-11! py-2! pr-10! text-[15px]!`}
+                      className={`${inputBaseStyle} pr-10!`}
                       onChange={(e) => setPlayerQuery(e.target.value)}
                       displayValue={(p: Player | null) => (p ? p.name : '')}
                       placeholder={t('playerStats.selectPlayerLabel', 'Select Player')}
@@ -1516,8 +1518,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       onOpenPositions={onPlayerPositionsChange ? scrollToPositions : undefined}
                     />
                   )}
-                  {playerStatsCard}
-                  <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
                   {spineSteps.map((step, i) => (
                     <section key={step.key} id={step.id} data-testid={`spine-${step.key}`} className="space-y-3">
                       <p className={`${sectionLabelStyle} px-1`}>
@@ -1526,6 +1526,40 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       {step.content}
                     </section>
                   ))}
+                  <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
+                  {/* The read-only table comes last and folded: the steps above
+                      are what the coach came to do. */}
+                  <section data-testid="finish-player-stats">
+                    <button
+                      type="button"
+                      onClick={() => setFinishStatsOpen((v) => !v)}
+                      aria-expanded={finishStatsOpen}
+                      data-testid="finish-player-stats-toggle"
+                      className="s1-ghost flex min-h-12 w-full items-center gap-3 rounded-full px-4 text-[15px] font-semibold text-ink font-ui focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                    >
+                      <span className="flex-1 text-left">{t('gameStatsModal.playerStatsTitle', 'Player Stats')}</span>
+                      <HiChevronDown
+                        className={`h-[18px] w-[18px] shrink-0 text-ink-3 transition-transform ${finishStatsOpen ? 'rotate-180' : ''}`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                    {finishStatsOpen && <div className="mt-3">{playerStatsCard}</div>}
+                  </section>
+                </div>
+              ) : scopeIsEmpty ? (
+                <div className="s1-list px-5 py-8 text-center font-ui" data-testid="stats-empty-scope">
+                  <p className="text-base font-semibold text-ink">
+                    {activeTab === 'tournament'
+                      ? t('gameStatsModal.emptyTournament', 'No tournament games yet')
+                      : activeTab === 'season'
+                        ? t('gameStatsModal.emptySeason', 'No league games yet')
+                        : t('gameStatsModal.emptyOverall', 'No games yet')}
+                  </p>
+                  <p className="mt-1.5 text-sm text-ink-3">
+                    {hasActiveFilters
+                      ? t('gameStatsModal.emptyHintFilters', 'Try changing the filters.')
+                      : t('gameStatsModal.emptyHint', 'Statistics appear here once games have been played.')}
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1627,14 +1661,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               )}
 
               {/* Position balance - full-width, below the two-column stats grid */}
-              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && (
+              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && !scopeIsEmpty && (
                 <div className="mt-6">
                   <PositionBalanceSection games={scopedGames} players={playerPool} />
                 </div>
               )}
               {/* Same scope as the tables above it, so the denominator matches
                   what the coach is already looking at. */}
-              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && (
+              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && !scopeIsEmpty && (
                 <div className="mt-6">
                   <CoverageNudgeCard games={scopedGames} players={playerPool} />
                 </div>

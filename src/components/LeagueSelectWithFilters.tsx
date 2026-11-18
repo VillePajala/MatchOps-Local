@@ -81,14 +81,14 @@ export default function LeagueSelectWithFilters({
   const hiddenSelected =
     value && value !== CUSTOM_LEAGUE_ID && !filteredLeagues.some((l) => l.id === value) ? getLeagueById(value) : undefined;
 
-  // The two narrowing filters: the house select at 44px with 15px text, so
-  // two fit side by side on a phone.
-  const filterClass = `${selectStyle} min-h-11! py-2! text-[15px]!`;
+  // The two narrowing filters are the house select, stacked full width so
+  // no label is cut off on a narrow phone.
+  const filterClass = selectStyle;
 
   return (
     <>
-      <div className="flex gap-2 mb-2">
-        <div className="flex-1">
+      <div className="flex flex-col gap-2 mb-2">
+        <div>
           <label htmlFor={`league-level-filter-${filterIdSuffix}`} className="sr-only">
             {t('leagues.filterByLevel', 'Filter by level')}
           </label>
@@ -105,7 +105,7 @@ export default function LeagueSelectWithFilters({
             ))}
           </select>
         </div>
-        <div className="flex-1">
+        <div>
           <label htmlFor={`league-area-filter-${filterIdSuffix}`} className="sr-only">
             {t('leagues.filterByArea', 'Filter by area')}
           </label>

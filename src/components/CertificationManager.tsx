@@ -98,7 +98,7 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
             className={selectStyle}
             aria-label={t('personnelDetailsModal.selectCertification', 'Select certification')}
           >
-            <option value="">{t('personnelDetailsModal.selectCertificationPlaceholder', '-- Select Certification --')}</option>
+            <option value="">{t('personnelDetailsModal.selectCertificationPlaceholder', 'Select Certification')}</option>
             {availableGroups.map(group => (
               <optgroup key={group.labelKey} label={t(group.labelKey, group.label)}>
                 {group.certifications.map(cert => (

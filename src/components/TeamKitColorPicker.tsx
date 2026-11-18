@@ -3,7 +3,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineXMark } from 'react-icons/hi2';
-import { TEAM_KIT_COLORS } from '@/config/palette';
+import { TEAM_KIT_PICKER_COLORS } from '@/config/palette';
 import { labelStyle } from '@/styles/modalStyles';
 
 /**
@@ -15,14 +15,14 @@ import { labelStyle } from '@/styles/modalStyles';
  * dialog - a system panel in the middle of a dark, carefully styled app - and
  * it looked exactly as out of place as that sounds. The fix was not to dress
  * it better but to make it unnecessary: TEAM_KIT_COLORS now carries
- * twenty-three colours, which covers the range football kits actually come in.
+ * a dozen colours, which covers the range football kits actually come in.
  *
  * Every swatch is checked to read on the app's dark surfaces, which a freeform
  * hex never was - a coach could pick something that vanished against slate.
  *
  * Clearing is a first-class choice, not the absence of one: most teams will
  * never set a colour, and a control you cannot undo is a trap. It takes the
- * last cell of the grid, so the four rows are exactly full.
+ * line under the grid.
  *
  * A COLOUR SAVED BEFORE THIS still shows. Dropping the custom input would
  * otherwise have made any hex outside the list read as "no colour chosen"
@@ -40,9 +40,13 @@ export interface TeamKitColorPickerProps {
   disabled?: boolean;
 }
 
-/** One circle. Identical geometry for every cell so the grid cannot jitter. */
+/**
+ * The tap target is 44px; the visible circle inside it is smaller, so twelve
+ * colours sit in two compact rows without the targets shrinking.
+ */
 const swatchBase =
-  'w-11 h-11 rounded-full transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:opacity-50';
+  'w-11 h-11 rounded-full flex items-center justify-center transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:opacity-50';
+const circleBase = 'block w-8 h-8 rounded-full';
 // The ring marks the choice, not a border: a border would change the swatch's
 // size and make the grid shift as you tap along it.
 const selectedRing = 'ring-2 ring-white ring-offset-2 ring-offset-surface';
@@ -56,24 +60,21 @@ export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
   const { t } = useTranslation();
   const label = t('unifiedTeamModal.kitColorLabel', 'Kit colour');
   const current = (value ?? '').toLowerCase();
-  const isPreset = TEAM_KIT_COLORS.some((c) => c.hex.toLowerCase() === current);
+  const isPreset = TEAM_KIT_PICKER_COLORS.some((c) => c.hex.toLowerCase() === current);
   // A colour chosen with the old custom picker. Shown so it is not silently
   // lost; not added to the presets, which stay a curated set.
   const legacyCustom = value && !isPreset ? value : null;
 
   return (
-    <div>
+    <div role="radiogroup" aria-labelledby="kit-colour-label">
       <span className={labelStyle} id="kit-colour-label">
         {label}
       </span>
-      {/* Six across, so twenty-three colours plus the clear button are exactly
-          four rows with no ragged last line. */}
+      {/* Six across: twelve colours are exactly two rows. */}
       <div
-        role="radiogroup"
-        aria-labelledby="kit-colour-label"
         className="grid grid-cols-6 gap-2 justify-items-center max-w-sm"
       >
-        {TEAM_KIT_COLORS.map((c) => {
+        {TEAM_KIT_PICKER_COLORS.map((c) => {
           const selected = current === c.hex.toLowerCase();
           return (
             <button
@@ -87,9 +88,14 @@ export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
               )}
               disabled={disabled}
               onClick={() => onChange(c.hex)}
-              className={`${swatchBase} ${selected ? selectedRing : restingRing}`}
-              style={{ backgroundColor: c.hex }}
-            />
+              className={swatchBase}
+            >
+              <span
+                aria-hidden="true"
+                className={`${circleBase} ${selected ? selectedRing : restingRing}`}
+                style={{ backgroundColor: c.hex }}
+              />
+            </button>
           );
         })}
 
@@ -102,25 +108,37 @@ export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
             disabled={disabled}
             data-testid="kit-colour-legacy"
             onClick={() => onChange(legacyCustom)}
-            className={`${swatchBase} ${selectedRing}`}
-            style={{ backgroundColor: legacyCustom }}
-          />
+            className={swatchBase}
+          >
+            <span
+              aria-hidden="true"
+              className={`${circleBase} ${selectedRing}`}
+              style={{ backgroundColor: legacyCustom }}
+            />
+          </button>
         )}
-
-        <button
-          type="button"
-          role="radio"
-          aria-checked={!value}
-          aria-label={t('unifiedTeamModal.kitColorNone', 'No colour')}
-          disabled={disabled}
-          onClick={() => onChange(undefined)}
-          className={`${swatchBase} flex items-center justify-center text-ink-3 ${
+      </div>
+      <button
+        type="button"
+        role="radio"
+        aria-checked={!value}
+        aria-label={t('unifiedTeamModal.kitColorNone', 'No colour')}
+        disabled={disabled}
+        onClick={() => onChange(undefined)}
+        className={`mt-1 inline-flex min-h-11 items-center gap-2 rounded-full pr-3 font-ui text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:opacity-50 ${
+          !value ? 'text-ink' : 'text-ink-3'
+        }`}
+      >
+        <span
+          aria-hidden="true"
+          className={`flex w-8 h-8 items-center justify-center rounded-full text-ink-3 ${
             !value ? selectedRing : restingRing
           }`}
         >
-          <HiOutlineXMark className="w-5 h-5" />
-        </button>
-      </div>
+          <HiOutlineXMark className="w-4 h-4" />
+        </span>
+        {t('unifiedTeamModal.kitColorNone', 'No colour')}
+      </button>
     </div>
   );
 };

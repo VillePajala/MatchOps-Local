@@ -42,8 +42,14 @@ describe('TimerOverlay', () => {
     expect(baseProps.onStartPauseTimer).toHaveBeenCalledTimes(1);
   });
 
+  /** The interval lives in the info line; tapping it opens the - / + adjuster. */
+  const openIntervalAdjuster = () => {
+    fireEvent.click(screen.getByTestId('timer-sub-interval'));
+  };
+
   it('adjusts sub interval via +/- buttons with 0.5 increments when game not started', () => {
     render(<TimerOverlay {...baseProps} subIntervalMinutes={5} />);
+    openIntervalAdjuster();
     const dec = screen.getByRole('button', { name: /decrease interval/i });
     const inc = screen.getByRole('button', { name: /increase interval/i });
 
@@ -56,26 +62,72 @@ describe('TimerOverlay', () => {
 
   it('displays half-minute intervals with one decimal place', () => {
     render(<TimerOverlay {...baseProps} subIntervalMinutes={2.5} />);
+    openIntervalAdjuster();
     // Should display "2.5" not "2.5000..."
     expect(screen.getByText('2.5')).toBeInTheDocument();
   });
 
   it('displays whole-minute intervals without decimal', () => {
     render(<TimerOverlay {...baseProps} subIntervalMinutes={3} />);
+    openIntervalAdjuster();
     // Should display "3" not "3.0"
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
   it('disables decrease button at the 1-minute minimum (the reducer clamps to 1)', () => {
     render(<TimerOverlay {...baseProps} subIntervalMinutes={1} />);
+    openIntervalAdjuster();
     const dec = screen.getByRole('button', { name: /decrease interval/i });
     expect(dec).toBeDisabled();
   });
 
   it('enables decrease button above 1 minute', () => {
     render(<TimerOverlay {...baseProps} subIntervalMinutes={1.5} />);
+    openIntervalAdjuster();
     const dec = screen.getByRole('button', { name: /decrease interval/i });
     expect(dec).not.toBeDisabled();
+  });
+
+  describe('sub interval in the info line (1a)', () => {
+    it('shows the interval in the info line and keeps the adjuster closed until it is tapped', () => {
+      render(<TimerOverlay {...baseProps} subIntervalMinutes={15} />);
+      const chip = screen.getByTestId('timer-sub-interval');
+      expect(chip).toHaveTextContent('15');
+      expect(chip).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByRole('button', { name: /increase interval/i })).not.toBeInTheDocument();
+      fireEvent.click(chip);
+      expect(chip).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('button', { name: /increase interval/i })).toBeInTheDocument();
+      fireEvent.click(chip);
+      expect(screen.queryByRole('button', { name: /increase interval/i })).not.toBeInTheDocument();
+    });
+
+    it('is the same control while the clock runs, so nothing moves when the game starts', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" isTimerRunning={true} timeElapsedInSeconds={120} />);
+      openIntervalAdjuster();
+      fireEvent.click(screen.getByRole('button', { name: /increase interval/i }));
+      expect(baseProps.onSetSubInterval).toHaveBeenCalledWith(5.5);
+    });
+  });
+
+  describe('time since the last substitution (1c)', () => {
+    it('is hidden until the first substitution', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" timeElapsedInSeconds={300} lastSubTime={0} />);
+      expect(screen.getByTestId('timer-since-sub')).toBeEmptyDOMElement();
+    });
+
+    it('counts from the last substitution once there has been one', () => {
+      render(
+        <TimerOverlay
+          {...baseProps}
+          gameStatus="inProgress"
+          timeElapsedInSeconds={586}
+          lastSubTime={334}
+          completedIntervalDurations={[{ period: 1, duration: 334, timestamp: 334 }]}
+        />,
+      );
+      expect(screen.getByTestId('timer-since-sub')).toHaveTextContent(/04:12/);
+    });
   });
 
   it('opens reset confirmation and calls onResetTimer on confirm', async () => {

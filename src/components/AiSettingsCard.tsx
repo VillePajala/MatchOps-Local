@@ -31,7 +31,6 @@ import {
   sectionLabelStyle,
   subtextStyle,
   secondaryButtonStyle,
-  dangerButtonStyle,
   inputBaseStyle,
   selectStyle,
   textareaStyle,
@@ -54,7 +53,8 @@ const rowStyle =
 const secondary = `${secondaryButtonStyle} shrink-0 min-h-10! px-4! text-sm!`;
 // No amber pill here: settings has no single primary action (ghost, as in the mock).
 const primary = secondary;
-const danger = `${dangerButtonStyle} shrink-0 min-h-10! px-4! text-sm!`;
+// Destructive but not final (a confirmation follows): a red outline, not a solid fill.
+const danger = `${secondaryButtonStyle} shrink-0 min-h-11! px-4! text-sm! text-loss! bg-transparent! shadow-[inset_0_0_0_1.5px_var(--color-loss)]!`;
 const rowKey = 'font-ui text-base font-medium text-ink';
 
 const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {

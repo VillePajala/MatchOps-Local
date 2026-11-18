@@ -7,7 +7,7 @@ import { useAppLanguage } from '@/hooks/useAppLanguage';
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeTeamScopeSelect, HomeCountsBar, HomeSeasonCard, HomeStatsTiles, HomeIcon, HOME_CARD, HOME_FOCUS } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonCard, HomeStatsTiles, HomeIcon, HOME_CARD, HOME_FOCUS } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '@/components/GuidedTour/firstRunTour';
@@ -60,6 +60,7 @@ const ROW_RULE = 'flex min-h-14 flex-1 min-w-0 items-center gap-3 pr-4 border-t 
 const ROW_ICON = 'w-[22px] h-[22px] flex-shrink-0 self-center text-ink-2';
 // Labels wrap rather than truncate: "Taso - kokoonpanot ja tulokset" lost its last word at 16px.
 const ROW_LABEL = 'flex-1 min-w-0 break-words text-left text-base font-semibold leading-snug text-ink';
+const ROW_COUNT = 'flex-shrink-0 text-base font-semibold tabular-nums text-ink-3';
 const ROW_CHEVRON = <HiOutlineChevronRight className="w-4 h-4 flex-shrink-0 text-ink-3" aria-hidden="true" />;
 const ROW_EXTERNAL = <HiOutlineArrowTopRightOnSquare className="w-[18px] h-[18px] flex-shrink-0 text-ink-3" aria-hidden="true" />;
 
@@ -80,7 +81,9 @@ const HomeRow: React.FC<{
   testId?: string;
   /** Trailing element: a chevron by default, or a custom node (a step badge). */
   trailing?: React.ReactNode;
-}> = ({ icon: Icon, label, onClick, disabled, testId, trailing }) => (
+  /** How many of the thing the row opens (shown before the chevron). Omit while unknown. */
+  count?: number;
+}> = ({ icon: Icon, label, onClick, disabled, testId, trailing, count }) => (
   <button
     type="button"
     onClick={onClick}
@@ -91,17 +94,25 @@ const HomeRow: React.FC<{
     <Icon className={ROW_ICON} aria-hidden="true" />
     <span className={ROW_RULE}>
       <span className={ROW_LABEL}>{label}</span>
+      {count !== undefined && <span className={ROW_COUNT}>{count}</span>}
       {trailing ?? ROW_CHEVRON}
     </span>
   </button>
 );
 
 /** Same row, for a destination outside the app. The corner icon is honest. */
-const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; href: string }> = ({ icon: Icon, label, href }) => (
+const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; subtitle?: string; href: string }> = ({ icon: Icon, label, subtitle, href }) => (
   <a href={href} target="_blank" rel="noopener noreferrer" className={`${ROW_BASE} ${ROW_ON}`}>
     <Icon className={ROW_ICON} aria-hidden="true" />
     <span className={ROW_RULE}>
-      <span className={ROW_LABEL}>{label}</span>
+      {subtitle ? (
+        <span className="min-w-0 flex-1 py-2">
+          <span className="block break-words text-base font-semibold leading-snug text-ink">{label}</span>
+          <span className="block break-words text-[13px] leading-tight text-ink-3">{subtitle}</span>
+        </span>
+      ) : (
+        <span className={ROW_LABEL}>{label}</span>
+      )}
       {ROW_EXTERNAL}
     </span>
   </a>
@@ -117,7 +128,8 @@ const HomeTile: React.FC<{
   onClick?: () => void;
   disabled?: boolean;
   testId?: string;
-}> = ({ icon: Icon, label, onClick, disabled, testId }) => (
+  count?: number;
+}> = ({ icon: Icon, label, onClick, disabled, testId, count }) => (
   <button
     type="button"
     onClick={onClick}
@@ -128,7 +140,10 @@ const HomeTile: React.FC<{
     }`}
   >
     <Icon className={ROW_ICON} aria-hidden="true" />
-    <span className="text-base font-semibold leading-tight text-ink">{label}</span>
+    <span className="text-base font-semibold leading-tight text-ink">
+      {label}
+      {count !== undefined && <span className="ml-1.5 tabular-nums text-ink-3">{count}</span>}
+    </span>
   </button>
 );
 
@@ -257,6 +272,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // Dashboard is the default view, but it only renders once there are games to
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
   const dashboardOn = homeView === 'dashboard' && !isFirstTimeUser && hasSavedGames;
+  // Entity counts on the Club / Competitions rows - only once the enriched
+  // summary has loaded, so a still-loading 0 never reads as "you have none".
+  const counts = homeSummary?.countsReady ? homeSummary.counts : undefined;
   // "Täydennä pelaajan tilastoja" on the Tilastot tab, null without a handler.
   const externalGameRow = onAddExternalGame ? (
     <HomeRow
@@ -477,9 +495,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
             /* Club panel (restructure 1.3b): every club-people item gets a
                Home entry - the rows open the EXISTING modals (strangler). */
             <>
-              {dashboardOn && homeSummary && (
-                <HomeCountsBar counts={homeSummary.counts} t={t} />
-              )}
               {homeSummary?.countsReady && homeSummary.counts.players === 0 && (
                 <p className="px-1 text-center text-sm text-ink-3">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
               )}
@@ -491,6 +506,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   label={t('startScreen.rowPlayers', 'Players')}
                   onClick={onManageRoster}
                   disabled={!onManageRoster}
+                  count={counts?.players}
                   testId="tour-players"
                 />
                 <HomeTile
@@ -498,6 +514,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   label={t('startScreen.rowTeams', 'Teams')}
                   onClick={onManageTeams}
                   disabled={!onManageTeams}
+                  count={counts?.teams}
                   testId="tour-teams"
                 />
               </div>
@@ -507,6 +524,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   label={t('startScreen.rowPersonnel', 'Personnel')}
                   onClick={onManagePersonnel}
                   disabled={!onManagePersonnel}
+                  count={counts?.personnel}
                 />
               </HomeGroup>
 
@@ -541,7 +559,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {dashboardOn && homeSummary && (
                 <HomeSeasonCard
                   vuosi={homeSummary.vuosi}
-                  counts={homeSummary.counts}
                   onOpen={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
                   t={t}
                 />
@@ -555,12 +572,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   label={t('seasonTournamentModal.seasons', 'Leagues')}
                   onClick={onManageSeasons}
                   disabled={!onManageSeasons}
+                  count={counts?.seasons}
                 />
                 <HomeRow
                   icon={HiOutlineTrophy}
                   label={t('seasonTournamentModal.tournaments', 'Tournaments')}
                   onClick={onManageTournaments}
                   disabled={!onManageTournaments}
+                  count={counts?.tournaments}
                 />
               </HomeGroup>
             </>
@@ -777,7 +796,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   )}
                   <HomeLinkRow
                     icon={HiOutlineRectangleStack}
-                    label={t('startScreen.tasoLink', 'Taso - lineups & results')}
+                    label={t('startScreen.tasoLink', 'Taso')}
+                    subtitle={t('startScreen.tasoSubtitle', 'lineups & results')}
                     href={TASO_URL}
                   />
                 </HomeGroup>
@@ -789,7 +809,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
       {/* === HOME TABS (two-level restructure): a bottom tab bar. Pelit is the
           front page; the other tabs switch the panel above. === */}
-      <div className="s1-tabbar relative z-10 flex-shrink-0 px-2 pt-1 pb-[max(12px,env(safe-area-inset-bottom))]">
+      <div className="s1-tabbar relative z-10 flex-shrink-0 px-2 pt-0.5 pb-[max(6px,env(safe-area-inset-bottom))]">
         <div
           className="mx-auto grid max-w-md grid-cols-4"
           role="tablist"
@@ -805,7 +825,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 aria-selected={on}
                 data-testid={testId}
                 onClick={() => setActiveTab(id)}
-                className={`relative flex min-h-14 items-center justify-center rounded-xl px-1 text-[13px] font-semibold tracking-[0.01em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action ${
+                className={`relative flex min-h-[46px] items-center justify-center rounded-xl px-1 text-[13px] font-semibold tracking-[0.01em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action ${
                   on ? 's1-tab-on text-action' : 'text-ink-2 opacity-60 hover:opacity-100'
                 }`}
               >
@@ -887,7 +907,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   className={SHEET_ROW}
                 >
                   <span className={SHEET_ROW_RULE}>
-                    <span className={`${ROW_LABEL} text-action`}>{t('startScreen.enableCloudSync', 'Enable Cloud Sync →')}</span>
+                    <span className={`${ROW_LABEL} text-action`}>{t('startScreen.enableCloudSync', 'Enable Cloud Sync')}</span>
+                    {ROW_CHEVRON}
                   </span>
                 </button>
               ) : null}

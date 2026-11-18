@@ -9,7 +9,6 @@ import { getShootoutTally, getShootoutWinner } from '@/utils/shootout';
 import {
   CollapsibleModalHeader,
   ModalStickyPrimary,
-  useCollapsingHeader,
   MODAL_BACKDROP,
   Z_LAYER,
   modalContainerStyle,
@@ -75,7 +74,6 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
     () => sortPlayersByLastName(squadIds ? availablePlayers.filter((p) => squadIds.includes(p.id)) : availablePlayers),
     [availablePlayers, squadIds],
   );
-  const headerCollapse = useCollapsingHeader();
   const [kicks, setKicks] = useState<ShootoutKick[]>(initialKicks);
   const [scorerId, setScorerId] = useState<string>('');
   // Which side took the first kick (coin toss). Drives the alternation guide.
@@ -115,8 +113,11 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
 
   const tally = getShootoutTally(kicks);
   const winner = getShootoutWinner(kicks);
-  const yourScore = tally[yourSide];
-  const oppScore = tally[oppSide];
+  // Everything here reads in the match scoreboard's order, home first: the
+  // score, the names under it, the first-shot switch and the two kick panels.
+  const homeName = yourSide === 'home' ? teamName : opponentName;
+  const awayName = yourSide === 'home' ? opponentName : teamName;
+  const sidesInOrder: Array<'you' | 'opponent'> = yourSide === 'home' ? ['you', 'opponent'] : ['opponent', 'you'];
 
   // Whose kick is up next, by strict alternation from the starter. Once kicks
   // exist the starter is whoever actually kicked first. This is a guide only —
@@ -161,29 +162,91 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
     (id && availablePlayers.find((p) => p.id === id)?.name) ||
     t('shootoutModal.yourPlayer', 'Your player');
 
+  // Your team's kick entry: shooter picker + result.
+  const yourPanel = (
+    <div key="you" className={entryCardClass(nextUp === 'you')}>
+      <label htmlFor="shootoutScorer" className={`${labelStyle} flex items-center justify-between gap-2 mb-0! text-[15px]! font-semibold! text-ink!`}>
+        <span className="min-w-0 truncate">{teamName}</span>
+        {nextUp === 'you' && (
+          <span className={pillAmberStyle}>{t('shootoutModal.upNext', 'Up next')}</span>
+        )}
+      </label>
+      <select
+        id="shootoutScorer"
+        value={scorerId}
+        onChange={(e) => setScorerId(e.target.value)}
+        className={selectStyle}
+      >
+        <option value="">{t('shootoutModal.unknownShooter', 'Shooter (optional)')}</option>
+        {shooterOptions.map((p) => (
+          <option key={p.id} value={p.id}>{playerListLabel(p)}</option>
+        ))}
+      </select>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => { addKick(yourSide, true, scorerId || undefined); setScorerId(''); }}
+          className={scoredButtonClass}
+        >
+          {t('shootoutModal.scored', 'Scored')}
+        </button>
+        <button
+          type="button"
+          onClick={() => { addKick(yourSide, false, scorerId || undefined); setScorerId(''); }}
+          className={missedButtonClass}
+        >
+          {t('shootoutModal.missed', 'Missed')}
+        </button>
+      </div>
+    </div>
+  );
+
+  // The opponent's kick entry (anonymous shooters).
+  const opponentPanel = (
+    <div key="opponent" className={entryCardClass(nextUp === 'opponent')}>
+      <span className="flex items-center justify-between gap-2 text-[15px] font-semibold text-ink">
+        <span className="min-w-0 truncate">{opponentName}</span>
+        {nextUp === 'opponent' && (
+          <span className={pillAmberStyle}>{t('shootoutModal.upNext', 'Up next')}</span>
+        )}
+      </span>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => addKick(oppSide, true)}
+          className={scoredButtonClass}
+        >
+          {t('shootoutModal.scored', 'Scored')}
+        </button>
+        <button
+          type="button"
+          onClick={() => addKick(oppSide, false)}
+          className={missedButtonClass}
+        >
+          {t('shootoutModal.missed', 'Missed')}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div
       className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`}
       role="dialog"
       aria-modal="true"
-      aria-label={t('shootoutModal.title', 'Penalty Shootout')}
+      aria-label={t('shootoutModal.title', 'Penalty shootout')}
     >
       <div className={`${modalContainerStyle} h-full w-full relative`}>
-        {/* Chrome slimming: full-screen X-header (the X closes and keeps the kicks, 4.35);
-            the instructions line collapses on scroll. */}
+        {/* Full-screen X-header (the X closes and keeps the kicks, 4.35); a
+            one-line title and no subtitle, so the score sits high. */}
         <CollapsibleModalHeader
-          title={t('shootoutModal.title', 'Penalty Shootout')}
+          title={t('shootoutModal.title', 'Penalty shootout')}
           onClose={closeKeepingKicks}
           closeLabel={t('common.close', 'Close')}
-          collapse={headerCollapse}
-        >
-          <p className={`${subtextStyle} text-center px-6 pb-3`}>
-            {t('shootoutModal.instructions', 'Log each shot as it happens.')}
-          </p>
-        </CollapsibleModalHeader>
+        />
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pb-4 pt-4 space-y-5 font-ui" onScroll={headerCollapse.onScroll}>
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pb-4 pt-4 space-y-5 font-ui">
           {/* Tally: the score as the home screen's italic numerals, result-coloured
               once the shootout is decided (green/red mean results). */}
           <div className={`${cardStyle} text-center py-5`}>
@@ -192,10 +255,10 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
                 winner === null ? 's1-numeral' : winner === yourSide ? 's1-numeral-win' : 's1-numeral-loss'
               }`}
             >
-              {yourScore} - {oppScore}
+              {tally.home} - {tally.away}
             </div>
             <div className="text-sm text-ink-3 mt-2">
-              {teamName} · {opponentName}
+              {homeName} · {awayName}
             </div>
             <div className="text-[15px] mt-2">
               {winner === null ? (
@@ -212,7 +275,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
           <div>
             <p className={`${sectionLabelStyle} px-1 mb-2.5`}>{t('shootoutModal.firstKick', 'First shot')}</p>
             <div className={segmentTrackStyle}>
-              {(['you', 'opponent'] as const).map((side) => (
+              {sidesInOrder.map((side) => (
                 <button
                   key={side}
                   type="button"
@@ -227,68 +290,8 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
             </div>
           </div>
 
-          {/* Your team kick entry */}
-          <div className={entryCardClass(nextUp === 'you')}>
-            <label htmlFor="shootoutScorer" className={`${labelStyle} flex items-center justify-between gap-2 mb-0! text-[15px]! font-semibold! text-ink!`}>
-              <span className="min-w-0 truncate">{teamName}</span>
-              {nextUp === 'you' && (
-                <span className={pillAmberStyle}>{t('shootoutModal.upNext', 'Up next')}</span>
-              )}
-            </label>
-            <select
-              id="shootoutScorer"
-              value={scorerId}
-              onChange={(e) => setScorerId(e.target.value)}
-              className={selectStyle}
-            >
-              <option value="">{t('shootoutModal.unknownShooter', 'Shooter (optional)')}</option>
-              {shooterOptions.map((p) => (
-                <option key={p.id} value={p.id}>{playerListLabel(p)}</option>
-              ))}
-            </select>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => { addKick(yourSide, true, scorerId || undefined); setScorerId(''); }}
-                className={scoredButtonClass}
-              >
-                {t('shootoutModal.scored', 'Scored')}
-              </button>
-              <button
-                type="button"
-                onClick={() => { addKick(yourSide, false, scorerId || undefined); setScorerId(''); }}
-                className={missedButtonClass}
-              >
-                {t('shootoutModal.missed', 'Missed')}
-              </button>
-            </div>
-          </div>
-
-          {/* Opponent kick entry */}
-          <div className={entryCardClass(nextUp === 'opponent')}>
-            <span className="flex items-center justify-between gap-2 text-[15px] font-semibold text-ink">
-              <span className="min-w-0 truncate">{opponentName}</span>
-              {nextUp === 'opponent' && (
-                <span className={pillAmberStyle}>{t('shootoutModal.upNext', 'Up next')}</span>
-              )}
-            </span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => addKick(oppSide, true)}
-                className={scoredButtonClass}
-              >
-                {t('shootoutModal.scored', 'Scored')}
-              </button>
-              <button
-                type="button"
-                onClick={() => addKick(oppSide, false)}
-                className={missedButtonClass}
-              >
-                {t('shootoutModal.missed', 'Missed')}
-              </button>
-            </div>
-          </div>
+          {/* The two kick panels, home first (scoreboard order). */}
+          {sidesInOrder.map((side) => (side === 'you' ? yourPanel : opponentPanel))}
 
           {/* Kick log — newest first, latest highlighted, so each tap visibly adds a row */}
           <div>

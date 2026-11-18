@@ -368,9 +368,10 @@ export function FieldContainer({
     // above the floating control capsule (see GameContainer). The canvas
     // fills it, so relative player coordinates map to this box exactly as
     // they always have; the grass around it is GameContainer's backdrop.
-    // 104px = the panel's top inset (8) + score row (46) + player bar (68),
-    // less the 18px the panel overlaps the pitch's own top margin.
-    <div className="absolute inset-x-0 top-[104px] bottom-[calc(72px+env(safe-area-inset-bottom,0px))] overflow-hidden">
+    // 96px = the docked panel's score row (46) + player bar (68), less the
+    // 18px the panel overlaps the pitch's own top margin (plus the status
+    // bar inset the panel pads itself by).
+    <div className="absolute inset-x-0 top-[calc(96px+env(safe-area-inset-top,0px))] bottom-[calc(72px+env(safe-area-inset-bottom,0px))] overflow-hidden">
       {/* First-visit orientation card (Onboarding v2 PR 21): overlays the top
           of the pitch once, never blocks it. */}
       <FirstVisitIntro
@@ -525,7 +526,7 @@ export function FieldContainer({
             title={t('rulesDirectory.buttonTitle', 'View rules')}
             aria-label={t('rulesDirectory.buttonTitle', 'View rules')}
           >
-            <HiOutlineBookOpen className="w-[22px] h-[22px]" />
+            <HiOutlineBookOpen className="w-5 h-5" />
           </button>
         )}
         {/* Export button */}
@@ -542,7 +543,7 @@ export function FieldContainer({
             title={t('export.buttonTitle', 'Export field as image')}
             aria-label={t('export.buttonTitle', 'Export field as image')}
           >
-            <HiOutlineCamera className="w-[22px] h-[22px]" />
+            <HiOutlineCamera className="w-5 h-5" />
           </button>
         )}
         {/* Position labels toggle */}
@@ -553,7 +554,7 @@ export function FieldContainer({
           aria-label={t('field.togglePositionLabels', 'Toggle position labels')}
           aria-pressed={gameSessionState.showPositionLabels ?? true}
         >
-          <HiOutlineMapPin className={`w-[22px] h-[22px] ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-ink-3'}`} />
+          <HiOutlineMapPin className={`w-5 h-5 ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-ink-3'}`} />
         </button>
         {/* Planned-sub markers. Hidden entirely when the game has none, rather
             than shown dead: a control that cannot change anything is noise on
@@ -567,10 +568,10 @@ export function FieldContainer({
             aria-label={planViewLabel}
           >
             {showingChains ? (
-              <HiOutlineListBullet className="w-[22px] h-[22px]" />
+              <HiOutlineListBullet className="w-5 h-5" />
             ) : (
               <HiOutlineUserPlus
-                className={`w-[22px] h-[22px] ${planView === 'ghosts' ? '' : 'text-ink-3'}`}
+                className={`w-5 h-5 ${planView === 'ghosts' ? '' : 'text-ink-3'}`}
               />
             )}
           </button>
@@ -580,7 +581,7 @@ export function FieldContainer({
       {/* Which step of the plan cycle is showing. A three-way control needs to
           name its state - the icon alone only tells the person who built it. */}
       {(plannedGhosts.length > 0 || hasChainView) && planView !== 'lineup' && !fcDraggingFromBar && (
-        <div className="absolute top-[80px] right-[14px] z-20 pointer-events-none">
+        <div className="absolute top-[76px] right-[14px] z-20 pointer-events-none">
           <span className="inline-flex items-center px-3 py-[7px] rounded-full bg-[rgb(15_23_42/0.86)] font-ui text-[13px] font-semibold text-white shadow-[0_10px_18px_-10px_rgb(2_6_23/0.8)]">
             {planViewLabel}
           </span>
@@ -594,7 +595,7 @@ export function FieldContainer({
         <div
           role="status"
           data-testid="placement-hint"
-          className="absolute top-[80px] left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 h-11 pl-3.5 pr-1 rounded-full bg-[rgb(15_23_42/0.9)] font-ui text-sm font-semibold text-white whitespace-nowrap shadow-[inset_0_0_0_1px_rgb(255_178_36/0.55),0_10px_18px_-10px_rgb(2_6_23/0.8)]"
+          className="absolute top-[76px] left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 h-11 pl-3.5 pr-1 rounded-full bg-[rgb(15_23_42/0.9)] font-ui text-sm font-semibold text-white whitespace-nowrap shadow-[inset_0_0_0_1px_rgb(255_178_36/0.55),0_10px_18px_-10px_rgb(2_6_23/0.8)]"
         >
           <span className="w-2 h-2 rounded-full bg-action shadow-[0_0_0_3px_rgb(255_178_36/0.22)] mr-1.5" aria-hidden="true" />
           <span>

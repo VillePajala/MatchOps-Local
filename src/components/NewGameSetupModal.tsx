@@ -27,7 +27,6 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import {
   CollapsibleModalHeader,
-  useCollapsingHeader,
   ModalStickyPrimary,
   ModalSwitch,
   modalContainerStyle,
@@ -196,7 +195,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const { t } = useTranslation();
   // A half-filled New Game form must survive a long switch to another app (review 7.1).
   useHoldUnsavedInput(isOpen);
-  const headerCollapse = useCollapsingHeader();
   const { showToast } = useToast();
   const [homeTeamName, setHomeTeamName] = useState('');
   const [opponentName, setOpponentName] = useState('');
@@ -1151,30 +1149,27 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         <div className="relative z-10 flex flex-col min-h-0 h-full font-ui">
           {/* Modal-chrome slimming: X-header + pinned primary (Create) replace
               the header and the Cancel/Create footer. "Repeat last game"
-              (utility) sits in the collapsing region below the title. */}
+              (utility) heads the scrolling form. */}
           <CollapsibleModalHeader
           titleId={modalTitleId}
             title={t('newGameSetupModal.title', 'Create New Match')}
             onClose={onCancel}
             closeLabel={t('common.cancelButton', 'Cancel')}
-            collapse={headerCollapse}
-          >
-            {lastGame && (
-              <div className="px-4 pb-3 pt-1">
-                <button
-                  type="button"
-                  onClick={handleRepeatLastGame}
-                  className={`${secondaryButtonStyle} w-full min-h-12`}
-                >
-                  <HiOutlineArrowPath className="w-[18px] h-[18px] text-action" aria-hidden="true" />
-                  {t('newGameSetupModal.repeatLastGame', 'Repeat last game')}
-                </button>
-              </div>
-            )}
-          </CollapsibleModalHeader>
+          />
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-2 pb-6 space-y-6" onScroll={headerCollapse.onScroll}>
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-2 pb-6 space-y-6">
+            {/* A utility at the head of the form, not pinned: it scrolls away with it. */}
+            {lastGame && (
+              <button
+                type="button"
+                onClick={handleRepeatLastGame}
+                className={`${secondaryButtonStyle} w-full min-h-12`}
+              >
+                <HiOutlineArrowPath className="w-[18px] h-[18px] text-ink-3" aria-hidden="true" />
+                {t('newGameSetupModal.repeatLastGame', 'Repeat last game')}
+              </button>
+            )}
             {/* First-visit note above the first section (the old cards' negative
                 margins that once made its placement matter are gone). */}
             <FirstVisitIntro
@@ -1426,7 +1421,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             onChange={handleSeasonChange}
                             className={selectStyle}
                           >
-                            <option value="">{t('newGameSetupModal.selectSeason', '-- Select League --')}</option>
+                            <option value="">{t('newGameSetupModal.selectSeason', 'Select League')}</option>
                             {sortedSeasons.map((season) => (
                               <option key={season.id} value={season.id}>
                                 {getSeasonDisplayName(season)}
@@ -1445,7 +1440,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                 id="leagueSelect"
                                 filterIdSuffix="new"
                                 value={leagueId}
-                                placeholder={t('newGameSetupModal.selectLeague', '-- Select official league --')}
+                                placeholder={t('newGameSetupModal.selectLeague', 'Select official league')}
                                 onChange={(value) => {
                                   setLeagueId(value);
                                   // Clear custom name when switching away from "Muu" (intentional)
@@ -1481,7 +1476,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             onChange={handleTournamentChange}
                             className={selectStyle}
                           >
-                            <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
+                            <option value="">{t('newGameSetupModal.selectTournament', 'Select Tournament')}</option>
                             {sortedTournaments.map((tournament) => (
                               <option key={tournament.id} value={tournament.id}>
                                 {getTournamentDisplayName(tournament)}
@@ -1510,7 +1505,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                   onKeyDown={handleKeyDown}
                                   className={selectStyle}
                                 >
-                                  <option value="">{t('common.selectSeries', '-- Select level --')}</option>
+                                  <option value="">{t('common.selectSeries', 'Select level')}</option>
                                   {validSeries.map((series) => (
                                     <option key={series.id} value={series.id}>
                                       {t(`common.level${series.level}` as TranslationKey, series.level)}

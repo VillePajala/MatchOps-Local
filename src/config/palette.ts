@@ -196,6 +196,13 @@ export const TEAM_KIT_COLORS = [
   { id: 'brown', hex: '#78350F' },
 ] as const;
 
+/**
+ * What the picker offers: the first twelve, two rows of six. The remaining
+ * entries stay valid stored colours (a team saved with one still shows it,
+ * selected, in the picker) but are no longer offered as new choices.
+ */
+export const TEAM_KIT_PICKER_COLORS = TEAM_KIT_COLORS.slice(0, 12);
+
 export type TeamKitColorId = (typeof TEAM_KIT_COLORS)[number]['id'];
 
 /** A stored hex back to its swatch, for marking the current choice. */

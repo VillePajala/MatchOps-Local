@@ -5,6 +5,7 @@ import { CollapsibleModalHeader, ModalStickyPrimary, ModalSwitch, secondaryButto
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import TeamKitColorPicker from '@/components/TeamKitColorPicker';
+import { HiOutlineCalendarDays, HiOutlineTrophy } from 'react-icons/hi2';
 import { Team, Player, Tournament, Season } from '@/types';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import {
@@ -593,7 +594,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         onChange={(e) => setAgeGroup(e.target.value)}
                         className={selectStyle}
                       >
-                        <option value="">{t('teamDetailsModal.selectAgeGroup', '-- Select Age Group --')}</option>
+                        <option value="">{t('teamDetailsModal.selectAgeGroup', 'Select Age Group')}</option>
                         {AGE_GROUPS.map((ag) => (
                           <option key={ag} value={ag}>
                             {ag}
@@ -644,7 +645,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             onChange={(e) => handleSeasonChange(e.target.value)}
                             className={selectStyle}
                           >
-                            <option value="">{t('newGameSetupModal.selectSeason', '-- Select League --')}</option>
+                            <option value="">{t('newGameSetupModal.selectSeason', 'Select League')}</option>
                             {sortedSeasons.map((s) => (
                               <option key={s.id} value={s.id}>
                                 {getSeasonDisplayName(s)}
@@ -662,7 +663,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             onChange={(e) => handleTournamentChange(e.target.value)}
                             className={selectStyle}
                           >
-                            <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
+                            <option value="">{t('newGameSetupModal.selectTournament', 'Select Tournament')}</option>
                             {sortedTournaments.map((tourn) => (
                               <option key={tourn.id} value={tourn.id}>
                                 {getTournamentDisplayName(tourn)}
@@ -684,7 +685,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             onChange={(e) => setBoundTournamentSeriesId(e.target.value)}
                             className={selectStyle}
                           >
-                            <option value="">{t('teamDetailsModal.selectSeries', '-- Select level --')}</option>
+                            <option value="">{t('teamDetailsModal.selectSeries', 'Select level')}</option>
                             {selectedTournament.series.map((series) => (
                               <option key={series.id} value={series.id}>
                                 {t(`common.level${series.level}`, series.level)}
@@ -716,7 +717,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             onChange={(e) => setGameType(e.target.value as 'soccer' | 'futsal' | '')}
                             className={selectStyle}
                           >
-                            <option value="">{t('teamDetailsModal.anyGameType', '-- Any --')}</option>
+                            <option value="">{t('teamDetailsModal.anyGameType', 'Any')}</option>
                             <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>
                             <option value="futsal">{t('common.gameTypeFutsal', 'Futsal')}</option>
                           </select>
@@ -775,7 +776,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                 className="px-[18px] py-4 font-ui border-t border-hairline first:border-t-0"
                               >
                                 <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-lg" aria-hidden="true">🏆</span>
+                                  <HiOutlineTrophy className="w-5 h-5 shrink-0 text-ink-3" aria-hidden="true" />
                                   <span className="font-ui text-[15px] font-semibold text-ink">
                                     {getTournamentDisplayName(tournament)}
                                   </span>
@@ -812,7 +813,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                 className="px-[18px] py-4 font-ui border-t border-hairline first:border-t-0"
                               >
                                 <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-lg" aria-hidden="true">📅</span>
+                                  <HiOutlineCalendarDays className="w-5 h-5 shrink-0 text-ink-3" aria-hidden="true" />
                                   <span className="font-ui text-[15px] font-semibold text-ink">
                                     {getSeasonDisplayName(season)}
                                   </span>
@@ -851,16 +852,17 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     <>
                       {/* Roster Header */}
                       <div className="flex items-center justify-between mb-2">
-                        <label className={sectionLabelStyle}>
+                        <span className={`${sectionLabelStyle} whitespace-nowrap`}>
                           {t('unifiedTeamModal.roster', 'Roster')} ({selectedPlayerIds.length})
-                        </label>
+                        </span>
                         <button
                           type="button"
                           onClick={() => setIsEditingRoster(true)}
                           data-testid="tour-edit-roster"
-                          className={`${secondaryButtonStyle} px-4`}
+                          aria-label={t('unifiedTeamModal.editRoster', 'Edit Roster')}
+                          className={`${secondaryButtonStyle} shrink-0 px-5`}
                         >
-                          {t('unifiedTeamModal.editRoster', 'Edit Roster')} →
+                          {t('common.edit', 'Edit')}
                         </button>
                       </div>
 

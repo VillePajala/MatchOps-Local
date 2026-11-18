@@ -12,6 +12,12 @@ import { ASSESSMENT_DEFAULT, makeDefaultSliders, templateMetricIds } from '@/con
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import { textareaStyle, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 
+/** Same metric values, whatever the key order. */
+const sameSliders = (a: Record<string, number>, b: Record<string, number>): boolean => {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k]);
+};
+
 interface PlayerAssessmentCardProps {
   player: Player;
   onSave: (assessment: Partial<PlayerAssessment>) => void;
@@ -32,11 +38,32 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
   const [sliders, setSliders] = useState<Record<string, number>>(assessment?.sliders ?? initialSliders);
   const [notes, setNotes] = useState(assessment?.notes ?? '');
   const prev = useRef({ overall, sliders, notes });
+  // Which ratings the coach has actually given (presentation only). A new
+  // assessment starts from defaults (overall 5, each metric ASSESSMENT_DEFAULT)
+  // and Save stores exactly those values, as before - this only decides whether
+  // a value is drawn as a chosen rating (amber) or as an untouched default
+  // (faint grey). An assessment that was already stored when it arrived counts
+  // as rated throughout; one that is being given now is rated key by key, also
+  // after the auto-save has stored it (that echo must not mark the defaults
+  // still on screen as given).
+  const [ratedAll, setRatedAll] = useState<boolean>(!!assessment);
+  const [touched, setTouched] = useState<ReadonlySet<string>>(() => new Set());
+  const isRated = (key: string) => ratedAll || touched.has(key);
 
   React.useLayoutEffect(() => {
     const newOverall = assessment?.overall ?? 5;
     const newSliders = assessment?.sliders ?? initialSliders;
     const newNotes = assessment?.notes ?? '';
+    // Our own save coming back (the values we last saved): keep the rated marks.
+    const isOwnSaveEcho =
+      !!assessment &&
+      newOverall === prev.current.overall &&
+      newNotes === prev.current.notes &&
+      sameSliders(newSliders, prev.current.sliders);
+    if (!isOwnSaveEcho) {
+      setRatedAll(!!assessment);
+      setTouched(new Set());
+    }
     setOverall(newOverall);
     setSliders(newSliders);
     setNotes(newNotes);
@@ -76,8 +103,17 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
     }
   }, []);
 
+  const markTouched = (key: string) =>
+    setTouched((prevTouched) => (prevTouched.has(key) ? prevTouched : new Set(prevTouched).add(key)));
+
   const handleSliderChange = (key: string, value: number) => {
+    markTouched(key);
     setSliders((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleOverallChange = (value: number) => {
+    markTouched('overall');
+    setOverall(value);
   };
 
   const handleSave = () => {
@@ -117,12 +153,12 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
         <div className="px-4 pb-4 pt-1 space-y-4">
           {/* Label above the scale: beside it, the label column left room
               for only three numbers per row on a 360px phone. */}
-          <div className="space-y-2">
-            <span className="block text-sm text-ink-2">
-              {t('playerAssessmentModal.overallLabel', 'Overall')}
-            </span>
-            <OverallRatingSelector value={overall} onChange={setOverall} />
-          </div>
+          <OverallRatingSelector
+            label={t('playerAssessmentModal.overallLabel', 'Overall')}
+            value={overall}
+            onChange={handleOverallChange}
+            untouched={!isRated('overall')}
+          />
           <div className="space-y-4">
             {metricIds.map((id) => (
               <AssessmentLevelSelector
@@ -132,6 +168,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
                 value={sliders[id] ?? ASSESSMENT_DEFAULT}
                 onChange={(v) => handleSliderChange(id, v)}
                 ratingStyle={ratingStyle}
+                untouched={!isRated(id)}
               />
             ))}
           </div>

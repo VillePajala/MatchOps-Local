@@ -17,7 +17,7 @@ import BackupReminderBanner from '@/components/BackupReminderBanner';
 import ClubModalsHost from '@/components/ClubModalsHost';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
-import { LoadingScreen } from '@/components/LoadingScreen';
+import { LoadingScreen, LOADING_SCREEN_EXIT_MS } from '@/components/LoadingScreen';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useLaunchPullGate } from '@/hooks/useLaunchPullGate';
 import { CLOUD_COPY_ADOPTED_EVENT, GAME_REPLACED_BY_CLOUD_EVENT } from '@/sync/syncEvents';
@@ -1877,6 +1877,22 @@ export default function Home() {
   const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut
     || launchPullGate.matchWaits;
 
+  // Splash hand-off: when loading ends, the SAME LoadingScreen instance stays
+  // mounted for LOADING_SCREEN_EXIT_MS as a non-interactive overlay that fades
+  // out over the screen that already rendered underneath (Home is not delayed).
+  // Set during render (previous-value pattern) so no frame paints without it.
+  const [prevShowLoadingScreen, setPrevShowLoadingScreen] = useState(showLoadingScreen);
+  const [loadingScreenExiting, setLoadingScreenExiting] = useState(false);
+  if (prevShowLoadingScreen !== showLoadingScreen) {
+    setPrevShowLoadingScreen(showLoadingScreen);
+    setLoadingScreenExiting(!showLoadingScreen);
+  }
+  useEffect(() => {
+    if (!loadingScreenExiting) return;
+    const id = window.setTimeout(() => setLoadingScreenExiting(false), LOADING_SCREEN_EXIT_MS);
+    return () => window.clearTimeout(id);
+  }, [loadingScreenExiting]);
+
   // Onboarding v2: first-sign-in setup wizard (CLOUD ONLY, owner decision).
   // Shows exactly once per account, on the same readiness terms the app screens
   // use, and only for a truly empty account (no roster, no games, no team).
@@ -1978,8 +1994,10 @@ export default function Home() {
             </div>
           </div>
         ) : showLoadingScreen ? (
-          // Loading state while checking auth, data, or during sign-out
-          <LoadingScreen message={loadingMessage} />
+          // Loading state while checking auth, data, or during sign-out: the
+          // LoadingScreen itself renders below, outside this chain, so it can
+          // outlive the loading state for its fade-out.
+          null
         ) : showWelcome ? (
           // First install: show welcome screen for onboarding choice
           <ErrorBoundary>
@@ -2137,6 +2155,16 @@ export default function Home() {
           </>
         )}
         </div>
+
+        {/* Launch / auth-transition screen (fixed, full viewport). Kept outside the
+            chain above so the same instance fades out over the next screen. */}
+        {!isBlockedByOtherTab && (showLoadingScreen || loadingScreenExiting) && (
+          <LoadingScreen
+            message={loadingMessage}
+            hideMessage={!isSigningOut && !isPostLoginLoading}
+            exiting={!showLoadingScreen}
+          />
+        )}
 
         {/* Auth grace period banner — offline with cached session (see component for z-index and height notes). */}
         {isAuthGracePeriod && <OfflineGraceBanner />}

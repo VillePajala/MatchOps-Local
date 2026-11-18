@@ -31,10 +31,14 @@ interface PlayerPositionsEditorProps {
 // carry a line identity via colour. `sel`/`idle` slot into the shared button
 // classes below; `pill` is the small collapsed-summary tag.
 const CAT_STYLE: Record<PositionCategory, { sel: string; idle: string; pill: string }> = {
-  gk:  { sel: 'bg-amber-600 text-white',   idle: 'bg-white/[0.04] text-amber-300 hover:bg-white/[0.08]',   pill: 'bg-amber-600 text-white' },
-  def: { sel: 'bg-sky-600 text-white',     idle: 'bg-white/[0.04] text-sky-300 hover:bg-white/[0.08]',     pill: 'bg-sky-600 text-white' },
-  mid: { sel: 'bg-emerald-600 text-white', idle: 'bg-white/[0.04] text-emerald-300 hover:bg-white/[0.08]', pill: 'bg-emerald-600 text-white' },
-  att: { sel: 'bg-rose-600 text-white',    idle: 'bg-white/[0.04] text-rose-300 hover:bg-white/[0.08]',    pill: 'bg-rose-600 text-white' },
+  // Muted tints, not bright fills: the line is an identity cue, not an action.
+  // The keeper is a neutral white tint - the same "inverse" identity the keeper
+  // disc has on the pitch - so it never reads as the app's amber (the one primary
+  // action) and brings back no purple.
+  gk:  { sel: 'bg-white/20 text-white',            idle: 'bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]',      pill: 'bg-white/15 text-slate-100' },
+  def: { sel: 'bg-sky-400/25 text-sky-100',        idle: 'bg-white/[0.04] text-sky-300/90 hover:bg-white/[0.08]',     pill: 'bg-sky-400/20 text-sky-200' },
+  mid: { sel: 'bg-teal-400/25 text-teal-100',      idle: 'bg-white/[0.04] text-teal-300/90 hover:bg-white/[0.08]',    pill: 'bg-teal-400/20 text-teal-200' },
+  att: { sel: 'bg-rose-400/25 text-rose-100',      idle: 'bg-white/[0.04] text-rose-300/90 hover:bg-white/[0.08]',    pill: 'bg-rose-400/20 text-rose-200' },
 };
 
 // Shared button chrome matching GameSettings segmented controls.

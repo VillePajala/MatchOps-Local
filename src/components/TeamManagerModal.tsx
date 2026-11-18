@@ -467,54 +467,12 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Bottom row: Metadata left, context labels right */}
-                      {/* Wraps: when the labels do not fit beside the metadata
-                          (a long league name on a 360px phone) they take their
-                          own line instead of squeezing "14 players" into a
-                          one-word column. */}
-                      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 mt-2 text-sm">
-                        {/* Left: Team metadata */}
-                        <div
-                          className="flex flex-col whitespace-nowrap text-ink-3 cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => handleEditTeam(team.id)}
-                        >
-                          <span>
-                            {rosterCounts[team.id] === 1
-                              ? t('teamManager.onePlayer', '1 player')
-                              : t('teamManager.playersCount', '{{count}} players', { count: rosterCounts[team.id] || 0 })
-                            }
-                          </span>
-                          <span className="text-ink-3 text-xs">
-                            {t('teamManager.createdAt', 'Created {{date}}', {
-                              date: formatAppDate(team.createdAt)
-                            })}
-                          </span>
-                          {/* Placement Badges */}
-                          {(() => {
-                            const placements = getTeamPlacements(team.id);
-                            if (placements.length === 0) return null;
-                            return (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {placements.map((p, idx) => (
-                                  <span
-                                    key={idx}
-                                    className={`${pillAmberStyle} gap-1 normal-case tracking-normal font-semibold text-xs`}
-                                    title={p.name}
-                                  >
-                                    {p.emoji} {p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name}
-                                  </span>
-                                ))}
-                              </div>
-                            );
-                          })()}
-                        </div>
-
-                        {/* Right: Context labels - wrap upward from bottom right */}
-                        <div className="flex min-w-0 flex-1 basis-44 flex-wrap-reverse justify-end content-end gap-1.5">
+                      {/* Context chips under the name (same as the league card). */}
+                      <div className="flex flex-wrap gap-1.5 mt-2 cursor-pointer" onClick={() => handleEditTeam(team.id)}>
                           {/* Age group */}
                           {team.ageGroup && (
                             <span
-                              className="inline-flex max-w-full items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
+                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.ageGroupContext', 'Age group: {{ageGroup}}', { ageGroup: team.ageGroup })}
                             >
                               <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.clubSeason}`}></span>
@@ -524,7 +482,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                           {/* Game type */}
                           {team.gameType === 'futsal' && (
                             <span
-                              className="inline-flex max-w-full items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
+                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.gameTypeContext', 'Game type: Futsal')}
                             >
                               <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.gameType}`}></span>
@@ -534,21 +492,21 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                           {/* Season - shows full name with club season */}
                           {team.boundSeasonId && seasonMap[team.boundSeasonId] && (
                             <span
-                              className="inline-flex max-w-full items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
+                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.seasonContext', 'League: {{name}}', { name: getSeasonDisplayName(seasonMap[team.boundSeasonId]) })}
                             >
                               <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.season}`}></span>
-                              <span className="truncate">{getSeasonDisplayName(seasonMap[team.boundSeasonId])}</span>
+                              <span className="break-words min-w-0">{getSeasonDisplayName(seasonMap[team.boundSeasonId])}</span>
                             </span>
                           )}
                           {/* Tournament - shows full name with club season */}
                           {team.boundTournamentId && tournamentMap[team.boundTournamentId] && (
                             <span
-                              className="inline-flex max-w-full items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
+                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.tournamentContext', 'Tournament: {{name}}', { name: getTournamentDisplayName(tournamentMap[team.boundTournamentId]) })}
                             >
                               <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.tournament}`}></span>
-                              <span className="truncate">{getTournamentDisplayName(tournamentMap[team.boundTournamentId])}</span>
+                              <span className="break-words min-w-0">{getTournamentDisplayName(tournamentMap[team.boundTournamentId])}</span>
                             </span>
                           )}
                           {/* Tournament Series */}
@@ -557,7 +515,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                             if (!series) return null;
                             return (
                               <span
-                                className="inline-flex max-w-full items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
+                                className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                                 aria-label={t('teamManager.seriesContext', 'Level: {{level}}', { level: series.level })}
                               >
                                 <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.series}`}></span>
@@ -565,7 +523,41 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               </span>
                             );
                           })()}
+                          {(() => {
+                            const placements = getTeamPlacements(team.id);
+                            if (placements.length === 0) return null;
+                            return (
+                              <>
+                                {placements.map((p, idx) => (
+                                  <span
+                                    key={idx}
+                                    className={`${pillAmberStyle} max-w-full gap-1 normal-case tracking-normal font-semibold text-xs`}
+                                    title={p.name}
+                                  >
+                                    {p.emoji} <span className="break-words min-w-0">{p.name}</span>
+                                  </span>
+                                ))}
+                              </>
+                            );
+                          })()}
+                      </div>
+
+                      {/* Footer as the league card's: the numeral and its label. */}
+                      <div
+                        className="-mx-[18px] -mb-4 mt-4 flex items-baseline justify-between gap-3 border-t border-hairline px-[18px] pt-3 pb-3.5 cursor-pointer"
+                        onClick={() => handleEditTeam(team.id)}
+                      >
+                        <div className="flex items-baseline gap-2.5">
+                          <span className="s1-numeral pr-[3px] font-display text-[34px] font-bold italic leading-none">{rosterCounts[team.id] || 0}</span>
+                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">
+                            {t('teamManager.playersLabel', 'players', { count: rosterCounts[team.id] || 0 })}
+                          </span>
                         </div>
+                        <span className="text-xs text-ink-3">
+                          {t('teamManager.createdAt', 'Created {{date}}', {
+                            date: formatAppDate(team.createdAt)
+                          })}
+                        </span>
                       </div>
                     </div>
                   ))}

@@ -43,7 +43,7 @@ export function HeadToHeadCard({ rows, initialRows = 6 }: HeadToHeadCardProps) {
       </p>
 
       {/* Fixed layout: the number columns get set widths and the team column
-          takes the rest, truncating a long name - so the numbers always fit
+          takes the rest, wrapping a long name onto a second line - so the numbers always fit
           on a 320-412px phone. overflow-x-auto stays as a last resort for very
           large text; the page itself must never scroll sideways. */}
       <div className="s1-list overflow-x-auto py-1">
@@ -53,16 +53,16 @@ export function HeadToHeadCard({ rows, initialRows = 6 }: HeadToHeadCardProps) {
               <th scope="col" className="text-left font-semibold py-0 pl-3.5 pr-1.5">
                 {t('gameStatsModal.headToHeadTeam', 'Team')}
               </th>
-              <th scope="col" className="w-8 text-center font-semibold py-0 px-1.5">
+              <th scope="col" className="w-7 text-center font-semibold py-0 px-0.5">
                 {t('gameStatsModal.headToHeadPlayed', 'P')}
               </th>
-              <th scope="col" className="w-16 text-center font-semibold py-0 px-1.5 whitespace-nowrap">
+              <th scope="col" className="w-[3.75rem] text-center font-semibold py-0 px-0.5 whitespace-nowrap">
                 {t('gameStatsModal.headToHeadRecord', 'W-D-L')}
               </th>
-              <th scope="col" className="w-[4.25rem] text-right font-semibold py-0 px-1.5 whitespace-nowrap">
+              <th scope="col" className="w-14 text-right font-semibold py-0 px-1 whitespace-nowrap">
                 {t('gameStatsModal.headToHeadGoals', 'Goals')}
               </th>
-              <th scope="col" className="w-12 text-right font-semibold py-0 pl-1.5 pr-3.5">
+              <th scope="col" className="w-11 text-right font-semibold py-0 pl-1 pr-3">
                 {t('gameStatsModal.headToHeadGd', 'GD')}
               </th>
             </tr>
@@ -74,26 +74,26 @@ export function HeadToHeadCard({ rows, initialRows = 6 }: HeadToHeadCardProps) {
                 className="h-11 border-t border-hairline tabular-nums"
                 data-testid={`head-to-head-row-${row.key}`}
               >
-                <td className="py-0 pl-3.5 pr-1.5 text-[15px] font-semibold text-ink truncate" title={row.opponent}>
+                <td className="py-1 pl-3.5 pr-1.5 text-[15px] font-semibold leading-tight text-ink break-words" title={row.opponent}>
                   {row.opponent}
                 </td>
-                <td className="py-0 px-1.5 text-center text-[15px] text-ink-2">
+                <td className="py-0 px-0.5 text-center text-[15px] text-ink-2">
                   {row.gamesPlayed}
                 </td>
                 {/* Green-grey-red is the app's own W-D-L convention, so the
                     shape of a row reads before any of it is actually read. */}
-                <td className="py-0 px-1.5 text-center text-[15px] font-bold whitespace-nowrap">
+                <td className="py-0 px-0.5 text-center text-[15px] font-bold whitespace-nowrap">
                   <span className={row.wins > 0 ? 'text-win' : 'text-ink-3'}>{row.wins}</span>
                   <span className="font-medium text-ink-3/60">-</span>
                   <span className={row.ties > 0 ? 'text-draw' : 'text-ink-3'}>{row.ties}</span>
                   <span className="font-medium text-ink-3/60">-</span>
                   <span className={row.losses > 0 ? 'text-loss' : 'text-ink-3'}>{row.losses}</span>
                 </td>
-                <td className="py-0 px-1.5 text-right text-[15px] text-ink-2 whitespace-nowrap">
+                <td className="py-0 px-1 text-right text-[15px] text-ink-2 whitespace-nowrap">
                   {row.goalsFor}–{row.goalsAgainst}
                 </td>
                 <td
-                  className={`py-0 pl-1.5 pr-3.5 text-right font-display text-xl font-bold italic ${
+                  className={`py-0 pl-1 pr-3 text-right font-display text-xl font-bold italic ${
                     row.goalDifference > 0
                       ? 'text-win'
                       : row.goalDifference < 0

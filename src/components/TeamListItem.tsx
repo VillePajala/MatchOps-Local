@@ -135,19 +135,19 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
         {showActionsMenu && (
           <div className={`absolute right-0 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-10 min-w-[180px] ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
             <button
-              onClick={onManageRosterClick}
-              className="w-full px-3 py-2 text-left text-slate-200 hover:bg-slate-600 flex items-center gap-2 transition-colors"
-            >
-              <HiOutlineUserGroup className="w-4 h-4" />
-              {t('teamManager.manageRoster', 'Manage Roster')}
-            </button>
-            
-            <button
               onClick={onEditClick}
               className="w-full px-3 py-2 text-left text-slate-200 hover:bg-slate-600 flex items-center gap-2 transition-colors"
             >
               <HiOutlinePencil className="w-4 h-4" />
               {t('teamManager.edit', 'Edit')}
+            </button>
+            
+            <button
+              onClick={onManageRosterClick}
+              className="w-full px-3 py-2 text-left text-slate-200 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+            >
+              <HiOutlineUserGroup className="w-4 h-4" />
+              {t('teamManager.manageRoster', 'Manage Roster')}
             </button>
             
             <button

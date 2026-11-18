@@ -75,7 +75,7 @@ export function PlayerStatsTable({
     </td>
   );
 
-  const th = (column: SortableColumn, label: React.ReactNode, width: string, align: 'left' | 'center' = 'center') => (
+  const th = (column: SortableColumn, label: React.ReactNode, width: string | undefined, align: 'left' | 'center' = 'center') => (
     <th
       className={align === 'left' ? 'pl-4 pr-1 py-0 text-left' : 'px-0.5 py-0 text-center'}
       style={{ width }}
@@ -91,12 +91,12 @@ export function PlayerStatsTable({
     <table className="w-full font-ui text-base table-fixed">
       <thead>
         <tr className="h-10">
-          {th('name', t('common.player', 'Player'), '42%', 'left')}
-          {th('gamesPlayed', t('common.gamesPlayedShort', 'GP'), '10%')}
-          {th('goals', t('common.goalsShort', 'G'), '10%')}
-          {th('assists', t('common.assistsShort', 'A'), '10%')}
-          {th('totalScore', t('common.totalScoreShort', 'Pts'), '14%')}
-          {th('avgPoints', t('common.avgPointsShort', 'Avg'), '14%')}
+          {th('name', t('common.player', 'Player'), undefined, 'left')}
+          {th('gamesPlayed', t('common.gamesPlayedShort', 'GP'), '32px')}
+          {th('goals', t('common.goalsShort', 'G'), '28px')}
+          {th('assists', t('common.assistsShort', 'A'), '28px')}
+          {th('totalScore', t('common.totalScoreShort', 'Pts'), '40px')}
+          {th('avgPoints', t('common.avgPointsShort', 'Avg'), '42px')}
         </tr>
       </thead>
       <tbody>
@@ -107,7 +107,7 @@ export function PlayerStatsTable({
               className="h-12 border-t border-hairline cursor-pointer transition-colors hover:bg-white/[0.03]"
               onClick={() => onPlayerRowClick(player)}
             >
-              <td className="pl-4 pr-1 py-0 font-medium text-ink truncate">{player.name}</td>
+              <td className="pl-4 pr-1 py-1 font-medium leading-tight text-ink break-words">{player.name}</td>
               {valueCell('gamesPlayed', player.gamesPlayed)}
               {valueCell('goals', player.goals)}
               {valueCell('assists', player.assists)}

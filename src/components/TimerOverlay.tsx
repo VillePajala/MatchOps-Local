@@ -189,8 +189,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const primaryActionStyle = `${actionButtonBase} s1-primary disabled:opacity-50`;
   /** Quiet: an outline on near-nothing; disabled reads dimmer still. */
   const secondaryActionStyle = `${actionButtonBase} s1-ghost text-ink disabled:text-ink-3 disabled:bg-transparent disabled:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.09)]`;
-  /** A solid navy pill: the team's own goal. */
-  const solidActionStyle = `${actionButtonBase} s1-seg-on text-ink hover:brightness-110`;
+  /** A light solid pill with dark text: the team's own goal. */
+  const lightActionStyle = `${actionButtonBase} bg-[#e6e9ee] text-carbon shadow-[inset_0_1px_0_rgb(255_255_255/0.6)] hover:bg-white`;
   /** Red outline: a result against us (or a live recording). */
   const dangerActionStyle = `${actionButtonBase} text-loss bg-[rgb(255_107_107/0.07)] shadow-[inset_0_0_0_1px_rgb(255_107_107/0.5)] hover:bg-[rgb(255_107_107/0.12)]`;
   const stepperButtonStyle = `w-[46px] h-[46px] rounded-full flex items-center justify-center text-ink bg-surface-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.08),inset_0_0_0_1px_rgb(255_255_255/0.05)] hover:bg-[#26324a] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${focusRingClass}`;
@@ -237,6 +237,13 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
   // Calculate time since last substitution
   const timeSinceLastSub = lastSubTime === null ? timeElapsedInSeconds : timeElapsedInSeconds - lastSubTime;
+  // "Since sub" only means something once a substitution has been made; until
+  // then it would just repeat the period clock.
+  const hasMadeSub = completedIntervalDurations.length > 0;
+  // The sub-interval adjuster opens from the interval in the info line, so
+  // nothing appears or disappears when the clock starts.
+  const [showIntervalAdjuster, setShowIntervalAdjuster] = useState(false);
+  const intervalText = Number.isInteger(subIntervalMinutes) ? String(subIntervalMinutes) : formatAppDecimal(subIntervalMinutes);
   
   // Full time came early and the period length/count has since been corrected:
   // Start continues the clock instead of staying disabled (review 1.11).
@@ -343,9 +350,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // Game specs string, e.g., "2 x 20 min"
   const regulationSpecs = numberOfPeriods === 1
     ? `${periodDurationMinutes} min`
-    : `${numberOfPeriods} x ${periodDurationMinutes} min`;
+    : `${numberOfPeriods} × ${periodDurationMinutes} min`;
   const gameSpecs = extraPeriodsPlanned > 0
-    ? `${regulationSpecs} + ${extraPeriodsPlanned} x ${extraTimeMinutes} min ${t('timerOverlay.extraTimeShort', 'ET')}`
+    ? `${regulationSpecs} + ${extraPeriodsPlanned} × ${extraTimeMinutes} min ${t('timerOverlay.extraTimeShort', 'ET')}`
     : regulationSpecs;
   // Full time, nothing left to continue, and no extra time yet: offer it (review 11.1).
   const offerExtraTime = Boolean(onStartExtraTime) && gameStatus === 'gameEnd'
@@ -439,21 +446,67 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           </div>
         </div>
 
-        {/* Time Since Last Substitution + Period pill + Game specs */}
-        <div className="mb-5 text-center flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
-          {gameStatus !== 'notStarted' && (
-            <span className="text-sm font-medium text-ink-3">
-              {t('timerOverlay.timeSinceLastSubCombined', 'Last sub:')}{' '}
-              <SteadyDigits className="text-ink-2 font-semibold">{formatTime(timeSinceLastSub)}</SteadyDigits>
-            </span>
-          )}
+        {/* Info line: period pill · game length · sub interval. The interval
+            is a button that opens the - / + adjuster below, so the row is the
+            same before kick-off and while the clock runs - nothing shifts the
+            buttons under the coach's thumb. */}
+        <div className="text-center flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5">
           {periodPillLabel && (
             <span className="inline-flex items-center px-3 py-[5px] rounded-full text-sm font-bold bg-white/[0.12] shadow-[inset_0_1px_0_rgb(255_255_255/0.16)] text-ink">
               {periodPillLabel}
             </span>
           )}
-          <span className="text-[15px] font-medium text-ink-2">{gameSpecs}</span>
+          <span className="text-[15px] font-medium text-ink-2 whitespace-nowrap">{gameSpecs}</span>
+          <span className="text-ink-3" aria-hidden="true">·</span>
+          <button
+            type="button"
+            data-testid="timer-sub-interval"
+            onClick={() => setShowIntervalAdjuster((v) => !v)}
+            aria-expanded={showIntervalAdjuster}
+            title={t('timerOverlay.subIntervalLabel', 'Sub Interval:').replace(/:\s*$/, '')}
+            className={`inline-flex items-center gap-1 min-h-11 -my-2 px-2 rounded-full text-[15px] font-medium text-ink-2 whitespace-nowrap hover:text-ink hover:bg-white/[0.06] ${focusRingClass}`}
+          >
+            {t('timerOverlay.subIntervalInline', 'sub {{minutes}} min', { minutes: intervalText })}
+            <HiOutlineChevronDown aria-hidden className={`w-4 h-4 text-ink-3 transition-transform ${showIntervalAdjuster ? 'rotate-180' : ''}`} />
+          </button>
         </div>
+        {/* Time since the last substitution - only once there has been one.
+            The row keeps its height either way, so the first sub does not
+            push the buttons down. */}
+        <div className="mb-4 mt-1 h-6 flex items-center justify-center text-sm font-medium text-ink-3" data-testid="timer-since-sub">
+          {hasMadeSub && gameStatus !== 'notStarted' && (
+            <span>
+              {t('timerOverlay.sinceSub', 'Since sub')}{' '}
+              <SteadyDigits className="text-ink-2 font-semibold">{formatTime(timeSinceLastSub)}</SteadyDigits>
+            </span>
+          )}
+        </div>
+
+        {/* Substitution interval adjuster, opened from the info line. */}
+        {showIntervalAdjuster && (
+          <div className="w-full mb-4 s1-list min-h-[60px] flex items-center justify-between gap-3 pl-[18px] pr-2">
+            {/* The label's trailing colon is a leftover of the inline layout. */}
+            <span className="text-base font-medium text-ink">{t('timerOverlay.subIntervalLabel', 'Sub Interval:').replace(/:\s*$/, '')}</span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onSetSubInterval(subIntervalMinutes - 0.5)}
+                // 1 minute is the real minimum (the reducer clamps to it, review 4.33):
+                // at 1 the button used to stay enabled and do nothing.
+                disabled={subIntervalMinutes <= 1}
+                className={stepperButtonStyle} aria-label={t('timerOverlay.decreaseInterval', 'Decrease interval')}>
+                <HiOutlineMinus className="w-6 h-6" aria-hidden="true" />
+              </button>
+              <span className="min-w-11 px-1 text-center font-display italic font-extrabold text-[30px] leading-none text-ink">
+                {intervalText}
+              </span>
+              <button
+                onClick={() => onSetSubInterval(subIntervalMinutes + 0.5)}
+                className={stepperButtonStyle} aria-label={t('timerOverlay.increaseInterval', 'Increase interval')}>
+                <HiOutlinePlus className="w-6 h-6" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Timer Controls */}
         <div className="flex w-full items-center gap-3 mb-5">
@@ -575,32 +628,6 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
         {/* Game Setup & Interval Controls Section */}
         <div className="w-full mb-3 space-y-3">
-          {/* Substitution Interval Control (only when game not started) */}
-          {gameStatus === 'notStarted' && (
-              <div className="s1-list min-h-[60px] flex items-center justify-between gap-3 pl-[18px] pr-2">
-              {/* The label's trailing colon is a leftover of the inline layout. */}
-              <span className="text-base font-medium text-ink">{t('timerOverlay.subIntervalLabel', 'Sub Interval:').replace(/:\s*$/, '')}</span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => onSetSubInterval(subIntervalMinutes - 0.5)}
-                  // 1 minute is the real minimum (the reducer clamps to it, review 4.33):
-                  // at 1 the button used to stay enabled and do nothing.
-                  disabled={subIntervalMinutes <= 1}
-                  className={stepperButtonStyle} aria-label={t('timerOverlay.decreaseInterval', 'Decrease interval')}>
-                  <HiOutlineMinus className="w-6 h-6" aria-hidden="true" />
-                </button>
-                <span className="min-w-11 px-1 text-center font-display italic font-extrabold text-[30px] leading-none text-ink">
-                  {Number.isInteger(subIntervalMinutes) ? subIntervalMinutes : formatAppDecimal(subIntervalMinutes)}
-                </span>
-                <button
-                  onClick={() => onSetSubInterval(subIntervalMinutes + 0.5)}
-                  className={stepperButtonStyle} aria-label={t('timerOverlay.increaseInterval', 'Increase interval')}>
-                  <HiOutlinePlus className="w-6 h-6" aria-hidden="true" />
-                </button>
-              </div>
-              </div>
-            )}
-
           {/* Main Action Buttons Section */}
           <div className="flex flex-col gap-2.5">
             {/* Game over: one hand-off into the Finish this game spine (7c). */}
@@ -705,18 +732,22 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             )}
 
             {/* Goal Buttons - Side by side layout */}
-            <div className="grid grid-cols-2 gap-2.5">
+            {/* Our goal is the common one: a light solid button at ~60% of
+                the row; the opponent's goal stays a red outline at ~40%
+                (7:5, so "Vastustaja +1" still fits one line on a 320px
+                phone). */}
+            <div className="grid grid-cols-[7fr_5fr] gap-2.5">
               <button
                 onClick={onToggleGoalLogModal}
                 data-testid="tour-log-goal"
-                className={`${solidActionStyle} min-w-0 px-3`}
+                className={`${lightActionStyle} min-w-0 px-3 whitespace-nowrap`}
                 title={`${displayHomeTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >
                 {t('timerOverlay.teamGoalButton', 'Log Goal')}
               </button>
               <button 
                 onClick={handleOpponentGoalClick} 
-                className={`${dangerActionStyle} min-w-0 px-3`}
+                className={`${dangerActionStyle} min-w-0 px-2 whitespace-nowrap text-[clamp(14px,4.3vw,17px)]!`}
                 title={`${displayAwayTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >
                 {t('timerOverlay.opponentGoalButton', 'Opponent +1')}

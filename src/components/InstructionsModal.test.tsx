@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 import InstructionsModal from './InstructionsModal';
@@ -11,14 +11,31 @@ const renderModal = (isOpen = true) =>
     </I18nextProvider>,
   );
 
+/** Sections start collapsed (titles only); tap a title to read it. */
+const expand = (title: string) => fireEvent.click(screen.getByRole('button', { name: title }));
+
 describe('InstructionsModal ("How it works", two-level rebuild)', () => {
   it('renders nothing when closed', () => {
     const { container } = renderModal(false);
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('shows only the section titles until one is tapped', () => {
+    renderModal();
+    const title = i18n.t('appGuide.homeTitle', 'Home — your club hub');
+    const header = screen.getByRole('button', { name: title });
+    expect(header).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(i18n.t('appGuide.homeGamesTab'))).not.toBeInTheDocument();
+    fireEvent.click(header);
+    expect(header).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(i18n.t('appGuide.homeGamesTab'))).toBeInTheDocument();
+    fireEvent.click(header);
+    expect(screen.queryByText(i18n.t('appGuide.homeGamesTab'))).not.toBeInTheDocument();
+  });
+
   it('leads with the Home club-hub section describing the four tabs + gear', () => {
     renderModal();
+    expand(i18n.t('appGuide.homeTitle', 'Home — your club hub'));
     expect(screen.getByText(i18n.t('appGuide.homeTitle', 'Home — your club hub'))).toBeInTheDocument();
     expect(screen.getByText(i18n.t('appGuide.homeGamesTab'))).toBeInTheDocument();
     expect(screen.getByText(i18n.t('appGuide.homeTeamTab'))).toBeInTheDocument();
@@ -31,6 +48,7 @@ describe('InstructionsModal ("How it works", two-level rebuild)', () => {
     renderModal();
     expect(screen.getByText(i18n.t('firstGameGuide.playerSelection'))).toBeInTheDocument();
     expect(screen.getByText(i18n.t('appGuide.matchMenuTitle', 'The match menu'))).toBeInTheDocument();
+    expand(i18n.t('appGuide.matchMenuTitle', 'The match menu'));
     expect(screen.getByText(i18n.t('firstGameGuide.backHomeTip'))).toBeInTheDocument();
   });
 

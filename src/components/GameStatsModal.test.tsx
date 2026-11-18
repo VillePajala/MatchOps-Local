@@ -337,6 +337,12 @@ describe('GameStatsModal', () => {
     });
     expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
 
+    // The finish view folds the player table away until asked for.
+    expect(screen.queryByRole('heading', { name: i18n.t('gameStatsModal.playerStatsTitle') })).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('finish-player-stats-toggle'));
+    });
+
     const playerStatsSection = screen.getByRole('heading', { name: i18n.t('gameStatsModal.playerStatsTitle') });
     expect(playerStatsSection).toBeInTheDocument();
     const playerStatsContainer = playerStatsSection.closest('div') as HTMLElement;
@@ -360,6 +366,9 @@ describe('GameStatsModal', () => {
       renderComponent(getDefaultProps());
     });
 
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('finish-player-stats-toggle'));
+    });
     const totalsRow = screen.getByText(i18n.t('playerStats.totalsRow'));
     const cells = totalsRow.closest('tr')!.querySelectorAll('td');
     expect(cells[1]).toHaveTextContent('3'); // games played total
@@ -1259,11 +1268,20 @@ describe('GameStatsModal', () => {
     it('aggregate tabs keep their own layout with no spine', async () => {
       renderComponent(getDefaultProps());
       await tabReady();
-      fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.season') }));
+      fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.overall') }));
       await waitFor(() => {
         expect(screen.queryByTestId('finish-game-spine')).not.toBeInTheDocument();
       });
       expect(screen.getByRole('heading', { name: i18n.t('gameStatsModal.playerStatsTitle') })).toBeInTheDocument();
+    });
+
+    /** @edge-case A tab with nothing to aggregate says so once, instead of zero tiles over an empty table. */
+    it('a league tab with no league games shows one empty message and no tables', async () => {
+      renderComponent(getDefaultProps());
+      await tabReady();
+      fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.season') }));
+      expect(await screen.findByTestId('stats-empty-scope')).toHaveTextContent(/No league games yet/);
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
     });
   });
 

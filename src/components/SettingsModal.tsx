@@ -915,8 +915,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 data-testid="restore-backup-input"
               />
               <>
-                <div className={`${listRowStyle} items-start py-3 pr-4`}>
-                  <div className="flex-1 min-w-0">
+                <div className={`${listRowStyle} flex-col items-stretch gap-3 py-3 pr-4`}>
+                  <div className="min-w-0">
                     <p className="font-ui text-base font-medium text-ink">
                       {t('settingsModal.backupButton', 'Backup All Data')}
                     </p>
@@ -924,22 +924,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       {t('settingsModal.backupCardDesc', 'Export all your data to a backup file you can keep.')}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={onCreateBackup}
                       aria-label={t('settingsModal.backupShareAria', 'Share backup')}
-                      title={t('settingsModal.backupShareAria', 'Share backup')}
-                      className={rowIconButton}
+                      className={`${secondaryButtonStyle} min-h-11 px-4! text-sm!`}
                     >
-                      <HiOutlineShare className="h-5 w-5" />
+                      <HiOutlineShare className="h-5 w-5 shrink-0" />
+                      {t('settingsModal.backupShareLabel', 'Share backup')}
                     </button>
                     <button
                       onClick={() => downloadFullBackup(showToast, userId)}
                       aria-label={t('settingsModal.backupDownloadAria', 'Download backup to device')}
-                      title={t('settingsModal.backupDownloadAria', 'Download backup to device')}
-                      className={rowIconButton}
+                      className={`${secondaryButtonStyle} min-h-11 px-4! text-sm!`}
                     >
-                      <HiOutlineDocumentArrowDown className="h-5 w-5" />
+                      <HiOutlineDocumentArrowDown className="h-5 w-5 shrink-0" />
+                      {t('settingsModal.backupSaveLabel', 'Save to device')}
                     </button>
                   </div>
                 </div>
@@ -974,8 +974,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       : <HiOutlineCloudArrowDown className="h-5 w-5" />}
                   </button>
                 </div>
-                <div className={`${listRowStyle} items-start py-3 pr-4`}>
-                  <div className="flex-1 min-w-0">
+                <div className={`${listRowStyle} flex-col items-stretch gap-3 py-3 pr-4 mt-3 border-t border-hairline`}>
+                  <div className="min-w-0">
                     <p className="font-ui text-base font-medium text-ink">
                       {t('settingsModal.restoreButton', 'Restore from Backup')}
                     </p>
@@ -983,12 +983,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       {t('settingsModal.restoreCardDesc', 'Replace current data with a backup file.')}
                     </p>
                   </div>
-                  <button
-                    onClick={handleRestore}
-                    className={rowIconButton}
-                  >
-                    <HiOutlineDocumentArrowUp className="h-5 w-5" />
-                  </button>
+                  <div>
+                    <button
+                      onClick={handleRestore}
+                      aria-label={t('settingsModal.restoreButton', 'Restore from Backup')}
+                      className={`${secondaryButtonStyle} min-h-11 px-4! text-sm!`}
+                    >
+                      <HiOutlineDocumentArrowUp className="h-5 w-5 shrink-0" />
+                      {t('settingsModal.restoreButton', 'Restore from Backup')}
+                    </button>
+                  </div>
                 </div>
               </>
 
@@ -1006,14 +1010,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       ? t('settingsModal.restorePoints.loading', 'Loading restore points...')
                       : restorePoints.length > 0
                         ? t('settingsModal.restorePoints.lastBackup', 'Last automatic backup: {{when}}', { when: formatAppDateTime(restorePoints[0].createdAt) })
-                        : t('settingsModal.restorePoints.lastBackupNever', 'No automatic backup yet.')}
+                        : t('settingsModal.restorePoints.empty', 'No restore points yet - one is created automatically.')}
                   </p>
                 </div>
-                {restorePoints !== null && (restorePoints.length === 0 ? (
-                  <p className="font-ui text-sm text-ink-3 italic">
-                    {t('settingsModal.restorePoints.empty', 'No restore points yet - one is created automatically.')}
-                  </p>
-                ) : (
+                {restorePoints !== null && restorePoints.length > 0 && (
                   <ul className="divide-y divide-hairline">
                     {restorePoints.map((snap) => (
                       <li key={snap.id} className="flex items-center gap-3 py-3">
@@ -1036,7 +1036,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       </li>
                     ))}
                   </ul>
-                ))}
+                )}
               </div>
             </div>
             </section>

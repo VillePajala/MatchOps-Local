@@ -14,7 +14,6 @@ import {
   HiOutlineArrowUturnRight,
   HiOutlineTrash,
   HiOutlineBackspace,
-  HiOutlinePlusCircle,
   HiOutlineXMark,
   HiOutlineHome,
   HiOutlineCog6Tooth,
@@ -50,6 +49,26 @@ const DESIGN_TOKENS = {
 
 // Transition fallback in case 'transitionend' isn't fired (reduced motion, etc.)
 const PANEL_CLOSE_FALLBACK_MS = 300;
+
+/**
+ * "Add a disc" icon for the tactics toolbar: the disc it adds, filled - white
+ * for our own, red for the opponent - with a small plus on its shoulder. Two
+ * outlined plus-circles told the buttons apart by tint alone.
+ */
+const AddDiscIcon: React.FC<{ tone: 'home' | 'opponent'; className?: string }> = ({ tone, className }) => (
+  <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false">
+    <circle
+      cx="11"
+      cy="13"
+      r="8"
+      fill={tone === 'home' ? '#ffffff' : '#DC2626'}
+      stroke={tone === 'home' ? 'rgb(15 23 42 / 0.25)' : 'rgb(255 255 255 / 0.55)'}
+      strokeWidth="1"
+    />
+    <circle cx="19" cy="5" r="4.5" fill="#0f172a" />
+    <path d="M19 3v4M17 5h4" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
 
 // Helper to format time
 const formatTime = (totalSeconds: number): string => {
@@ -178,6 +197,8 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   const venueMapUrl = mapsDirectionsUrl(locationLat, locationLng, locationAddress);
   const [isFieldToolsOpen, setIsFieldToolsOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  // The formations sheet covers the screen; the capsule steps out of its way.
+  const [isFormationSheetOpen, setIsFormationSheetOpen] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -394,11 +415,17 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
       {/* The control bar: a floating navy capsule over the grass. The glass is
           on THIS element, not on a wrapper, so the fixed side menu below is
           not trapped inside a backdrop-filter containing block. */}
-      {/* Sized to fit a 360px phone without scrolling: 44px buttons, a 100px
-          clock pill and a gap that narrows with the screen (6px, 4px at 320).
+      {/* Sized to fit a 360px phone without scrolling: 44px buttons, a 120px
+          clock pill (narrowing to 104px at 320, where the four buttons and
+          gaps leave exactly that) and a gap that narrows with the screen
+          (6px, 4px at 320).
           overflow-x-auto stays only as a last resort for the seven-button
           field-tools row on the very narrowest screens. */}
-      <div className={`relative z-40 flex justify-center items-center gap-[min(6px,1.25vw)] h-14 max-w-full px-1 rounded-full overflow-x-auto font-ui ${matchGlassStyle}`}>
+      <div
+        className={`relative z-40 flex justify-center items-center gap-[min(6px,1.25vw)] h-14 max-w-full px-1 rounded-full overflow-x-auto font-ui ${matchGlassStyle} ${isFormationSheetOpen ? 'invisible pointer-events-none' : ''}`}
+        data-testid="control-capsule"
+        aria-hidden={isFormationSheetOpen || undefined}
+      >
         {!isFieldToolsOpen ? (
           /* Collapsed State - Normal View. Since the bar-level Home button was
              removed (owner feedback: Home is the menu "Koti" entry + hardware
@@ -429,13 +456,14 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             <FormationPicker
               onSelectFormation={onPlaceAllPlayers}
               selectedPlayerCount={selectedPlayerCount}
+              onSheetOpenChange={setIsFormationSheetOpen}
             />
 
             {/* Clickable Timer Display - Fixed height and width */}
             <button
               onClick={onToggleLargeTimerOverlay}
               data-testid="tour-timer-button"
-              className="h-11 w-[100px] shrink-0 flex items-center justify-center gap-1.5 pr-1 rounded-full bg-white/[0.12] shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] hover:bg-white/[0.16] transition-colors active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon"
+              className="h-11 w-[min(120px,calc(100vw-216px))] shrink-0 flex items-center justify-center gap-1.5 pr-1 rounded-full bg-white/[0.12] shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] hover:bg-white/[0.16] transition-colors active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon"
               title={t('controlBar.openTimer', 'Open Timer')}
               aria-label={t('controlBar.openTimer', 'Open Timer')}
             >
@@ -446,19 +474,20 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               />
               {/* SteadyDigits boxes each digit, so the clock - and every
                   button beside it in this row - cannot shift once a second. */}
-              <SteadyDigits className="font-display italic font-extrabold text-[26px] leading-none whitespace-nowrap text-ink">
+              <SteadyDigits className="font-display italic font-extrabold text-[clamp(26px,8.2vw,30px)] leading-none whitespace-nowrap text-ink">
                 {formatTime(timeElapsedInSeconds)}
               </SteadyDigits>
             </button>
 
-            {/* Reset Field Button - Square shape (with confirmation) */}
+            {/* Reset Field Button (with confirmation). Dimmed grey: it is the
+                one destructive control in the row, so it does not shout. */}
             <button
               onClick={onResetField}
               className={matchCapsuleButtonStyle}
               title={t('controlBar.resetField', 'Reset Field')}
               aria-label={t('controlBar.resetField', 'Reset Field')}
             >
-              <HiOutlineTrash className={iconSize} />
+              <HiOutlineTrash className={`${iconSize} text-ink-3`} />
             </button>
 
             {/* Menu Button - Square shape (rightmost of the centered group) */}
@@ -519,24 +548,24 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             </button>
 
             {/* Add Home Disc (only visible in tactics board mode). The icon is
-                the disc it adds: white, like the home discs on the board. */}
+                the disc it adds: filled white, like the home discs on the board. */}
             {isTacticsBoardView && (
               <button
                 onClick={onAddHomeDisc}
                 className={buttonStyle}
                 title={t('controlBar.addHomeDisc', 'Add Home Disc')}
               >
-                <HiOutlinePlusCircle className={`${iconSize} text-white`} />
+                <AddDiscIcon tone="home" className={iconSize} />
               </button>
             )}
 
-            {/* Add Opponent / Add Opponent Disc - the red of the opponent discs */}
+            {/* Add Opponent / Add Opponent Disc - a filled red disc, like the opponent discs */}
             <button
               onClick={isTacticsBoardView ? onAddOpponentDisc : onAddOpponent}
               className={buttonStyle}
               title={isTacticsBoardView ? t('controlBar.addOpponentDisc', 'Add Opponent Disc') : t('controlBar.addOpponent', 'Add Opponent')}
             >
-              <HiOutlinePlusCircle className={`${iconSize} text-loss`} />
+              <AddDiscIcon tone="opponent" className={iconSize} />
             </button>
 
             {/* Clear Drawings */}

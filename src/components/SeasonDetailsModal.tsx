@@ -387,7 +387,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   onChange={(e) => setAgeGroup(e.target.value)}
                   className={selectStyle}
                 >
-                  <option value="">{t('common.selectAgeGroup', '-- Select Age Group --')}</option>
+                  <option value="">{t('common.selectAgeGroup', 'Select Age Group')}</option>
                   {AGE_GROUPS.map(group => (
                     <option key={group} value={group}>{group}</option>
                   ))}
@@ -517,7 +517,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   }}
                   className={selectStyle}
                 >
-                  <option value="">{t('seasonDetailsModal.selectLeague', '-- Select official league --')}</option>
+                  <option value="">{t('seasonDetailsModal.selectLeague', 'Select official league')}</option>
                   {filteredLeagues.map(league => (
                     <option key={league.id} value={league.id}>{league.name}</option>
                   ))}

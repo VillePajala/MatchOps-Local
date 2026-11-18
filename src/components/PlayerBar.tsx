@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import PlayerDisk from './PlayerDisk'; // Import the PlayerDisk component
 import type { Player } from '@/types'; // Import the Player type from central types
 import type { GameEvent } from '@/types'; // Correctly import GameEvent type
@@ -15,6 +14,8 @@ interface PlayerBarProps {
   gameEvents: GameEvent[];
   onPlayerTapInBar?: (player: Player) => void;
   onToggleGoalie?: (playerId: string) => void;
+  /** Players already on the pitch: shown dimmed, in their usual place. */
+  onFieldPlayerIds?: ReadonlySet<string>;
 }
 
 // Placeholder data - this would eventually come from state/localStorage
@@ -32,10 +33,12 @@ interface PlayerBarProps {
 //   { id: 'p11', name: 'Player 11' },
 // ];
 
-const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragStartFromBar, selectedPlayerIdFromBar, onBarBackgroundClick, gameEvents, onPlayerTapInBar, onToggleGoalie }) => {
+const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragStartFromBar, selectedPlayerIdFromBar, onBarBackgroundClick, gameEvents, onPlayerTapInBar, onToggleGoalie, onFieldPlayerIds }) => {
   return (
     // The player bar row of the match view's top panel. It sits on the
-    // panel's frosted glass, so it paints no background of its own.
+    // panel's frosted glass, so it paints no background of its own. 46px
+    // discs at a 9px gap: on a phone the last visible disc is cut about in
+    // half by the edge, which says "this row scrolls".
     <div
       data-testid="player-bar"
       className="relative h-[68px] pl-2.5 pr-2.5 flex items-center gap-[9px] flex-shrink-0 overflow-x-auto overflow-y-hidden whitespace-nowrap scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
@@ -46,26 +49,6 @@ const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragS
         }
       }}
     >
-      {/* App Logo */}
-      <div
-        className="relative flex items-center justify-center flex-shrink-0 z-10 w-9 h-9 rounded-full bg-white/[0.07] overflow-hidden"
-        onClick={() => {
-          // Deselect player when clicking the logo
-          if (onBarBackgroundClick) {
-            onBarBackgroundClick();
-          }
-        }}
-      >
-        <Image
-          src="/logos/app-logo-yellow.png"
-          alt="MatchOps Local"
-          width={80}
-          height={27}
-          priority={true}
-          className="h-auto w-[34px]"
-        />
-      </div>
-
       {/* Player Disks */}
       <div className="relative flex items-center gap-[9px] z-10">
         {players.map(player => (
@@ -81,6 +64,7 @@ const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragS
             gameEvents={gameEvents}
             onPlayerTapInBar={onPlayerTapInBar}
             onToggleGoalie={onToggleGoalie}
+            dimmed={onFieldPlayerIds?.has(player.id) ?? false}
           />
         ))}
       </div>

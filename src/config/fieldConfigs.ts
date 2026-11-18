@@ -9,8 +9,36 @@
  * Futsal court dimensions (reference): 40m x 20m (FIFA standard)
  */
 
-import type { FieldConfig } from '@/types/fieldConfig';
+import type { FieldConfig, FieldStyleConfig } from '@/types/fieldConfig';
 import type { GameType } from '@/types/game';
+
+/**
+ * Which grass the football pitch is painted with - THE one switch.
+ *
+ * 'clean' is the match-view redesign's grass: a deep, flat green, faint
+ * horizontal mowing bands and no noise, vignette or lighting. 'classic' is the
+ * textured grass the app had before it. To go back, change this one line to
+ * 'classic'; nothing else depends on the choice (the grass around the pitch
+ * box follows via getFieldEdgeColors, and the line style is set separately).
+ */
+export const PITCH_GRASS: 'clean' | 'classic' = 'clean';
+
+/** The two grasses PITCH_GRASS chooses between. */
+export const SOCCER_GRASS: Record<'clean' | 'classic', Pick<FieldStyleConfig, 'fieldColor' | 'centerColor' | 'showGrassTexture' | 'stripeCount' | 'grass'>> = {
+  clean: {
+    grass: 'clean',
+    fieldColor: '#1d5c3c',   // edge colour (both goal lines)
+    centerColor: '#22683f',  // at the halfway line
+    showGrassTexture: false,
+    stripeCount: 9,          // odd, so both edge bands are plain
+  },
+  classic: {
+    grass: 'classic',
+    fieldColor: '#427B44',
+    showGrassTexture: true,
+    stripeCount: 9,
+  },
+};
 
 /**
  * Soccer field configuration.
@@ -65,12 +93,11 @@ export const SOCCER_FIELD_CONFIG: FieldConfig = {
   secondPenaltySpot: undefined,
 
   style: {
-    fieldColor: '#427B44',           // Grass green
-    lineColor: 'rgba(255, 255, 255, 0.6)',
-    lineOpacity: 0.6,
+    ...SOCCER_GRASS[PITCH_GRASS],
+    // Thin, bright lines (match-view redesign) - independent of the grass.
+    lineColor: 'rgba(255, 255, 255, 0.78)',
+    lineOpacity: 0.78,
     lineWidth: 2,
-    showGrassTexture: true,
-    stripeCount: 9,
   },
 
   defaultPlayerCount: 11,

@@ -126,11 +126,9 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
     <div className="s1-list p-4 font-ui">
       <div className="flex items-center justify-between gap-2 mb-3">
         <h3 className="text-base font-semibold text-ink">{t('gameStatsModal.wrapUpTitle', 'Checklist')}</h3>
-        <span
-          className="ml-auto text-sm font-semibold text-ink-2 tabular-nums"
-          data-testid="wrap-up-progress-count"
-        >
-          {progress.done}/{progress.total}
+        <span className="ml-auto text-sm font-semibold text-ink-2 tabular-nums">
+          <span data-testid="wrap-up-progress-count">{progress.done}/{progress.total}</span>
+          {' '}{t('gameStatsModal.wrapUpDoneWord', 'done')}
         </span>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold ${

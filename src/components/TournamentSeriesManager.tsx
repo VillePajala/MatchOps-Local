@@ -132,7 +132,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
             className={`${selectStyle} basis-full`}
             aria-label={t('tournamentDetailsModal.selectLevelForNewSeries', 'Select the new level')}
           >
-            <option value="">{t('common.selectLevel', '-- Select Level --')}</option>
+            <option value="">{t('common.selectLevel', 'Select Level')}</option>
             {LEVELS.map(lvl => (
               <option
                 key={lvl}

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { createPortal } from 'react-dom';
-import { HiOutlineSquares2X2 } from 'react-icons/hi2';
+import { HiOutlineSquares2X2, HiOutlineXMark } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import {
   FIELD_SIZES,
@@ -19,6 +19,8 @@ import {
   subtextStyle,
   sectionLabelStyle,
   pillAmberStyle,
+  modalCloseButtonStyle,
+  useModalCloseVisible,
 } from '@/styles/modalStyles';
 
 // Match ControlBar design tokens
@@ -34,6 +36,13 @@ interface FormationPickerProps {
   selectedPlayerCount: number;
   /** Whether the picker is disabled */
   disabled?: boolean;
+  /**
+   * Told whether the full-screen (phone) sheet is showing, so the host can
+   * hide the floating control capsule while it is - the capsule used to sit
+   * over the sheet's last rows. The desktop dropdown does not count: it is
+   * anchored to the capsule's own button.
+   */
+  onSheetOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -45,8 +54,11 @@ const MenuContent: React.FC<{
   onSelectAuto: () => void;
   onSelectPreset: (preset: FormationPreset) => void;
   isMobile: boolean;
-}> = ({ selectedPlayerCount, recommendedSize, onSelectAuto, onSelectPreset, isMobile }) => {
+  /** Mobile sheet only: closes it from its own X (shown where there is no back gesture). */
+  onClose?: () => void;
+}> = ({ selectedPlayerCount, recommendedSize, onSelectAuto, onSelectPreset, isMobile, onClose }) => {
   const { t } = useTranslation();
+  const showClose = useModalCloseVisible();
 
   // Mobile: a full-screen sheet like the other popups; desktop: a compact
   // dropdown. Both in the navy house style - one amber primary (Auto).
@@ -58,7 +70,7 @@ const MenuContent: React.FC<{
     : "font-display text-xl font-bold text-ink";
   const subtitleClass = isMobile ? `${subtextStyle} mt-1` : "font-ui text-xs text-ink-3 mt-0.5";
   const contentClass = isMobile
-    ? "relative z-10 overflow-y-auto flex-1 px-4 pt-2 pb-28 space-y-4"
+    ? "relative z-10 overflow-y-auto flex-1 px-4 pt-2 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] space-y-4"
     : "relative z-10 overflow-y-auto min-h-0 flex-1 p-2 space-y-2";
   const autoButtonClass = isMobile
     ? `${primaryButtonStyle} w-full min-h-[52px]`
@@ -79,6 +91,19 @@ const MenuContent: React.FC<{
     <>
       {/* Header */}
       <div className={headerClass}>
+        {/* The capsule (whose button opened this sheet) is hidden while it is
+            open, so where there is no back gesture the sheet closes itself. */}
+        {isMobile && onClose && showClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className={`absolute top-3 right-3 flex ${modalCloseButtonStyle}`}
+            aria-label={t('common.close', 'Close')}
+            title={t('common.close', 'Close')}
+          >
+            <HiOutlineXMark className="w-6 h-6" />
+          </button>
+        )}
         <div className="text-center">
           <h2 className={titleClass}>
             {t('formations.title', 'Formations')}
@@ -149,10 +174,19 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
   onSelectFormation,
   selectedPlayerCount,
   disabled = false,
+  onSheetOpenChange,
 }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const sheetOpen = isOpen && isMobile;
+  useEffect(() => {
+    onSheetOpenChange?.(sheetOpen);
+  }, [sheetOpen, onSheetOpenChange]);
+  // Unmounting with the sheet open must not leave the host's capsule hidden.
+  const onSheetOpenChangeRef = useRef(onSheetOpenChange);
+  useEffect(() => { onSheetOpenChangeRef.current = onSheetOpenChange; }, [onSheetOpenChange]);
+  useEffect(() => () => onSheetOpenChangeRef.current?.(false), []);
   // Back closes the picker first, not the match under it (review 7.9).
   useHardwareBackSubLevel(isOpen, () => setIsOpen(false));
   const [desktopLayout, setDesktopLayout] = useState({
@@ -273,9 +307,9 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
     setIsOpen(false);
   }, [onSelectFormation]);
 
-  // Mobile overlay - use portal to escape ControlBar's stacking context
-  // Full screen; the control capsule (z-40) floats over its bottom edge, so
-  // the content keeps bottom padding to scroll clear of it.
+  // Mobile overlay - use portal to escape ControlBar's stacking context.
+  // Full screen; the host hides the control capsule while it is open (see
+  // onSheetOpenChange).
   const mobileOverlay = isOpen && isMobile && typeof document !== 'undefined' ? createPortal(
     <div
       ref={dropdownRef}
@@ -289,6 +323,7 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
         onSelectAuto={handleSelectAuto}
         onSelectPreset={handleSelectPreset}
         isMobile={true}
+        onClose={() => setIsOpen(false)}
       />
     </div>,
     document.body

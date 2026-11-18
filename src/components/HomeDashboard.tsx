@@ -901,31 +901,11 @@ export function HomeTeamScopeSelect({
   );
 }
 
-/** Seura tab: a one-line roster/team/personnel count header. */
-export function HomeCountsBar({ counts, t }: { counts: HomeSummary['counts']; t: TFunction }) {
-  // Pluralised through i18next: Finnish partitive is only correct above one.
-  const parts = [
-    t('startScreen.dashPlayersCount', '{{count}} players', { count: counts.players }),
-    t('startScreen.dashTeamsCount', '{{count}} teams', { count: counts.teams }),
-    t('startScreen.dashPersonnelCount', '{{count}} staff', { count: counts.personnel }),
-  ];
-  return (
-    <div className="flex w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 px-1 py-1 text-[13px] font-medium text-ink-2">
-      {parts.map((p, i) => (
-        <React.Fragment key={p}>
-          {i > 0 && <span className="text-ink-3" aria-hidden="true">·</span>}
-          <span className="tabular-nums">{p}</span>
-        </React.Fragment>
-      ))}
-    </div>
-  );
-}
-
-/** Kilpailut tab: the current club-season card - the club season and how many
- *  Kaudet / Turnaukset exist. */
-export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
+/** Kilpailut tab: the club-season card - the season (the previous one while the
+ *  current has no game yet) and its record. The league / tournament counts live
+ *  on the rows below it. */
+export function HomeSeasonCard({ vuosi, onOpen, t }: {
   vuosi: HomeSummary['vuosi'];
-  counts: HomeSummary['counts'];
   onOpen?: () => void;
   t: TFunction;
 }) {
@@ -937,7 +917,7 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
     >
       <span className="min-w-0 flex-1">
         <span className="block text-xs font-bold uppercase tracking-[0.16em] text-ink-3">
-          {t('startScreen.dashClubSeason', 'This season')}
+          {t('startScreen.dashSeason', 'Season')}
         </span>
         <span className="mt-1 flex items-baseline justify-between gap-3">
           <span className="font-display text-[30px] font-bold leading-none text-ink">
@@ -950,11 +930,6 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
               <span className="text-loss">{vuosi.losses}</span>
             </span>
           )}
-        </span>
-        <span className="mt-2 block text-[13px] text-ink-3 tabular-nums">
-          {t('startScreen.dashSeasonsCount', '{{count}} leagues', { count: counts.seasons })}
-          {' · '}
-          {t('startScreen.dashTournamentsCount', '{{count}} tournaments', { count: counts.tournaments })}
         </span>
       </span>
       <HomeIcon name="chev" className="h-4 w-4 text-ink-3" strokeWidth={2} />
@@ -969,6 +944,15 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
   t: TFunction;
 }) {
   if (!vuosi) return null;
+  // Nothing played yet: one clear message instead of a row of zero tiles.
+  if (vuosi.gamesPlayed === 0) {
+    return (
+      <div className={`${HOME_CARD} px-5 py-5 text-center`} data-testid="home-stats-empty">
+        <p className="text-base font-semibold text-ink">{t('startScreen.dashStatsEmpty', 'No games played yet')}</p>
+        <p className="mt-1 text-[13px] text-ink-3">{t('startScreen.dashStatsEmptyHint', 'The season record and top scorer appear here after the first game.')}</p>
+      </div>
+    );
+  }
   // NUMBERS LEAD (owner, 2026-09-16): these three figures are the whole reason
   // the Tilastot tab exists, so the number is the display element and the
   // label drops to a caption. Not pressable, so no hover.
@@ -993,10 +977,7 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
         t('startScreen.dashTileGoalDiff', 'Goal diff'),
       )}
       {/* Goals big, name as the label - a name set as the big number overflowed a third-width tile. */}
-      {tile(
-        topScorer ? topScorer.goals : '–',
-        topScorer ? topScorer.name : t('startScreen.dashTileScorer', 'Top scorer'),
-      )}
+      {topScorer && tile(topScorer.goals, topScorer.name)}
     </div>
   );
 }

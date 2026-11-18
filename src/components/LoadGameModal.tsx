@@ -35,7 +35,6 @@ import {
   popoverItemStyle,
   iconButtonEditStyle,
   errorBoxStyle,
-  pillQuietStyle,
 } from '@/styles/modalStyles';
 import { extractTimestampFromId } from '@/utils/idGenerator';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
@@ -422,11 +421,16 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             // page level with no session in scope): mid-match the current
             // game's row may trail the live score by one autosave debounce -
             // an accepted, documented trade-off.
-            // The team's kit colour, for the stripe that lets a season's
-            // games read as one team without parsing every name.
-            const rowTeamColor = game.teamId
-              ? teams.find((tm) => tm.id === game.teamId)?.color
-              : undefined;
+            // The competition as one quiet line under the date: season / league /
+            // tournament / level, then who played (sport, boys/girls).
+            const competitionLine = [
+              season ? getSeasonDisplayName(season) : null,
+              leagueName,
+              tournament ? getTournamentDisplayName(tournament) : null,
+              seriesLevel ? t(`common.level${seriesLevel}` as TranslationKey, seriesLevel) : null,
+              game.gameType === 'futsal' ? t('common.gameTypeFutsal', 'Futsal') : null,
+              game.gender ? (game.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')) : null,
+            ].filter(Boolean).join(' · ');
 
             const displayHomeScore = game.homeScore ?? 0;
             const displayAwayScore = game.awayScore ?? 0;
@@ -452,9 +456,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               ? 'bg-gradient-to-r from-action/[0.09] to-transparent'
               : '';
 
-            const chipClass = 'inline-flex items-center px-[9px] py-1 rounded-full bg-white/[0.06] text-xs font-medium text-ink-2';
-
-            return (
+                        return (
               <div
                 key={gameId}
                 className={`relative grid grid-cols-[36px_1fr_auto_44px] gap-x-3 items-start py-3.5 pl-3.5 pr-1 cursor-pointer transition-colors hover:bg-white/[0.03] before:absolute before:top-0 before:left-[62px] before:right-0 before:h-px before:bg-hairline first:before:hidden first:rounded-t-[22px] last:rounded-b-[22px] ${currentGameClass}`}
@@ -486,13 +488,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                 {/* Teams and date line */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-x-1.5 flex-wrap font-semibold leading-tight text-ink">
-                    {rowTeamColor && (
-                      <span
-                        aria-hidden="true"
-                        className="w-1 h-4 rounded-full shrink-0"
-                        style={{ backgroundColor: rowTeamColor }}
-                      />
-                    )}
                     <span>{displayHomeTeamName}</span>
                     <em className="not-italic font-normal text-sm text-ink-3">vs</em>
                     <span>{displayAwayTeamName}</span>
@@ -501,9 +496,14 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                     {[
                       game.gameDate ? formatAppDate(game.gameDate, i18n.language) : null,
                       game.gameDate && game.gameTime ? game.gameTime : null,
-                      game.numberOfPeriods && game.periodDurationMinutes ? `${game.numberOfPeriods}×${game.periodDurationMinutes}min` : null,
                     ].filter(Boolean).join(' · ')}
                   </div>
+                  {/* Competition: one small grey line (green/red mean results only) */}
+                  {competitionLine && (
+                    <div className="mt-0.5 text-[13px] leading-snug text-ink-3" data-testid={`game-competition-${gameId}`}>
+                      {competitionLine}
+                    </div>
+                  )}
                   {(game.wentToOvertime || game.wentToPenalties) && (
                     <div className="text-xs text-ink-3 font-medium">
                       {[
@@ -586,44 +586,20 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                   )}
                 </div>
 
-                {/* Chips: plain text (no coloured dots - green/red mean results only) */}
+                {/* The one chip: a played game whose record is still unfinished.
+                    Amber outline - it is the actionable case. */}
                 <div className="col-start-2 col-end-[-1] mt-2 flex flex-wrap gap-1.5 pr-1.5 empty:hidden">
                   {showReadinessDot && (
                     isRecordComplete ? (
                       <span className="sr-only">{t('loadGameModal.readyTitle', 'Record complete')}</span>
                     ) : (
-                      <span className={pillQuietStyle} title={t('loadGameModal.needsFinishingTitle', 'Needs finishing')}>
+                      <span
+                        className="inline-flex items-center rounded-full px-[9px] py-1 text-xs font-medium text-action shadow-[inset_0_0_0_1px_var(--color-action)]"
+                        title={t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
+                      >
                         {t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
                       </span>
                     )
-                  )}
-                  {game.gameType === 'futsal' && (
-                    <span className={chipClass}>{t('common.gameTypeFutsal', 'Futsal')}</span>
-                  )}
-                  {game.gender && (
-                    <span className={chipClass}>
-                      {game.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
-                    </span>
-                  )}
-                  {season && (
-                    <span className={chipClass}>
-                      <span className="sr-only">{t('common.season', 'League')}: </span>
-                      {getSeasonDisplayName(season)}
-                    </span>
-                  )}
-                  {leagueName && (
-                    <span className={chipClass}>{leagueName}</span>
-                  )}
-                  {tournament && (
-                    <span className={chipClass}>
-                      <span className="sr-only">{t('common.tournament', 'Tournament')}: </span>
-                      {getTournamentDisplayName(tournament)}
-                    </span>
-                  )}
-                  {seriesLevel && (
-                    <span className={chipClass}>
-                      {t(`common.level${seriesLevel}` as TranslationKey, seriesLevel)}
-                    </span>
                   )}
                 </div>
               </div>
@@ -650,9 +626,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           {/* Search and filters */}
           <div className="relative">
             <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
-            <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} aria-label={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className={searchInputStyle} />
+            <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Search games')} aria-label={t('loadGameModal.filterPlaceholder', 'Search games')} value={searchText} onChange={handleSearchChange} autoComplete="off" className={searchInputStyle} />
           </div>
-          <div className={`mt-2.5 grid gap-2.5 ${opponentOptions.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <div className="mt-2.5 grid grid-cols-1 gap-2.5">
             <div>
               <label htmlFor="savedGamesSortSelect" className="sr-only">
                 {t('loadGameModal.sortLabel', 'Sort by')}

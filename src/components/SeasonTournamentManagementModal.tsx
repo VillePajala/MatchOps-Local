@@ -10,6 +10,8 @@ import {
     primaryButtonStyle,
     secondaryButtonStyle,
     searchInputStyle,
+    groupedListStyle,
+    subtextStyle,
     popoverMenuStyle,
     popoverItemStyle,
     iconButtonEditStyle,
@@ -305,11 +307,16 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                     <p className="font-ui text-sm text-ink-3 px-1 py-2">{t('common.allArchived', 'Everything here is archived.')}</p>
                 )}
                 {filtered.length === 0 && searchText.trim() === '' && !(archivedCount > 0 && !showArchived) && (
-                    <p className="font-ui text-sm text-ink-3 px-1 py-2">
-                        {type === 'season'
-                            ? t('seasonTournamentModal.noSeasonsNudge', 'No leagues yet. Create one, then link your teams and games to it to track league-level stats.')
-                            : t('seasonTournamentModal.noTournamentsNudge', 'No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats.')}
-                    </p>
+                    type === 'tournament' ? (
+                        // The same centred empty card as the staff list.
+                        <div className={`${groupedListStyle} text-center py-8 px-4 ${subtextStyle}`} data-testid="tournaments-empty">
+                            {t('seasonTournamentModal.noTournamentsNudge', 'No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats.')}
+                        </div>
+                    ) : (
+                        <p className="font-ui text-sm text-ink-3 px-1 py-2">
+                            {t('seasonTournamentModal.noSeasonsNudge', 'No leagues yet. Create one, then link your teams and games to it to track league-level stats.')}
+                        </p>
+                    )
                 )}
                 {/* Not overflow-hidden: that clipped a row's action menu when the
                     list is short. The rows round their own hover corners instead. */}
@@ -372,6 +379,13 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                     {actionsMenuId === item.id && (
                                         <div className={`${popoverMenuStyle} ${menuPositions[item.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                                             <button
+                                                onClick={() => handleEditClick(item, type)}
+                                                className={popoverItemStyle}
+                                            >
+                                                <HiOutlinePencil className="w-4 h-4" />
+                                                {t('common.edit', 'Edit')}
+                                            </button>
+                                            <button
                                                 onClick={() => handleToggleArchive(item, type)}
                                                 className={popoverItemStyle}
                                             >
@@ -379,13 +393,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                                 {item.archived
                                                     ? t('seasonTournamentModal.unarchive', 'Unarchive')
                                                     : t('seasonTournamentModal.archive', 'Archive')}
-                                            </button>
-                                            <button
-                                                onClick={() => handleEditClick(item, type)}
-                                                className={popoverItemStyle}
-                                            >
-                                                <HiOutlinePencil className="w-4 h-4" />
-                                                {t('common.edit', 'Edit')}
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteClick(item, type)}
@@ -466,7 +473,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
               className="mb-4"
               text={t('firstVisit.seasons', 'Group games into a league or tournament to get standings and per-competition stats.')}
             />
-            {/* Search field */}
+            {/* Search field - hidden while there is nothing to search (a tournaments list with no tournaments) */}
+            {!(kind === 'tournament' && tournaments.length === 0) && (
             <div className="mb-3 relative">
               <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
               <input
@@ -479,6 +487,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                 className={searchInputStyle}
               />
             </div>
+            )}
 
             {renderList(kind)}
             {archivedCount > 0 && (

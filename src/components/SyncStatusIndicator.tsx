@@ -43,8 +43,9 @@ interface SyncStatusIndicatorProps {
 export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClick, size = 'normal', variant = 'standalone' }) => {
   const isSmall = size === 'small';
   const isField = variant === 'field';
-  // Field variant: a 44px round button matching the other field tools
-  const containerClass = isField ? 'w-11 h-11' : (isSmall ? 'w-6 h-6' : 'w-10 h-10');
+  // Field variant: a 40px round button (44px touch target via the ::before
+  // pad in fieldBaseClass) matching the other field tools
+  const containerClass = isField ? 'w-10 h-10' : (isSmall ? 'w-6 h-6' : 'w-10 h-10');
   const iconClass = isField ? 'w-5 h-5' : (isSmall ? 'w-4 h-4' : 'w-6 h-6');
   const smallIconClass = isField ? 'w-5 h-5' : (isSmall ? 'w-3 h-3' : 'w-5 h-5');
   const badgeIconClass = isSmall ? 'w-2 h-2' : 'w-3 h-3';
@@ -62,12 +63,17 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
 
   // Field variant base styles: the frosted navy disc the field tools use
   // (matchFieldToolStyle), so the sync status sits with them over the grass
-  const fieldBaseClass = 'rounded-full bg-[rgb(15_23_42/0.7)] hover:bg-[rgb(15_23_42/0.82)] backdrop-blur-[12px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_8px_14px_-8px_rgb(2_6_23/0.8)] focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+  const fieldBaseClass = "relative rounded-full bg-[rgb(15_23_42/0.7)] hover:bg-[rgb(15_23_42/0.82)] backdrop-blur-[12px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_6px_12px_-8px_rgb(2_6_23/0.7)] before:absolute before:-inset-0.5 before:rounded-full before:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
+  // Nothing needs the coach (stored locally, synced, syncing, offline): a
+  // quiet grey mark on a fainter disc. Colour (amber/red) is kept for the
+  // states that DO need attention - pending, paused, failed.
+  const fieldQuietClass = "relative rounded-full bg-[rgb(15_23_42/0.42)] hover:bg-[rgb(15_23_42/0.6)] backdrop-blur-[8px] before:absolute before:-inset-0.5 before:rounded-full before:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
+  const quietIconClass = 'w-[18px] h-[18px] text-ink-3';
 
   // Local mode: just phone icon
   if (mode === 'local') {
     const localContainerClass = isField
-      ? `flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors cursor-pointer`
+      ? `flex items-center justify-center ${containerClass} ${fieldQuietClass} transition-colors cursor-pointer`
       : `flex items-center justify-center ${containerClass} rounded-md border transition-colors bg-slate-600/30 border-slate-500/40 hover:opacity-80 cursor-pointer`;
 
     return (
@@ -78,7 +84,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
         title={t('syncStatus.localTitle', 'Data stored locally on device')}
         aria-label={t('syncStatus.localTitle', 'Data stored locally on device')}
       >
-        <HiOutlineDevicePhoneMobile className={`${iconClass} ${isField ? 'text-white' : 'text-slate-400'}`} />
+        <HiOutlineDevicePhoneMobile className={isField ? quietIconClass : `${iconClass} text-slate-400`} />
       </button>
     );
   }
@@ -87,7 +93,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
   // This prevents showing misleading 'synced' (green) when actual status is unknown
   if (syncLoading) {
     const loadingContainerClass = isField
-      ? `flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors cursor-pointer`
+      ? `flex items-center justify-center ${containerClass} ${fieldQuietClass} transition-colors cursor-pointer`
       : `flex items-center justify-center ${containerClass} rounded-md border transition-colors bg-sky-500/20 border-sky-500/40 hover:opacity-80 cursor-pointer`;
 
     return (
@@ -98,7 +104,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
         title={t('syncStatus.loadingTitle', 'Checking sync status...')}
         aria-label={t('syncStatus.loadingTitle', 'Checking sync status...')}
       >
-        <HiOutlineArrowPath className={`${iconClass} text-sky-400 animate-spin`} />
+        <HiOutlineArrowPath className={isField ? `${quietIconClass} animate-spin` : `${iconClass} text-sky-400 animate-spin`} />
       </button>
     );
   }
@@ -196,7 +202,10 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
     switch (state) {
       case 'synced':
         return {
-          icon: <HiOutlineCloud className={`${smallIconClass} text-green-400`} />,
+          quiet: true,
+          icon: isField
+            ? <HiOutlineCloud className={quietIconClass} />
+            : <HiOutlineCloud className={`${smallIconClass} text-green-400`} />,
           badge: <HiCheck className={badgeIconClass} />,
           badgeClass: 'text-green-400',
           statusText: null,
@@ -206,7 +215,10 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
 
       case 'syncing':
         return {
-          icon: <HiOutlineArrowPath className={`${smallIconClass} text-sky-400 animate-spin`} />,
+          quiet: true,
+          icon: isField
+            ? <HiOutlineArrowPath className={`${quietIconClass} animate-spin`} />
+            : <HiOutlineArrowPath className={`${smallIconClass} text-sky-400 animate-spin`} />,
           badge: null,
           badgeClass: '',
           statusText: null,
@@ -216,6 +228,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
 
       case 'pending':
         return {
+          quiet: false,
           icon: <HiOutlineCloud className={`${smallIconClass} text-amber-400`} />,
           badge: pendingCount > 0 ? pendingCount : null,
           badgeClass: 'text-amber-400',
@@ -226,6 +239,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
 
       case 'error':
         return {
+          quiet: false,
           icon: <HiOutlineExclamationCircle className={`${smallIconClass} text-red-400`} />,
           badge: failedCount > 0 ? failedCount : '!',
           badgeClass: 'text-red-400',
@@ -236,7 +250,8 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
 
       case 'offline':
         return {
-          icon: <HiOutlineSignalSlash className={`${smallIconClass} text-slate-400`} />,
+          quiet: true,
+          icon: <HiOutlineSignalSlash className={isField ? quietIconClass : `${smallIconClass} text-slate-400`} />,
           badge: null,
           badgeClass: '',
           statusText: null,
@@ -246,7 +261,8 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
 
       default:
         return {
-          icon: <HiOutlineCloud className={`${smallIconClass} text-sky-400`} />,
+          quiet: true,
+          icon: <HiOutlineCloud className={isField ? quietIconClass : `${smallIconClass} text-sky-400`} />,
           badge: null,
           badgeClass: '',
           statusText: null,
@@ -262,7 +278,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
 
   // Field variant: unified background, colored icons only
   const cloudContainerClass = isField
-    ? `relative flex items-center justify-center ${containerClass} ${fieldBaseClass} transition-colors cursor-pointer`
+    ? `flex items-center justify-center ${containerClass} ${config.quiet ? fieldQuietClass : fieldBaseClass} transition-colors cursor-pointer`
     : `relative flex flex-col items-center justify-center ${containerClass} rounded-md border transition-colors ${config.bgClass} hover:opacity-80 cursor-pointer`;
 
   return (

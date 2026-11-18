@@ -10,12 +10,13 @@ import {
   segmentStyle,
   segmentSelectedStyle,
   inputBaseStyle,
+  searchInputStyle,
   selectStyle,
   secondaryButtonStyle,
   linkStyle,
 } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
-import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
+import { HiOutlineArrowTopRightOnSquare, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 import ruleLinks from '@/config/ruleLinks.json';
 import { GAME_FORMATS, GAME_FORMATS_SOURCE, GAME_FORMATS_GENERAL_NOTES, findFormatForAgeGroup } from '@/config/gameFormats';
 import { AGE_GROUPS } from '@/config/gameOptions';
@@ -76,11 +77,11 @@ const Section = ({
   title,
   children
 }: {
-  title: string;
+  title?: string;
   children: React.ReactNode;
 }) => (
   <div className="space-y-3">
-    <h3 className={sectionLabelStyle}>{title}</h3>
+    {title && <h3 className={sectionLabelStyle}>{title}</h3>}
     <div className="space-y-2">
       {children}
     </div>
@@ -167,7 +168,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                   own sites, so the app carries our topic wording plus the law
                   numbers, titles and pages, and every result opens the rights
                   holder's own document at that page. Never paste rule text. */}
-              <Section title={t('rulesDirectory.lookupTitle', 'Find a rule')}>
+              <Section>
                 <div className={segmentTrackStyle}>
                   {(['football', 'futsal'] as const).map((s) => (
                     <button
@@ -184,15 +185,19 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                     </button>
                   ))}
                 </div>
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  data-testid="rules-search"
-                  aria-label={t('rulesDirectory.lookupTitle', 'Find a rule')}
-                  placeholder={t('rulesDirectory.searchPlaceholder', 'e.g. offside, sending off, substitutions')}
-                  className={inputBaseStyle}
-                />
+                <div className="relative">
+                  <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    data-testid="rules-search"
+                    aria-label={t('rulesDirectory.lookupTitle', 'Find a rule')}
+                    placeholder={t('rulesDirectory.searchPlaceholder', 'e.g. offside, sending off, substitutions')}
+                    autoComplete="off"
+                    className={searchInputStyle}
+                  />
+                </div>
                 {hits.length === 0 ? (
                   <p className="font-ui text-sm text-ink-3" data-testid="rules-no-hits">
                     {t('rulesDirectory.noHits', 'No matches. Try another word, or browse the rulebook.')}

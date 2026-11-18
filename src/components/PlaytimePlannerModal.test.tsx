@@ -167,6 +167,12 @@ const openPlanTab = async () => {
   });
 };
 
+const openPlanMenu = async () => {
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Plan actions' }));
+  });
+};
+
 const enterPlan = async (name: string | RegExp = /Saved Cup/) => {
   const pattern = typeof name === 'string' ? new RegExp(name) : name;
   // Each manager row has TWO buttons matching the plan name: the open button
@@ -233,7 +239,9 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() => expect(screen.getByLabelText('Game name')).toBeInTheDocument());
     await openPlanTab();
     expect(screen.getByDisplayValue('Tournament plan')).toBeInTheDocument();
-    expect(screen.getByText('Export JSON')).toBeInTheDocument(); // footer export
+    // Export lives in the plan's ⋮ menu on the Settings tab.
+    await openPlanMenu();
+    expect(screen.getByText('Export plan to file')).toBeInTheDocument();
   });
 
   it('a new plan neither shows nor includes archived players', async () => {
@@ -921,13 +929,13 @@ describe('PlaytimePlannerModal', () => {
     await screen.findByLabelText('Game name');
     expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
 
-    // Ribbon tabs carry the short code AND the game name.
+    // Ribbon tabs carry the game name (the opponent) only.
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^G2 .*Game 2$/ }));
+      fireEvent.click(screen.getByRole('button', { name: /^Game 2/ }));
     });
     expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
     // Current tab is marked for assistive tech.
-    expect(screen.getByRole('button', { name: /^G2 .*Game 2$/ })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('button', { name: /^Game 2/ })).toHaveAttribute('aria-current', 'true');
   });
 
   it('marks a placed player absent: slot clears, bench hides them, toggle restores', async () => {
@@ -977,9 +985,10 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final' } });
     });
     // The ribbon tab picks up the new name; switching games swaps the header.
-    expect(screen.getByRole('button', { name: /^G1 .*Final$/ })).toBeInTheDocument();
+    // Tabs show the game's name only (no "G1" prefix).
+    expect(screen.getByRole('button', { name: /^Final/ })).toBeInTheDocument();
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^G2 .*Game 2$/ }));
+      fireEvent.click(screen.getByRole('button', { name: /^Game 2/ }));
     });
     expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Final')).not.toBeInTheDocument();
@@ -1185,7 +1194,16 @@ describe('PlaytimePlannerModal', () => {
     await enterPlan();
     await screen.findByLabelText('Game name');
     const announcement = () => document.querySelector('[data-announcement-nonce]');
+    // Clear all games is a plan-level action on the Settings tab (round 2);
+    // the Games tab keeps only Clear field.
+    expect(screen.queryByRole('button', { name: 'Clear all games' })).not.toBeInTheDocument();
+    const openGamesTab = async () => {
+      await act(async () => {
+        fireEvent.click(screen.getByRole('tab', { name: 'Games' }));
+      });
+    };
 
+    await openPlanTab();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Clear all games' }));
     });
@@ -1193,14 +1211,17 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     });
+    await openGamesTab();
     expect(screen.getByRole('button', { name: 'GK: Alex' })).toBeInTheDocument();
 
+    await openPlanTab();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Clear all games' }));
     });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
     });
+    await openGamesTab();
     // Current game emptied (starter + sub) and announced; the OTHER game's
     // field emptied too (visible via its game tab).
     expect(screen.getByRole('button', { name: 'GK: empty' })).toBeInTheDocument();
@@ -1529,9 +1550,10 @@ describe('PlaytimePlannerModal', () => {
       render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await enterPlan();
     await openPlanTab();
-      await waitFor(() => expect(screen.getByText('Export JSON')).toBeInTheDocument());
+      await openPlanMenu();
+      await waitFor(() => expect(screen.getByText('Export plan to file')).toBeInTheDocument());
       await act(async () => {
-        fireEvent.click(screen.getByText('Export JSON'));
+        fireEvent.click(screen.getByText('Export plan to file'));
       });
       // Must be the export message, NOT the import one (that was the bug).
       await waitFor(() =>
@@ -1546,7 +1568,12 @@ describe('PlaytimePlannerModal', () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     mockImportPlan.mockResolvedValue(null);
     const { container } = render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByText('Import JSON')).toBeInTheDocument());
+    // Import lives in the plan list's ⋮ menu.
+    const listMenu = await screen.findByTestId('planner-list-menu');
+    await act(async () => {
+      fireEvent.click(listMenu);
+    });
+    expect(screen.getByText('Import plan from file')).toBeInTheDocument();
 
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['{"bad":true}'], 'plan.json', { type: 'application/json' });
@@ -1574,9 +1601,10 @@ describe('PlaytimePlannerModal', () => {
       render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await enterPlan(/Cup A\/B/);
     await openPlanTab();
-      await waitFor(() => expect(screen.getByText('Export JSON')).toBeInTheDocument());
+      await openPlanMenu();
+      await waitFor(() => expect(screen.getByText('Export plan to file')).toBeInTheDocument());
       await act(async () => {
-        fireEvent.click(screen.getByText('Export JSON'));
+        fireEvent.click(screen.getByText('Export plan to file'));
       });
       // '/' and space in the name are sanitized to underscores.
       await waitFor(() => expect(clicked).toEqual(['Cup_A_B.json']));

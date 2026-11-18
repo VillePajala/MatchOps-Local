@@ -16,6 +16,8 @@ import {
   HiChevronDown,
   HiChevronRight,
   HiOutlineArchiveBox,
+  HiOutlineArrowDownTray,
+  HiOutlineArrowUpTray,
   HiOutlineDocumentDuplicate,
   HiOutlineEllipsisVertical,
   HiOutlinePencil,
@@ -50,6 +52,7 @@ import {
   cardStyle,
   iconButtonDangerStyle,
   iconButtonEditStyle,
+  iconButtonBaseStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
   modalCloseButtonStyle,
@@ -147,6 +150,10 @@ const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 
 /** An editable title (game / plan name): the popup title, drawn as a quiet field
  *  that shows an amber ring while it is being edited. */
+/** `actionsMenuId` values for the two non-row ⋮ menus (row menus use plan ids). */
+const LIST_MENU_ID = '__plan-list-menu__';
+const PLAN_MENU_ID = '__plan-settings-menu__';
+
 const editableTitleStyle =
   `${titleStyle} w-full bg-transparent text-center rounded-xl focus:outline-none focus:ring-2 focus:ring-action`;
 
@@ -1668,6 +1675,36 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Games-tab layout toggle (single <-> side by side): a small icon at the END
+  // of the game-tab row (round 2, owner - was a floating button over the
+  // lineup). Only when the plan has more than one game.
+  const layoutToggle =
+    view === 'games' && activePlan && activePlan.games.length > 1 ? (
+      <button
+        type="button"
+        onClick={() => setGamesLayout((l) => (l === 'single' ? 'grid' : 'single'))}
+        aria-pressed={gamesLayout === 'grid'}
+        aria-label={
+          gamesLayout === 'single'
+            ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
+            : t('playtimePlanner.lineup.viewSingle', 'Single game')
+        }
+        title={
+          gamesLayout === 'single'
+            ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
+            : t('playtimePlanner.lineup.viewSingle', 'Single game')
+        }
+        data-testid="planner-layout-toggle"
+        className={`${iconButtonBaseStyle} shrink-0 ${
+          gamesLayout === 'grid'
+            ? 'text-action shadow-[inset_0_0_0_1.5px_var(--color-action)]'
+            : 'text-ink-3 hover:text-ink hover:bg-white/[0.06]'
+        }`}
+      >
+        <HiOutlineSquares2X2 className="w-5 h-5" aria-hidden="true" />
+      </button>
+    ) : null;
+
   return (
     <ModalContainer containerRef={modalRootRef} aria-label={t('playtimePlanner.title', 'Match planner')}>
       {/* Chrome slimming: the modal-level Close is an X in the header's
@@ -1682,34 +1719,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       >
         <HiOutlineXMark className="w-6 h-6" />
       </button>
-
-      {/* Games-tab layout toggle (single <-> side-by-side): a floating action
-          button in the bottom-right, so it costs no layout row and stays put
-          while the lineup scrolls. Only when the plan has more than one game. */}
-      {view === 'games' && activePlan && activePlan.games.length > 1 && (
-        <button
-          type="button"
-          onClick={() => setGamesLayout((l) => (l === 'single' ? 'grid' : 'single'))}
-          aria-pressed={gamesLayout === 'grid'}
-          aria-label={
-            gamesLayout === 'single'
-              ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
-              : t('playtimePlanner.lineup.viewSingle', 'Single game')
-          }
-          title={
-            gamesLayout === 'single'
-              ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
-              : t('playtimePlanner.lineup.viewSingle', 'Single game')
-          }
-          className={`absolute bottom-4 right-4 z-20 inline-flex items-center justify-center w-12 h-12 rounded-full transition-[filter,color] focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon shadow-[0_12px_24px_-8px_rgb(2_6_23/0.9)] ${
-            gamesLayout === 'grid'
-              ? 'bg-surface-2 text-action shadow-[inset_0_0_0_1.5px_var(--color-action),0_12px_24px_-8px_rgb(2_6_23/0.9)]'
-              : 's1-seg-on text-ink-2 hover:text-ink'
-          }`}
-        >
-          <HiOutlineSquares2X2 className="w-5 h-5" aria-hidden="true" />
-        </button>
-      )}
 
       {/* Header names what's on screen: tool name outside a plan; the ACTIVE
           GAME (tap-editable) on the single-game surface; the plan name
@@ -1735,7 +1744,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             />
           </div>
         ) : view === 'plan' ? (
-          <div className={headerStyle}>
+          <div className={`${headerStyle} relative px-14!`}>
             <input
               type="text"
               value={activePlan.name}
@@ -1746,6 +1755,37 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               aria-label={t('playtimePlanner.setup.nameLabel', 'Plan name')}
               className={editableTitleStyle}
             />
+            {/* The plan's ⋮ menu (Settings tab): export the plan to a file. */}
+            <div
+              className="absolute right-2 top-7 z-20"
+              ref={actionsMenuId === PLAN_MENU_ID ? actionsMenuRef : null}
+            >
+              <button
+                type="button"
+                onClick={() => setActionsMenuId(actionsMenuId === PLAN_MENU_ID ? null : PLAN_MENU_ID)}
+                aria-label={t('playtimePlanner.manager.actions', 'Plan actions')}
+                aria-expanded={actionsMenuId === PLAN_MENU_ID}
+                data-testid="planner-plan-menu"
+                className={`flex ${modalCloseButtonStyle}`}
+              >
+                <HiOutlineEllipsisVertical className="w-5 h-5" />
+              </button>
+              {actionsMenuId === PLAN_MENU_ID && (
+                <div className={`${popoverMenuStyle} top-full mt-1`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsMenuId(null);
+                      handleExport();
+                    }}
+                    className={`${popoverItemStyle} whitespace-nowrap`}
+                  >
+                    <HiOutlineArrowDownTray className="w-4 h-4" />
+                    {t('playtimePlanner.versions.export', 'Export plan to file')}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div className={headerStyle}>
@@ -1764,20 +1804,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         />
       )}
       {/* House pattern (TeamManager/RosterSettings): create-new is pinned under
-          the header, not buried in the scroll. Import JSON sits beside it (its
-          former top-of-content spot didn't work) - New plan stays the primary,
-          Import is the secondary. */}
+          the header, not buried in the scroll. Importing a plan from a file is
+          rare - it lives in the list's ⋮ menu. */}
       {view === 'manager' && (
-        <div className="px-4 pb-4 border-b border-hairline flex-shrink-0 flex flex-col gap-2.5">
+        <div className="px-4 pb-4 border-b border-hairline flex-shrink-0">
           <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} w-full min-h-12`}>
             {t('playtimePlanner.manager.new', 'New plan')}
-          </button>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className={`${secondaryButtonStyle} w-full`}
-          >
-            {t('playtimePlanner.versions.import', 'Import JSON')}
           </button>
         </div>
       )}
@@ -1831,10 +1863,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         </div>
       )}
 
-      {/* Extra bottom room on the Games tab when the floating layout toggle
-          shows, so it never sits on top of the last row's Remove action. */}
       <ScrollableContent
-        className={`px-4 pt-4 font-ui ${view === 'games' && activePlan && activePlan.games.length > 1 ? 'pb-20' : 'pb-4'}`}
+        className="px-4 pt-4 pb-4 font-ui"
         onScroll={handleContentScroll}
         data-testid="planner-scroll"
       >
@@ -1991,6 +2021,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             <div>
             <div className="flex items-center justify-between gap-3 min-h-11 px-1 mb-2.5">
               <h3 className={sectionLabelStyle}>{t('playtimePlanner.manager.title', 'Plans')}</h3>
+              <div className="flex items-center gap-1">
               {planList.some((p) => p.archived) && (
                 <button
                   type="button"
@@ -2001,6 +2032,38 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   {t('playtimePlanner.manager.showArchived', 'Show archived')}
                 </button>
               )}
+              {/* The list's own ⋮ menu: import a plan from a file. */}
+              <div
+                className="relative shrink-0 -mr-1"
+                ref={actionsMenuId === LIST_MENU_ID ? actionsMenuRef : null}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActionsMenuId(actionsMenuId === LIST_MENU_ID ? null : LIST_MENU_ID)}
+                  aria-label={t('common.moreOptions', 'More options')}
+                  aria-expanded={actionsMenuId === LIST_MENU_ID}
+                  data-testid="planner-list-menu"
+                  className={iconButtonEditStyle}
+                >
+                  <HiOutlineEllipsisVertical className="w-5 h-5" />
+                </button>
+                {actionsMenuId === LIST_MENU_ID && (
+                  <div className={`${popoverMenuStyle} top-full mt-1`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsMenuId(null);
+                        fileInputRef.current?.click();
+                      }}
+                      className={`${popoverItemStyle} whitespace-nowrap`}
+                    >
+                      <HiOutlineArrowUpTray className="w-4 h-4" />
+                      {t('playtimePlanner.versions.import', 'Import plan from file')}
+                    </button>
+                  </div>
+                )}
+              </div>
+              </div>
             </div>
             {/* One grouped list (house pattern): rows divided by hairlines.
                 No overflow clipping here - a row's actions menu must be able to
@@ -2106,8 +2169,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               ))}
             </div>
             </div>
-            {/* New plan is pinned above the scroll; Import JSON lives in the
-                footer (left) - only its hidden file input remains here. */}
+            {/* The hidden file input behind the list menu's Import. */}
             <input
               ref={fileInputRef}
               type="file"
@@ -2322,7 +2384,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 }
                 setShowSuggestConfirm(true);
               }}
-              className={`${secondaryButtonStyle} w-full`}
+              className={`${primaryButtonStyle} w-full`}
             >
               {t('playtimePlanner.overview.suggestButton', 'Suggest fair lineups')}
             </button>
@@ -2414,13 +2476,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               >
                 {t('playtimePlanner.overview.addGame', 'Add game')}
               </button>
+              {/* Clearing EVERY game is a plan-level action, so it lives here
+                  (round 2, owner), behind its confirm; red text, not a pill. */}
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClearAllGamesConfirm(true)}
+                  className="inline-flex items-center min-h-11 px-3 -mr-1 rounded-full font-ui text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                >
+                  {t('playtimePlanner.lineup.clearAllGames', 'Clear all games')}
+                </button>
+              </div>
             </div>
-
-            {/* Export JSON: a rare utility, inline at the bottom of the Settings
-                tab (was the footer's left side). */}
-            <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} w-full`}>
-              {t('playtimePlanner.versions.export', 'Export JSON')}
-            </button>
           </div>
         )}
 
@@ -2471,7 +2538,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       aria-current={isCurrent ? 'true' : undefined}
                       title={g.label}
                       className={[
-                        'w-28 min-h-14 pl-3 pr-7 py-2 rounded-2xl text-left font-ui transition-colors',
+                        'flex flex-col justify-center min-w-[6.5rem] max-w-[11rem] min-h-14 pl-3 pr-7 py-2 rounded-2xl text-left font-ui transition-colors',
                         'focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon',
                         isCurrent
                           ? 's1-seg-on shadow-[inset_0_0_0_1.5px_var(--color-action),0_2px_6px_-2px_rgb(2_6_23/0.75)]'
@@ -2479,20 +2546,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         g.included ? '' : 'opacity-50',
                       ].join(' ')}
                     >
-                      <span
-                        className={`block text-xs font-semibold uppercase tracking-[0.1em] tabular-nums ${
-                          isCurrent ? 'text-ink-2' : 'text-ink-3'
-                        }`}
-                      >
-                        {t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 })}
-                        {incomplete && (
-                          /* Placed count instead of a second dot - two unlabeled
-                             dots (incomplete vs included) were indistinguishable. */
-                          <span className="ml-1.5 tracking-normal text-action">
-                            {placedCount}/{getGameSlots(g.formationId).length}
-                          </span>
-                        )}
-                      </span>
+                      {/* The game's name (the opponent) only - the "P1" prefix
+                          left no room for it (round 2, owner). */}
                       <span
                         className={`block text-sm font-semibold truncate ${
                           isCurrent ? 'text-ink' : 'text-ink-2'
@@ -2500,6 +2555,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       >
                         {g.label}
                       </span>
+                      {incomplete && (
+                        /* Placed count instead of a second dot - two unlabeled
+                           dots (incomplete vs included) were indistinguishable. */
+                        <span className="block text-xs font-semibold tabular-nums text-action">
+                          {placedCount}/{getGameSlots(g.formationId).length}
+                        </span>
+                      )}
                     </button>
                     <button
                       type="button"
@@ -2520,6 +2582,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 );
               })}
             </nav>
+            {layoutToggle}
             </div>
             <div className="w-full max-w-sm mx-auto">
               <PlanFairnessStrip
@@ -2546,7 +2609,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 onSwapPlayers={(a, b) => handleSwapPlayers(editingGame.id, a, b)}
                 onClearSlot={(slotId) => handleClearSlot(editingGame.id, slotId)}
                 onClearAll={() => handleClearAllPlacements(editingGame.id)}
-                onClearAllGames={() => setShowClearAllGamesConfirm(true)}
                 onRemoveSub={(subId) => handleRemoveSub(editingGame.id, subId)}
                 onMoveSub={(subId, slotId) => handleMoveSub(editingGame.id, subId, slotId)}
                 onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(editingGame.id, subId, slotId, playerId)}
@@ -2566,6 +2628,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               </>
             ) : (
               <>
+                {/* Same spot as in the single-game view: the end of the row. */}
+                <div className="flex justify-end -mt-1 -mb-2">{layoutToggle}</div>
                 <PlanFairnessStrip
                   rows={fairness.rows}
                   highlightPlayerIds={highlightPlayerIds}
@@ -2592,9 +2656,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                               setSubSheetTarget(null);
                               setGamesLayout('single');
                             }}
-                            className={`${linkStyle} inline-flex items-center min-h-11 px-2 -my-2 text-sm`}
+                            aria-label={`${t('playtimePlanner.overview.editLineup', 'Edit lineup')}: ${g.label}`}
+                            title={t('playtimePlanner.overview.editLineup', 'Edit lineup')}
+                            className={`${iconButtonEditStyle} -my-2`}
                           >
-                            {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
+                            {/* A small pencil (round 2, owner): the text link
+                                left the game heading no room. */}
+                            <HiOutlinePencil className="w-5 h-5" aria-hidden="true" />
                           </button>
                           {/* Same include toggle as the ribbon dot - the grid is
                               the comparison view, so counting a game in/out must
@@ -2634,7 +2702,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         onSwapPlayers={(a, b) => handleSwapPlayers(g.id, a, b)}
                         onClearSlot={(slotId) => handleClearSlot(g.id, slotId)}
                         onClearAll={() => handleClearAllPlacements(g.id)}
-                        onClearAllGames={() => setShowClearAllGamesConfirm(true)}
                         onRemoveSub={(subId) => handleRemoveSub(g.id, subId)}
                         onMoveSub={(subId, slotId) => handleMoveSub(g.id, subId, slotId)}
                         onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(g.id, subId, slotId, playerId)}

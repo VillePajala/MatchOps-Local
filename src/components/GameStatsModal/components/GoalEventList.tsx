@@ -38,6 +38,8 @@ interface GoalEventListProps {
   onEditGoalTimeChange: (time: string) => void;
   onEditGoalScorerChange: (scorerId: string) => void;
   onEditGoalAssisterChange: (assisterId: string | undefined) => void;
+  /** Adds a goal; rendered as the last row of the log card. Omit to hide the row. */
+  onAddGoal?: () => void;
 }
 
 const formatTime = (timeInSeconds: number): string => {
@@ -63,6 +65,7 @@ export function GoalEventList({
   onEditGoalTimeChange,
   onEditGoalScorerChange,
   onEditGoalAssisterChange,
+  onAddGoal,
 }: GoalEventListProps) {
   const { t } = useTranslation();
   // The app's one player order and name format (review 7.L5/7.L8).
@@ -240,6 +243,16 @@ export function GoalEventList({
           </div>
         ))}
       </div>
+      )}
+      {onAddGoal && (
+        <button
+          type="button"
+          onClick={onAddGoal}
+          data-testid="spine-add-goal"
+          className={`${secondaryButtonStyle} mt-3 w-full`}
+        >
+          {t('gameStatsModal.spineAddGoal', 'Add a goal')}
+        </button>
       )}
     </div>
   );

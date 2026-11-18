@@ -422,6 +422,9 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
     <>
         {/* External Games Section - Collapsible */}
         <div className="mt-6 mb-4">
+          {/* Opened as its own screen (defaultOpen) there is nothing to collapse into:
+              the section is always open, so the add button is always in view. */}
+          {!defaultOpen && (
           <button
             type="button"
             onClick={() => setShowExternalGames(v => !v)}
@@ -431,16 +434,22 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
             <span className="font-semibold text-ink">{t('playerStats.externalGames', 'Added stats')}</span>
             <span className="shrink-0 text-xl leading-none text-ink-3">{showExternalGames ? '−' : '+'}</span>
           </button>
+          )}
           {showExternalGames && (
-            <div className="mt-3">
+            <div className={defaultOpen ? '' : 'mt-3'}>
               <button
                 type="button"
-                className={`${secondaryButtonStyle} w-full`}
+                className={`${primaryButtonStyle} w-full`}
                 data-testid="add-external-game"
                 onClick={() => { if (!showAdjForm) { adjScope.reset(); resetAdjAdoption(); } setShowAdjForm(!showAdjForm); setEditingAdjId(null); }}
               >
                 {t('playerStats.addExternalStats', 'Add game')}
               </button>
+              {!hasAdjustments && !showAdjForm && (
+                <p className={`mt-3 text-center ${subtextStyle}`} data-testid="external-games-empty">
+                  {t('playerStats.noExternalGames', 'No added games yet.')}
+                </p>
+              )}
           {showAdjForm && (
             <form
               className={`${cardStyle} mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`}

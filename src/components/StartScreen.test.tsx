@@ -795,7 +795,8 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
    */
   it('the Taso link sits on the games front page (game-day workflow tool)', () => {
     render(<StartScreen {...shellProps()} />);
-    const taso = screen.getByRole('link', { name: /Taso - lineups & results/ });
+    const taso = screen.getByRole('link', { name: /Taso/ });
+    expect(taso).toHaveTextContent('lineups & results');
     expect(taso).toHaveAttribute('href', 'https://taso.palloliitto.fi');
     expect(taso).toHaveAttribute('target', '_blank');
   });
@@ -924,25 +925,35 @@ describe('Home dashboard view (opt-in)', () => {
     expect(props.onSetHomeView).toHaveBeenCalledWith('simple'); // was 'dashboard'
   });
 
-  it('Club tab shows the counts header when the dashboard is on', () => {
+  it('Club tab shows the counts on the rows when the dashboard is on', () => {
     const props = { ...dashProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn(), onOpenTraining: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
-    expect(screen.getByText(/18 players/)).toBeInTheDocument();
-    expect(screen.getByText(/3 teams/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Players\s*18/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Teams\s*3/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Personnel\s*\d+/ })).toBeInTheDocument();
   });
 
   it('Kilpailut tab shows the club-season card; it opens OVERALL stats (not a Kausi)', () => {
     const props = { ...dashProps(), onManageSeasons: jest.fn(), onManageTournaments: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
-    expect(screen.getByText('This season')).toBeInTheDocument();
-    expect(screen.getByText(/3 leagues · 2 tournaments/)).toBeInTheDocument();
+    expect(screen.getByText('24/25')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Leagues\s*3/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Tournaments\s*2/ })).toBeInTheDocument();
     // The card shows the club-season (Vuosi) record, so it must open OVERALL
     // stats - NOT the 'season' tab (a user Kausi). Guards the #688 fix.
     (props.onViewStatsTab as jest.Mock).mockClear();
-    fireEvent.click(screen.getByText('This season'));
+    fireEvent.click(screen.getByText('24/25'));
     expect(props.onViewStatsTab).toHaveBeenCalledWith('overall');
+  });
+
+  it('Tilastot tab shows one empty message, not zero tiles, before any game is played', () => {
+    const empty = { ...summary, vuosi: { ...summary.vuosi!, gamesPlayed: 0, wins: 0, ties: 0, losses: 0, goalDifference: 0 }, topScorer: null };
+    render(<StartScreen {...dashProps({ homeSummary: empty })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.getByTestId('home-stats-empty')).toBeInTheDocument();
+    expect(screen.queryByText('Goal diff')).not.toBeInTheDocument();
   });
 
   it('Tilastot tab shows the overview tiles when on', () => {

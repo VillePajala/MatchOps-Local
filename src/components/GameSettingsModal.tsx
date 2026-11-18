@@ -1490,7 +1490,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     }}
                     className={selectStyle}
                   >
-                    <option value="">{t('gameSettingsModal.noCaptain', '-- No captain --')}</option>
+                    <option value="">{t('gameSettingsModal.noCaptain', 'No captain')}</option>
                     {squadInOrder.map((player) => (
                       <option key={player.id} value={player.id}>
                         {playerListLabel(player)}
@@ -1524,7 +1524,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       onChange={(e) => handleFairPlayCardClick(e.target.value || null)}
                       className={`${selectStyle} flex-1`}
                     >
-                      <option value="">{t('gameSettingsModal.selectPlayerForFairPlay', '-- Select Player --')}</option>
+                      <option value="">{t('gameSettingsModal.selectPlayerForFairPlay', 'Select Player')}</option>
                       {squadInOrder.map((player) => (
                         <option key={player.id} value={player.id}>
                           {playerListLabel(player)}
@@ -1583,7 +1583,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     onChange={handleSeasonChange}
                     className={selectStyle}
                   >
-                    <option value="">{t('gameSettingsModal.selectSeason', '-- Select League --')}</option>
+                    <option value="">{t('gameSettingsModal.selectSeason', 'Select League')}</option>
                     {sortedSeasons.map((season) => (
                       <option key={season.id} value={season.id}>
                         {getSeasonDisplayName(season)}
@@ -1606,7 +1606,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         id="leagueSelectGameSettings"
                         filterIdSuffix="game"
                         value={leagueId ?? ''}
-                        placeholder={t('gameSettingsModal.selectLeague', '-- Select official league --')}
+                        placeholder={t('gameSettingsModal.selectLeague', 'Select official league')}
                         onChange={(value) => {
                           onLeagueIdChange(value || undefined);
                           // Clear custom name when switching away from "Muu" (intentional)
@@ -1655,7 +1655,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     onChange={handleTournamentChange}
                     className={selectStyle}
                   >
-                    <option value="">{t('gameSettingsModal.selectTournament', '-- Select Tournament --')}</option>
+                    <option value="">{t('gameSettingsModal.selectTournament', 'Select Tournament')}</option>
                     {sortedTournaments.map((tournament) => (
                       <option key={tournament.id} value={tournament.id}>
                         {getTournamentDisplayName(tournament)}
@@ -2166,14 +2166,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 inline at the bottom of the content (Done is now the header
                 X). R3 scroll anchors are id-based and unaffected. */}
             {(error || (canReapplyPlan && onReapplyPlan)) && (
-              <div className="flex flex-wrap items-center gap-3 pt-2">
+              <div className={`${cardStyle} space-y-3`}>
                 {error && (
-                  <div className="font-ui text-sm text-loss mr-auto">{error}</div>
+                  <div className="font-ui text-sm text-loss">{error}</div>
                 )}
                 {canReapplyPlan && onReapplyPlan && (
                   <button
                     onClick={() => setShowReapplyConfirm(true)}
-                    className={secondaryButtonStyle}
+                    className={`${secondaryButtonStyle} w-full`}
                     disabled={isReapplying}
                   >
                     {t('gameSettingsModal.reapplyPlan.button', 'Re-apply plan')}
