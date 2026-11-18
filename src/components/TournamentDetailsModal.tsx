@@ -465,7 +465,8 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
               )}
 
               {/* Start Date and End Date */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Side by side only from 400px: below that a half-width date field clips its own date. */}
+              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
                 <div>
                   <label className={labelStyle}>
                     {t('tournamentDetailsModal.startDateLabel', 'Start Date')}

@@ -42,25 +42,27 @@ export function HeadToHeadCard({ rows, initialRows = 6 }: HeadToHeadCardProps) {
         {t('gameStatsModal.headToHeadHint', 'Your record against each team in this view.')}
       </p>
 
-      {/* Its own scroller: a long team name must not push the numbers off the
-          page, and the page itself must never scroll sideways. */}
+      {/* Fixed layout: the number columns get set widths and the team column
+          takes the rest, truncating a long name - so the numbers always fit
+          on a 320-412px phone. overflow-x-auto stays as a last resort for very
+          large text; the page itself must never scroll sideways. */}
       <div className="s1-list overflow-x-auto py-1">
-        <table className="w-full">
+        <table className="w-full table-fixed">
           <thead>
             <tr className="h-[34px] text-xs font-semibold uppercase tracking-[0.03em] text-ink-3">
               <th scope="col" className="text-left font-semibold py-0 pl-3.5 pr-1.5">
                 {t('gameStatsModal.headToHeadTeam', 'Team')}
               </th>
-              <th scope="col" className="text-center font-semibold py-0 px-1.5">
+              <th scope="col" className="w-8 text-center font-semibold py-0 px-1.5">
                 {t('gameStatsModal.headToHeadPlayed', 'P')}
               </th>
-              <th scope="col" className="text-center font-semibold py-0 px-1.5 whitespace-nowrap">
+              <th scope="col" className="w-16 text-center font-semibold py-0 px-1.5 whitespace-nowrap">
                 {t('gameStatsModal.headToHeadRecord', 'W-D-L')}
               </th>
-              <th scope="col" className="text-right font-semibold py-0 px-1.5 whitespace-nowrap">
+              <th scope="col" className="w-[4.25rem] text-right font-semibold py-0 px-1.5 whitespace-nowrap">
                 {t('gameStatsModal.headToHeadGoals', 'Goals')}
               </th>
-              <th scope="col" className="text-right font-semibold py-0 pl-1.5 pr-3.5">
+              <th scope="col" className="w-12 text-right font-semibold py-0 pl-1.5 pr-3.5">
                 {t('gameStatsModal.headToHeadGd', 'GD')}
               </th>
             </tr>
@@ -72,7 +74,7 @@ export function HeadToHeadCard({ rows, initialRows = 6 }: HeadToHeadCardProps) {
                 className="h-11 border-t border-hairline tabular-nums"
                 data-testid={`head-to-head-row-${row.key}`}
               >
-                <td className="py-0 pl-3.5 pr-1.5 text-[15px] font-semibold text-ink max-w-[10rem] truncate" title={row.opponent}>
+                <td className="py-0 pl-3.5 pr-1.5 text-[15px] font-semibold text-ink truncate" title={row.opponent}>
                   {row.opponent}
                 </td>
                 <td className="py-0 px-1.5 text-center text-[15px] text-ink-2">

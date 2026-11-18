@@ -784,7 +784,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   onBlur={() => onDefaultTeamNameChange(teamName)}
-                  className={`${inlineFieldStyle} w-36! shrink-0`}
+                  // Narrower on a 320px phone so the one-word label keeps its line.
+                  className={`${inlineFieldStyle} w-[min(9rem,34vw)]! shrink-0`}
                 />
               </div>
             </div>
@@ -1257,11 +1258,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 {/* Storage Usage */}
                 <div className={`${listRowStyle} flex-col items-stretch gap-2 py-3 pr-4`}>
-                  <div className="flex items-center justify-between">
+                  {/* Wraps the figure under the label when both do not fit (320px). */}
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                     <p className="font-ui text-base font-medium text-ink">
                       {t('settingsModal.storageUsageLabel', 'Storage Usage')}
                     </p>
-                    <p className={`${subtextStyle} mt-1`}>
+                    <p className={subtextStyle}>
                       {storageEstimate
                         ? t('settingsModal.storageUsageDetails', {
                             used: formatBytes(storageEstimate.usage),
@@ -1307,8 +1309,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Send Feedback */}
-              <div className={`${listRowStyle} py-3 pr-4`}>
-                <div className="flex-1 min-w-0">
+              <div className={`${listRowStyle} flex-wrap gap-y-2 py-3 pr-4`}>
+                <div className="flex-1 min-w-[11rem]">
                   <p className="font-ui text-base font-medium text-ink">
                     {t('settingsModal.sendFeedback', 'Send Feedback')}
                   </p>
@@ -1328,8 +1330,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Copy App Info */}
-              <div className={`${listRowStyle} py-3 pr-4`}>
-                <div className="flex-1 min-w-0">
+              <div className={`${listRowStyle} flex-wrap gap-y-2 py-3 pr-4`}>
+                <div className="flex-1 min-w-[11rem]">
                   <p className="font-ui text-base font-medium text-ink">
                     {t('settingsModal.copyAppInfo', 'Copy app info')}
                   </p>

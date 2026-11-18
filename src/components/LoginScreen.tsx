@@ -16,11 +16,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
 import AuthForm from './AuthForm';
-import {
-  segmentTrackStyle,
-  segmentStyle,
-  segmentSelectedStyle,
-} from '@/styles/modalStyles';
 
 interface LoginScreenProps {
   /** Called when user wants to go back to WelcomeScreen */
@@ -85,23 +80,26 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
           )}
 
           {/* Language Switcher */}
-          <div className={`${segmentTrackStyle} w-24`}>
-            <button
-              type="button"
-              onClick={() => handleChangeLanguage('en')}
-              aria-pressed={language === 'en'}
-              className={`${language === 'en' ? segmentSelectedStyle : segmentStyle} min-h-9 text-xs`}
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              onClick={() => handleChangeLanguage('fi')}
-              aria-pressed={language === 'fi'}
-              className={`${language === 'fi' ? segmentSelectedStyle : segmentStyle} min-h-9 text-xs`}
-            >
-              FI
-            </button>
+          {/* Compact in width, but each button is the full 44px tall touch
+              target; the lifted pill inside it is only the visual. */}
+          <div className="s1-raised flex h-11 rounded-full px-0.5 text-xs font-bold tracking-[0.06em]">
+            {(['en', 'fi'] as const).map((lng) => (
+              <button
+                key={lng}
+                type="button"
+                onClick={() => handleChangeLanguage(lng)}
+                aria-pressed={language === lng}
+                className="group grid h-11 min-w-10 place-items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              >
+                <span
+                  className={`grid h-9 min-w-9 place-items-center rounded-full px-1.5 transition-colors ${
+                    language === lng ? 's1-seg-on text-ink' : 'text-ink-3 group-hover:text-ink-2'
+                  }`}
+                >
+                  {lng.toUpperCase()}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 

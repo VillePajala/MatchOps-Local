@@ -310,7 +310,10 @@ html, body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-rajdhani), sans-serif;
+  /* Inter is the app-wide UI font. Rajdhani is kept only for the "MatchOps"
+     wordmark (set explicitly where it appears); Barlow Condensed (font-display)
+     for big numerals and titles. */
+  font-family: var(--font-inter), system-ui, sans-serif;
 }
 
 /* The app root and the page inside it take the full height (review 10.9). Scoped to

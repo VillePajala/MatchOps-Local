@@ -398,18 +398,24 @@ const StartScreen: React.FC<StartScreenProps> = ({
         </div>
 
         <div className="flex flex-shrink-0 items-center gap-2">
-          <div className="s1-raised flex h-11 rounded-full p-1 text-[13px] font-bold tracking-[0.06em]">
+          {/* Compact in width, but each button is the full 44px tall touch
+              target; the lifted pill inside it is only the visual. */}
+          <div className="s1-raised flex h-11 rounded-full px-0.5 text-[13px] font-bold tracking-[0.06em]">
             {(['en', 'fi'] as const).map((lng) => (
               <button
                 key={lng}
                 type="button"
                 onClick={() => handleChangeLanguage(lng)}
                 aria-pressed={language === lng}
-                className={`min-w-[38px] rounded-full px-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action ${
-                  language === lng ? 's1-seg-on text-ink' : 'text-ink-3 hover:text-ink-2'
-                }`}
+                className="group grid h-11 min-w-10 place-items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
               >
-                {lng.toUpperCase()}
+                <span
+                  className={`grid h-9 min-w-9 place-items-center rounded-full px-1.5 transition-colors ${
+                    language === lng ? 's1-seg-on text-ink' : 'text-ink-3 group-hover:text-ink-2'
+                  }`}
+                >
+                  {lng.toUpperCase()}
+                </span>
               </button>
             ))}
           </div>

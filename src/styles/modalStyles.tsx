@@ -8,9 +8,7 @@
  * in src/app/globals.css, first used by the home screen):
  * - Navy everywhere: the carbon canvas, raised surfaces one step lighter.
  * - Titles are WHITE Barlow Condensed (`font-display`); controls and
- *   text inside the shared pieces use Inter (`font-ui`). The app-wide body
- *   font stays Rajdhani until the last redesign step, so a modal's own text
- *   keeps it until that modal is restyled.
+ *   text use Inter (`font-ui`, also the app-wide body font).
  * - Amber is reserved for the ONE primary action and for selection (`action`).
  *   Green and red mean results (and red, destruction). No purple or indigo.
  * - Pill buttons and touch targets of at least 44px; visible focus rings.
@@ -48,9 +46,14 @@ export const ModalBackgroundEffects: React.FC = () => null;
 // Typography Styles
 // ============================================================================
 
-/** Popup title: white, Barlow Condensed, 30px. */
+/**
+ * Popup title: white, Barlow Condensed, 30px - easing down to 24px below a
+ * 375px-wide screen, so a long one-word Finnish title ("Ottelusuunnittelu")
+ * still fits beside the close button on a 320-360px phone instead of
+ * breaking mid-word.
+ */
 export const titleStyle =
-  "font-display text-3xl font-bold tracking-[0.01em] text-ink";
+  "font-display text-[clamp(1.5rem,8vw,1.875rem)] font-bold tracking-[0.01em] text-ink";
 
 /** A field's label (13px Inter, secondary ink). */
 export const labelStyle =
@@ -141,7 +144,7 @@ export const textareaStyle =
 
 /** A select is the same field with a chevron (`.s1-select`) and dark native options. */
 export const selectStyle =
-  `${inputBaseStyle} s1-select pr-10 [color-scheme:dark]`;
+  `${inputBaseStyle} s1-select pr-10 [color-scheme:dark] text-ellipsis`;
 
 /** A search field: the house input with room for a leading magnifier icon. */
 export const searchInputStyle =
@@ -556,7 +559,7 @@ export const CollapsibleModalHeader: React.FC<{
         </button>
       </div>
       {/* No truncation: the full title must always show (owner feedback
-          2026-07-17). Full prominence (text-3xl from titleStyle),
+          2026-07-17). Full prominence (30px from titleStyle),
           centered, wrapping to a second line for long titles. `break-words`
           so even a single long word (e.g. a Finnish compound) wraps instead
           of overflowing/clipping. */}

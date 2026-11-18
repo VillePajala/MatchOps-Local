@@ -126,7 +126,7 @@ interface ControlBarProps {
 
 /** One row of the side menu: a 48px target, Inter, white on navy. */
 const MENU_ROW =
-  'w-full flex items-center gap-3 min-h-12 px-3 rounded-2xl font-ui text-[15px] font-medium text-ink hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+  'w-full flex items-center gap-3 min-h-12 px-3 py-1.5 rounded-2xl text-left font-ui text-[15px] font-medium text-ink hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
 /** The leading icon of a side-menu row. */
 const MENU_ICON = 'w-5 h-5 shrink-0 text-ink-3';
 /** Shape of a row that leaves the app. Taso is currently the only one. */
@@ -398,7 +398,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
           clock pill and a gap that narrows with the screen (6px, 4px at 320).
           overflow-x-auto stays only as a last resort for the seven-button
           field-tools row on the very narrowest screens. */}
-      <div className={`relative z-40 flex justify-center items-center gap-[min(6px,1.25vw)] h-14 max-w-full px-1.5 rounded-full overflow-x-auto font-ui ${matchGlassStyle}`}>
+      <div className={`relative z-40 flex justify-center items-center gap-[min(6px,1.25vw)] h-14 max-w-full px-1 rounded-full overflow-x-auto font-ui ${matchGlassStyle}`}>
         {!isFieldToolsOpen ? (
           /* Collapsed State - Normal View. Since the bar-level Home button was
              removed (owner feedback: Home is the menu "Koti" entry + hardware

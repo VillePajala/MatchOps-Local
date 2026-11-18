@@ -413,7 +413,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
             so it never scrolls away while logging a goal. */}
         <div className="flex-shrink-0 flex items-start gap-3 pl-5 pr-4">
           <div className="flex-1 min-w-0">
-            <h2 className="font-display italic font-extrabold text-[31px] leading-none tracking-[0.005em] text-ink">
+            <h2 className="font-display font-bold text-[31px] leading-none tracking-[0.005em] text-ink">
               {t('goalLogModal.title', 'Log Goal Event')}
             </h2>
             <div className="mt-2.5 inline-flex items-center gap-2 h-9 px-3 rounded-full bg-white/[0.08] shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">

@@ -115,8 +115,10 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
       </button>
       {expanded && (
         <div className="px-4 pb-4 pt-1 space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-ink-2 w-24 shrink-0">
+          {/* Label above the scale: beside it, the label column left room
+              for only three numbers per row on a 360px phone. */}
+          <div className="space-y-2">
+            <span className="block text-sm text-ink-2">
               {t('playerAssessmentModal.overallLabel', 'Overall')}
             </span>
             <OverallRatingSelector value={overall} onChange={setOverall} />

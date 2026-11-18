@@ -14,8 +14,10 @@ import { sectionLabelStyle, cardStyle } from '@/styles/modalStyles';
 
 /** A summary figure: a list-surface tile with a big italic numeral over a tracked label. */
 const tile = 's1-list flex flex-col items-center justify-start min-w-0 overflow-hidden pt-4 pb-3 text-center';
-const tileNumeral = 'font-display text-[34px] font-extrabold italic leading-[0.9] tabular-nums whitespace-nowrap drop-shadow-[0_2px_0_rgb(0_0_0/0.35)]';
-const tileLabel = 'mt-2 px-0.5 text-xs font-semibold uppercase leading-tight text-ink-3 whitespace-nowrap';
+const tileNumeral = 'font-display text-[clamp(26px,9vw,34px)] font-extrabold italic leading-[0.9] tabular-nums whitespace-nowrap drop-shadow-[0_2px_0_rgb(0_0_0/0.35)]';
+// Sentence case and allowed to wrap: in Inter an uppercase "VOITTOPROSENTTI"
+// is wider than a third of a 320-360px phone and was clipped.
+const tileLabel = 'mt-2 px-1 text-xs font-semibold leading-tight text-ink-3 break-words';
 const kvKey = 'text-[15px] text-ink-2';
 const kvValue = 'text-base font-bold text-ink tabular-nums';
 
@@ -95,7 +97,8 @@ export function TeamPerformanceCard({
               <span className={losses > 0 ? 'text-loss' : 'text-ink-3'}>{losses}</span>
             </span>
           </div>
-          <div className={tileLabel}>{t('common.record', 'Record (W-D-L)')}</div>
+          {/* Non-breaking hyphens: a wrap may fall before "(W-D-L)", never inside it. */}
+          <div className={tileLabel}>{t('common.record', 'Record (W-D-L)').replace(/-/g, '\u2011')}</div>
         </div>
         <div className={tile}>
           <div className={`${tileNumeral} ${gdTone}`}>
@@ -106,7 +109,7 @@ export function TeamPerformanceCard({
         </div>
         <div className={tile}>
           <div className={`${tileNumeral} text-ink`}>{formatAppPercent(winPercentage)}</div>
-          <div className={tileLabel}>{t('common.winPercentage', 'Win Percentage')}</div>
+          <div className={tileLabel}>{t('common.winPercentageShort', 'Win %')}</div>
         </div>
       </div>
       <div className="s1-list mt-2.5 overflow-hidden">

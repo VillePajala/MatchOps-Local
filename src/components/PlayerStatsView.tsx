@@ -457,7 +457,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         {/* Summary Stats */}
         <div className="bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] hover:bg-white/[0.05] rounded-lg p-4 mb-3 shadow-inner transition-all">
           {/* Primary Stats Row with Averages */}
-          <div className="grid grid-cols-4 gap-3 sm:gap-4 text-center">
+          {/* min-w-0 cells and a wrap point after the slash: on a 360px phone
+              the per-game figures ran into each other. */}
+          <div className="grid grid-cols-4 gap-2 sm:gap-4 text-center [&>div]:min-w-0">
             <div>
               <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalGames}</p>
               <p className="text-sm text-ink-2 font-medium">{t('playerStats.gamesPlayed', 'Games Played')}</p>
@@ -465,17 +467,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             <div>
               <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalGoals}</p>
               <p className="text-sm text-ink-2 font-medium">{t('playerStats.goals', 'Goals')}</p>
-              <p className="text-sm text-ink-3 mt-1">({formatAppDecimal(playerStats.avgGoalsPerGame)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-xs leading-tight text-ink-3 mt-1">({formatAppDecimal(playerStats.avgGoalsPerGame)}/{'\u200b'}{t('playerStats.perGameShort', 'game')})</p>
             </div>
             <div>
               <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalAssists}</p>
               <p className="text-sm text-ink-2 font-medium">{t('playerStats.assists', 'Assists')}</p>
-              <p className="text-sm text-ink-3 mt-1">({formatAppDecimal(playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-xs leading-tight text-ink-3 mt-1">({formatAppDecimal(playerStats.avgAssistsPerGame)}/{'\u200b'}{t('playerStats.perGameShort', 'game')})</p>
             </div>
             <div>
               <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalGoals + playerStats.totalAssists}</p>
               <p className="text-sm text-ink-2 font-medium">{t('playerStats.points', 'Points')}</p>
-              <p className="text-sm text-ink-3 mt-1">({formatAppDecimal(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="text-xs leading-tight text-ink-3 mt-1">({formatAppDecimal(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame)}/{'\u200b'}{t('playerStats.perGameShort', 'game')})</p>
             </div>
           </div>
           {/* Wearing the armband, only when it happened. A zero here would

@@ -87,19 +87,21 @@ export function GameInfoCard({
       {/* The result as the home screen shows it: a hero card whose light and
           numeral take the result's colour (green win, red loss, white draw). */}
       <div className={`s1-hero ${heroTint} px-[18px] pt-[18px] pb-1.5 text-ink`}>
+        {/* Names and score ease down on a narrow phone, so a one-word club name
+            ("Kuusankoski") keeps its line instead of breaking mid-word. */}
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 pb-3.5">
-          <span className="min-w-0 break-words font-display text-xl font-bold leading-[1.05]">
+          <span className="min-w-0 break-words font-display text-[clamp(16px,5vw,20px)] font-bold leading-[1.05]">
             {homeTeamName}
           </span>
           <span className="flex flex-col items-center">
-            <span className={`${numeral} whitespace-nowrap pl-0.5 pr-2 font-display text-[54px] font-extrabold italic leading-[0.95] tabular-nums`}>
+            <span className={`${numeral} whitespace-nowrap pl-0.5 pr-2 font-display text-[clamp(40px,14vw,54px)] font-extrabold italic leading-[0.95] tabular-nums`}>
               {homeScore}–{awayScore}
             </span>
             {extraNote && (
               <span className="mt-1 text-[13px] font-medium text-ink-3 whitespace-nowrap">{extraNote}</span>
             )}
           </span>
-          <span className="min-w-0 break-words text-right font-display text-xl font-bold leading-[1.05]">
+          <span className="min-w-0 break-words text-right font-display text-[clamp(16px,5vw,20px)] font-bold leading-[1.05]">
             {awayTeamName}
           </span>
         </div>

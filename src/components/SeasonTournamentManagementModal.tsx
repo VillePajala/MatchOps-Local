@@ -9,7 +9,6 @@ import {
     modalContainerStyle,
     primaryButtonStyle,
     secondaryButtonStyle,
-    groupedListStyle,
     searchInputStyle,
     popoverMenuStyle,
     popoverItemStyle,
@@ -312,12 +311,14 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                             : t('seasonTournamentModal.noTournamentsNudge', 'No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats.')}
                     </p>
                 )}
+                {/* Not overflow-hidden: that clipped a row's action menu when the
+                    list is short. The rows round their own hover corners instead. */}
                 {filtered.length > 0 && (
-                <div className={`${groupedListStyle} divide-y divide-hairline`}>
+                <div className="s1-list divide-y divide-hairline">
                     {filtered.map((item) => (
                         <div
                             key={item.id}
-                            className={`pt-4 font-ui cursor-pointer transition-colors hover:bg-white/[0.03] ${item.archived ? 'opacity-60' : ''}`}
+                            className={`pt-4 font-ui cursor-pointer transition-colors hover:bg-white/[0.03] first:rounded-t-[22px] last:rounded-b-[22px] ${item.archived ? 'opacity-60' : ''}`}
                             onClick={() => type === 'season' ? handleSeasonClick(item.id) : handleTournamentClick(item.id)}
                         >
                             <div className="flex items-start gap-2 pl-[18px] pr-2">

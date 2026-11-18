@@ -13,8 +13,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import I18nInitializer from "@/components/I18nInitializer";
 import { manifestConfig } from "@/config/manifest.config.js";
 
-// Configure Rajdhani font. 700 is loaded too: without it every font-bold in the
-// app was a browser-synthesised smear of the 600.
+// Rajdhani: only the "MatchOps" wordmark uses it now (bold).
 const rajdhani = Rajdhani({
   subsets: ['latin'],
   weight: ['400', '600', '700'],
@@ -22,10 +21,8 @@ const rajdhani = Rajdhani({
   display: 'swap',
 });
 
-// Home screen (S1 redesign) only: Barlow Condensed for numerals and names,
-// Inter for text. Exposed as CSS variables and applied through the
-// font-display / font-ui theme tokens in globals.css - the app-wide body font
-// stays Rajdhani.
+// Barlow Condensed for big numerals and titles (font-display), Inter for all
+// UI text: Inter is the app-wide body font (globals.css) and the font-ui token.
 const barlowCondensed = Barlow_Condensed({
   subsets: ['latin'],
   weight: ['600', '700', '800'],

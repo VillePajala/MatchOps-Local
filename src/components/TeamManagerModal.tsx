@@ -3,7 +3,7 @@
 import { useRememberedListSetting, isBoolean } from '@/hooks/useRememberedListSetting';
 import { matchesSearch } from '@/utils/listSearch';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { secondaryButtonStyle, dangerButtonStyle, primaryButtonStyle, CollapsibleModalHeader, useCollapsingHeader, modalContainerStyle, searchInputStyle, groupedListStyle, popoverMenuStyle, popoverItemStyle, iconButtonEditStyle, badgeArchivedStyle, pillAmberStyle, dialogContainerStyle, dialogTitleStyle, dialogBodyStyle, warningBoxStyle } from '@/styles/modalStyles';
+import { secondaryButtonStyle, dangerButtonStyle, primaryButtonStyle, CollapsibleModalHeader, useCollapsingHeader, modalContainerStyle, searchInputStyle, popoverMenuStyle, popoverItemStyle, iconButtonEditStyle, badgeArchivedStyle, pillAmberStyle, dialogContainerStyle, dialogTitleStyle, dialogBodyStyle, warningBoxStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -387,13 +387,15 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               );
             }
 
+            // Not overflow-hidden: that clipped a team's action menu when the
+            // list is short. The rows round their own hover corners instead.
             return (
-              <div className={groupedListStyle}>
+              <div className="s1-list">
                 <div className="divide-y divide-hairline">
                   {filteredTeams.map((team) => (
                     <div
                       key={team.id}
-                      className={`px-[18px] py-4 font-ui transition-colors hover:bg-white/[0.03] ${team.archived ? 'opacity-60' : ''}`}
+                      className={`px-[18px] py-4 font-ui transition-colors hover:bg-white/[0.03] first:rounded-t-[22px] last:rounded-b-[22px] ${team.archived ? 'opacity-60' : ''}`}
                     >
                       {/* Top row: Team name + archived badge + actions */}
                       <div className="flex items-start justify-between gap-2">
@@ -466,10 +468,14 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                       </div>
 
                       {/* Bottom row: Metadata left, context labels right */}
-                      <div className="flex items-end justify-between gap-4 mt-2 text-sm">
+                      {/* Wraps: when the labels do not fit beside the metadata
+                          (a long league name on a 360px phone) they take their
+                          own line instead of squeezing "14 players" into a
+                          one-word column. */}
+                      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 mt-2 text-sm">
                         {/* Left: Team metadata */}
                         <div
-                          className="flex flex-col text-ink-3 cursor-pointer hover:opacity-80 transition-opacity"
+                          className="flex flex-col whitespace-nowrap text-ink-3 cursor-pointer hover:opacity-80 transition-opacity"
                           onClick={() => handleEditTeam(team.id)}
                         >
                           <span>
@@ -504,45 +510,45 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                         </div>
 
                         {/* Right: Context labels - wrap upward from bottom right */}
-                        <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
+                        <div className="flex min-w-0 flex-1 basis-44 flex-wrap-reverse justify-end content-end gap-1.5">
                           {/* Age group */}
                           {team.ageGroup && (
                             <span
-                              className="inline-flex items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
+                              className="inline-flex max-w-full items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.ageGroupContext', 'Age group: {{ageGroup}}', { ageGroup: team.ageGroup })}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.clubSeason}`}></span>
+                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.clubSeason}`}></span>
                               {team.ageGroup}
                             </span>
                           )}
                           {/* Game type */}
                           {team.gameType === 'futsal' && (
                             <span
-                              className="inline-flex items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
+                              className="inline-flex max-w-full items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.gameTypeContext', 'Game type: Futsal')}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gameType}`}></span>
+                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.gameType}`}></span>
                               {t('common.gameTypeFutsal', 'Futsal')}
                             </span>
                           )}
                           {/* Season - shows full name with club season */}
                           {team.boundSeasonId && seasonMap[team.boundSeasonId] && (
                             <span
-                              className="inline-flex items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
+                              className="inline-flex max-w-full items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.seasonContext', 'League: {{name}}', { name: getSeasonDisplayName(seasonMap[team.boundSeasonId]) })}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.season}`}></span>
-                              {getSeasonDisplayName(seasonMap[team.boundSeasonId])}
+                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.season}`}></span>
+                              <span className="truncate">{getSeasonDisplayName(seasonMap[team.boundSeasonId])}</span>
                             </span>
                           )}
                           {/* Tournament - shows full name with club season */}
                           {team.boundTournamentId && tournamentMap[team.boundTournamentId] && (
                             <span
-                              className="inline-flex items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
+                              className="inline-flex max-w-full items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.tournamentContext', 'Tournament: {{name}}', { name: getTournamentDisplayName(tournamentMap[team.boundTournamentId]) })}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`}></span>
-                              {getTournamentDisplayName(tournamentMap[team.boundTournamentId])}
+                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.tournament}`}></span>
+                              <span className="truncate">{getTournamentDisplayName(tournamentMap[team.boundTournamentId])}</span>
                             </span>
                           )}
                           {/* Tournament Series */}
@@ -551,10 +557,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                             if (!series) return null;
                             return (
                               <span
-                                className="inline-flex items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
+                                className="inline-flex max-w-full items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                                 aria-label={t('teamManager.seriesContext', 'Level: {{level}}', { level: series.level })}
                               >
-                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.series}`}></span>
+                                <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.series}`}></span>
                                 {t(`common.level${series.level}`, series.level)}
                               </span>
                             );

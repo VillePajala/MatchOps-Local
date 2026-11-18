@@ -851,7 +851,7 @@ describe('SoccerField Component - Interaction Testing', () => {
 
 // Import helper function and constant for direct testing
 import { isPositionOccupied, SUB_SLOT_OCCUPATION_THRESHOLD } from '../SoccerField';
-import { resolveSnapAction, discCenterX } from '../SoccerField';
+import { resolveSnapAction, discCenterX, findClearGhostY } from '../SoccerField';
 
 describe('isPositionOccupied Helper Function', () => {
   const createPlayer = (relX?: number, relY?: number): Player => ({
@@ -1465,5 +1465,33 @@ describe('discCenterX (edge discs stay on the canvas)', () => {
 
   it('leaves the position alone when the canvas is too narrow to hold the disc', () => {
     expect(discCenterX(0.5, 40, 24)).toBe(20);
+  });
+});
+
+/**
+ * A planned-sub ghost must never overlap a real disc: a sub parked by hand
+ * a little off its sideline slot sat half on top of the neighbouring ghost.
+ * @edge-case
+ */
+describe('findClearGhostY (ghosts never overlap a disc)', () => {
+  const R = 24;
+  const clearOf = (y: number, o: { x: number; y: number; r: number }) =>
+    Math.hypot(o.x - 300, o.y - y) >= o.r + R + 2;
+
+  it('keeps the slot position when nothing is near', () => {
+    expect(findClearGhostY(300, 400, R, [{ x: 100, y: 400, r: R }])).toBe(400);
+  });
+
+  it('slides along the rail, away from a disc that overlaps the slot', () => {
+    const disc = { x: 300, y: 445, r: R };
+    const y = findClearGhostY(300, 410, R, [disc]);
+    expect(y).not.toBeNull();
+    expect(y as number).toBeLessThan(410);
+    expect(clearOf(y as number, disc)).toBe(true);
+  });
+
+  it('gives up (null) when no spot within one radius is clear', () => {
+    // Discs right above and below the slot: there is no room on the rail.
+    expect(findClearGhostY(300, 400, R, [{ x: 300, y: 380, r: R }, { x: 300, y: 420, r: R }])).toBeNull();
   });
 });

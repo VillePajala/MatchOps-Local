@@ -16,7 +16,7 @@ import { formatDriveTime } from '@/utils/travelPlan';
  * this file hard-codes a hex value.
  *
  * Inter (`font-ui`) is the text face here; Barlow Condensed (`font-display`)
- * is for numerals and names. The rest of the app stays on Rajdhani.
+ * is for numerals and names, as in the rest of the app.
  */
 
 /** Visible keyboard focus, the same everywhere on Home. */
@@ -974,8 +974,10 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
   // label drops to a caption. Not pressable, so no hover.
   const tile = (n: React.ReactNode, label: string) => (
     <div className={`${HOME_CARD} min-w-0 flex-1 px-1.5 py-4 text-center`}>
-      <div className="font-display text-[40px] font-extrabold italic leading-none text-ink tabular-nums">{n}</div>
-      <div className="mt-2 break-words text-xs font-semibold uppercase leading-tight tracking-[0.04em] text-ink-3">
+      <div className="whitespace-nowrap font-display text-[clamp(26px,9vw,40px)] font-extrabold italic leading-none text-ink tabular-nums">{n}</div>
+      {/* Sentence case: in Inter an uppercase "MAALINTEKIJÄ" is wider than a
+          third-width tile on a 360px phone and broke mid-word. */}
+      <div className="mt-2 break-words text-xs font-semibold leading-tight text-ink-3">
         {label}
       </div>
     </div>

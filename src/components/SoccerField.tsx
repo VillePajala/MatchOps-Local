@@ -137,6 +137,13 @@ export function discCenterX(relX: number, width: number, radius: number): number
  * thread runs back to the player's real disc, because the same name appearing
  * twice on the field only means something once you can see the two are one
  * player.
+ *
+ * A ghost never overlaps a real disc. A sub parked by hand a little off its
+ * slot (the owner's Eino) used to sit half on top of the neighbouring ghost
+ * (Niilo): the ghost now slides along the rail, up to one radius, to the
+ * nearest spot clear of every real disc and every ghost already drawn. If
+ * there is no such spot the real disc is effectively standing on that slot,
+ * and the ghost is left out - the same rule as a disc sitting exactly on it.
  */
 function drawPlannedGhosts(
   ctx: CanvasRenderingContext2D,
@@ -144,11 +151,15 @@ function drawPlannedGhosts(
   W: number,
   H: number,
   radius: number,
+  discs: readonly { x: number; y: number; r: number }[] = [],
 ): void {
+  const placed: { x: number; y: number; r: number }[] = [];
   ctx.save();
   ghosts.forEach((ghost) => {
     const gx = discCenterX(ghost.relX, W, radius);
-    const gy = ghost.relY * H;
+    const gy = findClearGhostY(gx, ghost.relY * H, radius, [...discs, ...placed]);
+    if (gy === null) return;
+    placed.push({ x: gx, y: gy, r: radius });
 
     // The thread home, drawn first so the circle sits on top of its end.
     if (typeof ghost.fromRelX === 'number' && typeof ghost.fromRelY === 'number') {
@@ -199,6 +210,41 @@ function drawPlannedGhosts(
     ctx.fillText(ghost.name, tx, gy);
   });
   ctx.restore();
+}
+
+/** Where each placed player's disc is drawn, for keeping ghosts off them. */
+function placedDiscs(
+  players: readonly Player[],
+  W: number,
+  H: number,
+  r: number,
+): { x: number; y: number; r: number }[] {
+  return players
+    .filter((p) => typeof p.relX === 'number' && typeof p.relY === 'number')
+    .map((p) => ({ x: discCenterX(p.relX as number, W, r), y: (p.relY as number) * H, r }));
+}
+
+/** Breathing room kept between a ghost and any disc next to it. */
+const GHOST_CLEARANCE = 2;
+
+/**
+ * The y nearest `y0` (within one radius, 2px steps) where a ghost of `radius`
+ * centred at `x` overlaps none of `others`; null when there is none.
+ * Exported for tests.
+ */
+export function findClearGhostY(
+  x: number,
+  y0: number,
+  radius: number,
+  others: readonly { x: number; y: number; r: number }[],
+): number | null {
+  const clear = (y: number) =>
+    others.every((o) => Math.hypot(o.x - x, o.y - y) >= o.r + radius + GHOST_CLEARANCE);
+  for (let d = 0; d <= radius; d += 2) {
+    if (clear(y0 - d)) return y0 - d;
+    if (d > 0 && clear(y0 + d)) return y0 + d;
+  }
+  return null;
 }
 
 /** Rounded rectangle path, by hand - ctx.roundRect is not everywhere yet. */
@@ -1074,7 +1120,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // the pixels, and skipped entirely on the tactics board, which is about
     // shapes rather than the squad.
     if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
-      drawPlannedGhosts(ctx, plannedGhosts, W, H, FIELD_PLAYER_RADIUS);
+      drawPlannedGhosts(ctx, plannedGhosts, W, H, FIELD_PLAYER_RADIUS, placedDiscs(players, W, H, FIELD_PLAYER_RADIUS * scale));
     }
     if (!isTacticsBoardView && plannedChains && plannedChains.length > 0) {
       drawPlannedChains(ctx, plannedChains, W, H);
@@ -1522,7 +1568,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // disc is waiting at. Drawn AFTER the sub-slot circles (so the slot ring
     // stays underneath) and BEFORE the players, so a real disc always wins.
     if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
-      drawPlannedGhosts(context, plannedGhosts, W, H, FIELD_PLAYER_RADIUS);
+      drawPlannedGhosts(context, plannedGhosts, W, H, FIELD_PLAYER_RADIUS, placedDiscs(players, W, H, FIELD_PLAYER_RADIUS));
     }
     if (!isTacticsBoardView && plannedChains && plannedChains.length > 0) {
       drawPlannedChains(context, plannedChains, W, H);
