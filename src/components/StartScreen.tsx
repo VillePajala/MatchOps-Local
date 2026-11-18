@@ -58,7 +58,8 @@ const ROW_OFF = 'opacity-40 cursor-not-allowed';
 /** The row's text area carries the divider, so it starts after the icon. */
 const ROW_RULE = 'flex min-h-14 flex-1 min-w-0 items-center gap-3 pr-4 border-t border-hairline group-first/row:border-transparent';
 const ROW_ICON = 'w-[22px] h-[22px] flex-shrink-0 self-center text-ink-2';
-const ROW_LABEL = 'flex-1 min-w-0 truncate text-left text-base font-semibold text-ink';
+// Labels wrap rather than truncate: "Taso - kokoonpanot ja tulokset" lost its last word at 16px.
+const ROW_LABEL = 'flex-1 min-w-0 break-words text-left text-base font-semibold leading-snug text-ink';
 const ROW_CHEVRON = <HiOutlineChevronRight className="w-4 h-4 flex-shrink-0 text-ink-3" aria-hidden="true" />;
 const ROW_EXTERNAL = <HiOutlineArrowTopRightOnSquare className="w-[18px] h-[18px] flex-shrink-0 text-ink-3" aria-hidden="true" />;
 
@@ -432,7 +433,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
       {/* === MAIN CONTENT === Scrolls when content exceeds the viewport, so
           the lower rows are never clipped; the tab bar below stays put.
           min-h-0 lets the flex child actually shrink to enable it. */}
-      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto px-4 pt-1 pb-5">
+      {/* Content fades out under the top bar instead of being cut by a hard edge. */}
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-5 [mask-image:linear-gradient(to_bottom,transparent_0,black_14px)]">
         <div className={`mx-auto w-full max-w-md ${STACK}`}>
 
           {/* Tagline - the simple launcher only (the dashboard leads with its

@@ -414,9 +414,12 @@ function ResumeCard({ resume, onResume, locale, t }: {
         /* The opponent gets the full width (a long club name must not wrap
            into the score); the score sits opposite the venue lines below. */
         <button type="button" onClick={onResume} className={`${HERO_BODY} mt-3`}>
-          <Opponent who={who} t={t} stacked className="text-[28px]" />
+          {/* A short name sits beside the score (no dead space when the venue is
+              missing); only a long one takes its own row above it. */}
+          {who.length > 12 && <Opponent who={who} t={t} stacked className="text-[28px]" />}
           <span className="mt-1 flex items-end justify-between gap-3">
             <span className="block min-w-0 pb-1">
+              {who.length <= 12 && <Opponent who={who} t={t} stacked className="text-[28px]" />}
               {(name || resume.venueTown || resume.fieldNumber) && (
                 <span className="mt-1 block break-words text-[13px] leading-[1.35] text-ink-2">
                   {name && <span className="block">{name}</span>}
