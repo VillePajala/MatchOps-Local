@@ -368,7 +368,9 @@ export function FieldContainer({
     // above the floating control capsule (see GameContainer). The canvas
     // fills it, so relative player coordinates map to this box exactly as
     // they always have; the grass around it is GameContainer's backdrop.
-    <div className="absolute inset-x-0 top-[96px] bottom-[calc(72px+env(safe-area-inset-bottom,0px))] overflow-hidden">
+    // 104px = the panel's top inset (8) + score row (46) + player bar (68),
+    // less the 18px the panel overlaps the pitch's own top margin.
+    <div className="absolute inset-x-0 top-[104px] bottom-[calc(72px+env(safe-area-inset-bottom,0px))] overflow-hidden">
       {/* First-visit orientation card (Onboarding v2 PR 21): overlays the top
           of the pitch once, never blocks it. */}
       <FirstVisitIntro

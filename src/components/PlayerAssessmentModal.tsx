@@ -144,13 +144,13 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
                   {t('gameStatsModal.gameInfoTitle', 'Game Information')}
                 </h3>
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 mt-3 mb-3.5">
-                  <span className="font-display text-[23px] font-bold italic leading-[1.05] text-ink">
+                  <span className="font-display text-[23px] font-bold leading-[1.05] text-ink">
                     {displayHomeTeamName || 'Home'}
                   </span>
                   <span className="s1-numeral pr-[0.08em] font-display text-[46px] font-extrabold italic leading-[0.9]">
                     {homeScore}-{awayScore}
                   </span>
-                  <span className="font-display text-[23px] font-bold italic leading-[1.05] text-ink text-right">
+                  <span className="font-display text-[23px] font-bold leading-[1.05] text-ink text-right">
                     {displayAwayTeamName || 'Away'}
                   </span>
                 </div>

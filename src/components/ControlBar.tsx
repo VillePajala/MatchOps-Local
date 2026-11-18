@@ -185,7 +185,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
 
   // Round buttons inside the floating capsule (48px; 44px in the busier
   // field-tools row so all seven fit a phone's width).
-  const buttonStyle = `${matchCapsuleButtonStyle} w-11! h-11!`;
+  const buttonStyle = matchCapsuleButtonStyle;
   const iconSize = DESIGN_TOKENS.ICON_SIZE;
 
   /** Exits the whole tactics workflow - the X button and a hardware back. */
@@ -394,7 +394,11 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
       {/* The control bar: a floating navy capsule over the grass. The glass is
           on THIS element, not on a wrapper, so the fixed side menu below is
           not trapped inside a backdrop-filter containing block. */}
-      <div className={`relative z-40 flex justify-center items-center gap-2 h-16 max-w-full px-2 rounded-full overflow-x-auto font-ui ${matchGlassStyle}`}>
+      {/* Sized to fit a 360px phone without scrolling: 44px buttons, a 100px
+          clock pill and a gap that narrows with the screen (6px, 4px at 320).
+          overflow-x-auto stays only as a last resort for the seven-button
+          field-tools row on the very narrowest screens. */}
+      <div className={`relative z-40 flex justify-center items-center gap-[min(6px,1.25vw)] h-14 max-w-full px-1.5 rounded-full overflow-x-auto font-ui ${matchGlassStyle}`}>
         {!isFieldToolsOpen ? (
           /* Collapsed State - Normal View. Since the bar-level Home button was
              removed (owner feedback: Home is the menu "Koti" entry + hardware
@@ -402,7 +406,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
              menu - are ONE centered group (the parent is justify-center); no
              more left/right spacers stranding the menu on the far right. */
           <>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-[min(6px,1.25vw)]">
             {/* Tactics Button - Opens field tools + enters tactics mode + enables drawing */}
             <button
               onClick={() => {
@@ -431,7 +435,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             <button
               onClick={onToggleLargeTimerOverlay}
               data-testid="tour-timer-button"
-              className="h-12 w-32 shrink-0 flex items-center justify-center gap-2 pr-1 rounded-full bg-white/[0.12] shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] hover:bg-white/[0.16] transition-colors active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon"
+              className="h-11 w-[100px] shrink-0 flex items-center justify-center gap-1.5 pr-1 rounded-full bg-white/[0.12] shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] hover:bg-white/[0.16] transition-colors active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon"
               title={t('controlBar.openTimer', 'Open Timer')}
               aria-label={t('controlBar.openTimer', 'Open Timer')}
             >
@@ -442,7 +446,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               />
               {/* SteadyDigits boxes each digit, so the clock - and every
                   button beside it in this row - cannot shift once a second. */}
-              <SteadyDigits className="font-display italic font-extrabold text-[32px] leading-none tracking-[0.02em] text-ink">
+              <SteadyDigits className="font-display italic font-extrabold text-[26px] leading-none whitespace-nowrap text-ink">
                 {formatTime(timeElapsedInSeconds)}
               </SteadyDigits>
             </button>
@@ -561,14 +565,17 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
         <div className="fixed inset-0 bg-[rgb(2_6_23/0.6)] z-40" onClick={handleOverlayClick} aria-hidden="true" />
       )}
 
-      {/* Settings Side Panel */}
+      {/* Settings Side Panel. Closed, it parks 64px further left than its own
+          width: its drop shadow reaches 48px past its right edge, and parked
+          at exactly -100% that shadow lay over the pitch as a dark strip down
+          the screen edge. */}
       <div
         ref={settingsMenuRef}
         data-testid="settings-side-panel"
         aria-hidden={!isSettingsMenuOpen}
         className={`fixed top-0 left-0 h-full ${DESIGN_TOKENS.MENU_WIDTH} max-w-[86vw] z-50 flex flex-col s1-canvas font-ui rounded-r-[28px] shadow-[20px_0_40px_-12px_rgb(2_6_23/0.8),inset_-1px_0_0_rgb(255_255_255/0.07)] overflow-hidden ${
           isDragging ? '' : 'transition-transform duration-300 ease-in-out'
-        } ${isSettingsMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        } ${isSettingsMenuOpen ? 'translate-x-0' : '-translate-x-[calc(100%+64px)]'}`}
         style={isDragging ? { transform: `translateX(${dragOffset}px)` } : {}}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

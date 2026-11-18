@@ -44,7 +44,7 @@ export function VoiceNotesInfoClient() {
 
         <footer className="pt-6 border-t border-white/10 text-sm text-slate-500">
           <p className="mb-2">{t('voiceNotesInfo.asOf')}</p>
-          <a href="/privacy-policy" className="text-indigo-400 hover:text-indigo-300 underline">
+          <a href="/privacy-policy" className="text-action hover:brightness-110 underline">
             {t('voiceNotesInfo.policyLink')}
           </a>
         </footer>

@@ -147,12 +147,6 @@ const StepBadge: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 type HomeTabId = 'games' | 'team' | 'seasons' | 'stats';
-const TAB_ICONS: Record<HomeTabId, 'pitch' | 'shield' | 'trophy' | 'bars'> = {
-  games: 'pitch',
-  team: 'shield',
-  seasons: 'trophy',
-  stats: 'bars',
-};
 
 interface StartScreenProps {
   onLoadGame: () => void;
@@ -440,7 +434,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           {/* Tagline - the simple launcher only (the dashboard leads with its
               card; the onboarding composition needs the room). */}
           {activeTab === 'games' && !dashboardOn && !composeOnboarding && (
-            <p className="px-1 pt-4 pb-1 font-display text-[clamp(28px,8.5vw,34px)] font-bold italic leading-none tracking-[0.005em] text-ink">
+            <p className="px-1 pt-4 pb-1 font-display text-[clamp(28px,8.5vw,34px)] font-bold leading-none tracking-[0.005em] text-ink">
               {t('startScreen.tagline', 'Plan · Track · Discover')}
             </p>
           )}
@@ -805,16 +799,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 aria-selected={on}
                 data-testid={testId}
                 onClick={() => setActiveTab(id)}
-                className={`relative flex h-14 flex-col items-center justify-center gap-[5px] rounded-xl text-xs font-semibold tracking-[0.01em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action ${
-                  on ? 's1-tab-on text-action' : 'text-ink-3 hover:text-ink-2'
+                className={`relative flex min-h-14 items-center justify-center rounded-xl px-1 text-[13px] font-semibold tracking-[0.01em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action ${
+                  on ? 's1-tab-on text-action' : 'text-ink-2 opacity-60 hover:opacity-100'
                 }`}
               >
-                <HomeIcon
-                  name={TAB_ICONS[id]}
-                  className="h-6 w-6"
-                  strokeWidth={on ? 1.8 : 1.6}
-                  fill={on ? 'color-mix(in srgb, var(--color-action) 16%, transparent)' : 'none'}
-                />
                 <span className="max-w-full truncate px-0.5">{label}</span>
               </button>
             );

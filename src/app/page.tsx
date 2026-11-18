@@ -1960,9 +1960,9 @@ export default function Home() {
           // Multi-tab block: another tab is already running the app
           <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-hidden">
             <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 pb-safe">
-              <h1 className="font-display text-6xl font-bold italic tracking-[0.01em] text-action mb-4">MatchOps</h1>
+              <h1 className="font-[family-name:var(--font-rajdhani)] text-6xl font-bold tracking-[0.01em] text-action mb-4">MatchOps</h1>
               <div className="max-w-sm text-center">
-                <h2 className="font-display text-3xl font-bold italic text-ink mb-2">
+                <h2 className="font-display text-3xl font-bold text-ink mb-2">
                   {t('page.alreadyOpen', 'Already Open')}
                 </h2>
                 <p className="text-ink-2 mb-6">
@@ -1998,9 +1998,9 @@ export default function Home() {
           <ErrorBoundary>
             <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-hidden">
               <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 pb-safe">
-                <h1 className="font-display text-6xl font-bold italic tracking-[0.01em] text-action mb-4">MatchOps</h1>
+                <h1 className="font-[family-name:var(--font-rajdhani)] text-6xl font-bold tracking-[0.01em] text-action mb-4">MatchOps</h1>
                 <div className="max-w-sm text-center">
-                  <h2 className="font-display text-3xl font-bold italic text-ink mb-2">
+                  <h2 className="font-display text-3xl font-bold text-ink mb-2">
                     {t('page.connectionTimeout', 'Connection Timeout')}
                   </h2>
                   <p className="text-ink-2 mb-6">

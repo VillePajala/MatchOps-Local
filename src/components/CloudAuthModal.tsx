@@ -486,7 +486,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
             {/* Warning icon */}
             <div className="text-center mb-6">
               <HiOutlineExclamationTriangle className="h-12 w-12 text-action mx-auto mb-3" />
-              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
+              <h3 className="font-display text-2xl font-bold text-ink mb-2">
                 {t('cloudAuth.confirm.title', 'Confirm Deletion')}
               </h3>
             </div>
@@ -564,7 +564,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
           <>
             <div className="text-center mb-6">
               <HiOutlineCheckCircle className="h-12 w-12 text-win mx-auto mb-3" />
-              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
+              <h3 className="font-display text-2xl font-bold text-ink mb-2">
                 {t('cloudAuth.success.title', 'Cloud Data Deleted')}
               </h3>
               <p className="text-ink-3">
@@ -588,7 +588,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
           <>
             <div className="text-center mb-6">
               <HiOutlineXMark className="h-12 w-12 text-loss mx-auto mb-3" />
-              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
+              <h3 className="font-display text-2xl font-bold text-ink mb-2">
                 {t('cloudAuth.error.title', 'Deletion Failed')}
               </h3>
             </div>

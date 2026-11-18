@@ -113,25 +113,25 @@ export function PrivacyPolicyClient() {
           <div className="space-y-3 text-slate-300">
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.googlePlay')}</strong> - {t('privacyPolicy.thirdPartyServices.googlePlayDesc')}{' '}
-              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                 {t('privacyPolicy.thirdPartyServices.googlePlayLink')}
               </a>
             </p>
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.sentry')}</strong> - {t('privacyPolicy.thirdPartyServices.sentryDesc')}{' '}
-              <a href="https://sentry.io/privacy/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+              <a href="https://sentry.io/privacy/" target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                 {t('privacyPolicy.thirdPartyServices.sentryLink')}
               </a>
             </p>
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.supabase')}</strong> - {t('privacyPolicy.thirdPartyServices.supabaseDesc')}{' '}
-              <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+              <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                 {t('privacyPolicy.thirdPartyServices.supabaseLink')}
               </a>
             </p>
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.vercel')}</strong> - {t('privacyPolicy.thirdPartyServices.vercelDesc')}{' '}
-              <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+              <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                 {t('privacyPolicy.thirdPartyServices.vercelLink')}
               </a>
             </p>
@@ -139,19 +139,19 @@ export function PrivacyPolicyClient() {
                 field, which is why the description says "when used". */}
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.photon')}</strong> - {t('privacyPolicy.thirdPartyServices.photonDesc')}{' '}
-              <a href="https://www.komoot.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+              <a href="https://www.komoot.com/privacy" target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                 {t('privacyPolicy.thirdPartyServices.photonLink')}
               </a>
             </p>
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.openai')}</strong> - {t('privacyPolicy.thirdPartyServices.openaiDesc')}{' '}
-              <a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+              <a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                 {t('privacyPolicy.thirdPartyServices.openaiLink')}
               </a>
             </p>
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.palloliitto')}</strong> - {t('privacyPolicy.thirdPartyServices.palloliittoDesc')}{' '}
-              <a href="https://www.palloliitto.fi/tietosuoja" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+              <a href="https://www.palloliitto.fi/tietosuoja" target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                 {t('privacyPolicy.thirdPartyServices.palloliittoLink')}
               </a>
             </p>
@@ -199,7 +199,7 @@ export function PrivacyPolicyClient() {
               href={t('privacyPolicy.yourRights.supervisoryAuthorityUrl')}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-indigo-400 hover:underline"
+              className="text-action hover:underline"
             >
               tietosuoja.fi
             </a>
@@ -241,7 +241,7 @@ export function PrivacyPolicyClient() {
           <p className="text-slate-300 mb-2">{t('privacyPolicy.contact.intro')}</p>
           <p className="text-slate-300">
             {t('privacyPolicy.contact.email')}:{' '}
-            <a href="mailto:support@match-ops.com" className="text-indigo-400 hover:underline">
+            <a href="mailto:support@match-ops.com" className="text-action hover:underline">
               support@match-ops.com
             </a>
           </p>
@@ -253,7 +253,7 @@ export function PrivacyPolicyClient() {
         <div className="mt-8">
           <button
             onClick={() => window.close()}
-            className="text-indigo-400 hover:underline"
+            className="text-action hover:underline"
           >
             ← {t('common.backButton')}
           </button>

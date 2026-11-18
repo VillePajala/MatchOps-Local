@@ -183,7 +183,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
         </div>
       ) : (
         <>
-          <h3 className="font-display text-2xl font-bold italic text-ink mb-2">{section.title}</h3>
+          <h3 className="font-display text-2xl font-bold text-ink mb-2">{section.title}</h3>
           <div className="text-ink-2 text-[15px] leading-relaxed whitespace-pre-wrap">
             {renderContent(section.content)}
           </div>

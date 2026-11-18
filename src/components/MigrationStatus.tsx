@@ -97,7 +97,7 @@ function MigrationStatusComponent() {
               role="status"
               aria-label={t('migrationStatus.inProgress', 'Migration in progress')}
             ></div>
-            <h3 id="migration-title" className="font-display text-2xl font-bold italic text-ink mb-2">
+            <h3 id="migration-title" className="font-display text-2xl font-bold text-ink mb-2">
               {t('migrationStatus.upgradingStorage', 'Upgrading Storage')}
             </h3>
             <p id="migration-description" className="text-ink-2 mb-4">

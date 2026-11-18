@@ -436,7 +436,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h2 className="font-display text-3xl font-bold italic text-ink">{player.name}</h2>
+            <h2 className="font-display text-3xl font-bold text-ink">{player.name}</h2>
           </div>
         </div>
 

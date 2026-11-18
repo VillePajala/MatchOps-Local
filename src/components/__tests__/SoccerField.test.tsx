@@ -851,7 +851,7 @@ describe('SoccerField Component - Interaction Testing', () => {
 
 // Import helper function and constant for direct testing
 import { isPositionOccupied, SUB_SLOT_OCCUPATION_THRESHOLD } from '../SoccerField';
-import { resolveSnapAction } from '../SoccerField';
+import { resolveSnapAction, discCenterX } from '../SoccerField';
 
 describe('isPositionOccupied Helper Function', () => {
   const createPlayer = (relX?: number, relY?: number): Player => ({
@@ -1438,5 +1438,32 @@ describe('resolveSnapAction (pure drop-decision core, review #739)', () => {
   it('does nothing without snap points or a position', () => {
     expect(resolveSnapAction([], [], 'me', { relX: 0.5, relY: 0.5 }, RECT_W, RECT_H)).toEqual({ type: 'none' });
     expect(resolveSnapAction([KEEPER], [], 'me', null, RECT_W, RECT_H)).toEqual({ type: 'none' });
+  });
+});
+
+/**
+ * The sideline column is stored at relX 0.96; on a 360-412px phone that put
+ * a 24px disc partly off the canvas. Drawing and hit-testing share
+ * discCenterX, so the disc stays whole and a tap still finds it.
+ * @edge-case
+ */
+describe('discCenterX (edge discs stay on the canvas)', () => {
+  it('draws a disc away from the edges exactly at relX * width', () => {
+    expect(discCenterX(0.5, 360, 24)).toBe(180);
+    expect(discCenterX(0.75, 412, 24)).toBe(309);
+  });
+
+  it('pulls a sideline disc (relX 0.96) fully inside the right edge', () => {
+    const x = discCenterX(0.96, 360, 24);
+    expect(x + 24).toBeLessThanOrEqual(360);
+    expect(x).toBe(360 - 24 - 4);
+  });
+
+  it('pulls a disc at the left edge fully inside', () => {
+    expect(discCenterX(0, 360, 24)).toBe(28);
+  });
+
+  it('leaves the position alone when the canvas is too narrow to hold the disc', () => {
+    expect(discCenterX(0.5, 40, 24)).toBe(20);
   });
 });

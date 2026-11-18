@@ -61,22 +61,22 @@ export default function WelcomeScreen({
   return (
     <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-y-auto">
       {/* === MAIN CONTENT === */}
-      <div className="relative z-10 flex-1 flex flex-col px-6 py-6 pb-safe">
+      <div className="relative z-10 flex-1 flex flex-col px-6 pt-3 pb-6 pb-safe">
 
         {/* === TOP: Language Switcher === */}
-        <div className="flex justify-end mb-2">
-          <div className={`${segmentTrackStyle} w-32`}>
+        <div className="flex justify-end mb-1">
+          <div className={`${segmentTrackStyle} w-24`}>
             <button
               onClick={() => setLanguage('en')}
               aria-pressed={language === 'en'}
-              className={language === 'en' ? segmentSelectedStyle : segmentStyle}
+              className={`${language === 'en' ? segmentSelectedStyle : segmentStyle} min-h-9 text-xs`}
             >
               EN
             </button>
             <button
               onClick={() => setLanguage('fi')}
               aria-pressed={language === 'fi'}
-              className={language === 'fi' ? segmentSelectedStyle : segmentStyle}
+              className={`${language === 'fi' ? segmentSelectedStyle : segmentStyle} min-h-9 text-xs`}
             >
               FI
             </button>
@@ -85,9 +85,9 @@ export default function WelcomeScreen({
 
         {/* === HERO: App Name === */}
         <div className="flex-1 flex flex-col justify-center">
-          <div className="text-center mb-8">
+          <div className="text-center mb-5">
             {/* App Name as Logo */}
-            <h1 className="mb-3 font-display text-6xl font-bold italic tracking-[0.01em] text-action">
+            <h1 className="mb-3 font-[family-name:var(--font-rajdhani)] font-bold leading-none tracking-[0.01em] text-action text-[clamp(2.5rem,11vw,3.25rem)]">
               MatchOps
             </h1>
 
@@ -102,7 +102,7 @@ export default function WelcomeScreen({
           </div>
 
           {/* === OPTION BUTTONS === */}
-          <div className="max-w-sm mx-auto w-full space-y-3">
+          <div className="max-w-sm mx-auto w-full space-y-2.5">
             {/* Start without account (Local) — hidden in Play Store context */}
             {!hideLocalModeOptions && (
               <button
@@ -150,7 +150,7 @@ export default function WelcomeScreen({
 
           {/* Footer: Import backup — hidden in Play Store (available via Settings after auth) */}
           {!hideLocalModeOptions && (
-            <div className="text-center mt-6">
+            <div className="text-center mt-3">
               <button
                 onClick={onImportBackup}
                 disabled={isImporting}

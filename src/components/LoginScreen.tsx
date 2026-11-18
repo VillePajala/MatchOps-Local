@@ -64,10 +64,10 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
   return (
     <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-hidden">
       {/* === MAIN CONTENT === */}
-      <div className="relative z-10 flex-1 flex flex-col px-6 pt-6 pb-10 pb-safe">
+      <div className="relative z-10 flex-1 flex flex-col px-6 pt-3 pb-6 pb-safe">
 
         {/* === TOP: Back Button + Language Switcher === */}
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-1">
           {/* Back button */}
           {onBack ? (
             <button
@@ -85,12 +85,12 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
           )}
 
           {/* Language Switcher */}
-          <div className={`${segmentTrackStyle} w-32`}>
+          <div className={`${segmentTrackStyle} w-24`}>
             <button
               type="button"
               onClick={() => handleChangeLanguage('en')}
               aria-pressed={language === 'en'}
-              className={language === 'en' ? segmentSelectedStyle : segmentStyle}
+              className={`${language === 'en' ? segmentSelectedStyle : segmentStyle} min-h-9 text-xs`}
             >
               EN
             </button>
@@ -98,7 +98,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
               type="button"
               onClick={() => handleChangeLanguage('fi')}
               aria-pressed={language === 'fi'}
-              className={language === 'fi' ? segmentSelectedStyle : segmentStyle}
+              className={`${language === 'fi' ? segmentSelectedStyle : segmentStyle} min-h-9 text-xs`}
             >
               FI
             </button>
@@ -109,11 +109,11 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
         {/* py-6 keeps the centered block off both edges even when the tall
             signUp form fills the screen - the footer link must never hug the
             gesture bar (owner round 7). */}
-        <div className="flex-1 flex flex-col justify-center py-6">
+        <div className="flex-1 flex flex-col justify-center py-2">
           <div className="max-w-sm mx-auto w-full">
             {/* App name */}
-            <div className="text-center mb-8">
-              <h1 className="font-display text-[clamp(2.8rem,12vw,4rem)] font-bold italic tracking-[0.01em] text-action">
+            <div className="text-center mb-4">
+              <h1 className="font-[family-name:var(--font-rajdhani)] font-bold leading-none tracking-[0.01em] text-action text-[clamp(2rem,9vw,2.5rem)]">
                 MatchOps
               </h1>
             </div>
@@ -122,7 +122,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
 
             {/* Use without account option */}
             {onUseLocalMode && (
-              <div className="mt-8 pt-6 border-t border-hairline text-center">
+              <div className="mt-4 pt-2 border-t border-hairline text-center">
                 <button
                   type="button"
                   onClick={onUseLocalMode}

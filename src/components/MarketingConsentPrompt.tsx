@@ -113,7 +113,7 @@ export default function MarketingConsentPrompt() {
           </svg>
         </button>
 
-        <h3 className="font-display text-2xl font-bold italic text-ink pr-10">
+        <h3 className="font-display text-2xl font-bold text-ink pr-10">
           {t('marketingConsent.promptTitle', 'Stay in the loop?')}
         </h3>
         <p className="text-[15px] leading-snug text-ink-2 mt-2 mb-4">

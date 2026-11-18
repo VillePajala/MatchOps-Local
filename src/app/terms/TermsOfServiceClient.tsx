@@ -58,7 +58,7 @@ export function TermsOfServiceClient() {
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.dataAndPrivacy.title')}</h2>
           <p className="text-slate-300 mb-4">
             {t('termsOfService.dataAndPrivacy.content')}{' '}
-            <Link href="/privacy-policy" className="text-indigo-400 hover:underline">
+            <Link href="/privacy-policy" className="text-action hover:underline">
               {t('settingsModal.privacyPolicy')}
             </Link>
           </p>
@@ -215,7 +215,7 @@ export function TermsOfServiceClient() {
           <p className="text-slate-300 mb-2">{t('termsOfService.contact.intro')}</p>
           <p className="text-slate-300">
             {t('termsOfService.contact.email')}:{' '}
-            <a href="mailto:support@match-ops.com" className="text-indigo-400 hover:underline">
+            <a href="mailto:support@match-ops.com" className="text-action hover:underline">
               support@match-ops.com
             </a>
           </p>
@@ -227,7 +227,7 @@ export function TermsOfServiceClient() {
         <div className="mt-8">
           <button
             onClick={() => window.close()}
-            className="text-indigo-400 hover:underline"
+            className="text-action hover:underline"
           >
             ← {t('common.backButton')}
           </button>

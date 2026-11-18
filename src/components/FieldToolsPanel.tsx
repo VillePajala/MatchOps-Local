@@ -99,7 +99,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-display text-2xl font-bold italic text-ink">
+          <h3 className="font-display text-2xl font-bold text-ink">
             {t('fieldTools.title', 'Field Tools')}
           </h3>
           <button

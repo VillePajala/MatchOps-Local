@@ -1408,7 +1408,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               role="status"
               aria-label={t('settingsModal.restoring', 'Restoring backup...')}
             />
-            <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
+            <h3 className="font-display text-2xl font-bold text-ink mb-2">
               {t('settingsModal.restoringTitle', 'Restoring Backup')}
             </h3>
             <p className="text-ink-2 text-sm">

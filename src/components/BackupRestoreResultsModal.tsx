@@ -8,6 +8,7 @@ import {
   warningBoxStyle,
   sectionLabelStyle,
   wizardCloseButtonStyle,
+  useModalCloseVisible,
 } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import {
@@ -51,6 +52,7 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
+  const showClose = useModalCloseVisible();
 
   // Focus trap: keeps Tab cycling within modal
   useFocusTrap(modalRef, isOpen);
@@ -69,20 +71,23 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
     <DialogBackdrop className="z-[60]" onClick={handleBackdropClick}>
       <div ref={modalRef} className="s1-list font-ui max-w-2xl w-full flex flex-col text-ink max-h-[85vh] overflow-hidden" role="dialog" aria-modal="true">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-hairline flex-shrink-0">
-          <div className="flex items-center space-x-3">
-            <HiOutlineCheckCircle className="w-8 h-8 text-win" />
-            <h2 className={dialogTitleStyle}>
+        <div className="flex items-center gap-3 px-5 py-3 border-b border-hairline flex-shrink-0">
+          {showClose && <span className="w-11 flex-shrink-0" aria-hidden="true" />}
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-3">
+            <HiOutlineCheckCircle className="w-8 h-8 flex-shrink-0 text-win" />
+            <h2 className={`${dialogTitleStyle} text-center`}>
               {t('backupRestore.resultsTitle', 'Backup Restore Complete')}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className={wizardCloseButtonStyle}
-            aria-label={t('common.close', 'Close')}
-          >
-            <HiOutlineXMark className="w-6 h-6" />
-          </button>
+          {showClose && (
+            <button
+              onClick={onClose}
+              className={wizardCloseButtonStyle}
+              aria-label={t('common.close', 'Close')}
+            >
+              <HiOutlineXMark className="w-6 h-6" />
+            </button>
+          )}
         </div>
 
         <div className="p-4 space-y-4 flex-1 overflow-y-auto">

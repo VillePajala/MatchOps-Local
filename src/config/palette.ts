@@ -39,17 +39,18 @@
  * from a cup badge at a glance.
  */
 export const ENTITY_DOT = {
-  /** Soccer vs futsal. */
-  gameType: 'bg-orange-400',
-  gender: 'bg-pink-400',
+  /** Soccer vs futsal: near-white, the neutral "type" mark. */
+  gameType: 'bg-slate-300',
+  gender: 'bg-slate-200',
   /** A league / "season" in the app's older vocabulary. */
-  season: 'bg-blue-400',
-  league: 'bg-cyan-400',
-  tournament: 'bg-purple-400',
-  /** A level or series inside a tournament. */
-  series: 'bg-amber-400',
-  /** The club's own year, computed rather than chosen. */
-  clubSeason: 'bg-green-400',
+  season: 'bg-sky-400',
+  league: 'bg-teal-300',
+  /** Pink: the one warm-cool hue left that is neither action-amber nor a result colour. */
+  tournament: 'bg-pink-300',
+  /** A level or series inside a tournament (peach, not the action amber). */
+  series: 'bg-orange-300',
+  /** The club's own year, computed rather than chosen: a quiet grey. */
+  clubSeason: 'bg-slate-500',
 } as const;
 
 /**

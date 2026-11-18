@@ -299,19 +299,19 @@ describe('External game cards styling', () => {
     expect(extBadge).toHaveClass('bg-white/[0.06]');
 
     // Find purple dot inside EXT badge
-    const purpleDot = extBadge?.querySelector('.bg-purple-400');
+    const purpleDot = extBadge?.querySelector('.bg-pink-300');
     expect(purpleDot).toBeInTheDocument();
 
     // Find season badge with blue dot
     const seasonBadge = screen.getByText('Spring 2024 (2024)').closest('span');
     expect(seasonBadge).toHaveClass('bg-white/[0.06]');
-    const blueDot = seasonBadge?.querySelector('.bg-blue-400');
+    const blueDot = seasonBadge?.querySelector('.bg-sky-400');
     expect(blueDot).toBeInTheDocument();
 
     // Find tournament badge with amber dot
     const tournamentBadge = screen.getByText('Cup Tournament (2024)').closest('span');
     expect(tournamentBadge).toHaveClass('bg-white/[0.06]');
-    const amberDot = tournamentBadge?.querySelector('.bg-amber-400');
+    const amberDot = tournamentBadge?.querySelector('.bg-orange-300');
     expect(amberDot).toBeInTheDocument();
   });
 

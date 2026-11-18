@@ -116,8 +116,8 @@ function drawRadar(
 
   // Current (solid indigo)
   ctx.setLineDash([]);
-  ctx.strokeStyle = '#818cf8';
-  ctx.fillStyle = 'rgba(129,140,248,0.25)';
+  ctx.strokeStyle = '#38bdf8';
+  ctx.fillStyle = 'rgba(56,189,248,0.25)';
   ctx.lineWidth = 2;
   polygon((ax) => ax.current);
   ctx.fill();
@@ -191,7 +191,7 @@ export function renderDevelopmentCard(data: DevelopmentCardData): HTMLCanvasElem
   // Header
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = '#818cf8';
+  ctx.fillStyle = '#38bdf8';
   ctx.font = `600 14px ${FONT}`;
   ctx.fillText(data.labels.title.toUpperCase(), W / 2, 40);
   ctx.fillStyle = '#f1f5f9';
@@ -210,7 +210,7 @@ export function renderDevelopmentCard(data: DevelopmentCardData): HTMLCanvasElem
     ctx.textBaseline = 'middle';
     ctx.font = `13px ${FONT}`;
     const legendY = y + 8;
-    ctx.strokeStyle = '#818cf8';
+    ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 3;
     ctx.setLineDash([]);
     ctx.beginPath(); ctx.moveTo(W / 2 - 150, legendY); ctx.lineTo(W / 2 - 130, legendY); ctx.stroke();

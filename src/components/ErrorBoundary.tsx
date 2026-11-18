@@ -157,7 +157,7 @@ class ErrorBoundary extends Component<Props, State> {
               className="w-8 h-8 text-action mr-3"
               aria-hidden="true"
             />
-            <h3 className="font-display text-2xl font-bold italic text-ink">
+            <h3 className="font-display text-2xl font-bold text-ink">
               {i18n.t('errors.somethingWentWrong', 'Something went wrong')}
             </h3>
           </div>

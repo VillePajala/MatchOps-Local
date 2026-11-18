@@ -495,11 +495,11 @@ export default function AuthForm({
   if (pendingPasswordReset && showNewPasswordForm) {
     return (
       <>
-        <h2 id={titleId} className={`${titleStyle} text-center mb-2`}>
+        <h2 id={titleId} className={`${titleStyle} text-center mb-1`}>
           {t('auth.newPasswordTitle', 'Set New Password')}
         </h2>
 
-        <p className="font-ui text-ink-3 text-center mb-6 text-sm">
+        <p className="font-ui text-ink-3 text-center mb-4 text-sm">
           {t('auth.newPasswordSubtitle', 'Enter your new password below.')}
         </p>
 
@@ -515,7 +515,7 @@ export default function AuthForm({
           </div>
         )}
 
-        <form onSubmit={handleSetNewPassword} className="space-y-4">
+        <form onSubmit={handleSetNewPassword} className="space-y-3">
           <input
             type="password"
             placeholder={t('auth.newPasswordPlaceholder', 'New password')}
@@ -556,7 +556,7 @@ export default function AuthForm({
           </button>
         </form>
 
-        <div className="mt-6 flex flex-col items-center gap-2">
+        <div className="mt-3 flex flex-col items-center gap-1">
           <button type="button" onClick={exitPasswordReset} className={linkButtonStyle}>
             {t('auth.backToSignIn', 'Back to sign in')}
           </button>
@@ -569,11 +569,11 @@ export default function AuthForm({
   if (pendingPasswordReset) {
     return (
       <>
-        <h2 id={titleId} className={`${titleStyle} text-center mb-2`}>
+        <h2 id={titleId} className={`${titleStyle} text-center mb-1`}>
           {t('auth.resetOtpTitle', 'Enter Reset Code')}
         </h2>
 
-        <p className="font-ui text-ink-3 text-center mb-6 text-sm">
+        <p className="font-ui text-ink-3 text-center mb-4 text-sm">
           {t('auth.resetOtpSubtitle', 'We sent a reset code to {{email}}. Enter it below to reset your password.', { email: pendingResetEmail })}
         </p>
 
@@ -594,7 +594,7 @@ export default function AuthForm({
           </div>
         )}
 
-        <form onSubmit={handleVerifyResetOtp} className="space-y-4">
+        <form onSubmit={handleVerifyResetOtp} className="space-y-3">
           <input
             type="text"
             inputMode="numeric"
@@ -625,7 +625,7 @@ export default function AuthForm({
           </button>
         </form>
 
-        <div className="mt-6 flex flex-col items-center gap-2">
+        <div className="mt-3 flex flex-col items-center gap-1">
           <button
             type="button"
             onClick={handleResendResetCode}
@@ -646,11 +646,11 @@ export default function AuthForm({
   if (pendingVerification) {
     return (
       <>
-        <h2 id={titleId} className={`${titleStyle} text-center mb-2`}>
+        <h2 id={titleId} className={`${titleStyle} text-center mb-1`}>
           {t('auth.otpTitle', 'Enter Verification Code')}
         </h2>
 
-        <p className="font-ui text-ink-3 text-center mb-6 text-sm">
+        <p className="font-ui text-ink-3 text-center mb-4 text-sm">
           {t('auth.otpSubtitle', 'We sent a verification code to {{email}}. Enter it below to verify your account.', { email: pendingEmail })}
         </p>
 
@@ -671,7 +671,7 @@ export default function AuthForm({
           </div>
         )}
 
-        <form onSubmit={handleVerifyOtp} className="space-y-4">
+        <form onSubmit={handleVerifyOtp} className="space-y-3">
           <input
             type="text"
             inputMode="numeric"
@@ -702,7 +702,7 @@ export default function AuthForm({
           </button>
         </form>
 
-        <div className="mt-6 flex flex-col items-center gap-2">
+        <div className="mt-3 flex flex-col items-center gap-1">
           <button
             type="button"
             onClick={handleResendCode}
@@ -723,13 +723,13 @@ export default function AuthForm({
   return (
     <>
       {/* Title */}
-      <h2 id={titleId} className={`${titleStyle} text-center mb-2`}>
+      <h2 id={titleId} className={`${titleStyle} text-center mb-1`}>
         {mode === 'signIn' && t('auth.signIn', 'Sign In')}
         {mode === 'signUp' && t('auth.createAccount', 'Create Account')}
         {mode === 'resetPassword' && t('auth.resetPassword', 'Reset Password')}
       </h2>
 
-      <p className="font-ui text-ink-3 text-center mb-6 text-sm">
+      <p className="font-ui text-ink-3 text-center mb-4 text-sm">
         {mode === 'signIn' && t('auth.signInSubtitle', 'Sign in to sync your data across devices')}
         {mode === 'signUp' && t('auth.signUpSubtitle', 'Create an account to enable cloud sync')}
         {mode === 'resetPassword' && t('auth.resetSubtitle', 'Enter your email to receive a reset code')}
@@ -753,7 +753,7 @@ export default function AuthForm({
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
         <input
           type="email"
           placeholder={t('auth.email', 'Email')}
@@ -851,7 +851,7 @@ export default function AuthForm({
       </form>
 
       {/* Mode switching links */}
-      <div className="mt-6 flex flex-col items-center gap-2">
+      <div className="mt-3 flex flex-col items-center gap-1">
         {mode === 'signIn' && (
           <>
             <button type="button" onClick={() => switchMode('resetPassword')} className={linkButtonStyle}>

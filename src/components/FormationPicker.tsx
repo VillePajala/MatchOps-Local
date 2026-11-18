@@ -55,7 +55,7 @@ const MenuContent: React.FC<{
     : "relative z-10 px-4 py-3 border-b border-hairline shrink-0 text-center";
   const titleClass = isMobile
     ? titleStyle
-    : "font-display text-xl font-bold italic text-ink";
+    : "font-display text-xl font-bold text-ink";
   const subtitleClass = isMobile ? `${subtextStyle} mt-1` : "font-ui text-xs text-ink-3 mt-0.5";
   const contentClass = isMobile
     ? "relative z-10 overflow-y-auto flex-1 px-4 pt-2 pb-28 space-y-4"

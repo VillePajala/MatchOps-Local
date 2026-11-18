@@ -28,7 +28,7 @@ const CustomTooltip: React.FC<TooltipProps<number, string> & { label: string }> 
 };
 
 const CustomizedDot = ({ cx, cy }: { cx?: number; cy?: number }) => (
-  <circle cx={cx} cy={cy} r={1.5} fill="#6366f1" />
+  <circle cx={cx} cy={cy} r={1.5} fill="#38bdf8" />
 );
 
 const MetricAreaChart: React.FC<MetricAreaChartProps> = ({ data, label }) => {

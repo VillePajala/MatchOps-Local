@@ -5,7 +5,7 @@ export default function NotFound() {
     <div className="s1-canvas flex items-center justify-center min-h-screen font-ui text-ink">
       <div className="text-center">
         <h1 className="font-display text-7xl font-bold italic text-action mb-4">404</h1>
-        <h2 className="font-display text-3xl font-bold italic text-ink mb-2">
+        <h2 className="font-display text-3xl font-bold text-ink mb-2">
           <span lang="fi">Sivua ei löytynyt</span>{' / '}
           <span lang="en">Page Not Found</span>
         </h2>

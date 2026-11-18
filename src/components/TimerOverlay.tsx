@@ -72,6 +72,17 @@ interface TimerOverlayProps {
   dictation?: DictationControls;
 }
 
+/**
+ * The big clock's width in em: SteadyDigits' boxes (0.56em per digit, 0.24em
+ * per colon), the 0.06em right padding that holds the italic overhang, and
+ * 0.08em of slack so the last digit never touches the edge.
+ */
+const clockWidthEm = (text: string): number => {
+  let em = 0.06 + 0.08;
+  for (const ch of text) em += ch === ':' ? 0.24 : 0.56;
+  return Math.round(em * 100) / 100;
+};
+
 const TimerOverlay: React.FC<TimerOverlayProps> = ({
   timeElapsedInSeconds,
   subAlertLevel,
@@ -174,7 +185,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // Buttons: ONE amber primary (start/pause, or the end-of-game hand-off),
   // everything else quiet. Pills of 56px+ - usable with cold thumbs.
   const focusRingClass = "focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon";
-  const actionButtonBase = `min-h-14 px-4 rounded-full flex items-center justify-center gap-2.5 font-ui font-bold text-[17px] pointer-events-auto transition-[filter,background-color,color] active:scale-[0.98] disabled:cursor-not-allowed ${focusRingClass}`;
+  const actionButtonBase = `min-h-14 px-4 rounded-full flex items-center justify-center gap-2.5 font-ui font-bold text-[clamp(15px,4.5vw,17px)] pointer-events-auto transition-[filter,background-color,color] active:scale-[0.98] disabled:cursor-not-allowed ${focusRingClass}`;
   const primaryActionStyle = `${actionButtonBase} s1-primary disabled:opacity-50`;
   /** Quiet: an outline on near-nothing; disabled reads dimmer still. */
   const secondaryActionStyle = `${actionButtonBase} s1-ghost text-ink disabled:text-ink-3 disabled:bg-transparent disabled:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.09)]`;
@@ -340,12 +351,15 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const offerExtraTime = Boolean(onStartExtraTime) && gameStatus === 'gameEnd'
     && extraPeriodsPlanned === 0 && continueAfterEnd === null && !isTimerRunning;
   const scoreLevel = homeScore === awayScore;
+  const clockText = formatTime(timeElapsedInSeconds);
 
   return (
     // Full screen over the pitch; the control capsule (z-40) floats over its
-    // bottom edge, so the content scrolls with room to clear it.
+    // bottom edge (10px + the safe-area inset up from the bottom, 56px tall),
+    // so the content scrolls with room to clear it - including the inset,
+    // which lifts the capsule on phones with a gesture bar.
     <div
-      className="fixed inset-0 z-30 flex flex-col items-center px-4 pt-[30px] pb-28 overflow-y-auto font-ui text-ink backdrop-blur-lg"
+      className="fixed inset-0 z-30 flex flex-col items-center px-4 pt-[30px] pb-[calc(7rem+env(safe-area-inset-bottom,0px))] overflow-y-auto font-ui text-ink backdrop-blur-lg"
       style={{ background: 'radial-gradient(110% 38% at 50% -8%, rgb(30 41 59 / 0.7) 0%, transparent 72%), rgb(15 23 42 / 0.975)' }}
     >
       <div className="w-full max-w-lg flex flex-col items-center">
@@ -358,10 +372,15 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             3-column grid so long team names wrap inside their own column while
             the score stays fixed in the centre and vertically centred against
             both names (a plain flex row let the score drift when a name wrapped). */}
+        {/* Both names in ONE style (white, same size), each in its own
+            equal column so the score sits in the middle whatever they are
+            called. minmax(0,1fr) lets a column narrow below its text: a long
+            name shrinks (clamp) and then wraps to at most two lines and
+            truncates, instead of pushing into the score. */}
         <div className="mb-4 w-full">
-          <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 text-[17px] font-semibold">
-            <span className="text-ink-2 text-right leading-tight">{displayHomeTeamName}</span>
-            <span className="flex items-center justify-center gap-3 whitespace-nowrap">
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5 text-[clamp(13px,3.9vw,17px)] font-semibold">
+            <span className="text-ink text-right leading-tight line-clamp-2 break-words text-balance" title={displayHomeTeamName}>{displayHomeTeamName}</span>
+            <span className="flex items-center justify-center gap-2.5 whitespace-nowrap">
               {/* NUMBERS LEAD (owner, 2026-09-16). The team names stay at
                   text-xl; only the score grows, because the score is what is
                   glanced at from the touchline and the names are already
@@ -385,12 +404,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                     onChange={handleOpponentInputChange}
                     onBlur={handleSaveOpponentName} // Save on blur
                     onKeyDown={handleOpponentKeyDown}
-                    className={`${inlineFieldStyle} w-32! justify-self-start`}
+                    className={`${inlineFieldStyle} w-full! min-w-0 justify-self-start`}
                     onClick={(e) => e.stopPropagation()} // Prevent triggering underlying handlers
                 />
             ) : (
                 <span
-                    className="text-ink-2 text-left leading-tight cursor-pointer hover:text-ink"
+                    className="text-ink text-left leading-tight line-clamp-2 break-words text-balance cursor-pointer"
                     onClick={handleStartEditingOpponent} // Click to edit
                     title={t('timerOverlay.editOpponentNameTitle', 'Click to edit opponent name') ?? undefined}
                 >
@@ -402,13 +421,22 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         </div>
       
         {/* Timer Display */}
-        <div className="mb-1">
-          {/* SteadyDigits boxes every digit, so the clock cannot slide sideways
-              as digits tick over. The size follows the screen width so four
-              boxed digits always fit a phone. */}
-          <SteadyDigits className={`block font-display italic font-extrabold text-[min(36vw,10rem)] leading-none tracking-[-0.01em] pr-[0.06em] ${clockAlertClass ?? 's1-numeral'}`}>
-            {formatTime(timeElapsedInSeconds)}
-          </SteadyDigits>
+        {/* SteadyDigits boxes every digit, so the clock cannot slide sideways
+            as digits tick over. ONE line, always: the font size is the
+            content box's width (cqw, from the container below) divided by the
+            clock's boxed width in em, so it fits exactly at any phone width
+            and text size. The boxed width depends only on how many characters
+            the clock has, never on which digits, so the size holds still
+            while it ticks (it steps down once, at 100:00). */}
+        <div className="mb-1 w-full" style={{ containerType: 'inline-size' }}>
+          <div
+            className="flex justify-center whitespace-nowrap"
+            style={{ fontSize: `min(10rem, calc(100cqw / ${clockWidthEm(clockText)}))` }}
+          >
+            <SteadyDigits className={`block font-display italic font-extrabold leading-none tracking-[-0.01em] pr-[0.06em] ${clockAlertClass ?? 's1-numeral'}`}>
+              {clockText}
+            </SteadyDigits>
+          </div>
         </div>
 
         {/* Time Since Last Substitution + Period pill + Game specs */}
@@ -681,14 +709,14 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               <button
                 onClick={onToggleGoalLogModal}
                 data-testid="tour-log-goal"
-                className={`${solidActionStyle} min-w-0`}
+                className={`${solidActionStyle} min-w-0 px-3`}
                 title={`${displayHomeTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >
                 {t('timerOverlay.teamGoalButton', 'Log Goal')}
               </button>
               <button 
                 onClick={handleOpponentGoalClick} 
-                className={`${dangerActionStyle} min-w-0`}
+                className={`${dangerActionStyle} min-w-0 px-3`}
                 title={`${displayAwayTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >
                 {t('timerOverlay.opponentGoalButton', 'Opponent +1')}
@@ -708,7 +736,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             >
               <span className="flex items-center gap-2">
                 {wentToOvertime && <span className="text-action" aria-hidden>✓</span>}
-                <span>{t('timerOverlay.wentToOvertime', 'Overtime')} / {t('timerOverlay.recordShootout', 'Penalties')}</span>
+                <span className="text-left">{t('timerOverlay.wentToOvertime', 'Overtime')} / {t('timerOverlay.recordShootout', 'Penalties')}</span>
               </span>
               <HiOutlineChevronDown aria-hidden className={`w-6 h-6 text-ink-3 transition-transform ${showEndGameControls ? 'rotate-180' : ''}`} />
             </button>

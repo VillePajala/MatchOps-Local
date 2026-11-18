@@ -475,7 +475,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
           <>
             {/* Title */}
             <div className="text-center mb-6">
-              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
+              <h3 className="font-display text-2xl font-bold text-ink mb-2">
                 {t('reverseMigration.choose.title', 'What should happen to your cloud data?')}
               </h3>
             </div>
@@ -565,7 +565,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
             {/* Warning icon */}
             <div className="text-center mb-6">
               <HiOutlineExclamationTriangle className="h-12 w-12 text-action mx-auto mb-3" />
-              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
+              <h3 className="font-display text-2xl font-bold text-ink mb-2">
                 {t('reverseMigration.confirm.title', 'Confirm Cloud Deletion')}
               </h3>
             </div>
@@ -650,7 +650,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
               ) : (
                 <HiOutlineCheckCircle className="h-12 w-12 text-win mx-auto mb-3" />
               )}
-              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
+              <h3 className="font-display text-2xl font-bold text-ink mb-2">
                 {hasWarnings
                   ? t('reverseMigration.complete.titleWithWarnings', 'Switch Complete with Warnings')
                   : t('reverseMigration.complete.title', 'Switch Complete!')}
@@ -709,7 +709,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
             {/* Error icon */}
             <div className="text-center mb-6">
               <HiOutlineXMark className="h-12 w-12 text-loss mx-auto mb-3" />
-              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
+              <h3 className="font-display text-2xl font-bold text-ink mb-2">
                 {t('reverseMigration.error.title', 'Migration Failed')}
               </h3>
             </div>

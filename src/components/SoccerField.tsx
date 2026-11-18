@@ -96,6 +96,31 @@ const TAP_TO_DRAG_THRESHOLD = 10; // pixels
 const TAP_TO_DRAG_THRESHOLD_SQ = TAP_TO_DRAG_THRESHOLD * TAP_TO_DRAG_THRESHOLD;
 const FORMATION_SNAP_THRESHOLD_PX = 36; // pixels
 const FORMATION_SNAP_THRESHOLD_SQ = FORMATION_SNAP_THRESHOLD_PX * FORMATION_SNAP_THRESHOLD_PX;
+/** Free space kept between a disc and the canvas edge. */
+const DISC_EDGE_GAP = 4;
+/** A sideline chip's centre sits this far above the disc's bottom edge. */
+const SIDELINE_CHIP_RISE = 4;
+
+/**
+ * Where a disc (player, sub slot, planned-sub marker) is DRAWN horizontally,
+ * and where a tap finds it - the hit-tests use this same function, so a tap
+ * lands exactly where the disc is painted.
+ *
+ * The stored relX is untouched. This only keeps the whole disc on the
+ * canvas: the sideline column is stored at relX 0.96, which on a 360-412px
+ * phone put the disc's centre 15-17px from the edge with a 24px radius - the
+ * screen edge sliced the slots and the subs waiting in them. Anything closer
+ * to an edge than one radius plus a small gap is drawn just inside it;
+ * everything else is drawn exactly at relX * width, as it always was.
+ * Exported for tests.
+ */
+export function discCenterX(relX: number, width: number, radius: number): number {
+  const x = relX * width;
+  const min = radius + DISC_EDGE_GAP;
+  const max = width - radius - DISC_EDGE_GAP;
+  if (!Number.isFinite(x) || max <= min) return x;
+  return Math.min(Math.max(x, min), max);
+}
 
 /**
  * Draw the planned-substitution markers.
@@ -122,12 +147,12 @@ function drawPlannedGhosts(
 ): void {
   ctx.save();
   ghosts.forEach((ghost) => {
-    const gx = ghost.relX * W;
+    const gx = discCenterX(ghost.relX, W, radius);
     const gy = ghost.relY * H;
 
     // The thread home, drawn first so the circle sits on top of its end.
     if (typeof ghost.fromRelX === 'number' && typeof ghost.fromRelY === 'number') {
-      const fx = ghost.fromRelX * W;
+      const fx = discCenterX(ghost.fromRelX, W, radius);
       const fy = ghost.fromRelY * H;
       const dx = gx - fx;
       const dy = gy - fy;
@@ -1057,9 +1082,10 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // Draw players (only in non-tactical view) - same paint as the live field.
     if (!isTacticsBoardView) {
+      const sidelineChips: Array<{ label: string; x: number; y: number }> = [];
       players.forEach(player => {
         if (typeof player.relX !== 'number' || typeof player.relY !== 'number') return;
-        const absX = player.relX * W;
+        const absX = discCenterX(player.relX, W, playerRadius);
         const absY = player.relY * H;
 
         // Sideline players read a touch quieter than the eleven.
@@ -1100,16 +1126,18 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
             : getPositionLabel(player.relX, player.relY).label;
           const translatedLabel = t(`positions.${labelKey}`);
 
-          // Sideline players: chip to the LEFT (matches sub slot rendering)
-          // On-field players: chip overlapping the bottom of the disc
+          // Sideline players: chip on the disc's lower half, painted after
+          // every disc (see below). On-field players: chip overlapping the
+          // bottom of the disc.
           if (matchingSubSlot) {
-            paintPositionChip(ctx, translatedLabel, absX - playerRadius - 4 * scale, absY, scale, 'right');
+            sidelineChips.push({ label: translatedLabel, x: absX, y: absY + playerRadius - SIDELINE_CHIP_RISE * scale });
           } else {
             paintPositionChip(ctx, translatedLabel, absX, absY + playerRadius + 2 * scale, scale);
           }
         }
 
       });
+      sidelineChips.forEach((chip) => paintPositionChip(ctx, chip.label, chip.x, chip.y, scale));
     }
 
     // Draw ball (only in tactics board view) with circular clipping to remove white background
@@ -1426,7 +1454,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         // Skip GK position (at bottom) and sideline positions
         if (point.relY > 0.9 || isSidelinePosition(point.relX)) return;
 
-        const absX = point.relX * W;
+        const absX = discCenterX(point.relX, W, positionRadius);
         const absY = point.relY * H;
 
         // Check if position is occupied by a player
@@ -1450,7 +1478,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       const slotRadius = FIELD_PLAYER_RADIUS;
 
       subSlots.forEach(slot => {
-        const absX = slot.relX * W;
+        const absX = discCenterX(slot.relX, W, slotRadius);
         const absY = slot.relY * H;
 
         // Check if slot is occupied by a player
@@ -1503,11 +1531,12 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // --- Draw Players ---
     const playerRadius = FIELD_PLAYER_RADIUS;
     if (!isTacticsBoardView) {
+    const sidelineChips: Array<{ label: string; x: number; y: number }> = [];
     players.forEach(player => {
       if (typeof player.relX !== 'number' || typeof player.relY !== 'number') {
         return;
       }
-      const absX = player.relX * W;
+      const absX = discCenterX(player.relX, W, playerRadius);
       const absY = player.relY * H;
       if (!Number.isFinite(absX) || !Number.isFinite(absY)) {
         logger.warn("Skipping player due to non-finite calculated position", { player, absX, absY });
@@ -1557,12 +1586,16 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           Math.abs(player.relX! - slot.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
           Math.abs(player.relY! - slot.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
         );
+        // Its chip goes on the disc's own lower half rather than out to the
+        // left, where it lay over the on-pitch players beside the column, and
+        // it is painted after every disc so the next disc down cannot hide it.
         if (matchingSubSlot) {
-          paintPositionChip(context, t(`positions.${matchingSubSlot.positionLabel}`), absX - playerRadius - 4, absY, 1, 'right');
+          sidelineChips.push({ label: t(`positions.${matchingSubSlot.positionLabel}`), x: absX, y: absY + playerRadius - SIDELINE_CHIP_RISE });
         }
       }
 
     });
+    sidelineChips.forEach((chip) => paintPositionChip(context, chip.label, chip.x, chip.y, 1));
     }
 
     // --- End of draw ---
@@ -1787,8 +1820,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     const canvas = canvasRef.current;
     if (!canvas || player.relX === undefined || player.relY === undefined) return false;
     const rect = canvas.getBoundingClientRect();
-    // Calculate absolute player center based on canvas size and relative coordinates
-    const absPlayerX = player.relX * rect.width;
+    // The player's centre where it is drawn (discCenterX keeps edge discs on the canvas)
+    const absPlayerX = discCenterX(player.relX, rect.width, FIELD_PLAYER_RADIUS);
     const absPlayerY = player.relY * rect.height;
     // Calculate absolute event position relative to the canvas origin
     const absEventX = eventClientX - rect.left;
@@ -1859,7 +1892,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // Check formation snap points first
     if (formationSnapPoints && formationSnapPoints.length > 0) {
       for (const point of formationSnapPoints) {
-        const absPointX = point.relX * rect.width;
+        const absPointX = discCenterX(point.relX, rect.width, FIELD_PLAYER_RADIUS);
         const absPointY = point.relY * rect.height;
         const dx = absEventX - absPointX;
         const dy = absEventY - absPointY;
@@ -1875,7 +1908,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // Check sub slots
     if (subSlots && subSlots.length > 0) {
       for (const slot of subSlots) {
-        const absSlotX = slot.relX * rect.width;
+        const absSlotX = discCenterX(slot.relX, rect.width, FIELD_PLAYER_RADIUS);
         const absSlotY = slot.relY * rect.height;
         const dx = absEventX - absSlotX;
         const dy = absEventY - absSlotY;

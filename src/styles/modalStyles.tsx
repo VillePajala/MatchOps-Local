@@ -7,7 +7,7 @@
  * Visual language: the S1 "Syke Refined" system (tokens and `.s1-*` surfaces
  * in src/app/globals.css, first used by the home screen):
  * - Navy everywhere: the carbon canvas, raised surfaces one step lighter.
- * - Titles are WHITE Barlow Condensed italic (`font-display`); controls and
+ * - Titles are WHITE Barlow Condensed (`font-display`); controls and
  *   text inside the shared pieces use Inter (`font-ui`). The app-wide body
  *   font stays Rajdhani until the last redesign step, so a modal's own text
  *   keeps it until that modal is restyled.
@@ -48,9 +48,9 @@ export const ModalBackgroundEffects: React.FC = () => null;
 // Typography Styles
 // ============================================================================
 
-/** Popup title: white, Barlow Condensed italic, 30px. */
+/** Popup title: white, Barlow Condensed, 30px. */
 export const titleStyle =
-  "font-display text-3xl font-bold italic tracking-[0.01em] text-ink";
+  "font-display text-3xl font-bold tracking-[0.01em] text-ink";
 
 /** A field's label (13px Inter, secondary ink). */
 export const labelStyle =
@@ -589,9 +589,9 @@ export const dialogBackdropStyle =
 export const dialogContainerStyle =
   "s1-list p-6 max-w-md w-full mx-4";
 
-/** Title of a centered dialog or wizard: white Barlow Condensed italic. */
+/** Title of a centered dialog or wizard: white Barlow Condensed. */
 export const dialogTitleStyle =
-  "font-display text-2xl font-bold italic leading-tight text-ink";
+  "font-display text-2xl font-bold leading-tight text-ink";
 
 /** Body copy of a centered dialog. */
 export const dialogBodyStyle =
@@ -808,6 +808,7 @@ export const matchFieldToolStyle =
 export const matchFieldToolOnStyle =
   `inline-flex items-center justify-center w-11 h-11 rounded-full text-carbon bg-white shadow-[0_8px_14px_-8px_rgb(2_6_23/0.8)] active:scale-95 ${focusRing}`;
 
-/** A 48px round button inside the control capsule. */
+/** A 44px round button inside the control capsule (44, not 48, so five of
+ *  them plus the clock fit a 360px phone without the capsule scrolling). */
 export const matchCapsuleButtonStyle =
-  `inline-flex items-center justify-center w-12 h-12 shrink-0 rounded-full text-white bg-white/[0.07] transition-colors hover:bg-white/[0.12] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${focusRing}`;
+  `inline-flex items-center justify-center w-11 h-11 shrink-0 rounded-full text-white bg-white/[0.07] transition-colors hover:bg-white/[0.12] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${focusRing}`;
