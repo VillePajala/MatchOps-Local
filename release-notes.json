@@ -5,6 +5,16 @@
       "date": "2026-11-18",
       "internal": true,
       "en": [
+        "Documentation: one manual testing checklist."
+      ],
+      "fi": [
+        "Dokumentaatio: yksi manuaalinen testauslista."
+      ]
+    },
+    {
+      "date": "2026-11-18",
+      "internal": true,
+      "en": [
         "Documentation: the 2026 code review record and roadmap updated."
       ],
       "fi": [

@@ -1,8 +1,10 @@
-# User Flow & Cloud Architecture Testing Plan
+# Manual Testing Plan
 
-**Purpose**: Comprehensive manual testing for auth, data layer, sync, and security.
-**Scope**: User flows, data integrity, cloud sync reliability, transform correctness, and edge cases.
-**Last Updated**: 2026-02-06
+**Purpose**: The single manual checklist for the app: a real-phone pass over the match features, and the account, cloud-sync and data checks the automated tests and the staging smoke test cannot cover.
+**Scope**: Sections 1-11 are sign-in, data, sync and security; sections 12-14 are the match features and the app on a phone.
+**Last Updated**: 2026-11-18. The pre-release phone checklist (the former root `TESTING-PLAN.md`) was merged in as sections 12-14, and section 1 was updated for the cloud-first app.
+
+**How to use it**: before a release, run section 12 on an Android phone against the build being shipped. Run sections 1-11 against staging (`npm run dev` points there) after changes to sign-in, sync or the data layer. Record anything found in *Notes & Bugs Found* at the end.
 
 ---
 
@@ -14,37 +16,36 @@
 - Access to Supabase dashboard (to verify cloud data directly)
 - Two devices OR two browser profiles (for multi-device tests)
 - DevTools available (for offline simulation, network throttling)
+- An Android phone with Chrome, for sections 12-14
 
 ---
 
 ## 1. Fresh Install Flows
 
-### 1.1 Fresh Install → Local Mode
-- [x] Open app for first time (clear all data first)
-- [x] Welcome screen appears with 2 primary options
-- [x] Click "Continue Locally"
-- [x] Main app loads with empty state overlay
-- [x] Can dismiss overlay and explore field
-- [x] Banner shows "No game created yet"
-- [x] Refresh page — Welcome screen does NOT reappear
+The app is cloud-first (decision 2026-06-23): new users on the web and in the Play Store build sign in or create an account. The no-account local mode is hidden for new users, not removed: existing local users keep it, and builds with `NEXT_PUBLIC_INTERNAL_TESTING=true` still offer it.
 
-### 1.2 Fresh Install → Create Account → Cloud Mode
-- [x] Open app for first time
-- [x] Click "Continue with Cloud"
-- [x] Login screen appears
-- [x] Create new account with email/password
-- [x] Verify email (check inbox, or auto-verify in staging)
-- [x] Main app loads with empty state
-- [x] Sync indicator shows cloud mode active
-- [x] Refresh page — Welcome screen does NOT reappear
+### 1.1 Fresh Install → Create Account → Cloud Mode
+- [ ] Open app for first time (clear site data first)
+- [ ] The welcome screen offers sign-in and account creation, with no "continue without an account" option
+- [ ] Create new account with email/password (staging auto-confirms the email; production sends a confirmation)
+- [ ] Terms & Privacy links open; the consent box must be checked to continue
+- [ ] Main app loads with empty state
+- [ ] Sync indicator shows cloud mode active
+- [ ] Refresh page — Welcome screen does NOT reappear
 
-### 1.3 Fresh Install → Import Backup (via footer link)
-- [x] Open app for first time
-- [x] Use "Import a backup" link
-- [x] Select valid backup file
-- [x] Data imports successfully
-- [x] Main app loads with imported data visible
-- [x] Players appear in roster, games in list
+### 1.2 Fresh Install → Local Mode (internal-testing builds only)
+- [ ] With `NEXT_PUBLIC_INTERNAL_TESTING=true`, open the app with cleared data
+- [ ] The welcome screen also offers continuing without an account
+- [ ] Continue locally — main app loads with empty state
+- [ ] Refresh page — Welcome screen does NOT reappear
+
+### 1.3 Fresh Install → Import Backup
+- [ ] Open app for first time
+- [ ] Use the "Import a backup" link
+- [ ] Select valid backup file
+- [ ] Data imports successfully
+- [ ] Main app loads with imported data visible
+- [ ] Players appear in roster, games in list
 
 ---
 
@@ -517,6 +518,99 @@ These tests verify the 19 transform rules between app state and Supabase tables.
 
 ---
 
+## 12. Match Features (phone)
+
+Run on an Android phone, as a coach would during a match.
+
+### 12.1 Timer and Periods
+- [ ] Start timer — counts up smoothly; Pause stops it; Resume continues from where it stopped
+- [ ] Period 1 ends at its length; the break shows; Start Period 2 continues from the period end
+- [ ] End period now (referee blew early): asks for confirmation, then moves the clock to the period end
+- [ ] Final period ends the game; Start shows "Game over"
+- [ ] Lock the phone mid-period, unlock — the clock is still right
+- [ ] Kill the app mid-period, reopen — the game and clock are recovered
+- [ ] Screen does not auto-lock while the timer runs; it may lock again when paused or ended
+
+### 12.2 Extra Time and Penalties
+- [ ] At full time the timer view offers Extra time and Penalties
+- [ ] Default is 2 × 15 min (football) or 2 × 5 min (futsal); 1 period and another length can be chosen
+- [ ] Start extra time — the clock runs on from the regulation end, labelled "ET 1/2"
+- [ ] The break between extra-time periods shows "Start extra time 2"; the second period ends the game
+- [ ] A goal in extra time shows separately: the recap reads e.g. "3-2 (extra time 1-0)"
+- [ ] Game Settings: regulation period count and length are locked after extra time
+- [ ] Penalties: record a shootout; the result shows the shootout score
+
+### 12.3 Scoring and Events
+- [ ] Log a goal — score increments for our team; scorer and assister can be chosen
+- [ ] Log an opponent goal (confirmed first) — opponent score increments
+- [ ] Goals appear in the event log with the right time
+- [ ] Delete a goal from the log — the score updates
+- [ ] Undo straight after a goal (the toast) undoes the goal, not the clock
+
+### 12.4 Field and Substitutions
+- [ ] Tap a player in the player bar, then tap the field — the player is placed there (select-and-place, not drag)
+- [ ] Move a placed player to a new position
+- [ ] Remove a player from the field — they return to the bar
+- [ ] Place all players fills the field with the chosen formation; field sizes include 4v4
+- [ ] Reset field clears it; player names can be toggled
+- [ ] Sub reminder appears at the interval; confirming logs the substitution
+- [ ] Playing-time planner: planned subs show in the timer view when due, and stop at the end of regulation
+- [ ] Undo/Redo works for placements and scoring; undo never moves the match clock
+
+### 12.5 Tactics Board
+- [ ] Enable drawing mode, draw lines, add tactical discs, place the ball marker
+- [ ] Undo a drawing action; clear all drawings
+
+### 12.6 After the Game
+- [ ] Game stats: score, teams, date, captain (when one was named), player goals/assists/time, events
+- [ ] The wrap-up checklist shows what is still missing (scorers, assessments, notes)
+- [ ] Player assessment: rate a player, add a note, save; progress shows N/M assessed; reopen — persisted
+- [ ] Game notes save and reappear after reopening
+- [ ] Recap text copies/shares correctly; the Taso report lists the squad and goals with minutes
+- [ ] Export the game as Excel — file opens and the data is right
+
+### 12.7 Teams, Roster, Seasons and Tournaments
+- [ ] Create, edit, archive and unarchive a team; delete a team with no games
+- [ ] Team roster: add and remove players; a new game with that team offers its roster
+- [ ] Personnel: add, edit and delete a staff member; select personnel for a game
+- [ ] Create a season with a league from the Finnish presets (area and level filters), or a custom league name
+- [ ] Create a tournament with series; edit and remove a series
+- [ ] Link games to a season and to a tournament series; stats filtered by season or tournament show only those games
+
+### 12.8 Statistics
+- [ ] Season and tournament tabs show aggregate stats
+- [ ] A player's stats: games, goals, assists and assessment averages; season/tournament filters update them
+
+---
+
+## 13. The App on a Phone
+
+### 13.1 Install and Update
+- [ ] Install from the Play Store (or Chrome menu > Add to Home Screen) — opens standalone
+- [ ] After a new deployment, the update banner appears; updating reloads without losing an unsaved edit
+
+### 13.2 Layout and Modals
+- [ ] Rotate to landscape — layout adjusts; the field is usable both ways; modals don't overflow
+- [ ] Tap the backdrop or Android back — the modal closes
+- [ ] Long modals (Game Settings, Stats) scroll
+- [ ] Toasts appear for saves and errors, dismiss themselves, and don't pile up
+- [ ] Loading shows a spinner or skeleton, never a blank screen; errors read as plain messages
+
+### 13.3 Language
+- [ ] Switch EN ↔ FI — all visible text changes, including dates and decimals (e.g. "1,0" in Finnish)
+
+---
+
+## 14. Resources and Legal
+
+- [ ] Training resources: the warm-up plan loads, edits save; example drills show
+- [ ] Rules directory: links to the official rules open
+- [ ] Privacy policy (/privacy-policy) and terms (/terms) load and are current
+
+Not tested: the free-tier limits and premium screens. The app is free and premium enforcement is off (`PREMIUM_ENFORCEMENT_ENABLED = false`).
+
+---
+
 ## Progress Summary
 
 | Section | Tests | Passed | Failed | Status |
@@ -532,7 +626,10 @@ These tests verify the 19 transform rules between app state and Supabase tables.
 | 9. Edge Cases | 7 flows | | | Not started |
 | 10. Settings & Account | 7 flows | | | Not started |
 | 11. Security & RLS | 3 flows | | | Not started |
-| **Total** | **60 flows** | | | **Not started** |
+| 12. Match Features (phone) | 8 flows | | | Not started |
+| 13. The App on a Phone | 3 flows | | | Not started |
+| 14. Resources and Legal | 1 flow | | | Not started |
+| **Total** | **72 flows** | | | **Not started** |
 
 ### Suggested Testing Order
 
@@ -547,6 +644,8 @@ These tests verify the 19 transform rules between app state and Supabase tables.
 9. **Section 8** (Import/Export) — backup workflows
 10. **Section 10** (Settings) — account management
 11. **Section 11** (Security) — final verification
+
+Before a release: **Section 12** on a phone first (it is what a coach meets in a match), then 13-14.
 
 ---
 
