@@ -667,7 +667,7 @@ Business activities, tracked so the strategy is visible alongside the product wo
 
 ## 🧪 Post-launch QA (verification pass, not features)
 
-Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are unexecuted — run as a verification sweep when convenient. Specific gaps to confirm: session-expiry handling, auth-init timeout recovery, post-login marketing-consent prompt. ⚠️ The "Free Limits" test is stale (premium enforcement is off / app is free).
+The manual checklist `user-flow-testing-plan.md` (the root `TESTING-PLAN.md` merged into it 2026-11-18) is unexecuted — run as a verification sweep when convenient. Specific gaps to confirm: session-expiry handling, auth-init timeout recovery, post-login marketing-consent prompt.
 
 ---
 
@@ -677,7 +677,7 @@ Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are une
 |---------|----------|
 | This roadmap | `docs/03-active-plans/UNIFIED-ROADMAP.md` |
 | New-user funnel fix (integration branch `feat/new-user-funnel`; Phase 1 in PR #704) | `docs/03-active-plans/new-user-funnel-fix-plan.md` |
-| Post-launch QA checklists | `docs/03-active-plans/user-flow-testing-plan.md`, `TESTING-PLAN.md` |
+| Post-launch QA checklist | `docs/03-active-plans/user-flow-testing-plan.md` |
 | Speculative feature ideas | `docs/04-features/future-vision.md` |
 | Supabase implementation reference | `docs/02-technical/supabase-implementation-guide.md` |
 | Archived plans (Play Store, billing, reviews, etc.) | `docs/08-archived/completed-active-plans/` |
