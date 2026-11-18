@@ -17,6 +17,8 @@ import {
   dangerButtonStyle,
   WizardBackdrop,
   wizardModalStyle,
+  inputBaseStyle,
+  labelStyle,
   wizardHeaderStyle,
   wizardTitleStyle,
   wizardContentStyle,
@@ -311,14 +313,14 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
         <div className="space-y-1">
           {items.map(({ label, count }) => (
             <div key={label} className="flex justify-between text-sm">
-              <span className="text-slate-400">{label}</span>
-              <span className="text-slate-200 font-medium">{count}</span>
+              <span className="text-ink-3">{label}</span>
+              <span className="text-ink font-medium">{count}</span>
             </div>
           ))}
           {booleanItems.map(({ label, value }) => (
             <div key={label} className="flex justify-between text-sm">
-              <span className="text-slate-400">{label}</span>
-              <span className={`font-medium ${value ? 'text-green-400' : 'text-slate-500'}`}>
+              <span className="text-ink-3">{label}</span>
+              <span className={`font-medium ${value ? 'text-win' : 'text-ink-3'}`}>
                 {value ? t('common.yes', 'Yes') : t('common.no', 'No')}
               </span>
             </div>
@@ -362,7 +364,6 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
 
     const { stage, progress: percent, currentEntity, message } = progress;
     const isError = stage === 'error';
-    const isDeleting = stage === 'deleting';
 
     return (
       <div className="space-y-4">
@@ -371,12 +372,12 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
           <div className={progressBarContainerStyle}>
             <div
               className={`${progressBarFillStyle} ${
-                isError ? 'bg-red-500' : isDeleting ? 'bg-amber-500' : 'bg-sky-500'
+                isError ? 'bg-loss' : 'bg-action'
               }`}
               style={{ width: `${Math.max(percent, 5)}%` }}
             />
           </div>
-          <div className="absolute right-0 top-4 text-xs text-slate-400">
+          <div className="absolute right-0 top-4 text-xs text-ink-3">
             {percent}%
           </div>
         </div>
@@ -389,13 +390,13 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
           aria-atomic="true"
         >
           {!isError && (
-            <HiOutlineArrowPath className="h-8 w-8 text-sky-400 mx-auto animate-spin mb-2" />
+            <HiOutlineArrowPath className="h-8 w-8 text-ink-2 mx-auto animate-spin mb-2" />
           )}
-          <p className="text-slate-300">
+          <p className="text-ink-2">
             {t(`reverseMigration.progress.${stage}`, message || stage)}
           </p>
           {currentEntity && (
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-ink-3 mt-1">
               {t('reverseMigration.progress.entity', 'Downloading {{entity}}...', { entity: translateEntity(currentEntity) })}
             </p>
           )}
@@ -412,8 +413,8 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
           <>
             {/* Icon and description */}
             <div className="text-center mb-6">
-              <HiOutlineCloudArrowDown className="h-12 w-12 text-sky-400 mx-auto mb-3" />
-              <p className="text-slate-300">
+              <HiOutlineCloudArrowDown className="h-12 w-12 text-ink-2 mx-auto mb-3" />
+              <p className="text-ink-2">
                 {t('reverseMigration.description', 'Download your cloud data to this device and switch to local mode.')}
               </p>
             </div>
@@ -421,20 +422,20 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
             {/* Data summary - show both cloud and local */}
             {isLoadingSummary ? (
               <div className="flex items-center justify-center py-8">
-                <HiOutlineArrowPath className="h-8 w-8 text-slate-400 animate-spin" />
+                <HiOutlineArrowPath className="h-8 w-8 text-ink-3 animate-spin" />
               </div>
             ) : summaryError ? (
               <div className={errorBoxStyle}>
                 <div className="flex items-start gap-3">
-                  <HiOutlineExclamationTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <HiOutlineExclamationTriangle className="h-5 w-5 text-loss flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm text-red-300 font-medium mb-1">
+                    <p className="text-sm text-loss font-medium mb-1">
                       {t('reverseMigration.summaryError', 'Failed to check cloud data')}
                     </p>
-                    <p className="text-sm text-red-400">{summaryError}</p>
+                    <p className="text-sm text-loss">{summaryError}</p>
                     <button
                       onClick={handleRetrySummary}
-                      className="mt-3 text-sm text-sky-400 hover:text-sky-300 flex items-center gap-1"
+                      className="mt-3 text-sm text-ink-2 hover:text-ink-2 flex items-center gap-1"
                     >
                       <HiOutlineArrowPath className="h-4 w-4" />
                       {t('common.retry', 'Retry')}
@@ -445,7 +446,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
             ) : dataSummary ? (
               renderDataSummary(dataSummary)
             ) : (
-              <div className="text-center py-8 text-slate-400">
+              <div className="text-center py-8 text-ink-3">
                 {t('reverseMigration.noData', 'No cloud data found.')}
               </div>
             )}
@@ -474,7 +475,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
           <>
             {/* Title */}
             <div className="text-center mb-6">
-              <h3 className="text-lg font-semibold text-slate-100 mb-2">
+              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
                 {t('reverseMigration.choose.title', 'What should happen to your cloud data?')}
               </h3>
             </div>
@@ -484,26 +485,26 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
               {/* Keep cloud option */}
               <button
                 onClick={() => setMigrationMode('keep-cloud')}
-                className={`w-full p-4 rounded-lg border text-left transition-all ${
+                className={`w-full min-h-14 p-4 rounded-2xl text-left transition-colors font-ui focus:outline-none focus-visible:ring-2 focus-visible:ring-action ${
                   migrationMode === 'keep-cloud'
-                    ? 'border-sky-500 bg-sky-900/20'
-                    : 'border-slate-700 hover:border-slate-600 bg-slate-800/50'
+                    ? 'bg-surface-2 shadow-[inset_0_0_0_1.5px_var(--color-action)]'
+                    : 'bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:bg-white/[0.06]'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    migrationMode === 'keep-cloud' ? 'border-sky-500' : 'border-slate-500'
+                    migrationMode === 'keep-cloud' ? 'border-action' : 'border-ink-3'
                   }`}>
                     {migrationMode === 'keep-cloud' && (
-                      <div className="w-2.5 h-2.5 bg-sky-500 rounded-full" />
+                      <div className="w-2.5 h-2.5 bg-action rounded-full" />
                     )}
                   </div>
                   <div>
-                    <div className="font-medium text-slate-200">
-                      <HiOutlineShieldCheck className="inline h-5 w-5 mr-1.5 text-green-400" />
+                    <div className="font-medium text-ink">
+                      <HiOutlineShieldCheck className="inline h-5 w-5 mr-1.5 text-win" />
                       {t('reverseMigration.choose.keepCloud', 'Keep cloud copy')}
                     </div>
-                    <p className="text-sm text-slate-400 mt-1">
+                    <p className="text-sm text-ink-3 mt-1">
                       {t('reverseMigration.choose.keepCloudDescription', 'Your data stays in Supabase. You can re-enable cloud sync later without losing anything.')}
                     </p>
                   </div>
@@ -513,26 +514,26 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
               {/* Delete cloud option */}
               <button
                 onClick={() => setMigrationMode('delete-cloud')}
-                className={`w-full p-4 rounded-lg border text-left transition-all ${
+                className={`w-full min-h-14 p-4 rounded-2xl text-left transition-colors font-ui focus:outline-none focus-visible:ring-2 focus-visible:ring-action ${
                   migrationMode === 'delete-cloud'
-                    ? 'border-red-500 bg-red-900/20'
-                    : 'border-slate-700 hover:border-slate-600 bg-slate-800/50'
+                    ? 'bg-surface-2 shadow-[inset_0_0_0_1.5px_var(--color-action)]'
+                    : 'bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:bg-white/[0.06]'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    migrationMode === 'delete-cloud' ? 'border-red-500' : 'border-slate-500'
+                    migrationMode === 'delete-cloud' ? 'border-action' : 'border-ink-3'
                   }`}>
                     {migrationMode === 'delete-cloud' && (
-                      <div className="w-2.5 h-2.5 bg-red-500 rounded-full" />
+                      <div className="w-2.5 h-2.5 bg-action rounded-full" />
                     )}
                   </div>
                   <div>
-                    <div className="font-medium text-slate-200">
-                      <HiOutlineTrash className="inline h-5 w-5 mr-1.5 text-red-400" />
+                    <div className="font-medium text-ink">
+                      <HiOutlineTrash className="inline h-5 w-5 mr-1.5 text-loss" />
                       {t('reverseMigration.choose.deleteCloud', 'Delete cloud data')}
                     </div>
-                    <p className="text-sm text-slate-400 mt-1">
+                    <p className="text-sm text-ink-3 mt-1">
                       {t('reverseMigration.choose.deleteCloudDescription', 'After download, all your data will be removed from our servers. This cannot be undone.')}
                     </p>
                   </div>
@@ -563,32 +564,32 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
           <>
             {/* Warning icon */}
             <div className="text-center mb-6">
-              <HiOutlineExclamationTriangle className="h-12 w-12 text-amber-400 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-slate-100 mb-2">
+              <HiOutlineExclamationTriangle className="h-12 w-12 text-action mx-auto mb-3" />
+              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
                 {t('reverseMigration.confirm.title', 'Confirm Cloud Deletion')}
               </h3>
             </div>
 
             {/* Warning message */}
             <div className={`${warningBoxStyle} mb-6`}>
-              <p className="text-amber-200 mb-3">
+              <p className="text-ink-2 mb-3">
                 {t('reverseMigration.confirm.warning', 'After downloading your data, ALL cloud data will be permanently deleted from our servers.')}
               </p>
               {dataSummary && (
-                <ul className="text-sm text-amber-300 space-y-1">
+                <ul className="text-sm text-ink-2 space-y-1">
                   <li>&bull; {dataSummary.players} {t('migration.summary.players', 'Players')}</li>
                   <li>&bull; {dataSummary.games} {t('migration.summary.games', 'Games')}</li>
                   <li>&bull; {t('reverseMigration.confirm.allData', 'All associated data')}</li>
                 </ul>
               )}
-              <p className="text-amber-200 mt-3 font-medium">
+              <p className="text-ink-2 mt-3 font-medium">
                 {t('reverseMigration.confirm.cannotUndo', 'This action cannot be undone.')}
               </p>
             </div>
 
             {/* Confirmation input */}
             <div className="mb-6">
-              <label className="block text-sm text-slate-400 mb-2">
+              <label className={labelStyle}>
                 {t('reverseMigration.confirm.typeDelete', 'Type DELETE to confirm:')}
               </label>
               <input
@@ -596,7 +597,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="DELETE"
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+                className={inputBaseStyle}
                 autoComplete="off"
               />
             </div>
@@ -627,7 +628,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
         return (
           <>
             <div className="text-center mb-6">
-              <h3 className="text-lg font-semibold text-slate-100">
+              <h3 className="text-lg font-semibold text-ink">
                 {migrationMode === 'delete-cloud'
                   ? t('reverseMigration.progress.downloadingAndDeleting', 'Downloading & Deleting...')
                   : t('reverseMigration.progress.downloading', 'Downloading Your Data...')}
@@ -645,16 +646,16 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
             {/* Status icon - amber warning if there are warnings, green check if clean */}
             <div className="text-center mb-6">
               {hasWarnings ? (
-                <HiOutlineExclamationTriangle className="h-12 w-12 text-amber-400 mx-auto mb-3" />
+                <HiOutlineExclamationTriangle className="h-12 w-12 text-action mx-auto mb-3" />
               ) : (
-                <HiOutlineCheckCircle className="h-12 w-12 text-green-400 mx-auto mb-3" />
+                <HiOutlineCheckCircle className="h-12 w-12 text-win mx-auto mb-3" />
               )}
-              <h3 className="text-lg font-semibold text-slate-100 mb-2">
+              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
                 {hasWarnings
                   ? t('reverseMigration.complete.titleWithWarnings', 'Switch Complete with Warnings')
                   : t('reverseMigration.complete.title', 'Switch Complete!')}
               </h3>
-              <p className="text-slate-400">
+              <p className="text-ink-3">
                 {migrationMode === 'delete-cloud'
                   ? t('reverseMigration.complete.deletedDescription', 'Your data has been downloaded and cloud data has been deleted.')
                   : t('reverseMigration.complete.description', 'Your data has been downloaded to this device.')}
@@ -667,16 +668,16 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
             {/* Warnings */}
             {migrationResult && migrationResult.warnings.length > 0 && (
               <div className={`${warningBoxStyle} mt-4`}>
-                <h4 className="text-amber-200 font-medium mb-2 flex items-center gap-2">
+                <h4 className="text-ink-2 font-medium mb-2 flex items-center gap-2">
                   <HiOutlineExclamationTriangle className="h-5 w-5" />
                   {t('migration.warnings.title', 'Warnings')}
                 </h4>
-                <ul className="text-sm text-amber-300 space-y-1">
+                <ul className="text-sm text-ink-2 space-y-1">
                   {migrationResult.warnings.slice(0, MAX_DISPLAYED_WARNINGS).map((warning, i) => (
                     <li key={i}>&bull; {warning}</li>
                   ))}
                   {migrationResult.warnings.length > MAX_DISPLAYED_WARNINGS && (
-                    <li className="text-amber-400">
+                    <li className="text-ink-2">
                       {t('migration.warnings.andMore', '...and {{count}} more', {
                         count: migrationResult.warnings.length - MAX_DISPLAYED_WARNINGS,
                       })}
@@ -694,7 +695,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
               >
                 {t('reverseMigration.complete.doneAndReload', 'Done & Reload')}
               </button>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-ink-3">
                 {t('reverseMigration.complete.reloadNote', 'The page will reload to apply changes')}
               </p>
             </div>
@@ -707,8 +708,8 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
           <>
             {/* Error icon */}
             <div className="text-center mb-6">
-              <HiOutlineXMark className="h-12 w-12 text-red-400 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-slate-100 mb-2">
+              <HiOutlineXMark className="h-12 w-12 text-loss mx-auto mb-3" />
+              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
                 {t('reverseMigration.error.title', 'Migration Failed')}
               </h3>
             </div>
@@ -716,7 +717,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
             {/* Error messages */}
             {migrationResult && migrationResult.errors.length > 0 && (
               <div className={`${errorBoxStyle} mb-6`}>
-                <ul className="text-sm text-red-300 space-y-1">
+                <ul className="text-sm text-loss space-y-1">
                   {migrationResult.errors.map((error, i) => (
                     <li key={i}>&bull; {error}</li>
                   ))}
@@ -733,7 +734,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
                 {t('common.cancel', 'Cancel')}
               </button>
               {retryCount >= MAX_RETRIES ? (
-                <p className="text-sm text-slate-400 py-2">
+                <p className="text-sm text-ink-3 py-2">
                   {t('reverseMigration.error.maxRetries', 'Maximum retries reached. Please try again later.')}
                 </p>
               ) : (
@@ -783,7 +784,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="reverse-migration-wizard-title"
-        className={wizardModalStyle}
+        className={`${wizardModalStyle} font-ui`}
       >
         {/* Header */}
         <div className={wizardHeaderStyle}>

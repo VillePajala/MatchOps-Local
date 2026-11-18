@@ -743,7 +743,7 @@ describe('Translation File Validation', () => {
       // +24: 24 count messages split into _one/_other (review 8.7). 3498.
       // +9 / -1: the "cannot delete" reason and hints built from counts (review 8.8). 3506.
       // +16 extra time (review 11.1). 3522.
-      expect(enKeys.length).toBe(3524);
+      expect(enKeys.length).toBe(3526);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -952,7 +952,7 @@ describe('Translation File Validation', () => {
       // +24 (review 8.7). 3498.
       // +9 / -1 (review 8.8). 3506.
       // +16 (review 11.1). 3522.
-      expect(fiKeys.length).toBe(3524);
+      expect(fiKeys.length).toBe(3526);
     });
   });
 });

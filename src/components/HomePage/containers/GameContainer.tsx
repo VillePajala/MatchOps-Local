@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import tinycolor from 'tinycolor2';
+import { getFieldConfig } from '@/config/fieldConfigs';
+import { matchGlassStyle } from '@/styles/modalStyles';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import PlayerBar from '@/components/PlayerBar';
@@ -11,7 +14,6 @@ import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 import { FieldContainer } from './FieldContainer';
 import type { FieldContainerProps } from './FieldContainer';
 
-const barStyle = 'flex-shrink-0 bg-slate-800 border-b border-white/10';
 type ControlBarProps = React.ComponentProps<typeof ControlBar>;
 
 export interface GameContainerProps {
@@ -46,10 +48,41 @@ export function GameContainer({
   const { t } = useTranslation();
   const assessmentsEnabled = useAssessmentsEnabled();
 
+  // FULL-SCREEN PITCH. The canvas keeps its own box (FieldContainer: below
+  // the top panel's lower edge, above the control capsule), so every player
+  // coordinate means what it always meant. The grass beyond that box - under
+  // the top panel, beside and under the capsule - is painted here in the
+  // colours the field's own background has at its top and bottom edges, so
+  // the pitch reads as one surface from edge to edge.
+  const gameType = fieldProps.gameSessionState?.gameType;
+  const surround = useMemo(() => {
+    const base = getFieldConfig(gameType).style.fieldColor;
+    const futsal = gameType === 'futsal';
+    const top = tinycolor.mix(base, futsal ? '#000000' : '#ffffff', futsal ? 14 : 6).toHexString();
+    const bottom = tinycolor.mix(base, '#000000', futsal ? 14 : 25).toHexString();
+    return { top, bottom };
+  }, [gameType]);
 
   return (
-    <main className="flex flex-col h-full min-h-[100svh] bg-slate-900 text-slate-50" data-testid="home-page">
-      <div className={barStyle}>
+    <main
+      className="relative h-full min-h-[100svh] overflow-hidden text-slate-50"
+      style={{ background: `linear-gradient(180deg, ${surround.top} 0%, ${surround.top} 50%, ${surround.bottom} 50%, ${surround.bottom} 100%)` }}
+      data-testid="home-page"
+    >
+      <FieldContainer {...fieldProps} />
+
+      {/* Top panel: the score over the player bar, frosted navy over the
+          grass. Below the timer view (z-30) so that view covers it. */}
+      <div className={`absolute left-2 right-2 top-2 z-[26] rounded-[26px] overflow-hidden font-ui ${matchGlassStyle}`}>
+        <GameInfoBar
+          teamName={gameInfo.teamName}
+          opponentName={gameInfo.opponentName}
+          homeScore={gameInfo.homeScore}
+          awayScore={gameInfo.awayScore}
+          onTeamNameChange={onTeamNameChange}
+          onOpponentNameChange={onOpponentNameChange}
+          homeOrAway={gameInfo.homeOrAway}
+        />
         <ErrorBoundary
           fallback={
             <div className="p-4 bg-red-900/20 border border-red-700 text-red-300">
@@ -67,23 +100,20 @@ export function GameContainer({
             onToggleGoalie={onToggleGoalie}
           />
         </ErrorBoundary>
-        <GameInfoBar
-          teamName={gameInfo.teamName}
-          opponentName={gameInfo.opponentName}
-          homeScore={gameInfo.homeScore}
-          awayScore={gameInfo.awayScore}
-          onTeamNameChange={onTeamNameChange}
-          onOpponentNameChange={onOpponentNameChange}
-          homeOrAway={gameInfo.homeOrAway}
-        />
       </div>
 
       {/* Orphaned game banner removed - warning in TeamManagerModal is sufficient.
           Functionality (orphanedGameInfo, TeamReassignModal) kept for potential future use. */}
 
-      <FieldContainer {...fieldProps} />
-
-      <div className={barStyle}>
+      {/* The control bar floats as a capsule over the grass. This wrapper
+          deliberately has NO z-index, filter or backdrop-filter: ControlBar's
+          side menu and its scrim are `fixed`, and any of those would become
+          their containing block / stacking context and trap them here. The
+          glass lives on the capsule element itself. */}
+      <div
+        className="absolute inset-x-0 flex justify-center px-2"
+        style={{ bottom: 'calc(10px + env(safe-area-inset-bottom, 0px))' }}
+      >
         {/* 3.1: the planner entry left the match menu (reachability: it
             lives on Home/Pelit - it creates games). */}
         <ControlBar
@@ -95,14 +125,15 @@ export function GameContainer({
         />
       </div>
 
-      {/* Safe area bottom cover - rendered via portal to same stacking context as FormationPicker.
-          Covers the gap between ControlBar and screen bottom in PWA standalone mode.
-          Uses 34px fixed height (typical safe area) + env() for extra safety.
-          z-35 puts it above overlays (z-30) but below ControlBar (z-40). */}
+      {/* Safe area bottom cover - rendered via portal so it also fills any gap
+          below <main> in PWA standalone mode (34px fixed height, typical safe
+          area, + env() for extra safety). Grass now, not a navy band, so the
+          pitch still runs to the screen edge; z-0 keeps it under the capsule
+          (z-40) and under the full-screen timer and formation views (z-30). */}
       {typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed bottom-0 inset-x-0 bg-gradient-to-b from-slate-800 to-slate-900 pointer-events-none"
-          style={{ height: 'max(34px, env(safe-area-inset-bottom, 34px))', zIndex: 35 }}
+          className="fixed bottom-0 inset-x-0 pointer-events-none"
+          style={{ height: 'max(34px, env(safe-area-inset-bottom, 34px))', zIndex: 0, backgroundColor: surround.bottom }}
           aria-hidden="true"
         />,
         document.body

@@ -72,10 +72,14 @@ describe('PlayerBar', () => {
   it('indicates goalies correctly', () => {
     render(<PlayerBar {...defaultProps} />);
     
-    // The goalie (Jane) should have a different visual indicator (background color)
+    // The goalie (Jane) is the inverse of the field discs: a navy fill
+    // (gradient) inside a white ring - not the default white disc.
     const janeDisk = screen.getByText('Jane').closest('div');
     expect(janeDisk).toBeInTheDocument();
-    expect(janeDisk).toHaveStyle('background-color: #F97316'); // Goalie color from PlayerDisk.tsx
+    const janeStyle = janeDisk!.getAttribute('style') ?? '';
+    expect(janeStyle).toMatch(/linear-gradient/);
+    expect(janeStyle).toMatch(/#0f172a|rgb\(15, 23, 42\)/i);
+    expect(janeStyle).toMatch(/inset 0 0 0 2px (#ffffff|rgb\(255, 255, 255\))/i);
 
     // Optionally, check a non-goalie's color
     const johnDisk = screen.getByText('John').closest('div');

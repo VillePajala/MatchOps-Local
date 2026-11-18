@@ -10,7 +10,8 @@ import SteadyDigits from '@/components/SteadyDigits';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { HiOutlineMicrophone } from 'react-icons/hi2';
+import { HiOutlineMicrophone, HiOutlineChevronDown, HiOutlineMinus, HiOutlinePlus } from 'react-icons/hi2';
+import { chipStyle, chipSelectedStyle, inlineFieldStyle, sectionLabelStyle } from '@/styles/modalStyles';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import { clockContinuation } from '@/utils/clockContinuation';
 import { formatAppDecimal } from '@/utils/localeFormat';
@@ -165,27 +166,23 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   }, [isEditingOpponentName]);
   // --- End Effects ---
 
-  // Determine text color based on alert status directly from prop
-  let textColor = 'text-slate-100'; // Base text color
-  if (subAlertLevel === 'due') {
-    textColor = 'text-red-400'; // Use a subtler red
-  } else if (subAlertLevel === 'warning') {
-    textColor = 'text-orange-300'; // Use a subtler orange
-  }
+  // The clock is white; the substitution timer walks it through orange to red
+  // (a status escalation, not decoration - see config/palette STATUS).
+  const clockAlertClass =
+    subAlertLevel === 'due' ? 'text-red-400' : subAlertLevel === 'warning' ? 'text-orange-300' : null;
 
-  // Determine background color - REMOVE alert level logic
-  const bgColor = 'bg-slate-900/85'; // Always use default background
-  
-  // Consistent button styles (simplified for overlay)
-  const timerButtonStyle = "text-white font-semibold py-2 px-5 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors duration-150 flex items-center justify-center space-x-2";
-  const controlButtonStyle = "text-slate-100 font-bold py-1 px-3 rounded shadow bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-lg active:scale-95";
-  const controlValueStyle = "text-slate-100 font-bold text-lg tabular-nums w-8 mx-2 text-center";
-  const controlLabelStyle = "text-sm font-medium text-slate-300 mr-2";
-  // Add action button styles for consistency - flat style with subtle border
-  const actionButtonBase = "text-white font-bold py-2.5 px-4 rounded-sm pointer-events-auto text-base transition-colors";
-  const primaryActionStyle = `${actionButtonBase} bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-indigo-400/30`;
-  const secondaryActionStyle = `${actionButtonBase} bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-indigo-400/30`;
-  const dangerActionStyle = `${actionButtonBase} bg-red-700 hover:bg-red-600 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-red-500/30`;
+  // Buttons: ONE amber primary (start/pause, or the end-of-game hand-off),
+  // everything else quiet. Pills of 56px+ - usable with cold thumbs.
+  const focusRingClass = "focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon";
+  const actionButtonBase = `min-h-14 px-4 rounded-full flex items-center justify-center gap-2.5 font-ui font-bold text-[17px] pointer-events-auto transition-[filter,background-color,color] active:scale-[0.98] disabled:cursor-not-allowed ${focusRingClass}`;
+  const primaryActionStyle = `${actionButtonBase} s1-primary disabled:opacity-50`;
+  /** Quiet: an outline on near-nothing; disabled reads dimmer still. */
+  const secondaryActionStyle = `${actionButtonBase} s1-ghost text-ink disabled:text-ink-3 disabled:bg-transparent disabled:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.09)]`;
+  /** A solid navy pill: the team's own goal. */
+  const solidActionStyle = `${actionButtonBase} s1-seg-on text-ink hover:brightness-110`;
+  /** Red outline: a result against us (or a live recording). */
+  const dangerActionStyle = `${actionButtonBase} text-loss bg-[rgb(255_107_107/0.07)] shadow-[inset_0_0_0_1px_rgb(255_107_107/0.5)] hover:bg-[rgb(255_107_107/0.12)]`;
+  const stepperButtonStyle = `w-[46px] h-[46px] rounded-full flex items-center justify-center text-ink bg-surface-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.08),inset_0_0_0_1px_rgb(255_255_255/0.05)] hover:bg-[#26324a] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${focusRingClass}`;
   
   // Kirjuri (PR 2): the first press explains + asks for the mic (the app's
   // first runtime permission) before any recording starts.
@@ -310,12 +307,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   };
   // --- End Handlers ---
 
-  // Determine score colors based on homeOrAway status
-  const userTeamColor = 'text-green-400';
-  const opponentTeamColor = 'text-red-400';
-
-  const homeScoreDisplayColor = homeOrAway === 'home' ? userTeamColor : opponentTeamColor;
-  const awayScoreDisplayColor = homeOrAway === 'away' ? userTeamColor : opponentTeamColor;
+  // The score is neutral white: green/red would read as a result that has
+  // not happened yet (a 0-0 used to show one red and one green zero).
 
   // Compact period label for pill UI. At full time we show no pill - the
   // stopped clock and game-over state already convey the end, and a terse
@@ -349,8 +342,13 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const scoreLevel = homeScore === awayScore;
 
   return (
-    <div className={`fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col items-center p-3 pt-6 ${bgColor} backdrop-blur-lg`}>
-      <div className="w-full max-w-lg flex flex-col items-center mt-2 sm:mt-4 md:mt-6">
+    // Full screen over the pitch; the control capsule (z-40) floats over its
+    // bottom edge, so the content scrolls with room to clear it.
+    <div
+      className="fixed inset-0 z-30 flex flex-col items-center px-4 pt-[30px] pb-28 overflow-y-auto font-ui text-ink backdrop-blur-lg"
+      style={{ background: 'radial-gradient(110% 38% at 50% -8%, rgb(30 41 59 / 0.7) 0%, transparent 72%), rgb(15 23 42 / 0.975)' }}
+    >
+      <div className="w-full max-w-lg flex flex-col items-center">
         <FirstVisitIntro
           surface="timer"
           className="w-full mb-4"
@@ -361,20 +359,20 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             the score stays fixed in the centre and vertically centred against
             both names (a plain flex row let the score drift when a name wrapped). */}
         <div className="mb-4 w-full">
-          <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 text-xl font-semibold">
-            <span className="text-slate-400 text-right leading-tight">{displayHomeTeamName}</span>
-            <span className="flex items-center justify-center gap-2 whitespace-nowrap">
+          <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 text-[17px] font-semibold">
+            <span className="text-ink-2 text-right leading-tight">{displayHomeTeamName}</span>
+            <span className="flex items-center justify-center gap-3 whitespace-nowrap">
               {/* NUMBERS LEAD (owner, 2026-09-16). The team names stay at
                   text-xl; only the score grows, because the score is what is
                   glanced at from the touchline and the names are already
                   known. SteadyDigits so a two-digit score cannot shunt the
                   centred row sideways - the same Rajdhani problem the clock
                   below has. */}
-              <SteadyDigits className={`text-4xl font-black leading-none ${homeScoreDisplayColor}`}>
+              <SteadyDigits className="font-display italic font-extrabold text-[40px] leading-none pr-[3px] s1-numeral">
                 {String(homeScore)}
               </SteadyDigits>
-              <span className="text-slate-400 text-2xl">-</span>
-              <SteadyDigits className={`text-4xl font-black leading-none ${awayScoreDisplayColor}`}>
+              <span className="text-ink-3 text-[22px]">-</span>
+              <SteadyDigits className="font-display italic font-extrabold text-[40px] leading-none pr-[3px] s1-numeral">
                 {String(awayScore)}
               </SteadyDigits>
             </span>
@@ -387,12 +385,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                     onChange={handleOpponentInputChange}
                     onBlur={handleSaveOpponentName} // Save on blur
                     onKeyDown={handleOpponentKeyDown}
-                    className="bg-slate-700 text-slate-100 text-xl font-semibold outline-none rounded px-2 py-0.5 w-28 justify-self-start" // Adjust width as needed
+                    className={`${inlineFieldStyle} w-32! justify-self-start`}
                     onClick={(e) => e.stopPropagation()} // Prevent triggering underlying handlers
                 />
             ) : (
                 <span
-                    className="text-slate-400 text-left leading-tight cursor-pointer hover:text-slate-300"
+                    className="text-ink-2 text-left leading-tight cursor-pointer hover:text-ink"
                     onClick={handleStartEditingOpponent} // Click to edit
                     title={t('timerOverlay.editOpponentNameTitle', 'Click to edit opponent name') ?? undefined}
                 >
@@ -404,41 +402,41 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         </div>
       
         {/* Timer Display */}
-        <div className="mb-2">
-          {/* SteadyDigits, not tabular-nums: Rajdhani has no tnum feature, so
-              the class was inert and this clock slid sideways by up to ~60px
-              as digits ticked over. See SteadyDigits for the measurements. */}
-          <SteadyDigits className={`text-9xl sm:text-[10rem] font-bold ${textColor}`}>
+        <div className="mb-1">
+          {/* SteadyDigits boxes every digit, so the clock cannot slide sideways
+              as digits tick over. The size follows the screen width so four
+              boxed digits always fit a phone. */}
+          <SteadyDigits className={`block font-display italic font-extrabold text-[min(36vw,10rem)] leading-none tracking-[-0.01em] pr-[0.06em] ${clockAlertClass ?? 's1-numeral'}`}>
             {formatTime(timeElapsedInSeconds)}
           </SteadyDigits>
         </div>
 
         {/* Time Since Last Substitution + Period pill + Game specs */}
-        <div className="mb-3 text-center flex items-center justify-center gap-3">
+        <div className="mb-5 text-center flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
           {gameStatus !== 'notStarted' && (
-            <span className="text-sm font-medium text-slate-400">
+            <span className="text-sm font-medium text-ink-3">
               {t('timerOverlay.timeSinceLastSubCombined', 'Last sub:')}{' '}
-              <SteadyDigits className="text-slate-300 font-semibold">{formatTime(timeSinceLastSub)}</SteadyDigits>
+              <SteadyDigits className="text-ink-2 font-semibold">{formatTime(timeSinceLastSub)}</SteadyDigits>
             </span>
           )}
           {periodPillLabel && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-700 text-slate-200 border border-slate-600">
+            <span className="inline-flex items-center px-3 py-[5px] rounded-full text-sm font-bold bg-white/[0.12] shadow-[inset_0_1px_0_rgb(255_255_255/0.16)] text-ink">
               {periodPillLabel}
             </span>
           )}
-          <span className="text-xs font-medium text-slate-400">{gameSpecs}</span>
+          <span className="text-[15px] font-medium text-ink-2">{gameSpecs}</span>
         </div>
 
         {/* Timer Controls */}
-        <div className="flex items-center gap-3 mb-3"> 
+        <div className="flex w-full items-center gap-3 mb-5">
           <button
             onClick={onStartPauseTimer}
             data-testid="tour-timer-startpause"
             disabled={startDisabled} // Game over (nothing left to play) OR not loaded
-            className={`${timerButtonStyle} ${isTimerRunning ? 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-400' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'} ${startDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`${primaryActionStyle} flex-1 min-h-16 text-xl`}
             aria-label={isTimerRunning ? t('timerOverlay.pauseButton', 'Pause') : t('timerOverlay.startButton', 'Start')}
           >
-            {isTimerRunning ? <FaPause size={16}/> : <FaPlay size={16}/>} 
+            {isTimerRunning ? <FaPause size={18}/> : <FaPlay size={18}/>}
             <span>{startPauseButtonText}</span>
           </button>
           {/* End the period now (review 4.31): the referee blew early, or the clock
@@ -449,33 +447,33 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               type="button"
               onClick={() => setShowEndPeriodConfirm(true)}
               data-testid="timer-end-period"
-              className={`${timerButtonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500 px-3`}
+              className={`${secondaryActionStyle} min-h-16 text-base`}
             >
               {endPeriodLabel}
             </button>
           )}
           {/* Compact reset: icon-only + confirm */}
-          <button 
+          <button
             onClick={handleConfirmReset}
-            className={`${timerButtonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500 px-3`}
+            className={`w-16 h-16 shrink-0 rounded-full flex items-center justify-center text-ink s1-glass hover:brightness-125 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${focusRingClass}`}
             title={t('timerOverlay.resetButton', 'Reset') ?? undefined}
             aria-label={t('timerOverlay.resetButton', 'Reset')}
             disabled={timeElapsedInSeconds === 0 && gameStatus === 'notStarted'} // Only disable if truly at start
           >
-            <FaUndo size={14}/>
+            <FaUndo size={18}/>
           </button>
         </div>
 
         {offerExtraTime && (
           <div
             data-testid="extra-time-panel"
-            className={`w-full mb-3 p-3 rounded-lg border ${scoreLevel ? 'border-amber-500 bg-amber-900/20' : 'border-slate-600 bg-slate-800/60'}`}
+            className="w-full mb-3 p-4 s1-list"
           >
-            <div className="text-sm font-semibold text-slate-100">{t('timerOverlay.extraTimeTitle', 'Extra time')}</div>
+            <div className="text-base font-semibold text-ink">{t('timerOverlay.extraTimeTitle', 'Extra time')}</div>
             {scoreLevel && (
-              <p className="text-xs text-amber-300 mt-0.5">{t('timerOverlay.extraTimeLevelHint', 'The score is level.')}</p>
+              <p className="text-sm text-ink-2 mt-0.5">{t('timerOverlay.extraTimeLevelHint', 'The score is level.')}</p>
             )}
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-2 mt-3">
               {[1, 2].map((n) => (
                 <button
                   key={n}
@@ -483,9 +481,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                   onClick={() => setExtraPeriodsChoice(n)}
                   aria-pressed={extraPeriodsChoice === n}
                   aria-label={t('timerOverlay.extraTimePeriodCount', '{{count}} periods', { count: n })}
-                  className={`px-3 py-1.5 rounded-md text-sm font-semibold border ${
-                    extraPeriodsChoice === n ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-700/60 border-slate-600 text-slate-300'
-                  }`}
+                  className={`${extraPeriodsChoice === n ? chipSelectedStyle : chipStyle} min-h-11 px-4`}
                 >
                   {n} ×
                 </button>
@@ -498,9 +494,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 value={Number.isFinite(extraMinutesChoice) ? extraMinutesChoice : ''}
                 onChange={(e) => setExtraMinutesChoice(Number.parseInt(e.target.value, 10))}
                 aria-label={t('timerOverlay.extraTimeMinutes', 'Minutes per period')}
-                className="w-16 px-2 py-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-sm text-center"
+                className={`${inlineFieldStyle} w-20! text-center`}
               />
-              <span className="text-sm text-slate-400">{t('timerOverlay.minutesShort', 'min')}</span>
+              <span className="text-sm text-ink-3">{t('timerOverlay.minutesShort', 'min')}</span>
             </div>
             <div className="flex gap-2 mt-3">
               <button
@@ -508,11 +504,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 data-testid="start-extra-time"
                 disabled={!extraMinutesValid}
                 onClick={() => onStartExtraTime?.(extraPeriodsChoice, extraMinutesChoice)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-semibold bg-green-600 hover:bg-green-700 text-white ${extraMinutesValid ? '' : 'opacity-50 cursor-not-allowed'}`}
+                className={`${primaryActionStyle} flex-1 text-base`}
               >
                 {t('timerOverlay.startExtraTime', 'Start extra time')}
               </button>
-              <button type="button" onClick={onRecordShootout} className={`${secondaryActionStyle} flex-1`}>
+              <button type="button" onClick={onRecordShootout} className={`${secondaryActionStyle} flex-1 text-base`}>
                 {t('timerOverlay.recordShootout', 'Penalties')}
               </button>
             </div>
@@ -528,21 +524,21 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           <div
             role="status"
             data-testid="planned-sub-group"
-            className="w-full mb-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 text-left pointer-events-auto"
+            className="w-full mb-3 s1-list p-4 text-left pointer-events-auto shadow-[inset_0_0_0_1px_rgb(255_178_36/0.45)]"
           >
-            <div className="text-xs font-semibold uppercase tracking-wide text-amber-300">
+            <div className="text-xs font-bold uppercase tracking-[0.14em] text-action">
               {t('timerOverlay.plannedSubTitle', 'Planned subs')} · {formatTime(plannedSubGroup.timeSeconds)}
               {plannedSubsEarlier > 0 && (
-                <span className="ml-2 normal-case font-normal text-amber-200/80">
+                <span className="ml-2 normal-case tracking-normal font-medium text-ink-3">
                   {t('timerOverlay.plannedSubsEarlier', '+{{count}} earlier', { count: plannedSubsEarlier })}
                 </span>
               )}
             </div>
-            <div className="text-sm text-slate-100">
+            <div className="mt-1 text-[15px] text-ink">
               {t('timerOverlay.plannedSubsOn', 'On')}: {plannedSubGroup.inNames.join(', ')}
             </div>
             {plannedSubGroup.outNames.length > 0 && (
-              <div className="text-sm text-slate-300">
+              <div className="text-[15px] text-ink-2">
                 {t('timerOverlay.plannedSubsOff', 'Off')}: {plannedSubGroup.outNames.join(', ')}
               </div>
             )}
@@ -550,45 +546,46 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         )}
 
         {/* Game Setup & Interval Controls Section */}
-        <div className="bg-slate-800/80 backdrop-blur-sm p-2 rounded-lg w-full mb-3 space-y-2">
+        <div className="w-full mb-3 space-y-3">
           {/* Substitution Interval Control (only when game not started) */}
           {gameStatus === 'notStarted' && (
-              <div className="flex items-center justify-center">
-              <span className={controlLabelStyle}>{t('timerOverlay.subIntervalLabel', 'Sub Interval:')}</span>
-              <div className="flex items-center">
+              <div className="s1-list min-h-[60px] flex items-center justify-between gap-3 pl-[18px] pr-2">
+              {/* The label's trailing colon is a leftover of the inline layout. */}
+              <span className="text-base font-medium text-ink">{t('timerOverlay.subIntervalLabel', 'Sub Interval:').replace(/:\s*$/, '')}</span>
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => onSetSubInterval(subIntervalMinutes - 0.5)}
                   // 1 minute is the real minimum (the reducer clamps to it, review 4.33):
                   // at 1 the button used to stay enabled and do nothing.
                   disabled={subIntervalMinutes <= 1}
-                  className={controlButtonStyle} aria-label={t('timerOverlay.decreaseInterval', 'Decrease interval')}>
-                  -
+                  className={stepperButtonStyle} aria-label={t('timerOverlay.decreaseInterval', 'Decrease interval')}>
+                  <HiOutlineMinus className="w-6 h-6" aria-hidden="true" />
                 </button>
-                <span className={controlValueStyle}>
+                <span className="min-w-11 px-1 text-center font-display italic font-extrabold text-[30px] leading-none text-ink">
                   {Number.isInteger(subIntervalMinutes) ? subIntervalMinutes : formatAppDecimal(subIntervalMinutes)}
                 </span>
                 <button
                   onClick={() => onSetSubInterval(subIntervalMinutes + 0.5)}
-                  className={controlButtonStyle} aria-label={t('timerOverlay.increaseInterval', 'Increase interval')}>
-                  +
+                  className={stepperButtonStyle} aria-label={t('timerOverlay.increaseInterval', 'Increase interval')}>
+                  <HiOutlinePlus className="w-6 h-6" aria-hidden="true" />
                 </button>
               </div>
               </div>
             )}
-            
-          {/* Main Action Buttons Section - Improved layout */}
-          <div className="flex flex-col space-y-2">
+
+          {/* Main Action Buttons Section */}
+          <div className="flex flex-col gap-2.5">
             {/* Game over: one hand-off into the Finish this game spine (7c). */}
             {gameStatus === 'gameEnd' && onFinishGame && (
               <button
                 type="button"
                 onClick={() => { onClose?.(); onFinishGame(); }}
                 data-testid="timer-finish-game"
-                className="w-full px-4 py-3 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/30 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800"
+                className={`${primaryActionStyle} w-full`}
               >
                 {t('timerOverlay.finishGameButton', 'Finish this game')}
                 {finishProgress && (
-                  <span className="ml-2 text-xs font-semibold tabular-nums opacity-90" data-testid="timer-finish-progress">
+                  <span className="text-sm font-semibold tabular-nums opacity-80" data-testid="timer-finish-progress">
                     {finishProgress.done}/{finishProgress.total}
                   </span>
                 )}
@@ -599,19 +596,19 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               <button
                 type="button"
                 onClick={() => { onClose?.(); onOpenPlayerAssessmentModal(); }}
-                className="w-full px-4 py-3 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/30 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800"
+                className={`${primaryActionStyle} w-full`}
               >
                 {t('timerOverlay.assessPlayersButton', 'Assess players')}
               </button>
             )}
-            {/* Primary Action Button - Remove pulsingClass */}
+            {/* Substitution made: a quiet pill, dimmed while the clock is stopped */}
             <div className="flex justify-center">
               <button 
                 onClick={handleConfirmSubClick}
                 disabled={!(gameStatus === 'inProgress' && isTimerRunning)}
                 aria-disabled={!(gameStatus === 'inProgress' && isTimerRunning)}
                 title={!(gameStatus === 'inProgress' && isTimerRunning) ? t('timerOverlay.disabledWhenPaused', 'Disabled while paused') ?? undefined : undefined}
-                className={`${primaryActionStyle} w-full ${!(gameStatus === 'inProgress' && isTimerRunning) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`${secondaryActionStyle} w-full`}
               >
                 {t('timerOverlay.confirmSubButton', 'Substitution Made')}
               </button>
@@ -642,7 +639,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                   aria-disabled={dictationDisabled}
                   aria-pressed={dictation.isRecording}
                   title={dictationTitle}
-                  className={`${dictation.isRecording ? dangerActionStyle : primaryActionStyle} w-full touch-none select-none flex items-center justify-center gap-2 ${dictationDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  className={`${dictation.isRecording ? dangerActionStyle : secondaryActionStyle} w-full touch-none select-none`}
                 >
                   <HiOutlineMicrophone aria-hidden className={`h-5 w-5 ${dictation.isRecording ? 'animate-pulse' : ''}`} />
                   <span>
@@ -653,7 +650,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                   {dictation.clipCount > 0 && !dictation.isRecording && (
                     <span
                       data-testid="dictation-clip-count"
-                      className="ml-1 rounded-full bg-slate-900/60 px-2 py-0.5 text-xs font-semibold text-slate-100"
+                      className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold text-ink"
                       aria-label={t('dictation.clipCount', '{{count}} voice notes', { count: dictation.clipCount })}
                     >
                       {dictation.clipCount}
@@ -680,18 +677,18 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             )}
 
             {/* Goal Buttons - Side by side layout */}
-            <div className="flex gap-2 pt-1">
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 onClick={onToggleGoalLogModal}
                 data-testid="tour-log-goal"
-                className={`${secondaryActionStyle} flex-1`}
+                className={`${solidActionStyle} min-w-0`}
                 title={`${displayHomeTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >
                 {t('timerOverlay.teamGoalButton', 'Log Goal')}
               </button>
               <button 
                 onClick={handleOpponentGoalClick} 
-                className={`${dangerActionStyle} flex-1`}
+                className={`${dangerActionStyle} min-w-0`}
                 title={`${displayAwayTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >
                 {t('timerOverlay.opponentGoalButton', 'Opponent +1')}
@@ -702,36 +699,34 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           {/* Overtime / penalties — edge-of-game actions, tucked behind an
               expander so the substitution-interval list keeps its room. Still
               one tap away at any game state (the timer often lags reality). */}
-          <div className="pt-2 border-t border-white/10">
+          <div className="s1-list">
             <button
               type="button"
               onClick={() => setShowEndGameControls((v) => !v)}
               aria-expanded={showEndGameControls}
-              className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 py-1"
+              className={`w-full min-h-14 flex items-center justify-between gap-2 pl-[18px] pr-3.5 rounded-[22px] text-base font-medium text-ink-2 hover:text-ink ${focusRingClass}`}
             >
-              {wentToOvertime && <span className="text-amber-400" aria-hidden>✓</span>}
-              <span>{t('timerOverlay.wentToOvertime', 'Overtime')} / {t('timerOverlay.recordShootout', 'Penalties')}</span>
-              <span aria-hidden>{showEndGameControls ? '▲' : '▼'}</span>
+              <span className="flex items-center gap-2">
+                {wentToOvertime && <span className="text-action" aria-hidden>✓</span>}
+                <span>{t('timerOverlay.wentToOvertime', 'Overtime')} / {t('timerOverlay.recordShootout', 'Penalties')}</span>
+              </span>
+              <HiOutlineChevronDown aria-hidden className={`w-6 h-6 text-ink-3 transition-transform ${showEndGameControls ? 'rotate-180' : ''}`} />
             </button>
             {showEndGameControls && (
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 px-3 pb-3">
                 {/* OT as a toggle chip (matches the button UI), not a bare checkbox */}
                 <button
                   type="button"
                   onClick={() => onWentToOvertimeChange(!wentToOvertime)}
                   aria-pressed={wentToOvertime}
-                  className={`flex-1 px-3 py-2 rounded-md text-sm font-semibold border transition-colors ${
-                    wentToOvertime
-                      ? 'bg-amber-600/80 border-amber-500 text-white'
-                      : 'bg-slate-700/60 border-slate-600 text-slate-300 hover:bg-slate-700'
-                  }`}
+                  className={`${wentToOvertime ? chipSelectedStyle : chipStyle} flex-1 justify-center min-h-12 text-[15px]`}
                 >
                   {wentToOvertime ? '✓ ' : ''}{t('timerOverlay.wentToOvertime', 'Overtime')}
                 </button>
                 <button
                   type="button"
                   onClick={onRecordShootout}
-                  className={`${secondaryActionStyle} flex-1`}
+                  className={`${secondaryActionStyle} flex-1 min-h-12 text-[15px]`}
                 >
                   {t('timerOverlay.recordShootout', 'Penalties')}
                 </button>
@@ -742,8 +737,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
         {/* Play Time History - show recent items only to reduce clutter */}
         {completedIntervalDurations.length > 0 && (
-          <div className="bg-slate-800/60 backdrop-blur-sm p-2 rounded-lg max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700/50">
-            <h3 className="text-xs font-semibold mb-1 text-center text-slate-300">{t('timerOverlay.historyTitle', 'Play Time History')}</h3>
+          <div className="w-full s1-list p-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+            <h3 className={`${sectionLabelStyle} mb-1.5 text-center`}>{t('timerOverlay.historyTitle', 'Play Time History')}</h3>
             <ul className="list-none text-sm space-y-0.5 text-center">
               {completedIntervalDurations.slice(0, 5).map((log, displayIndex) => {
                 const minutes = Math.floor(log.duration / 60);
@@ -751,7 +746,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 const isLatest = displayIndex === 0;
 
                 // Simple color - latest bright, others dimmed
-                const colorClass = isLatest ? 'text-slate-200' : 'text-slate-400';
+                const colorClass = isLatest ? 'text-ink' : 'text-ink-3';
 
                 // Format time: show minutes only if > 0
                 const timeDisplay = minutes > 0

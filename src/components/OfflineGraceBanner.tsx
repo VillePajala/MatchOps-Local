@@ -22,7 +22,7 @@ export default function OfflineGraceBanner() {
     <div
       role="status"
       data-testid="offline-grace-banner"
-      className="fixed top-0 left-0 right-0 z-40 bg-amber-500/90 text-slate-900 px-4 py-2 text-sm text-center font-medium"
+      className="fixed top-0 left-0 right-0 z-40 bg-surface-2 border-b border-hairline text-ink-2 font-ui px-4 py-2 text-sm text-center font-medium"
       style={{ height: 'auto', display: 'block' }}
     >
       {t('page.offlineGracePeriod', 'Offline — changes saved locally, will sync when connected')}

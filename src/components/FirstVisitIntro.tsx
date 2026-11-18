@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGuidedTourActive, useOnboardingUserId } from '@/components/setupWizardActive';
+import { primaryButtonStyle } from '@/styles/modalStyles';
 
 /**
  * FirstVisitIntro - Onboarding v2's permanent education layer (PR 21).
@@ -86,15 +87,12 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
 
   if (dismissed || tourActive || userId === undefined || initiallySeen) return null;
 
-  // Visual language borrowed from the app-update banner, upgraded per owner
-  // round 3: the gradient runs as a full EDGE around the card (1.5px frame
-  // around a dark glass inner), so the note reads as a system moment from any
-  // angle. The field overlay COVERS the temporarily-irrelevant top buttons (top-3,
-  // z-30). Owner round 4: the overlay COVERS the field's top buttons while
-  // visible - the card is temporary and dismissible, and in that moment the
-  // guidance matters more than rules/camera shortcuts.
+  // A navy card on the app's popup surface. The field overlay COVERS the
+  // temporarily-irrelevant top buttons (top-3, z-30): the card is temporary
+  // and dismissible, and in that moment the guidance matters more than
+  // rules/camera shortcuts (owner round 4).
   const frame =
-    'rounded-2xl p-[1.5px] bg-gradient-to-br from-sky-400 via-indigo-400 to-fuchsia-500 shadow-[0_18px_50px_rgba(0,0,0,0.55)]';
+    'rounded-2xl bg-surface-2 font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)]';
   const base = overlay ? `absolute inset-x-3 top-3 z-30 ${frame}` : frame;
 
   return (
@@ -103,8 +101,8 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
           Selva row - the house's solid full-width-on-phone style; a
           bottom-right button left a hollow band across the card on short
           notes. */}
-      <div className="rounded-[14px] bg-slate-900/95 backdrop-blur-md px-4 py-3">
-        <p className="text-sm leading-snug text-slate-100">{text}</p>
+      <div className="px-4 py-4">
+        <p className="text-[15px] leading-snug text-ink">{text}</p>
         <button
           type="button"
           data-testid={`first-visit-${surface}-dismiss`}
@@ -112,7 +110,7 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
             markSeen(surface, userId);
             setDismissed(true);
           }}
-          className="w-full mt-3 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+          className={`${primaryButtonStyle} w-full mt-3`}
         >
           {t('firstVisit.gotIt', 'Got it')}
         </button>

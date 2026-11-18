@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CollapsibleModalHeader } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, modalContainerStyle, cardStyle, sectionLabelStyle } from '@/styles/modalStyles';
 import packageJson from '../../package.json';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import {
@@ -43,29 +43,24 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
 
   if (!isOpen) return null;
 
-  const sectionBox = 'bg-slate-900/50 rounded-lg p-4 border border-slate-700/50';
-  const list = 'text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400';
-  const heading = 'text-2xl font-bold text-amber-300';
+  const sectionBox = cardStyle;
+  const list = 'font-ui text-[15px] leading-6 text-ink-2 space-y-2 list-disc pl-5 marker:text-ink-3';
+  const heading = sectionLabelStyle;
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('instructionsModal.title')}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-        <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-indigo-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
-
+      <div className={`${modalContainerStyle} h-full w-full relative`}>
         <CollapsibleModalHeader
           title={t('instructionsModal.title')}
           onClose={onClose}
           closeLabel={t('common.doneButton', 'Done')}
         />
 
-        <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-2 pb-8 space-y-6 font-ui">
           {/* === HOME: the club hub === */}
           <section className="space-y-3">
             <h3 className={heading}>{t('appGuide.homeTitle', 'Home — your club hub')}</h3>
-            <p className="text-sm text-slate-300">{t('appGuide.homeIntro', 'The Home screen has four tabs plus the gear menu. Everything about your club lives here; a match opens on its own field.')}</p>
+            <p className="font-ui text-[15px] leading-snug text-ink-2">{t('appGuide.homeIntro', 'The Home screen has four tabs plus the gear menu. Everything about your club lives here; a match opens on its own field.')}</p>
             <div className={sectionBox}>
               <ul className={list}>
                 <li>{t('appGuide.homeGamesTab', 'Games: your landing view with a summary of your league and recent games — start a new match, continue where you left off, open saved games and the match planner.')}</li>
@@ -101,26 +96,26 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <div className={sectionBox}>
               <ul className={list}>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.tacticsButtonTip', 'Click Tactics Board to access drawing tools:')}</span>
-                  <HiOutlineClipboard aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
+                  <span className="text-ink">{t('firstGameGuide.tacticsButtonTip', 'Click Tactics Board to access drawing tools:')}</span>
+                  <HiOutlineClipboard aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
                 </li>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.placeAllTip', 'Place all players at once:')}</span>
-                  <HiOutlineSquares2X2 aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
+                  <span className="text-ink">{t('firstGameGuide.placeAllTip', 'Place all players at once:')}</span>
+                  <HiOutlineSquares2X2 aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
                 </li>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.timerTip', 'Click timer to show/hide large overlay')}</span>
+                  <span className="text-ink">{t('firstGameGuide.timerTip', 'Click timer to show/hide large overlay')}</span>
                 </li>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.dictationTip', 'Hold the microphone button on the timer overlay to dictate a voice note - it stays on your phone.')}</span>
+                  <span className="text-ink">{t('firstGameGuide.dictationTip', 'Hold the microphone button on the timer overlay to dictate a voice note - it stays on your phone.')}</span>
                 </li>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field:')}</span>
-                  <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
+                  <span className="text-ink">{t('firstGameGuide.resetFieldTip', 'Reset field:')}</span>
+                  <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
                 </li>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.menuTip', 'Open menu for more options:')}</span>
-                  <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                  <span className="text-ink">{t('firstGameGuide.menuTip', 'Open menu for more options:')}</span>
+                  <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
                 </li>
               </ul>
             </div>
@@ -128,32 +123,32 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
 
           <section className="space-y-3">
             <h3 className={heading}>{t('firstGameGuide.drawingTools', 'Drawing & Tactical Tools')}</h3>
-            <p className="text-sm text-slate-300">{t('firstGameGuide.drawingToolsNote', 'After clicking Tactics Board, you can:')}</p>
+            <p className="font-ui text-[15px] leading-snug text-ink-2">{t('firstGameGuide.drawingToolsNote', 'After clicking Tactics Board, you can:')}</p>
             <div className={sectionBox}>
               <ul className={list}>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.undoRedoTip', 'Undo/Redo actions:')}</span>
+                  <span className="text-ink">{t('firstGameGuide.undoRedoTip', 'Undo/Redo actions:')}</span>
                   <span className="inline-flex items-center ml-2 gap-1 align-[-2px]">
-                    <HiOutlineArrowUturnLeft aria-hidden className="text-slate-300" size={16} />
-                    <HiOutlineArrowUturnRight aria-hidden className="text-slate-300" size={16} />
+                    <HiOutlineArrowUturnLeft aria-hidden className="text-ink-2" size={16} />
+                    <HiOutlineArrowUturnRight aria-hidden className="text-ink-2" size={16} />
                   </span>
                 </li>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.addHomeDiscTip', 'Add home disc (tactics mode):')}</span>
-                  <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
+                  <span className="text-ink">{t('firstGameGuide.addHomeDiscTip', 'Add home disc (tactics mode):')}</span>
+                  <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
                 </li>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.addOpponentTip', 'Add opponents/discs:')}</span>
-                  <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-red-300" size={18} />
+                  <span className="text-ink">{t('firstGameGuide.addOpponentTip', 'Add opponents/discs:')}</span>
+                  <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
                 </li>
                 <li>{t('firstGameGuide.drawLinesTip', 'Draw lines and arrows with your finger')}</li>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings:')}</span>
-                  <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-amber-300" size={18} />
+                  <span className="text-ink">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings:')}</span>
+                  <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
                 </li>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.closeToolsTip', 'Exit tools:')}</span>
-                  <HiOutlineXMark aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                  <span className="text-ink">{t('firstGameGuide.closeToolsTip', 'Exit tools:')}</span>
+                  <HiOutlineXMark aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
                 </li>
               </ul>
             </div>
@@ -162,9 +157,9 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
           {/* === IN-MATCH MENU (slim - match-scope only) === */}
           <section className="space-y-3">
             <h3 className={heading}>{t('appGuide.matchMenuTitle', 'The match menu')}</h3>
-            <p className="text-sm text-slate-300">
+            <p className="font-ui text-[15px] leading-snug text-ink-2">
               {t('appGuide.matchMenuNote', 'While in a match, the menu holds match-day actions:')}
-              <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
+              <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
             </p>
             <div className={sectionBox}>
               <ul className={list}>
@@ -177,9 +172,9 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
 
           {/* Tips */}
           <section className="space-y-3">
-            <h3 className="text-xl font-semibold text-amber-300">{t('instructionsModal.tips.title')}</h3>
-            <div className="bg-indigo-900/30 rounded-lg p-4 border border-indigo-700/50">
-              <ul className="list-disc list-inside space-y-1 text-slate-300">
+            <h3 className={heading}>{t('instructionsModal.tips.title')}</h3>
+            <div className={sectionBox}>
+              <ul className={list}>
                 <li>{t('instructionsModal.tips.tip1')}</li>
                 <li>{t('instructionsModal.tips.tip2')}</li>
                 <li>{t('instructionsModal.tips.tip3')}</li>
@@ -187,7 +182,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             </div>
           </section>
 
-          <p className="text-sm text-slate-400 text-center pt-2">v{packageJson.version}</p>
+          <p className="text-sm text-ink-3 text-center pt-2">v{packageJson.version}</p>
         </div>
       </div>
     </div>

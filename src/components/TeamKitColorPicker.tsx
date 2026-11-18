@@ -42,10 +42,10 @@ export interface TeamKitColorPickerProps {
 
 /** One circle. Identical geometry for every cell so the grid cannot jitter. */
 const swatchBase =
-  'w-9 h-9 rounded-full transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50';
+  'w-11 h-11 rounded-full transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:opacity-50';
 // The ring marks the choice, not a border: a border would change the swatch's
 // size and make the grid shift as you tap along it.
-const selectedRing = 'ring-2 ring-white ring-offset-2 ring-offset-slate-800';
+const selectedRing = 'ring-2 ring-white ring-offset-2 ring-offset-surface';
 const restingRing = 'ring-1 ring-white/20';
 
 export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
@@ -71,7 +71,7 @@ export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
       <div
         role="radiogroup"
         aria-labelledby="kit-colour-label"
-        className="grid grid-cols-6 gap-2 justify-items-center max-w-xs"
+        className="grid grid-cols-6 gap-2 justify-items-center max-w-sm"
       >
         {TEAM_KIT_COLORS.map((c) => {
           const selected = current === c.hex.toLowerCase();
@@ -114,7 +114,7 @@ export const TeamKitColorPicker: React.FC<TeamKitColorPickerProps> = ({
           aria-label={t('unifiedTeamModal.kitColorNone', 'No colour')}
           disabled={disabled}
           onClick={() => onChange(undefined)}
-          className={`${swatchBase} flex items-center justify-center text-slate-400 ${
+          className={`${swatchBase} flex items-center justify-center text-ink-3 ${
             !value ? selectedRing : restingRing
           }`}
         >

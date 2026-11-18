@@ -3,7 +3,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { useModalCloseVisible } from '@/styles/modalStyles';
+import {
+  useModalCloseVisible,
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  chipStyle,
+  chipSelectedStyle,
+} from '@/styles/modalStyles';
 import { liftedSurfaceCount } from '@/hooks/useModalHardwareBack';
 import type { TourSignals, TourStep, TourTarget } from './tourTypes';
 
@@ -302,21 +308,21 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   const card = (
     <div
       data-testid="guided-tour-card"
-      className="pointer-events-auto mx-auto w-full max-w-sm rounded-2xl border border-amber-400/40 bg-slate-800 p-4 text-white shadow-2xl"
+      className="pointer-events-auto mx-auto w-full max-w-sm rounded-2xl bg-surface-2 p-4 font-ui text-ink shadow-[inset_0_0_0_1px_rgb(255_178_36/0.4),0_16px_32px_-8px_rgb(2_6_23/0.9)]"
       role="dialog"
       aria-label={title}
       onKeyDown={handleKeyDown}
     >
-      <h2 data-testid="guided-tour-title" className="mb-1 text-base font-bold tracking-tight">
+      <h2 data-testid="guided-tour-title" className="mb-1 text-lg font-bold tracking-tight">
         {title}
       </h2>
-      <p data-testid="guided-tour-body" className="mb-3 text-sm text-slate-300">
+      <p data-testid="guided-tour-body" className="mb-3 text-[15px] leading-snug text-ink-2">
         {message}
       </p>
       {step.choices && (
         <div className="mb-3 flex items-center justify-center gap-2">
           {step.choicesLabelKey && (
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-ink-3">
               {t(step.choicesLabelKey, step.choicesLabel ?? '')}
             </span>
           )}
@@ -330,11 +336,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
                 type="button"
                 data-testid={`guided-tour-choice-${choice.id}`}
                 onClick={() => onApplyChoice(choice.apply)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
-                  selected
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
+                className={selected ? chipSelectedStyle : chipStyle}
               >
                 {choice.label}
               </button>
@@ -343,7 +345,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
         </div>
       )}
       {step.progress && (
-        <p data-testid="guided-tour-progress" className="mb-3 text-center text-sm font-semibold text-indigo-300">
+        <p data-testid="guided-tour-progress" className="mb-3 text-center text-sm font-semibold text-action">
           {(() => {
             const { done, target } = step.progress.compute(signals);
             return t(step.progress.key, { done, target, defaultValue: step.progress.fallback });
@@ -355,7 +357,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
           type="button"
           data-testid="guided-tour-skip"
           onClick={onSkip}
-          className={`rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${isActionStep && !showContinueBack && !showManualAdvance ? 'w-full' : 'flex-1'}`}
+          className={`${secondaryButtonStyle} ${isActionStep && !showContinueBack && !showManualAdvance ? 'w-full' : 'flex-1'}`}
         >
           {skipLabel}
         </button>
@@ -364,7 +366,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             type="button"
             data-testid="guided-tour-manual-advance"
             onClick={onNext}
-            className="flex-1 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+            className={`${primaryButtonStyle} flex-1`}
           >
             {t(step.manualAdvance.labelKey, step.manualAdvance.label)}
           </button>
@@ -374,7 +376,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             type="button"
             data-testid="guided-tour-continue"
             onClick={() => window.history.back()}
-            className="flex-1 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+            className={`${primaryButtonStyle} flex-1`}
           >
             {t('guidedTour.buttons.continue', 'Continue')}
           </button>
@@ -386,14 +388,14 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             type="button"
             data-testid="guided-tour-next"
             onClick={onNext}
-            className="flex-1 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+            className={`${primaryButtonStyle} flex-1`}
           >
             {nextLabel}
           </button>
         )}
       </div>
       {stepCount > 1 && (
-        <div className="mt-2 text-center text-xs text-slate-500">
+        <div className="mt-2 text-center text-xs text-ink-3">
           {stepIndex + 1} / {stepCount}
         </div>
       )}
@@ -423,7 +425,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
           <div className="absolute inset-x-0 top-6 px-4">
             <div
               data-testid="guided-tour-pill"
-              className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full border-2 border-amber-400/80 bg-slate-900/95 px-4 py-2 text-center text-sm font-medium text-slate-100 shadow-[0_0_14px_rgba(251,191,36,0.3)]"
+              className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full bg-surface-2 px-4 py-2 text-center font-ui text-sm font-medium text-ink shadow-[inset_0_0_0_2px_rgb(255_178_36/0.8),0_0_14px_rgba(251,191,36,0.3)]"
             >
               <span>{pillText}</span>
               {/* Interactive pill controls: the explicit "Next phase" early-out on
@@ -434,7 +436,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
                   type="button"
                   data-testid="guided-tour-pill-advance"
                   onClick={onNext}
-                  className="pointer-events-auto -my-1 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-indigo-500"
+                  className="pointer-events-auto -my-3 inline-flex min-h-11 items-center rounded-full s1-primary px-4 text-sm font-semibold transition-[filter] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 >
                   {t(step.manualAdvance.labelKey, step.manualAdvance.label)}
                 </button>
@@ -444,7 +446,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
                 data-testid="guided-tour-pill-skip"
                 onClick={onSkip}
                 aria-label={skipLabel}
-                className="pointer-events-auto -mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="pointer-events-auto -my-3 -mr-3 inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-white/[0.06] hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
               >
                 ×
               </button>
@@ -492,7 +494,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
         >
           <div
             data-testid="guided-tour-pill"
-            className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full border-2 border-amber-400/80 bg-slate-900/95 px-4 py-2 text-center text-sm font-medium text-slate-100 shadow-[0_0_14px_rgba(251,191,36,0.3)]"
+            className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full bg-surface-2 px-4 py-2 text-center font-ui text-sm font-medium text-ink shadow-[inset_0_0_0_2px_rgb(255_178_36/0.8),0_0_14px_rgba(251,191,36,0.3)]"
           >
             <span>{pillText}</span>
             {/* Interactive pill controls: the explicit "Next phase" early-out on
@@ -503,7 +505,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
                 type="button"
                 data-testid="guided-tour-pill-advance"
                 onClick={onNext}
-                className="pointer-events-auto -my-1 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-indigo-500"
+                className="pointer-events-auto -my-3 inline-flex min-h-11 items-center rounded-full s1-primary px-4 text-sm font-semibold transition-[filter] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
               >
                 {t(step.manualAdvance.labelKey, step.manualAdvance.label)}
               </button>
@@ -513,7 +515,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
               data-testid="guided-tour-pill-skip"
               onClick={onSkip}
               aria-label={skipLabel}
-              className="pointer-events-auto -mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="pointer-events-auto -my-3 -mr-3 inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-white/[0.06] hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             >
               ×
             </button>

@@ -16,6 +16,11 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
 import AuthForm from './AuthForm';
+import {
+  segmentTrackStyle,
+  segmentStyle,
+  segmentSelectedStyle,
+} from '@/styles/modalStyles';
 
 interface LoginScreenProps {
   /** Called when user wants to go back to WelcomeScreen */
@@ -57,15 +62,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
   const handleChangeLanguage = changeLanguage;
 
   return (
-    <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
-      {/* === AMBIENT BACKGROUND GLOWS === */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Blue glow - top right */}
-        <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
-        {/* Blue glow - bottom left */}
-        <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
-      </div>
-
+    <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-hidden">
       {/* === MAIN CONTENT === */}
       <div className="relative z-10 flex-1 flex flex-col px-6 pt-6 pb-10 pb-safe">
 
@@ -76,7 +73,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
             <button
               type="button"
               onClick={onBack}
-              className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-sm"
+              className="inline-flex min-h-11 items-center gap-1 rounded-full pr-3 text-ink-3 hover:text-ink transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -88,26 +85,20 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
           )}
 
           {/* Language Switcher */}
-          <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
+          <div className={`${segmentTrackStyle} w-32`}>
             <button
               type="button"
               onClick={() => handleChangeLanguage('en')}
-              className={`px-3 py-1.5 text-xs font-bold transition-all ${
-                language === 'en'
-                  ? 'bg-amber-500 text-slate-900'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-              }`}
+              aria-pressed={language === 'en'}
+              className={language === 'en' ? segmentSelectedStyle : segmentStyle}
             >
               EN
             </button>
             <button
               type="button"
               onClick={() => handleChangeLanguage('fi')}
-              className={`px-3 py-1.5 text-xs font-bold transition-all ${
-                language === 'fi'
-                  ? 'bg-amber-500 text-slate-900'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-              }`}
+              aria-pressed={language === 'fi'}
+              className={language === 'fi' ? segmentSelectedStyle : segmentStyle}
             >
               FI
             </button>
@@ -122,7 +113,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
           <div className="max-w-sm mx-auto w-full">
             {/* App name */}
             <div className="text-center mb-8">
-              <h1 className="text-[clamp(2.3rem,10.5vw,3.5rem)] font-bold tracking-tight text-amber-400">
+              <h1 className="font-display text-[clamp(2.8rem,12vw,4rem)] font-bold italic tracking-[0.01em] text-action">
                 MatchOps
               </h1>
             </div>
@@ -131,11 +122,11 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
 
             {/* Use without account option */}
             {onUseLocalMode && (
-              <div className="mt-8 pt-6 border-t border-white/10 text-center">
+              <div className="mt-8 pt-6 border-t border-hairline text-center">
                 <button
                   type="button"
                   onClick={onUseLocalMode}
-                  className="text-slate-400 hover:text-amber-400 text-sm transition-colors"
+                  className="inline-flex min-h-11 items-center rounded-full px-3 text-ink-3 hover:text-ink text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 >
                   {t('auth.useWithoutAccount', 'Or continue without an account')}
                 </button>

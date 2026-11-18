@@ -3,6 +3,7 @@ import { HiExclamationTriangle } from 'react-icons/hi2';
 import * as Sentry from '@sentry/nextjs';
 import logger from '@/utils/logger';
 import i18n from '@/i18n';
+import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 
 interface Props {
   children: ReactNode;
@@ -150,31 +151,31 @@ class ErrorBoundary extends Component<Props, State> {
 
       // Default fallback UI
       return (
-        <div className="flex flex-col items-center justify-center min-h-[200px] p-6 bg-slate-800 rounded-lg border border-slate-700">
+        <div className="s1-list flex flex-col items-center justify-center min-h-[200px] p-6 font-ui">
           <div className="flex items-center mb-4">
             <HiExclamationTriangle
-              className="w-8 h-8 text-amber-400 mr-3"
+              className="w-8 h-8 text-action mr-3"
               aria-hidden="true"
             />
-            <h3 className="text-xl font-semibold text-slate-200">
+            <h3 className="font-display text-2xl font-bold italic text-ink">
               {i18n.t('errors.somethingWentWrong', 'Something went wrong')}
             </h3>
           </div>
 
-          <p className="text-slate-400 text-center mb-4 max-w-md">
+          <p className="text-ink-2 text-center mb-4 max-w-md">
             {i18n.t('errors.unexpectedError', 'An unexpected error occurred. This has been logged and will be investigated.')}
           </p>
 
           <div className="flex gap-3">
             <button
               onClick={this.handleRetry}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm font-medium transition-colors border border-indigo-400/30"
+              className={primaryButtonStyle}
             >
               {i18n.t('errors.tryAgain', 'Try Again')}
             </button>
             <button
               onClick={this.handleRefresh}
-              className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm font-medium transition-colors border border-slate-400/30"
+              className={secondaryButtonStyle}
             >
               {i18n.t('errors.refreshPage', 'Refresh Page')}
             </button>
@@ -183,10 +184,10 @@ class ErrorBoundary extends Component<Props, State> {
           {/* Error Details (Development only) */}
           {(this.props.showErrorDetails || process.env.NODE_ENV === 'development') && this.state.error && (
             <details className="mt-6 w-full">
-              <summary className="cursor-pointer text-sm text-slate-400 hover:text-slate-300">
+              <summary className="cursor-pointer text-sm text-ink-3 hover:text-ink-2">
                 {i18n.t('errors.showErrorDetails', 'Show error details (dev only)')}
               </summary>
-              <div className="mt-2 p-3 bg-slate-900 rounded text-xs text-slate-300 overflow-auto">
+              <div className="mt-2 p-3 bg-carbon rounded-xl text-xs text-ink-2 overflow-auto">
                 <div className="mb-2">
                   <strong>Error:</strong> {this.state.error.message}
                 </div>

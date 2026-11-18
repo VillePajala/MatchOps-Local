@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { TournamentSeries } from '@/types';
 import { LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
+import { labelStyle, selectStyle, secondaryButtonStyle, fieldErrorStyle } from '@/styles/modalStyles';
 
 /** A fresh level id. crypto.randomUUID is available in every browser that has IndexedDB. */
 const newSeriesId = (): string => `series_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
@@ -86,24 +87,24 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-300 mb-1">
+      <label className={labelStyle}>
         {t('tournamentDetailsModal.seriesLabel', 'Competition levels')}
       </label>
 
       {/* Display existing series */}
       {series.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-2">
+        <div className="flex flex-wrap gap-2 mb-3">
           {series.map((s) => (
             <div
               key={s.id}
-              className="flex items-center gap-1 bg-slate-600 px-2 py-1 rounded-md text-sm"
+              className="flex items-center gap-1 pl-3.5 pr-1 min-h-11 rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] font-ui text-sm font-medium text-ink"
             >
               <span>{t(`common.level${s.level}` as TranslationKey, s.level)}</span>
               <button
                 type="button"
                 onClick={() => handleRemoveSeries(s.id)}
                 disabled={!usageReady}
-                className="text-slate-400 hover:text-red-400 ml-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center min-h-9 min-w-9 rounded-full text-lg leading-none text-ink-3 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 aria-label={`${t('tournamentDetailsModal.removeSeries', 'Remove level')}: ${t(`common.level${s.level}` as TranslationKey, s.level)}`}
               >
                 ×
@@ -114,7 +115,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
       )}
 
       {blockedSeriesId && seriesUsage?.[blockedSeriesId] && (
-        <p className="text-sm text-amber-300 mb-2" role="alert" data-testid="series-in-use">
+        <p className={`${fieldErrorStyle} mb-2`} role="alert" data-testid="series-in-use">
           {t('tournamentDetailsModal.levelInUse', 'This level is in use: {{games}} games, {{teams}} teams. Move them to another level first.', {
             games: seriesUsage[blockedSeriesId].games,
             teams: seriesUsage[blockedSeriesId].teams,
@@ -124,11 +125,11 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
 
       {/* Add new series UI */}
       {isAddingNewSeries ? (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <select
             value={newSeriesLevel}
             onChange={(e) => setNewSeriesLevel(e.target.value)}
-            className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+            className={`${selectStyle} basis-full`}
             aria-label={t('tournamentDetailsModal.selectLevelForNewSeries', 'Select the new level')}
           >
             <option value="">{t('common.selectLevel', '-- Select Level --')}</option>
@@ -146,7 +147,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
             type="button"
             onClick={handleAddSeries}
             disabled={!newSeriesLevel}
-            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-indigo-400/30"
+            className={`${secondaryButtonStyle} flex-1`}
             aria-label={t('tournamentDetailsModal.confirmAddSeries', 'Confirm add level')}
           >
             {t('common.add', 'Add')}
@@ -154,7 +155,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
           <button
             type="button"
             onClick={handleCancelAdd}
-            className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm text-sm font-medium border border-slate-400/30"
+            className={`${secondaryButtonStyle} flex-1`}
           >
             {t('common.cancel', 'Cancel')}
           </button>
@@ -164,7 +165,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
           type="button"
           onClick={() => setIsAddingNewSeries(true)}
           disabled={availableLevels.length === 0}
-          className="px-3 py-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-slate-400/30"
+          className={secondaryButtonStyle}
           aria-label={t('tournamentDetailsModal.addSeries', 'Add level')}
         >
           + {t('tournamentDetailsModal.addSeries', 'Add level')}

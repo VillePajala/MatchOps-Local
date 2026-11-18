@@ -196,11 +196,9 @@ describe('HomePage Component - Deep Testing', () => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
       }, { timeout: 5000 });
 
-      // Should show default score (0-0)
-      const scoreElement = screen.queryByText(/0.*-.*0/) || 
-                          screen.queryByText('0') ||
-                          document.querySelector('[class*="score"]');
-      expect(scoreElement).toBeTruthy();
+      // Should show the default score 0-0: the score bar renders each side's
+      // number as its own element, so both zeros must be on screen.
+      expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(2);
     });
   });
 

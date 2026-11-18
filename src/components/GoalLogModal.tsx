@@ -5,17 +5,31 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
 import type { GameEvent } from '@/types/game';
-import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
+import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineChevronDown, HiOutlineXMark } from 'react-icons/hi2';
 import { updateGameEvent } from '@/utils/savedGames';
 import { computeScoreFromEvents } from '@/datastore/gameEventScore';
 import logger from '@/utils/logger';
 import { TFunction } from 'i18next';
 
 import ConfirmationModal from './ConfirmationModal';
-import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import {
+  Z_LAYER,
+  inputBaseStyle,
+  selectStyle,
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  sectionLabelStyle,
+  groupedListStyle,
+  listRowStyle,
+  popoverMenuStyle,
+  popoverItemStyle,
+  fieldErrorStyle,
+  errorBoxStyle,
+  inputErrorStyle,
+  modalCloseButtonStyle,
+} from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 // Re-export shared types for backward compatibility with test imports
@@ -42,6 +56,19 @@ interface GoalLogModalProps {
   onDeleteGameEvent: (eventId: string) => Promise<boolean>;
   onRecalculateScore: () => void; // Snap the score to the goal log
 }
+
+/**
+ * The scorer/assister placeholders are written "-- Select Scorer --"; the
+ * picker rows show them as plain text, so the decorative dashes are dropped.
+ */
+const stripPlaceholderDashes = (text: string): string => text.replace(/^[\s\-–—]+|[\s\-–—]+$/g, '');
+
+/** A picker row's native select: transparent, filling the whole 68px row. */
+const pickerSelectStyle =
+  "block w-full min-h-[68px] appearance-none bg-transparent pl-[18px] pr-12 pt-7 pb-2.5 font-ui text-[17px] font-semibold text-ink-2 [color-scheme:dark] cursor-pointer rounded-[22px] focus:outline-none focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-action)] disabled:opacity-50 disabled:cursor-not-allowed";
+/** The small label sitting above a picker row's value. */
+const pickerLabelStyle =
+  "absolute top-3 left-[18px] font-ui text-[13px] font-semibold text-ink-3 pointer-events-none";
 
 // Helper to get event description
 const getEventDescription = (event: GameEvent, players: Player[], t: TFunction): string => {
@@ -374,279 +401,278 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('goalLog.title', 'Goal Log')}>
-      <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
-        {/* Background effects (standard 4-layer pattern) */}
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
-        <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
+    // A tall bottom sheet over the dimmed match: a strip of the game stays in
+    // view above it, so the coach can see they are still in the match.
+    <div className={`fixed inset-0 ${Z_LAYER.modal} bg-[rgb(2_6_23/0.72)]`} role="dialog" aria-modal="true" aria-label={t('goalLog.title', 'Goal Log')}>
+      <div className="absolute inset-x-0 bottom-0 top-16 flex flex-col overflow-hidden rounded-t-[28px] font-ui text-ink bg-[linear-gradient(180deg,#1c2740,#141d31)] shadow-[inset_0_1px_0_rgb(255_255_255/0.09),0_-20px_40px_-12px_rgb(2_6_23/0.8)]">
+        {/* Grab handle (decorative) */}
+        <div className="flex-shrink-0 w-10 h-[5px] rounded-full bg-white/[0.22] mx-auto mt-2.5 mb-3" aria-hidden="true" />
 
-        {/* Content wrapper */}
-        <div className="relative z-10 flex flex-col h-full">
-          {/* Chrome slimming: X-header. The live match clock is PINNED (no
-              collapse prop) so it never scrolls away while logging a goal. */}
-          <CollapsibleModalHeader
-            title={t('goalLogModal.title', 'Log Goal Event')}
-            onClose={onClose}
-            closeLabel={t('common.doneButton', 'Done')}
-          >
-            <div className="px-6 pt-1 pb-2 text-center text-sm">
-              <div className="flex justify-center items-center text-slate-300">
-                <span className="text-amber-400 font-semibold">{formatTime(currentTime)}</span>
-              </div>
+        {/* Header: title with the live match clock under it, close on the
+            right where the thumb is. The clock is pinned (outside the scroll)
+            so it never scrolls away while logging a goal. */}
+        <div className="flex-shrink-0 flex items-start gap-3 pl-5 pr-4">
+          <div className="flex-1 min-w-0">
+            <h2 className="font-display italic font-extrabold text-[31px] leading-none tracking-[0.005em] text-ink">
+              {t('goalLogModal.title', 'Log Goal Event')}
+            </h2>
+            <div className="mt-2.5 inline-flex items-center gap-2 h-9 px-3 rounded-full bg-white/[0.08] shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
+              <span className="w-2 h-2 rounded-full bg-action shadow-[0_0_0_3px_rgb(255_178_36/0.2)]" aria-hidden="true" />
+              <span className="font-display italic font-extrabold text-[22px] leading-none">{formatTime(currentTime)}</span>
             </div>
-          </CollapsibleModalHeader>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('common.doneButton', 'Done')}
+            title={t('common.doneButton', 'Done')}
+            className={`flex w-12! h-12! ${modalCloseButtonStyle}`}
+          >
+            <HiOutlineXMark className="w-6 h-6" />
+          </button>
+        </div>
 
-          {/* Scrollable Content - Split View Layout */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
-            <FirstVisitIntro
-              surface="goal-log"
-              className="mb-4"
-              text={t('firstVisit.goalLog', 'Pick the scorer - and an assister if there was one - then tap Log Goal.')}
-            />
-            <div className="flex flex-col md:flex-row gap-4 h-full">
-              {/* Left: Goal Logging Form (40% on desktop) */}
-              <div className="md:w-2/5 space-y-4">
-                <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:mx-0 -mt-2 sm:-mt-4 md:mt-0">
-                  {/* Goal Form */}
-                  <div className="space-y-4">
-                    <div>
-                      <label htmlFor="scorerSelect" className="block text-sm font-medium text-slate-300 mb-1">
-                        {t('goalLogModal.scorerLabel', 'Scorer')} <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        id="scorerSelect"
-                        value={scorerId}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setScorerId(value);
-                          // Only clear the assister if it would collide with the
-                          // scorer. An Unknown-scorer goal can still keep a known
-                          // assister (e.g. a scramble: you saw the pass, not the finish).
-                          if (value && value !== UNKNOWN_SCORER && value === assisterId) {
-                            setAssisterId('');
-                          }
-                        }}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      >
-                        <option value="" disabled>{t('goalLogModal.selectPlaceholder', '-- Select Scorer --')}</option>
-                        {playerOptions}
-                        <option value={UNKNOWN_SCORER}>{t('goalLogModal.unknownScorer', 'Unknown / not sure')}</option>
-                      </select>
-                    </div>
+        {/* Scrollable Content - Split View Layout */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-5 pb-8">
+          <FirstVisitIntro
+            surface="goal-log"
+            className="mb-4"
+            text={t('firstVisit.goalLog', 'Pick the scorer - and an assister if there was one - then tap Log Goal.')}
+          />
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Left: Goal Logging Form (40% on desktop) */}
+            <div className="md:w-2/5">
+              {/* The two pickers as one list: label above value, chevron right */}
+              <div className={groupedListStyle}>
+                <div className="relative">
+                  <label htmlFor="scorerSelect" className={pickerLabelStyle}>
+                    {t('goalLogModal.scorerLabel', 'Scorer')} <span className="text-loss">*</span>
+                  </label>
+                  <select
+                    id="scorerSelect"
+                    value={scorerId}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setScorerId(value);
+                      // Only clear the assister if it would collide with the
+                      // scorer. An Unknown-scorer goal can still keep a known
+                      // assister (e.g. a scramble: you saw the pass, not the finish).
+                      if (value && value !== UNKNOWN_SCORER && value === assisterId) {
+                        setAssisterId('');
+                      }
+                    }}
+                    className={pickerSelectStyle}
+                  >
+                    <option value="" disabled>{stripPlaceholderDashes(t('goalLogModal.selectPlaceholder', '-- Select Scorer --'))}</option>
+                    {playerOptions}
+                    <option value={UNKNOWN_SCORER}>{t('goalLogModal.unknownScorer', 'Unknown / not sure')}</option>
+                  </select>
+                  <HiOutlineChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-ink-3 pointer-events-none" aria-hidden="true" />
+                </div>
 
-                    <div>
-                      <label htmlFor="assisterSelect" className="block text-sm font-medium text-slate-300 mb-1">
-                        {t('goalLogModal.assisterLabel', 'Assister (Optional)')}
-                      </label>
-                      <select
-                        id="assisterSelect"
-                        value={assisterId}
-                        onChange={(e) => setAssisterId(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        disabled={!scorerId}
-                      >
-                        <option value="">{t('goalLogModal.noAssisterPlaceholder', '-- No Assist --')}</option>
-                        {orderedPlayers.filter(p => p.id !== scorerId).map(player => (
-                          <option key={player.id} value={player.id}>{playerListLabel(player)}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Action Buttons Inside Form Card */}
-                    <div className="pt-2 space-y-2">
-                      <button
-                        type="button"
-                        onClick={handleLogOwnGoalClick}
-                        data-testid="tour-confirm-goal"
-                        disabled={!scorerId}
-                        className="w-full px-4 py-2 rounded-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-indigo-400/30"
-                      >
-                        {t('goalLogModal.logGoalButton', 'Log Goal')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleLogOpponentGoalClick}
-                        className="w-full px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm"
-                        title={t('goalLogModal.logOpponentGoalTooltip', 'Record a goal for the opponent at the current time') ?? undefined}
-                      >
-                        {t('goalLogModal.logOpponentGoalButtonShort', 'Opponent +1')}
-                      </button>
-                    </div>
-
-                    {/* Score reconciliation: shown only when the stored score
-                        disagrees with the goal log (events are the source of truth). */}
-                    {goalLogScore.mismatch && (
-                      <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-                        <p className="text-sm text-amber-300">
-                          {t(
-                            'goalLogModal.scoreMismatch',
-                            'Saved score ({{cur}}) doesn\'t match the goal log ({{log}}).',
-                            {
-                              cur: `${goalLogScore.currentOur}–${goalLogScore.currentTheir}`,
-                              log: `${goalLogScore.our}–${goalLogScore.opponent}`,
-                            },
-                          )}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setShowRecalcConfirm(true)}
-                          className="w-full px-4 py-2 rounded-md font-semibold text-white bg-amber-600 hover:bg-amber-500 transition-colors shadow-sm"
-                        >
-                          {t('goalLogModal.recalculateScoreButton', 'Recalculate score from log')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                <div className="relative before:absolute before:top-0 before:left-[18px] before:right-0 before:h-px before:bg-hairline">
+                  <label htmlFor="assisterSelect" className={pickerLabelStyle}>
+                    {t('goalLogModal.assisterLabel', 'Assister (Optional)')}
+                  </label>
+                  <select
+                    id="assisterSelect"
+                    value={assisterId}
+                    onChange={(e) => setAssisterId(e.target.value)}
+                    className={pickerSelectStyle}
+                    disabled={!scorerId}
+                  >
+                    <option value="">{stripPlaceholderDashes(t('goalLogModal.noAssisterPlaceholder', '-- No Assist --'))}</option>
+                    {orderedPlayers.filter(p => p.id !== scorerId).map(player => (
+                      <option key={player.id} value={player.id}>{playerListLabel(player)}</option>
+                    ))}
+                  </select>
+                  <HiOutlineChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-ink-3 pointer-events-none" aria-hidden="true" />
                 </div>
               </div>
 
-              {/* Right: Event Log (60% on desktop) */}
-              <div className="md:w-3/5 space-y-4">
-                <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:mx-0 -mt-2 sm:-mt-4 md:mt-0">
-                  <h3 className="text-lg font-semibold text-slate-200 mb-4">
-                    {t('gameSettingsModal.eventLogTitle', 'Event Log')}
-                  </h3>
+              {/* Actions: the amber primary (dimmed until a scorer is chosen)
+                  and the opponent's goal as a red outline. */}
+              <div className="mt-4 grid gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleLogOwnGoalClick}
+                  data-testid="tour-confirm-goal"
+                  disabled={!scorerId}
+                  className={`${primaryButtonStyle} w-full min-h-16 text-[19px] font-bold`}
+                >
+                  {t('goalLogModal.logGoalButton', 'Log Goal')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogOpponentGoalClick}
+                  className="w-full min-h-14 rounded-full font-ui text-[17px] font-bold text-loss bg-[rgb(255_107_107/0.07)] shadow-[inset_0_0_0_1px_rgb(255_107_107/0.5)] hover:bg-[rgb(255_107_107/0.12)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon"
+                  title={t('goalLogModal.logOpponentGoalTooltip', 'Record a goal for the opponent at the current time') ?? undefined}
+                >
+                  {t('goalLogModal.logOpponentGoalButtonShort', 'Opponent +1')}
+                </button>
+              </div>
 
-                  {/* Error Display */}
-                  {error && (
-                    <div className="mb-3 p-2 bg-red-900/30 border border-red-700/50 rounded text-red-200 text-sm">
-                      {error}
-                    </div>
-                  )}
+              {/* Score reconciliation: shown only when the stored score
+                  disagrees with the goal log (events are the source of truth). */}
+              {goalLogScore.mismatch && (
+                <div className="mt-4 space-y-2.5">
+                  <p className="text-sm text-ink-2">
+                    {t(
+                      'goalLogModal.scoreMismatch',
+                      'Saved score ({{cur}}) doesn\'t match the goal log ({{log}}).',
+                      {
+                        cur: `${goalLogScore.currentOur}–${goalLogScore.currentTheir}`,
+                        log: `${goalLogScore.our}–${goalLogScore.opponent}`,
+                      },
+                    )}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowRecalcConfirm(true)}
+                    className={`${secondaryButtonStyle} w-full min-h-12`}
+                  >
+                    {t('goalLogModal.recalculateScoreButton', 'Recalculate score from log')}
+                  </button>
+                </div>
+              )}
+            </div>
 
-                  {/* Events List */}
-                  <div className="space-y-2">
-                    {sortedEvents.map(event => (
-                      <div
-                        key={event.id}
-                        className={`p-3 rounded-md ${
-                          editingGoalId === event.id
-                            ? 'bg-slate-700/75 border border-indigo-500'
-                            : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40'
-                        }`}
-                      >
-                        {editingGoalId === event.id ? (
-                          /* Edit Mode */
-                          <div className="space-y-3">
-                            <input
-                              ref={goalTimeInputRef}
-                              type="text"
-                              inputMode="numeric"
-                              value={editGoalTime}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                const filteredValue = value.replace(/[^0-9:]/g, '');
-                                if (filteredValue.length <= 5) {
-                                  setEditGoalTime(filteredValue);
-                                  if (goalTimeError) setGoalTimeError(null);
-                                }
-                              }}
-                              placeholder={t('gameSettingsModal.timeFormatPlaceholder', 'MM:SS')}
-                              className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm ${goalTimeError ? 'border-red-500' : 'border-slate-600'}`}
-                              autoComplete="off"
-                              maxLength={5}
-                              onFocus={(e) => e.target.select()}
-                            />
-                            {goalTimeError && <p className="mt-1 text-sm text-red-400">{goalTimeError}</p>}
-                            {event.type === 'goal' && (
-                              <>
-                                <select
-                                  value={editGoalScorerId}
-                                  onChange={(e) => setEditGoalScorerId(e.target.value)}
-                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
-                                >
-                                  <option value="">{t('gameSettingsModal.selectScorer', 'Select Scorer...')}</option>
-                                  {orderedPlayers.map(player => (
-                                    <option key={player.id} value={player.id}>{playerListLabel(player)}</option>
-                                  ))}
-                                  <option value={UNKNOWN_SCORER}>{t('goalLogModal.unknownScorer', 'Unknown / not sure')}</option>
-                                </select>
-                                <select
-                                  value={editGoalAssisterId ?? ''}
-                                  onChange={(e) => setEditGoalAssisterId(e.target.value || undefined)}
-                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
-                                >
-                                  <option value="">{t('gameSettingsModal.selectAssister', 'Select Assister (Optional)...')}</option>
-                                  {orderedPlayers.map(player => (
-                                    <option key={player.id} value={player.id}>{playerListLabel(player)}</option>
-                                  ))}
-                                </select>
-                              </>
-                            )}
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={handleCancelEditGoal}
-                                className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium transition-colors shadow-sm"
-                                disabled={isProcessing}
-                              >
-                                {t('common.cancel', 'Cancel')}
-                              </button>
-                              <button
-                                onClick={() => handleSaveGoal(event.id)}
-                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors border border-indigo-400/30"
-                                disabled={isProcessing}
-                              >
-                                {t('common.save', 'Save')}
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          /* Display Mode */
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <span className="text-slate-300 font-mono">{formatTime(event.time)}</span>
-                              <span className="text-slate-100">
-                                {getEventDescription(event, availablePlayers, t)}
-                              </span>
-                            </div>
-                            <div className="relative" ref={eventActionsMenuId === event.id ? actionsMenuRef : null}>
-                              <button
-                                onClick={(e) => handleActionsMenuToggle(e, event.id)}
-                                className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
-                                aria-label={t('gameSettingsModal.eventActions', 'Event actions')}
-                                disabled={isProcessing}
-                              >
-                                <HiOutlineEllipsisVertical className="w-5 h-5" />
-                              </button>
+            {/* Right: Event Log (60% on desktop) */}
+            <div className="md:w-3/5">
+              <h3 className={`${sectionLabelStyle} mx-1 mb-2.5`}>
+                {t('gameSettingsModal.eventLogTitle', 'Event Log')}
+              </h3>
 
-                              {eventActionsMenuId === event.id && (
-                                <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[event.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
-                                  <button
-                                    onClick={() => { setEventActionsMenuId(null); handleEditGoal(event); }}
-                                    className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
-                                    disabled={isProcessing}
-                                  >
-                                    <HiOutlinePencil className="w-4 h-4" />
-                                    {t('common.edit', 'Edit')}
-                                  </button>
-                                  <button
-                                    onClick={() => { setEventActionsMenuId(null); handleDeleteGoal(event.id); }}
-                                    className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
-                                    disabled={isProcessing}
-                                  >
-                                    <HiOutlineTrash className="w-4 h-4" />
-                                    {t('common.delete', 'Delete')}
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+              {/* Error Display */}
+              {error && (
+                <div className={`${errorBoxStyle} mb-3 text-sm text-ink`}>
+                  {error}
+                </div>
+              )}
+
+              {/* Events List. Plain s1-list (not the grouped list's
+                  overflow-hidden), so a row's actions popover is not clipped. */}
+              <div className="s1-list">
+                {sortedEvents.map(event => (
+                  <div
+                    key={event.id}
+                    className={`${listRowStyle} ${editingGoalId === event.id ? 'block! py-4 pr-[18px]!' : ''}`}
+                  >
+                    {editingGoalId === event.id ? (
+                      /* Edit Mode */
+                      <div className="space-y-3">
+                        <input
+                          ref={goalTimeInputRef}
+                          type="text"
+                          inputMode="numeric"
+                          value={editGoalTime}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const filteredValue = value.replace(/[^0-9:]/g, '');
+                            if (filteredValue.length <= 5) {
+                              setEditGoalTime(filteredValue);
+                              if (goalTimeError) setGoalTimeError(null);
+                            }
+                          }}
+                          placeholder={t('gameSettingsModal.timeFormatPlaceholder', 'MM:SS')}
+                          className={`${inputBaseStyle} ${goalTimeError ? inputErrorStyle : ''}`}
+                          autoComplete="off"
+                          maxLength={5}
+                          onFocus={(e) => e.target.select()}
+                        />
+                        {goalTimeError && <p className={fieldErrorStyle}>{goalTimeError}</p>}
+                        {event.type === 'goal' && (
+                          <>
+                            <select
+                              value={editGoalScorerId}
+                              onChange={(e) => setEditGoalScorerId(e.target.value)}
+                              className={selectStyle}
+                            >
+                              <option value="">{t('gameSettingsModal.selectScorer', 'Select Scorer...')}</option>
+                              {orderedPlayers.map(player => (
+                                <option key={player.id} value={player.id}>{playerListLabel(player)}</option>
+                              ))}
+                              <option value={UNKNOWN_SCORER}>{t('goalLogModal.unknownScorer', 'Unknown / not sure')}</option>
+                            </select>
+                            <select
+                              value={editGoalAssisterId ?? ''}
+                              onChange={(e) => setEditGoalAssisterId(e.target.value || undefined)}
+                              className={selectStyle}
+                            >
+                              <option value="">{t('gameSettingsModal.selectAssister', 'Select Assister (Optional)...')}</option>
+                              {orderedPlayers.map(player => (
+                                <option key={player.id} value={player.id}>{playerListLabel(player)}</option>
+                              ))}
+                            </select>
+                          </>
                         )}
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={handleCancelEditGoal}
+                            className={secondaryButtonStyle}
+                            disabled={isProcessing}
+                          >
+                            {t('common.cancel', 'Cancel')}
+                          </button>
+                          <button
+                            onClick={() => handleSaveGoal(event.id)}
+                            className={primaryButtonStyle}
+                            disabled={isProcessing}
+                          >
+                            {t('common.save', 'Save')}
+                          </button>
+                        </div>
                       </div>
-                    ))}
-                    {sortedEvents.length === 0 && (
-                      <div className="text-slate-400 text-center py-4">
-                        {t('gameSettingsModal.noGoalsLogged', 'No goals logged yet.')}
-                      </div>
+                    ) : (
+                      /* Display Mode */
+                      <>
+                        <span className="font-display italic font-extrabold text-xl leading-none text-ink-2 shrink-0">{formatTime(event.time)}</span>
+                        <span className="flex-1 min-w-0 text-[15px] font-medium text-ink">
+                          {getEventDescription(event, availablePlayers, t)}
+                        </span>
+                        <div className="relative shrink-0" ref={eventActionsMenuId === event.id ? actionsMenuRef : null}>
+                          <button
+                            onClick={(e) => handleActionsMenuToggle(e, event.id)}
+                            className="w-11 h-11 flex items-center justify-center rounded-full text-ink-3 hover:text-ink hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                            aria-label={t('gameSettingsModal.eventActions', 'Event actions')}
+                            disabled={isProcessing}
+                          >
+                            <HiOutlineEllipsisVertical className="w-5 h-5" />
+                          </button>
+
+                          {eventActionsMenuId === event.id && (
+                            <div className={`${popoverMenuStyle} ${menuPositions[event.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                              <button
+                                onClick={() => { setEventActionsMenuId(null); handleEditGoal(event); }}
+                                className={popoverItemStyle}
+                                disabled={isProcessing}
+                              >
+                                <HiOutlinePencil className="w-4 h-4" />
+                                {t('common.edit', 'Edit')}
+                              </button>
+                              <button
+                                onClick={() => { setEventActionsMenuId(null); handleDeleteGoal(event.id); }}
+                                className={`${popoverItemStyle} text-red-400!`}
+                                disabled={isProcessing}
+                              >
+                                <HiOutlineTrash className="w-4 h-4" />
+                                {t('common.delete', 'Delete')}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
-                </div>
+                ))}
+                {sortedEvents.length === 0 && (
+                  <div className="px-[18px] py-[26px] text-center text-base text-ink-3">
+                    {t('gameSettingsModal.noGoalsLogged', 'No goals logged yet.')}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-
         </div>
       </div>
 

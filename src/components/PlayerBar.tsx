@@ -34,16 +34,11 @@ interface PlayerBarProps {
 
 const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragStartFromBar, selectedPlayerIdFromBar, onBarBackgroundClick, gameEvents, onPlayerTapInBar, onToggleGoalie }) => {
   return (
+    // The player bar row of the match view's top panel. It sits on the
+    // panel's frosted glass, so it paints no background of its own.
     <div
       data-testid="player-bar"
-      className="relative pl-2 pr-2 py-0.5 flex items-center space-x-1 flex-shrink-0 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-slate-800/50 shadow-lg border-b border-white/10 backdrop-blur-md"
-      style={{
-        background: `
-          linear-gradient(to bottom, rgba(56, 189, 248, 0.1), transparent, transparent),
-          linear-gradient(to bottom, rgba(79, 70, 229, 0.1), rgba(79, 70, 229, 0.1)),
-          linear-gradient(to bottom, rgb(30, 41, 59), rgba(15, 23, 42, 0.85))
-        `
-      }}
+      className="relative h-[68px] pl-2.5 pr-2.5 flex items-center gap-[9px] flex-shrink-0 overflow-x-auto overflow-y-hidden whitespace-nowrap scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
       onClick={(e) => {
         // Check if the click target is the div itself (the background)
         if (e.target === e.currentTarget && onBarBackgroundClick) {
@@ -53,7 +48,7 @@ const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragS
     >
       {/* App Logo */}
       <div
-        className="relative flex items-center justify-center flex-shrink-0 z-10"
+        className="relative flex items-center justify-center flex-shrink-0 z-10 w-9 h-9 rounded-full bg-white/[0.07] overflow-hidden"
         onClick={() => {
           // Deselect player when clicking the logo
           if (onBarBackgroundClick) {
@@ -67,15 +62,12 @@ const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragS
           width={80}
           height={27}
           priority={true}
-          className="h-auto w-[70px] sm:w-[84px] drop-shadow-lg"
+          className="h-auto w-[34px]"
         />
       </div>
 
-      {/* Separator */}
-      <div className="relative border-l border-slate-600 h-16 self-center z-10"></div>
-
       {/* Player Disks */}
-      <div className="relative flex items-center space-x-1 z-10"> 
+      <div className="relative flex items-center gap-[9px] z-10">
         {players.map(player => (
           <PlayerDisk
             key={player.id}

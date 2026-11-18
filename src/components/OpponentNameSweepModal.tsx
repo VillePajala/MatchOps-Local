@@ -5,7 +5,8 @@ import { findMergeTarget } from '@/utils/opponentRename';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
-import { CollapsibleModalHeader, ModalContainer } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalContainer, cardStyle, sectionLabelStyle, subtextStyle, inputBaseStyle, searchInputStyle, primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle, warningBoxStyle } from '@/styles/modalStyles';
+import { HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 import { useOpponentVariantGroups, useAllOpponents } from '@/hooks/useOpponentVariantGroups';
 import { useOpponentRename } from '@/hooks/useOpponentRename';
 import logger from '@/utils/logger';
@@ -116,14 +117,14 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
             onClose={onClose}
             closeLabel={t('common.doneButton', 'Done')}
           >
-            <p className="text-sm text-slate-400 px-6 pt-2 pb-3 text-center">
+            <p className={`${subtextStyle} px-6 pt-1 pb-4 text-center`}>
               {t('opponentSweep.subtitle', 'One team written several ways counts as several opponents in your statistics.')}
             </p>
           </CollapsibleModalHeader>
 
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6 space-y-3">
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6 space-y-4">
             {groups.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-8" data-testid="opponent-sweep-clean">
+              <p className={`${subtextStyle} text-center py-8`} data-testid="opponent-sweep-clean">
                 {t('opponentSweep.allClean', 'Every team is written the same way everywhere. Nothing to fix.')}
               </p>
             ) : (
@@ -134,16 +135,16 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                   <div
                     key={group.key}
                     data-testid={`opponent-sweep-group-${group.key}`}
-                    className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 space-y-3"
+                    className={`${cardStyle} space-y-4`}
                   >
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-2">
                       {group.variants.map((variant) => (
                         <span
                           key={variant}
-                          className="px-2.5 py-1 rounded-full text-xs bg-slate-700/80 border border-slate-600/60 text-slate-200"
+                          className="inline-flex items-center min-h-8 px-3 rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] font-ui text-sm font-medium text-ink"
                         >
                           {variant}
-                          <span className="ml-1.5 text-slate-400">{group.counts[variant]}</span>
+                          <span className="ml-2 text-ink-3 tabular-nums">{group.counts[variant]}</span>
                         </span>
                       ))}
                     </div>
@@ -161,14 +162,14 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                       onChange={(e) => setChoices((prev) => ({ ...prev, [group.key]: e.target.value }))}
                       aria-label={t('opponentSweep.canonicalLabel', 'Spelling to keep')}
                       data-testid={`opponent-sweep-input-${group.key}`}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className={inputBaseStyle}
                     />
                     <button
                       type="button"
                       onClick={() => apply(group.key, chosen)}
                       disabled={busy || !chosen.trim()}
                       data-testid={`opponent-sweep-apply-${group.key}`}
-                      className="w-full px-4 py-2.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold whitespace-nowrap disabled:opacity-50 transition-colors"
+                      className={`${primaryButtonStyle} w-full`}
                     >
                       {busy
                         ? t('opponentSweep.applying', 'Renaming…')
@@ -184,17 +185,19 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                 this section is for the name only the coach knows is wrong,
                 which no conflict list can ever surface. */}
             {allOpponents.length > 0 && (
-              <div className="pt-4 mt-2 border-t border-white/10 space-y-3">
-                <h3 className="text-sm font-semibold text-slate-300">
+              <div className="pt-5 mt-2 border-t border-hairline space-y-3">
+                <h3 className={`${sectionLabelStyle} px-1`}>
                   {t('opponentSweep.allTeamsTitle', 'All teams')}
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className={`${subtextStyle} px-1`}>
                   {t(
                     'opponentSweep.allTeamsHint',
                     'Rename any team, even one that is spelled the same way everywhere.',
                   )}
                 </p>
                 {allOpponents.length > 8 && (
+                  <div className="relative">
+                  <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
                   <input
                     type="text"
                     value={filter}
@@ -202,11 +205,12 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                     placeholder={t('opponentSweep.filterPlaceholder', 'Search teams')}
                     aria-label={t('opponentSweep.filterPlaceholder', 'Search teams')}
                     data-testid="opponent-sweep-filter"
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className={searchInputStyle}
                   />
+                  </div>
                 )}
                 {filter.trim() !== '' && visible.length === 0 && (
-                  <p className="text-sm text-slate-400" data-testid="opponent-sweep-no-results">
+                  <p className={subtextStyle} data-testid="opponent-sweep-no-results">
                     {t('opponentSweep.noSearchResults', 'No team matches "{{search}}".', { search: filter.trim() })}
                   </p>
                 )}
@@ -217,7 +221,7 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                     <div
                       key={opponent.key}
                       data-testid={`opponent-row-${opponent.key}`}
-                      className="bg-slate-900/70 p-3 rounded-lg border border-slate-700"
+                      className="s1-list p-2"
                     >
                       <button
                         type="button"
@@ -227,15 +231,15 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                           setConfirmMerge(null);
                         }}
                         data-testid={`opponent-row-toggle-${opponent.key}`}
-                        className="w-full flex items-center justify-between gap-3 text-left"
+                        className="w-full min-h-12 px-2.5 flex items-center justify-between gap-3 text-left rounded-xl font-ui hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                       >
-                        <span className="text-sm text-white truncate">{opponent.spelling}</span>
-                        <span className="text-xs text-slate-400 tabular-nums flex-shrink-0">
+                        <span className="text-[15px] font-medium text-ink truncate">{opponent.spelling}</span>
+                        <span className="text-sm text-ink-3 tabular-nums flex-shrink-0">
                           {t('opponentSweep.usedIn', '{{count}} games', { count: opponent.count })}
                         </span>
                       </button>
                       {open && (
-                        <div className="mt-3 space-y-2">
+                        <div className="mt-2 px-2.5 pb-2.5 space-y-3">
                           <input
                             type="text"
                             value={renameTo}
@@ -245,15 +249,15 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                             }}
                             aria-label={t('opponentSweep.canonicalLabel', 'Spelling to keep')}
                             data-testid={`opponent-row-input-${opponent.key}`}
-                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className={inputBaseStyle}
                           />
                           {confirmMerge?.key === opponent.key ? (
                             <div
                               role="alertdialog"
                               data-testid={`opponent-row-merge-${opponent.key}`}
-                              className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 space-y-2"
+                              className={`${warningBoxStyle} space-y-3`}
                             >
-                              <p className="text-sm text-amber-100">
+                              <p className="font-ui text-sm text-ink">
                                 {t('opponentSweep.mergeWarning', '"{{name}}" already has {{count}} games. Merge them? They cannot be split again.', {
                                   name: confirmMerge.spelling,
                                   count: confirmMerge.count,
@@ -264,7 +268,7 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                                   type="button"
                                   onClick={() => setConfirmMerge(null)}
                                   data-testid={`opponent-row-merge-cancel-${opponent.key}`}
-                                  className="flex-1 px-3 py-2 rounded-md bg-slate-700 hover:bg-slate-600 text-white text-sm"
+                                  className={`${secondaryButtonStyle} flex-1`}
                                 >
                                   {t('common.cancel', 'Cancel')}
                                 </button>
@@ -277,7 +281,7 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                                   }}
                                   disabled={busy}
                                   data-testid={`opponent-row-merge-confirm-${opponent.key}`}
-                                  className="flex-1 px-3 py-2 rounded-md bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold disabled:opacity-50"
+                                  className={`${dangerButtonStyle} flex-1`}
                                 >
                                   {t('opponentSweep.mergeConfirm', 'Merge')}
                                 </button>
@@ -297,7 +301,7 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                             }}
                             disabled={busy || !renameTo.trim()}
                             data-testid={`opponent-row-apply-${opponent.key}`}
-                            className="w-full px-4 py-2.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
+                            className={`${primaryButtonStyle} w-full`}
                           >
                             {busy
                               ? t('opponentSweep.applying', 'Renaming…')

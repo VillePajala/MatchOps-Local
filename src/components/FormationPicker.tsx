@@ -12,10 +12,17 @@ import {
   type FormationPreset,
   type FieldSize,
 } from '@/config/formationPresets';
+import {
+  matchCapsuleButtonStyle,
+  primaryButtonStyle,
+  titleStyle,
+  subtextStyle,
+  sectionLabelStyle,
+  pillAmberStyle,
+} from '@/styles/modalStyles';
 
 // Match ControlBar design tokens
-const BUTTON_SIZE = 'w-10 h-10';
-const ICON_SIZE = 'w-5 h-5';
+const ICON_SIZE = 'w-[22px] h-[22px]';
 const DROPDOWN_MAX_WIDTH_PX = 300;
 const VIEWPORT_PADDING = 12;
 const MOBILE_BREAKPOINT = 640;
@@ -41,40 +48,35 @@ const MenuContent: React.FC<{
 }> = ({ selectedPlayerCount, recommendedSize, onSelectAuto, onSelectPreset, isMobile }) => {
   const { t } = useTranslation();
 
-  // Size classes - mobile matches other modal styling (like RosterSettingsModal)
+  // Mobile: a full-screen sheet like the other popups; desktop: a compact
+  // dropdown. Both in the navy house style - one amber primary (Auto).
   const headerClass = isMobile
-    ? "relative z-10 flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-white/10 shrink-0"
-    : "relative z-10 px-4 py-3 border-b border-white/10 shrink-0 text-center";
+    ? "relative z-10 flex justify-center items-center pt-10 pb-4 px-6 shrink-0"
+    : "relative z-10 px-4 py-3 border-b border-hairline shrink-0 text-center";
   const titleClass = isMobile
-    ? "text-3xl font-bold text-amber-400 tracking-wide drop-shadow-lg"
-    : "text-sm font-bold text-amber-400";
-  const subtitleClass = isMobile ? "text-sm text-slate-400 mt-1" : "text-xs text-slate-400 mt-0.5";
+    ? titleStyle
+    : "font-display text-xl font-bold italic text-ink";
+  const subtitleClass = isMobile ? `${subtextStyle} mt-1` : "font-ui text-xs text-ink-3 mt-0.5";
   const contentClass = isMobile
-    ? "relative z-10 overflow-y-auto flex-1 p-6 pb-20 space-y-4"
+    ? "relative z-10 overflow-y-auto flex-1 px-4 pt-2 pb-28 space-y-4"
     : "relative z-10 overflow-y-auto min-h-0 flex-1 p-2 space-y-2";
   const autoButtonClass = isMobile
-    ? "w-full px-4 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
-    : "w-full px-3 py-2 text-center text-sm rounded-sm font-medium transition-colors bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30";
-  const cardClass = isMobile ? "p-4 rounded-lg" : "p-2 rounded-lg";
+    ? `${primaryButtonStyle} w-full min-h-[52px]`
+    : `${primaryButtonStyle} w-full`;
+  const cardClass = isMobile ? "p-3" : "p-2";
   const sizeHeaderClass = isMobile
-    ? "px-1 py-1 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 mb-2"
-    : "px-1 py-0.5 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-1.5";
-  const badgeClass = isMobile
-    ? "inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-400 normal-case"
-    : "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-500/20 text-amber-400 normal-case";
-  const gridClass = isMobile ? "grid grid-cols-2 gap-3" : "grid grid-cols-2 gap-1.5";
+    ? `${sectionLabelStyle} normal-case px-1 py-1 flex items-center gap-2 mb-2`
+    : `${sectionLabelStyle} normal-case px-1 py-0.5 flex items-center gap-2 mb-1.5`;
+  const badgeClass = `${pillAmberStyle} normal-case tracking-normal`;
+  const gridClass = isMobile ? "grid grid-cols-2 gap-2" : "grid grid-cols-2 gap-1.5";
   const presetButtonClass = isMobile
-    ? "px-4 py-4 text-left text-base rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 text-slate-100 hover:from-slate-600/60 hover:to-slate-800/40"
-    : "px-3 py-2 text-left text-sm rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 text-slate-100 hover:from-slate-600/60 hover:to-slate-800/40";
-  const presetNameClass = "font-medium";
-  const presetCountClass = isMobile ? "text-slate-400 text-sm ml-2" : "text-slate-400 text-xs ml-1.5";
+    ? "min-h-14 px-4 text-left font-ui text-base rounded-2xl transition-colors s1-raised text-ink hover:bg-white/[0.07] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+    : "min-h-11 px-3 text-left font-ui text-sm rounded-xl transition-colors s1-raised text-ink hover:bg-white/[0.07] focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
+  const presetNameClass = "font-semibold";
+  const presetCountClass = isMobile ? "text-ink-3 text-sm ml-2" : "text-ink-3 text-xs ml-1.5";
 
   return (
     <>
-      {/* Background effects (from modalStyles) */}
-      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-
       {/* Header */}
       <div className={headerClass}>
         <div className="text-center">
@@ -89,7 +91,7 @@ const MenuContent: React.FC<{
 
       {/* Scrollable content */}
       <div className={contentClass}>
-        {/* Auto option - primary indigo button like "Add Player" */}
+        {/* Auto option - the menu's one primary action */}
         <button
           onClick={onSelectAuto}
           className={autoButtonClass}
@@ -102,16 +104,10 @@ const MenuContent: React.FC<{
         {FIELD_SIZES.map(size => (
           <div
             key={size}
-            className={`bg-gradient-to-br from-slate-900/60 to-slate-800/40 ${cardClass} border shadow-inner ${
-              size === recommendedSize ? 'border-amber-500/50' : 'border-slate-700'
-            }`}
+            className={`s1-list ${cardClass}`}
           >
             {/* Size header */}
-            <div
-              className={`${sizeHeaderClass} ${
-                size === recommendedSize ? 'text-amber-400' : 'text-slate-400'
-              }`}
-            >
+            <div className={sizeHeaderClass}>
               {size}
               {size === recommendedSize && (
                 <span className={badgeClass}>
@@ -278,12 +274,12 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
   }, [onSelectFormation]);
 
   // Mobile overlay - use portal to escape ControlBar's stacking context
-  // Positioned to end exactly at ControlBar's top edge (bottom-14 = 56px = ControlBar height)
-  // z-30 keeps it BEHIND ControlBar (z-40) so ControlBar remains visible
+  // Full screen; the control capsule (z-40) floats over its bottom edge, so
+  // the content keeps bottom padding to scroll clear of it.
   const mobileOverlay = isOpen && isMobile && typeof document !== 'undefined' ? createPortal(
     <div
       ref={dropdownRef}
-      className="fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col bg-slate-800 overflow-hidden"
+      className="fixed inset-0 z-30 flex flex-col s1-canvas font-ui overflow-hidden"
       role="menu"
       aria-orientation="vertical"
     >
@@ -302,7 +298,7 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
   const desktopDropdown = isOpen && !isMobile && typeof document !== 'undefined' ? createPortal(
     <div
       ref={dropdownRef}
-      className="fixed overflow-hidden flex flex-col overscroll-contain rounded-lg border border-slate-700 shadow-2xl bg-slate-800"
+      className="fixed overflow-hidden flex flex-col overscroll-contain rounded-[22px] s1-canvas font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_20px_40px_-12px_rgb(2_6_23/0.9)]"
       style={{
         left: desktopLayout.left,
         bottom: desktopLayout.bottom,
@@ -331,11 +327,7 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
         onClick={handleButtonClick}
         data-testid="tour-formation"
         disabled={disabled}
-        className={`${BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${
-          disabled
-            ? 'bg-slate-800 opacity-50 cursor-not-allowed'
-            : 'bg-slate-700 hover:bg-slate-600 focus:ring-slate-500'
-        }`}
+        className={matchCapsuleButtonStyle}
         title={t('controlBar.formationMenu', 'Formation menu')}
         aria-label={t('controlBar.formationMenu', 'Formation menu')}
         aria-expanded={isOpen}

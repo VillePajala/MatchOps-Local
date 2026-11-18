@@ -787,3 +787,27 @@ export const Z_LAYER = {
 } as const;
 
 export type ZLayer = keyof typeof Z_LAYER;
+
+// ============================================================================
+// Match view ("full-screen pitch"): chrome floating over the grass
+// ============================================================================
+
+/**
+ * Frosted navy glass for the panels that float over the pitch (the score and
+ * player bar panel, the control capsule). Opaque enough (84%) to stay readable
+ * in sunlight even where backdrop blur is unsupported or skipped.
+ */
+export const matchGlassStyle =
+  "bg-[rgb(15_23_42/0.84)] backdrop-blur-[16px] backdrop-saturate-[1.3] shadow-[inset_0_1px_0_rgb(255_255_255/0.12),inset_0_0_0_1px_rgb(255_255_255/0.07),0_14px_26px_-12px_rgb(2_6_23/0.75)]";
+
+/** A 44px round tool button sitting on the grass (field tools, sync status). */
+export const matchFieldToolStyle =
+  `inline-flex items-center justify-center w-11 h-11 rounded-full text-white bg-[rgb(15_23_42/0.7)] backdrop-blur-[12px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_8px_14px_-8px_rgb(2_6_23/0.8)] transition-colors hover:bg-[rgb(15_23_42/0.82)] active:scale-95 ${focusRing}`;
+
+/** The "on" state of a field tool: white disc, navy icon. */
+export const matchFieldToolOnStyle =
+  `inline-flex items-center justify-center w-11 h-11 rounded-full text-carbon bg-white shadow-[0_8px_14px_-8px_rgb(2_6_23/0.8)] active:scale-95 ${focusRing}`;
+
+/** A 48px round button inside the control capsule. */
+export const matchCapsuleButtonStyle =
+  `inline-flex items-center justify-center w-12 h-12 shrink-0 rounded-full text-white bg-white/[0.07] transition-colors hover:bg-white/[0.12] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${focusRing}`;

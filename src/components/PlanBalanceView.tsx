@@ -22,7 +22,24 @@ import { gameTotalSeconds, type PlaytimePlan, type PlanGame } from '@/utils/play
 import { getGameSlots } from '@/utils/playtimePlanner/lineup';
 import { getPositionLabel } from '@/utils/positionLabels';
 import { fairnessChipColors } from '@/utils/playtimePlanner/colors';
-import { cardStyle, subtextStyle } from '@/styles/modalStyles';
+import {
+  cardStyle,
+  subtextStyle,
+  segmentTrackStyle,
+  segmentStyle,
+  segmentSelectedStyle,
+  warningBoxStyle,
+  errorBoxStyle,
+  infoBoxStyle,
+} from '@/styles/modalStyles';
+
+/** A tappable warning row: the shared tinted box, padded as a 44px+ target. */
+const warningRowBase =
+  'flex flex-col items-start gap-0.5 px-3.5! py-2.5! text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+
+/** A per-player row in the positions read (tap = highlight). */
+const positionRowBase =
+  'w-full flex flex-col gap-1.5 px-3.5 py-3 rounded-2xl bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
 import { POSITION_ROLE_HEX } from '@/config/palette';
 
 /** Solid, distinct fill per zone for the distribution bar (dark-theme tuned). */
@@ -60,10 +77,11 @@ interface Warning {
 
 // House alert palette (modalStyles' -900/30 bg + -700 border scale).
 const warningTone: Record<Warning['kind'], string> = {
-  zero: 'bg-red-900/30 border-red-700 text-red-200',
-  sitout: 'bg-amber-900/30 border-amber-700 text-amber-200',
-  spread: 'bg-amber-900/30 border-amber-700 text-amber-200',
-  gk: 'bg-sky-900/30 border-sky-700 text-sky-200',
+  zero: `${errorBoxStyle} text-red-200`,
+  sitout: `${warningBoxStyle} text-amber-200`,
+  spread: `${warningBoxStyle} text-amber-200`,
+  // A suggestion, not a problem: the quiet info box.
+  gk: `${infoBoxStyle} text-ink-2`,
 };
 
 const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
@@ -303,9 +321,9 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
   );
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-semibold text-slate-200">{t('playtimePlanner.balance.title', 'Playing-time balance')}</h3>
+    <div className="space-y-4 font-ui">
+      <div className="px-1">
+        <h3 className="text-lg font-semibold text-ink">{t('playtimePlanner.balance.title', 'Playing-time balance')}</h3>
         <p className={subtextStyle}>
           {fairMin === null
             ? plan.players.length === 0
@@ -321,7 +339,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
 
       {/* Minutes / Positions toggle: the tab reads both time AND position
           variety (hence "Balance" / "Tasapaino"). */}
-      <div className="flex w-full gap-2" role="tablist" aria-label={t('playtimePlanner.balance.readToggle', 'Balance view')}>
+      <div className={segmentTrackStyle} role="tablist" aria-label={t('playtimePlanner.balance.readToggle', 'Balance view')}>
         {([
           ['minutes', t('playtimePlanner.balance.modeMinutes', 'Minutes')],
           ['positions', t('playtimePlanner.balance.modePositions', 'Positions')],
@@ -332,9 +350,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
             role="tab"
             aria-selected={mode === m}
             onClick={() => setMode(m)}
-            className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              mode === m ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            }`}
+            className={mode === m ? segmentSelectedStyle : segmentStyle}
           >
             {label}
           </button>
@@ -351,7 +367,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
               key={w.kind}
               type="button"
               onClick={() => onReplaceHighlights(w.players)}
-              className={`flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left cursor-pointer ${warningTone[w.kind]}`}
+              className={`${warningTone[w.kind]} ${warningRowBase}`}
             >
               <span className="text-[13px] font-bold">{w.label}</span>
               <span className="text-xs opacity-85">{w.detail}</span>
@@ -373,10 +389,10 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
               onClick={() => onToggleHighlight(p.playerId)}
               aria-pressed={highlighted}
               className={[
-                'flex items-center justify-between gap-2 px-4 py-3 min-h-[3.25rem] rounded-lg border border-black/25',
-                'text-left font-semibold text-sm shadow-[0_1px_2px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
-                highlighted ? 'ring-2 ring-amber-300 ring-offset-2 ring-offset-slate-900 brightness-110' : '',
+                'flex items-center justify-between gap-2 px-4 py-3 min-h-[3.25rem] rounded-2xl',
+                'text-left font-semibold text-sm shadow-[0_1px_2px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.14)]',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80',
+                highlighted ? 'ring-2 ring-amber-300 ring-offset-2 ring-offset-surface brightness-110' : '',
                 anyHighlight && !highlighted ? 'opacity-40' : '',
               ].join(' ')}
               style={{ backgroundColor: c.bg, color: c.fg }}
@@ -416,27 +432,27 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
           return (
             <div
               key={playerId}
-              className="rounded-lg border border-slate-600/50 bg-gradient-to-b from-slate-800/90 to-slate-900/95 p-3.5 shadow-lg"
+              className={cardStyle}
             >
               <div className="flex items-baseline justify-between gap-3 mb-2.5">
-                <span className="flex-1 min-w-0 truncate text-lg font-bold text-slate-100">{name}</span>
+                <span className="flex-1 min-w-0 truncate text-lg font-semibold text-ink">{name}</span>
                 {/* NUMBERS LEAD (owner, 2026-09-16). This figure was text-xl
                     against a text-lg name - the number the whole screen exists
                     to compare, barely ahead of the label identifying it. The
                     name keeps its size: you still find the row by name. */}
-                <span className="shrink-0 text-2xl font-black text-amber-300 tabular-nums leading-none">
+                <span className="s1-numeral shrink-0 pr-[3px] font-display text-[34px] font-bold italic tabular-nums leading-none">
                   {toMin(p.totalSeconds)}&#39;
                 </span>
               </div>
               {pct !== null && (
                 <div className="mb-3">
-                  <div className="h-1.5 rounded-full bg-slate-950/70 border border-slate-600/50 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-carbon shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] overflow-hidden">
                     <div
                       className="h-full rounded-full"
                       style={{ width: `${barW}%`, backgroundColor: c.bg }}
                     />
                   </div>
-                  <p className="mt-1 text-sm font-medium text-slate-400">
+                  <p className="mt-1.5 text-sm font-medium text-ink-3">
                     {t('playtimePlanner.balance.ofFairShare', '{{pct}}% of share', { pct })}
                     {deltaStr ? ` · ${deltaStr}` : ''}
                   </p>
@@ -457,7 +473,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                         ? 'bg-amber-400/15 border-amber-400/45 [&_.fg-mins]:text-amber-200'
                         : 'bg-red-500/10 border-red-500/40 [&_.fg-mins]:text-red-300';
                   const tileClasses = [
-                    'flex flex-col items-center gap-0.5 px-1 py-1.5 min-h-[3.9rem] rounded-md border text-center',
+                    'flex flex-col items-center gap-0.5 px-1 py-1.5 min-h-[3.9rem] rounded-xl border text-center',
                     tone,
                     !g.included ? 'opacity-40 line-through' : '',
                   ].join(' ');
@@ -467,22 +483,22 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                       type="button"
                       onClick={() => onOpenGame(g.id)}
                       title={g.label}
-                      className={`${tileClasses} focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400`}
+                      className={`${tileClasses} focus:outline-none focus-visible:ring-2 focus-visible:ring-action`}
                     >
-                      <span className="text-[9px] font-medium text-slate-400">
+                      <span className="text-xs font-medium text-ink-3">
                         {gameShort(i)}
                       </span>
-                      <span className="text-[11px] font-bold text-amber-300 truncate max-w-full">
+                      <span className="text-xs font-bold text-ink truncate max-w-full">
                         {positionsFor(playerId, g)}
                       </span>
                       <span className="fg-mins text-xs font-bold tabular-nums">{toMin(sec)}&#39;</span>
                     </button>
                   ) : (
                     <div key={g.id} title={g.label} className={tileClasses}>
-                      <span className="text-[9px] font-medium text-slate-400">
+                      <span className="text-xs font-medium text-ink-3">
                         {gameShort(i)}
                       </span>
-                      <span className="text-[11px] font-bold text-amber-300 truncate max-w-full">
+                      <span className="text-xs font-bold text-ink truncate max-w-full">
                         {positionsFor(playerId, g)}
                       </span>
                       <span className="fg-mins text-xs font-bold tabular-nums">{toMin(sec)}&#39;</span>
@@ -506,7 +522,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
             <>
               {/* Zones | Roles: coarse zones vs specific positions. Roles reads
                   the switching load INSIDE a zone (RM vs CDM are both mid). */}
-              <div className="flex w-full gap-2" role="group" aria-label={t('playtimePlanner.balance.granularityToggle', 'Position detail')}>
+              <div className={segmentTrackStyle} role="group" aria-label={t('playtimePlanner.balance.granularityToggle', 'Position detail')}>
                 {([
                   ['zones', t('playtimePlanner.balance.granularityZones', 'Zones')],
                   ['roles', t('playtimePlanner.balance.granularityRoles', 'Roles')],
@@ -516,9 +532,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                     type="button"
                     onClick={() => setGranularity(g)}
                     aria-pressed={granularity === g}
-                    className={`flex-1 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                      granularity === g ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    className={granularity === g ? segmentSelectedStyle : segmentStyle}
                   >
                     {label}
                   </button>
@@ -528,7 +542,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
               {/* Zone legend (colours are shared - a role is tinted by its zone). */}
               <div className="flex flex-wrap gap-x-3 gap-y-1">
                 {PLAN_ZONES.map((z) => (
-                  <span key={z} className="inline-flex items-center gap-1.5 text-xs text-slate-300">
+                  <span key={z} className="inline-flex items-center gap-1.5 text-xs text-ink-2">
                     <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: ZONE_BAR_COLOR[z] }} aria-hidden="true" />
                     {zoneLabel[z]}
                   </span>
@@ -542,7 +556,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                     <button
                       type="button"
                       onClick={() => onReplaceHighlights(singleZoneIds)}
-                      className="flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left cursor-pointer bg-amber-900/30 border-amber-700 text-amber-200"
+                      className={`${warningBoxStyle} text-amber-200 ${warningRowBase}`}
                     >
                       <span className="text-[13px] font-bold">
                         {t('playtimePlanner.balance.oneZone', '{{count}} players play only one position', { count: singleZoneIds.length })}
@@ -567,17 +581,16 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                           onClick={() => onToggleHighlight(p.playerId)}
                           aria-pressed={highlighted}
                           className={[
-                            'w-full flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border border-slate-600/50 bg-slate-800/60 text-left',
-                            'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                            positionRowBase,
                             highlighted ? 'ring-2 ring-amber-300' : '',
                             anyHighlight && !highlighted ? 'opacity-40' : '',
                           ].join(' ')}
                         >
                           <div className="flex items-baseline justify-between gap-2">
-                            <span className="flex-1 min-w-0 truncate font-semibold text-sm text-slate-100">{name}</span>
-                            <span className="shrink-0 text-xs text-slate-400 tabular-nums">{toMin(p.totalSeconds)}&#39;</span>
+                            <span className="flex-1 min-w-0 truncate font-semibold text-[15px] text-ink">{name}</span>
+                            <span className="shrink-0 text-[13px] text-ink-3 tabular-nums">{toMin(p.totalSeconds)}&#39;</span>
                           </div>
-                          <div className="flex h-2 rounded-full overflow-hidden bg-slate-950/60">
+                          <div className="flex h-2 rounded-full overflow-hidden bg-carbon">
                             {zones.map((z) => (
                               <div
                                 key={z}
@@ -588,7 +601,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                           </div>
                           <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                             {zones.map((z) => (
-                              <span key={z} className="text-[11px] font-medium tabular-nums" style={{ color: ZONE_BAR_COLOR[z] }}>
+                              <span key={z} className="text-xs font-medium tabular-nums" style={{ color: ZONE_BAR_COLOR[z] }}>
                                 {zoneLabel[z]} {toMin(p.byZone[z])}&#39;
                               </span>
                             ))}
@@ -615,23 +628,22 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                         onClick={() => onToggleHighlight(p.playerId)}
                         aria-pressed={highlighted}
                         className={[
-                          'w-full flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border border-slate-600/50 bg-slate-800/60 text-left',
-                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                          positionRowBase,
                           highlighted ? 'ring-2 ring-amber-300' : '',
                           anyHighlight && !highlighted ? 'opacity-40' : '',
                         ].join(' ')}
                       >
                         <div className="flex items-baseline justify-between gap-2">
-                          <span className="flex-1 min-w-0 truncate font-semibold text-sm text-slate-100">{name}</span>
-                          <span className="shrink-0 text-xs text-slate-400 tabular-nums">
+                          <span className="flex-1 min-w-0 truncate font-semibold text-[15px] text-ink">{name}</span>
+                          <span className="shrink-0 text-[13px] text-ink-3 tabular-nums">
                             {t('playtimePlanner.balance.rolesCount', { count: p.positionCount, defaultValue_one: '{{count}} role', defaultValue_other: '{{count}} roles' })}
                           </span>
                         </div>
-                        <div className="flex h-2 rounded-full overflow-hidden bg-slate-950/60">
+                        <div className="flex h-2 rounded-full overflow-hidden bg-carbon">
                           {labels.map((l) => (
                             <div
                               key={l}
-                              className="border-r border-slate-950/50 last:border-r-0"
+                              className="border-r border-carbon/60 last:border-r-0"
                               style={{ width: `${(p.byLabel[l] / p.totalSeconds) * 100}%`, backgroundColor: ZONE_BAR_COLOR[zoneOfLabel(l)] }}
                               title={`${l} ${toMin(p.byLabel[l])}'`}
                             />
@@ -639,7 +651,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                           {labels.map((l) => (
-                            <span key={l} className="text-[11px] font-medium tabular-nums" style={{ color: ZONE_BAR_COLOR[zoneOfLabel(l)] }}>
+                            <span key={l} className="text-xs font-medium tabular-nums" style={{ color: ZONE_BAR_COLOR[zoneOfLabel(l)] }}>
                               {l} {toMin(p.byLabel[l])}&#39;
                             </span>
                           ))}

@@ -421,7 +421,9 @@
     "togglePlannedSubs": "Show planned substitutions",
     "planViewLineup": "Lineup only",
     "planViewGhosts": "Planned substitutions",
-    "planViewChains": "Substitutions and minutes"
+    "planViewChains": "Substitutions and minutes",
+    "selectedHint": "{{name}} selected · tap the field",
+    "cancelSelection": "Cancel selection"
   },
   "gameResult": {
     "overtime": "OT",

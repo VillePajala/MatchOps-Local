@@ -3,7 +3,16 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineShare, HiOutlineClipboardCopy, HiOutlineCheck } from 'react-icons/hi';
-import { modalContainerStyle, ModalBackgroundEffects, CollapsibleModalHeader } from '@/styles/modalStyles';
+import {
+  modalContainerStyle,
+  ModalBackgroundEffects,
+  CollapsibleModalHeader,
+  checkboxStyle,
+  warningBoxStyle,
+  textareaStyle,
+  primaryButtonStyle,
+  secondaryButtonStyle,
+} from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
@@ -144,24 +153,24 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
             {/* pt-2: the subtitle sat flush against the header with no
                 breathing room above it. */}
             {hint && (
-              <p className="text-sm text-slate-400 px-6 pt-2 pb-3 text-center">
+              <p className="font-ui text-sm text-ink-3 px-6 pt-2 pb-3 text-center">
                 {hint}
               </p>
             )}
           </CollapsibleModalHeader>
 
           {/* Editable preview with its Copy/Share actions inline beneath it. */}
-          <div className="flex-1 min-h-0 px-4 sm:px-6 py-4 flex flex-col gap-3">
+          <div className="flex-1 min-h-0 px-4 py-4 flex flex-col gap-3 font-ui">
             {sections && sections.length > 0 && (
               <div className="flex flex-wrap gap-x-4 gap-y-2" data-testid="recap-sections">
                 {sections.map(section => (
-                  <label key={section.key} className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
+                  <label key={section.key} className="flex min-h-11 items-center gap-2.5 text-[15px] text-ink cursor-pointer">
                     <input
                       type="checkbox"
                       checked={section.checked}
                       onChange={() => onToggleSection?.(section.key)}
                       data-testid={`recap-section-${section.key}`}
-                      className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-indigo-600 focus:ring-indigo-500"
+                      className={checkboxStyle}
                     />
                     {section.label}
                   </label>
@@ -169,7 +178,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
               </div>
             )}
             {stale && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs" data-testid="recap-stale">
+              <div className={`${warningBoxStyle} flex items-center gap-3 !p-3 text-ink-2 text-[13px]`} data-testid="recap-stale">
                 <span className="flex-1">
                   {t('recap.staleEdits', 'You have edited this text, so it did not change. Take the new version?')}
                 </span>
@@ -177,7 +186,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
                   type="button"
                   onClick={applyGenerated}
                   data-testid="recap-apply-generated"
-                  className="shrink-0 px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 font-semibold"
+                  className={`${secondaryButtonStyle} shrink-0`}
                 >
                   {t('recap.staleApply', 'Rebuild')}
                 </button>
@@ -187,22 +196,22 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
               value={text}
               onChange={e => setText(e.target.value)}
               aria-label={heading}
-              className="flex-1 w-full min-h-[16rem] resize-none bg-slate-900/60 border border-slate-600 rounded-md text-slate-100 text-sm p-3 font-mono whitespace-pre-wrap focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className={`${textareaStyle} flex-1 min-h-[16rem] !text-sm !font-normal font-mono whitespace-pre-wrap`}
             />
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={handleCopy}
-                className="px-4 py-2 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100 inline-flex items-center gap-1.5"
+                className={`${secondaryButtonStyle} flex-1`}
               >
-                {copied ? <HiOutlineCheck className="text-emerald-400" /> : <HiOutlineClipboardCopy />}
+                {copied ? <HiOutlineCheck className="text-win" /> : <HiOutlineClipboardCopy />}
                 {copied ? t('recap.copied', 'Copied') : t('recap.copy', 'Copy')}
               </button>
               {canShare && (
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white inline-flex items-center gap-1.5"
+                  className={`${primaryButtonStyle} flex-1`}
                 >
                   <HiOutlineShare />
                   {t('recap.share', 'Share')}

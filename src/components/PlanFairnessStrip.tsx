@@ -65,11 +65,11 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
         type="button"
         onClick={toggleCollapsed}
         aria-expanded={!collapsed}
-        className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 py-1.5 -my-1"
+        className="flex items-center gap-1.5 min-h-11 -my-1.5 px-1 rounded-lg font-ui text-xs font-semibold uppercase tracking-[0.14em] text-ink-3 hover:text-ink-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
       >
         <HiChevronDown
           aria-hidden="true"
-          className={`w-3.5 h-3.5 transition-transform ${collapsed ? '-rotate-90' : ''}`}
+          className={`w-4 h-4 transition-transform ${collapsed ? '-rotate-90' : ''}`}
         />
         {t('playtimePlanner.lineup.fairnessStrip', 'Playing-time totals')}
       </button>
@@ -77,7 +77,7 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
         <div
           role="group"
           aria-label={t('playtimePlanner.lineup.fairnessStrip', 'Playing-time totals')}
-          className="grid grid-cols-[repeat(auto-fit,minmax(3.4rem,1fr))] gap-1 mt-1"
+          className="grid grid-cols-[repeat(auto-fit,minmax(3.6rem,1fr))] gap-1.5 mt-1 font-ui"
         >
           {rows.map((row) => {
             const highlighted = highlightPlayerIds.includes(row.id);
@@ -89,21 +89,21 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
                 aria-pressed={highlighted}
                 title={row.name}
                 className={[
-                  'w-full px-1.5 py-1 rounded-md text-center leading-tight',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                  'w-full min-h-11 px-1.5 py-1 rounded-xl text-center leading-tight shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80',
                   highlighted ? 'ring-2 ring-amber-300' : '',
                   anyHighlight && !highlighted ? 'opacity-40' : '',
                 ].join(' ')}
                 style={{ backgroundColor: fairnessCell(row.ratio) }}
               >
                 <span
-                  className="block text-[11px] font-bold text-white truncate"
+                  className="block text-xs font-bold text-white truncate"
                   style={{ textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
                 >
                   {firstName(row.name)}
                 </span>
                 <span
-                  className="block text-[10px] font-semibold text-white/90 tabular-nums"
+                  className="block text-xs font-semibold text-white/90 tabular-nums"
                   style={{ textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
                 >
                   {row.minutes}&#39;

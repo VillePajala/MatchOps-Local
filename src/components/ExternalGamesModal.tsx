@@ -47,7 +47,7 @@ const ExternalGamesModal: React.FC<ExternalGamesModalProps> = ({ isOpen, onClose
       <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6">
         <p className={`${subtextStyle} mb-4`}>{t('externalGamesModal.intro', "Games not recorded in the app as matches. They count only in this player's stats.")}</p>
         {playersLoading ? null : sorted.length === 0 ? (
-          <p className="text-sm text-slate-400">{t('externalGamesModal.noPlayers', 'Add your players on the Club tab first.')}</p>
+          <p className={subtextStyle}>{t('externalGamesModal.noPlayers', 'Add your players on the Club tab first.')}</p>
         ) : (
           <div className="mb-4">
             <label className={labelStyle} htmlFor="external-games-player">{t('externalGamesModal.pickPlayer', 'Pick a player')}</label>

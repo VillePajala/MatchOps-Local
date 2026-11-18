@@ -18,6 +18,7 @@ import ClubModalsHost from '@/components/ClubModalsHost';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useLaunchPullGate } from '@/hooks/useLaunchPullGate';
 import { CLOUD_COPY_ADOPTED_EVENT, GAME_REPLACED_BY_CLOUD_EVENT } from '@/sync/syncEvents';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -1957,23 +1958,19 @@ export default function Home() {
         <div className={isAuthGracePeriod && !isBlockedByOtherTab ? 'pt-10' : undefined}>
         {isBlockedByOtherTab ? (
           // Multi-tab block: another tab is already running the app
-          <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
-              <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
-            </div>
+          <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-hidden">
             <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 pb-safe">
-              <h1 className="text-5xl font-bold tracking-tight text-amber-400 mb-4">MatchOps</h1>
+              <h1 className="font-display text-6xl font-bold italic tracking-[0.01em] text-action mb-4">MatchOps</h1>
               <div className="max-w-sm text-center">
-                <h2 className="text-xl font-semibold text-white mb-2">
+                <h2 className="font-display text-3xl font-bold italic text-ink mb-2">
                   {t('page.alreadyOpen', 'Already Open')}
                 </h2>
-                <p className="text-slate-400 mb-6">
+                <p className="text-ink-2 mb-6">
                   {t('page.alreadyOpenDesc', 'MatchOps is already open in another tab. Please close this tab or the other one to continue.')}
                 </p>
                 <button
                   onClick={() => window.location.reload()}
-                  className="w-full h-12 px-4 py-2 rounded-md text-base font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-600 transition-all"
+                  className={`${primaryButtonStyle} w-full min-h-12`}
                 >
                   {t('page.tryAgain', 'Try Again')}
                 </button>
@@ -1999,32 +1996,27 @@ export default function Home() {
           // Cloud mode: auth initialization timed out - show retry screen
           // This prevents users from being stuck in a login loop when PWA resumes from background
           <ErrorBoundary>
-            <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
-              {/* Ambient background */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
-                <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
-              </div>
+            <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-hidden">
               <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 pb-safe">
-                <h1 className="text-5xl font-bold tracking-tight text-amber-400 mb-4">MatchOps</h1>
+                <h1 className="font-display text-6xl font-bold italic tracking-[0.01em] text-action mb-4">MatchOps</h1>
                 <div className="max-w-sm text-center">
-                  <h2 className="text-xl font-semibold text-white mb-2">
+                  <h2 className="font-display text-3xl font-bold italic text-ink mb-2">
                     {t('page.connectionTimeout', 'Connection Timeout')}
                   </h2>
-                  <p className="text-slate-400 mb-6">
+                  <p className="text-ink-2 mb-6">
                     {t('page.connectionTimeoutDesc', 'Unable to connect to the server. This can happen after the app has been in the background for a while.')}
                   </p>
                   <div className="space-y-3">
                     <button
                       onClick={retryAuthInit}
-                      className="w-full h-12 px-4 py-2 rounded-md text-base font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-600 transition-all"
+                      className={`${primaryButtonStyle} w-full min-h-12`}
                     >
                       {t('page.tryAgain', 'Try Again')}
                     </button>
                     {!skipWelcomeScreen && (
                       <button
                         onClick={handleLoginUseLocalMode}
-                        className="w-full h-12 px-4 py-2 rounded-md text-base font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"
+                        className={`${secondaryButtonStyle} w-full min-h-12`}
                       >
                         {t('page.useLocalModeInstead', 'Use Local Mode Instead')}
                       </button>
@@ -2073,7 +2065,7 @@ export default function Home() {
                 data-testid="cloud-data-pending"
                 className="fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top,0px))] z-[25] flex justify-center px-4 pointer-events-none"
               >
-                <span className="pointer-events-auto rounded-xl border border-slate-700 bg-slate-800/95 backdrop-blur-sm shadow-xl px-3 py-2 text-sm text-slate-100 flex items-center gap-3">
+                <span className="pointer-events-auto rounded-2xl bg-surface-2 font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)] pl-4 pr-2 py-2 min-h-12 text-[15px] text-ink flex items-center gap-3">
                   {/* After a few failed tries, say so and offer a manual retry. */}
                   {pendingCloudPull.failures >= 3
                     ? t('page.couldNotCheckCloudData', 'Could not check cloud data. Your data will load automatically.')
@@ -2083,7 +2075,7 @@ export default function Home() {
                       type="button"
                       data-testid="cloud-data-retry"
                       onClick={pendingCloudPull.retryNow}
-                      className="shrink-0 rounded-md bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-500"
+                      className={`${primaryButtonStyle} shrink-0`}
                     >
                       {t('errors.tryAgain', 'Try Again')}
                     </button>

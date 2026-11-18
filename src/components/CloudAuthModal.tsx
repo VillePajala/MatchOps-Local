@@ -11,7 +11,20 @@ import {
   HiOutlineTrash,
   HiOutlineCheckCircle,
 } from 'react-icons/hi2';
-import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle, DialogBackdrop } from '@/styles/modalStyles';
+import {
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  dangerButtonStyle,
+  DialogBackdrop,
+  dialogTitleStyle,
+  inputBaseStyle,
+  labelStyle,
+  linkStyle,
+  warningBoxStyle,
+  errorBoxStyle,
+  successBoxStyle,
+  modalCloseButtonStyle,
+} from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { clearCloudAccountInfo } from '@/config/backendConfig';
 import logger from '@/utils/logger';
@@ -372,28 +385,28 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
           <>
             {/* Icon and description */}
             <div className="text-center mb-6">
-              <HiOutlineLockClosed className="h-12 w-12 text-sky-400 mx-auto mb-3" />
-              <p className="text-slate-300">
+              <HiOutlineLockClosed className="h-12 w-12 text-ink-2 mx-auto mb-3" />
+              <p className="text-ink-2">
                 {t('cloudAuth.description', 'Sign in to delete your cloud data.')}
               </p>
             </div>
 
             {/* Email (read-only) */}
             <div className="mb-4">
-              <label className="block text-sm text-slate-400 mb-1">
+              <label className={labelStyle}>
                 {t('cloudAuth.email', 'Email')}
               </label>
               <input
                 type="email"
                 value={email}
                 readOnly
-                className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-300 cursor-not-allowed"
+                className={`${inputBaseStyle} text-ink-3`}
               />
             </div>
 
             {/* Password - SECURITY: Using uncontrolled input to keep password out of React state/DevTools */}
             <div className="mb-4">
-              <label className="block text-sm text-slate-400 mb-1">
+              <label className={labelStyle}>
                 {t('cloudAuth.password', 'Password')}
               </label>
               <input
@@ -403,7 +416,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
                 onChange={(e) => setHasPassword(!!e.target.value.trim())}
                 onKeyDown={handleKeyDown}
                 placeholder={t('cloudAuth.passwordPlaceholder', 'Enter your password')}
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className={inputBaseStyle}
                 autoComplete="current-password"
                 autoFocus
               />
@@ -413,7 +426,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
                   type="button"
                   onClick={handleForgotPassword}
                   disabled={isSendingReset || isAuthenticating}
-                  className="text-sm text-sky-400 hover:text-sky-300 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
+                  className={`${linkStyle} inline-flex min-h-11 items-center text-sm no-underline disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {isSendingReset
                     ? t('cloudAuth.sendingReset', 'Sending...')
@@ -424,9 +437,9 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
 
             {/* Password reset confirmation */}
             {resetEmailSent && (
-              <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-green-900/30 border border-green-700">
-                <HiOutlineCheckCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
-                <p className="text-sm text-green-300">
+              <div className={`${successBoxStyle} flex items-center gap-2 mb-4`}>
+                <HiOutlineCheckCircle className="h-5 w-5 text-win flex-shrink-0" />
+                <p className="text-sm text-ink">
                   {t('cloudAuth.resetEmailSent', 'Password reset email sent. Check your inbox and try again.')}
                 </p>
               </div>
@@ -434,9 +447,9 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
 
             {/* Error message */}
             {error && (
-              <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-red-900/30 border border-red-700">
-                <HiOutlineExclamationTriangle className="h-5 w-5 text-red-400 flex-shrink-0" />
-                <p className="text-sm text-red-300">{error}</p>
+              <div className={`${errorBoxStyle} flex items-center gap-2 mb-4`}>
+                <HiOutlineExclamationTriangle className="h-5 w-5 text-loss flex-shrink-0" />
+                <p className="text-sm text-ink">{error}</p>
               </div>
             )}
 
@@ -472,30 +485,30 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
           <>
             {/* Warning icon */}
             <div className="text-center mb-6">
-              <HiOutlineExclamationTriangle className="h-12 w-12 text-amber-400 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-slate-100 mb-2">
+              <HiOutlineExclamationTriangle className="h-12 w-12 text-action mx-auto mb-3" />
+              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
                 {t('cloudAuth.confirm.title', 'Confirm Deletion')}
               </h3>
             </div>
 
             {/* Warning message */}
-            <div className="bg-amber-900/30 border border-amber-700 rounded-lg p-4 mb-6">
-              <p className="text-amber-200 mb-2">
+            <div className={`${warningBoxStyle} mb-6`}>
+              <p className="text-ink-2 mb-2">
                 {t('cloudAuth.confirm.warning', 'This will permanently delete ALL your data from our servers:')}
               </p>
-              <ul className="text-sm text-amber-300 space-y-1 ml-4">
+              <ul className="text-sm text-ink-2 space-y-1 ml-4">
                 <li>&bull; {t('cloudAuth.confirm.allGames', 'All games and game data')}</li>
                 <li>&bull; {t('cloudAuth.confirm.allPlayers', 'All players and rosters')}</li>
                 <li>&bull; {t('cloudAuth.confirm.allOther', 'All leagues, tournaments, and settings')}</li>
               </ul>
-              <p className="text-amber-200 mt-3 font-medium">
+              <p className="text-ink-2 mt-3 font-medium">
                 {t('cloudAuth.confirm.cannotUndo', 'This action cannot be undone.')}
               </p>
             </div>
 
             {/* Confirmation input */}
             <div className="mb-6">
-              <label className="block text-sm text-slate-400 mb-2">
+              <label className={labelStyle}>
                 {t('cloudAuth.confirm.typeDelete', 'Type DELETE to confirm:')}
               </label>
               <input
@@ -504,7 +517,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
                 onChange={(e) => setConfirmText(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="DELETE"
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+                className={inputBaseStyle}
                 autoComplete="off"
                 autoFocus
               />
@@ -536,11 +549,11 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
       case 'deleting':
         return (
           <div className="text-center py-8">
-            <HiOutlineArrowPath className="h-12 w-12 text-red-400 mx-auto animate-spin mb-4" />
-            <p className="text-slate-300">
+            <HiOutlineArrowPath className="h-12 w-12 text-loss mx-auto animate-spin mb-4" />
+            <p className="text-ink-2">
               {t('cloudAuth.deleting', 'Deleting your cloud data...')}
             </p>
-            <p className="text-sm text-slate-500 mt-2">
+            <p className="text-sm text-ink-3 mt-2">
               {t('cloudAuth.deletingNote', 'This may take a moment.')}
             </p>
           </div>
@@ -550,11 +563,11 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
         return (
           <>
             <div className="text-center mb-6">
-              <HiOutlineCheckCircle className="h-12 w-12 text-green-400 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-slate-100 mb-2">
+              <HiOutlineCheckCircle className="h-12 w-12 text-win mx-auto mb-3" />
+              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
                 {t('cloudAuth.success.title', 'Cloud Data Deleted')}
               </h3>
-              <p className="text-slate-400">
+              <p className="text-ink-3">
                 {t('cloudAuth.success.description', 'All your data has been permanently removed from our servers.')}
               </p>
             </div>
@@ -574,16 +587,16 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
         return (
           <>
             <div className="text-center mb-6">
-              <HiOutlineXMark className="h-12 w-12 text-red-400 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-slate-100 mb-2">
+              <HiOutlineXMark className="h-12 w-12 text-loss mx-auto mb-3" />
+              <h3 className="font-display text-2xl font-bold italic text-ink mb-2">
                 {t('cloudAuth.error.title', 'Deletion Failed')}
               </h3>
             </div>
 
             {/* Error message */}
             {error && (
-              <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6">
-                <p className="text-sm text-red-300">{error}</p>
+              <div className={`${errorBoxStyle} mb-6`}>
+                <p className="text-sm text-ink">{error}</p>
               </div>
             )}
 
@@ -640,17 +653,17 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="cloud-auth-modal-title"
-        className="relative w-full max-w-md bg-slate-800 border border-slate-600 rounded-lg shadow-2xl"
+        className="s1-list relative w-full max-w-md mx-4 font-ui"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <h2 id="cloud-auth-modal-title" className="text-lg font-semibold text-slate-100">
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-hairline">
+          <h2 id="cloud-auth-modal-title" className={dialogTitleStyle}>
             {getStepTitle()}
           </h2>
           {step !== 'deleting' && (
             <button
               onClick={handleCancel}
-              className="text-slate-400 hover:text-slate-200 transition-colors"
+              className={`${modalCloseButtonStyle} inline-flex`}
               aria-label={t('common.close', 'Close')}
             >
               <HiOutlineXMark className="h-6 w-6" />

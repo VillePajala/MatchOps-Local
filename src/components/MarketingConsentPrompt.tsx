@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 import { useFirstGameExists, useHomeShowing, useSetupWizardActive } from '@/components/setupWizardActive';
 import logger from '@/utils/logger';
+import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 
 /**
  * MarketingConsentPrompt - Non-blocking dismissable banner for existing users.
@@ -98,12 +99,12 @@ export default function MarketingConsentPrompt() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 animate-in fade-in duration-300" role="dialog" aria-modal="true" aria-label={t('marketingConsent.promptTitle', 'Stay in the loop?')}>
-      <div className="relative bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-5 max-w-sm w-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 animate-in fade-in duration-300" role="dialog" aria-modal="true" aria-label={t('marketingConsent.promptTitle', 'Stay in the loop?')}>
+      <div className="relative s1-list font-ui p-5 max-w-sm w-full">
         {/* Dismiss button */}
         <button
           onClick={handleDismiss}
-          className="absolute top-3 right-3 text-slate-400 hover:text-slate-200 p-1 transition-colors"
+          className="absolute top-1 right-1 inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-3 hover:text-ink hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
           aria-label={t('common.close', 'Close')}
           disabled={isSubmitting}
         >
@@ -112,31 +113,31 @@ export default function MarketingConsentPrompt() {
           </svg>
         </button>
 
-        <h3 className="text-base font-semibold text-slate-100 pr-6">
+        <h3 className="font-display text-2xl font-bold italic text-ink pr-10">
           {t('marketingConsent.promptTitle', 'Stay in the loop?')}
         </h3>
-        <p className="text-sm text-slate-400 mt-2 mb-4">
+        <p className="text-[15px] leading-snug text-ink-2 mt-2 mb-4">
           {t('marketingConsent.promptDescription', 'Get occasional product updates, tips, and new feature announcements via email. You can change this anytime in Settings.')}
         </p>
 
         {saveFailed && (
-          <p role="alert" data-testid="marketing-consent-error" className="text-sm text-red-300 mb-3">
+          <p role="alert" data-testid="marketing-consent-error" className="text-[13px] text-loss mb-3">
             {t('marketingConsent.updateFailed', 'Failed to update marketing preferences')}
           </p>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
           <button
             onClick={handleAccept}
             disabled={isSubmitting}
-            className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+            className={primaryButtonStyle}
           >
             {t('marketingConsent.promptYes', 'Yes, keep me updated')}
           </button>
           <button
             onClick={handleDecline}
             disabled={isSubmitting}
-            className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-50 transition-colors"
+            className={secondaryButtonStyle}
           >
             {t('marketingConsent.promptNo', 'No thanks')}
           </button>

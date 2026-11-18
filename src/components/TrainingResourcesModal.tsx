@@ -1,7 +1,22 @@
 'use client';
 
 import React, { useState, useCallback, useId } from 'react';
-import { primaryButtonStyle, secondaryButtonStyle, CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
+import {
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  dangerButtonStyle,
+  CollapsibleModalHeader,
+  useCollapsingHeader,
+  modalContainerStyle,
+  cardStyle,
+  inputBaseStyle,
+  textareaStyle,
+  iconButtonEditStyle,
+  iconButtonDangerStyle,
+  dialogContainerStyle,
+  dialogTitleStyle,
+  dialogBodyStyle,
+} from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useWarmupPlan } from '@/hooks/useWarmupPlan';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
@@ -117,7 +132,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
 
   // Render a section
   const renderSection = (section: WarmupPlanSection, index: number, totalSections: number) => (
-    <section key={section.id} className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 p-4 rounded-lg">
+    <section key={section.id} className={`${cardStyle} font-ui`}>
       {isEditMode ? (
         <div className="space-y-3">
           {/* Title with controls */}
@@ -126,7 +141,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
               type="text"
               value={section.title}
               onChange={(e) => updateSection(section.id, { title: e.target.value })}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-1.5 text-lg font-semibold text-slate-200 focus:outline-none focus:border-indigo-500"
+              className={`${inputBaseStyle} text-lg font-semibold`}
               placeholder={t('warmupPlanModal.sectionTitlePlaceholder', 'Section Title')}
             />
             <div className="flex items-center justify-between gap-2">
@@ -134,7 +149,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
                 <button
                   onClick={() => moveSection(section.id, 'up')}
                   disabled={index === 0}
-                  className="h-8 w-8 flex items-center justify-center text-slate-200 hover:text-white disabled:opacity-30 bg-slate-700/70 hover:bg-slate-600 rounded-md"
+                  className={`${iconButtonEditStyle} disabled:opacity-30`}
                   title={t('warmupPlanModal.moveUp', 'Move Up')}
                 >
                   <FaChevronUp className="w-4 h-4" />
@@ -142,7 +157,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
                 <button
                   onClick={() => moveSection(section.id, 'down')}
                   disabled={index === totalSections - 1}
-                  className="h-8 w-8 flex items-center justify-center text-slate-200 hover:text-white disabled:opacity-30 bg-slate-700/70 hover:bg-slate-600 rounded-md"
+                  className={`${iconButtonEditStyle} disabled:opacity-30`}
                   title={t('warmupPlanModal.moveDown', 'Move Down')}
                 >
                   <FaChevronDown className="w-4 h-4" />
@@ -150,7 +165,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
               </div>
               <button
                 onClick={() => removeSection(section.id)}
-                className="h-8 w-8 flex items-center justify-center text-red-400 hover:text-red-300 bg-slate-700/70 hover:bg-slate-600 rounded-md"
+                className={iconButtonDangerStyle}
                 title={t('warmupPlanModal.deleteSection', 'Delete Section')}
               >
                 <FaTimes className="w-4 h-4" />
@@ -161,15 +176,15 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
           <textarea
             value={section.content}
             onChange={(e) => updateSection(section.id, { content: e.target.value })}
-            className="w-full bg-slate-700/70 border border-slate-600 rounded px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-indigo-500 resize-y min-h-[100px]"
+            className={`${textareaStyle} resize-y min-h-[120px] text-[15px] font-normal`}
             placeholder={t('warmupPlanModal.contentPlaceholder', 'Enter content here... Use • for bullet points')}
             rows={5}
           />
         </div>
       ) : (
         <>
-          <h3 className="text-lg font-semibold text-slate-200 mb-2">{section.title}</h3>
-          <div className="text-slate-300 text-sm whitespace-pre-wrap pl-2">
+          <h3 className="font-display text-2xl font-bold italic text-ink mb-2">{section.title}</h3>
+          <div className="text-ink-2 text-[15px] leading-relaxed whitespace-pre-wrap">
             {renderContent(section.content)}
           </div>
         </>
@@ -179,13 +194,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        {/* Background effects */}
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
-        <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
-
+      <div className={`${modalContainerStyle} h-full w-full relative`}>
         <div className="relative z-10 flex flex-col min-h-0 h-full">
           {/* Chrome slimming: X-header. The action buttons live in one row
               inside the collapse region and fold away on scroll. The X
@@ -199,7 +208,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
           >
             {/* House header buttons: full-width, stretching across the row -
                 alone (Edit) or split evenly with a sibling (Reset + Save). */}
-            <div className="px-6 pt-1 pb-3 flex gap-2">
+            <div className="px-4 pt-1 pb-3 flex gap-2">
               {isEditMode ? (
                 <>
                   <button
@@ -233,13 +242,13 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
           </CollapsibleModalHeader>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6" onScroll={headerCollapse.onScroll}>
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-2 pb-8" onScroll={headerCollapse.onScroll}>
             {isLoading ? (
-              <div className="flex items-center justify-center h-32 text-slate-400">
+              <div className="flex items-center justify-center h-32 text-ink-3">
                 {t('common.loading', 'Loading...')}
               </div>
             ) : displayPlan ? (
-              <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
+              <div>
                 <div className="space-y-4">
                   {displayPlan.sections.map((section, index) =>
                     renderSection(section, index, displayPlan.sections.length)
@@ -248,7 +257,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
                 {isEditMode && (
                   <button
                     onClick={addSection}
-                    className="mt-4 flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md text-sm font-medium transition-colors"
+                    className={`${secondaryButtonStyle} mt-4 w-full`}
                   >
                     <FaPlus className="w-3 h-3" />
                     {t('warmupPlanModal.addSection', 'Add Section')}
@@ -263,24 +272,24 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
         {/* Reset Confirmation Dialog */}
         {showResetConfirm && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
-            <div className="bg-slate-800 p-6 rounded-lg border border-slate-600 max-w-md mx-4">
-              <h3 className="text-lg font-bold text-white mb-2">
+            <div className={`${dialogContainerStyle} !bg-surface-2`}>
+              <h3 className={`${dialogTitleStyle} mb-2`}>
                 {t('warmupPlanModal.resetConfirmTitle', 'Reset Warmup Plan?')}
               </h3>
-              <p className="text-slate-300 text-sm mb-4">
+              <p className={`${dialogBodyStyle} mb-4`}>
                 {t('warmupPlanModal.resetConfirmMessage', 'This will replace your custom warmup plan with the default template. This cannot be undone.')}
               </p>
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowResetConfirm(false)}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md text-sm font-medium"
+                  className={secondaryButtonStyle}
                 >
                   {t('common.cancelButton', 'Cancel')}
                 </button>
                 <button
                   onClick={handleReset}
                   disabled={isResetting}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md text-sm font-medium disabled:opacity-50"
+                  className={dangerButtonStyle}
                 >
                   {isResetting
                     ? t('common.resetting', 'Resetting...')

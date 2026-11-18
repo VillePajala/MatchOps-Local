@@ -421,7 +421,9 @@
     "togglePlannedSubs": "Näytä suunnitellut vaihdot",
     "planViewLineup": "Vain kokoonpano",
     "planViewGhosts": "Suunnitellut vaihdot",
-    "planViewChains": "Vaihdot ja minuutit"
+    "planViewChains": "Vaihdot ja minuutit",
+    "selectedHint": "{{name}} valittu · napauta kenttää",
+    "cancelSelection": "Peru valinta"
   },
   "gameResult": {
     "overtime": "JA",

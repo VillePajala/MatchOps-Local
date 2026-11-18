@@ -40,6 +40,7 @@ import {
   localDataDotStyle,
   progressBarContainerStyle,
   progressBarFillStyle,
+  warningBoxStyle,
 } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import {
@@ -309,7 +310,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
 
     if (items.length === 0) {
       return (
-        <p className="text-slate-400 text-sm text-center">
+        <p className="text-ink-3 text-sm text-center">
           {t('migration.noData', 'No data found to migrate.')}
         </p>
       );
@@ -318,9 +319,9 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
     return (
       <div className="grid grid-cols-2 gap-2 text-sm">
         {items.map(({ key, count }) => (
-          <div key={key} className="flex justify-between text-slate-300">
+          <div key={key} className="flex justify-between text-ink-2">
             <span>{translateEntity(key)}</span>
-            <span className="text-slate-400">{count}</span>
+            <span className="text-ink-3">{count}</span>
           </div>
         ))}
       </div>
@@ -339,21 +340,21 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         <div className="relative">
           <div className={progressBarContainerStyle}>
             <div
-              className={`${progressBarFillStyle} bg-sky-500`}
+              className={`${progressBarFillStyle} bg-action`}
               style={{ width: `${Math.max(percent, 5)}%` }}
             />
           </div>
-          <div className="absolute right-0 top-4 text-xs text-slate-400">
+          <div className="absolute right-0 top-4 text-xs text-ink-3">
             {percent}%
           </div>
         </div>
 
         {/* Status message */}
         <div className="text-center">
-          <HiOutlineArrowPath className="h-8 w-8 text-sky-400 mx-auto animate-spin mb-2" />
-          <p className="text-slate-300">{message ? translateMessage(message) : ''}</p>
+          <HiOutlineArrowPath className="h-8 w-8 text-ink-2 mx-auto animate-spin mb-2" />
+          <p className="text-ink-2">{message ? translateMessage(message) : ''}</p>
           {currentEntity && (
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-ink-3 mt-1">
               {t('migration.progress.entity', 'Migrating {{entity}}...', { entity: translateEntity(currentEntity) })}
             </p>
           )}
@@ -369,8 +370,8 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         if (isLoadingCounts) {
           return (
             <div className="flex flex-col items-center justify-center py-8">
-              <HiOutlineArrowPath className="h-8 w-8 text-sky-400 animate-spin mb-3" />
-              <p className="text-slate-300">
+              <HiOutlineArrowPath className="h-8 w-8 text-ink-2 animate-spin mb-3" />
+              <p className="text-ink-2">
                 {t('migration.loadingData', 'Loading data summary...')}
               </p>
             </div>
@@ -381,11 +382,11 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
         if (loadError) {
           return (
             <div className="text-center py-4">
-              <HiOutlineExclamationTriangle className="h-12 w-12 text-amber-400 mx-auto mb-3" />
-              <p className="text-slate-300 mb-3">
+              <HiOutlineExclamationTriangle className="h-12 w-12 text-action mx-auto mb-3" />
+              <p className="text-ink-2 mb-3">
                 {t('migration.loadDataFailed', 'Failed to load your data. Please try again.')}
               </p>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-ink-3">
                 {t('migration.canRetryOrCancel', 'You can retry or close this dialog.')}
               </p>
             </div>
@@ -396,8 +397,8 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
           <>
             {/* Warning if previous migration was interrupted */}
             {wasInterrupted && (
-              <div className="bg-amber-900/30 border border-amber-500/30 rounded-lg px-4 py-3 mb-4">
-                <p className="text-amber-300 text-sm">
+              <div className={`${warningBoxStyle} mb-4`}>
+                <p className="text-ink-2 text-sm">
                   {t('migration.previousInterrupted', 'A previous sync may not have completed. Tap "Sync to Cloud" to retry — your data is safe.')}
                 </p>
               </div>
@@ -405,8 +406,8 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
 
             {/* Icon and description */}
             <div className="text-center mb-5">
-              <HiOutlineCloudArrowUp className="h-12 w-12 text-sky-400 mx-auto mb-3" />
-              <p className="text-slate-300">
+              <HiOutlineCloudArrowUp className="h-12 w-12 text-ink-2 mx-auto mb-3" />
+              <p className="text-ink-2">
                 {t('migration.syncDescription', 'Your local data will be synced to the cloud for backup and access from other devices.')}
               </p>
             </div>
@@ -425,11 +426,11 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       case 'confirmDiscard':
         return (
           <div className="text-center py-4">
-            <HiOutlineExclamationTriangle className="h-12 w-12 text-amber-400 mx-auto mb-3" />
-            <p className="text-lg font-medium text-amber-400 mb-2">
+            <HiOutlineExclamationTriangle className="h-12 w-12 text-action mx-auto mb-3" />
+            <p className="text-lg font-medium text-ink-2 mb-2">
               {t('migration.discardConfirmTitle', 'Discard local data?')}
             </p>
-            <p className="text-slate-300 mb-3">
+            <p className="text-ink-2 mb-3">
               {t('migration.discardConfirmDescription', 'This will permanently delete all local data from this device. This cannot be undone.')}
             </p>
           </div>
@@ -441,11 +442,11 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       case 'complete':
         return (
           <div className="text-center py-4">
-            <HiOutlineCheckCircle className="h-12 w-12 text-green-400 mx-auto mb-3" />
-            <p className="text-lg font-medium text-green-400 mb-2">
+            <HiOutlineCheckCircle className="h-12 w-12 text-win mx-auto mb-3" />
+            <p className="text-lg font-medium text-win mb-2">
               {t('migration.success', 'Migration complete!')}
             </p>
-            <p className="text-slate-300">
+            <p className="text-ink-2">
               {t('migration.successDescription', 'Your data is now synced to the cloud.')}
             </p>
           </div>
@@ -454,14 +455,14 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       case 'error':
         return (
           <div className="text-center py-4">
-            <HiOutlineExclamationTriangle className="h-12 w-12 text-red-400 mx-auto mb-3" />
-            <p className="text-lg font-medium text-red-400 mb-2">
+            <HiOutlineExclamationTriangle className="h-12 w-12 text-loss mx-auto mb-3" />
+            <p className="text-lg font-medium text-loss mb-2">
               {t('migration.failed', 'Migration Failed')}
             </p>
-            <p className="text-slate-300 mb-3">
+            <p className="text-ink-2 mb-3">
               {errorMessage || t('migration.errorGeneric', 'Something went wrong. Please try again.')}
             </p>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-ink-3">
               {t('migration.dataIsSafe', 'Your local data is safe.')}
             </p>
           </div>
@@ -514,11 +515,11 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
             </div>
             <button
               onClick={() => setStep('confirmDiscard')}
-              className="text-sm text-slate-500 hover:text-red-400 transition-colors"
+              className="inline-flex min-h-11 items-center justify-center rounded-full px-3 font-ui text-sm text-ink-3 hover:text-loss transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             >
               {t('migration.discardLocalData', 'Discard local data')}
             </button>
-            <p className="text-sm text-slate-400 text-center">
+            <p className="text-sm text-ink-3 text-center">
               {t('migration.canImportLater', 'You can import local data later from Settings → Cloud Sync.')}
             </p>
           </div>
@@ -582,7 +583,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
     <WizardBackdrop>
       <div
         ref={modalRef}
-        className={wizardModalStyle}
+        className={`${wizardModalStyle} font-ui`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

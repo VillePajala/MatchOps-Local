@@ -13,6 +13,7 @@ import {
 } from "@/utils/appSettings";
 import { exportFullBackup } from "@/utils/fullBackup";
 import logger from "@/utils/logger";
+import { primaryButtonStyle, secondaryButtonStyle } from "@/styles/modalStyles";
 
 /**
  * Data Safety - Layer 2b: a gentle, dismissible reminder to keep an OFF-DEVICE
@@ -117,7 +118,7 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
   if (!visible) return null;
 
   // Floating overlay card (fixed) rather than an inline banner, so it never steals
-  // layout height from the field/app. App-style: slate card, indigo primary action.
+  // layout height from the field/app. App-style: navy card, amber primary action.
   // z-[25]: BELOW the full-screen TimerOverlay (z-30), the sidebar backdrop (z-40),
   // the sidebar (z-50) and modals - an overdue-backup reminder must never sit on
   // top of live-game controls or navigation chrome. It floats clear of the bottom
@@ -126,22 +127,22 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
     <div className="fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] z-[25] flex justify-center px-4 pointer-events-none">
       <div
         role="status"
-        className="pointer-events-auto w-full max-w-md rounded-xl border border-slate-700 bg-slate-800/95 backdrop-blur-sm shadow-xl p-3 flex flex-col gap-2"
+        className="pointer-events-auto w-full max-w-md rounded-2xl bg-surface-2 font-ui p-4 flex flex-col gap-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)]"
       >
-        <span className="text-sm text-slate-100">
+        <span className="text-[15px] leading-snug text-ink">
           {t("backupReminder.message", "It's been a while since your last backup. Keep your data safe with an off-device copy.")}
         </span>
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={handleDismiss}
-            className="px-3 py-1.5 text-sm rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+            className={secondaryButtonStyle}
           >
             {t("backupReminder.dismiss", "Dismiss")}
           </button>
           <button
             onClick={handleBackupNow}
             disabled={busy}
-            className="px-3 py-1.5 text-sm rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-medium disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            className={primaryButtonStyle}
           >
             {t("backupReminder.backupNow", "Back up now")}
           </button>

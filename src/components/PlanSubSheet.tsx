@@ -16,7 +16,19 @@ import { getGameSlots, ensureStartingSlots } from '@/utils/playtimePlanner/lineu
 import { defaultSubTimeSeconds, makeSub } from '@/utils/playtimePlanner/subs';
 import { fairnessText } from '@/utils/playtimePlanner/colors';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { labelStyle } from '@/styles/modalStyles';
+import {
+  sectionLabelStyle,
+  subtextStyle,
+  chipStyle,
+  groupedListStyle,
+  listRowStyle,
+  dialogTitleStyle,
+  Z_LAYER,
+} from '@/styles/modalStyles';
+
+/** The minute stepper's round 44px keys. */
+const stepKeyStyle =
+  'w-11 h-11 shrink-0 rounded-full s1-raised font-ui text-ink font-semibold leading-none transition-colors hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface';
 import type { PlanGame, PlanPlayer, PlanSub } from '@/utils/playtimePlanner/types';
 import type { PlanPlayerMinutes } from '@/components/PlanFieldView';
 
@@ -123,7 +135,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60"
+      className={`fixed inset-0 ${Z_LAYER.modal} flex items-end justify-center bg-black/60`}
       onClick={onClose}
       data-testid="plan-sub-sheet-backdrop"
     >
@@ -134,13 +146,13 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
           position: positionLabel,
           player: occupantName,
         })}
-        className="w-full max-w-sm bg-slate-800 border border-slate-600 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
+        className="w-full max-w-sm s1-sheet rounded-t-[26px] px-4 pt-3 pb-6 max-h-[80vh] overflow-y-auto font-ui focus:outline-none"
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
         ref={dialogRef}
       >
-        <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
-        <h4 className="text-base font-semibold text-slate-100">
+        <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" aria-hidden="true" />
+        <h4 className={`${dialogTitleStyle} text-center`}>
           {t('playtimePlanner.subSheet.title', 'Substitution · {{position}} ({{player}})', {
             position: positionLabel,
             player: occupantName,
@@ -148,13 +160,13 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
         </h4>
 
         {/* Minute stepper - pre-filled to half-time so the common case is zero edits. */}
-        <div className="flex items-center gap-2 mt-3 mb-3">
-          <span className={labelStyle}>{t('playtimePlanner.subs.timeLabel', 'Minute')}</span>
+        <p className={`${sectionLabelStyle} px-1 mt-5 mb-2.5`}>{t('playtimePlanner.subs.timeLabel', 'Minute')}</p>
+        <div className="flex items-center justify-center gap-2 mb-1">
           <button
             type="button"
             onClick={() => step(-5)}
             aria-label="-5"
-            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-xs font-semibold leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            className={`${stepKeyStyle} text-sm tabular-nums`}
           >
             −5
           </button>
@@ -162,18 +174,18 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
             type="button"
             onClick={() => step(-1)}
             aria-label="-1"
-            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            className={`${stepKeyStyle} text-xl`}
           >
             −
           </button>
-          <span className="min-w-[2.6rem] text-center text-lg font-bold text-slate-50 tabular-nums">
+          <span className="s1-numeral min-w-[4.5rem] pr-[3px] text-center font-display text-[40px] font-bold italic leading-none tabular-nums">
             {minute}&#39;
           </span>
           <button
             type="button"
             onClick={() => step(1)}
             aria-label="+1"
-            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            className={`${stepKeyStyle} text-xl`}
           >
             +
           </button>
@@ -181,30 +193,30 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
             type="button"
             onClick={() => step(5)}
             aria-label="+5"
-            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-xs font-semibold leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            className={`${stepKeyStyle} text-sm tabular-nums`}
           >
             +5
           </button>
-          {atHalftime && (
-            <span className="text-xs text-slate-400">
-              {t('playtimePlanner.subSheet.halftime', 'half-time')}
-            </span>
-          )}
         </div>
+        {/* Reserved line, so the grid below does not jump when the stepper
+            leaves half-time. */}
+        <p className={`${subtextStyle} text-center min-h-5 mb-4`}>
+          {atHalftime ? t('playtimePlanner.subSheet.halftime', 'half-time') : null}
+        </p>
 
         {/* Already-planned changes for this slot - removable in place. */}
         {onRemove && slotSubs.length > 0 && (
-          <div className="mb-3">
-            <p className={`${labelStyle} mb-1.5`}>
+          <div className="mb-5">
+            <p className={`${sectionLabelStyle} px-1 mb-2.5`}>
               {t('playtimePlanner.subSheet.existing', 'Planned for this position')}
             </p>
-            <ul className="space-y-1.5">
+            <ul className={groupedListStyle}>
               {slotSubs.map((sub) => (
                 <li
                   key={sub.id}
-                  className="flex items-center justify-between gap-2 bg-slate-800/40 border border-slate-700/50 rounded-md px-3 py-1.5"
+                  className={`${listRowStyle} justify-between`}
                 >
-                  <span className="text-sm text-slate-100 tabular-nums">
+                  <span className="min-w-0 truncate text-[15px] text-ink tabular-nums">
                     {Math.round(sub.timeSeconds / 60)}&#39;{' '}
                     {sub.inPlayerId ? nameById.get(sub.inPlayerId) ?? sub.inPlayerId : '?'}
                   </span>
@@ -218,7 +230,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
                       // Park focus back on the sheet dialog instead.
                       dialogRef.current?.focus();
                     }}
-                    className="text-sm text-red-400 hover:text-red-300 py-2 px-2"
+                    className="shrink-0 min-h-11 px-3 rounded-full text-sm font-semibold text-red-400 hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                   >
                     {t('playtimePlanner.subs.remove', 'Remove')}
                   </button>
@@ -231,15 +243,15 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
         {/* Live player grid: tap = create the sub. Tinted minutes make the fair
             pick obvious. Bench first; players already in this game follow under
             their own label (picking one plans a rotation / re-entry). */}
-        <p className={`${labelStyle} mb-1.5`}>{t('playtimePlanner.subs.inLabel', 'Player on')}</p>
+        <p className={`${sectionLabelStyle} px-1 mb-2.5`}>{t('playtimePlanner.subs.inLabel', 'Player on')}</p>
         {benchIds.length === 0 && inGameIds.length === 0 ? (
-          <p className="text-sm text-slate-400">
+          <p className={`${subtextStyle} px-1`}>
             {t('playtimePlanner.subs.noBench', 'No bench players available.')}
           </p>
         ) : (
           <>
             {benchIds.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 {benchIds.map((id) => {
                   const fair = minutesByPlayer?.[id];
                   return (
@@ -247,12 +259,12 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
                       key={id}
                       type="button"
                       onClick={() => pick(id)}
-                      className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-indigo-600 border border-slate-500/40 text-sm font-medium text-slate-100"
+                      className={`${chipStyle} min-h-11! text-ink!`}
                     >
                       {nameById.get(id) ?? id}
                       {fair && (
                         <span
-                          className="ml-1.5 text-xs font-semibold tabular-nums"
+                          className="text-xs font-semibold tabular-nums"
                           style={{ color: fairnessText(fair.ratio) }}
                         >
                           {fair.minutes}&#39;
@@ -264,11 +276,11 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
               </div>
             )}
             {inGameIds.length > 0 && (
-              <div className="mt-3">
-                <p className={`${labelStyle} mb-1.5`}>
+              <div className="mt-5">
+                <p className={`${sectionLabelStyle} px-1 mb-2.5`}>
                   {t('playtimePlanner.subs.inGameGroup', 'Already in this game')}
                 </p>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {inGameIds.map((id) => {
                     const fair = minutesByPlayer?.[id];
                     return (
@@ -276,12 +288,12 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
                         key={id}
                         type="button"
                         onClick={() => pick(id)}
-                        className="px-3 py-1.5 rounded-full bg-slate-800 hover:bg-indigo-600 border border-dashed border-slate-500/60 text-sm font-medium text-slate-200"
+                        className={`${chipStyle} min-h-11! bg-transparent! shadow-none! border border-dashed border-white/25`}
                       >
                         {nameById.get(id) ?? id}
                         {fair && (
                           <span
-                            className="ml-1.5 text-xs font-semibold tabular-nums"
+                            className="text-xs font-semibold tabular-nums"
                             style={{ color: fairnessText(fair.ratio) }}
                           >
                             {fair.minutes}&#39;

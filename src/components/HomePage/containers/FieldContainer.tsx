@@ -31,6 +31,15 @@ import { HiOutlineSquares2X2, HiOutlineListBullet } from 'react-icons/hi2';
 import { usePlannedGhosts } from '@/hooks/usePlannedGhosts';
 import { usePlannedChains } from '@/hooks/usePlannedChains';
 import { isExtraTimePeriod } from '@/utils/matchStructure';
+import {
+  matchFieldToolStyle,
+  matchFieldToolOnStyle,
+  primaryButtonStyle,
+  dialogContainerStyle,
+  dialogTitleStyle,
+  dialogBodyStyle,
+  iconButtonCancelStyle,
+} from '@/styles/modalStyles';
 
 
 /**
@@ -355,7 +364,11 @@ export function FieldContainer({
   const plannedSubsEarlier = inExtraTime ? 0 : plannedPrompts.overdueEarlier;
 
   return (
-    <div className="flex-grow relative bg-black overflow-hidden">
+    // The pitch's own box: from just under the top panel's lower edge to just
+    // above the floating control capsule (see GameContainer). The canvas
+    // fills it, so relative player coordinates map to this box exactly as
+    // they always have; the grass around it is GameContainer's backdrop.
+    <div className="absolute inset-x-0 top-[96px] bottom-[calc(72px+env(safe-area-inset-bottom,0px))] overflow-hidden">
       {/* First-visit orientation card (Onboarding v2 PR 21): overlays the top
           of the pitch once, never blocks it. */}
       <FirstVisitIntro
@@ -437,7 +450,7 @@ export function FieldContainer({
 
       <ErrorBoundary
         fallback={
-          <div className="flex items-center justify-center h-full bg-red-900/20 border border-red-700 text-red-300">
+          <div className="flex items-center justify-center h-full s1-canvas font-ui text-ink-2">
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2">{t('errors.soccerFieldCrashed', 'Soccer Field Crashed')}</h3>
               <p className="text-sm">{t('errors.pleaseRefreshPage', 'Please refresh the page to continue.')}</p>
@@ -485,22 +498,32 @@ export function FieldContainer({
         />
       </ErrorBoundary>
 
-      {/* Sync status indicator - top left */}
-      <div className="absolute top-4 left-4 z-20">
+      {/* While a player picked from the bar waits for a spot, the touchline
+          lights amber: the whole pitch is the target. Paint only. */}
+      {fcDraggingFromBar && (
+        <div
+          className="absolute inset-[3px] rounded-[5px] ring-2 ring-action pointer-events-none z-[15]"
+          data-testid="placement-outline"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sync status indicator - top left, just below the top panel */}
+      <div className="absolute top-[28px] left-[14px] z-20">
         <SyncStatusIndicator variant="field" />
       </div>
 
       {/* Field action buttons - always visible */}
-      <div className="absolute top-4 right-4 z-20 flex gap-2">
+      <div className="absolute top-[28px] right-[14px] z-20 flex gap-2">
         {/* Rules button */}
         {onOpenRulesModal && (
           <button
             onClick={onOpenRulesModal}
-            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
+            className={matchFieldToolStyle}
             title={t('rulesDirectory.buttonTitle', 'View rules')}
             aria-label={t('rulesDirectory.buttonTitle', 'View rules')}
           >
-            <HiOutlineBookOpen className="w-5 h-5" />
+            <HiOutlineBookOpen className="w-[22px] h-[22px]" />
           </button>
         )}
         {/* Export button */}
@@ -513,22 +536,22 @@ export function FieldContainer({
                 handleExportField();
               }
             }}
-            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
+            className={matchFieldToolStyle}
             title={t('export.buttonTitle', 'Export field as image')}
             aria-label={t('export.buttonTitle', 'Export field as image')}
           >
-            <HiOutlineCamera className="w-5 h-5" />
+            <HiOutlineCamera className="w-[22px] h-[22px]" />
           </button>
         )}
         {/* Position labels toggle */}
         <button
           onClick={() => onTogglePositionLabels(!(gameSessionState.showPositionLabels ?? true))}
-          className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
+          className={matchFieldToolStyle}
           title={t('field.togglePositionLabels', 'Toggle position labels')}
           aria-label={t('field.togglePositionLabels', 'Toggle position labels')}
           aria-pressed={gameSessionState.showPositionLabels ?? true}
         >
-          <HiOutlineMapPin className={`w-5 h-5 ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-slate-400'}`} />
+          <HiOutlineMapPin className={`w-[22px] h-[22px] ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-ink-3'}`} />
         </button>
         {/* Planned-sub markers. Hidden entirely when the game has none, rather
             than shown dead: a control that cannot change anything is noise on
@@ -537,15 +560,15 @@ export function FieldContainer({
           <button
             onClick={cyclePlanView}
             data-testid="toggle-planned-ghosts"
-            className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
+            className={planView === 'lineup' ? matchFieldToolStyle : matchFieldToolOnStyle}
             title={planViewLabel}
             aria-label={planViewLabel}
           >
             {showingChains ? (
-              <HiOutlineListBullet className="w-5 h-5 text-amber-400" />
+              <HiOutlineListBullet className="w-[22px] h-[22px]" />
             ) : (
               <HiOutlineUserPlus
-                className={`w-5 h-5 ${planView === 'ghosts' ? 'text-white' : 'text-slate-400'}`}
+                className={`w-[22px] h-[22px] ${planView === 'ghosts' ? '' : 'text-ink-3'}`}
               />
             )}
           </button>
@@ -554,11 +577,38 @@ export function FieldContainer({
 
       {/* Which step of the plan cycle is showing. A three-way control needs to
           name its state - the icon alone only tells the person who built it. */}
-      {(plannedGhosts.length > 0 || hasChainView) && planView !== 'lineup' && (
-        <div className="absolute top-16 right-4 z-20 pointer-events-none">
-          <span className="px-2 py-0.5 rounded-md bg-slate-900/75 text-xs font-medium text-slate-200 backdrop-blur-sm shadow">
+      {(plannedGhosts.length > 0 || hasChainView) && planView !== 'lineup' && !fcDraggingFromBar && (
+        <div className="absolute top-[80px] right-[14px] z-20 pointer-events-none">
+          <span className="inline-flex items-center px-3 py-[7px] rounded-full bg-[rgb(15_23_42/0.86)] font-ui text-[13px] font-semibold text-white shadow-[0_10px_18px_-10px_rgb(2_6_23/0.8)]">
             {planViewLabel}
           </span>
+        </div>
+      )}
+
+      {/* "Leo selected - tap the field": names the pending placement, and the
+          one way out of it without placing anyone. Select-and-place: the
+          coach taps the pitch to place, never drags. */}
+      {fcDraggingFromBar && (
+        <div
+          role="status"
+          data-testid="placement-hint"
+          className="absolute top-[80px] left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 h-11 pl-3.5 pr-1 rounded-full bg-[rgb(15_23_42/0.9)] font-ui text-sm font-semibold text-white whitespace-nowrap shadow-[inset_0_0_0_1px_rgb(255_178_36/0.55),0_10px_18px_-10px_rgb(2_6_23/0.8)]"
+        >
+          <span className="w-2 h-2 rounded-full bg-action shadow-[0_0_0_3px_rgb(255_178_36/0.22)] mr-1.5" aria-hidden="true" />
+          <span>
+            {t('fieldTools.selectedHint', '{{name}} selected · tap the field', {
+              name: fcDraggingFromBar.nickname || fcDraggingFromBar.name,
+            })}
+          </span>
+          <button
+            type="button"
+            onClick={touch.playerDragCancel}
+            className={`${iconButtonCancelStyle} w-9! h-9! min-h-9! min-w-9! ml-0.5`}
+            aria-label={t('fieldTools.cancelSelection', 'Cancel selection')}
+            title={t('fieldTools.cancelSelection', 'Cancel selection')}
+          >
+            <HiOutlineXMark className="w-5 h-5" />
+          </button>
         </div>
       )}
 
@@ -569,11 +619,11 @@ export function FieldContainer({
         fcPlayersOnField.length === 0 &&
         fcDrawings.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-            <div className="relative bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+            <div className={`relative ${dialogContainerStyle} pt-10 pointer-events-auto font-ui`}>
               {/* Dismiss button */}
               <button
                 onClick={() => setIsSetupOverlayDismissed(true)}
-                className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                className={`absolute top-2 right-2 ${iconButtonCancelStyle}`}
                 aria-label={t('common.dismiss', 'Dismiss')}
               >
                 <HiOutlineXMark className="w-5 h-5" />
@@ -581,15 +631,15 @@ export function FieldContainer({
 
               <div className="text-center">
                 <div className="mb-4">
-                  <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
+                  <div className="w-16 h-16 mx-auto s1-raised rounded-full flex items-center justify-center mb-3">
                     <div className="text-3xl">⚽</div>
                   </div>
-                  <h3 className="text-2xl font-bold text-indigo-300 mb-2">
+                  <h3 className={`${dialogTitleStyle} mb-2`}>
                     {availablePlayers.length === 0
                       ? t('firstGame.titleNoPlayers', 'Ready to get started?')
                       : t('firstGame.title', 'Ready to create your first match!')}
                   </h3>
-                  <p className="text-slate-300 text-sm leading-relaxed mb-6">
+                  <p className={`${dialogBodyStyle} mb-6`}>
                     {availablePlayers.length === 0
                       ? t(
                           'firstGame.descNoPlayersSimple',
@@ -606,14 +656,14 @@ export function FieldContainer({
                 {availablePlayers.length === 0 ? (
                   <button
                     onClick={() => onOpenRosterModal?.()}
-                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    className={`${primaryButtonStyle} w-full min-h-[52px]`}
                   >
                     {t('firstGame.setupRoster', 'Set Up Team Roster')}
                   </button>
                 ) : (
                   <button
                     onClick={() => onOpenNewGameSetup?.()}
-                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    className={`${primaryButtonStyle} w-full min-h-[52px]`}
                   >
                     {t('firstGame.createGame', 'Create Match')}
                   </button>

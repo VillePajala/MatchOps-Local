@@ -43,8 +43,8 @@ interface SyncStatusIndicatorProps {
 export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClick, size = 'normal', variant = 'standalone' }) => {
   const isSmall = size === 'small';
   const isField = variant === 'field';
-  // Field variant uses fixed icon size (w-5 h-5) to match other field buttons
-  const containerClass = isField ? 'p-2' : (isSmall ? 'w-6 h-6' : 'w-10 h-10');
+  // Field variant: a 44px round button matching the other field tools
+  const containerClass = isField ? 'w-11 h-11' : (isSmall ? 'w-6 h-6' : 'w-10 h-10');
   const iconClass = isField ? 'w-5 h-5' : (isSmall ? 'w-4 h-4' : 'w-6 h-6');
   const smallIconClass = isField ? 'w-5 h-5' : (isSmall ? 'w-3 h-3' : 'w-5 h-5');
   const badgeIconClass = isSmall ? 'w-2 h-2' : 'w-3 h-3';
@@ -60,8 +60,9 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
   const subscriptionLoading = !subscription || subscription.isLoading;
   const hasSubscription = subscription?.isActive ?? false;
 
-  // Field variant base styles (matches rules/screenshot buttons)
-  const fieldBaseClass = 'bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none';
+  // Field variant base styles: the frosted navy disc the field tools use
+  // (matchFieldToolStyle), so the sync status sits with them over the grass
+  const fieldBaseClass = 'rounded-full bg-[rgb(15_23_42/0.7)] hover:bg-[rgb(15_23_42/0.82)] backdrop-blur-[12px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_8px_14px_-8px_rgb(2_6_23/0.8)] focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
 
   // Local mode: just phone icon
   if (mode === 'local') {
@@ -77,7 +78,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
         title={t('syncStatus.localTitle', 'Data stored locally on device')}
         aria-label={t('syncStatus.localTitle', 'Data stored locally on device')}
       >
-        <HiOutlineDevicePhoneMobile className={`${iconClass} ${isField ? 'text-slate-300' : 'text-slate-400'}`} />
+        <HiOutlineDevicePhoneMobile className={`${iconClass} ${isField ? 'text-white' : 'text-slate-400'}`} />
       </button>
     );
   }

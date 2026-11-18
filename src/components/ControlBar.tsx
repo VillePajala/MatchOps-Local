@@ -30,19 +30,13 @@ import { useTranslation } from 'react-i18next';
 import { debug } from '@/utils/debug';
 import logger from '@/utils/logger';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
+import { matchGlassStyle, matchCapsuleButtonStyle, sectionLabelStyle, dialogTitleStyle } from '@/styles/modalStyles';
 
 // Design tokens for consistent sizing and spacing
 const DESIGN_TOKENS = {
-  // Button dimensions
-  BUTTON_SIZE: 'w-10 h-10',
-  BUTTON_HEIGHT: 'h-10',
-
   // Icon dimensions
-  ICON_SIZE: 'w-5 h-5',
-  ICON_SIZE_PX: 20,
-
-  // Timer display
-  TIMER_FONT_SIZE: 'text-2xl',
+  ICON_SIZE: 'w-[22px] h-[22px]',
+  ICON_SIZE_PX: 22,
 
   // Drag behavior (pixels)
   DRAG_MAX_DISTANCE: -320,
@@ -130,9 +124,13 @@ interface ControlBarProps {
   locationAddress?: string;
 }
 
+/** One row of the side menu: a 48px target, Inter, white on navy. */
+const MENU_ROW =
+  'w-full flex items-center gap-3 min-h-12 px-3 rounded-2xl font-ui text-[15px] font-medium text-ink hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+/** The leading icon of a side-menu row. */
+const MENU_ICON = 'w-5 h-5 shrink-0 text-ink-3';
 /** Shape of a row that leaves the app. Taso is currently the only one. */
-const EXTERNAL_LINK_ROW =
-  'w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors';
+const EXTERNAL_LINK_ROW = MENU_ROW;
 
 const ControlBar: React.FC<ControlBarProps> = React.memo(({
   timeElapsedInSeconds,
@@ -185,8 +183,9 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const dragStartX = useRef<number>(0);
 
-  // Button styles - square buttons, compact height, professional polish
-  const buttonStyle = `${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border border-slate-600/30`;
+  // Round buttons inside the floating capsule (48px; 44px in the busier
+  // field-tools row so all seven fit a phone's width).
+  const buttonStyle = `${matchCapsuleButtonStyle} w-11! h-11!`;
   const iconSize = DESIGN_TOKENS.ICON_SIZE;
 
   /** Exits the whole tactics workflow - the X button and a hardware back. */
@@ -392,11 +391,10 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
 
   return (
     <>
-      {/* Bottom Bar - Reduced padding from p-4 to p-2 */}
-      <div className="relative bg-gradient-to-b from-slate-800 to-slate-900 p-2 shadow-xl border-t border-white/10 backdrop-blur-md flex justify-center items-center gap-2 z-40 overflow-x-auto">
-        {/* Modal background effects for unified feel */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+      {/* The control bar: a floating navy capsule over the grass. The glass is
+          on THIS element, not on a wrapper, so the fixed side menu below is
+          not trapped inside a backdrop-filter containing block. */}
+      <div className={`relative z-40 flex justify-center items-center gap-2 h-16 max-w-full px-2 rounded-full overflow-x-auto font-ui ${matchGlassStyle}`}>
         {!isFieldToolsOpen ? (
           /* Collapsed State - Normal View. Since the bar-level Home button was
              removed (owner feedback: Home is the menu "Koti" entry + hardware
@@ -416,7 +414,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
                   onToggleDrawingMode(); // Safe - hook handles errors internally via callback
                 }
               }}
-              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+              className={matchCapsuleButtonStyle}
               title={t('controlBar.toggleTacticsBoardShow', 'Tactics Board')}
               aria-label={t('controlBar.toggleTacticsBoardShow', 'Tactics Board')}
             >
@@ -433,15 +431,18 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             <button
               onClick={onToggleLargeTimerOverlay}
               data-testid="tour-timer-button"
-              className={`${DESIGN_TOKENS.BUTTON_HEIGHT} w-28 bg-slate-700/80 hover:bg-slate-600/80 px-6 rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900`}
+              className="h-12 w-32 shrink-0 flex items-center justify-center gap-2 pr-1 rounded-full bg-white/[0.12] shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] hover:bg-white/[0.16] transition-colors active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon"
               title={t('controlBar.openTimer', 'Open Timer')}
               aria-label={t('controlBar.openTimer', 'Open Timer')}
             >
-              {/* SteadyDigits, not tabular-nums: Rajdhani has no tnum feature
-                  so that class is inert (see SteadyDigits). At text-2xl the
-                  digit spread is ~5px each, and this clock sits in a flex row -
-                  so every button beside it shifted once a second. */}
-              <SteadyDigits className={`${DESIGN_TOKENS.TIMER_FONT_SIZE} font-bold leading-none transition-colors ${isTimerRunning ? 'text-green-400' : 'text-slate-300'}`}>
+              {/* Running: an amber pulse of light; stopped: a quiet dot. */}
+              <span
+                className={`w-2 h-2 shrink-0 rounded-full ${isTimerRunning ? 'bg-action shadow-[0_0_0_3px_rgb(255_178_36/0.2),0_0_10px_rgb(255_178_36/0.7)]' : 'bg-ink-3'}`}
+                aria-hidden="true"
+              />
+              {/* SteadyDigits boxes each digit, so the clock - and every
+                  button beside it in this row - cannot shift once a second. */}
+              <SteadyDigits className="font-display italic font-extrabold text-[32px] leading-none tracking-[0.02em] text-ink">
                 {formatTime(timeElapsedInSeconds)}
               </SteadyDigits>
             </button>
@@ -449,7 +450,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             {/* Reset Field Button - Square shape (with confirmation) */}
             <button
               onClick={onResetField}
-              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+              className={matchCapsuleButtonStyle}
               title={t('controlBar.resetField', 'Reset Field')}
               aria-label={t('controlBar.resetField', 'Reset Field')}
             >
@@ -459,7 +460,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             {/* Menu Button - Square shape (rightmost of the centered group) */}
             <button
               onClick={handleSettingsButtonClick}
-              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+              className={matchCapsuleButtonStyle}
               title={t('controlBar.menu.title', 'Menu')}
               aria-label={t('controlBar.menu.title', 'Menu')}
             >
@@ -474,7 +475,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             {/* Close/Back Button - Exits entire tactics workflow */}
             <button
               onClick={closeFieldTools}
-              className={`${buttonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+              className={buttonStyle}
               title={t('common.back', 'Back')}
               aria-label={t('common.back', 'Back')}
             >
@@ -491,7 +492,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
                 return isTacticsBoardView ? onTacticalUndo() : onUndo();
               }}
               disabled={isTacticsBoardView ? !canTacticalUndo : !canUndo}
-              className={`${buttonStyle} ${(isTacticsBoardView ? canTacticalUndo : canUndo) ? 'bg-slate-700 hover:bg-slate-600 focus:ring-slate-500' : 'bg-slate-800 opacity-50 cursor-not-allowed'}`}
+              className={buttonStyle}
               title={t('controlBar.undo', 'Undo')}
             >
               <HiOutlineArrowUturnLeft className={iconSize} />
@@ -507,36 +508,37 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
                 return isTacticsBoardView ? onTacticalRedo() : onRedo();
               }}
               disabled={isTacticsBoardView ? !canTacticalRedo : !canRedo}
-              className={`${buttonStyle} ${(isTacticsBoardView ? canTacticalRedo : canRedo) ? 'bg-slate-700 hover:bg-slate-600 focus:ring-slate-500' : 'bg-slate-800 opacity-50 cursor-not-allowed'}`}
+              className={buttonStyle}
               title={t('controlBar.redo', 'Redo')}
             >
               <HiOutlineArrowUturnRight className={iconSize} />
             </button>
 
-            {/* Add Home Disc (only visible in tactics board mode) - Purple color */}
+            {/* Add Home Disc (only visible in tactics board mode). The icon is
+                the disc it adds: white, like the home discs on the board. */}
             {isTacticsBoardView && (
               <button
                 onClick={onAddHomeDisc}
-                className={`${buttonStyle} bg-purple-700/80 hover:bg-purple-600 focus:ring-purple-500 border-purple-500/30`}
+                className={buttonStyle}
                 title={t('controlBar.addHomeDisc', 'Add Home Disc')}
               >
-                <HiOutlinePlusCircle className={iconSize} />
+                <HiOutlinePlusCircle className={`${iconSize} text-white`} />
               </button>
             )}
 
-            {/* Add Opponent / Add Opponent Disc - Red color */}
+            {/* Add Opponent / Add Opponent Disc - the red of the opponent discs */}
             <button
               onClick={isTacticsBoardView ? onAddOpponentDisc : onAddOpponent}
-              className={`${buttonStyle} bg-red-700/80 hover:bg-red-600 focus:ring-red-500 border-red-500/30`}
+              className={buttonStyle}
               title={isTacticsBoardView ? t('controlBar.addOpponentDisc', 'Add Opponent Disc') : t('controlBar.addOpponent', 'Add Opponent')}
             >
-              <HiOutlinePlusCircle className={iconSize} />
+              <HiOutlinePlusCircle className={`${iconSize} text-loss`} />
             </button>
 
             {/* Clear Drawings */}
             <button
               onClick={onClearDrawings}
-              className={`${buttonStyle} bg-amber-700/40 hover:bg-amber-700/60 focus:ring-amber-600`}
+              className={buttonStyle}
               title={t('controlBar.clearDrawings', 'Clear Drawings')}
             >
               <HiOutlineBackspace className={iconSize} />
@@ -545,7 +547,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             {/* Reset Field */}
             <button
               onClick={onResetField}
-              className={`${buttonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+              className={buttonStyle}
               title={t('controlBar.resetField', 'Reset Field')}
             >
               <HiOutlineTrash className={iconSize} />
@@ -556,7 +558,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
 
       {/* Settings Menu Overlay */}
       {isSettingsMenuOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40" onClick={handleOverlayClick} aria-hidden="true" />
+        <div className="fixed inset-0 bg-[rgb(2_6_23/0.6)] z-40" onClick={handleOverlayClick} aria-hidden="true" />
       )}
 
       {/* Settings Side Panel */}
@@ -564,7 +566,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
         ref={settingsMenuRef}
         data-testid="settings-side-panel"
         aria-hidden={!isSettingsMenuOpen}
-        className={`fixed top-0 left-0 h-full ${DESIGN_TOKENS.MENU_WIDTH} z-50 flex flex-col bg-slate-800/98 backdrop-blur-sm shadow-xl border-r border-slate-600/50 overflow-hidden ${
+        className={`fixed top-0 left-0 h-full ${DESIGN_TOKENS.MENU_WIDTH} max-w-[86vw] z-50 flex flex-col s1-canvas font-ui rounded-r-[28px] shadow-[20px_0_40px_-12px_rgb(2_6_23/0.8),inset_-1px_0_0_rgb(255_255_255/0.07)] overflow-hidden ${
           isDragging ? '' : 'transition-transform duration-300 ease-in-out'
         } ${isSettingsMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={isDragging ? { transform: `translateX(${dragOffset}px)` } : {}}
@@ -573,15 +575,12 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
         onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
       >
-        {/* Modal background effects for unified feel */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         {/* Header */}
-        <div className="relative px-4 py-3 border-b border-white/10 flex justify-between items-center z-10">
-          <h3 className="text-lg font-semibold text-amber-300">{t('controlBar.menu.title', 'Menu')}</h3>
+        <div className="relative pl-5 pr-3 pt-6 pb-3 flex justify-between items-center z-10">
+          <h3 className={dialogTitleStyle}>{t('controlBar.menu.title', 'Menu')}</h3>
           <button
             onClick={() => { setIsSettingsMenuOpen(false); setDragOffset(0); }}
-            className="text-slate-400 hover:text-slate-200 p-1 rounded"
+            className="w-11 h-11 flex items-center justify-center rounded-full s1-raised text-ink-2 hover:text-ink transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             title={t('common.closeMenu', 'Close Menu')}
           >
             <HiOutlineChevronLeft className="w-5 h-5" />
@@ -589,7 +588,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
         </div>
 
         {/* Navigation content */}
-        <nav className="relative flex flex-col p-4 space-y-1 overflow-y-auto flex-1 z-10">
+        <nav className="relative flex flex-col px-3 pb-6 pt-2 space-y-0.5 overflow-y-auto flex-1 z-10">
           {/* 3.1 menu shrink: MATCH scope only. Every club/app entry
               (load/new game, roster, teams, personnel, seasons, planner,
               training, rules, backup, settings, sign out, external
@@ -599,39 +598,39 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               decision 2026-07-14). "Koti" is the one way back (also the
               bar-level Home button + hardware back). */}
           <div className="mb-4">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+            <h4 className={`${sectionLabelStyle} px-3 mb-1.5`}>
               {t('controlBar.menu.thisMatch', 'This match')}
             </h4>
-            <button onClick={wrapImmediate(onQuickSave)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineArchiveBoxArrowDown className="w-5 h-5 mr-2" /> {t('controlBar.saveGame', 'Quick Save')}
+            <button onClick={wrapImmediate(onQuickSave)} className={MENU_ROW}>
+              <HiOutlineArchiveBoxArrowDown className={MENU_ICON} /> {t('controlBar.saveGame', 'Quick Save')}
             </button>
             <button
               onClick={wrapModal(onOpenGameSettingsModal)}
-              className={`w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors ${
+              className={`${MENU_ROW} ${
                 !isGameLoaded ? 'opacity-50 cursor-not-allowed' : ''
               }`}
               disabled={!isGameLoaded}
             >
-              <HiOutlineAdjustmentsHorizontal className="w-5 h-5 mr-2" /> {t('controlBar.gameSettingsButton', 'Match details')}
+              <HiOutlineAdjustmentsHorizontal className={MENU_ICON} /> {t('controlBar.gameSettingsButton', 'Match details')}
             </button>
             {onOpenPlayerAssessmentModal && (
               <button
                 onClick={wrapModal(onOpenPlayerAssessmentModal)}
-                className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+                className={MENU_ROW}
                 title={t('instructionsModal.controlBar.assessPlayers')}
               >
-                <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Record Performance')}
+                <HiOutlineClipboard className={MENU_ICON} />{t('controlBar.assessPlayers', 'Record Performance')}
               </button>
             )}
-            <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineClipboardDocumentCheck className="w-5 h-5 mr-2" />
+            <button onClick={wrapModal(onToggleGameStatsModal)} className={MENU_ROW}>
+              <HiOutlineClipboardDocumentCheck className={MENU_ICON} />
               {t('controlBar.gameReport', 'Finish this game')}
               {finishProgress && (
                   // State, not a permanent badge: it appears because the match
                   // is unfinished and turns green when it is done, so the menu
                   // answers "is there anything left" without opening a screen.
                 <span
-                  className="ml-auto flex items-center gap-1.5 text-xs font-semibold tabular-nums text-slate-300"
+                  className="ml-auto flex items-center gap-1.5 text-[13px] font-semibold tabular-nums text-ink-2"
                   data-testid="menu-finish-progress"
                 >
                   <span
@@ -648,45 +647,45 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
                 Finish this game (same modal, same landing) - collapsed into one.
                 Aggregate stats live behind "Team stats ->". */}
             {onOpenTeamStats && (
-              <button onClick={wrapModal(onOpenTeamStats)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-                <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />
+              <button onClick={wrapModal(onOpenTeamStats)} className={MENU_ROW}>
+                <HiOutlineClipboardDocumentList className={MENU_ICON} />
                 {t('controlBar.teamStats', 'Team stats')}
-                <span className="ml-auto text-slate-500" aria-hidden="true">&rarr;</span>
+                <span className="ml-auto text-ink-3" aria-hidden="true">&rarr;</span>
               </button>
             )}
             {onOpenPlanner && (
-              <button onClick={wrapModal(onOpenPlanner)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-                <HiOutlineTableCells className="w-5 h-5 mr-2" />
+              <button onClick={wrapModal(onOpenPlanner)} className={MENU_ROW}>
+                <HiOutlineTableCells className={MENU_ICON} />
                 {t('controlBar.planner', 'Match planner')}
-                <span className="ml-auto text-slate-500" aria-hidden="true">&rarr;</span>
+                <span className="ml-auto text-ink-3" aria-hidden="true">&rarr;</span>
               </button>
             )}
             {onOpenThisGamePlan && (
               <button
                 onClick={wrapModal(onOpenThisGamePlan)}
                 data-testid="open-this-game-plan"
-                className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+                className={MENU_ROW}
               >
-                <HiOutlineTableCells className="w-5 h-5 mr-2" />
+                <HiOutlineTableCells className={MENU_ICON} />
                 {t('controlBar.thisGamePlan', "This game's plan")}
-                <span className="ml-auto text-slate-500" aria-hidden="true">&rarr;</span>
+                <span className="ml-auto text-ink-3" aria-hidden="true">&rarr;</span>
               </button>
             )}
           </div>
 
           {/* Taso: game-day workflow tool (lineups before, results after). */}
           <div className="mb-4">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+            <h4 className={`${sectionLabelStyle} px-3 mb-1.5`}>
               {t('controlBar.menu.resources', 'Resources')}
             </h4>
             {onOpenTraining && (
-              <button onClick={wrapModal(onOpenTraining)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-                <HiOutlineBookOpen className="w-5 h-5 mr-2" />{t('controlBar.training', 'Warmup Plan')}
+              <button onClick={wrapModal(onOpenTraining)} className={MENU_ROW}>
+                <HiOutlineBookOpen className={MENU_ICON} />{t('controlBar.training', 'Warmup Plan')}
               </button>
             )}
             {onOpenRules && (
-              <button onClick={wrapModal(onOpenRules)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-                <HiOutlineScale className="w-5 h-5 mr-2" />{t('controlBar.rulesDirectory', 'Rules')}
+              <button onClick={wrapModal(onOpenRules)} className={MENU_ROW}>
+                <HiOutlineScale className={MENU_ICON} />{t('controlBar.rulesDirectory', 'Rules')}
               </button>
             )}
             {/* Directions, when this match has a pinned venue. Sits with the
@@ -700,7 +699,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
                 className={EXTERNAL_LINK_ROW}
                 onClick={wrapImmediate(() => {})}
               >
-                <MdDirectionsCar className="w-5 h-5 mr-2" />
+                <MdDirectionsCar className={MENU_ICON} />
                 {t('controlBar.driveToVenue', 'Directions to the venue')}
               </a>
             ) : null}
@@ -711,7 +710,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               className={EXTERNAL_LINK_ROW}
               onClick={wrapImmediate(() => {})}
             >
-              <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />
+              <HiOutlineArrowTopRightOnSquare className={MENU_ICON} />
               {t('controlBar.tasoLink', 'Taso')}
             </a>
           </div>
@@ -721,14 +720,14 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               there, which is exactly what a coach needs mid-session when
               transcription says it is not connected. */}
           {(onOpenAppSettings || onGoToStartScreen) && (
-            <div className="pt-2 border-t border-white/10">
+            <div className="pt-2 border-t border-hairline">
               {onOpenAppSettings && (
                 <button
                   onClick={wrapModal(onOpenAppSettings)}
                   data-testid="menu-app-settings"
-                  className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+                  className={MENU_ROW}
                 >
-                  <HiOutlineCog6Tooth className="w-5 h-5 mr-2" />
+                  <HiOutlineCog6Tooth className={MENU_ICON} />
                   {t('controlBar.appSettings', 'Settings')}
                 </button>
               )}
@@ -737,9 +736,9 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               {onGoToStartScreen && (
                 <button
                   onClick={wrapImmediate(onGoToStartScreen)}
-                  className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+                  className={MENU_ROW}
                 >
-                  <HiOutlineHome className="w-5 h-5 mr-2" />
+                  <HiOutlineHome className={MENU_ICON} />
                   {t('controlBar.home', 'Home')}
                 </button>
               )}

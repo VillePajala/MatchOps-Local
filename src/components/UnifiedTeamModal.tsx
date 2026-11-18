@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useId } from 'react';
-import { CollapsibleModalHeader, ModalStickyPrimary, ModalSwitch, secondaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalStickyPrimary, ModalSwitch, secondaryButtonStyle, modalContainerStyle, cardStyle, sectionLabelStyle, labelStyle, inputBaseStyle, selectStyle, textareaStyle, inputErrorStyle, fieldErrorStyle, subtextStyle, segmentTrackStyle, segmentStyle, segmentSelectedStyle, badgeArchivedStyle } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import TeamKitColorPicker from '@/components/TeamKitColorPicker';
@@ -37,6 +37,9 @@ interface UnifiedTeamModalProps {
   teams: Team[]; // For duplicate validation
   masterRoster: Player[];
 }
+
+/** A list set into a card: a darker well, so it reads as inside the card. */
+const innerListStyle = 'rounded-2xl bg-carbon overflow-hidden shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]';
 
 const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   isOpen,
@@ -532,12 +535,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-        <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50 pointer-events-none" />
-        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50 pointer-events-none" />
+      <div className={`${modalContainerStyle} h-full w-full relative`}>
 
         {/* Chrome slimming: X-header (Cancel; in roster-edit sub-mode the X
             returns to the team form) + sticky primary. */}
@@ -554,10 +552,10 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
         {/* Content */}
         <div
-          className={`flex-1 min-h-0 p-6 ${isEditingRoster ? 'pb-4' : 'pb-2'} relative z-10 flex flex-col`}
+          className={`flex-1 min-h-0 px-4 pt-3 ${isEditingRoster ? 'pb-4' : 'pb-6'} relative z-10 flex flex-col ${isEditingRoster ? '' : 'overflow-y-auto'}`}
         >
-          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 flex-1 overflow-y-auto">
-              <div className={`space-y-4 ${isEditingRoster ? 'flex flex-col h-full' : ''}`}>
+          <div className={isEditingRoster ? 'flex-1 min-h-0 overflow-y-auto' : `${cardStyle} shrink-0`}>
+              <div className={`space-y-5 ${isEditingRoster ? 'flex flex-col h-full' : ''}`}>
                 {!isEditingRoster && (
                   <>
                     {/* First-visit note INSIDE the card (audit #1: outside it,
@@ -568,7 +566,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     />
                     {/* Name */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">
+                      <label className={labelStyle}>
                         {t('teamDetailsModal.nameLabel', 'Team Name')} *
                       </label>
                       <input
@@ -577,23 +575,23 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         onChange={(e) => setName(e.target.value)}
                         data-testid="tour-team-name"
                         placeholder={t('teamDetailsModal.namePlaceholder', 'Enter team name')}
-                        className={`w-full px-3 py-2 bg-slate-700 border ${duplicateError ? 'border-red-500' : 'border-slate-600'} rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500`}
+                        className={`${inputBaseStyle} ${duplicateError ? inputErrorStyle : ''}`}
                         required
                       />
                       {duplicateError && (
-                        <p className="mt-1 text-sm text-red-400">{duplicateError}</p>
+                        <p className={fieldErrorStyle}>{duplicateError}</p>
                       )}
                     </div>
 
                     {/* Age Group */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">
+                      <label className={labelStyle}>
                         {t('teamDetailsModal.ageGroupLabel', 'Age Group')}
                       </label>
                       <select
                         value={ageGroup}
                         onChange={(e) => setAgeGroup(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                        className={selectStyle}
                       >
                         <option value="">{t('teamDetailsModal.selectAgeGroup', '-- Select Age Group --')}</option>
                         {AGE_GROUPS.map((ag) => (
@@ -605,43 +603,34 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     </div>
 
                     {/* Team Context Section */}
-                    <div className="border-t border-white/10 pt-4 mt-2">
-                      <h4 className="text-sm font-medium text-slate-300 mb-2">
+                    <div className="border-t border-hairline pt-5">
+                      <h4 className={`${sectionLabelStyle} mb-3`}>
                         {t('teamDetailsModal.contextSection', 'Team Context')}
                       </h4>
 
                       {/* Tab buttons - same style as NewGameSetupModal */}
-                      <div className="flex gap-2 mb-3">
+                      <div className={`${segmentTrackStyle} mb-3`}>
                         <button
                           type="button"
                           onClick={() => handleTabChange('none')}
-                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            activeTab === 'none'
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                          }`}
+                          aria-pressed={activeTab === 'none'}
+                          className={activeTab === 'none' ? segmentSelectedStyle : segmentStyle}
                         >
                           {t('gameSettingsModal.eiMitaan', 'None')}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleTabChange('season')}
-                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            activeTab === 'season'
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                          }`}
+                          aria-pressed={activeTab === 'season'}
+                          className={activeTab === 'season' ? segmentSelectedStyle : segmentStyle}
                         >
                           {t('gameSettingsModal.kausi', 'League')}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleTabChange('tournament')}
-                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            activeTab === 'tournament'
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                          }`}
+                          aria-pressed={activeTab === 'tournament'}
+                          className={activeTab === 'tournament' ? segmentSelectedStyle : segmentStyle}
                         >
                           {t('gameSettingsModal.turnaus', 'Tournament')}
                         </button>
@@ -653,7 +642,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           <select
                             value={boundSeasonId}
                             onChange={(e) => handleSeasonChange(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                            className={selectStyle}
                           >
                             <option value="">{t('newGameSetupModal.selectSeason', '-- Select League --')}</option>
                             {sortedSeasons.map((s) => (
@@ -671,7 +660,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           <select
                             value={boundTournamentId}
                             onChange={(e) => handleTournamentChange(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                            className={selectStyle}
                           >
                             <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
                             {sortedTournaments.map((tourn) => (
@@ -686,14 +675,14 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                       {/* Tournament Series Selection - only show if tournament has series */}
                       {activeTab === 'tournament' && boundTournamentId && selectedTournament?.series && selectedTournament.series.length > 0 && (
                         <div className="mb-3">
-                          <label htmlFor="boundTournamentSeriesSelect" className="block text-xs font-medium text-slate-400 mb-1">
+                          <label htmlFor="boundTournamentSeriesSelect" className={labelStyle}>
                             {t('teamDetailsModal.seriesLabel', 'Level')}
                           </label>
                           <select
                             id="boundTournamentSeriesSelect"
                             value={boundTournamentSeriesId}
                             onChange={(e) => setBoundTournamentSeriesId(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                            className={selectStyle}
                           >
                             <option value="">{t('teamDetailsModal.selectSeries', '-- Select level --')}</option>
                             {selectedTournament.series.map((series) => (
@@ -707,17 +696,17 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
                       {/* Game Type - inherited from association or manual selection */}
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                        <label className={labelStyle}>
                           {t('teamDetailsModal.gameTypeLabel', 'Game Type')}
                           {hasAssociation && inheritedGameType && (
-                            <span className="ml-2 text-slate-500">
+                            <span className="ml-2 text-ink-3">
                               ({t('teamDetailsModal.inheritedFromAssociation', 'from association')})
                             </span>
                           )}
                         </label>
                         {hasAssociation && inheritedGameType ? (
                           // Show inherited value as read-only
-                          <div className="w-full px-3 py-2 text-sm bg-slate-600 border border-slate-500 rounded-md text-slate-300">
+                          <div className={`${inputBaseStyle} flex items-center text-ink-2 opacity-80`}>
                             {inheritedGameType === 'soccer' ? t('common.gameTypeSoccer', 'Soccer') : t('common.gameTypeFutsal', 'Futsal')}
                           </div>
                         ) : (
@@ -725,7 +714,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           <select
                             value={gameType}
                             onChange={(e) => setGameType(e.target.value as 'soccer' | 'futsal' | '')}
-                            className="w-full px-3 py-2 text-sm bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                            className={selectStyle}
                           >
                             <option value="">{t('teamDetailsModal.anyGameType', '-- Any --')}</option>
                             <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>
@@ -738,10 +727,10 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     {/* Notes */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="block text-sm font-medium text-slate-300">
+                        <label className="block font-ui text-[13px] font-medium text-ink-2">
                           {t('teamDetailsModal.notesLabel', 'Notes')}
                         </label>
-                        <span className="text-xs text-slate-400">
+                        <span className="font-ui text-xs text-ink-3">
                           {notes.length}/1000
                         </span>
                       </div>
@@ -749,7 +738,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder={t('teamDetailsModal.notesPlaceholder', 'Enter team notes or description')}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                        className={textareaStyle}
                         rows={3}
                         maxLength={1000}
                       />
@@ -772,22 +761,22 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     {/* Tournament & Season Placements Section */}
                     {teamId && (teamHistory.tournaments.length > 0 || teamHistory.seasons.length > 0) && (
                       <div className="mt-2">
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className={`${sectionLabelStyle} block mb-2.5`}>
                           {t('unifiedTeamModal.placementsTitle', 'Tournament & League Placements')} ({teamHistory.tournaments.length + teamHistory.seasons.length})
                         </label>
 
-                        <div className="space-y-3">
+                        <div className={`${innerListStyle}`}>
                           {/* Tournaments */}
                           {teamHistory.tournaments.map((tournament) => {
                             const placement = tournament.teamPlacements?.[teamId!]?.placement || '';
                             return (
                               <div
                                 key={tournament.id}
-                                className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
+                                className="px-[18px] py-4 font-ui border-t border-hairline first:border-t-0"
                               >
                                 <div className="flex items-center gap-2 mb-2">
                                   <span className="text-lg" aria-hidden="true">🏆</span>
-                                  <span className="text-slate-100 font-medium">
+                                  <span className="font-ui text-[15px] font-semibold text-ink">
                                     {getTournamentDisplayName(tournament)}
                                   </span>
                                 </div>
@@ -796,7 +785,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                   onChange={(e) => handlePlacementChange('tournament', tournament.id, e.target.value)}
                                   disabled={updatePlacementMutation.isPending}
                                   aria-label={t('unifiedTeamModal.tournamentPlacementFor', 'Tournament placement for {{name}}', { name: tournament.name })}
-                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className={selectStyle}
                                 >
                                   <option value="">{t('unifiedTeamModal.selectPlacement', 'Select placement...')}</option>
                                   <option value="1">{t('unifiedTeamModal.placement1st', '1st Place 🥇')}</option>
@@ -820,11 +809,11 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             return (
                               <div
                                 key={season.id}
-                                className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
+                                className="px-[18px] py-4 font-ui border-t border-hairline first:border-t-0"
                               >
                                 <div className="flex items-center gap-2 mb-2">
                                   <span className="text-lg" aria-hidden="true">📅</span>
-                                  <span className="text-slate-100 font-medium">
+                                  <span className="font-ui text-[15px] font-semibold text-ink">
                                     {getSeasonDisplayName(season)}
                                   </span>
                                 </div>
@@ -833,7 +822,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                   onChange={(e) => handlePlacementChange('season', season.id, e.target.value)}
                                   disabled={updatePlacementMutation.isPending}
                                   aria-label={t('unifiedTeamModal.seasonPlacementFor', 'Season placement for {{name}}', { name: season.name })}
-                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className={selectStyle}
                                 >
                                   <option value="">{t('unifiedTeamModal.selectPlacement', 'Select placement...')}</option>
                                   <option value="1">{t('unifiedTeamModal.placement1st', '1st Place 🥇')}</option>
@@ -862,23 +851,23 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     <>
                       {/* Roster Header */}
                       <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-medium text-slate-300">
+                        <label className={sectionLabelStyle}>
                           {t('unifiedTeamModal.roster', 'Roster')} ({selectedPlayerIds.length})
                         </label>
                         <button
                           type="button"
                           onClick={() => setIsEditingRoster(true)}
                           data-testid="tour-edit-roster"
-                          className={`${secondaryButtonStyle} px-3 py-1 text-xs`}
+                          className={`${secondaryButtonStyle} px-4`}
                         >
                           {t('unifiedTeamModal.editRoster', 'Edit Roster')} →
                         </button>
                       </div>
 
                       {/* Player List */}
-                      <div className="space-y-3">
+                      <div className={selectedPlayerIds.length === 0 ? '' : `${innerListStyle}`}>
                         {selectedPlayerIds.length === 0 ? (
-                          <div className="text-center py-4 text-slate-400 text-sm">
+                          <div className={`text-center py-4 ${subtextStyle}`}>
                             {t('unifiedTeamModal.noPlayersSelected', 'No players selected. Click "Edit Roster" to add players.')}
                           </div>
                         ) : (
@@ -886,14 +875,14 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             .map((player) => (
                               <div
                                 key={player.id}
-                                className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
+                                className="min-h-14 px-[18px] py-3 flex items-center font-ui border-t border-hairline first:border-t-0"
                               >
                                 <div className="flex items-center gap-3">
-                                  <span className="text-base text-slate-100">
+                                  <span className="font-ui text-base font-medium text-ink">
                                     {player.name}
-                                    {player.nickname ? <span className="text-slate-400"> ({player.nickname})</span> : ''}
+                                    {player.nickname ? <span className="text-ink-3"> ({player.nickname})</span> : ''}
                                     {player.archived && (
-                                      <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-slate-600/60 text-slate-300">
+                                      <span className={`${badgeArchivedStyle} ml-2`}>
                                         {t('rosterSettingsModal.archivedBadge', 'archived')}
                                       </span>
                                     )}
@@ -909,7 +898,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         type="button"
                         onClick={() => setIsEditingRoster(true)}
                         data-testid="team-add-players"
-                        className={`${secondaryButtonStyle} w-full mt-3 py-2 text-sm`}
+                        className={`${secondaryButtonStyle} w-full mt-3`}
                       >
                         + {t('unifiedTeamModal.addPlayers', 'Add players')}
                       </button>

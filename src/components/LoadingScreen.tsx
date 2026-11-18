@@ -12,13 +12,13 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-900" role="status" aria-live="polite">
+    <div className="s1-canvas flex flex-col items-center justify-center min-h-screen min-h-[100dvh] font-ui" role="status" aria-live="polite">
       <div className="flex flex-col items-center gap-6">
         {/* Spinner */}
-        <div className="w-16 h-16 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin" aria-hidden="true" />
+        <div className="w-16 h-16 border-4 border-white/10 border-t-action rounded-full animate-spin" aria-hidden="true" />
 
         {/* Loading text */}
-        <p className="text-slate-400 text-sm">{message}</p>
+        <p className="text-ink-3 text-sm">{message}</p>
       </div>
     </div>
   );

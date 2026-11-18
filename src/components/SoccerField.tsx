@@ -162,7 +162,7 @@ function drawPlannedGhosts(
     // The name. The sideline column sits at relX 0.96, so on a narrow phone a
     // centred name runs off the canvas - clamp it back inside rather than let
     // it be sliced.
-    ctx.font = `600 11px Rajdhani, sans-serif`;
+    ctx.font = `700 13px ${discFontFamily()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const half = ctx.measureText(ghost.name).width / 2;
@@ -197,6 +197,239 @@ function roundedRectPath(
   ctx.lineTo(x, y + rad);
   ctx.quadraticCurveTo(x, y, x, y + rad);
   ctx.closePath();
+}
+
+// ---------------------------------------------------------------------------
+// Disc and label styling (match view redesign, "full-screen pitch").
+//
+// Pure paint: these helpers draw at a centre and radius they are handed and
+// never touch hit-testing, snapping or coordinate maths. Both render paths
+// (the live field and the image export) call the same helpers, so the export
+// can never drift from the screen.
+// ---------------------------------------------------------------------------
+
+/** The navy of the app's chrome; names on light discs and label chips. */
+const DISC_NAVY = '#0f172a';
+/** Amber: selection only. */
+const DISC_ACTION = '#ffb224';
+/**
+ * The colour every disc used to default to. A player with no colour of their
+ * own - or this legacy default stored on them - gets the new default look; a
+ * colour the coach chose is still honoured.
+ */
+const LEGACY_DEFAULT_DISC_COLOR = '#7e22ce';
+
+export function hasCustomDiscColor(color?: string): boolean {
+  return !!color && color.trim().toLowerCase() !== LEGACY_DEFAULT_DISC_COLOR;
+}
+
+/**
+ * Canvas cannot read a CSS variable, and next/font gives its families hashed
+ * names, so the family is looked up from the variable on <body> once it is
+ * there. Until then the fallback is used and nothing is cached.
+ */
+const canvasFontCache = new Map<string, string>();
+function canvasFontFamily(cssVar: string, fallback: string): string {
+  const hit = canvasFontCache.get(cssVar);
+  if (hit) return hit;
+  let family = '';
+  if (typeof document !== 'undefined' && document.body && typeof getComputedStyle === 'function') {
+    try {
+      family = getComputedStyle(document.body).getPropertyValue(cssVar).trim();
+    } catch {
+      family = '';
+    }
+  }
+  if (!family) return fallback;
+  const resolved = `${family}, ${fallback}`;
+  canvasFontCache.set(cssVar, resolved);
+  return resolved;
+}
+/** Barlow Condensed: names on discs (the home screen's display face). */
+const discFontFamily = (): string =>
+  canvasFontFamily('--font-barlow-condensed', "'Barlow Condensed', 'Arial Narrow', sans-serif");
+/** Inter: position chips and small labels. */
+const chipFontFamily = (): string =>
+  canvasFontFamily('--font-inter', 'Inter, system-ui, sans-serif');
+
+/** Letter spacing where the canvas supports it (Chromium); a no-op elsewhere. */
+function setCanvasLetterSpacing(ctx: CanvasRenderingContext2D, value: string): void {
+  const spaced = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+  if (typeof spaced.letterSpacing === 'string') spaced.letterSpacing = value;
+}
+
+interface PlayerDiscStyle {
+  isGoalie?: boolean;
+  color?: string;
+  /** Waiting on the sideline: a touch quieter than the eleven. */
+  sideline?: boolean;
+}
+
+/**
+ * One player disc: white with a navy name by default, navy with a white ring
+ * for the keeper, or the coach's own colour with a white name. Returns the
+ * colour the name should be painted in.
+ */
+function paintPlayerDisc(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  scale: number,
+  { isGoalie, color, sideline }: PlayerDiscStyle,
+): string {
+  const custom = !isGoalie && hasCustomDiscColor(color);
+
+  // Lift off the grass: a soft shadow under the disc only.
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+  ctx.shadowBlur = 8 * scale;
+  ctx.shadowOffsetY = 3 * scale;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  if (isGoalie) {
+    const g = ctx.createLinearGradient(x, y - r, x, y + r);
+    g.addColorStop(0, '#2a3854');
+    g.addColorStop(1, DISC_NAVY);
+    ctx.fillStyle = g;
+  } else if (custom) {
+    let base = tinycolor(color);
+    if (sideline) base = base.desaturate(SIDELINE_DESATURATION_PERCENT);
+    ctx.fillStyle = base.toString();
+  } else {
+    const g = ctx.createLinearGradient(x, y - r, x, y + r);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(1, '#d5dae2');
+    ctx.fillStyle = g;
+    if (sideline) ctx.globalAlpha = 0.84;
+  }
+  ctx.fill();
+  ctx.restore();
+
+  ctx.beginPath();
+  if (isGoalie) {
+    // The keeper is the inverse of the field discs: navy inside a white ring.
+    ctx.arc(x, y, r - 1 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2 * scale;
+  } else if (custom) {
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.lineWidth = 1.5 * scale;
+  } else {
+    // A hairline edge so a white disc still has an outline on a light stripe.
+    ctx.arc(x, y, r - 0.5 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.18)';
+    ctx.lineWidth = 1 * scale;
+  }
+  ctx.stroke();
+
+  return isGoalie || custom ? '#ffffff' : DISC_NAVY;
+}
+
+/** The name on a disc, shrunk (down to 11px) rather than spilling far past it. */
+function paintDiscName(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  r: number,
+  scale: number,
+  fill: string,
+): void {
+  if (!text) return;
+  const family = discFontFamily();
+  let size = 15;
+  ctx.font = `700 ${size * scale}px ${family}`;
+  const maxWidth = r * 2 - 6 * scale;
+  while (size > 11 && ctx.measureText(text).width > maxWidth) {
+    size -= 1;
+    ctx.font = `700 ${size * scale}px ${family}`;
+  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = fill;
+  ctx.fillText(text, x, y + 0.5 * scale);
+}
+
+/**
+ * A position label as a small navy chip, readable on any grass stripe.
+ * `anchor` says which point (x, y) is: the chip's centre, or its right edge.
+ */
+function paintPositionChip(
+  ctx: CanvasRenderingContext2D,
+  label: string,
+  x: number,
+  y: number,
+  scale: number,
+  anchor: 'center' | 'right' = 'center',
+): void {
+  ctx.save();
+  ctx.font = `700 ${12 * scale}px ${chipFontFamily()}`;
+  setCanvasLetterSpacing(ctx, `${0.06 * 12 * scale}px`);
+  const w = Math.max(30 * scale, ctx.measureText(label).width + 14 * scale);
+  const h = 18 * scale;
+  const cx = anchor === 'right' ? x - w / 2 : x;
+  roundedRectPath(ctx, cx - w / 2, y - h / 2, w, h, h / 2);
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, cx, y + 0.5 * scale);
+  ctx.restore();
+}
+
+/**
+ * A tactics-board disc: home white (like the field discs), keeper navy in a
+ * white ring, opponent red.
+ */
+function paintTacticalDisc(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  scale: number,
+  type: TacticalDisc['type'],
+): void {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 5 * scale;
+  ctx.shadowOffsetX = 1 * scale;
+  ctx.shadowOffsetY = 2 * scale;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  if (type === 'home') {
+    const g = ctx.createLinearGradient(x, y - r, x, y + r);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(1, '#d5dae2');
+    ctx.fillStyle = g;
+  } else if (type === 'opponent') {
+    ctx.fillStyle = '#DC2626'; // Red
+  } else if (type === 'goalie') {
+    const g = ctx.createLinearGradient(x, y - r, x, y + r);
+    g.addColorStop(0, '#2a3854');
+    g.addColorStop(1, DISC_NAVY);
+    ctx.fillStyle = g;
+  }
+  ctx.fill();
+  ctx.restore();
+
+  ctx.beginPath();
+  if (type === 'home') {
+    ctx.arc(x, y, r - 0.5 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
+    ctx.lineWidth = 1 * scale;
+  } else if (type === 'goalie') {
+    ctx.arc(x, y, r - 1 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2 * scale;
+  } else {
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.lineWidth = 1.5 * scale;
+  }
+  ctx.stroke();
 }
 
 const CHAIN_ROW_H = 17;
@@ -257,7 +490,7 @@ function drawPlannedChains(
     // One gutter for every minute in this pill, wide enough for the longest,
     // so the names line up in a column instead of stepping in and out as the
     // minutes go from 5' to 30'.
-    ctx.font = `700 11px Rajdhani, sans-serif`;
+    ctx.font = `700 12px ${chipFontFamily()}`;
     let gutter = 0;
     chain.entries.forEach((e) => {
       gutter = Math.max(gutter, ctx.measureText(`${e.minute}'`).width);
@@ -265,15 +498,15 @@ function drawPlannedChains(
     gutter += 6;
 
     // Width is driven by the widest thing in the pill, so nothing is clipped.
-    ctx.font = `500 11px Rajdhani, sans-serif`;
+    ctx.font = `500 12px ${chipFontFamily()}`;
     let cellW = 0;
     chain.entries.forEach((e) => {
       cellW = Math.max(cellW, gutter + ctx.measureText(e.name).width);
     });
     cellW += 10;
-    ctx.font = `700 13px Rajdhani, sans-serif`;
+    ctx.font = `700 14px ${discFontFamily()}`;
     const nameW = ctx.measureText(chain.starterName ?? '-').width;
-    ctx.font = `700 11px Rajdhani, sans-serif`;
+    ctx.font = `700 12px ${chipFontFamily()}`;
     const tagW = ctx.measureText(chain.positionLabel).width;
     const headW = tagW + 6 + nameW;
     const pillW = Math.max(headW + CHAIN_PAD * 2, cols * cellW + CHAIN_PAD * 2);
@@ -309,10 +542,10 @@ function drawPlannedChains(
     // the coach knows the shape, they are looking for the person.
     const headY = y + CHAIN_PAD + CHAIN_ROW_H / 2;
     ctx.textAlign = 'left';
-    ctx.font = `700 11px Rajdhani, sans-serif`;
+    ctx.font = `700 12px ${chipFontFamily()}`;
     ctx.fillStyle = settled ? 'rgba(148, 163, 184, 0.65)' : 'rgba(148, 163, 184, 0.95)';
     ctx.fillText(chain.positionLabel, x + CHAIN_PAD, headY);
-    ctx.font = `700 13px Rajdhani, sans-serif`;
+    ctx.font = `700 14px ${discFontFamily()}`;
     ctx.fillStyle = chain.starterName
       ? settled
         ? 'rgba(255, 255, 255, 0.72)'
@@ -357,12 +590,12 @@ function drawPlannedChains(
 
       // The minute carries the colour: on the touchline you scan for WHEN.
       // Right-aligned in its gutter so 5' and 30' share an edge.
-      ctx.font = `700 11px Rajdhani, sans-serif`;
+      ctx.font = `700 12px ${chipFontFamily()}`;
       ctx.fillStyle = hue;
       ctx.textAlign = 'right';
       ctx.fillText(`${entry.minute}'`, ex + gutter - 6, ey);
       ctx.textAlign = 'left';
-      ctx.font = `500 11px Rajdhani, sans-serif`;
+      ctx.font = `500 12px ${chipFontFamily()}`;
       ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
       ctx.fillText(entry.name, ex + gutter, ey);
     });
@@ -427,11 +660,9 @@ export const SUB_SLOT_OCCUPATION_THRESHOLD = 0.04; // relative coordinate tolera
 // Visual styling constants for formation positions and sub slots
 const FIELD_POSITION_ALPHA_EMPTY = 0.35;
 const FIELD_POSITION_ALPHA_OCCUPIED = 0.15;
-const SUB_SLOT_ALPHA_EMPTY = 0.45;
 const SUB_SLOT_ALPHA_OCCUPIED = 0.25;
-// Note: Sideline players use desaturation only (no alpha) for visual distinction
+// Sideline players: a custom colour is desaturated, the default white disc softened.
 const SIDELINE_DESATURATION_PERCENT = 60;
-const POSITION_LABEL_FONT_SIZE = 14;
 
 /**
  * Check if a position is occupied by any player
@@ -824,85 +1055,27 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       drawPlannedChains(ctx, plannedChains, W, H);
     }
 
-    // Draw players with polished enamel effect (only in non-tactical view)
+    // Draw players (only in non-tactical view) - same paint as the live field.
     if (!isTacticsBoardView) {
       players.forEach(player => {
         if (typeof player.relX !== 'number' || typeof player.relY !== 'number') return;
         const absX = player.relX * W;
         const absY = player.relY * H;
 
-        // Check if sideline player for desaturation (no transparency - desaturation is enough)
+        // Sideline players read a touch quieter than the eleven.
         const isSidelinePlayer = isSidelinePosition(player.relX);
 
-        // Polished enamel disc effect (matches on-screen display)
-        let baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
+        const nameColor = paintPlayerDisc(ctx, absX, absY, playerRadius, scale, {
+          isGoalie: player.isGoalie,
+          color: player.color,
+          sideline: isSidelinePlayer,
+        });
 
-        // Desaturate sideline players for visual distinction
-        if (isSidelinePlayer) {
-          baseColor = baseColor.desaturate(SIDELINE_DESATURATION_PERCENT);
-        }
-
-        // 1. Base Disc Color
-        ctx.beginPath();
-        ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-        ctx.fillStyle = baseColor.toString();
-        ctx.fill();
-
-        // 2. Create clipping mask for gradient effects
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-        ctx.clip();
-
-        // 3. Top-left Highlight (Sheen)
-        const highlightGradient = ctx.createRadialGradient(
-          absX - playerRadius * 0.3, absY - playerRadius * 0.3, 0,
-          absX - playerRadius * 0.3, absY - playerRadius * 0.3, playerRadius * 1.2
-        );
-        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
-        highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.fillStyle = highlightGradient;
-        ctx.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
-
-        // 4. Bottom-right Inner Shadow for depth
-        const shadowGradient = ctx.createRadialGradient(
-          absX + playerRadius * 0.4, absY + playerRadius * 0.4, 0,
-          absX + playerRadius * 0.4, absY + playerRadius * 0.4, playerRadius * 1.5
-        );
-        shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
-        shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = shadowGradient;
-        ctx.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
-
-        // 5. Restore and add white border
-        ctx.restore();
-        ctx.beginPath();
-        ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.lineWidth = 1.5 * scale;
-        ctx.stroke();
-
-        // Player name with engraved effect (matches on-screen display)
         if (showPlayerNames) {
-          const text = player.nickname || player.name || '';
-          ctx.font = `600 ${12 * scale}px Rajdhani, sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-
-          // 1. Dark shadow on top-left for "pressed-in" look
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-          ctx.fillText(text, absX - 0.5 * scale, absY - 0.5 * scale);
-
-          // 2. Light highlight on bottom-right
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-          ctx.fillText(text, absX + 0.5 * scale, absY + 0.5 * scale);
-
-          // 3. Main text fill
-          ctx.fillStyle = '#F0F0F0';
-          ctx.fillText(text, absX, absY);
+          paintDiscName(ctx, player.nickname || player.name || '', absX, absY, playerRadius, scale, nameColor);
         }
 
-        // Position label below disc (matches on-screen display)
+        // Position label (matches on-screen display)
         const isGoalkeeper = player.relY >= 0.90;
         const isAtSnapPoint = formationSnapPoints?.some(point =>
           Math.abs(player.relX! - point.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
@@ -927,36 +1100,12 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
             : getPositionLabel(player.relX, player.relY).label;
           const translatedLabel = t(`positions.${labelKey}`);
 
-          ctx.font = `700 ${POSITION_LABEL_FONT_SIZE * scale}px Rajdhani, sans-serif`;
-
-          // Sideline players: label to the LEFT (matches sub slot rendering)
-          // On-field players: label BELOW the disc
+          // Sideline players: chip to the LEFT (matches sub slot rendering)
+          // On-field players: chip overlapping the bottom of the disc
           if (matchingSubSlot) {
-            const labelX = absX - playerRadius - 6 * scale;
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'middle';
-
-            // Black outline for visibility
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.lineWidth = 2 * scale;
-            ctx.strokeText(translatedLabel, labelX, absY);
-
-            // White fill
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.fillText(translatedLabel, labelX, absY);
+            paintPositionChip(ctx, translatedLabel, absX - playerRadius - 4 * scale, absY, scale, 'right');
           } else {
-            const labelY = absY + playerRadius + 10 * scale;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-
-            // Black outline for visibility
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-            ctx.lineWidth = 2.5 * scale;
-            ctx.strokeText(translatedLabel, absX, labelY);
-
-            // White fill
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.fillText(translatedLabel, absX, labelY);
+            paintPositionChip(ctx, translatedLabel, absX, absY + playerRadius + 2 * scale, scale);
           }
         }
 
@@ -1005,33 +1154,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         const absX = disc.relX * W;
         const absY = disc.relY * H;
 
-        // Draw shadow first
-        ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 5 * scale;
-        ctx.shadowOffsetX = 1 * scale;
-        ctx.shadowOffsetY = 2 * scale;
-
-        ctx.beginPath();
-        ctx.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
-
-        // Fill colors based on disc type (matches main draw)
-        if (disc.type === 'home') {
-          ctx.fillStyle = '#7E22CE'; // Purple
-        } else if (disc.type === 'opponent') {
-          ctx.fillStyle = '#DC2626'; // Red
-        } else if (disc.type === 'goalie') {
-          ctx.fillStyle = '#F97316'; // Orange
-        }
-        ctx.fill();
-        ctx.restore();
-
-        // Add white border
-        ctx.beginPath();
-        ctx.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.lineWidth = 1.5 * scale;
-        ctx.stroke();
+        paintTacticalDisc(ctx, absX, absY, tacticalDiscRadius, scale, disc.type);
       });
     }
 
@@ -1258,34 +1381,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           return;
         }
 
-        // Draw shadow first
-        context.save();
-        context.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        context.shadowBlur = 5;
-        context.shadowOffsetX = 1;
-        context.shadowOffsetY = 2;
-        
-        context.beginPath();
-        context.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
-
-        // Fill colors per specification
-        if (disc.type === 'home') {
-          context.fillStyle = '#7E22CE'; // Purple
-        } else if (disc.type === 'opponent') {
-          context.fillStyle = '#DC2626'; // Red
-        } else if (disc.type === 'goalie') {
-          context.fillStyle = '#F97316'; // Orange
-        }
-
-        context.fill();
-        context.restore();
-        
-        // Add border per specification
-        context.beginPath();
-        context.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
-        context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        context.lineWidth = 1.5;
-        context.stroke();
+        paintTacticalDisc(context, absX, absY, tacticalDiscRadius, 1, disc.type);
       });
     }
 
@@ -1360,33 +1456,33 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         // Check if slot is occupied by a player
         const isOccupied = isPositionOccupied(players, slot.relX, slot.relY);
 
-        context.globalAlpha = isOccupied ? SUB_SLOT_ALPHA_OCCUPIED : SUB_SLOT_ALPHA_EMPTY;
+        context.globalAlpha = isOccupied ? SUB_SLOT_ALPHA_OCCUPIED : 1.0;
 
-        // Dashed circle outline
+        // A faint navy well with a dashed edge: an open place in the plan.
         context.beginPath();
-        context.setLineDash([4, 4]);
         context.arc(absX, absY, slotRadius, 0, Math.PI * 2);
-        context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        if (!isOccupied) {
+          context.fillStyle = 'rgba(15, 23, 42, 0.16)';
+          context.fill();
+        }
+        context.setLineDash([4, 4]);
+        context.strokeStyle = 'rgba(255, 255, 255, 0.6)';
         context.lineWidth = 1.5;
         context.stroke();
         context.setLineDash([]);
 
-        // Position label to the left of slot (avoids overlap with stacked players)
-        if (showPositionLabels) {
+        // Position label INSIDE an empty slot (the slot says which place it is
+        // for). An occupied slot is labelled by its player's chip instead.
+        if (showPositionLabels && !isOccupied) {
           const translatedSlotLabel = t(`positions.${slot.positionLabel}`);
-          context.font = `700 ${POSITION_LABEL_FONT_SIZE}px Rajdhani, sans-serif`;
-          context.textAlign = 'right';
+          context.font = `700 12px ${chipFontFamily()}`;
+          context.textAlign = 'center';
           context.textBaseline = 'middle';
-          const labelX = absX - slotRadius - 6;
-
-          // Black outline for visibility
-          context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-          context.lineWidth = 2;
-          context.strokeText(translatedSlotLabel, labelX, absY);
-
-          // White fill
-          context.fillStyle = 'rgba(255, 255, 255, 0.8)';
-          context.fillText(translatedSlotLabel, labelX, absY);
+          // The column sits at the touchline; keep the label on the canvas.
+          const half = context.measureText(translatedSlotLabel).width / 2;
+          const labelX = Math.min(Math.max(absX, half + 3), W - half - 3);
+          context.fillStyle = 'rgba(255, 255, 255, 0.92)';
+          context.fillText(translatedSlotLabel, labelX, absY + 0.5);
         }
 
         context.globalAlpha = 1.0;
@@ -1418,98 +1514,32 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         return;
       }
 
-      // Check if sideline player for desaturation (no transparency - desaturation is enough)
+      // Sideline players read a touch quieter than the eleven.
       const isSidelinePlayer = isSidelinePosition(player.relX);
 
-      // --- Start Refined "Polished Enamel" Disc Redesign ---
-      let baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
+      const nameColor = paintPlayerDisc(context, absX, absY, playerRadius, 1, {
+        isGoalie: player.isGoalie,
+        color: player.color,
+        sideline: isSidelinePlayer,
+      });
 
-      // Desaturate sideline players for visual distinction
-      if (isSidelinePlayer) {
-        baseColor = baseColor.desaturate(SIDELINE_DESATURATION_PERCENT);
-      }
-
-      // 1. Base Disc Color
-      context.beginPath();
-      context.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-      context.fillStyle = baseColor.toString();
-      context.fill();
-
-      // 2. Create a clipping mask for the subsequent effects
-      context.save();
-      context.beginPath();
-      context.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-      context.clip();
-
-      // 3. Top-left Highlight (Sheen)
-      const highlightGradient = context.createRadialGradient(
-        absX - playerRadius * 0.3, absY - playerRadius * 0.3, 0,
-        absX - playerRadius * 0.3, absY - playerRadius * 0.3, playerRadius * 1.2
-      );
-      highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
-      highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      context.fillStyle = highlightGradient;
-      context.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
-
-      // 4. Bottom-right Inner Shadow for depth
-      const shadowGradient = context.createRadialGradient(
-        absX + playerRadius * 0.4, absY + playerRadius * 0.4, 0,
-        absX + playerRadius * 0.4, absY + playerRadius * 0.4, playerRadius * 1.5
-      );
-      shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
-      shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      context.fillStyle = shadowGradient;
-      context.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
-
-      // 5. Restore from clipping mask and add border
-      context.restore();
-      context.beginPath();
-      context.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-      context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-      context.lineWidth = 1.5;
-      context.stroke();
-
-      // Draw selection ring for swap mode
+      // Selection ring for swap mode: amber means "selected".
       if (selectedPlayerForSwapId === player.id) {
         context.save();
         context.beginPath();
         context.arc(absX, absY, playerRadius + 4, 0, Math.PI * 2);
-        context.shadowColor = 'rgba(250, 204, 21, 0.6)';
+        context.shadowColor = 'rgba(255, 178, 36, 0.6)';
         context.shadowBlur = 8;
-        context.strokeStyle = 'rgba(250, 204, 21, 0.95)';
+        context.strokeStyle = DISC_ACTION;
         context.lineWidth = 3;
         context.stroke();
         context.restore();
       }
 
-      // --- End Disc Redesign ---
-
-      // Draw player name with clean "engraved" effect
       if (showPlayerNames) {
-        // Reset alpha so names are fully visible
-        if (isSidelinePlayer) {
-          context.globalAlpha = 1.0;
-        }
-        context.font = '600 12px Rajdhani, sans-serif';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
+        paintDiscName(context, player.nickname || player.name, absX, absY, playerRadius, 1, nameColor);
 
-        const text = player.nickname || player.name;
-
-        // 1. Dark shadow on top-left for the "pressed-in" look
-        context.fillStyle = 'rgba(0, 0, 0, 0.25)';
-        context.fillText(text, absX - 0.5, absY - 0.5);
-
-        // 2. Light highlight on bottom-right
-        context.fillStyle = 'rgba(255, 255, 255, 0.25)';
-        context.fillText(text, absX + 0.5, absY + 0.5);
-
-        // 3. Main text fill
-        context.fillStyle = '#F0F0F0';
-        context.fillText(text, absX, absY);
-
-        // 4. Position label below disc (only for on-field players at formation snap points, skip GK)
-        // Note: player.relX/relY are verified as numbers at the start of forEach (line 936-938)
+        // Position chip (only for on-field players at formation snap points, skip GK)
         const isGoalkeeper = player.relY >= 0.90;
         const isAtSnapPoint = formationSnapPoints?.some(point =>
           Math.abs(player.relX! - point.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
@@ -1519,20 +1549,16 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         if (showPositionLabels && !isSidelinePlayer && isAtSnapPoint && !isGoalkeeper) {
           const positionInfo = getPositionLabel(player.relX!, player.relY!);
           const translatedLabel = t(`positions.${positionInfo.label}`);
-          const labelY = absY + playerRadius + 10;
+          paintPositionChip(context, translatedLabel, absX, absY + playerRadius + 2, 1);
+        }
 
-          context.font = `700 ${POSITION_LABEL_FONT_SIZE}px Rajdhani, sans-serif`;
-          context.textAlign = 'center';
-          context.textBaseline = 'top';
-
-          // Black outline for visibility
-          context.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-          context.lineWidth = 2.5;
-          context.strokeText(translatedLabel, absX, labelY);
-
-          // White fill
-          context.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          context.fillText(translatedLabel, absX, labelY);
+        // A sideline player waiting at a sub slot carries that slot's place.
+        const matchingSubSlot = isSidelinePlayer && showPositionLabels && subSlots?.find(slot =>
+          Math.abs(player.relX! - slot.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
+          Math.abs(player.relY! - slot.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
+        );
+        if (matchingSubSlot) {
+          paintPositionChip(context, t(`positions.${matchingSubSlot.positionLabel}`), absX - playerRadius - 4, absY, 1, 'right');
         }
       }
 
@@ -1585,6 +1611,23 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   useEffect(() => {
     drawRef.current = draw;
   }, [draw]);
+
+  // Names and chips use the app's web fonts; a canvas paints with whatever is
+  // loaded at draw time, so repaint once the fonts have arrived.
+  useEffect(() => {
+    const fonts = typeof document !== 'undefined' ? document.fonts : undefined;
+    if (!fonts) return;
+    let cancelled = false;
+    const repaint = () => {
+      if (!cancelled) drawRef.current();
+    };
+    fonts.ready?.then(repaint).catch(() => {});
+    fonts.addEventListener?.('loadingdone', repaint);
+    return () => {
+      cancelled = true;
+      fonts.removeEventListener?.('loadingdone', repaint);
+    };
+  }, []);
 
   // A hide/show while this component was UNMOUNTED (start screen, modals)
   // never reaches the listeners below - the module cache can then hold

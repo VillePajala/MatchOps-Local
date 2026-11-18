@@ -29,15 +29,15 @@ const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 let globalToastCounter = 0;
 
 const toastIcon: Record<Toast['type'], React.ReactNode> = {
-  error: <HiOutlineExclamationCircle className="h-5 w-5 text-red-400 flex-shrink-0" />,
-  success: <HiOutlineCheckCircle className="h-5 w-5 text-emerald-400 flex-shrink-0" />,
-  info: <HiOutlineInformationCircle className="h-5 w-5 text-slate-300 flex-shrink-0" />,
+  error: <HiOutlineExclamationCircle className="h-5 w-5 text-loss flex-shrink-0" />,
+  success: <HiOutlineCheckCircle className="h-5 w-5 text-win flex-shrink-0" />,
+  info: <HiOutlineInformationCircle className="h-5 w-5 text-ink-2 flex-shrink-0" />,
 };
 
 const toastStyle: Record<Toast['type'], string> = {
-  error: 'bg-red-950/95 border border-red-700/50',
-  success: 'bg-emerald-950/95 border border-emerald-700/50',
-  info: 'bg-slate-800/95 border border-slate-600/50',
+  error: 'bg-surface-2 shadow-[inset_0_0_0_1px_rgb(255_107_107/0.45),0_16px_32px_-8px_rgb(2_6_23/0.9)]',
+  success: 'bg-surface-2 shadow-[inset_0_0_0_1px_rgb(63_224_140/0.4),0_16px_32px_-8px_rgb(2_6_23/0.9)]',
+  info: 'bg-surface-2 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)]',
 };
 
 export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
@@ -120,22 +120,22 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
           return (
             <div
               key={toast.id}
-              className={`text-white pl-3 pr-3 py-3 rounded-lg shadow-lg backdrop-blur-sm animate-fade-in-out flex items-center gap-3 ${interactive ? 'pointer-events-auto' : ''} ${toastStyle[toast.type]}`}
+              className={`font-ui text-ink pl-4 pr-2 py-2 min-h-12 rounded-2xl animate-fade-in-out flex items-center gap-3 ${interactive ? 'pointer-events-auto' : ''} ${toastStyle[toast.type]}`}
               role={toast.type === 'error' ? 'alert' : 'status'}
               style={{ animationDuration: `${toast.durationMs}ms` }}
             >
               {toastIcon[toast.type]}
-              <span className="text-sm flex-1">{toast.message}</span>
+              <span className="text-[15px] leading-snug flex-1">{toast.message}</span>
               {toast.action && (
                 <button
                   onClick={() => { toast.action!.onClick(); removeToast(toast.id); }}
-                  className="text-sm font-semibold text-sky-300 hover:text-sky-200 px-2 py-1 rounded hover:bg-white/10 transition-colors flex-shrink-0 whitespace-nowrap"
+                  className="inline-flex min-h-11 items-center text-[15px] font-semibold text-action hover:brightness-110 px-3 rounded-full hover:bg-white/[0.06] transition-colors flex-shrink-0 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 >
                   {toast.action.label}
                 </button>
               )}
               {interactive && (
-                <button onClick={() => removeToast(toast.id)} className="p-1 rounded hover:bg-white/20 transition-colors flex-shrink-0" aria-label={t('common.dismiss', 'Dismiss')}>
+                <button onClick={() => removeToast(toast.id)} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-3 hover:text-ink hover:bg-white/[0.06] transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-action" aria-label={t('common.dismiss', 'Dismiss')}>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                 </button>
               )}

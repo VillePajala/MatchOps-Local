@@ -254,7 +254,7 @@ describe('ReverseMigrationWizard', () => {
 
       // Check that the keep cloud option has the selected styling
       const keepOption = screen.getByText('Keep cloud copy').closest('button');
-      expect(keepOption).toHaveClass('border-sky-500');
+      expect(keepOption?.className).toContain('var(--color-action)');
     });
 
     it('should allow selecting delete-cloud option', async () => {
@@ -265,7 +265,7 @@ describe('ReverseMigrationWizard', () => {
       });
 
       const deleteOption = screen.getByText('Delete cloud data').closest('button');
-      expect(deleteOption).toHaveClass('border-red-500');
+      expect(deleteOption?.className).toContain('var(--color-action)');
     });
 
     it('should go back to preview step when back clicked', async () => {

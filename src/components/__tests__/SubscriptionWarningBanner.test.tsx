@@ -122,7 +122,7 @@ describe('SubscriptionWarningBanner', () => {
       render(<SubscriptionWarningBanner />);
 
       const alert = screen.getByRole('alert');
-      expect(alert.className).toContain('bg-amber-900');
+      expect(alert.querySelector('svg')).toHaveClass('text-action');
     });
 
     it('shows "Renew via Android app" on non-Android', () => {
@@ -171,7 +171,7 @@ describe('SubscriptionWarningBanner', () => {
       render(<SubscriptionWarningBanner />);
 
       const alert = screen.getByRole('alert');
-      expect(alert.className).toContain('bg-red-900');
+      expect(alert.querySelector('svg')).toHaveClass('text-loss');
     });
 
     it('shows renew button on Android with red styling', () => {
@@ -181,7 +181,7 @@ describe('SubscriptionWarningBanner', () => {
       render(<SubscriptionWarningBanner onRenew={onRenew} />);
 
       const button = screen.getByText('Renew Now');
-      expect(button.className).toContain('bg-red-600');
+      expect(button.className).toContain('s1-primary');
     });
   });
 

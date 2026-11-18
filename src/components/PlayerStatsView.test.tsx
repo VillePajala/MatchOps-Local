@@ -272,7 +272,7 @@ describe('External game cards styling', () => {
     expect(screen.getByText('ADDED')).toBeInTheDocument();
   });
 
-  it('should show colored dot indicators for badges (purple=EXT, blue=season, amber=tournament)', async () => {
+  it('should show colored dot indicators for badges (EXT, season, tournament)', async () => {
     render(
       <PlayerStatsView
         {...baseProps}
@@ -294,9 +294,9 @@ describe('External game cards styling', () => {
       expect(screen.getByText('ADDED')).toBeInTheDocument();
     });
 
-    // Find EXT badge and verify it has purple styling
+    // Find EXT badge and verify it has the chip styling
     const extBadge = screen.getByText('ADDED').closest('span');
-    expect(extBadge).toHaveClass('bg-purple-600/40');
+    expect(extBadge).toHaveClass('bg-white/[0.06]');
 
     // Find purple dot inside EXT badge
     const purpleDot = extBadge?.querySelector('.bg-purple-400');
@@ -304,13 +304,13 @@ describe('External game cards styling', () => {
 
     // Find season badge with blue dot
     const seasonBadge = screen.getByText('Spring 2024 (2024)').closest('span');
-    expect(seasonBadge).toHaveClass('bg-slate-700/60');
+    expect(seasonBadge).toHaveClass('bg-white/[0.06]');
     const blueDot = seasonBadge?.querySelector('.bg-blue-400');
     expect(blueDot).toBeInTheDocument();
 
     // Find tournament badge with amber dot
     const tournamentBadge = screen.getByText('Cup Tournament (2024)').closest('span');
-    expect(tournamentBadge).toHaveClass('bg-slate-700/60');
+    expect(tournamentBadge).toHaveClass('bg-white/[0.06]');
     const amberDot = tournamentBadge?.querySelector('.bg-amber-400');
     expect(amberDot).toBeInTheDocument();
   });

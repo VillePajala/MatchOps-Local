@@ -40,7 +40,7 @@ describe('FieldToolsPanel', () => {
   describe('Rendering', () => {
     it('renders nothing when isOpen is false', () => {
       const { container } = render(<FieldToolsPanel {...defaultProps} isOpen={false} />);
-      expect(container.querySelector('.fixed.bottom-20')).not.toBeInTheDocument();
+      expect(container.querySelector('.fixed.bottom-24')).not.toBeInTheDocument();
     });
 
     it('renders panel with header when open', () => {
@@ -50,7 +50,7 @@ describe('FieldToolsPanel', () => {
 
     it('renders backdrop when open', () => {
       const { container } = render(<FieldToolsPanel {...defaultProps} />);
-      const backdrop = container.querySelector('.fixed.inset-0.bg-black\\/30');
+      const backdrop = container.querySelector('[data-testid="field-tools-backdrop"]');
       expect(backdrop).toBeInTheDocument();
     });
 
@@ -76,7 +76,7 @@ describe('FieldToolsPanel', () => {
       const onClose = jest.fn();
       const { container } = render(<FieldToolsPanel {...defaultProps} onClose={onClose} />);
 
-      const backdrop = container.querySelector('.fixed.inset-0.bg-black\\/30');
+      const backdrop = container.querySelector('[data-testid="field-tools-backdrop"]');
       fireEvent.click(backdrop!);
 
       expect(onClose).toHaveBeenCalledTimes(1);
@@ -103,7 +103,7 @@ describe('FieldToolsPanel', () => {
 
       jest.advanceTimersByTime(150);
 
-      const panel = screen.getByText('Field Tools').closest('.fixed.bottom-20');
+      const panel = screen.getByText('Field Tools').closest('.fixed.bottom-24');
       fireEvent.mouseDown(panel!);
 
       expect(onClose).not.toHaveBeenCalled();
@@ -181,13 +181,16 @@ describe('FieldToolsPanel', () => {
     it('applies active styling when isTacticsBoardView is true', () => {
       render(<FieldToolsPanel {...defaultProps} isTacticsBoardView={true} />);
       const tacticsButton = screen.getByText('Tactics').closest('button');
-      expect(tacticsButton?.className).toContain('bg-indigo-600');
+      // Active = the raised segment with the amber selection ring
+      expect(tacticsButton?.className).toContain('s1-seg-on');
+      expect(tacticsButton?.className).toContain('--color-action');
     });
 
     it('applies inactive styling when isTacticsBoardView is false', () => {
       render(<FieldToolsPanel {...defaultProps} isTacticsBoardView={false} />);
       const tacticsButton = screen.getByText('Tactics').closest('button');
-      expect(tacticsButton?.className).toContain('bg-slate-700');
+      expect(tacticsButton?.className).toContain('s1-raised');
+      expect(tacticsButton?.className).not.toContain('s1-seg-on');
     });
   });
 
