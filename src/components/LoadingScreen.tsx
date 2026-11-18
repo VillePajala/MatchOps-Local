@@ -23,7 +23,8 @@ import Image from 'next/image';
 export const LOADING_SCREEN_EXIT_MS = 300;
 
 /** The badge image box. Its visible badge is ~85% of it (~156px), matching the
- *  badge size on the Android splash (maskable icon: 64% of 240dp ≈ 154dp). */
+ *  badge size on the Android splash (maskable icon: 72% of 240dp, shown through
+ *  the splash's 160dp circle, so ~160dp visible with only the cream rim trimmed). */
 const LOGO_PX = 184;
 
 interface LoadingScreenProps {

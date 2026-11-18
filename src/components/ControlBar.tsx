@@ -29,7 +29,7 @@ import { useTranslation } from 'react-i18next';
 import { debug } from '@/utils/debug';
 import logger from '@/utils/logger';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
-import { matchGlassStyle, matchCapsuleButtonStyle, sectionLabelStyle, dialogTitleStyle } from '@/styles/modalStyles';
+import { matchCapsuleStyle, matchCapsuleButtonStyle, sectionLabelStyle, dialogTitleStyle } from '@/styles/modalStyles';
 
 // Design tokens for consistent sizing and spacing
 const DESIGN_TOKENS = {
@@ -412,9 +412,9 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
 
   return (
     <>
-      {/* The control bar: a floating navy capsule over the grass. The glass is
-          on THIS element, not on a wrapper, so the fixed side menu below is
-          not trapped inside a backdrop-filter containing block. */}
+      {/* The control bar: a navy capsule in its own strip below the pitch.
+          Its look is on THIS element, not on a wrapper, so the fixed side menu
+          below is never trapped inside a containing block. */}
       {/* Sized to fit a 360px phone without scrolling: 44px buttons, a 120px
           clock pill (narrowing to 104px at 320, where the four buttons and
           gaps leave exactly that) and a gap that narrows with the screen
@@ -422,7 +422,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
           overflow-x-auto stays only as a last resort for the seven-button
           field-tools row on the very narrowest screens. */}
       <div
-        className={`relative z-40 flex justify-center items-center gap-[min(6px,1.25vw)] h-14 max-w-full px-1 rounded-full overflow-x-auto font-ui ${matchGlassStyle} ${isFormationSheetOpen ? 'invisible pointer-events-none' : ''}`}
+        className={`relative z-40 flex justify-center items-center gap-[min(6px,1.25vw)] h-14 max-w-full px-1 rounded-full overflow-x-auto font-ui ${matchCapsuleStyle} ${isFormationSheetOpen ? 'invisible pointer-events-none' : ''}`}
         data-testid="control-capsule"
         aria-hidden={isFormationSheetOpen || undefined}
       >

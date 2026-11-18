@@ -18,7 +18,7 @@ import {
   titleStyle,
   subtextStyle,
   sectionLabelStyle,
-  pillAmberStyle,
+  neutralBadgeStyle,
   modalCloseButtonStyle,
   useModalCloseVisible,
 } from '@/styles/modalStyles';
@@ -79,7 +79,7 @@ const MenuContent: React.FC<{
   const sizeHeaderClass = isMobile
     ? `${sectionLabelStyle} normal-case px-1 py-1 flex items-center gap-2 mb-2`
     : `${sectionLabelStyle} normal-case px-1 py-0.5 flex items-center gap-2 mb-1.5`;
-  const badgeClass = `${pillAmberStyle} normal-case tracking-normal`;
+  const badgeClass = neutralBadgeStyle;
   const gridClass = isMobile ? "grid grid-cols-2 gap-2" : "grid grid-cols-2 gap-1.5";
   const presetButtonClass = isMobile
     ? "min-h-14 px-4 text-left font-ui text-base rounded-2xl transition-colors s1-raised text-ink hover:bg-white/[0.07] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"

@@ -30,6 +30,7 @@ import {
   groupedListStyle,
   searchInputStyle,
   selectStyle,
+  neutralBadgeStyle,
   switchInputStyle,
   popoverMenuStyle,
   popoverItemStyle,
@@ -431,6 +432,14 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               game.gameType === 'futsal' ? t('common.gameTypeFutsal', 'Futsal') : null,
               game.gender ? (game.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')) : null,
             ].filter(Boolean).join(' · ');
+            const dateLine = [
+              game.gameDate ? formatAppDate(game.gameDate, i18n.language) : null,
+              // Kick-off time only for a fixture still to play: on a result it
+              // pushed the competition out of the one line on a phone.
+              isUnplayed && game.gameDate && game.gameTime ? game.gameTime : null,
+              game.wentToOvertime ? t('gameResult.overtime', 'OT') : null,
+              game.wentToPenalties ? t('gameResult.penalties', 'PKs') : null,
+            ].filter(Boolean).join(' · ');
 
             const displayHomeScore = game.homeScore ?? 0;
             const displayAwayScore = game.awayScore ?? 0;
@@ -492,24 +501,19 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                     <em className="not-italic font-normal text-sm text-ink-3">vs</em>
                     <span>{displayAwayTeamName}</span>
                   </div>
-                  <div className="mt-[3px] text-[13px] text-ink-3">
-                    {[
-                      game.gameDate ? formatAppDate(game.gameDate, i18n.language) : null,
-                      game.gameDate && game.gameTime ? game.gameTime : null,
-                    ].filter(Boolean).join(' · ')}
-                  </div>
-                  {/* Competition: one small grey line (green/red mean results only) */}
-                  {competitionLine && (
-                    <div className="mt-0.5 text-[13px] leading-snug text-ink-3" data-testid={`game-competition-${gameId}`}>
-                      {competitionLine}
-                    </div>
-                  )}
-                  {(game.wentToOvertime || game.wentToPenalties) && (
-                    <div className="text-xs text-ink-3 font-medium">
-                      {[
-                        game.wentToOvertime && t('gameResult.overtime', 'OT'),
-                        game.wentToPenalties && t('gameResult.penalties', 'PKs'),
-                      ].filter(Boolean).join(', ')}
+                  {/* ONE grey details line - date, time, OT/PKs, then the
+                      competition - cut with an ellipsis; the full text is the
+                      tooltip. Green/red mean results only. */}
+                  {(dateLine || competitionLine) && (
+                    <div
+                      className="mt-[3px] truncate text-[13px] leading-snug text-ink-3"
+                      title={[dateLine, competitionLine].filter(Boolean).join(' · ')}
+                    >
+                      {dateLine}
+                      {dateLine && competitionLine ? ' · ' : null}
+                      {competitionLine && (
+                        <span data-testid={`game-competition-${gameId}`}>{competitionLine}</span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -587,14 +591,14 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                 </div>
 
                 {/* The one chip: a played game whose record is still unfinished.
-                    Amber outline - it is the actionable case. */}
+                    A quiet grey pill - amber is kept for the primary action. */}
                 <div className="col-start-2 col-end-[-1] mt-2 flex flex-wrap gap-1.5 pr-1.5 empty:hidden">
                   {showReadinessDot && (
                     isRecordComplete ? (
                       <span className="sr-only">{t('loadGameModal.readyTitle', 'Record complete')}</span>
                     ) : (
                       <span
-                        className="inline-flex items-center rounded-full px-[9px] py-1 text-xs font-medium text-action shadow-[inset_0_0_0_1px_var(--color-action)]"
+                        className={neutralBadgeStyle}
                         title={t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
                       >
                         {t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
@@ -628,7 +632,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
             <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Search games')} aria-label={t('loadGameModal.filterPlaceholder', 'Search games')} value={searchText} onChange={handleSearchChange} autoComplete="off" className={searchInputStyle} />
           </div>
-          <div className="mt-2.5 grid grid-cols-1 gap-2.5">
+          {/* Sort and opponent side by side (one column when there is no
+              opponent choice to make). */}
+          <div className={`mt-2.5 grid gap-2 ${opponentOptions.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <div>
               <label htmlFor="savedGamesSortSelect" className="sr-only">
                 {t('loadGameModal.sortLabel', 'Sort by')}

@@ -20,12 +20,18 @@ const FIELD_CONSTANTS = {
   SPOT_RADIUS: 3,
   /** Dash pattern for substitution zone lines (pixels before scaling) */
   SUBSTITUTION_DASH: 5,
-  /** Shadow settings for outdoor (soccer) fields - barely there, so the
+  /** Shadow settings for 'clean' soccer grass - barely there, so the
    *  thin bright lines stay crisp rather than reading as thick and soft. */
   SOCCER_SHADOW: {
     color: 'rgba(0, 0, 0, 0.12)',
     blur: 1,
     offsetY: 0.5,
+  },
+  /** Shadow settings for 'classic' (textured) soccer grass - the original look. */
+  CLASSIC_SOCCER_SHADOW: {
+    color: 'rgba(0, 0, 0, 0.25)',
+    blur: 2,
+    offsetY: 1,
   },
   /** Mowing bands on 'clean' grass: white at this alpha on every other band. */
   CLEAN_STRIPE_ALPHA: 0.035,
@@ -124,8 +130,8 @@ function mixHex(a: string, b: string, amount: number): string {
 
 /**
  * The colour the painted field has along its top and bottom edges, for the
- * grass drawn AROUND the canvas box (under the top panel, beside and under
- * the control capsule), so pitch and surround meet with no visible seam.
+ * grass painted behind the canvas (the match view's pitch box), so a gap
+ * while the canvas resizes shows matching grass with no visible seam.
  *
  * 'clean' grass is exact (its edges are plain `fieldColor`). The textured
  * 'classic' grass is matched as closely as its noise allows: the average of
@@ -277,9 +283,12 @@ function setupLineStyle(
   ctx.strokeStyle = config.style.lineColor;
   ctx.lineWidth = config.style.lineWidth * scale;
   // Futsal courts read better with crisper markings (less shadow), especially at small sizes.
+  // Classic soccer grass keeps its original, softer shadow.
   const shadow = config.gameType === 'futsal'
     ? FIELD_CONSTANTS.FUTSAL_SHADOW
-    : FIELD_CONSTANTS.SOCCER_SHADOW;
+    : config.style.grass === 'clean'
+      ? FIELD_CONSTANTS.SOCCER_SHADOW
+      : FIELD_CONSTANTS.CLASSIC_SOCCER_SHADOW;
   ctx.shadowColor = shadow.color;
   ctx.shadowBlur = shadow.blur * scale;
   ctx.shadowOffsetY = shadow.offsetY * scale;
@@ -407,7 +416,8 @@ function drawGoals(
   const goalWidth = W * config.goal.width;
   const goalHeight = config.goal.height;
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.93)';
+  // Brighter on 'clean' grass (thin bright lines); the original value otherwise.
+  ctx.fillStyle = config.style.grass === 'clean' ? 'rgba(255, 255, 255, 0.93)' : 'rgba(255, 255, 255, 0.9)';
 
   // Top goal
   ctx.fillRect((W - goalWidth) / 2, lineMargin, goalWidth, goalHeight);

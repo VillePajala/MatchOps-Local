@@ -88,7 +88,9 @@ const AssessmentLevelSelector: React.FC<AssessmentLevelSelectorProps> = ({
         aria-label={label}
       >
         {positions.map((pos) => {
-          const optionLabel = levelLabel(pos);
+          // The visible number leads the accessible name (label-in-name), the
+          // level word follows in the words style: "3, Kehittyvä".
+          const optionLabel = isWords ? `${pos}, ${levelLabel(pos)}` : String(pos);
           const selected = selectedDisplay === pos;
           return (
             <button
@@ -101,8 +103,9 @@ const AssessmentLevelSelector: React.FC<AssessmentLevelSelectorProps> = ({
               onClick={() => onChange(displayToCanonical(pos, styleMax))}
               className={ratingSegmentClass(selected, untouched)}
             >
-              {/* Words live beside the name; numbers fit inside the segment. */}
-              {isWords ? null : optionLabel}
+              {/* The level number is always inside the segment; in the words
+                  style the chosen level's word is read beside the name. */}
+              {pos}
             </button>
           );
         })}

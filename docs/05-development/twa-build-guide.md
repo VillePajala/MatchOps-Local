@@ -120,7 +120,7 @@ first three from `manifest.json` on `init`; after that they live in
 |---|---|---|
 | Splash background | `#0f172a` | `backgroundColor` / "Splash screen background color" |
 | Splash icon | `https://app.match-ops.com/icons/icon-512x512.png` (transparent badge) | `iconUrl` / "Icon URL" |
-| Adaptive (maskable) icon | `https://app.match-ops.com/icons/icon-maskable-512x512.png` - solid `#0f172a` fill, badge at 64% | `maskableIconUrl` / "Maskable icon URL" |
+| Adaptive (maskable) icon | `https://app.match-ops.com/icons/icon-maskable-512x512.png` - solid `#0f172a` fill, badge at 72% (the Android 12+ splash trims only its thin cream rim) | `maskableIconUrl` / "Maskable icon URL" |
 | Adaptive icon background | `#0f172a` (the maskable icon already carries it) | - |
 | Splash fade-out | `300` ms | `splashScreenFadeOutDuration` / "Splash fade out duration" |
 | Status bar / theme colour | `#1e293b` (unchanged: the app's status-bar decision) | `themeColor` / "Status bar color" |
@@ -142,7 +142,7 @@ PNGs by hand; change a master (or the canvas colour) and rerun the script:
   hint, no lettering). Used for the favicons (16/32/48 px) only.
 
 The script writes: `icons/icon-{192,512}.png` (transparent, badge at 84%),
-`icons/icon-maskable-{192,512}.png` (solid `#0f172a`, badge at 64%),
+`icons/icon-maskable-{192,512}.png` (solid `#0f172a`, badge at 72% (the Android 12+ splash trims only its thin cream rim)),
 `icons/play-store-icon-512.png` (solid `#0f172a`, badge at 86%),
 `icons/apple-touch-icon.png`, `icons/favicon-{16,32}.png`, `favicon.png`,
 `favicon.ico`, `logos/app-logo{,-yellow}.png` (1024 px, transparent) and every

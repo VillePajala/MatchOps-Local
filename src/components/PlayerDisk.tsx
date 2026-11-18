@@ -19,8 +19,11 @@ interface PlayerDiskProps {
   gameEvents: GameEvent[]; // Add gameEvents prop
   onPlayerTapInBar?: (player: Player) => void; // New prop for tap action
   onToggleGoalie?: (playerId: string) => void; // Need this prop
-  /** Already on the pitch: drawn at 45% so the bench stands out. Same place, same order. */
-  dimmed?: boolean;
+  /**
+   * Not on the pitch (the bench): drawn hollow - a light ring on a faint fill -
+   * while players on the pitch stay solid. Never dimmed; same place, same order.
+   */
+  onBench?: boolean;
 }
 
 // Goals / assists badge: a small navy chip on the disc's edge. Not amber -
@@ -52,7 +55,7 @@ const PlayerDisk: React.FC<PlayerDiskProps> = React.memo(({
   gameEvents,
   onPlayerTapInBar,
   onToggleGoalie, // Destructure goalie toggle handler
-  dimmed = false,
+  onBench = false,
 }) => {
   // Calculate goals and assists for this player
   const playerStats = useMemo(() => {
@@ -113,31 +116,44 @@ const PlayerDisk: React.FC<PlayerDiskProps> = React.memo(({
   const isInBar = !!onPlayerDragStartFromBar;
   const isSelected = selectedPlayerIdFromBar === id;
   const hasCustomColor = !!color && color.trim().toLowerCase() !== LEGACY_DEFAULT_DISC_COLOR;
-  const diskSizeClasses = isInBar ? "w-[46px] h-[46px]" : "w-20 h-20 p-2";
+  const diskSizeClasses = isInBar ? "w-[50px] h-[50px]" : "w-20 h-20 p-2";
+  // A bench player is drawn hollow. The keeper keeps the keeper's look wherever
+  // they are; a coach-chosen colour carries over into the hollow disc's ring.
+  const isHollow = onBench && !isGoalie;
   const fill = isGoalie
     ? 'linear-gradient(180deg, #2a3854, #0f172a)'
-    : hasCustomColor
-      ? color
-      : 'linear-gradient(180deg, #ffffff, #e6e9ee)';
-  const nameColorClass = isGoalie || hasCustomColor ? 'text-white' : 'text-carbon';
-  // Selected: a dark gap, then the amber ring - the one amber thing in the bar.
-  const ringShadow = isSelected
-    ? '0 0 0 3px #131c30, 0 0 0 6px var(--color-action)'
+    : isHollow
+      ? 'rgb(255 255 255 / 0.05)'
+      : hasCustomColor
+        ? color
+        : 'linear-gradient(180deg, #ffffff, #e6e9ee)';
+  const nameColorClass = isHollow ? 'text-[#e5e9f0]' : isGoalie || hasCustomColor ? 'text-white' : 'text-carbon';
+  // The disc's own ring (inset): the keeper's white ring, the hollow disc's
+  // light (or kit-coloured) ring, or none.
+  const innerRing = isGoalie
+    ? 'inset 0 0 0 2px #ffffff'
+    : isHollow
+      ? `inset 0 0 0 2px ${hasCustomColor ? color : 'rgb(229 233 240 / 0.6)'}`
+      : null;
+  // Selected: a gap in the panel's colour, then the amber ring - the one amber
+  // thing in the bar. Otherwise a drop shadow (none under a hollow disc).
+  const outer = isSelected
+    ? '0 0 0 3px var(--color-surface), 0 0 0 6px var(--color-action)'
     : isGoalie
-      ? 'inset 0 0 0 2px #ffffff, 0 8px 12px -6px rgb(0 0 0 / 0.6)'
-      : '0 5px 9px -5px rgb(2 6 23 / 0.9)';
-  const shadow = isSelected && isGoalie ? `inset 0 0 0 2px #ffffff, ${ringShadow}` : ringShadow;
-  // The selected disc is never dimmed: it is the one being acted on.
-  const isDimmed = dimmed && !isSelected;
+      ? '0 8px 12px -6px rgb(0 0 0 / 0.6)'
+      : isHollow
+        ? null
+        : '0 5px 9px -5px rgb(2 6 23 / 0.9)';
+  const shadow = [innerRing, outer].filter(Boolean).join(', ') || undefined;
   const displayName = nickname || fullName;
   // Short names (5 letters or fewer) get a size up; longer ones keep 15px.
   const nameSizeClass = isInBar ? (Array.from(displayName).length <= 5 ? 'text-base' : 'text-[15px]') : 'text-base';
 
   return (
     <div
-      className={`relative ${diskSizeClasses} flex-none rounded-full flex flex-col items-center justify-center cursor-pointer transition-[box-shadow,opacity] duration-150 ease-in-out`}
-      style={{ background: fill, boxShadow: shadow, opacity: isDimmed ? 0.45 : undefined }}
-      data-on-field={dimmed ? 'true' : undefined}
+      className={`relative ${diskSizeClasses} flex-none rounded-full flex flex-col items-center justify-center cursor-pointer transition-[box-shadow,background] duration-150 ease-in-out`}
+      style={{ background: fill, boxShadow: shadow }}
+      data-bench={onBench ? 'true' : undefined}
       draggable={isInBar ? "true" : "false"}
       onDragStart={handleDragStart}
       // Use simplified selection handlers

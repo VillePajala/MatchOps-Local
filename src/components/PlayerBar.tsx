@@ -14,7 +14,10 @@ interface PlayerBarProps {
   gameEvents: GameEvent[];
   onPlayerTapInBar?: (player: Player) => void;
   onToggleGoalie?: (playerId: string) => void;
-  /** Players already on the pitch: shown dimmed, in their usual place. */
+  /**
+   * Players on the pitch: drawn solid. Everyone else (the bench) is drawn
+   * hollow, in their usual place. Omitted: every disc is drawn solid.
+   */
   onFieldPlayerIds?: ReadonlySet<string>;
 }
 
@@ -36,12 +39,12 @@ interface PlayerBarProps {
 const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragStartFromBar, selectedPlayerIdFromBar, onBarBackgroundClick, gameEvents, onPlayerTapInBar, onToggleGoalie, onFieldPlayerIds }) => {
   return (
     // The player bar row of the match view's top panel. It sits on the
-    // panel's frosted glass, so it paints no background of its own. 46px
-    // discs at a 9px gap: on a phone the last visible disc is cut about in
-    // half by the edge, which says "this row scrolls".
+    // panel's own surface, so it paints no background of its own. 50px
+    // discs at a 9px gap: on a phone the last visible disc is cut by the
+    // edge, which says "this row scrolls".
     <div
       data-testid="player-bar"
-      className="relative h-[68px] pl-2.5 pr-2.5 flex items-center gap-[9px] flex-shrink-0 overflow-x-auto overflow-y-hidden whitespace-nowrap scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
+      className="relative h-[72px] pl-2.5 pr-2.5 flex items-center gap-[9px] flex-shrink-0 overflow-x-auto overflow-y-hidden whitespace-nowrap scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
       onClick={(e) => {
         // Check if the click target is the div itself (the background)
         if (e.target === e.currentTarget && onBarBackgroundClick) {
@@ -64,7 +67,7 @@ const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragS
             gameEvents={gameEvents}
             onPlayerTapInBar={onPlayerTapInBar}
             onToggleGoalie={onToggleGoalie}
-            dimmed={onFieldPlayerIds?.has(player.id) ?? false}
+            onBench={onFieldPlayerIds ? !onFieldPlayerIds.has(player.id) : false}
           />
         ))}
       </div>

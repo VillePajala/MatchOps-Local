@@ -47,13 +47,33 @@ export const ModalBackgroundEffects: React.FC = () => null;
 // ============================================================================
 
 /**
- * Popup title: white, Barlow Condensed, 30px - easing down to 24px below a
- * 375px-wide screen, so a long one-word Finnish title ("Ottelusuunnittelu")
- * still fits beside the close button on a 320-360px phone instead of
- * breaking mid-word.
+ * Popup title: white, Barlow Condensed, 30px - easing down to 22px on a narrow
+ * phone, so a long one-word Finnish title ("Ottelusuunnittelu") still fits
+ * beside the close button on a 320-360px phone instead of breaking mid-word.
  */
+const titleBase = "font-display font-bold tracking-[0.01em] text-ink";
 export const titleStyle =
-  "font-display text-[clamp(1.5rem,8vw,1.875rem)] font-bold tracking-[0.01em] text-ink";
+  `${titleBase} text-[clamp(1.375rem,8vw,1.875rem)]`;
+
+/**
+ * The step-down size for a long popup title (see CollapsibleModalHeader): a
+ * long title shrinks one step instead of wrapping onto a second line.
+ */
+const titleLongSize = "text-[clamp(1.375rem,6.4vw,1.625rem)]";
+
+/** Titles longer than this many characters take `titleLongSize`. */
+const LONG_TITLE_CHARS = 16;
+
+/**
+ * The title classes for a given title text: `titleStyle`, or one size step
+ * down for a long title so it fits one line instead of wrapping. Use it for a
+ * header that renders its own title (e.g. an editable name field).
+ */
+export function titleStyleFor(title: React.ReactNode): string {
+  return typeof title === 'string' && title.length > LONG_TITLE_CHARS
+    ? `${titleBase} ${titleLongSize}`
+    : titleStyle;
+}
 
 /** A field's label (13px Inter, secondary ink). */
 export const labelStyle =
@@ -82,8 +102,13 @@ export const sectionLabelStyle =
 export const cardStyle =
   "s1-list p-4";
 
+/**
+ * A row INSIDE a card (`cardStyle` / `s1-list`): no border, fill or radius of
+ * its own - rows are separated by a hairline above each one (not above the
+ * first), like the home lists. A card never holds cards.
+ */
 export const itemRowStyle =
-  "bg-white/[0.03] border border-hairline rounded-2xl hover:bg-white/[0.06] transition-colors";
+  "relative min-h-14 flex items-center gap-3 py-2 font-ui before:absolute before:top-0 before:inset-x-0 before:h-px before:bg-hairline first:before:hidden";
 
 /**
  * One grouped list: a single `s1-list` surface whose rows are separated by
@@ -115,13 +140,22 @@ export const popoverItemStyle =
 export const switchInputStyle =
   `relative flex-none appearance-none w-[50px] h-[30px] rounded-full cursor-pointer bg-white/10 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] transition-colors checked:bg-action checked:shadow-none before:content-[''] before:absolute before:top-[3px] before:left-[3px] before:w-6 before:h-6 before:rounded-full before:bg-ink-2 before:shadow-[0_1px_3px_rgb(0_0_0/0.5)] before:transition-transform checked:before:translate-x-5 checked:before:bg-white disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
 
-/** An inline text link: amber, underlined. */
+/**
+ * An inline text link: ink, underlined. Not amber - amber is reserved for the
+ * primary action and for selection.
+ */
 export const linkStyle =
-  "font-semibold text-action underline underline-offset-[3px] hover:brightness-110 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
+  "font-semibold text-ink underline decoration-ink-3 underline-offset-[3px] hover:decoration-ink rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
 
-/** A small status pill: amber outline (e.g. experimental) / quiet grey. */
-export const pillAmberStyle =
-  "inline-flex items-center h-[22px] px-2.5 rounded-full bg-action/[0.08] shadow-[inset_0_0_0_1px_rgb(255_178_36/0.45)] font-ui text-[11px] font-bold uppercase tracking-[0.1em] text-action whitespace-nowrap";
+/**
+ * A neutral status badge ("Experimental", "Preview", "Up next", a planner
+ * warning): quiet pill, secondary ink. Use this rather than an amber pill -
+ * amber is reserved for the primary action and for selection.
+ */
+export const neutralBadgeStyle =
+  "inline-flex items-center gap-1 min-h-[22px] px-2.5 rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] font-ui text-xs font-semibold text-ink-2 whitespace-nowrap";
+
+/** A small quiet grey pill (e.g. a connection state). */
 export const pillQuietStyle =
   "inline-flex items-center h-[22px] px-2.5 rounded-full bg-white/[0.08] font-ui text-xs font-semibold text-ink-2 whitespace-nowrap";
 
@@ -237,9 +271,20 @@ export const primaryButtonStyle =
 export const secondaryButtonStyle =
   `${buttonBaseStyle} s1-ghost text-ink`;
 
-/** A destructive action (delete, reset): solid red, white text. */
+/**
+ * An in-page destructive action (delete, reset, clear): a red-tinted pill.
+ * Tinted, not solid - the solid red is kept for the one final confirm of a
+ * confirm dialog (`dangerConfirmButtonStyle`).
+ */
 export const dangerButtonStyle =
-  `${buttonBaseStyle} bg-red-600 text-white hover:bg-red-500 shadow-[inset_0_1px_0_rgb(255_255_255/0.18)]`;
+  `${buttonBaseStyle} bg-red-500/[0.12] text-red-300 shadow-[inset_0_0_0_1px_rgb(248_113_113/0.35)] hover:bg-red-500/20`;
+
+/**
+ * The final confirm button of a destructive confirm dialog: solid, toned red.
+ * Only there - every other destructive action uses `dangerButtonStyle`.
+ */
+export const dangerConfirmButtonStyle =
+  `${buttonBaseStyle} bg-[#d13438] text-white hover:bg-[#dc4246] shadow-[inset_0_1px_0_rgb(255_255_255/0.14)]`;
 
 /**
  * Kept for compatibility. Green is reserved for results in the S1 system, so a
@@ -465,6 +510,14 @@ export const ModalStickyPrimary: React.FC<{
 );
 
 /**
+ * A switch row inside a card: no fill, border or radius of its own (a card
+ * never holds cards). Consecutive rows are split by a hairline above each one
+ * except the first; group several switches in a wrapper with no gap.
+ */
+export const switchRowStyle =
+  `relative w-full min-h-14 flex items-center justify-between gap-3 py-2 text-left font-ui text-[15px] font-medium text-ink rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed before:absolute before:top-0 before:inset-x-0 before:h-px before:bg-hairline first:before:hidden ${focusRing}`;
+
+/**
  * A settings switch: label on the left, a 50x30 track with a thumb on the
  * right, amber when on (amber = selection). Replaces the full-width on/off BUTTON that used to carry
  * these settings (owner, 2026-09-30: a button that is indigo when on and
@@ -493,7 +546,7 @@ export const ModalSwitch: React.FC<{
     aria-describedby={hint ? hintId : undefined}
     onClick={onToggle}
     disabled={disabled}
-    className={`w-full min-h-14 flex items-center justify-between gap-3 px-4 py-3 rounded-2xl text-left font-ui text-[15px] font-medium text-ink bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] transition-colors hover:bg-white/[0.05] disabled:opacity-50 disabled:cursor-not-allowed ${focusRing} ${className}`}
+    className={`${switchRowStyle} ${className}`}
   >
     <span className="min-w-0">
       <span className="block">{children}</span>
@@ -548,8 +601,13 @@ export const CollapsibleModalHeader: React.FC<{
   // a right-side action cluster is present. But on phones (X hidden) with no
   // actions, those 40px slots just steal width and wrap otherwise-one-line
   // titles - so collapse both to give the title the full row (owner feedback).
+  // Both slots are a real 44px (`w-11`) when reserved: the right one is an
+  // invisible spacer matching the X, so the title sits on the true centre line.
   const reserveSides = showClose || !!actions;
-  const sideSlot = reserveSides ? 'basis-11' : 'basis-0';
+  const sideSlot = reserveSides ? 'min-w-11' : 'w-0';
+  // A long title shrinks one step instead of wrapping (titleStyleFor;
+  // break-words stays as the last resort for a word that still cannot fit).
+
   return (
   <div className="flex-shrink-0">
     <div className="flex items-center gap-2 pt-8 pb-3 px-4">
@@ -559,11 +617,10 @@ export const CollapsibleModalHeader: React.FC<{
         </button>
       </div>
       {/* No truncation: the full title must always show (owner feedback
-          2026-07-17). Full prominence (30px from titleStyle),
-          centered, wrapping to a second line for long titles. `break-words`
-          so even a single long word (e.g. a Finnish compound) wraps instead
-          of overflowing/clipping. */}
-      <h2 id={titleId} className={`${titleStyle} flex-1 text-center text-balance break-words leading-tight min-w-0`}>{title}</h2>
+          2026-07-17). Centered; a long title takes one size step down rather
+          than wrapping. `break-words` so even a single long word (e.g. a
+          Finnish compound) wraps instead of overflowing/clipping. */}
+      <h2 id={titleId} className={`${titleStyleFor(title)} flex-1 text-center text-balance break-words leading-tight min-w-0`}>{title}</h2>
       <div className={`flex items-center justify-end gap-1.5 ${sideSlot} shrink-0`}>{actions}</div>
     </div>
     {children && (
@@ -792,16 +849,15 @@ export const Z_LAYER = {
 export type ZLayer = keyof typeof Z_LAYER;
 
 // ============================================================================
-// Match view ("full-screen pitch"): chrome floating over the grass
+// Match view (stacked): the top panel, the pitch, then the control strip
 // ============================================================================
 
 /**
- * Frosted navy glass for the panels that float over the pitch (the score and
- * player bar panel, the control capsule). Opaque enough (84%) to stay readable
- * in sunlight even where backdrop blur is unsupported or skipped.
+ * The control capsule in its strip below the pitch: a solid raised navy pill
+ * on the app's carbon background. Solid, not glass - nothing sits behind it.
  */
-export const matchGlassStyle =
-  "bg-[rgb(15_23_42/0.84)] backdrop-blur-[16px] backdrop-saturate-[1.3] shadow-[inset_0_1px_0_rgb(255_255_255/0.12),inset_0_0_0_1px_rgb(255_255_255/0.07),0_14px_26px_-12px_rgb(2_6_23/0.75)]";
+export const matchCapsuleStyle =
+  "bg-surface-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.08),inset_0_0_0_1px_rgb(255_255_255/0.06),0_8px_24px_rgb(0_0_0/0.45)]";
 
 /** A round tool button sitting on the grass (field tools, sync status):
  *  40px of light navy glass, with an invisible pad taking the touch target

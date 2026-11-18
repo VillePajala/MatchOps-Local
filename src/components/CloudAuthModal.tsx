@@ -14,7 +14,7 @@ import {
 import {
   primaryButtonStyle,
   secondaryButtonStyle,
-  dangerButtonStyle,
+  dangerConfirmButtonStyle,
   DialogBackdrop,
   dialogTitleStyle,
   inputBaseStyle,
@@ -536,7 +536,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
               </button>
               <button
                 onClick={handleDelete}
-                className={dangerButtonStyle}
+                className={dangerConfirmButtonStyle}
                 disabled={confirmText.toUpperCase() !== 'DELETE'}
               >
                 <HiOutlineTrash className="h-5 w-5 mr-2" />

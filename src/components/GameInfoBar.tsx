@@ -108,9 +108,10 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
   return (
     // The score row of the match view's top panel: on the panel's own glass,
     // so no background here - only a hairline under it, above the player bar.
-    // 46px tall so the score can be read from the touchline; the names give
-    // way first (they shrink with the screen, then truncate) - never the score.
-    <div className="relative mx-3 h-[46px] flex items-center font-ui text-[clamp(13px,3.8vw,15px)] text-ink-2 shadow-[inset_0_-1px_0_var(--color-hairline)]">
+    // Compact: 42px tall with 30px numerals and 14px names, so the pitch below
+    // the panel keeps as much height as it can. The names give way first
+    // (they truncate) - never the score.
+    <div className="relative mx-3 h-[42px] flex items-center font-ui text-[14px] text-ink-2 shadow-[inset_0_-1px_0_var(--color-hairline)]">
       {/* Center Content: Teams and Score */}
       <div className="relative flex-1 min-w-0 flex items-center justify-center gap-2.5 font-semibold z-10 max-w-full">
         {/* Left Team Name */}
@@ -152,9 +153,9 @@ const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
             the tabular-nums here used to promise and never delivered, because
             Rajdhani ships no tnum feature and the class was inert. SteadyDigits
             boxes each digit instead (see that component for the measurements). */}
-        <span className="flex items-center gap-[7px] flex-shrink-0 whitespace-nowrap font-display italic font-extrabold text-[34px] leading-none text-ink pr-0.5">
+        <span className="flex items-center gap-[7px] flex-shrink-0 whitespace-nowrap font-display italic font-extrabold text-[30px] leading-none text-ink pr-0.5">
           <SteadyDigits>{String(leftScore)}</SteadyDigits>
-          <span className="text-xl font-bold text-ink-3" aria-hidden="true">–</span>
+          <span className="text-lg font-bold text-ink-3" aria-hidden="true">–</span>
           <span className="sr-only">-</span>
           <SteadyDigits>{String(rightScore)}</SteadyDigits>
         </span>

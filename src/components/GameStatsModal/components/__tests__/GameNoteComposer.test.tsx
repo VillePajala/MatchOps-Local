@@ -199,7 +199,7 @@ describe('writing out the recording with the coach\'s own provider', () => {
     render(<GameNoteComposer players={players} stamp={stamp} onAdd={jest.fn(() => true)} dictation={controls({ isRecording: true })} />);
     const button = screen.getByTestId('note-composer-record');
     expect(button).toBeDisabled();
-    expect(button).toHaveTextContent('Dictate a note');
+    expect(button).toHaveAccessibleName('Dictate a note');
   });
 
   /**
@@ -213,10 +213,10 @@ describe('writing out the recording with the coach\'s own provider', () => {
     fireEvent.click(screen.getByTestId('note-composer-record'));
     // Recording starts...
     view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: true })} />);
-    expect(screen.getByTestId('note-composer-record')).toHaveTextContent('Stop dictating');
+    expect(screen.getByTestId('note-composer-record')).toHaveAccessibleName('Stop dictating');
     // ...and ends with nothing kept: no clip is ever reported.
     view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: false })} />);
-    expect(screen.getByTestId('note-composer-record')).toHaveTextContent('Dictate a note');
+    expect(screen.getByTestId('note-composer-record')).toHaveAccessibleName('Dictate a note');
 
     // Another card records. This one must neither offer to stop it...
     view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: true })} />);

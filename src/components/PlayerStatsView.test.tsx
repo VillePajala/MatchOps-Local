@@ -139,6 +139,24 @@ describe('PlayerStatsView game type filtering', () => {
    * @critical - the page a coach hands to a head coach. It must open from the
    * numbers it is built from and carry the player's name and the games.
    */
+  /** @integration the game log is one hairline list led by the home screen's result disc. */
+  it('leads each game-log row with the W/D/L result disc', async () => {
+    const games = {
+      win: createGame({ opponentName: 'Win Opp', gameDate: '2024-02-01', homeScore: 3, awayScore: 1 }),
+      loss: createGame({ opponentName: 'Loss Opp', gameDate: '2024-02-08', homeScore: 0, awayScore: 2 }),
+      draw: createGame({ opponentName: 'Draw Opp', gameDate: '2024-02-15', homeScore: 1, awayScore: 1 }),
+    };
+    render(<PlayerStatsView {...baseProps} savedGames={games} />);
+    const winRow = await screen.findByTestId('player-game-row-win');
+    expect(within(winRow).getByTestId('player-game-result')).toHaveTextContent('W');
+    expect(within(winRow).getByTestId('player-game-result')).toHaveClass('text-win');
+    expect(within(screen.getByTestId('player-game-row-loss')).getByTestId('player-game-result')).toHaveTextContent('L');
+    expect(within(screen.getByTestId('player-game-row-draw')).getByTestId('player-game-result')).toHaveTextContent('T');
+    // Rows are split by hairlines, not drawn as boxes.
+    expect(winRow.className).toContain('before:bg-hairline');
+    expect(winRow.className).not.toMatch(/\bborder\b/);
+  });
+
   it('opens the match evidence text for the player from the summary card', async () => {
     render(<PlayerStatsView {...baseProps} savedGames={buildSavedGames()} />);
     await waitFor(() => expect(screen.getByTestId('player-evidence')).toBeInTheDocument());

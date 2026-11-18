@@ -14,8 +14,10 @@
  *                                      of the canvas (LoadingScreen's ring is sized
  *                                      to that). Also the legacy Android splash icon.
  *   icons/icon-maskable-{192,512}.png  Android adaptive icon + Android 12+ splash.
- *                                      Solid canvas, badge at 64%: inside the 80%
- *                                      maskable safe zone AND inside the 2/3 circle
+ *                                      Solid canvas, badge at 72%: inside the 80%
+ *                                      maskable safe zone. Owner choice 2026-11-19: bigger
+ *                                      on the home screen; the Android 12+ splash (a 2/3
+ *                                      circle of the same icon) trims only the thin cream rim.
  *                                      the Android 12 splash keeps visible.
  *   icons/play-store-icon-512.png      Google Play listing icon (512, solid canvas,
  *                                      badge at 86%; Play rounds the corners itself).
@@ -96,7 +98,7 @@ async function main() {
   for (const size of [192, 512]) {
     const b = Math.round(size * 0.84);
     write(`icons/icon-${size}x${size}.png`, await compose(size, size, b), `transparent, badge ${b}px`);
-    const m = Math.round(size * 0.64);
+    const m = Math.round(size * 0.72);
     write(`icons/icon-maskable-${size}x${size}.png`, await compose(size, size, m, { fill: CANVAS }), `canvas fill, badge ${m}px`);
   }
   // Google Play listing icon: full-bleed square, Play applies its own rounded mask.

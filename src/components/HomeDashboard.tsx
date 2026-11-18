@@ -545,7 +545,7 @@ function NextMatchCard({
                     onClick={onSetStartingPoint}
                     className={`-mx-1 mt-1 block min-h-11 rounded-lg px-1 text-left text-[13px] font-semibold leading-snug text-ink-2 ${HOME_FOCUS}`}
                   >
-                    <span className="text-action underline decoration-action/60 underline-offset-2">
+                    <span className="text-ink underline decoration-ink-3 underline-offset-2">
                       {t('startScreen.setStartingPoint', 'Set a starting point')}
                     </span>
                     <span className="ml-1">{t('startScreen.setStartingPointWhy', 'to see when to leave')}</span>
@@ -726,10 +726,12 @@ function SeasonLink({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuos
     <button
       type="button"
       onClick={onOpen}
-      className={`ml-auto inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-lg pl-3 text-[13px] font-semibold text-action ${HOME_FOCUS}`}
+      className={`ml-auto inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-lg pl-3 text-[13px] font-semibold text-ink ${HOME_FOCUS}`}
       title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
     >
-      <span>{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
+      {/* A link reads as ink with an underline: amber is reserved for the
+          primary action and for selection. */}
+      <span className="underline decoration-ink-3 underline-offset-[3px]">{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
       <span className="text-ink-3" aria-hidden="true">·</span>
       <span className="tabular-nums">
         <span className="font-bold text-win">{vuosi.wins}</span>

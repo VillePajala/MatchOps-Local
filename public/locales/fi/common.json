@@ -290,7 +290,7 @@
     "playerLabel": "Kenestä",
     "wholeMatch": "Ottelusta",
     "placeholder": "Mitä näit? Yksi havainto riittää.",
-    "save": "Lisää muistiinpano",
+    "save": "Lisää",
     "record": "Sanele muistiinpano",
     "recordStop": "Lopeta sanelu",
     "recordedHint": "Odottaa yllä äänimuistiinpanoissa, jossa kirjoitat sen auki ja valitset pelaajan.",
@@ -421,9 +421,7 @@
     "togglePlannedSubs": "Näytä suunnitellut vaihdot",
     "planViewLineup": "Vain kokoonpano",
     "planViewGhosts": "Suunnitellut vaihdot",
-    "planViewChains": "Vaihdot ja minuutit",
-    "selectedHint": "{{name}} valittu · napauta kenttää",
-    "cancelSelection": "Peru valinta"
+    "planViewChains": "Vaihdot ja minuutit"
   },
   "gameResult": {
     "overtime": "JA",
@@ -1148,9 +1146,9 @@
     "levelLabel": "Taso",
     "periodsLabel": "Jaksot",
     "numPeriodsLabel": "Jaksot",
-    "periodDurationLabel": "Jakson kesto (minuuteissa)",
+    "periodDurationLabel": "Jakson kesto (min)",
     "demandFactorLabel": "Pelin vaativuustaso",
-    "homeOrAwayLabel": "Joukkueesi on",
+    "homeOrAwayLabel": "Koti / vieras",
     "unplayedToggle": "Ei vielä pelattu",
     "friendlyToggle": "Harjoitusottelu",
     "confirmAndStart": "Vahvista ja aloita peli",
@@ -1817,7 +1815,7 @@
     "away": "Vieras",
     "periodsLabel": "Jaksot",
     "numPeriodsLabel": "Jaksot",
-    "periodDurationLabel": "Jakson kesto (minuuteissa)",
+    "periodDurationLabel": "Jakson kesto (min)",
     "demandFactorLabel": "Pelin vaativuustaso",
     "unplayedToggle": "Ei vielä pelattu",
     "friendlyToggle": "Harjoitusottelu",
@@ -1969,8 +1967,8 @@
     "backupCardDesc": "Vie kaikki tietosi varmuuskopiotiedostoon.",
     "backupShareAria": "Jaa varmuuskopio",
     "backupDownloadAria": "Lataa varmuuskopio laitteelle",
-    "backupShareLabel": "Jaa varmuuskopio",
-    "backupSaveLabel": "Tallenna laitteelle",
+    "backupShareLabel": "Jaa",
+    "backupSaveLabel": "Tallenna",
     "restoreButton": "Palauta varmuuskopiosta",
     "restoreCardDesc": "Korvaa nykyiset tiedot varmuuskopiotiedostolla.",
     "restorePoints": {
@@ -4075,7 +4073,7 @@
     "useTypedName": "Käytä nimeä \"{{name}}\" uutena paikkana"
   },
   "externalGamesModal": {
-    "title": "Täydennä pelaajan tilastoja",
+    "title": "Täydennä tilastoja",
     "pickPlayer": "Valitse pelaaja",
     "intro": "Pelit, joita ei kirjattu sovelluksessa otteluina. Ne lasketaan vain tämän pelaajan tilastoihin.",
     "noPlayers": "Lisää ensin pelaajat Seura-välilehdeltä.",

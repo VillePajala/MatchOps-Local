@@ -31,7 +31,6 @@ import {
   segmentTrackStyle,
   segmentStyle,
   segmentSelectedStyle,
-  warningBoxStyle,
   errorBoxStyle,
   infoBoxStyle,
 } from '@/styles/modalStyles';
@@ -78,11 +77,13 @@ interface Warning {
   players: string[];
 }
 
-// House alert palette (modalStyles' -900/30 bg + -700 border scale).
+// House alert palette. Only the real alarm (a player with no minutes at all)
+// is red; the rotation notes are neutral - amber is reserved for the primary
+// action and for selection.
 const warningTone: Record<Warning['kind'], string> = {
   zero: `${errorBoxStyle} text-red-200`,
-  sitout: `${warningBoxStyle} text-amber-200`,
-  spread: `${warningBoxStyle} text-amber-200`,
+  sitout: `${infoBoxStyle} text-ink`,
+  spread: `${infoBoxStyle} text-ink`,
   // A suggestion, not a problem: the quiet info box.
   gk: `${infoBoxStyle} text-ink-2`,
 };
@@ -187,7 +188,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
 
     // 1a. Players with NO minutes anywhere (truly forgotten - red alarm).
     // 1b. Players who sit out at least one FULL game but do play elsewhere -
-    //     that is normal rotation, so it is an amber note, NOT the red alarm.
+    //     that is normal rotation, so it is a neutral note, NOT the red alarm.
     //     (Auto-filled plans with varied starters made the old combined
     //     warning shout "15 players with 0 minutes" at a full roster.)
     const zeroGamesByPlayer = new Map<string, number[]>();
@@ -558,7 +559,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                     <button
                       type="button"
                       onClick={() => onReplaceHighlights(singleZoneIds)}
-                      className={`${warningBoxStyle} text-amber-200 ${warningRowBase}`}
+                      className={`${infoBoxStyle} text-ink ${warningRowBase}`}
                     >
                       <span className="text-[13px] font-bold">
                         {t('playtimePlanner.balance.oneZone', '{{count}} players play only one position', { count: singleZoneIds.length })}

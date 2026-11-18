@@ -412,9 +412,39 @@ describe('fieldDrawing', () => {
       expect(SOCCER_FIELD_CONFIG.style.fieldColor).toBe(SOCCER_GRASS[PITCH_GRASS].fieldColor);
     });
 
-    it('keeps the thin bright lines whichever grass is used', () => {
-      expect(SOCCER_FIELD_CONFIG.style.lineColor).toBe('rgba(255, 255, 255, 0.78)');
+    it('draws the original pitch: classic grass with its original lines', () => {
+      expect(PITCH_GRASS).toBe('classic');
+      expect(SOCCER_FIELD_CONFIG.style.fieldColor).toBe('#427B44');
+      expect(SOCCER_FIELD_CONFIG.style.showGrassTexture).toBe(true);
+      expect(SOCCER_FIELD_CONFIG.style.stripeCount).toBe(9);
+      expect(SOCCER_FIELD_CONFIG.style.lineColor).toBe('rgba(255, 255, 255, 0.6)');
       expect(SOCCER_FIELD_CONFIG.style.lineWidth).toBe(2);
+    });
+
+    it('keeps the thin bright lines with the clean grass', () => {
+      expect(soccerWith('clean').style.lineColor).toBe('rgba(255, 255, 255, 0.78)');
+    });
+
+    it('strokes classic lines with the original shadow and goal fill, clean ones with the light shadow', () => {
+      const strokeShadow = (config: FieldConfig) => {
+        const { ctx } = createMockContext();
+        const seen: Array<{ shadow: string; stroke: string }> = [];
+        (ctx.stroke as jest.Mock).mockImplementation(() => {
+          seen.push({ shadow: String(ctx.shadowColor), stroke: String(ctx.strokeStyle) });
+        });
+        const fills: string[] = [];
+        (ctx.fillRect as jest.Mock).mockImplementation(() => {
+          fills.push(String(ctx.fillStyle));
+        });
+        drawSoccerMarkings(ctx, 300, 450, config, 1);
+        return { first: seen[0], fills };
+      };
+      const classic = strokeShadow(soccerWith('classic'));
+      expect(classic.first).toEqual({ shadow: 'rgba(0, 0, 0, 0.25)', stroke: 'rgba(255, 255, 255, 0.6)' });
+      expect(classic.fills).toContain('rgba(255, 255, 255, 0.9)');
+      const clean = strokeShadow(soccerWith('clean'));
+      expect(clean.first).toEqual({ shadow: 'rgba(0, 0, 0, 0.12)', stroke: 'rgba(255, 255, 255, 0.78)' });
+      expect(clean.fills).toContain('rgba(255, 255, 255, 0.93)');
     });
   });
 

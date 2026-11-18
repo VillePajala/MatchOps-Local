@@ -1369,6 +1369,18 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
 
               </div>
+              {/* Re-apply plan: a plain secondary action under the teams
+                  section (it rewrites the lineup), not a card of its own. */}
+              {canReapplyPlan && onReapplyPlan && (
+                <button
+                  type="button"
+                  onClick={() => setShowReapplyConfirm(true)}
+                  className={`${secondaryButtonStyle} w-full mt-3`}
+                  disabled={isReapplying}
+                >
+                  {t('gameSettingsModal.reapplyPlan.button', 'Re-apply plan')}
+                </button>
+              )}
             </section>
 
               {/* Player Selection Section */}
@@ -1466,10 +1478,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>
                   {t('gameSettingsModal.captainTitle', 'Captain')}
                 </h3>
-                <div className={`${cardStyle} space-y-3`}>
-                  <p className={subtextStyle}>
-                    {t('gameSettingsModal.captainDescription', 'Who wore the armband in this game. Recorded per game, so it can rotate.')}
-                  </p>
+                <div className={cardStyle}>
                   <select
                     value={captainIdLocal}
                     data-testid="captain-select"
@@ -1505,6 +1514,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       </option>
                     )}
                   </select>
+                  {/* Help text always sits below its field. */}
+                  <p className={`${subtextStyle} mt-1.5`}>
+                    {t('gameSettingsModal.captainDescription', 'Who wore the armband in this game. Recorded per game, so it can rotate.')}
+                  </p>
                 </div>
               </section>
 
@@ -1513,15 +1526,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>
                   {t('gameSettingsModal.fairPlayCardTitle', 'Fair Play Card')}
                 </h3>
-                <div className={`${cardStyle} space-y-3`}>
-                  <p className={subtextStyle}>
-                    {t('gameSettingsModal.fairPlayCardDescription', 'Select a player to award the Fair Play Card, or clear the current selection.')}
-                  </p>
-
+                <div className={cardStyle}>
                   <div className="flex items-center gap-3">
                     <select
                       value={availablePlayers.find(p => p.receivedFairPlayCard)?.id || ''}
                       onChange={(e) => handleFairPlayCardClick(e.target.value || null)}
+                      aria-label={t('gameSettingsModal.fairPlayCardTitle', 'Fair Play Card')}
                       className={`${selectStyle} flex-1`}
                     >
                       <option value="">{t('gameSettingsModal.selectPlayerForFairPlay', 'Select Player')}</option>
@@ -1533,6 +1543,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       ))}
                     </select>
                   </div>
+                  <p className={`${subtextStyle} mt-1.5`}>
+                    {t('gameSettingsModal.fairPlayCardDescription', 'Select a player to award the Fair Play Card, or clear the current selection.')}
+                  </p>
                 </div>
               </section>
 
@@ -1843,8 +1856,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
 
               <div className="space-y-4">
-                {/* Game Date */}
-                <div>
+                {/* Date and time share one row (time is the narrow column);
+                    then place, address and pitch - the same order as New Game. */}
+                <div className="grid grid-cols-1 min-[360px]:grid-cols-[minmax(0,1fr)_132px] gap-3">
+                <div className="min-w-0">
                   <label htmlFor="gameDateInput" className={labelStyle}>
                     {t('gameSettingsModal.gameDateLabel', 'Game Date')}
                   </label>
@@ -1867,11 +1882,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 </div>
 
                 {/* Game Time */}
-                <div>
+                <div className="min-w-0">
                   <label className={labelStyle}>
                     {t('gameSettingsModal.gameTimeLabel', 'Time (Optional)')}
                   </label>
-                  <div className="flex items-center gap-2.5 max-w-[220px]">
+                  <div className="flex items-center gap-1.5">
                     <input
                       type="text"
                       inputMode="numeric"
@@ -1881,7 +1896,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       onChange={handleHourChange}
                       onBlur={commitGameTime}
                       placeholder={t('gameSettingsModal.hourPlaceholder', 'HH')}
-                      className={`${inputBaseStyle} min-w-0 flex-1 text-center tabular-nums`}
+                      className={`${inputBaseStyle} min-w-0 flex-1 px-1! text-center tabular-nums`}
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -1898,7 +1913,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       onChange={handleMinuteChange}
                       onBlur={commitGameTime}
                       placeholder={t('gameSettingsModal.minutePlaceholder', 'MM')}
-                      className={`${inputBaseStyle} min-w-0 flex-1 text-center tabular-nums`}
+                      className={`${inputBaseStyle} min-w-0 flex-1 px-1! text-center tabular-nums`}
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -1906,6 +1921,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       onFocus={(e) => e.target.select()}
                     />
                   </div>
+                </div>
                 </div>
 
                 {/* Game Location */}
@@ -1984,7 +2000,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 {/* Home/Away Selection */}
                 <div>
                   <label className={labelStyle}>
-                    {t('gameSettingsModal.homeOrAwayLabel', 'Home / Away')}
+                    {t('gameSettingsModal.homeOrAwayLabel', 'Home / away')}
                   </label>
                   <div className={segmentTrackStyle}>
                     <button
@@ -2028,8 +2044,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </h3>
               <div className={`${cardStyle} space-y-4`}>
 
+              {/* Periods and period length: two half-width fields on one row. */}
+              <div className="grid grid-cols-2 items-end gap-3">
               {/* Number of Periods */}
-              <div>
+              <div className="min-w-0">
                 <label htmlFor="numPeriodsSelect" className={labelStyle}>
                   {t('gameSettingsModal.numPeriodsLabel', 'Number of Periods')}
                 </label>
@@ -2055,9 +2073,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
 
               {/* Period Duration */}
-              <div>
+              <div className="min-w-0">
                 <label htmlFor="periodDurationInput" className={labelStyle}>
-                  {t('gameSettingsModal.periodDurationLabel', 'Period Duration (minutes)')}
+                  {t('gameSettingsModal.periodDurationLabel', 'Period length (min)')}
                 </label>
                 <input
                   type="text"
@@ -2073,13 +2091,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   }}
                   onBlur={commitPeriodDuration}
                   disabled={regulationLocked}
-                  className={`${inputBaseStyle} max-w-[160px]`}
+                  className={inputBaseStyle}
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck="false"
                   placeholder="15"
                 />
+              </div>
               </div>
 
               {regulationLocked && (
@@ -2090,8 +2109,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
               {/* The demand-level slider used to sit here; see NewGameSetupModal. */}
 
-              {/* Played status, friendly and overtime/penalties as switches */}
-              <div className="space-y-2">
+              {/* Played status, friendly and overtime/penalties as switches:
+                  hairline-separated rows of the card (no card in a card). */}
+              <div>
                 <ModalSwitch
                   checked={!isPlayed}
                   onToggle={() => {
@@ -2145,7 +2165,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsShootoutModalOpen(true)}
-                  className={`${secondaryButtonStyle} w-full mt-1`}
+                  className={`${secondaryButtonStyle} w-full mt-2`}
                 >
                   {(() => {
                     const kicks = shootoutKicks ?? [];
@@ -2162,24 +2182,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
             </section>
 
-            {/* Chrome slimming: Re-apply plan is a utility action, moved
-                inline at the bottom of the content (Done is now the header
-                X). R3 scroll anchors are id-based and unaffected. */}
-            {(error || (canReapplyPlan && onReapplyPlan)) && (
-              <div className={`${cardStyle} space-y-3`}>
-                {error && (
-                  <div className="font-ui text-sm text-loss">{error}</div>
-                )}
-                {canReapplyPlan && onReapplyPlan && (
-                  <button
-                    onClick={() => setShowReapplyConfirm(true)}
-                    className={`${secondaryButtonStyle} w-full`}
-                    disabled={isReapplying}
-                  >
-                    {t('gameSettingsModal.reapplyPlan.button', 'Re-apply plan')}
-                  </button>
-                )}
-              </div>
+            {error && (
+              <div className="px-1 font-ui text-sm text-loss">{error}</div>
             )}
           </div>
         </div>

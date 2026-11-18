@@ -41,10 +41,9 @@ import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { generateId } from '@/utils/idGenerator';
 import {
   ModalContainer,
-  ModalHeader,
   ScrollableContent,
-  headerStyle,
   titleStyle,
+  titleStyleFor,
   labelStyle,
   subtextStyle,
   inputBaseStyle,
@@ -55,6 +54,7 @@ import {
   iconButtonBaseStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
+  dangerButtonStyle,
   modalCloseButtonStyle,
   useModalCloseVisible,
   sectionLabelStyle,
@@ -154,8 +154,8 @@ const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 const LIST_MENU_ID = '__plan-list-menu__';
 const PLAN_MENU_ID = '__plan-settings-menu__';
 
-const editableTitleStyle =
-  `${titleStyle} w-full bg-transparent text-center rounded-xl focus:outline-none focus:ring-2 focus:ring-action`;
+const editableTitleStyle = (text: string) =>
+  `${titleStyleFor(text)} w-full bg-transparent text-center rounded-xl focus:outline-none focus:ring-2 focus:ring-action`;
 
 /** The tap-to-fold header of a plan-tab card (Replace a player, Games & format). */
 const foldHeaderStyle =
@@ -1707,59 +1707,71 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   return (
     <ModalContainer containerRef={modalRootRef} aria-label={t('playtimePlanner.title', 'Match planner')}>
-      {/* Chrome slimming: the modal-level Close is an X in the header's
-          top-left (was the footer's Close). Absolutely positioned so it never
-          shifts the centered/editable title. Fully closes from any view. */}
-      <button
-        type="button"
-        onClick={handleClose}
-        aria-label={t('common.close', 'Close')}
-        title={t('common.close', 'Close')}
-        className={`${showClose ? 'flex' : 'hidden'} absolute left-2 top-7 z-20 ${modalCloseButtonStyle}`}
-      >
-        <HiOutlineXMark className="w-6 h-6" />
-      </button>
+      {/* The header row - the same geometry as every other popup
+          (CollapsibleModalHeader): X on the left, the title on the true centre
+          line, and a 44px slot on the right holding the plan menu or an
+          invisible spacer. The X fully closes from any view. */}
+      <div className="flex-shrink-0 flex items-center gap-2 pt-8 pb-3 px-4">
+        <div className={`flex items-center justify-start ${showClose || (activePlan && view === 'plan') ? 'min-w-11' : 'w-0'} shrink-0`}>
+          <button
+            type="button"
+            onClick={handleClose}
+            aria-label={t('common.close', 'Close')}
+            title={t('common.close', 'Close')}
+            className={`${showClose ? 'flex' : 'hidden'} ${modalCloseButtonStyle}`}
+          >
+            <HiOutlineXMark className="w-5 h-5" />
+          </button>
+        </div>
 
-      {/* Header names what's on screen: tool name outside a plan; the ACTIVE
-          GAME (tap-editable) on the single-game surface; the plan name
-          (tap-editable on the plan tab) everywhere else in an open plan. */}
-      {activePlan && isPlanTab(view) ? (
-        view === 'games' && gamesLayout === 'single' && editingGame ? (
-          <div className={headerStyle}>
-            <input
-              type="text"
-              value={editingGame.label}
-              onChange={(e) => {
-                const value = e.target.value;
-                updateActivePlan(
-                  (plan) => ({
-                    ...plan,
-                    games: plan.games.map((g) => (g.id === editingGame.id ? { ...g, label: value } : g)),
-                  }),
-                  { coalesceKey: `game-label:${editingGame.id}` },
-                );
-              }}
-              aria-label={t('playtimePlanner.lineup.gameName', 'Game name')}
-              className={editableTitleStyle}
-            />
-          </div>
-        ) : view === 'plan' ? (
-          <div className={`${headerStyle} relative px-14!`}>
-            <input
-              type="text"
-              value={activePlan.name}
-              onChange={(e) => {
-                const value = e.target.value;
-                updateActivePlan((plan) => ({ ...plan, name: value }), { coalesceKey: 'plan-name' });
-              }}
-              aria-label={t('playtimePlanner.setup.nameLabel', 'Plan name')}
-              className={editableTitleStyle}
-            />
-            {/* The plan's ⋮ menu (Settings tab): export the plan to a file. */}
-            <div
-              className="absolute right-2 top-7 z-20"
-              ref={actionsMenuId === PLAN_MENU_ID ? actionsMenuRef : null}
-            >
+        {/* Header names what's on screen: tool name outside a plan; the ACTIVE
+            GAME (tap-editable) on the single-game surface; the plan name
+            (tap-editable on the plan tab) everywhere else in an open plan. */}
+        <div className="flex-1 min-w-0 text-center">
+          {activePlan && isPlanTab(view) ? (
+            view === 'games' && gamesLayout === 'single' && editingGame ? (
+              <input
+                type="text"
+                value={editingGame.label}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  updateActivePlan(
+                    (plan) => ({
+                      ...plan,
+                      games: plan.games.map((g) => (g.id === editingGame.id ? { ...g, label: value } : g)),
+                    }),
+                    { coalesceKey: `game-label:${editingGame.id}` },
+                  );
+                }}
+                aria-label={t('playtimePlanner.lineup.gameName', 'Game name')}
+                className={editableTitleStyle(editingGame.label)}
+              />
+            ) : view === 'plan' ? (
+              <input
+                type="text"
+                value={activePlan.name}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  updateActivePlan((plan) => ({ ...plan, name: value }), { coalesceKey: 'plan-name' });
+                }}
+                aria-label={t('playtimePlanner.setup.nameLabel', 'Plan name')}
+                className={editableTitleStyle(activePlan.name)}
+              />
+            ) : (
+              <h2 className={`${titleStyleFor(activePlan.name)} leading-tight truncate`}>{activePlan.name}</h2>
+            )
+          ) : (
+            <h2 className={`${titleStyle} leading-tight`}>{t('playtimePlanner.title', 'Match planner')}</h2>
+          )}
+        </div>
+
+        <div
+          className={`relative flex items-center justify-end ${showClose || (activePlan && view === 'plan') ? 'min-w-11' : 'w-0'} shrink-0`}
+          ref={activePlan && view === 'plan' && actionsMenuId === PLAN_MENU_ID ? actionsMenuRef : null}
+        >
+          {/* The plan's ⋮ menu (Settings tab): export the plan to a file. */}
+          {activePlan && view === 'plan' && (
+            <>
               <button
                 type="button"
                 onClick={() => setActionsMenuId(actionsMenuId === PLAN_MENU_ID ? null : PLAN_MENU_ID)}
@@ -1785,16 +1797,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   </button>
                 </div>
               )}
-            </div>
-          </div>
-        ) : (
-          <div className={headerStyle}>
-            <h2 className={`${titleStyle} truncate`}>{activePlan.name}</h2>
-          </div>
-        )
-      ) : (
-        <ModalHeader title={t('playtimePlanner.title', 'Match planner')} />
-      )}
+            </>
+          )}
+        </div>
+      </div>
 
       {view === 'manager' && (
         <FirstVisitIntro
@@ -2477,16 +2483,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 {t('playtimePlanner.overview.addGame', 'Add game')}
               </button>
               {/* Clearing EVERY game is a plan-level action, so it lives here
-                  (round 2, owner), behind its confirm; red text, not a pill. */}
-              <div className="flex justify-end mt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowClearAllGamesConfirm(true)}
-                  className="inline-flex items-center min-h-11 px-3 -mr-1 rounded-full font-ui text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-                >
-                  {t('playtimePlanner.lineup.clearAllGames', 'Clear all games')}
-                </button>
-              </div>
+                  (round 2, owner), behind its confirm: the house tinted danger
+                  button, full width like the add action above it. */}
+              <button
+                type="button"
+                onClick={() => setShowClearAllGamesConfirm(true)}
+                className={`${dangerButtonStyle} w-full mt-2`}
+              >
+                {t('playtimePlanner.lineup.clearAllGames', 'Clear all games')}
+              </button>
             </div>
           </div>
         )}

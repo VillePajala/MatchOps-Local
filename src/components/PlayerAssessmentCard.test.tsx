@@ -61,6 +61,18 @@ describe('PlayerAssessmentCard', () => {
     expect(onSave).toHaveBeenCalled();
   });
 
+  it('shows Save as the full-width primary button', () => {
+    render(
+      <I18nextProvider i18n={i18n}>
+        <PlayerAssessmentCard player={player} onSave={jest.fn()} />
+      </I18nextProvider>
+    );
+    fireEvent.click(screen.getByText('Test'));
+    const save = screen.getByRole('button', { name: /Save/i });
+    expect(save).toHaveClass('s1-primary');
+    expect(save).toHaveClass('w-full');
+  });
+
   it('loads existing assessment values', () => {
     render(
       <I18nextProvider i18n={i18n}>

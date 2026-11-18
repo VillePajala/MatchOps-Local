@@ -4,12 +4,12 @@ import React, { useId } from 'react';
 import {
   CollapsibleModalHeader,
   modalContainerStyle,
-  itemRowStyle,
+  groupedListStyle,
+  listRowStyle,
   sectionLabelStyle,
   segmentTrackStyle,
   segmentStyle,
   segmentSelectedStyle,
-  inputBaseStyle,
   searchInputStyle,
   selectStyle,
   secondaryButtonStyle,
@@ -64,7 +64,7 @@ const LinkButton = ({ url, label }: { url: string; label: string }) => {
   <button
     onClick={() => openLink(url)}
     aria-label={t('rulesDirectory.openInNewWindow', 'Open {{label}} in a new window', { label })}
-    className={`${itemRowStyle} w-full min-h-14 flex items-center justify-between gap-3 px-4 py-3 text-left group font-ui focus:outline-none focus-visible:ring-2 focus-visible:ring-action`}
+    className={`${listRowStyle} w-full justify-between pr-4! py-3 text-left group transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action`}
   >
     <span className="text-ink text-[15px] font-medium">{label}</span>
     <HiOutlineArrowTopRightOnSquare className="w-5 h-5 text-ink-3 group-hover:text-ink flex-shrink-0" />
@@ -203,7 +203,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                     {t('rulesDirectory.noHits', 'No matches. Try another word, or browse the rulebook.')}
                   </p>
                 ) : (
-                  <ul className="space-y-2" data-testid="rules-hits">
+                  <ul className={`${groupedListStyle} divide-y divide-hairline`} data-testid="rules-hits">
                     {hits.map((h) => (
                       <li key={h.key}>
                         <button
@@ -217,7 +217,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                                   : `${t('rulesDirectory.lawN', 'Law {{n}}', { n: h.law })} - ${h.title}`,
                             })
                           }
-                          className={`${itemRowStyle} w-full min-h-14 flex items-center justify-between gap-3 px-4 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-action`}
+                          className="w-full min-h-14 flex items-center justify-between gap-3 pl-[18px] pr-4 py-2 text-left font-ui transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action"
                         >
                           <span className="min-w-0">
                             <span className="text-[15px] text-ink">
@@ -268,13 +268,16 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                     'Player count, playing time and pitch size are set per league, and the app does not know which league your team plays in - MatchOps is not connected to Palloliitto\'s system. Find your league in the list and open Info > Rules.',
                   )}
                 </p>
-                {SERIES_LINKS.map((link) => (
-                  <LinkButton
-                    key={link.id}
-                    url={link.url}
-                    label={t(link.labelKey as TranslationKey, link.fallbackLabel)}
-                  />
-                ))}
+                {/* One grouped list: hairline-separated rows, not a card per row. */}
+                <div className={groupedListStyle}>
+                  {SERIES_LINKS.map((link) => (
+                    <LinkButton
+                      key={link.id}
+                      url={link.url}
+                      label={t(link.labelKey as TranslationKey, link.fallbackLabel)}
+                    />
+                  ))}
+                </div>
               </Section>
 
               {/* The formats table, second: it answers the question a coach
@@ -392,13 +395,16 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
               {/* The laws of the game: same for everyone, and the least
                   likely thing a coach is actually looking for, so last. */}
               <Section title={t('rulesDirectory.rulebooksTitle', 'Laws of the game')}>
-                {RULEBOOK_LINKS.map((link) => (
-                  <LinkButton
-                    key={link.id}
-                    url={link.url}
-                    label={t(link.labelKey as TranslationKey, link.fallbackLabel)}
-                  />
-                ))}
+                {/* One grouped list: hairline-separated rows, not a card per row. */}
+                <div className={groupedListStyle}>
+                  {RULEBOOK_LINKS.map((link) => (
+                    <LinkButton
+                      key={link.id}
+                      url={link.url}
+                      label={t(link.labelKey as TranslationKey, link.fallbackLabel)}
+                    />
+                  ))}
+                </div>
               </Section>
 
               {/* Footer info, with the date the links were last verified against

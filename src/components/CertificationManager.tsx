@@ -133,7 +133,7 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
           type="button"
           onClick={() => setIsAdding(true)}
           disabled={!hasAvailableCertifications}
-          className={secondaryButtonStyle}
+          className={`${secondaryButtonStyle} w-full`}
           aria-label={t('personnelDetailsModal.addCertification', 'Add Certification')}
         >
           + {t('personnelDetailsModal.addCertification', 'Add Certification')}

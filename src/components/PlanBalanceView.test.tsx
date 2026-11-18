@@ -225,7 +225,7 @@ describe('zero-minutes warning split (rotation vs forgotten)', () => {
     subs: [],
   });
 
-  it('rotated starters (everyone plays somewhere) -> amber sits-out, NO red alarm', () => {
+  it('rotated starters (everyone plays somewhere) -> neutral sits-out note, NO red alarm', () => {
     // G1 starts p0,p1; G2 starts p2,p3 - every player sits out one full game
     // but everyone has minutes. The old combined warning shouted "4 players
     // with 0 minutes" at a fully-used roster.

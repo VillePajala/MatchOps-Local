@@ -12,7 +12,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { selectStyle, fieldHintStyle } from '@/styles/modalStyles';
+import { selectStyle, inlineSelectStyle, fieldHintStyle } from '@/styles/modalStyles';
 import {
   FINNISH_YOUTH_LEAGUES,
   CUSTOM_LEAGUE_ID,
@@ -81,14 +81,15 @@ export default function LeagueSelectWithFilters({
   const hiddenSelected =
     value && value !== CUSTOM_LEAGUE_ID && !filteredLeagues.some((l) => l.id === value) ? getLeagueById(value) : undefined;
 
-  // The two narrowing filters are the house select, stacked full width so
-  // no label is cut off on a narrow phone.
-  const filterClass = selectStyle;
+  // The two narrowing filters sit side by side as compact selects above the
+  // league dropdown - the same layout as the league details (SeasonDetailsModal),
+  // so one field group looks the same wherever it appears.
+  const filterClass = `${inlineSelectStyle} w-full!`;
 
   return (
     <>
-      <div className="flex flex-col gap-2 mb-2">
-        <div>
+      <div className="flex gap-2 mb-2">
+        <div className="flex-1 min-w-0">
           <label htmlFor={`league-level-filter-${filterIdSuffix}`} className="sr-only">
             {t('leagues.filterByLevel', 'Filter by level')}
           </label>
@@ -105,7 +106,7 @@ export default function LeagueSelectWithFilters({
             ))}
           </select>
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <label htmlFor={`league-area-filter-${filterIdSuffix}`} className="sr-only">
             {t('leagues.filterByArea', 'Filter by area')}
           </label>

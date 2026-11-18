@@ -184,10 +184,10 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
             />
             <div className="mt-1 text-xs text-ink-3 text-right">{notes.length}/280</div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
             <button
               type="button"
-              className={`${primaryButtonStyle} min-h-11`}
+              className={`${primaryButtonStyle} w-full`}
               onClick={handleSave}
               disabled={!isValid}
               aria-label={t('playerAssessmentModal.saveButton', 'Save')}
@@ -197,7 +197,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
             {assessment && onDelete && (
               <button
                 type="button"
-                className={`${dangerButtonStyle} min-h-11`}
+                className={`${dangerButtonStyle} w-full`}
                 onClick={() => { deletedRef.current = true; onDelete(); }}
               >
                 {t('playerAssessmentModal.resetButton', 'Reset')}

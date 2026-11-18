@@ -149,12 +149,12 @@ const SUB_RAIL_TOUCHLINE_GAP = 6;
 const FIELD_LINE_MARGIN = 5;
 /**
  * Highest first-slot centre when there is room: below the field tools
- * (28-68px) and the plan-view label under them (76-~110px), which sit over
- * the same right-hand strip.
+ * (12-52px) and the plan-view label under them (60-~94px), which sit over
+ * the same right-hand strip (FieldContainer).
  */
-const SUB_RAIL_TOP = 136;
+const SUB_RAIL_TOP = 120;
 /** When the column needs the room it may start higher - but stays below the tool row. */
-const SUB_RAIL_TOP_MIN = 92;
+const SUB_RAIL_TOP_MIN = 76;
 /** Widest spacing between slot centres; fewer slots sit as a centred group. */
 const SUB_RAIL_MAX_STEP = 68;
 /** Narrowest spacing: a 44px tap target each, so they never overlap. */

@@ -3,7 +3,7 @@
 import { useRememberedListSetting, isBoolean } from '@/hooks/useRememberedListSetting';
 import { matchesSearch } from '@/utils/listSearch';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { secondaryButtonStyle, dangerButtonStyle, primaryButtonStyle, CollapsibleModalHeader, useCollapsingHeader, modalContainerStyle, searchInputStyle, popoverMenuStyle, popoverItemStyle, iconButtonEditStyle, badgeArchivedStyle, pillAmberStyle, dialogContainerStyle, dialogTitleStyle, dialogBodyStyle, warningBoxStyle } from '@/styles/modalStyles';
+import { secondaryButtonStyle, dangerConfirmButtonStyle, primaryButtonStyle, CollapsibleModalHeader, useCollapsingHeader, modalContainerStyle, searchInputStyle, popoverMenuStyle, popoverItemStyle, iconButtonEditStyle, badgeArchivedStyle, neutralBadgeStyle, dialogContainerStyle, dialogTitleStyle, dialogBodyStyle, warningBoxStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -531,7 +531,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                 {placements.map((p, idx) => (
                                   <span
                                     key={idx}
-                                    className={`${pillAmberStyle} max-w-full gap-1 normal-case tracking-normal font-semibold text-xs`}
+                                    className={`${neutralBadgeStyle} max-w-full whitespace-normal!`}
                                     title={p.name}
                                   >
                                     {p.emoji} <span className="break-words min-w-0">{p.name}</span>
@@ -636,7 +636,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                 <button
                   onClick={handleConfirmDelete}
                   disabled={deleteTeamMutation.isPending}
-                  className={dangerButtonStyle}
+                  className={dangerConfirmButtonStyle}
                 >
                   {deleteTeamMutation.isPending ? t('common.deleting', 'Deleting...') : t('common.delete', 'Delete')}
                 </button>

@@ -21,7 +21,7 @@ import {
   segmentStyle,
   segmentSelectedStyle,
   secondaryButtonStyle,
-  pillAmberStyle,
+  neutralBadgeStyle,
   groupedListStyle,
   listRowStyle,
   iconButtonDangerStyle,
@@ -165,10 +165,10 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
   // Your team's kick entry: shooter picker + result.
   const yourPanel = (
     <div key="you" className={entryCardClass(nextUp === 'you')}>
-      <label htmlFor="shootoutScorer" className={`${labelStyle} flex items-center justify-between gap-2 mb-0! text-[15px]! font-semibold! text-ink!`}>
+      <label htmlFor="shootoutScorer" className={`${labelStyle} flex items-center justify-between gap-2 mb-2! text-[15px]! font-semibold! text-ink!`}>
         <span className="min-w-0 truncate">{teamName}</span>
         {nextUp === 'you' && (
-          <span className={pillAmberStyle}>{t('shootoutModal.upNext', 'Up next')}</span>
+          <span className={neutralBadgeStyle}>{t('shootoutModal.upNext', 'Up next')}</span>
         )}
       </label>
       <select
@@ -207,7 +207,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
       <span className="flex items-center justify-between gap-2 text-[15px] font-semibold text-ink">
         <span className="min-w-0 truncate">{opponentName}</span>
         {nextUp === 'opponent' && (
-          <span className={pillAmberStyle}>{t('shootoutModal.upNext', 'Up next')}</span>
+          <span className={neutralBadgeStyle}>{t('shootoutModal.upNext', 'Up next')}</span>
         )}
       </span>
       <div className="flex gap-2">
@@ -246,10 +246,12 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
         />
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pb-4 pt-4 space-y-5 font-ui">
+        {/* space-y-4 and a compact tally keep the "Shots (n)" label above the
+            sticky Save bar at first fold on a ~366px phone. */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pb-4 pt-2 space-y-4 font-ui">
           {/* Tally: the score as the home screen's italic numerals, result-coloured
               once the shootout is decided (green/red mean results). */}
-          <div className={`${cardStyle} text-center py-5`}>
+          <div className={`${cardStyle} text-center`}>
             <div
               className={`font-display text-[56px] font-bold italic leading-none tabular-nums pr-[3px] ${
                 winner === null ? 's1-numeral' : winner === yourSide ? 's1-numeral-win' : 's1-numeral-loss'

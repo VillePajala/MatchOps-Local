@@ -31,12 +31,13 @@ import {
   sectionLabelStyle,
   subtextStyle,
   secondaryButtonStyle,
+  dangerButtonStyle,
   inputBaseStyle,
   selectStyle,
   textareaStyle,
   switchInputStyle,
   linkStyle,
-  pillAmberStyle,
+  neutralBadgeStyle,
   pillQuietStyle,
 } from '@/styles/modalStyles';
 import { resetAiUsage, useAiUsage } from '@/utils/aiUsage';
@@ -53,8 +54,9 @@ const rowStyle =
 const secondary = `${secondaryButtonStyle} shrink-0 min-h-10! px-4! text-sm!`;
 // No amber pill here: settings has no single primary action (ghost, as in the mock).
 const primary = secondary;
-// Destructive but not final (a confirmation follows): a red outline, not a solid fill.
-const danger = `${secondaryButtonStyle} shrink-0 min-h-11! px-4! text-sm! text-loss! bg-transparent! shadow-[inset_0_0_0_1.5px_var(--color-loss)]!`;
+// Destructive but not final (a confirmation follows): the house tinted danger
+// pill; the solid red is only on the confirm dialog's final button.
+const danger = `${dangerButtonStyle} shrink-0 min-h-11! px-4! text-sm!`;
 const rowKey = 'font-ui text-base font-medium text-ink';
 
 const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
@@ -145,7 +147,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
         <div className="flex items-center gap-2 flex-wrap">
           {/* Says who this is for before anyone reads further: a coach without
               an API key should not expect a one-button AI here. */}
-          <span className={pillAmberStyle} data-testid="ai-experimental">
+          <span className={neutralBadgeStyle} data-testid="ai-experimental">
             {t('aiSettings.experimentalTag', 'Experimental')}
           </span>
           <span

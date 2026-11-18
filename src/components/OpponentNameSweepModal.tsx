@@ -5,7 +5,7 @@ import { findMergeTarget } from '@/utils/opponentRename';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
-import { CollapsibleModalHeader, ModalContainer, cardStyle, sectionLabelStyle, subtextStyle, inputBaseStyle, searchInputStyle, primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle, warningBoxStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalContainer, cardStyle, sectionLabelStyle, subtextStyle, inputBaseStyle, searchInputStyle, primaryButtonStyle, secondaryButtonStyle, dangerConfirmButtonStyle, warningBoxStyle } from '@/styles/modalStyles';
 import { HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 import { useOpponentVariantGroups, useAllOpponents } from '@/hooks/useOpponentVariantGroups';
 import { useOpponentRename } from '@/hooks/useOpponentRename';
@@ -281,7 +281,7 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                                   }}
                                   disabled={busy}
                                   data-testid={`opponent-row-merge-confirm-${opponent.key}`}
-                                  className={`${dangerButtonStyle} flex-1`}
+                                  className={`${dangerConfirmButtonStyle} flex-1`}
                                 >
                                   {t('opponentSweep.mergeConfirm', 'Merge')}
                                 </button>

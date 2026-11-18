@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { getFieldConfig } from '@/config/fieldConfigs';
 import { getFieldEdgeColors } from '@/utils/fieldDrawing';
-import { matchGlassStyle } from '@/styles/modalStyles';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import PlayerBar from '@/components/PlayerBar';
@@ -48,35 +47,32 @@ export function GameContainer({
   const { t } = useTranslation();
   const assessmentsEnabled = useAssessmentsEnabled();
 
-  // FULL-SCREEN PITCH. The canvas keeps its own box (FieldContainer: below
-  // the top panel's lower edge, above the control capsule), so every player
-  // coordinate means what it always meant. The grass beyond that box - under
-  // the top panel, beside and under the capsule - is painted here in the
-  // colours the field's own background has at its top and bottom edges, so
-  // the pitch reads as one surface from edge to edge.
+  // STACKED MATCH VIEW: the top panel (score row over the player bar), then
+  // the pitch, then the control strip - top to bottom, nothing overlapping.
+  // The pitch box gets exactly the height between the two, so every line, the
+  // subs rail and every disc stay fully visible; relative player coordinates
+  // map to that box as they always have.
   const gameType = fieldProps.gameSessionState?.gameType;
-  // getFieldEdgeColors gives the field's own edge colours (exact for the
-  // clean grass), so there is no darker band where the canvas box ends.
+  // The pitch box is painted in the field's own edge colours under the
+  // canvas, so a sub-pixel gap while the canvas resizes shows grass, not navy.
   const surround = useMemo(() => getFieldEdgeColors(getFieldConfig(gameType)), [gameType]);
-  // Players already on the pitch are dimmed in the bar (same order).
+  // Players on the pitch are drawn solid in the bar, the bench hollow (same order).
   const playersOnField = fieldProps.fieldVM?.playersOnField;
   const onFieldPlayerIds = useMemo(() => new Set((playersOnField ?? []).map((p) => p.id)), [playersOnField]);
 
   return (
     <main
-      className="relative h-full min-h-[100svh] overflow-hidden text-slate-50"
-      style={{ background: `linear-gradient(180deg, ${surround.top} 0%, ${surround.top} 50%, ${surround.bottom} 50%, ${surround.bottom} 100%)` }}
+      className="relative flex flex-col h-full min-h-[100svh] overflow-hidden bg-carbon text-slate-50"
       data-testid="home-page"
     >
-      <FieldContainer {...fieldProps} />
-
-      {/* Top panel: the score over the player bar, frosted navy over the
-          grass. Docked to the top edge, straight under the status bar (no
-          grass sliver above it), rounded only below. Below the timer view
-          (z-30) so that view covers it. */}
+      {/* Top panel: the score over the player bar, a solid block above the
+          pitch, straight under the status bar. No z-index, filter or
+          backdrop-filter, so the full-screen timer view (fixed, z-30) still
+          covers it. */}
       <div
-        className={`absolute inset-x-0 top-0 z-[26] rounded-b-[26px] overflow-hidden font-ui ${matchGlassStyle}`}
+        className="flex-none bg-surface border-b border-hairline font-ui"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        data-testid="match-top-panel"
       >
         <GameInfoBar
           teamName={gameInfo.teamName}
@@ -107,17 +103,27 @@ export function GameContainer({
         </ErrorBoundary>
       </div>
 
+      {/* The pitch: exactly the space between the panel and the control strip. */}
+      <div
+        className="relative flex-1 min-h-0"
+        style={{ background: `linear-gradient(180deg, ${surround.top} 0%, ${surround.top} 50%, ${surround.bottom} 50%, ${surround.bottom} 100%)` }}
+        data-testid="match-pitch-area"
+      >
+        <FieldContainer {...fieldProps} />
+      </div>
+
       {/* Orphaned game banner removed - warning in TeamManagerModal is sufficient.
           Functionality (orphanedGameInfo, TeamReassignModal) kept for potential future use. */}
 
-      {/* The control bar floats as a capsule over the grass. This wrapper
-          deliberately has NO z-index, filter or backdrop-filter: ControlBar's
-          side menu and its scrim are `fixed`, and any of those would become
-          their containing block / stacking context and trap them here. The
-          glass lives on the capsule element itself. */}
+      {/* The control strip below the pitch, with the capsule centred in it.
+          This wrapper deliberately has NO z-index, filter or backdrop-filter:
+          ControlBar's side menu and its scrim are `fixed`, and any of those
+          would become their containing block / stacking context and trap
+          them here. */}
       <div
-        className="absolute inset-x-0 flex justify-center px-2"
-        style={{ bottom: 'calc(10px + env(safe-area-inset-bottom, 0px))' }}
+        className="flex-none flex justify-center items-center px-2 pt-3 border-t border-hairline"
+        style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
+        data-testid="match-control-strip"
       >
         {/* 3.1: the planner entry left the match menu (reachability: it
             lives on Home/Pelit - it creates games). */}
@@ -132,13 +138,13 @@ export function GameContainer({
 
       {/* Safe area bottom cover - rendered via portal so it also fills any gap
           below <main> in PWA standalone mode (34px fixed height, typical safe
-          area, + env() for extra safety). Grass now, not a navy band, so the
-          pitch still runs to the screen edge; z-0 keeps it under the capsule
-          (z-40) and under the full-screen timer and formation views (z-30). */}
+          area, + env() for extra safety). The app's carbon, like the control
+          strip it continues; z-0 keeps it under the capsule (z-40) and under
+          the full-screen timer and formation views (z-30). */}
       {typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed bottom-0 inset-x-0 pointer-events-none"
-          style={{ height: 'max(34px, env(safe-area-inset-bottom, 34px))', zIndex: 0, backgroundColor: surround.bottom }}
+          className="fixed bottom-0 inset-x-0 pointer-events-none bg-carbon"
+          style={{ height: 'max(34px, env(safe-area-inset-bottom, 34px))', zIndex: 0 }}
           aria-hidden="true"
         />,
         document.body

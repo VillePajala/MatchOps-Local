@@ -165,7 +165,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
           type="button"
           onClick={() => setIsAddingNewSeries(true)}
           disabled={availableLevels.length === 0}
-          className={secondaryButtonStyle}
+          className={`${secondaryButtonStyle} w-full`}
           aria-label={t('tournamentDetailsModal.addSeries', 'Add level')}
         >
           + {t('tournamentDetailsModal.addSeries', 'Add level')}

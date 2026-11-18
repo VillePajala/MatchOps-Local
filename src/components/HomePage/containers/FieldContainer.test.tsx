@@ -257,6 +257,26 @@ describe('FieldContainer', () => {
     expect(screen.queryByText(/Create Game/i)).not.toBeInTheDocument();
   });
 
+  /**
+   * Select-and-place: a player tapped in the bar waits for a tap on the pitch.
+   * The amber ring on the picked disc names who; the pitch outline says where.
+   * There is no notice pill over the pitch any more.
+   * @critical
+   */
+  it('shows the amber pitch outline but no notice while a player waits to be placed', () => {
+    const base = baseProps();
+    const props = {
+      ...base,
+      fieldVM: { ...base.fieldVM, draggingPlayerFromBarInfo: TestFixtures.players.fieldPlayer({ name: 'Leo' }) },
+    };
+    render(<FieldContainer {...props} />);
+
+    expect(screen.getByTestId('placement-outline')).toBeInTheDocument();
+    expect(screen.queryByTestId('placement-hint')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /cancel selection/i })).not.toBeInTheDocument();
+  });
+
   describe('Export Button', () => {
     beforeEach(() => {
       jest.clearAllMocks();

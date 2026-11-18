@@ -39,8 +39,11 @@ interface UnifiedTeamModalProps {
   masterRoster: Player[];
 }
 
-/** A list set into a card: a darker well, so it reads as inside the card. */
-const innerListStyle = 'rounded-2xl bg-carbon overflow-hidden shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]';
+/**
+ * A list inside the card: plain hairline-separated rows (a card never holds a
+ * card), the same recipe as the home lists - only a closing hairline below.
+ */
+const innerListStyle = 'border-b border-hairline';
 
 const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   isOpen,
@@ -773,7 +776,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             return (
                               <div
                                 key={tournament.id}
-                                className="px-[18px] py-4 font-ui border-t border-hairline first:border-t-0"
+                                className="py-4 font-ui border-t border-hairline first:border-t-0"
                               >
                                 <div className="flex items-center gap-2 mb-2">
                                   <HiOutlineTrophy className="w-5 h-5 shrink-0 text-ink-3" aria-hidden="true" />
@@ -810,7 +813,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             return (
                               <div
                                 key={season.id}
-                                className="px-[18px] py-4 font-ui border-t border-hairline first:border-t-0"
+                                className="py-4 font-ui border-t border-hairline first:border-t-0"
                               >
                                 <div className="flex items-center gap-2 mb-2">
                                   <HiOutlineCalendarDays className="w-5 h-5 shrink-0 text-ink-3" aria-hidden="true" />
@@ -877,7 +880,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             .map((player) => (
                               <div
                                 key={player.id}
-                                className="min-h-14 px-[18px] py-3 flex items-center font-ui border-t border-hairline first:border-t-0"
+                                className="min-h-14 py-3 flex items-center font-ui border-t border-hairline first:border-t-0"
                               >
                                 <div className="flex items-center gap-3">
                                   <span className="font-ui text-base font-medium text-ink">

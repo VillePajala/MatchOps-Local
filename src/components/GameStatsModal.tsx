@@ -7,7 +7,7 @@ import type { AdjustmentScope } from '@/utils/adjustmentScope';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Combobox } from '@headlessui/react';
-import { HiChevronDown, HiOutlineChevronUpDown, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
+import { HiChevronDown, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 import { HiOutlineShare } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -52,6 +52,7 @@ import {
   sectionLabelStyle,
   subtextStyle,
   inputBaseStyle,
+  selectStyle,
   secondaryButtonStyle,
   chipStyle,
   infoBoxStyle,
@@ -1395,15 +1396,19 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   }}
                 >
                   <div className="relative flex-1 min-w-0">
+                    {/* Drawn as the house select (filled well, one CSS down
+                        chevron from `.s1-select`); the button over the chevron
+                        opens the list. */}
                     <Combobox.Input
-                      className={`${inputBaseStyle} pr-10!`}
+                      className={selectStyle}
                       onChange={(e) => setPlayerQuery(e.target.value)}
                       displayValue={(p: Player | null) => (p ? p.name : '')}
                       placeholder={t('playerStats.selectPlayerLabel', 'Select Player')}
                     />
-                    <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      <HiOutlineChevronUpDown className="w-5 h-5 text-ink-3" />
-                    </Combobox.Button>
+                    <Combobox.Button
+                      className="absolute inset-y-0 right-0 w-11 rounded-r-[14px] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action"
+                      aria-label={t('playerStats.selectPlayerLabel', 'Select Player')}
+                    />
                     {filteredPlayers.length > 0 && (
                       <Combobox.Options className="absolute z-20 mt-1.5 w-full max-h-80 overflow-auto rounded-2xl bg-surface-2 py-1 text-[15px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)] focus:outline-none">
                         {filteredPlayers.map((p) => (
@@ -1702,7 +1707,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       genderFilter: selectedGenderFilter,
                     });
                   }}
-                  className={secondaryButtonStyle}
+                  className={`${secondaryButtonStyle} w-full`}
                 >
                   {t('common.exportExcel', 'Export Excel')}
                 </button>
@@ -1710,7 +1715,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               {activeTab !== 'player' && onExportAggregateExcel && !noGamesInContext && processedGameIds.length > 0 && (
                 <button
                   onClick={() => onExportAggregateExcel(processedGameIds, playerStats)}
-                  className={secondaryButtonStyle}
+                  className={`${secondaryButtonStyle} w-full`}
                 >
                   {t('common.exportExcel', 'Export Excel')}
                 </button>

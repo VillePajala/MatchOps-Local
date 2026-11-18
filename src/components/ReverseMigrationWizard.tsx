@@ -14,7 +14,7 @@ import {
 import {
   primaryButtonStyle,
   secondaryButtonStyle,
-  dangerButtonStyle,
+  dangerConfirmButtonStyle,
   WizardBackdrop,
   wizardModalStyle,
   inputBaseStyle,
@@ -551,7 +551,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
               </button>
               <button
                 onClick={handleContinueFromChoose}
-                className={migrationMode === 'delete-cloud' ? dangerButtonStyle : primaryButtonStyle}
+                className={migrationMode === 'delete-cloud' ? dangerConfirmButtonStyle : primaryButtonStyle}
               >
                 {t('common.continue', 'Continue')}
               </button>
@@ -615,7 +615,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
               </button>
               <button
                 onClick={handleContinueFromConfirm}
-                className={dangerButtonStyle}
+                className={dangerConfirmButtonStyle}
                 disabled={deleteConfirmText.toUpperCase() !== 'DELETE'}
               >
                 {t('reverseMigration.confirm.downloadAndDelete', 'Download & Delete Cloud')}

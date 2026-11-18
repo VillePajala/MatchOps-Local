@@ -23,12 +23,12 @@ import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/Subs
 import {
   primaryButtonStyle,
   secondaryButtonStyle,
+  dangerButtonStyle,
   groupedListStyle,
   sectionLabelStyle,
   subtextStyle,
   warningBoxStyle,
   errorBoxStyle,
-  infoBoxStyle,
 } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { isPlayStoreContext } from '@/utils/platform';
@@ -548,8 +548,8 @@ export default function CloudSyncSection({
     </h3>
     <div className={`${groupedListStyle} p-4 space-y-3`}>
 
-      {/* Current Status */}
-      <div className={`${infoBoxStyle} flex items-center gap-3 p-3!`}>
+      {/* Current Status: a plain row of the card, not a box inside it. */}
+      <div className="flex items-center gap-3 min-h-14">
         {currentMode === 'cloud' ? (
           <>
             <HiOutlineCloud className="h-6 w-6 text-ink-2" />
@@ -585,7 +585,7 @@ export default function CloudSyncSection({
 
       {/* Sync Details - shown in cloud mode with active subscription */}
       {currentMode === 'cloud' && hasSubscription && (
-        <div className={`${infoBoxStyle} p-3! space-y-3`}>
+        <div className="pt-3 border-t border-hairline space-y-3">
           {/* Sync Status Row */}
           <div className="flex items-center justify-between">
             <span className="font-ui text-sm text-ink-2">{t('cloudSync.syncDetails.status', 'Sync Status')}</span>
@@ -682,7 +682,7 @@ export default function CloudSyncSection({
                 </button>
                 <button
                   onClick={syncStatus.clearFailed}
-                  className={`${smallButton} flex-1 text-red-400!`}
+                  className={`${dangerButtonStyle} min-h-10! px-4! text-sm! flex-1`}
                 >
                   {t('cloudSync.syncDetails.discard', 'Discard')}
                 </button>
@@ -867,7 +867,7 @@ export default function CloudSyncSection({
           </div>
 
           {/* Account info - horizontal card style */}
-          <div className={`${infoBoxStyle} flex items-start gap-3 p-3! mb-2`}>
+          <div className="flex items-start gap-3 py-2 mb-2">
             <HiOutlineUser className="h-5 w-5 text-ink-3 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="font-ui text-base font-medium text-ink">
@@ -879,7 +879,7 @@ export default function CloudSyncSection({
                 })}
               </p>
               {cloudAccountInfo?.hasCloudData && (
-                <p className="font-ui text-sm text-action mt-1">
+                <p className="font-ui text-sm text-ink-2 mt-1">
                   {t('cloudSync.cloudAccount.hasCloudData', 'You have data stored in the cloud.')}
                 </p>
               )}

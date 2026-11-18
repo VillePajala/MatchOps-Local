@@ -115,7 +115,9 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
         </div>
       </div>
 
-      <div className="space-y-2">
+      {/* One hairline grouped list: the rows sit on the surrounding card,
+          split by inset hairlines - no box per player. */}
+      <div data-testid="player-positions-list">
         {players.map(player => {
           const assigned = value[player.id] ?? [];
           const isOpen = expanded.has(player.id);
@@ -124,13 +126,13 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
           return (
             <div
               key={player.id}
-              className="rounded-2xl overflow-hidden transition-colors bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] hover:bg-white/[0.05]"
+              className="relative before:absolute before:top-0 before:left-0 before:right-0 before:h-px before:bg-hairline first:before:hidden"
             >
               <button
                 type="button"
                 onClick={() => toggleExpand(player.id)}
                 aria-expanded={isOpen}
-                className="w-full min-h-12 flex items-center justify-between gap-2 px-3.5 py-2 text-left rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                className="w-full min-h-12 flex items-center justify-between gap-2 px-1 py-2 text-left rounded-[14px] transition-colors hover:bg-white/[0.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action"
               >
                 <span className="text-[15px] font-medium text-ink truncate shrink-0">{name}</span>
                 <span className="flex items-center gap-2 min-w-0">
@@ -150,7 +152,7 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
               </button>
 
               {isOpen && (
-                <div className="px-3 pb-3 flex flex-wrap gap-1.5" role="group">
+                <div className="px-1 pb-3 flex flex-wrap gap-1.5" role="group">
                   {chipIds.map(id => {
                     const sel = assigned.includes(id);
                     const s = catStyle(id);

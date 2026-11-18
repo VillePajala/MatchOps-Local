@@ -3,7 +3,7 @@
 import { playersForRedaction } from '@/utils/gamePacket';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { selectStyle } from '@/styles/modalStyles';
+import { selectStyle, secondaryButtonStyle, neutralBadgeStyle } from '@/styles/modalStyles';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
 import type { TranslationKey } from '@/i18n-types';
@@ -31,11 +31,47 @@ import GameRecapModal from '@/components/GameRecapModal';
 import MetricAreaChart from './MetricAreaChart';
 import { computePositionDiversity } from '@/utils/positionDiversity';
 import { POSITION_IDS } from '@/config/positions';
-import ExternalGamesSection, { getResultClass } from './ExternalGamesSection';
+import ExternalGamesSection from './ExternalGamesSection';
 import logger from '@/utils/logger';
 import { getClubSeasonForDate, currentClubSeasonForPlayer } from '@/utils/clubSeason';
 import PlayerNotesSummaryCard from './PlayerNotesSummaryCard';
 import { formatAppDecimal } from '@/utils/localeFormat';
+
+/** The league / tournament summary: one 14px box, its competitions split by hairlines. */
+const COMPETITION_BOX = 'rounded-[14px] bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] overflow-hidden';
+const COMPETITION_ROW =
+  'relative px-3 py-2.5 before:absolute before:top-0 before:left-3 before:right-0 before:h-px before:bg-hairline first:before:hidden';
+/** Four equal number columns and a last one sized to "Fair play", so it never wraps. */
+const COMPETITION_GRID = 'grid grid-cols-[repeat(4,minmax(0,1fr))_auto] gap-x-2 text-center text-sm';
+const COMPETITION_LABEL = 'text-xs text-ink-3 whitespace-nowrap';
+
+/** Round result disc, as in the home screen's results list (V / T / H). */
+const RESULT_DISC_TONE: Record<'W' | 'L' | 'D' | 'N/A', string> = {
+  W: 'bg-win/15 text-win',
+  D: 'bg-white/10 text-draw',
+  L: 'bg-loss/15 text-loss',
+  'N/A': 'bg-white/[0.06] text-ink-3',
+};
+
+const ResultDisc: React.FC<{ result: 'W' | 'L' | 'D' | 'N/A' }> = ({ result }) => {
+  const { t } = useTranslation();
+  const letter =
+    result === 'W'
+      ? t('export.winShort', 'W')
+      : result === 'L'
+        ? t('export.lossShort', 'L')
+        : result === 'D'
+          ? t('export.tieShort', 'T')
+          : '–';
+  return (
+    <span
+      className={`grid h-8 w-8 flex-none place-items-center rounded-full font-display text-[17px] font-bold leading-none ${RESULT_DISC_TONE[result]}`}
+      data-testid="player-game-result"
+    >
+      {letter}
+    </span>
+  );
+};
 
 // Line badge colours mirror the position-category colours used in the positions editor.
 interface PlayerStatsViewProps {
@@ -453,8 +489,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         )}
 
         {/* Summary Stats */}
-        <div className="bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] hover:bg-white/[0.05] rounded-lg p-4 mb-3 shadow-inner transition-all">
-          {/* Primary Stats Row with Averages */}
+        <div className="mb-3">
+          {/* Primary Stats Row with Averages - straight on the card, no inner box */}
           {/* min-w-0 cells and a wrap point after the slash: on a 360px phone
               the per-game figures ran into each other. */}
           <div className="grid grid-cols-4 gap-2 sm:gap-4 text-center [&>div]:min-w-0">
@@ -494,7 +530,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             type="button"
             onClick={() => setShowEvidence(true)}
             data-testid="player-evidence"
-            className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold s1-ghost text-ink"
+            className={`${secondaryButtonStyle} mt-4 w-full`}
           >
             {t('evidence.button', 'Share player summary')}
           </button>
@@ -519,7 +555,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
         {/* Positions played - this player's spread over the current scope */}
         {positionSummary && (
-          <div className={`bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] rounded-lg shadow-inner p-4 mb-3 ${positionSummary.totalGames / (playerStats.totalGames || 1) < 0.5 ? 'opacity-60' : ''}`}>
+          <div className={`border-t border-hairline pt-4 mt-4 mb-3 ${positionSummary.totalGames / (playerStats.totalGames || 1) < 0.5 ? 'opacity-60' : ''}`}>
             <div className="flex items-center justify-between gap-2 mb-1">
               <h3 className="text-sm font-semibold text-ink">
                 {t('playerStats.positionsPlayed.title', 'Positions played')}
@@ -552,7 +588,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             )}
             {externalPositionGames.length > 0 && (
               <p className="text-xs text-ink-3 mt-2">
-                <span className="inline-block bg-white/[0.08] text-ink-2 text-xs font-bold px-1.5 py-0.5 rounded mr-1.5">{t('playerStats.external', 'ADDED')}</span>
+                <span className={`${neutralBadgeStyle} mr-1.5`}>{t('playerStats.external', 'ADDED')}</span>
                 {t('playerStats.positionsPlayed.includesExternal', { count: externalPositionGames.length, defaultValue: 'Includes {{count}} added games with recorded positions.' })}
               </p>
             )}
@@ -846,18 +882,18 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         {/* Performance by Season/Tournament */}
         <div className="space-y-4 mt-2">
           {Object.keys(playerStats.performanceBySeason).length > 0 && (
-            <div className="bg-white/[0.03] p-3 rounded-2xl">
-              <h4 className="text-md font-semibold text-ink mb-2">{t('playerStats.seasonPerformance', 'League Performance')}</h4>
-              <div className="space-y-2">
+            <div className={COMPETITION_BOX}>
+              <h4 className="px-3 pt-3 pb-1 text-base font-semibold text-ink">{t('playerStats.seasonPerformance', 'League Performance')}</h4>
+              <div>
                 {Object.entries(playerStats.performanceBySeason).map(([id, stats]) => (
-                  <div key={id} className="p-2 bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] hover:bg-white/[0.05] rounded-md transition-all">
-                    <p className="font-semibold text-ink mb-1">{stats.name}</p>
-                    <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                      <div><p className="font-bold text-ink tabular-nums">{stats.gamesPlayed}</p><p className="text-sm text-ink-3">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
-                      <div><p className="font-bold text-ink tabular-nums">{stats.goals}</p><p className="text-sm text-ink-3">{t('playerStats.goals', 'Goals')}</p></div>
-                      <div><p className="font-bold text-ink tabular-nums">{stats.assists}</p><p className="text-sm text-ink-3">{t('playerStats.assists', 'Assists')}</p></div>
-                      <div><p className="font-bold text-ink tabular-nums">{stats.points}</p><p className="text-sm text-ink-3">{t('playerStats.points', 'Points')}</p></div>
-                      <div><p className="font-bold text-ink tabular-nums">{stats.fairPlayCards || 0}</p><p className="text-sm text-ink-3">{t('playerStats.fairPlayLabel', 'Fair play')}</p></div>
+                  <div key={id} className={COMPETITION_ROW}>
+                    <p className="font-semibold text-ink mb-1 break-words">{stats.name}</p>
+                    <div className={COMPETITION_GRID}>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.gamesPlayed}</p><p className={COMPETITION_LABEL}>{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.goals}</p><p className={COMPETITION_LABEL}>{t('playerStats.goals', 'Goals')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.assists}</p><p className={COMPETITION_LABEL}>{t('playerStats.assists', 'Assists')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.points}</p><p className={COMPETITION_LABEL}>{t('playerStats.points', 'Points')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.fairPlayCards || 0}</p><p className={COMPETITION_LABEL}>{t('playerStats.fairPlayLabel', 'Fair play')}</p></div>
                     </div>
                   </div>
                 ))}
@@ -865,12 +901,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             </div>
           )}
           {Object.keys(playerStats.performanceByTournament).length > 0 && (
-            <div className="bg-white/[0.03] p-3 rounded-2xl">
-              <h4 className="text-md font-semibold text-ink mb-2">{t('playerStats.tournamentPerformance', 'Tournament Performance')}</h4>
-              <div className="space-y-2">
+            <div className={COMPETITION_BOX}>
+              <h4 className="px-3 pt-3 pb-1 text-base font-semibold text-ink">{t('playerStats.tournamentPerformance', 'Tournament Performance')}</h4>
+              <div>
                 {Object.entries(playerStats.performanceByTournament).map(([id, stats]) => (
-                  <div key={id} className="p-2 bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] hover:bg-white/[0.05] rounded-md transition-all">
-                    <p className="font-semibold text-ink mb-1 flex items-center gap-2">
+                  <div key={id} className={COMPETITION_ROW}>
+                    <p className="font-semibold text-ink mb-1 flex flex-wrap items-center gap-x-2">
                       {stats.name}
                       {stats.isTournamentWinner && (
                         <span className="text-ink-2 flex items-center gap-1 text-sm">
@@ -878,12 +914,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         </span>
                       )}
                     </p>
-                    <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                      <div><p className="font-bold text-ink tabular-nums">{stats.gamesPlayed}</p><p className="text-sm text-ink-3">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
-                      <div><p className="font-bold text-ink tabular-nums">{stats.goals}</p><p className="text-sm text-ink-3">{t('playerStats.goals', 'Goals')}</p></div>
-                      <div><p className="font-bold text-ink tabular-nums">{stats.assists}</p><p className="text-sm text-ink-3">{t('playerStats.assists', 'Assists')}</p></div>
-                      <div><p className="font-bold text-ink tabular-nums">{stats.points}</p><p className="text-sm text-ink-3">{t('playerStats.points', 'Points')}</p></div>
-                      <div><p className="font-bold text-ink tabular-nums">{stats.fairPlayCards || 0}</p><p className="text-sm text-ink-3">{t('playerStats.fairPlayLabel', 'Fair play')}</p></div>
+                    <div className={COMPETITION_GRID}>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.gamesPlayed}</p><p className={COMPETITION_LABEL}>{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.goals}</p><p className={COMPETITION_LABEL}>{t('playerStats.goals', 'Goals')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.assists}</p><p className={COMPETITION_LABEL}>{t('playerStats.assists', 'Assists')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.points}</p><p className={COMPETITION_LABEL}>{t('playerStats.points', 'Points')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.fairPlayCards || 0}</p><p className={COMPETITION_LABEL}>{t('playerStats.fairPlayLabel', 'Fair play')}</p></div>
                     </div>
                   </div>
                 ))}
@@ -892,9 +928,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           )}
         </div>
 
-        {/* Individual Game Log List */}
+        {/* Individual Game Log List: one hairline grouped list, each row led by
+            the same V/T/H disc as the home screen's results. */}
         <div className="flex-grow mt-4">
-          <div className="space-y-2">
+          <div>
             {playerStats.gameByGameStats.length > 0 ? (
               playerStats.gameByGameStats.map(game => {
                 // External games use a div instead of button (not clickable)
@@ -902,43 +939,45 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 return (
                   <GameWrapper
                     key={game.gameId}
-                    className={`relative w-full bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] ${!game.isExternal ? 'hover:bg-white/[0.05] cursor-pointer' : ''} border border-hairline p-4 rounded-md flex justify-between items-center text-left transition-all shadow-inner`}
+                    {...(game.isExternal ? {} : { type: 'button' as const })}
+                    className={`relative w-full min-h-14 flex items-center gap-3 py-2.5 pr-1 text-left rounded-[14px] transition-colors before:absolute before:top-0 before:left-11 before:right-0 before:h-px before:bg-hairline first:before:hidden ${!game.isExternal ? 'hover:bg-white/[0.03] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action' : ''}`}
                     onClick={game.isExternal ? undefined : () => onGameClick(game.gameId)}
+                    data-testid={`player-game-row-${game.gameId}`}
                   >
-                    <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(game.result)}`}></span>
-                    <div className="flex items-center pl-2">
-                      <div>
-                        <p className="font-semibold text-ink drop-shadow-lg">
-                          {game.isExternal && game.externalTeamName && (
-                            <span className="text-ink-3">{game.externalTeamName} </span>
-                          )}
-                          {t('playerStats.vs', 'vs')} {game.opponentName}
-                          {game.isExternal && (
-                            <span className="ml-2 inline-block bg-white/[0.08] text-ink-2 text-xs font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.externalGame', 'Added game')}>{t('playerStats.external', 'ADDED')}</span>
-                          )}
-                          {game.receivedFairPlayCard && (
-                            <span className="ml-2 inline-block bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.fairPlayCard', 'Fair Play Card')}>FP</span>
-                          )}
-                          {game.gameType === 'futsal' && (
-                            <span className="ml-2 inline-block bg-orange-500/50 text-orange-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('common.gameTypeFutsal', 'Futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</span>
-                          )}
-                          {!game.isExternal && Boolean(savedGames[game.gameId]?.assessments?.[player.id]) && (
-                            <span className="ml-2 inline-block bg-white/[0.08] text-ink-2 text-xs font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.assessed', 'Assessed')}>{t('playerStats.assessed', 'Assessed')}</span>
-                          )}
-                        </p>
-                        <p className="text-sm text-ink-3">{formatDisplayDate(game.date)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="text-center mx-2">
-                        <p className={`font-bold text-xl ${game.goals > 0 ? 'text-green-400' : 'text-ink-2'}`}>{game.goals}</p>
-                        <p className="text-sm text-ink-3">{t('playerStats.goals', 'Goals')}</p>
-                      </div>
-                      <div className="text-center mx-2">
-                        <p className={`font-bold text-xl ${game.assists > 0 ? 'text-blue-400' : 'text-ink-2'}`}>{game.assists}</p>
-                        <p className="text-sm text-ink-3">{t('playerStats.assists', 'Assists')}</p>
-                      </div>
-                    </div>
+                    <ResultDisc result={game.result} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold leading-5 text-ink">
+                        {game.isExternal && game.externalTeamName && (
+                          <span className="text-ink-3">{game.externalTeamName} </span>
+                        )}
+                        {t('playerStats.vs', 'vs')} {game.opponentName}
+                      </span>
+                      <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[13px] leading-5 text-ink-3">
+                        <span>{formatDisplayDate(game.date)}</span>
+                        {game.isExternal && (
+                          <span className={neutralBadgeStyle} title={t('playerStats.externalGame', 'Added game')}>{t('playerStats.external', 'ADDED')}</span>
+                        )}
+                        {game.receivedFairPlayCard && (
+                          <span className={neutralBadgeStyle} title={t('playerStats.fairPlayCard', 'Fair Play Card')}>FP</span>
+                        )}
+                        {game.gameType === 'futsal' && (
+                          <span className={neutralBadgeStyle} title={t('common.gameTypeFutsal', 'Futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</span>
+                        )}
+                        {!game.isExternal && Boolean(savedGames[game.gameId]?.assessments?.[player.id]) && (
+                          <span className={neutralBadgeStyle} title={t('playerStats.assessed', 'Assessed')}>{t('playerStats.assessed', 'Assessed')}</span>
+                        )}
+                      </span>
+                    </span>
+                    <span className="flex flex-none items-center">
+                      <span className="w-11 text-center">
+                        <span className={`block font-bold text-xl leading-6 tabular-nums ${game.goals > 0 ? 'text-ink' : 'text-ink-3'}`}>{game.goals}</span>
+                        <span className="block text-xs text-ink-3">{t('playerStats.goals', 'Goals')}</span>
+                      </span>
+                      <span className="w-11 text-center">
+                        <span className={`block font-bold text-xl leading-6 tabular-nums ${game.assists > 0 ? 'text-ink' : 'text-ink-3'}`}>{game.assists}</span>
+                        <span className="block text-xs text-ink-3">{t('playerStats.assists', 'Assists')}</span>
+                      </span>
+                    </span>
                   </GameWrapper>
                 );
               })

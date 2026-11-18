@@ -697,7 +697,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                 >
                   {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                 </ModalSwitch>
-                <p className={`${fieldHintStyle} ml-1`}>
+                <p className={fieldHintStyle}>
                   {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the game was played for the same team')}
                 </p>
               </div>
@@ -986,7 +986,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                           >
                             {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                           </ModalSwitch>
-                          <p className={`${fieldHintStyle} ml-1`}>
+                          <p className={fieldHintStyle}>
                             {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the game was played for the same team')}
                           </p>
                         </div>

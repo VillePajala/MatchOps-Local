@@ -791,7 +791,8 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
   });
 
   /**
-   * The sweep tool lives next to the lists it cleans. Cheap test, but it is
+   * The sweep tool lives in the list header's ⋮ menu, next to the lists it
+   * cleans; its count rides on the ⋮ button. Cheap test, but it is
    * the only thing standing between a wired modal and a dead button.
    */
   describe('team-name sweep', () => {
@@ -802,7 +803,7 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
      */
     it('shows no badge when every team is written one way', async () => {
       renderWithProviders();
-      await waitFor(() => expect(screen.getByTestId('open-opponent-sweep')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByTestId('competitions-list-menu')).toBeInTheDocument());
       expect(screen.queryByTestId('opponent-sweep-badge')).not.toBeInTheDocument();
     });
 
@@ -823,6 +824,11 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
       renderWithProviders();
       expect(screen.queryByTestId('opponent-sweep-clean')).not.toBeInTheDocument();
 
+      // The tool lives in the list header's ⋮ menu.
+      expect(screen.queryByTestId('open-opponent-sweep')).not.toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('competitions-list-menu'));
+      });
       await act(async () => {
         fireEvent.click(screen.getByTestId('open-opponent-sweep'));
       });

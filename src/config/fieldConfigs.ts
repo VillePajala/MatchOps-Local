@@ -15,28 +15,34 @@ import type { GameType } from '@/types/game';
 /**
  * Which grass the football pitch is painted with - THE one switch.
  *
- * 'clean' is the match-view redesign's grass: a deep, flat green, faint
- * horizontal mowing bands and no noise, vignette or lighting. 'classic' is the
- * textured grass the app had before it. To go back, change this one line to
- * 'classic'; nothing else depends on the choice (the grass around the pitch
- * box follows via getFieldEdgeColors, and the line style is set separately).
+ * 'classic' is the app's original textured grass with its original lines,
+ * exactly as before the match-view redesign (owner's choice, 2026-11).
+ * 'clean' is the redesign's grass: a deep, flat green, faint horizontal mowing
+ * bands, no noise, vignette or lighting, and thinner, brighter lines. Nothing
+ * else depends on the choice: the grass around the pitch box follows via
+ * getFieldEdgeColors, and each grass carries its own line colour.
  */
-export const PITCH_GRASS: 'clean' | 'classic' = 'clean';
+export const PITCH_GRASS: 'clean' | 'classic' = 'classic';
 
 /** The two grasses PITCH_GRASS chooses between. */
-export const SOCCER_GRASS: Record<'clean' | 'classic', Pick<FieldStyleConfig, 'fieldColor' | 'centerColor' | 'showGrassTexture' | 'stripeCount' | 'grass'>> = {
+export const SOCCER_GRASS: Record<'clean' | 'classic', Pick<FieldStyleConfig, 'fieldColor' | 'centerColor' | 'showGrassTexture' | 'stripeCount' | 'grass' | 'lineColor' | 'lineOpacity'>> = {
   clean: {
     grass: 'clean',
     fieldColor: '#1d5c3c',   // edge colour (both goal lines)
     centerColor: '#22683f',  // at the halfway line
     showGrassTexture: false,
     stripeCount: 9,          // odd, so both edge bands are plain
+    // Thin, bright lines.
+    lineColor: 'rgba(255, 255, 255, 0.78)',
+    lineOpacity: 0.78,
   },
   classic: {
     grass: 'classic',
     fieldColor: '#427B44',
     showGrassTexture: true,
     stripeCount: 9,
+    lineColor: 'rgba(255, 255, 255, 0.6)',
+    lineOpacity: 0.6,
   },
 };
 
@@ -94,9 +100,6 @@ export const SOCCER_FIELD_CONFIG: FieldConfig = {
 
   style: {
     ...SOCCER_GRASS[PITCH_GRASS],
-    // Thin, bright lines (match-view redesign) - independent of the grass.
-    lineColor: 'rgba(255, 255, 255, 0.78)',
-    lineOpacity: 0.78,
     lineWidth: 2,
   },
 

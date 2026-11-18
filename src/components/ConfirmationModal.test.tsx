@@ -193,8 +193,9 @@ describe('ConfirmationModal', () => {
       render(<ConfirmationModal {...defaultProps} variant="danger" />);
       const confirmButton = screen.getByRole('button', { name: /Confirm/i });
 
-      // dangerButtonStyle should be applied (check for red background)
-      expect(confirmButton.className).toContain('bg-red-600');
+      // The final confirm of a destructive dialog is the one solid red button
+      // (dangerConfirmButtonStyle).
+      expect(confirmButton.className).toContain('bg-[#d13438]');
     });
 
     it('applies primary button style when variant is explicitly set to primary', () => {

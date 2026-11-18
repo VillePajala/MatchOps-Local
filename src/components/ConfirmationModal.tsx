@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {
   primaryButtonStyle,
   secondaryButtonStyle,
-  dangerButtonStyle,
+  dangerConfirmButtonStyle,
   dialogContainerStyle,
   dialogTitleStyle,
   dialogBodyStyle,
@@ -158,7 +158,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             ref={confirmButtonRef}
             onClick={onConfirm}
             disabled={isConfirming || confirmDisabled}
-            className={`${variant === 'danger' ? dangerButtonStyle : primaryButtonStyle} flex-1`}
+            className={`${variant === 'danger' ? dangerConfirmButtonStyle : primaryButtonStyle} flex-1`}
           >
             {isConfirming
               ? t('common.processing', 'Processing...')

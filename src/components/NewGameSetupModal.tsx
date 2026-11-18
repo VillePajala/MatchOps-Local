@@ -1663,22 +1663,70 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 </div>
               </div>
 
-                      {/* Game Date */}
-                      <div>
-                        <label htmlFor="gameDateInput" className={labelStyle}>
-                          {t('newGameSetupModal.gameDateLabel', 'Game Date')}
-                        </label>
-                        <input
-                          type="date"
-                          id="gameDateInput"
-                          name="gameDate"
-                          value={gameDate}
-                          onChange={(e) => setGameDate(e.target.value)}
-                          onKeyDown={handleKeyDown}
-                          className={`${inputBaseStyle} [color-scheme:dark]`}
-                          autoComplete="off"
+                      {/* Date and time share one row (time is the narrow
+                          column); then place, address and pitch - the same
+                          order as the match details (GameSettingsModal). */}
+                      <div className="grid grid-cols-1 min-[360px]:grid-cols-[minmax(0,1fr)_132px] gap-3">
+                        <div className="min-w-0">
+                          <label htmlFor="gameDateInput" className={labelStyle}>
+                            {t('newGameSetupModal.gameDateLabel', 'Game Date')}
+                          </label>
+                          <input
+                            type="date"
+                            id="gameDateInput"
+                            name="gameDate"
+                            value={gameDate}
+                            onChange={(e) => setGameDate(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            className={`${inputBaseStyle} [color-scheme:dark]`}
+                            autoComplete="off"
 
-                        />
+                          />
+                        </div>
+
+                        <div className="min-w-0">
+                          <label className={labelStyle}>
+                            {t('newGameSetupModal.gameTimeLabel', 'Time (Optional)')}
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              maxLength={2}
+                              value={gameHour}
+                              onChange={handleHourChange}
+                              onKeyDown={handleKeyDown}
+                              placeholder={t('newGameSetupModal.hourPlaceholder', 'HH')}
+                              className={`${inputBaseStyle} min-w-0 flex-1 px-1! text-center tabular-nums`}
+                              autoComplete="off"
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                              spellCheck="false"
+
+                              onFocus={(e) => e.target.select()}
+                            />
+                            <span aria-hidden="true" className="font-ui text-lg font-semibold text-ink-3">:</span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              maxLength={2}
+                              value={gameMinute}
+                              onChange={handleMinuteChange}
+                              onKeyDown={handleKeyDown}
+                              placeholder={t('newGameSetupModal.minutePlaceholder', 'MM')}
+                              className={`${inputBaseStyle} min-w-0 flex-1 px-1! text-center tabular-nums`}
+                              autoComplete="off"
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                              spellCheck="false"
+
+                              onFocus={(e) => e.target.select()}
+                            />
+                          </div>
+                        </div>
+
                       </div>
 
                       {/* Game Location */}
@@ -1732,54 +1780,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         />
                       </div>
 
-                      {/* Game Time */}
-                      <div>
-                        <label className={labelStyle}>
-                          {t('newGameSetupModal.gameTimeLabel', 'Time (Optional)')}
-                        </label>
-                        <div className="flex items-center gap-2.5 max-w-[220px]">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={2}
-                            value={gameHour}
-                            onChange={handleHourChange}
-                            onKeyDown={handleKeyDown}
-                            placeholder={t('newGameSetupModal.hourPlaceholder', 'HH')}
-                            className={`${inputBaseStyle} min-w-0 flex-1 text-center tabular-nums`}
-                            autoComplete="off"
-                            autoCorrect="off"
-                            autoCapitalize="off"
-                            spellCheck="false"
-
-                            onFocus={(e) => e.target.select()}
-                          />
-                          <span aria-hidden="true" className="font-ui text-lg font-semibold text-ink-3">:</span>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={2}
-                            value={gameMinute}
-                            onChange={handleMinuteChange}
-                            onKeyDown={handleKeyDown}
-                            placeholder={t('newGameSetupModal.minutePlaceholder', 'MM')}
-                            className={`${inputBaseStyle} min-w-0 flex-1 text-center tabular-nums`}
-                            autoComplete="off"
-                            autoCorrect="off"
-                            autoCapitalize="off"
-                            spellCheck="false"
-
-                            onFocus={(e) => e.target.select()}
-                          />
-                        </div>
-                      </div>
-
               {/* Home/Away Selection */}
               <div>
                 <label className={labelStyle}>
-                  {t('newGameSetupModal.homeOrAwayLabel', 'Your Team is')}
+                  {t('newGameSetupModal.homeOrAwayLabel', 'Home / away')}
                 </label>
                 <div className={segmentTrackStyle}>
                   <button
@@ -1808,8 +1812,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               </h3>
               <div className={`${cardStyle} space-y-4`}>
 
+              {/* Periods and period length: two half-width fields on one row. */}
+              <div className="grid grid-cols-2 items-end gap-3">
               {/* Number of Periods */}
-              <div>
+              <div className="min-w-0">
                 <label htmlFor="numPeriodsSelect" className={labelStyle}>
                   {t('newGameSetupModal.numPeriodsLabel', 'Number of Periods')}
                 </label>
@@ -1825,9 +1831,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               </div>
 
               {/* Period Duration */}
-              <div>
+              <div className="min-w-0">
                 <label htmlFor="periodDurationInput" className={labelStyle}>
-                  {t('newGameSetupModal.periodDurationLabel', 'Period Duration (minutes)')}
+                  {t('newGameSetupModal.periodDurationLabel', 'Period length (min)')}
                 </label>
                 <input
                   type="text"
@@ -1844,7 +1850,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     }
                     if (periodDurationError) setPeriodDurationError(null);
                   }}
-                  className={`${inputBaseStyle} max-w-[160px] ${periodDurationError ? inputErrorStyle : ''}`}
+                  className={`${inputBaseStyle} ${periodDurationError ? inputErrorStyle : ''}`}
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -1853,21 +1859,18 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 />
                 {periodDurationError && <p className={fieldErrorStyle}>{periodDurationError}</p>}
               </div>
+              </div>
 
               {/* The demand-level slider used to sit here. Only the assessment
                   averaging reads it, behind a setting that is off by default, so
                   it left the form (owner, 2026-09-30); `demandFactor` stays in the
                   data model and the props so old games and callers are untouched. */}
 
-              {/* Not Played Yet toggle */}
+              {/* Not played yet / friendly: hairline-separated rows of the card. */}
               <div>
                 <ModalSwitch checked={!isPlayed} onToggle={() => setIsPlayed(v => !v)}>
                   {t('newGameSetupModal.unplayedToggle', 'Not played yet')}
                 </ModalSwitch>
-              </div>
-
-              {/* Friendly / practice match toggle */}
-              <div>
                 <ModalSwitch checked={isFriendly} onToggle={() => setIsFriendly(v => !v)} hint={t('newGameSetupModal.friendlyHint', 'Kept out of competitive stats')}>
                   {t('newGameSetupModal.friendlyToggle', 'Friendly match')}
                 </ModalSwitch>

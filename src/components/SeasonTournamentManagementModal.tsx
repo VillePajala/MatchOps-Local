@@ -8,8 +8,8 @@ import {
     useCollapsingHeader,
     modalContainerStyle,
     primaryButtonStyle,
-    secondaryButtonStyle,
     searchInputStyle,
+    sectionLabelStyle,
     groupedListStyle,
     subtextStyle,
     popoverMenuStyle,
@@ -37,6 +37,9 @@ import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import { formatAppDate } from '@/utils/localeFormat';
+
+/** `actionsMenuId` of the list header's ⋮ menu (row menus use item ids). */
+const LIST_MENU_ID = '__competitions-list-menu__';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
@@ -434,7 +437,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
           closeLabel={t('common.doneButton', 'Done')}
           collapse={headerCollapse}
         >
-          <div className="px-4 pt-2 pb-4 flex flex-col gap-3">
+          <div className="px-4 pt-2 pb-4">
             <button
               onClick={kind === 'season' ? handleAddSeason : handleAddTournament}
               className={`${primaryButtonStyle} w-full min-h-[52px] text-base`}
@@ -443,25 +446,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
               {kind === 'season'
                 ? t('seasonTournamentModal.addSeason', 'Add League')
                 : t('seasonTournamentModal.addTournament', 'Add Tournament')}
-            </button>
-            {/* One team written several ways is several opponents to every
-                aggregation. Cleanup lives next to the lists it cleans. */}
-            <button
-              type="button"
-              onClick={() => setShowNameSweep(true)}
-              data-testid="open-opponent-sweep"
-              className={`${secondaryButtonStyle} w-full`}
-            >
-              <HiOutlineBarsArrowDown className="w-5 h-5 text-ink-3" aria-hidden="true" />
-              {t('opponentSweep.openLabel', 'Check team names')}
-              {nameConflicts > 0 && (
-                <span
-                  data-testid="opponent-sweep-badge"
-                  className="px-2 py-0.5 rounded-full bg-action text-on-action text-xs font-bold"
-                >
-                  {nameConflicts}
-                </span>
-              )}
             </button>
           </div>
         </CollapsibleModalHeader>
@@ -473,6 +457,62 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
               className="mb-4"
               text={t('firstVisit.seasons', 'Group games into a league or tournament to get standings and per-competition stats.')}
             />
+            {/* The list header with its own ⋮ menu (as the planner's list has).
+                One team written several ways is several opponents to every
+                aggregation, so the cleanup lives next to the lists it cleans;
+                the count rides on the ⋮ button so the tool stays discoverable. */}
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <h3 className={`${sectionLabelStyle} px-1`}>
+                {kind === 'season'
+                  ? t('seasonTournamentModal.seasons', 'Leagues')
+                  : t('seasonTournamentModal.tournaments', 'Tournaments')}
+              </h3>
+              <div
+                className="relative shrink-0 -mr-1"
+                ref={actionsMenuId === LIST_MENU_ID ? actionsMenuRef : null}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActionsMenuId(actionsMenuId === LIST_MENU_ID ? null : LIST_MENU_ID)}
+                  aria-label={nameConflicts > 0
+                    ? `${t('common.moreOptions', 'More options')} (${nameConflicts})`
+                    : t('common.moreOptions', 'More options')}
+                  aria-expanded={actionsMenuId === LIST_MENU_ID}
+                  data-testid="competitions-list-menu"
+                  className={`${iconButtonEditStyle} relative`}
+                >
+                  <HiOutlineEllipsisVertical className="w-5 h-5" />
+                  {nameConflicts > 0 && (
+                    <span
+                      data-testid="opponent-sweep-badge"
+                      aria-hidden="true"
+                      className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-ink text-carbon font-ui text-xs font-bold leading-[18px] text-center"
+                    >
+                      {nameConflicts}
+                    </span>
+                  )}
+                </button>
+                {actionsMenuId === LIST_MENU_ID && (
+                  <div className={`${popoverMenuStyle} top-full mt-1`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsMenuId(null);
+                        setShowNameSweep(true);
+                      }}
+                      data-testid="open-opponent-sweep"
+                      className={`${popoverItemStyle} whitespace-nowrap`}
+                    >
+                      <HiOutlineBarsArrowDown className="w-4 h-4" aria-hidden="true" />
+                      {t('opponentSweep.openLabel', 'Check team names')}
+                      {nameConflicts > 0 && (
+                        <span className="ml-auto pl-2 tabular-nums text-ink-3">{nameConflicts}</span>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
             {/* Search field - hidden while there is nothing to search (a tournaments list with no tournaments) */}
             {!(kind === 'tournament' && tournaments.length === 0) && (
             <div className="mb-3 relative">

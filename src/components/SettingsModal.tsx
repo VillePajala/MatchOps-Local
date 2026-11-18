@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { translateAuthError } from '@/utils/authHelpers';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
-import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath, HiOutlineCloudArrowDown, HiOutlineClipboardDocument, HiOutlineShare } from 'react-icons/hi2';
+import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath, HiOutlineCloudArrowDown, HiOutlineClipboardDocument, HiOutlineShare, HiOutlineEnvelope } from 'react-icons/hi2';
 import { importFullBackup, prewarmBackup, downloadFullBackup } from '@/utils/fullBackup';
 import type { SnapshotMeta } from '@/utils/backupSnapshots';
 import ConfirmationModal from './ConfirmationModal';
@@ -30,14 +30,13 @@ import {
   inputBaseStyle,
   labelStyle,
   subtextStyle,
-  inlineFieldStyle,
   inlineSelectStyle,
   switchInputStyle,
   segmentTrackStyle,
   segmentStyle,
   segmentSelectedStyle,
   linkStyle,
-  pillAmberStyle,
+  neutralBadgeStyle,
 } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE } from '@/utils/appSettings';
@@ -771,21 +770,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </select>
               </div>
               </>)}
-              {/* Default Team Name */}
-              <div className={`${listRowStyle} py-3 pr-4`}>
-                <div className="flex-1 min-w-0">
-                  <p className="font-ui text-base font-medium text-ink">
-                    {t('settingsModal.defaultTeamNameLabel', 'Default Team Name')}
-                  </p>
-                </div>
+              {/* Default Team Name: a text input takes the label above and
+                  the full width - label-beside is only for switches and
+                  short selects. */}
+              <div className={`${listRowStyle} flex-col items-stretch gap-2 py-3 pr-4`}>
+                <label htmlFor="team-name-input" className="block font-ui text-base font-medium text-ink">
+                  {t('settingsModal.defaultTeamNameLabel', 'Default Team Name')}
+                </label>
                 <input
                   id="team-name-input"
                   type="text"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   onBlur={() => onDefaultTeamNameChange(teamName)}
-                  // Narrower on a 320px phone so the one-word label keeps its line.
-                  className={`${inlineFieldStyle} w-[min(9rem,34vw)]! shrink-0`}
+                  className={inputStyle}
                 />
               </div>
             </div>
@@ -803,20 +801,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 {t('settingsModal.travelTitle', 'Getting to matches')}
               </h3>
               <div className={`${groupedListStyle} p-4 space-y-3`}>
-              <p className="font-ui text-sm leading-snug text-ink-2">
-                {t('settingsModal.travelDescription', 'Used to work out when to leave for your next match. Without a starting point no departure time is shown.')}
-              </p>
-
-              <VenueInput
-                id="starting-point"
-                value={startingPoint?.name ?? ''}
-                latitude={startingPoint?.latitude}
-                longitude={startingPoint?.longitude}
-                address={startingPoint?.address}
-                hasCoordinates={startingPoint?.latitude !== undefined}
-                onChange={handleStartingPointChange}
-                className={inputStyle}
-              />
+              {/* Help text sits below the field it explains. */}
+              <div>
+                <VenueInput
+                  id="starting-point"
+                  value={startingPoint?.name ?? ''}
+                  latitude={startingPoint?.latitude}
+                  longitude={startingPoint?.longitude}
+                  address={startingPoint?.address}
+                  hasCoordinates={startingPoint?.latitude !== undefined}
+                  onChange={handleStartingPointChange}
+                  className={inputStyle}
+                />
+                <p className={`${subtextStyle} mt-1.5`}>
+                  {t('settingsModal.travelDescription', 'Used to work out when to leave for your next match. Without a starting point no departure time is shown.')}
+                </p>
+              </div>
 
               <div>
                 <label className={labelStyle} htmlFor="arrival-buffer">
@@ -924,22 +924,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       {t('settingsModal.backupCardDesc', 'Export all your data to a backup file you can keep.')}
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  {/* Two related actions: an equal two-column grid. Short labels
+                      (the row title says what is shared or saved; the aria
+                      labels say it in full) so each fits one line on a phone. */}
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={onCreateBackup}
                       aria-label={t('settingsModal.backupShareAria', 'Share backup')}
-                      className={`${secondaryButtonStyle} min-h-11 px-4! text-sm!`}
+                      className={`${secondaryButtonStyle} min-w-0 px-3! text-sm!`}
                     >
                       <HiOutlineShare className="h-5 w-5 shrink-0" />
-                      {t('settingsModal.backupShareLabel', 'Share backup')}
+                      {t('settingsModal.backupShareLabel', 'Share')}
                     </button>
                     <button
                       onClick={() => downloadFullBackup(showToast, userId)}
                       aria-label={t('settingsModal.backupDownloadAria', 'Download backup to device')}
-                      className={`${secondaryButtonStyle} min-h-11 px-4! text-sm!`}
+                      className={`${secondaryButtonStyle} min-w-0 px-3! text-sm!`}
                     >
                       <HiOutlineDocumentArrowDown className="h-5 w-5 shrink-0" />
-                      {t('settingsModal.backupSaveLabel', 'Save to device')}
+                      {t('settingsModal.backupSaveLabel', 'Save')}
                     </button>
                   </div>
                 </div>
@@ -984,10 +987,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </p>
                   </div>
                   <div>
+                    {/* A single action in a card: full width. */}
                     <button
                       onClick={handleRestore}
                       aria-label={t('settingsModal.restoreButton', 'Restore from Backup')}
-                      className={`${secondaryButtonStyle} min-h-11 px-4! text-sm!`}
+                      className={`${secondaryButtonStyle} w-full px-4! text-sm!`}
                     >
                       <HiOutlineDocumentArrowUp className="h-5 w-5 shrink-0" />
                       {t('settingsModal.restoreButton', 'Restore from Backup')}
@@ -1117,7 +1121,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                           setFactoryResetConfirm('');
                         }
                       }}
-                      className={dangerButtonStyle}
+                      className={`${dangerButtonStyle} w-full`}
                       disabled={factoryResetConfirm.trim() !== 'FACTORY RESET'}
                     >
                       {t('settingsModal.factoryResetButton', 'Delete All Data')}
@@ -1174,7 +1178,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         e.stopPropagation();
                         handleDeleteAccount();
                       }}
-                      className={dangerButtonStyle}
+                      className={`${dangerButtonStyle} w-full`}
                       disabled={deleteAccountConfirm.trim() !== 'DELETE' || isDeletingAccount}
                     >
                       {isDeletingAccount
@@ -1213,7 +1217,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         setResetConfirm('');
                       }
                     }}
-                    className={dangerButtonStyle}
+                    className={`${dangerButtonStyle} w-full`}
                     disabled={resetConfirm.trim() !== 'RESET'}
                   >
                     {t('settingsModal.deleteAllDataButton', 'Delete All Data')}
@@ -1249,7 +1253,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="font-ui text-base text-ink-2">{packageJson.version}</span>
                     {process.env.NEXT_PUBLIC_GIT_BRANCH && process.env.NEXT_PUBLIC_GIT_BRANCH !== 'master' && (
-                      <span className={pillAmberStyle}>
+                      <span className={neutralBadgeStyle}>
                         {t('settingsModal.previewBadge', 'Preview')}
                       </span>
                     )}
@@ -1309,8 +1313,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Send Feedback */}
-              <div className={`${listRowStyle} flex-wrap gap-y-2 py-3 pr-4`}>
-                <div className="flex-1 min-w-[11rem]">
+              <div className={`${listRowStyle} flex-col items-stretch gap-3 py-3 pr-4`}>
+                <div className="min-w-0">
                   <p className="font-ui text-base font-medium text-ink">
                     {t('settingsModal.sendFeedback', 'Send Feedback')}
                   </p>
@@ -1321,11 +1325,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     {t('settingsModal.sendFeedbackPrivacy', 'No game, roster, or player data is attached automatically.')}
                   </p>
                 </div>
+                {/* A single action in a card: full width. */}
                 <a
                   href={feedbackHref}
-                  className={`${secondaryButtonStyle} shrink-0 min-h-10! px-4! text-sm!`}
+                  className={`${secondaryButtonStyle} w-full px-4! text-sm!`}
                 >
-                  ✉ {t('settingsModal.emailButton', 'Email')}
+                  <HiOutlineEnvelope className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  {t('settingsModal.emailButton', 'Email')}
                 </a>
               </div>
 

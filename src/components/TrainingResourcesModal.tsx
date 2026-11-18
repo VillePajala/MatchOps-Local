@@ -4,15 +4,13 @@ import React, { useState, useCallback, useId, useLayoutEffect, useRef } from 're
 import {
   primaryButtonStyle,
   secondaryButtonStyle,
-  dangerButtonStyle,
+  dangerConfirmButtonStyle,
   CollapsibleModalHeader,
   useCollapsingHeader,
   modalContainerStyle,
   cardStyle,
   inputBaseStyle,
   textareaStyle,
-  iconButtonEditStyle,
-  iconButtonDangerStyle,
   dialogContainerStyle,
   dialogTitleStyle,
   dialogBodyStyle,
@@ -20,7 +18,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useWarmupPlan } from '@/hooks/useWarmupPlan';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
-import { FaChevronUp, FaChevronDown, FaPlus, FaTimes, FaPen, FaUndo } from 'react-icons/fa';
+import { FaPlus, FaPen, FaUndo } from 'react-icons/fa';
+import { HiOutlineChevronUp, HiOutlineChevronDown, HiOutlineTrash } from 'react-icons/hi2';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
@@ -164,14 +163,19 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
     return blocks;
   };
 
+  // A section's move/delete control: a 44px raised round button.
+  const sectionToolStyle =
+    'inline-flex items-center justify-center w-11 h-11 shrink-0 rounded-full s1-raised text-ink-2 hover:text-ink transition-colors disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+
   // Render a section
   const renderSection = (section: WarmupPlanSection, index: number, totalSections: number) => (
     <section key={section.id} className={`${cardStyle} font-ui`}>
       {isEditMode ? (
         <div className="space-y-3">
-          {/* Title full width on phones with the 44px controls on their own row under
-              it (sharing the row cut the title off at ~366px); one row from sm up. */}
-          <div className="flex flex-wrap items-center gap-x-1 gap-y-2">
+          {/* The 44px raised controls sit at the right end of the title row;
+              on phones the title takes the full width above them (sharing the
+              row cut the title off at ~366px). One row from sm up. */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
             <input
               type="text"
               value={section.title}
@@ -179,32 +183,32 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
               className={`${inputBaseStyle} flex-1 basis-full sm:basis-36 min-w-0 text-lg font-semibold`}
               placeholder={t('warmupPlanModal.sectionTitlePlaceholder', 'Section Title')}
             />
-            <div className="flex items-center gap-1 ml-auto">
+            <div className="flex items-center gap-2 ml-auto">
               <button
                 onClick={() => moveSection(section.id, 'up')}
                 disabled={index === 0}
-                className={`${iconButtonEditStyle} disabled:opacity-30`}
+                className={sectionToolStyle}
                 title={t('warmupPlanModal.moveUp', 'Move Up')}
                 aria-label={t('warmupPlanModal.moveUp', 'Move Up')}
               >
-                <FaChevronUp className="w-4 h-4" />
+                <HiOutlineChevronUp className="w-5 h-5" aria-hidden="true" />
               </button>
               <button
                 onClick={() => moveSection(section.id, 'down')}
                 disabled={index === totalSections - 1}
-                className={`${iconButtonEditStyle} disabled:opacity-30`}
+                className={sectionToolStyle}
                 title={t('warmupPlanModal.moveDown', 'Move Down')}
                 aria-label={t('warmupPlanModal.moveDown', 'Move Down')}
               >
-                <FaChevronDown className="w-4 h-4" />
+                <HiOutlineChevronDown className="w-5 h-5" aria-hidden="true" />
               </button>
               <button
                 onClick={() => removeSection(section.id)}
-                className={iconButtonDangerStyle}
+                className={`${sectionToolStyle} text-red-300! hover:text-red-200!`}
                 title={t('warmupPlanModal.deleteSection', 'Delete Section')}
                 aria-label={t('warmupPlanModal.deleteSection', 'Delete Section')}
               >
-                <FaTimes className="w-4 h-4" />
+                <HiOutlineTrash className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -325,7 +329,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
                 <button
                   onClick={handleReset}
                   disabled={isResetting}
-                  className={dangerButtonStyle}
+                  className={dangerConfirmButtonStyle}
                 >
                   {isResetting
                     ? t('common.resetting', 'Resetting...')

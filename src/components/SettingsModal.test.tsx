@@ -193,9 +193,8 @@ describe('<SettingsModal />', () => {
     // Language label is a <p> element, select has id="language-select"
     expect(screen.getByText('Language')).toBeInTheDocument();
     expect(document.getElementById('language-select')).toBeInTheDocument();
-    // Default Team Name label is a <p> element, input has id="team-name-input"
-    expect(screen.getByText('Default Team Name')).toBeInTheDocument();
-    expect(document.getElementById('team-name-input')).toBeInTheDocument();
+    // Default Team Name is a text input: its <label> sits above it and names it
+    expect(screen.getByLabelText('Default Team Name')).toBe(document.getElementById('team-name-input'));
   });
 
   test('displays storage unavailable message when navigator.storage is not supported', () => {
@@ -425,7 +424,7 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    // Input has id="team-name-input", no <label> association
+    // Input has id="team-name-input", named by its <label>
     const input = document.getElementById('team-name-input')!;
     expect(input).not.toHaveFocus();
   });
