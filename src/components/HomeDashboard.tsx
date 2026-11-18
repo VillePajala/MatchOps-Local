@@ -161,7 +161,7 @@ const PRIMARY_BTN = `s1-primary flex h-14 w-full items-center justify-center gap
 /** Role and day: the top line of the hero card. */
 function HeroTop({ left, right }: { left: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div className="flex min-h-7 items-center justify-between gap-3">
+    <div className="flex min-h-7 flex-wrap items-center justify-between gap-x-3 gap-y-2">
       {left}
       {right}
     </div>
@@ -181,15 +181,15 @@ function LiveLabel({ children }: { children: React.ReactNode }) {
 /** Quiet chip on the hero's top line (the countdown). */
 function HeroChip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex h-7 shrink-0 items-center rounded-full bg-black/40 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-ink ring-1 ring-inset ring-white/10">
+    <span className="inline-flex h-7 shrink-0 items-center rounded-full bg-slate-950/50 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-ink ring-1 ring-inset ring-white/10">
       {children}
     </span>
   );
 }
 
 /** The day/time eyebrow on the right of the top line. */
-function HeroEyebrow({ children }: { children: React.ReactNode }) {
-  return <span className="min-w-0 text-right text-[13px] font-medium text-ink-2">{children}</span>;
+function HeroEyebrow({ children, nowrap }: { children: React.ReactNode; nowrap?: boolean }) {
+  return <span className={`min-w-0 text-right text-[13px] font-medium text-ink-2 ${nowrap ? 'whitespace-nowrap' : ''}`}>{children}</span>;
 }
 
 /** Win / Draw / Loss as a pill on a played match. */
@@ -382,7 +382,9 @@ function ResumeCard({ resume, onResume, locale, t }: {
       {result ? (
         <HeroTop
           left={<ResultPill result={result} t={t} />}
-          right={<HeroEyebrow>{[lastOpened, when].filter(Boolean).join(' · ')}</HeroEyebrow>}
+          // Never broken mid-text: when it does not fit beside the pill, the
+          // whole line wraps under it (HeroTop wraps).
+          right={<HeroEyebrow nowrap>{[lastOpened, when].filter(Boolean).join(' · ')}</HeroEyebrow>}
         />
       ) : (
         <HeroTop
@@ -409,11 +411,12 @@ function ResumeCard({ resume, onResume, locale, t }: {
           <AddressRow venue={name} sub={resume.venueAddress ?? resume.venueTown} />
         </>
       ) : (
-        /* The score sits on the venue line's baseline, opposite the who. */
+        /* The opponent gets the full width (a long club name must not wrap
+           into the score); the score sits opposite the venue lines below. */
         <button type="button" onClick={onResume} className={`${HERO_BODY} mt-3`}>
-          <span className="flex items-end justify-between gap-3">
-            <span className="block min-w-0">
-              <Opponent who={who} t={t} stacked className="text-[28px]" />
+          <Opponent who={who} t={t} stacked className="text-[28px]" />
+          <span className="mt-1 flex items-end justify-between gap-3">
+            <span className="block min-w-0 pb-1">
               {(name || resume.venueTown || resume.fieldNumber) && (
                 <span className="mt-1 block break-words text-[13px] leading-[1.35] text-ink-2">
                   {name && <span className="block">{name}</span>}
@@ -428,7 +431,7 @@ function ResumeCard({ resume, onResume, locale, t }: {
               )}
             </span>
             <span
-              className={`${result ? numeralClass[result] : 's1-numeral'} -mr-1.5 shrink-0 whitespace-nowrap pl-1 pr-2.5 font-display text-[clamp(72px,26vw,108px)] font-extrabold italic leading-[0.8] tracking-[-0.01em] tabular-nums`}
+              className={`${result ? numeralClass[result] : 's1-numeral'} -mr-1.5 shrink-0 whitespace-nowrap pl-1 pr-2.5 font-display text-[clamp(64px,22vw,96px)] font-extrabold italic leading-[0.8] tracking-[-0.01em] tabular-nums`}
             >
               {`${resume.ourScore}–${resume.theirScore}`}
             </span>

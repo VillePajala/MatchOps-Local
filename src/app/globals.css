@@ -18,13 +18,13 @@
  *   win/loss/draw - result colours (badges, scores)
  */
 @theme {
-  --color-carbon: #08090b;
-  --color-surface: #14161a;
-  --color-surface-2: #1f2227;
+  --color-carbon: #0f172a;   /* = the body/edge navy (slate-900), so the app's edges and the home screen are one surface */
+  --color-surface: #162036;
+  --color-surface-2: #1e293b;   /* slate-800, as the popups */
   --color-hairline: rgb(255 255 255 / 0.07);
   --color-ink: #ffffff;
-  --color-ink-2: #c6cbd4;
-  --color-ink-3: #959ca9;
+  --color-ink-2: #cbd5e1;
+  --color-ink-3: #94a3b8;
   --color-action: #ffb224;
   --color-action-hot: #ff7a1a;
   --color-on-action: #1c0f00;
@@ -63,8 +63,8 @@
     border-radius: 28px;
     background:
       radial-gradient(72% 56% at 96% -6%, rgba(var(--s1-glow), 0.30) 0%, rgba(var(--s1-glow), 0.10) 45%, rgba(var(--s1-glow), 0) 72%),
-      linear-gradient(168deg, #23262d 0%, #17191d 52%, #111215 100%);
-    box-shadow: 0 28px 44px -24px rgb(0 0 0 / 0.95), 0 10px 18px -10px rgb(0 0 0 / 0.7);
+      linear-gradient(168deg, #23304b 0%, #19233a 52%, #131c30 100%);
+    box-shadow: 0 28px 44px -24px rgb(2 6 23 / 0.9), 0 10px 18px -10px rgb(2 6 23 / 0.65);
   }
   .s1-hero::before {
     content: "";
@@ -96,8 +96,8 @@
   /* Lists and grouped rows: a solid surface with a top highlight. */
   .s1-list {
     border-radius: 22px;
-    background: linear-gradient(180deg, #16181c, #131418);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 16px 26px -18px rgb(0 0 0 / 0.9);
+    background: linear-gradient(180deg, #18223a, #151e33);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 16px 26px -18px rgb(2 6 23 / 0.85);
   }
 
   /* Raised round controls: icon buttons, the language segment. */
@@ -106,8 +106,8 @@
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), inset 0 0 0 1px rgb(255 255 255 / 0.04);
   }
   .s1-seg-on {
-    background: linear-gradient(180deg, #2a2d34, var(--color-surface-2));
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 2px 6px -2px rgb(0 0 0 / 0.8);
+    background: linear-gradient(180deg, #2a3854, var(--color-surface-2));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 2px 6px -2px rgb(2 6 23 / 0.75);
   }
 
   /* The primary action: amber to orange, bevelled, a warm glow under it. */
@@ -189,7 +189,8 @@
 
   /* Bottom tab bar. */
   .s1-tabbar {
-    background: linear-gradient(180deg, rgb(16 17 20 / 0.92), #0b0c0e);
+    /* Ends on slate-800, the Android navigation bar's colour below it. */
+    background: linear-gradient(180deg, #172036, #1e293b);
     box-shadow: 0 -1px 0 rgb(255 255 255 / 0.06);
   }
   .s1-tab-on::before {
@@ -207,8 +208,8 @@
 
   /* Bottom sheets (gear, setup). */
   .s1-sheet {
-    background: linear-gradient(180deg, #1a1c21, #121317);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.09), 0 -20px 40px -12px rgb(0 0 0 / 0.8);
+    background: linear-gradient(180deg, #1c2740, #141d31);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.09), 0 -20px 40px -12px rgb(2 6 23 / 0.8);
   }
 }
 
