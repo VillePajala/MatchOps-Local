@@ -127,7 +127,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
 
   return (
     <div
-      className="fixed inset-0 z-[80] font-display flex"
+      className="fixed inset-0 z-[80] flex"
       role="dialog"
       aria-modal="true"
       aria-label={heading}

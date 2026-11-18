@@ -2,7 +2,14 @@
 
 import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+import {
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  dangerButtonStyle,
+  dialogContainerStyle,
+  dialogTitleStyle,
+  dialogBodyStyle,
+} from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
 
@@ -111,14 +118,14 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       aria-modal="true"
       aria-labelledby={titleId}
     >
-      <div className="bg-slate-800 p-6 rounded-lg border border-slate-600 max-w-md w-full mx-4 shadow-2xl">
+      <div className={dialogContainerStyle}>
         {/* Title */}
-        <h3 id={titleId} className="text-lg font-semibold text-slate-100 mb-4">
+        <h3 id={titleId} className={`${dialogTitleStyle} mb-3`}>
           {title}
         </h3>
 
         {/* Main Message */}
-        <div className="text-slate-300 mb-6 space-y-3">
+        <div className={`${dialogBodyStyle} mb-6 space-y-3`}>
           {typeof message === 'string' ? (
             <p>{message}</p>
           ) : (
@@ -127,7 +134,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
           {/* Warning Message */}
           {warningMessage && (
-            <div className="p-3 bg-red-900/20 border border-red-600/30 rounded-md">
+            <div className="p-3 rounded-[14px] bg-loss/[0.08] shadow-[inset_0_0_0_1px_rgb(255_107_107/0.3)]">
               {typeof warningMessage === 'string' ? (
                 <p className="text-red-300 text-sm">{warningMessage}</p>
               ) : (
@@ -137,13 +144,13 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 justify-end">
+        {/* Action Buttons: equal-width pills, the confirm on the thumb side. */}
+        <div className="flex gap-3">
           <button
             ref={cancelButtonRef}
             onClick={onCancel}
             disabled={isConfirming}
-            className={secondaryButtonStyle}
+            className={`${secondaryButtonStyle} flex-1`}
           >
             {finalCancelLabel}
           </button>
@@ -151,7 +158,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             ref={confirmButtonRef}
             onClick={onConfirm}
             disabled={isConfirming || confirmDisabled}
-            className={variant === 'danger' ? dangerButtonStyle : primaryButtonStyle}
+            className={`${variant === 'danger' ? dangerButtonStyle : primaryButtonStyle} flex-1`}
           >
             {isConfirming
               ? t('common.processing', 'Processing...')

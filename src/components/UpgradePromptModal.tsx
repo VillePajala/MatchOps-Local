@@ -343,7 +343,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
                 onClick={handleUpgradeClick}
                 disabled={isPurchasing || isProcessing}
                 aria-busy={isPurchasing || isProcessing}
-                className={`${primaryButtonStyle} w-full bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`${primaryButtonStyle} w-full`}
               >
                 {isPurchasing || isProcessing
                   ? t('premium.processing', 'Processing...')

@@ -212,7 +212,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
   };
 
   return (
-    <div className="fixed inset-0 z-[85] font-display flex" role="dialog" aria-modal="true" aria-label={title}>
+    <div className="fixed inset-0 z-[85] flex" role="dialog" aria-modal="true" aria-label={title}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
         <ModalBackgroundEffects />
         <div className="relative z-10 flex flex-col h-full min-h-0">

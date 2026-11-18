@@ -3,7 +3,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EntityReferences } from '@/interfaces/DataStore';
-import { DialogBackdrop, dialogContainerStyle, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { DialogBackdrop, dialogContainerStyle, dialogTitleStyle, dialogBodyStyle, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface DeleteBlockedDialogProps {
@@ -91,36 +91,36 @@ const DeleteBlockedDialog: React.FC<DeleteBlockedDialogProps> = ({
       }}
     >
       <div ref={modalRef} className={dialogContainerStyle} role="dialog" aria-modal="true" aria-labelledby="delete-blocked-title">
-        <h3 id="delete-blocked-title" className="text-lg font-semibold text-slate-100 mb-4">
+        <h3 id="delete-blocked-title" className={`${dialogTitleStyle} mb-3`}>
           {t('deleteBlocked.title', 'Cannot Delete "{{name}}"', { name: entityName })}
         </h3>
 
-        <div className="text-slate-300 mb-6 space-y-4">
+        <div className={`${dialogBodyStyle} mb-6 space-y-4`}>
           <p>{reason}</p>
 
           <p>{t('deleteBlocked.archiveOption', 'You can archive it instead, which will:')}</p>
 
-          <ul className="list-disc list-inside text-sm text-slate-400 space-y-1 ml-2">
+          <ul className="list-disc list-inside text-sm text-ink-3 space-y-1 ml-2">
             <li>{t('deleteBlocked.hideFromLists', 'Hide it from lists and dropdowns')}</li>
             <li>{t('deleteBlocked.keepData', 'Keep all linked data intact')}</li>
             <li>{t('deleteBlocked.canRestore', 'Allow you to restore it later')}</li>
           </ul>
 
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-ink-3">
             {t(HINT_KEYS[entityType])}
           </p>
         </div>
 
-        <div className="flex gap-3 justify-end">
+        <div className="flex gap-3">
           <button
             onClick={onClose}
-            className={secondaryButtonStyle}
+            className={`${secondaryButtonStyle} flex-1`}
           >
             {t('common.cancel', 'Cancel')}
           </button>
           <button
             onClick={handleArchive}
-            className={primaryButtonStyle}
+            className={`${primaryButtonStyle} flex-1`}
           >
             {t('deleteBlocked.archiveInstead', 'Archive Instead')}
           </button>

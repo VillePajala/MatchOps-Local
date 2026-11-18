@@ -27,6 +27,7 @@ import {
 import {
   primaryButtonStyle,
   secondaryButtonStyle,
+  dangerButtonStyle,
   WizardBackdrop,
   wizardModalStyle,
   wizardHeaderStyle,
@@ -534,7 +535,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
             </button>
             <button
               onClick={onDiscard}
-              className={`${primaryButtonStyle} !bg-red-600 hover:!bg-red-700`}
+              className={dangerButtonStyle}
             >
               {t('migration.discardConfirm', 'Discard')}
             </button>

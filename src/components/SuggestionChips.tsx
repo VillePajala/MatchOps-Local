@@ -4,6 +4,8 @@ import { matchesSearch } from '@/utils/listSearch';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { normalizeOpponentName } from '@/utils/opponentNames';
+import { HiCheck } from 'react-icons/hi2';
+import { chipStyle, chipSelectedStyle } from '@/styles/modalStyles';
 
 /**
  * How many suggestion chips to show before the coach types, and while they are
@@ -66,7 +68,7 @@ const SuggestionChips: React.FC<SuggestionChipsProps> = ({ value, options, onPic
     <>
       {/* Chips rather than a datalist: one tap, visible without opening
           anything, and the field keeps its textbox role. */}
-      <div className="mt-2 flex flex-wrap gap-1.5" data-testid={testId}>
+      <div className="mt-2.5 flex flex-wrap gap-2" data-testid={testId}>
         {shown.map((name) => {
           const chosen = name === value;
           return (
@@ -75,19 +77,16 @@ const SuggestionChips: React.FC<SuggestionChipsProps> = ({ value, options, onPic
               type="button"
               onClick={() => onPick(name)}
               disabled={disabled}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                chosen
-                  ? 'bg-indigo-600 border-indigo-400/40 text-white'
-                  : 'bg-slate-700/70 border-slate-600/60 text-slate-200 hover:bg-slate-600/70'
-              }`}
+              className={chosen ? chipSelectedStyle : chipStyle}
             >
+              {chosen && <HiCheck aria-hidden="true" className="w-3.5 h-3.5 text-action" />}
               {name}
             </button>
           );
         })}
       </div>
       {hiddenCount > 0 && (
-        <p className="mt-1.5 text-xs text-slate-400" data-testid={`${testId}-more`}>
+        <p className="mt-2 font-ui text-[13px] text-ink-3" data-testid={`${testId}-more`}>
           {t('common.moreOpponents', '+{{count}} more. Type to search them all.', {
             count: hiddenCount,
           })}
