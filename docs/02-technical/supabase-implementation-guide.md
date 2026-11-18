@@ -5050,8 +5050,8 @@ which deletes them after 30 days.
 - **Key:** only the owner's age private key, `~/.config/matchops-backup/backup-key.txt`,
   decrypts a backup. Keep a second copy of it in the password manager. If it is lost,
   every backup is unreadable.
-- **When to move to Pro:** when active marketing starts, or when about 10 coaches outside
-  the owner's team use cloud mode. Pro brings daily restorable backups (7 days).
+- **When to move to Pro:** once there is revenue to pay for it (owner decision 2026-11-13).
+  Pro brings daily restorable backups (7 days) and one-click restore.
 
 **Restore steps** (data never goes to staging or anywhere public):
 
@@ -5060,9 +5060,15 @@ which deletes them after 30 days.
 2. Decrypt and unpack it into a private folder:
    `age -d -i ~/.config/matchops-backup/backup-key.txt <file> | tar -xz -C <folder>`.
    This gives `roles.sql`, `schema.sql` and `data.sql`.
-3. Restore into an EMPTY target first: a new Supabase project, or a local throwaway Postgres
-   17 (`docker run ... public.ecr.aws/supabase/postgres:17...`). Never restore straight over
-   the live production database.
+3. Restore into an EMPTY target first. Never restore straight over the live production database.
+   - **A new Supabase project** (free tier is enough) restores everything, including accounts.
+   - **A local throwaway Postgres 17** (`docker run ... public.ecr.aws/supabase/postgres:17...`)
+     restores the app data (players, games, events, teams, ...) but not every account table:
+     the plain image's `auth` schema is older than a live project's, so `auth.*` rows fail.
+     Use it to check or pull back app data. To skip the `auth` errors, leave out
+     `--single-transaction` and `ON_ERROR_STOP` for the data file.
+   - Verified 2026-11-13: the first nightly backup restored into the local image with every
+     app table matching production row for row.
    ```bash
    psql --single-transaction --variable ON_ERROR_STOP=1 \
      --file roles.sql --file schema.sql \

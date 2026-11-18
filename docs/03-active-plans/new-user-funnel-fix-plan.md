@@ -297,3 +297,50 @@ No in-app analytics (by design) and no user base yet, so there is no "before" nu
 Judge each phase by whether the first-run flow feels right on a real TWA install - can a
 first-time coach reach a live game without being told how? Once there are users, watch
 Play Console retention and reorder or stop at any phase.
+
+### Baseline, 2026-11-13 (review item 2.1)
+Production, read-only aggregate queries following review-2026-11/onboarding/PLAN.md §10.
+- **Exclusions:** the owner's account is excluded.
+- **Cohorts:** split at the SetupWizard's production date, 2026-09-04.
+- **"Ran a match":** the clock ran or at least one event was logged.
+- **3+ and 10+:** counted only for accounts at least 28 days old.
+
+| Stage | Before wizard (35) | With wizard (10) |
+|---|---|---|
+| S1 accounts | 35 | 10 |
+| S2 confirmed | 31 (89%) | 9 (90%) |
+| S3 added players | 23 (74% of S2) | 7 (78%) |
+| Set up team + players within 30 min of sign-up | 8 (23% of S1) | 7 (70%) |
+| S4a created a game | 17 (74% of S3) | 7 (100%) |
+| S4 ran a match | 10 (59% of S4a) | 3 (43%) |
+| Second game 5-21 days after the first | 4 | 2 |
+| S5 3+ played games (of mature accounts) | 6 of 35 | 0 of 8 |
+| S6 10+ played games | 3 | 0 |
+| Active in the last 30 days | 3 | 1 |
+| Used the planner | 9 | 2 |
+
+- **Accounts with only 1-2 games** (whether they ever ran a match):
+  - before the wizard: 6 ran a match, 4 never did;
+  - with the wizard: 2 ran a match, 3 never did.
+- **How long accounts stayed active,** before vs with the wizard:
+  - 0 days: 7 vs 4
+  - 1-7 days: 2 vs 1
+  - 8-30 days: 2 vs 2
+  - over 30 days: 6 vs 0
+- **Sign-ups per month:**
+  - 2026: Feb 3, Mar 1, Apr 1, May 9, Jun 2, Jul 6, Aug 11, Sep 10, Oct 2, Nov 0 (so far).
+- **Home view setting** (`home_view`): simple 19, not set 18, dashboard 2.
+
+**Reading these small numbers:**
+- **The wizard does its job.** Same-day setup rose from 8 of 35 to 7 of 10 accounts, and
+  every wizard account with players created a game.
+- **The leak moved later.** The losses are now between creating a game and running one
+  (3 of 7), and between game one and game three (0 of 8 mature accounts so far).
+- **Don't call this a regression yet.**
+  - Ten accounts is too few.
+  - The wizard cohort signed up in September and October, when the Finnish outdoor season
+    ends, so fewer games were left to play. FINAL-PLAN §5.5 says to compare like with like.
+- **The main open question is the drop in sign-ups:** October had 2 and November none so far.
+  - The top of the funnel isn't measured: Play Console visitors and installs are still to be
+    read by the owner.
+  - Treat the decline as seasonal until those numbers show otherwise.
