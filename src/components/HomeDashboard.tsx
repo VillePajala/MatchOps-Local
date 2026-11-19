@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import type { TFunction } from 'i18next';
-import type { HomeSummary, HomeResumeGame, HomeRecentGame, HomeUpcomingGame } from '@/utils/homeSummary';
+import type { HomeSummary, HomeResumeGame, HomeRecentGame, HomeUpcomingGame, HomeCounts } from '@/utils/homeSummary';
 import type { GameResult } from '@/utils/gameResult';
 import { formatDriveTime } from '@/utils/travelPlan';
 
@@ -955,6 +955,98 @@ export function HomeSeasonCard({ vuosi, onOpen, t }: {
       </span>
       <HomeIcon name="chev" className="h-4 w-4 text-ink-3" strokeWidth={2} />
     </button>
+  );
+}
+
+/**
+ * Seura tab: the club card (owner's pick "A · Seurakortti", 2026-11-19), the
+ * sister of the Pelit tab's hero. Three counts that each open their manager,
+ * then the season record and top scorer - the same club-wide numbers Home
+ * already computes, nothing new.
+ *
+ * Counts show a dash until the enriched summary has loaded, so a still-loading
+ * 0 never reads as "you have none". The footer only appears once the season
+ * has a played game: a 0-0-0 line says nothing.
+ */
+export function HomeClubCard({ title, showClubEyebrow, counts, vuosi, topScorer, onPlayers, onTeams, onPersonnel, t }: {
+  /** The shared club name from the team names, or the neutral "Seura". */
+  title: string;
+  /** True when `title` is a real club name, so the eyebrow says "Seura". */
+  showClubEyebrow: boolean;
+  counts?: HomeCounts;
+  vuosi: HomeSummary['vuosi'];
+  topScorer: HomeSummary['topScorer'];
+  onPlayers?: () => void;
+  onTeams?: () => void;
+  onPersonnel?: () => void;
+  t: TFunction;
+}) {
+  const seasonLabel = vuosi && vuosi.label !== 'off-season' ? vuosi.label : null;
+  const eyebrow = [
+    showClubEyebrow ? t('startScreen.tabTeam', 'Club') : null,
+    seasonLabel ? `${t('startScreen.dashSeason', 'Season')} ${seasonLabel}` : null,
+  ].filter(Boolean).join(' · ');
+  const showRecord = !!vuosi && vuosi.gamesPlayed > 0;
+  const stat = (n: number | undefined, label: string, onClick: (() => void) | undefined, testId: string, first = false) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      data-testid={testId}
+      className={`relative flex min-h-16 min-w-0 flex-col items-start justify-center gap-1 rounded-[14px] px-1.5 py-1.5 text-left transition-colors ${HOME_FOCUS} ${
+        // A straight hairline between the counts; an inset shadow followed the
+        // rounded corner and drew a bracket.
+        first ? '' : 'before:absolute before:inset-y-1.5 before:left-0 before:w-px before:bg-hairline'
+      } ${onClick ? 'hover:bg-white/[0.04] active:bg-white/[0.06]' : 'cursor-not-allowed opacity-40'}`}
+    >
+      {n === undefined ? (
+        <span className="font-display text-[34px] font-extrabold italic leading-none text-ink-3" aria-hidden="true">–</span>
+      ) : (
+        <span className="s1-numeral pr-[3px] font-display text-[34px] font-extrabold italic leading-none tabular-nums">{n}</span>
+      )}
+      <span className="flex max-w-full items-center text-xs font-medium text-ink-2">
+        <span className="truncate">{label}</span>
+        <HomeIcon name="chev" className="h-3 w-3 flex-shrink-0 text-ink-3" strokeWidth={2} />
+      </span>
+    </button>
+  );
+  return (
+    // px-4, not the other heroes' p-5: at 320px the third-width counts need
+    // the room for "Joukkueet" and its chevron without truncating.
+    <div className="s1-hero s1-hero-quiet px-4 py-5 text-ink" data-testid="club-card">
+      {eyebrow && (
+        <span className="block text-xs font-semibold uppercase tracking-[0.09em] text-ink-3">{eyebrow}</span>
+      )}
+      <h2 className={`${eyebrow ? 'mt-2' : ''} break-words font-display text-[34px] font-bold leading-none tracking-[0.005em] text-ink`}>
+        {title}
+      </h2>
+      <div className="-mx-1.5 mt-4 grid grid-cols-3">
+        {stat(counts?.players, t('startScreen.rowPlayers', 'Players'), onPlayers, 'club-count-players', true)}
+        {stat(counts?.teams, t('startScreen.rowTeams', 'Teams'), onTeams, 'club-count-teams')}
+        {stat(counts?.personnel, t('startScreen.clubCountPersonnel', 'Staff'), onPersonnel, 'club-count-personnel')}
+      </div>
+      {showRecord && (
+        <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-hairline pt-3 text-[13px] text-ink-2" data-testid="club-card-season">
+          <span
+            className="whitespace-nowrap font-display text-lg font-bold italic leading-none tabular-nums"
+            title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
+          >
+            <span className="sr-only">{t('startScreen.dashRecordTitle', 'Wins - draws - losses')}: </span>
+            <span className="text-win">{vuosi.wins}</span>
+            <span className="text-ink-3">-</span>
+            <span className="text-draw">{vuosi.ties}</span>
+            <span className="text-ink-3">-</span>
+            <span className="text-loss">{vuosi.losses}</span>
+          </span>
+          {topScorer && (
+            <span className="min-w-0" data-testid="club-card-scorer">
+              {t('startScreen.clubTopScorer', 'Top scorer')}{' '}
+              <b className="font-semibold text-ink">{topScorer.name} · {topScorer.goals}</b>
+            </span>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

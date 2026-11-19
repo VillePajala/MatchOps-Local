@@ -580,9 +580,9 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(props.onManageRoster).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Teams' }));
     expect(props.onManageTeams).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Personnel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Staff' }));
     expect(props.onManagePersonnel).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Warmup Plan' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Warmup Plan/ }));
     expect(props.onOpenTraining).toHaveBeenCalledTimes(1);
 
     // Back to Games restores the front page.
@@ -798,13 +798,67 @@ describe('Home dashboard view (opt-in)', () => {
     expect(screen.queryByText('Aho')).not.toBeInTheDocument();
   });
 
-  it('Club tab shows the counts on the rows when the dashboard is on', () => {
-    const props = { ...dashProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn(), onOpenTraining: jest.fn() };
+  /**
+   * Seura club card (owner's pick "A · Seurakortti"): each count is the entry
+   * to its manager, so the number and the modal it opens must stay paired.
+   * @critical
+   */
+  it('Club card counts show the numbers and open the players / teams / personnel managers', () => {
+    const props = { ...dashProps(), onManageRoster: jest.fn(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
-    expect(screen.getByRole('button', { name: /Players\s*18/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Teams\s*3/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Personnel\s*\d+/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /18\s*Players/ }));
+    expect(props.onManageRoster).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: /3\s*Teams/ }));
+    expect(props.onManageTeams).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: /2\s*Staff/ }));
+    expect(props.onManagePersonnel).toHaveBeenCalledTimes(1);
+    expect(props.onManageRoster).toHaveBeenCalledTimes(1);
+    expect(props.onManageTeams).toHaveBeenCalledTimes(1);
+  });
+
+  it('Club card shows the season record and the top scorer', () => {
+    render(<StartScreen {...dashProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    const season = screen.getByTestId('club-card-season');
+    expect(season).toHaveTextContent('5-2-1');
+    expect(within(season).getByTestId('club-card-scorer')).toHaveTextContent('Top scorer Aho · 6');
+    expect(within(screen.getByTestId('club-card')).getByText('Season 24/25')).toBeInTheDocument();
+  });
+
+  it('Club card hides the record line before a game is played, and the scorer when there is none', () => {
+    const noGames = { ...summary, vuosi: { ...summary.vuosi, gamesPlayed: 0, wins: 0, ties: 0, losses: 0, goalDifference: 0 }, topScorer: null };
+    const { unmount } = render(<StartScreen {...dashProps({ homeSummary: noGames })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    expect(screen.getByTestId('club-card')).toBeInTheDocument();
+    expect(screen.queryByTestId('club-card-season')).not.toBeInTheDocument();
+    unmount();
+
+    render(<StartScreen {...dashProps({ homeSummary: { ...summary, topScorer: null } })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    expect(screen.getByTestId('club-card-season')).toHaveTextContent('5-2-1');
+    expect(screen.queryByTestId('club-card-scorer')).not.toBeInTheDocument();
+  });
+
+  it('Club card title is the club name every team shares, otherwise the neutral "Club"', () => {
+    const shared = [{ id: 'a', label: 'Kotkat P12 Musta' }, { id: 'b', label: 'Kotkat T11' }];
+    const { unmount } = render(<StartScreen {...dashProps({ teamScopeOptions: shared })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    expect(within(screen.getByTestId('club-card')).getByRole('heading', { name: 'Kotkat' })).toBeInTheDocument();
+    unmount();
+
+    render(<StartScreen {...dashProps({ teamScopeOptions: [{ id: 'a', label: 'PePo Lila' }] })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    expect(within(screen.getByTestId('club-card')).getByRole('heading', { name: 'Club' })).toBeInTheDocument();
+  });
+
+  it('Club card counts read 0 with no players and still open the add flow', () => {
+    const empty = { ...summary, counts: { players: 0, teams: 0, personnel: 0, seasons: 0, tournaments: 0 } };
+    const props = { ...dashProps({ homeSummary: empty }), onManageRoster: jest.fn() };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    fireEvent.click(screen.getByRole('button', { name: /0\s*Players/ }));
+    expect(props.onManageRoster).toHaveBeenCalledTimes(1);
   });
 
   it('Kilpailut tab shows the club-season card; it opens OVERALL stats (not a Kausi)', () => {
