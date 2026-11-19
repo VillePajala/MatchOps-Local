@@ -43,7 +43,6 @@ type LiftedHandlerProps =
   | 'onViewStats'
   | 'onViewStatsTab'
   | 'onViewPlayerStats'
-  | 'onOpenCompetition'
   | 'onAddCompetition'
   | 'onManageRoster'
   | 'onManageTeams'
@@ -220,13 +219,8 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
         setCompetitionManagerTarget(null);
         setIsSeasonTournamentModalOpen(true);
       }}
-      // Kilpailut's cards and add rows: the manager opens straight onto that
-      // sheet, and closing the sheet comes back here.
-      onOpenCompetition={(kind, id) => {
-        setCompetitionManagerKind(kind);
-        setCompetitionManagerTarget({ itemId: id });
-        setIsSeasonTournamentModalOpen(true);
-      }}
+      // Kilpailut's empty "Lisää sarja / turnaus" rows: the manager opens
+      // straight onto adding one, and closing it comes back here.
       onAddCompetition={(kind) => {
         setCompetitionManagerKind(kind);
         setCompetitionManagerTarget({ create: true });

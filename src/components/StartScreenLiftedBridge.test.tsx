@@ -41,7 +41,6 @@ jest.mock('@/components/StartScreen', () => ({
       <button onClick={() => props.onViewStatsTab?.('player')}>tap-player-stats</button>
       <button onClick={props.onGetStarted}>tap-get-started</button>
       <button onClick={() => props.onOpenAttendance?.('g1', 'start')}>tap-attendance</button>
-      <button onClick={() => props.onOpenCompetition?.('tournament', 't1')}>tap-open-tournament</button>
       <button onClick={() => props.onAddCompetition?.('season')}>tap-add-season</button>
       <button onClick={() => props.onViewPlayerStats?.('p1')}>tap-player-p1</button>
       <button onClick={() => props.onViewPlayerStats?.('gone')}>tap-player-gone</button>
@@ -145,13 +144,13 @@ describe('StartScreenLiftedBridge (L.2)', () => {
   });
 
   /**
-   * Home's Kilpailut cards and add rows open the manager straight onto that
-   * sheet; closing the manager drops the target so the next open is the list.
+   * Home's Kilpailut add rows open the manager straight onto adding one;
+   * closing the manager drops the target so the next open is the list.
    */
-  it('a competition card opens the manager on that item; the target clears on close', () => {
+  it('an add row target clears on close', () => {
     renderBridgeWithCloser();
-    fireEvent.click(screen.getByText('tap-open-tournament'));
-    expect(screen.getByTestId('probe')).toHaveTextContent('seasons,kind(tournament),target({"itemId":"t1"})');
+    fireEvent.click(screen.getByText('tap-add-season'));
+    expect(screen.getByTestId('probe')).toHaveTextContent('seasons,kind(season),target({"create":true})');
     fireEvent.click(screen.getByText('close-seasons'));
     expect(screen.getByTestId('probe')).toHaveTextContent('none');
     fireEvent.click(screen.getByText('tap-seasons'));
