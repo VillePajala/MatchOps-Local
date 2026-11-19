@@ -13,6 +13,8 @@ import { loadStates, pid, SLOTS } from '../lib/seeds.mjs';
 const ROOT = new URL('..', import.meta.url).pathname;
 const OUT = path.join(ROOT, 'out', 'basic');
 const only = process.argv[2] ? process.argv[2].split(',') : null;
+// Quick goal entry names the scorer by the player's full name (the button's accessible name).
+const nameOf = (n) => JSON.parse(fs.readFileSync(path.join(ROOT, 'out', 'demo-backup.json'), 'utf8')).localStorage.soccerMasterRoster.find((p) => p.id === pid(n)).name;
 
 export const CAPTIONS = {
   '1': 'Seuraava peli, lähtöaika ja reitti - kaikki etusivulla.',
@@ -56,9 +58,10 @@ await rec.scene('front', S.basicFront, { only }, async ({ page, arm, tap, touchT
 await rec.scene('timer', S.basicTimer, { inMatch: true, startCur: [195, 815], only }, async ({ page, arm, tap, glide, hold, mark, pickFromSelect, scrollToHeading, scrollToId }) => {
   await hold(400); await tap(page.getByRole('button', { name: 'Avaa ajastin' }), 200); await hold(900); await arm();
   mark(3); await tap(page.getByRole('button', { name: 'Käynnistä' })); await hold(2600);
-  mark(4); await tap(page.getByRole('button', { name: 'Kirjaa maali' }).first()); await hold(900); await arm();
-  await pickFromSelect('#scorerSelect', pid(10)); await pickFromSelect('#assisterSelect', pid(7));
-  await tap(page.getByTestId('tour-confirm-goal'), 500); await hold(2200);
+  mark(4); await tap(page.getByRole('button', { name: 'Maali meille' }).first()); await hold(900); await arm();
+  const names = page.getByTestId('quick-goal-names');
+  await tap(names.getByRole('button', { name: nameOf(10), exact: true }), 600); await hold(700); await arm();
+  await tap(names.getByRole('button', { name: nameOf(7), exact: true }), 500); await hold(2200);
   await tap(page.getByRole('button', { name: 'Vastustaja +1' }).first(), 500); await hold(700); await arm();
   await tap(page.getByRole('button', { name: 'Vahvista' }).first(), 500); await hold(2200);
   mark(5); await page.locator('.text-red-400').first().waitFor({ timeout: 30000 }).catch(() => {}); await hold(600);

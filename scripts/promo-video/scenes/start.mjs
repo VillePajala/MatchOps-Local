@@ -30,10 +30,11 @@ const EMAIL = 'mepa.valmentaja@example.com'; const PASSWORD = 'Pallokentta-2026'
 const rec = await openRecorder({ outDir: OUT });
 await rec.scene('start', null, { cloud: true, startCur: [195, 780] }, async ({ page, arm, tap, type, hold, mark, orbit }) => {
   mark(1); await hold(1200);
+  await tap(page.getByTestId('login-intro-create'), 600); await page.locator('input[type=email]').first().waitFor(); await arm(); await hold(600);
   await type(page.locator('input[type=email]').first(), EMAIL); await hold(300);
-  const pw = page.locator('input[type=password]'); await type(pw.nth(0), PASSWORD); await type(pw.nth(1), PASSWORD); await hold(300);
+  await type(page.locator('input[type=password]').first(), PASSWORD); await hold(300);
   await tap(page.locator('input[type=checkbox]').first(), 500); await hold(600);
-  await tap(page.getByRole('button', { name: 'Luo tili' }).last(), 600);
+  await tap(page.getByRole('button', { name: 'Luo ilmainen tili' }).last(), 600);
   await page.getByTestId('wizard-team-name').waitFor({ timeout: 90000 }); await arm(); await hold(1200);
   mark(2); await type(page.getByTestId('wizard-team-name'), 'MePa'); await hold(500);
   await tap(page.getByTestId('wizard-format-8v8'), 600); await hold(900);
