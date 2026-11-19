@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, within, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, within, cleanup, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 jest.mock('@/i18n', () => ({
@@ -21,6 +21,10 @@ jest.mock('@/utils/appSettings', () => ({
 
 jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast: jest.fn() }) }));
 jest.mock('@/utils/playtimePlanner/planLinks', () => ({ getPlanLink: jest.fn().mockResolvedValue(null) }));
+jest.mock('@/utils/playtimePlanner/storage', () => ({
+  ...jest.requireActual('@/utils/playtimePlanner/storage'),
+  getPlan: jest.fn().mockResolvedValue(null),
+}));
 
 jest.mock('@/utils/fullBackup', () => ({
   __esModule: true,
@@ -54,6 +58,9 @@ jest.mock('react-i18next', () => ({
 
 import i18n, { saveLanguagePreference } from '@/i18n';
 import StartScreen from './StartScreen';
+import { getPlanLink } from '@/utils/playtimePlanner/planLinks';
+import { getPlan } from '@/utils/playtimePlanner/storage';
+import { buildFirstPlan } from '@/services/nextGamePair';
 
 describe('StartScreen', () => {
   /** Phase 3 entry point: "Add to player stats" is the last row of the Stats tab, live even before the first match. */
@@ -1260,5 +1267,86 @@ describe('Home guide + empty-state guidance', () => {
       expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
       expect(screen.queryByText('New Game')).not.toBeInTheDocument();
     });
+  });
+});
+
+/**
+ * The full layout's next-match card shows and shares the game's plan like the
+ * basic card - through the same lookup and actions (useNextGamePlan).
+ * @critical
+ */
+describe('Full layout next-match card: the game\'s plan', () => {
+  const plan = buildFirstPlan({
+    team: { id: 'team-1', name: 'MePa P12' },
+    players: Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, name: `Player ${i + 1}` })),
+    fieldSize: '8v8',
+    gameType: 'soccer',
+    ageGroup: 'U12',
+    numberOfPeriods: 2,
+    periodMinutes: 25,
+    gameDate: '2026-11-22',
+    opponentName: 'Rantakylän FC',
+  });
+  const summary = {
+    resume: null,
+    vuosi: null,
+    recent: [],
+    upcoming: { id: 'game-1', opponent: 'Rantakylän FC', date: '2026-11-22', time: '10:00', mapsUrl: null, daysAway: 3, travel: null, teamName: 'MePa P12' },
+    lastPlayed: null,
+    upcomingList: [],
+    counts: { players: 10, teams: 1, personnel: 0, seasons: 0, tournaments: 0 },
+    countsReady: true,
+    topScorer: null,
+  };
+  const props = (over = {}) => ({
+    onLoadGame: jest.fn(), onResumeGame: jest.fn(), onGetStarted: jest.fn(),
+    onViewStats: jest.fn(), onOpenSettings: jest.fn(), onOpenGameById: jest.fn(),
+    onShowPlan: jest.fn(), onOpenPlannerAt: jest.fn(),
+    canResume: false, hasSavedGames: true, isFirstTimeUser: false,
+    appLayout: 'full' as const,
+    homeSummary: summary,
+    ...over,
+  });
+
+  afterEach(() => {
+    (getPlanLink as jest.Mock).mockResolvedValue(null);
+    (getPlan as jest.Mock).mockResolvedValue(null);
+  });
+
+  it('without a plan the card has no plan actions', async () => {
+    render(<StartScreen {...props()} />);
+    await waitFor(() => expect(getPlanLink).toHaveBeenCalledWith('game-1'));
+    expect(screen.getByText('Rantakylän FC')).toBeInTheDocument();
+    expect(screen.queryByTestId('next-match-show-plan')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('next-match-share')).not.toBeInTheDocument();
+  });
+
+  it('with a plan: Show rotation opens the plan view, Share opens the share sheet', async () => {
+    (getPlanLink as jest.Mock).mockResolvedValue({ planId: plan.id, planGameId: plan.games[0].id });
+    (getPlan as jest.Mock).mockResolvedValue(plan);
+    const share = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'share', { value: share, configurable: true });
+    const p = props();
+    try {
+      render(<StartScreen {...p} />);
+      await waitFor(() => expect(screen.getByTestId('next-match-show-plan')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId('next-match-show-plan'));
+      expect(p.onShowPlan).toHaveBeenCalledWith(plan.id, 'game-1');
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('next-match-share'));
+      });
+      await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
+      expect(share.mock.calls[0][0].text).toContain('MePa P12 – Rantakylän FC');
+    } finally {
+      delete (navigator as unknown as { share?: unknown }).share;
+    }
+  });
+
+  it('the basic layout leaves the lookup to its own card (no second lookup)', async () => {
+    render(<StartScreen {...props({ appLayout: 'basic' as const })} />);
+    await waitFor(() => expect(getPlanLink).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId('next-match-show-plan')).not.toBeInTheDocument();
   });
 });

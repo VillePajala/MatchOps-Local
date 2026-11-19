@@ -21,7 +21,7 @@
  * claim.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import { splitPastedNames, PASTE_MAX_NAMES } from '@/utils/splitPastedNames';
@@ -37,28 +37,16 @@ import {
   HiOutlineXMark,
 } from 'react-icons/hi2';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { getPlanLink } from '@/utils/playtimePlanner/planLinks';
-import { getPlan } from '@/utils/playtimePlanner/storage';
-import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
-import { buildPlanShareText } from '@/utils/planShareText';
 import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import { useToast } from '@/contexts/ToastProvider';
-import logger from '@/utils/logger';
+import { useNextGamePlan } from '@/hooks/useNextGamePlan';
 import {
   BasicNextGameCard,
   BasicNoNextGameCard,
   ResumeCard,
   HOME_CARD,
   HOME_FOCUS,
-  type BasicCardPlanState,
 } from '@/components/HomeDashboard';
-
-/** The plan behind the next game, once looked up. */
-interface NextGamePlan {
-  state: BasicCardPlanState;
-  plan?: PlaytimePlan;
-  planGameId?: string;
-}
 
 /** Statistics get a row from the first played game (R13). */
 const STATS_ROW_FROM_GAMES = 1;
@@ -113,39 +101,6 @@ function BasicRow({ icon: Icon, label, onClick, testId }: {
       </span>
     </button>
   );
-}
-
-/** Looks up whether the next game was made from a plan, and which. */
-function useNextGamePlan(gameId: string | undefined, refreshKey: unknown): NextGamePlan {
-  // Tagged with the game it answers for, so a different next game never shows
-  // the previous game's plan while its own lookup runs.
-  const [result, setResult] = useState<NextGamePlan & { forId?: string }>({ state: 'loading' });
-  useEffect(() => {
-    if (!gameId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const link = await getPlanLink(gameId);
-        const plan = link ? await getPlan(link.planId) : null;
-        const found = !!plan && !!link && plan.games.some((g) => g.id === link.planGameId);
-        if (!cancelled) {
-          setResult(
-            found
-              ? { forId: gameId, state: 'ready', plan: plan!, planGameId: link!.planGameId }
-              : { forId: gameId, state: 'none' },
-          );
-        }
-      } catch (error) {
-        logger.warn('[HomeBasic] plan lookup failed', { error });
-        if (!cancelled) setResult({ forId: gameId, state: 'none' });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [gameId, refreshKey]);
-  if (!gameId) return { state: 'none' };
-  return result.forId === gameId ? result : { state: 'loading' };
 }
 
 /** "Kaikki toiminnot": a short list of what the full layout adds, and the switch. */
@@ -328,59 +283,13 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
   locale,
   t,
 }) => {
-  const { showToast } = useToast();
   const [allFeaturesOpen, setAllFeaturesOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   // The game on the card: the next one, else one whose day passed without it
   // kicking off (R2) - which keeps its "Siirrä päivää / Poista" card.
   const upcoming = summary?.upcoming ?? summary?.overdue ?? null;
-  // The summary is rebuilt whenever Home re-reads its data (a modal closed, the
-  // match was left), which is also when a plan could have been made or removed.
-  const nextPlan = useNextGamePlan(upcoming?.id, summary);
-
-  const handleShowPlan = useCallback(() => {
-    if (!upcoming || !nextPlan.plan || !nextPlan.planGameId) return;
-    // The compact screen is a one-game view; a game from a multi-game plan
-    // opens the planner on its own game instead.
-    if (nextPlan.plan.games.length === 1) onShowPlan?.(nextPlan.plan.id, upcoming.id);
-    else onOpenPlannerAt?.(nextPlan.plan.id, nextPlan.planGameId);
-  }, [upcoming, nextPlan, onShowPlan, onOpenPlannerAt]);
-
-  const handleShare = useCallback(async () => {
-    if (!upcoming || !nextPlan.plan || !nextPlan.planGameId) return;
-    const text = buildPlanShareText(
-      nextPlan.plan,
-      nextPlan.planGameId,
-      {
-        teamName: upcoming.teamName ?? '',
-        opponent: upcoming.opponent,
-        date: upcoming.date,
-        time: upcoming.time,
-        language: locale,
-      },
-      t,
-    );
-    if (!text) return;
-    // The OS share sheet where there is one; the clipboard otherwise (the
-    // GameRecapModal pattern). Dismissing the sheet is not an error.
-    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-      try {
-        await navigator.share({ text });
-        return;
-      } catch (e) {
-        if (e instanceof DOMException && e.name === 'AbortError') return;
-        logger.warn('[HomeBasic] share failed, copying instead', e);
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast(t('basicHome.copied', 'Rotation copied - paste it into the chat.'), 'success');
-    } catch (e) {
-      logger.warn('[HomeBasic] copy failed', e);
-      showToast(t('basicHome.shareFailed', 'Could not share the rotation.'), 'error');
-    }
-  }, [upcoming, nextPlan, locale, t, showToast]);
+  const nextPlan = useNextGamePlan({ game: upcoming, refreshKey: summary, onShowPlan, onOpenPlannerAt, locale, t });
 
   // A match under way always wins the card (R5), the current game or another.
   const unfinished = summary?.unfinished ?? (summary?.resume?.inProgress ? summary.resume : null);
@@ -420,8 +329,8 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
           planState={nextPlan.state}
           onOpen={() => onOpenGame(upcoming.id)}
           onPrimary={() => onOpenAttendance?.(upcoming.id, upcoming.daysAway === 0 ? 'start' : 'save')}
-          onShowPlan={onShowPlan || onOpenPlannerAt ? handleShowPlan : undefined}
-          onShare={() => void handleShare()}
+          onShowPlan={nextPlan.showPlan}
+          onShare={nextPlan.share}
           onMoveDate={onMoveGameDate ? (date) => onMoveGameDate(upcoming.id, date) : undefined}
           onDelete={onDeleteGame ? () => setConfirmDeleteId(upcoming.id) : undefined}
           today={today ?? toLocalIsoDate(new Date())}
