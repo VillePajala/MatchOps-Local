@@ -907,7 +907,7 @@ CREATE POLICY "Users can only access their own consents"
 - **Policy versioning**: `policy_version` tracks which version of Terms/Privacy was accepted
 - **Re-consent required**: When policies change, check if user has consented to new version
 - **Audit trail**: Optional IP/user agent for legal compliance
-- **Data retention**: Consent records should be retained even after account deletion (legal requirement)
+- **Data retention**: Consent records are deleted WITH the account (owner decision 2026-11-19, privacy policy 2026-11): the FK is `ON DELETE CASCADE` since migration 063 (009 had made it `SET NULL`). "Delete all cloud data" (`clear_all_user_data`) still keeps them, because the account remains. They are included in the data export (`fullBackup.ts`, `account.consentRecords`).
 
 **Usage Pattern**:
 - Record consent during sign-up via `record_user_consent()` RPC

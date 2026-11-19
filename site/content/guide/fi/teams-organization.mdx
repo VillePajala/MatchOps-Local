@@ -1,253 +1,95 @@
 ---
 title: Joukkueet ja organisointi
-description: Hallitse useita joukkueita, kausia ja turnauksia
-lastUpdated: "2026-11-17"
+description: Joukkueet, sarjat, turnaukset, taustahenkilöt ja harjoitusottelut (Koko näkymä)
+lastUpdated: "2026-11-19"
 ---
 
-MatchOps auttaa sinua järjestämään valmennustoimintasi useiden joukkueiden, kausien ja turnausten välillä. Tämä opas käsittelee organisaatiotietojen luomisen ja hallinnan.
-
-## Kausijakso
-
-Sovellus laskee automaattisesti kausijakson (esim. "24/25"), joka näytetään kilpailunimien yhteydessä. Tämä auttaa järjestämään dataa pelivuoden mukaan.
-
-<Callout type="warning">
-Määritä kausijakso **Asetuksissa** ennen kilpailujen luomista. Tämä vaikuttaa kausien ja turnausten nimeämiseen ja ryhmittelyyn.
+<Callout type="info">
+Sarjat, turnaukset, joukkueet ja taustahenkilöt hallitaan **Koko näkymässä** (etusivun välilehdet **Seura** ja **Kilpailut**). Perusnäkymässä on yksi joukkue, jonka pelaajalista aukeaa etusivun Joukkue-riviltä. Näkymän vaihto: ratas → **Asetukset** → **Näkymä**.
 </Callout>
 
-- Kausijakso lasketaan kilpailun aloituspäivämäärästä
-- Oletusarvo on lokakuu-toukokuu, jos ei ole määritetty
-- Esimerkki: Marraskuussa 2024 alkava kausi saa "24/25" näkyviin nimen yhteyteen
+## Seurakausi
 
-Katso [Suositeltu työnkulku](/guide/full-setup-path) koko asennusprosessin läpikäyntiin.
+Sovellus laskee jokaiselle sarjalle ja turnaukselle seurakauden (esim. "24/25") alkupäivän perusteella ja näyttää sen nimen yhteydessä.
+
+- Aseta alkamispäivä: ratas → **Asetukset** → **Yleiset** → **Seurakauden alkamispäivä**
+- Edellinen kausi päättyy automaattisesti edellisenä päivänä
+- Tee tämä ennen kilpailujen luomista, niin ryhmittely on heti oikein
 
 ## Kilpailut
 
-Kilpailut ovat joko **Kausia** (sarjapelit) tai **Turnauksia** (cupit ja tapahtumat).
+**Kilpailut**-välilehden yläosa näyttää kauden tuloksen (voitot-tasapelit-häviöt, maalit) ja viiden viime pelin vireen. Sen alla ovat rivit **Sarjat** ja **Turnaukset**, jotka avaavat listat. Molemmissa listoissa on haku, arkistointi ja kunkin kohteen toiminnot (muokkaa, arkistoi, poista).
 
-### Kaudet
+### Sarjat
 
-Kausi edustaa kilpailujaksoa (esim. "Kevät 2025" tai "Syysliiga 2024"). Kaudet auttavat sinua:
+Sarja ryhmittelee sarjapelit ja niiden tilastot. Sarjan tiedot:
 
-- Ryhmittelemään liittyvät pelit yhteen
-- Seuraamaan sarjataulukkoa ja tilastoja ajan myötä
-- Vertailemaan suorituksia kausien välillä
-
-#### Kauden luominen
-
-<Steps>
-<Step title="Avaa Kilpailut">
-Avaa valikko (☰) ja valitse **Kilpailut**.
-</Step>
-
-<Step title="Luo uusi kausi">
-Napauta **Uusi kausi** ja syötä tarvittavat tiedot.
-</Step>
-
-<Step title="Määritä">
-Aseta peliformaatin oletukset ja muut asetukset.
-</Step>
-</Steps>
-
-#### Kauden tiedot
-
-Kautta luodessa tai muokatessa:
-
-- **Nimi** - Kuvaava nimi (kausijakso lisätään automaattisesti)
-- **Sijainti** - Missä pelit tyypillisesti pelataan
-- **Ikäluokka** - U7-U21
-- **Pelityyppi** - Jalkapallo tai Futsal
-- **Sukupuoli** - Pojat tai tytöt
-- **Sarja** - Käytä 3-vaiheista pudotusvalikkoa: taso (Kansallinen, Alueellinen, Paikallinen, Muu), alue (Etelä, Länsi, Itä, Pohjoinen) ja sarjan nimi
-- **Jaksoasetukset** - Jaksojen määrä (1 tai 2) ja kesto
-- **Alkamis-/päättymispäivät** - Kauden ajanjakso
-- **Muistiinpanot** - Lisätiedot
-
-#### Pelien liittäminen kauteen
-
-Kun luot uuden pelin, voit liittää sen kauteen. Tämä:
-
-- Lisää pelin kauden tietoihin
-- Päivittää kauden tilastot automaattisesti
-- Sisällyttää sen kausiraportteihin
+- **Nimi** ja **Virallinen sarja** (tai muun sarjan nimi)
+- **Seurakausi**, **Alkupäivä** ja **Loppupäivä**
+- **Sijainti**, **Ikäluokka**, laji (Jalkapallo tai Futsal) ja **Sukupuoli**
+- **Jaksot** ja **Minuuttia** - esitäytetään sarjan peleihin
+- **Väri**, **Merkki** ja **Muistiinpanot**
 
 ### Turnaukset
 
-Turnaukset ovat cupeille, festivaaleille tai yksittäisille kilpailuille.
+Turnauksella on samat perustiedot kuin sarjalla, ja lisäksi:
 
-#### Turnauksen luominen
+- **Kilpailutasot** - kun samassa turnauksessa pelataan useammalla tasolla. Joukkue ja peli voidaan liittää tiettyyn tasoon, ja tilastot voi suodattaa tason mukaan.
+- **Turnauksen pelaaja** - turnauksen palkittu pelaaja
 
-<Steps>
-<Step title="Avaa Kilpailut">
-Avaa valikko (☰) ja valitse **Kilpailut**.
-</Step>
+### Pelin liittäminen kilpailuun
 
-<Step title="Luo uusi turnaus">
-Napauta **Uusi turnaus** ja syötä tiedot.
-</Step>
-
-<Step title="Lisää sarjatasot (valinnainen)">
-Lisää kilpailutasot, jos turnauksessa on useita tasoja.
-</Step>
-</Steps>
-
-#### Turnauksen tiedot
-
-- **Nimi** - Turnauksen nimi (kausijakso lisätään automaattisesti)
-- **Sijainti** - Tapahtumapaikka
-- **Päivämäärät** - Alkamis- ja päättymispäivät
-- **Ikäluokka** - U7-U21
-- **Pelityyppi** - Jalkapallo tai Futsal
-- **Sukupuoli** - Pojat tai tytöt
-- **Jaksoasetukset** - Oletuspeliformaatti
-- **Muistiinpanot** - Lisätiedot
-
-#### Turnaussarjat
-
-Suurissa turnauksissa on usein useita kilpailutasoja. Lisää sarjoja niiden järjestämiseksi:
-
-- **Elite** - Ylin kilpailutaso
-- **Kilpa** - Kilpailutaso
-- **Haaste** - Haastetaso
-- **Harraste** - Harrastetaso
-
-Jokaisella sarjalla voi olla omat pelinsä ja sijoituksensa saman turnauksen sisällä.
-
-<Callout type="tip">
-Käytä turnaussarjoja kun joukkueesi pelaa monitasoisessa cupissa, jossa eri joukkueet kilpailevat eri tasoilla.
-</Callout>
-
-#### Turnauspalkinnot
-
-- **Turnauksen pelaaja** - Palkinnon tunnustus 🏆
-
-#### Pelien liittäminen turnaukseen
-
-Kun luot pelin, voit liittää sen turnaukseen ja valinnaisesti tiettyyn sarjaan. Turnauspelit:
-
-- Ryhmitellään erikseen kausipeleistä
-- Niillä on oma tilastoseuranta
-- Voidaan liittää tiettyyn sarjatasoon
+Ottelulomakkeessa (**Luo uusi ottelu**) tai **Ottelun tiedoissa** valitse sarja tai turnaus. Jos valitset joukkueen, jolla on liitetty kilpailu, se täyttyy automaattisesti. Liitetyt pelit näkyvät sarja- ja turnaustilastoissa.
 
 ## Joukkueet
 
-Joukkueet edustavat valmennettavia ryhmääsi. Luo joukkue jokaiselle valmentamallesi ryhmälle.
+**Seura** → **Joukkueet**. Joukkue on ryhmä pelaajia, jota valmennat. Sama pelaaja voi kuulua useaan joukkueeseen.
 
 ### Joukkueen luominen
 
-1. Avaa valikko (☰) ja valitse **Joukkueet**
-2. Napauta **Uusi joukkue**
-3. Syötä joukkueen nimi
-4. Liitä kilpailuun (valinnainen mutta suositeltava)
+1. **Lisää joukkue**
+2. Anna **Joukkueen nimi** ja valitse peliasun väri
+3. **Joukkueen konteksti**: sarja tai turnaus, taso, ikäluokka ja pelityyppi (valinnaisia)
+4. **Kokoonpano**-välilehti → **Muokkaa kokoonpanoa** → valitse pelaajat
 
-### Joukkueen liittäminen kilpailuun
+Kun luot ottelun ja valitset joukkueen, sen pelaajat ja liitetty kilpailu täyttyvät automaattisesti.
 
-Kun liität joukkueen kauteen tai turnaukseen:
+### Joukkueen toiminnot
 
-- Kilpailutiedot täyttyvät automaattisesti pelejä luotaessa
-- Tilastot seurataan kilpailukohtaisesti
-- Helppo suodatus raporteissa
+Joukkuelistan toiminnoista: **Muokkaa**, **Kopioi**, **Arkistoi** ja **Poista**. Joukkueen poistaminen ei poista pelejä: ne jäävät tallennetuiksi ilman joukkuetta, ja niitä voi hallita kohdasta **Hallinnoi poistettujen joukkueiden pelejä**.
 
-### Useat joukkueet
+### Sijoitukset
 
-Jos valmennat useita joukkueita (esim. U12 ja U14), jokaisella joukkueella voi olla:
+Joukkuetta muokatessa kohdassa **Turnaus- ja sarjasijoitukset** voit kirjata loppusijoituksen (1.-10.) kuhunkin kilpailuun. Kolme parasta näkyvät mitalimerkein.
 
-- Oma pelaajalistansa
-- Oma pelihistoriansa
-- Omat tilastonsa
+### Nimeäminen
 
-<Callout type="tip">
-Kun luot pelin, valitse oikea joukkue pitääksesi datasi järjestyksessä.
-</Callout>
+Pidä joukkueiden ja kilpailujen nimet lyhyinä ilman vuosilukua: "PePo Lila", "Kevätliiga", "Helsinki Cup". Seurakausi lisätään näkyviin automaattisesti ("Kevätliiga 24/25").
 
-### Joukkuesijoitukset
+## Taustahenkilöt
 
-Joukkuetta muokatessa voit kirjata loppusijoitukset kilpailuissa, joissa joukkue on pelannut:
+**Seura** → **Taustahenkilöt** → **Lisää taustahenkilö**.
 
-1. Avaa **Joukkueet** ja muokkaa joukkuetta
-2. Vieritä kohtaan "Turnaus- ja kausisijoitukset"
-3. Valitse sijoitus (1.-10.) kullekin kilpailulle
+- **Nimi** ja **Rooli**: Päävalmentaja, Apuvalmentaja, Maalivahtivalmentaja, Fysiikkavalmentaja, Fysioterapeutti, Joukkueenjohtaja, Taustahenkilö tai Muu
+- **Puhelin** ja **Sähköposti** (valinnaisia)
+- **Valmentajakoulutukset** ja **Muistiinpanot**
 
-Sijoitukset näytetään merkeillä:
-- 🥇 Ensimmäinen sija
-- 🥈 Toinen sija
-- 🥉 Kolmas sija
+Taustahenkilöt valitaan otteluun ottelulomakkeessa tai **Ottelun tiedoissa**. Ne näkyvät **Viimeistele ottelu** -näkymässä ja Excel-viennissä. Jos poistat henkilön, hänet poistetaan myös kaikista otteluista, joihin hänet on valittu.
 
-Nämä merkit näkyvät sekä joukkuelistassa että kilpailunäkymissä.
+## Muut Seura-välilehden kohdat
 
-## Henkilöstö
+Seura-välilehden yläosassa on Seurakortti: pelaajien, joukkueiden ja taustahenkilöiden määrät (napauta määrää avataksesi listan), kauden tulos ja paras maalintekijä. Sen alla:
 
-Seuraa valmennushenkilöstöäsi ja joukkueen toimihenkilöitä.
+- **Lämmittely** - joukkueen lämmittelysuunnitelma
+- **Säännöt** - pelisäännöt ja ikäluokkien pelimuodot
+- **Valmennusmateriaalit**
 
-### Henkilöstön lisääminen
-
-1. Avaa valikko (☰) ja valitse **Taustahenkilöt**
-2. Napauta **Lisää henkilö**
-3. Täytä tiedot
-
-### Henkilöstöroolit
-
-Valitse 8 roolityypistä:
-
-- **Päävalmentaja** - Ensisijainen valmentaja
-- **Apuvalmentaja** - Tukeva valmentaja
-- **Maalivahtivalmentaja** - Erikoistunut MV-valmennus
-- **Fysiikkavalmentaja** - Fyysinen harjoittelu
-- **Fysioterapeutti** - Lääkinnällinen/vammatuki
-- **Joukkueenjohtaja** - Hallinnolliset tehtävät
-- **Tukihenkilöstö** - Yleinen avustaminen
-- **Muu** - Mukautetut roolit
-
-### Henkilöstötiedot
-
-Jokaiselle henkilölle voit kirjata:
-
-- **Nimi** - Koko nimi
-- **Yhteystiedot** - Puhelinnumero ja sähköposti
-- **Sertifikaatit** - Pätevyydet (esim. "UEFA A -lisenssi", "Ensiapu")
-- **Muistiinpanot** - Lisätiedot
-
-<Callout type="info">
-Henkilöstö liitetään yksittäisiin peleihin peliä luotaessa tai muokattaessa. He näkyvät peliraporteissa ja Excel-vienneissä.
-</Callout>
-
-## Vinkit ja parhaat käytännöt
-
-### Suositeltu järjestys
-
-Seuraa tätä järjestystä parhaan tuloksen saavuttamiseksi:
-
-1. Määritä kausijakso Asetuksissa
-2. Luo kaudet ja turnaukset
-3. Luo joukkueet ja liitä kilpailuihin
-4. Lisää henkilöstö
-
-### Nimeämiskäytännöt
-
-**Joukkueiden nimet** kannattaa pitää yksinkertaisina - tyypillisesti seuran värien tai tunnusten mukaan:
-- ✅ "PePo Lila"
-- ✅ "PePo Violetti"
-- ✅ "KuPS Hirvet"
-
-Sovellus näyttää automaattisesti kontekstin suluissa tarvittaessa (esim. "PePo Lila (Kevätliiga 24/25)"), joten ikäluokkia tai vuosia ei tarvitse lisätä joukkuenimiin.
-
-**Kilpailujen nimet** kannattaa olla kuvaavia mutta ilman kausijakson tunnusta - se lisätään automaattisesti:
-- ✅ "Kevätliiga" → näkyy muodossa "Kevätliiga 24/25"
-- ✅ "Helsinki Cup" → näkyy muodossa "Helsinki Cup 24/25"
-- ❌ "Kevätliiga 24/25" (turha - jakso lisätään automaattisesti)
-
-### Arkistointi
-
-Kauden tai turnauksen lopussa:
-
-1. Tarkastele lopputilastoja
-2. Vie tarvittavat raportit
-3. Arkistoi kilpailu
-4. Historiatieto pysyy saatavilla
-
-### Säännölliset varmuuskopiot
-
-Suojaa organisaatiotietosi säännöllisillä varmuuskopioilla. Katso [Datan hallinta](/guide/data-management) varmuuskopiointiohjeisiin.
+Linkki Palloliiton Taso-palveluun (kokoonpanot ja tulokset) on **Pelit**-välilehdellä.
 
 ## Harjoitusottelut
 
-Merkitse ottelu **Harjoitusotteluksi** sitä luodessa (tai myöhemmin sen asetuksista). Harjoitusottelut eivät näy kilpailutilastoissa.
+Merkitse ottelu **Harjoitusotteluksi** ottelulomakkeessa tai myöhemmin **Ottelun tiedoissa**. Harjoitusottelut eivät näy kilpailutilastoissa. Tilastoissa ne saa mukaan valinnalla **Sisällytä harjoitusottelut**.
+
+## Arkistointi
+
+Kun sarja tai turnaus päättyy, arkistoi se. Arkistoidut kohteet piiloutuvat listoilta ja valikoista, mutta niiden pelit ja tilastot säilyvät. **Näytä arkistoidut** tuo ne takaisin näkyviin.

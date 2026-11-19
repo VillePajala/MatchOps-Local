@@ -1,117 +1,100 @@
 ---
 title: Kokoonpanon hallinta
-description: Lisää, muokkaa ja järjestele joukkueesi pelaajalistaa
-lastUpdated: "2026-06-23"
+description: Pelaajien lisääminen, muokkaus, arkistointi ja pelaaja-arviot
+lastUpdated: "2026-11-19"
 ---
 
-Pelaajalistasi on MatchOpsin perusta. Tämä opas kattaa kaiken tarvittavan pelaajien hallinnasta.
+Pelaajalista on MatchOpsin perusta. Samat pelaajat näkyvät suunnitelmissa, otteluissa ja tilastoissa.
+
+## Pelaajalistan avaaminen
+
+- **Perusnäkymä:** etusivun rivi **Joukkue · 14 pelaajaa**
+- **Koko näkymä:** **Seura** → **Pelaajat**
+
+Molemmat avaavat listan **Kaikki pelaajat**.
 
 ## Pelaajien lisääminen
 
-### Lisää yksittäinen pelaaja
+### Aloituksessa tai listana
+
+Aloituksessa (ja Perusnäkymän **Lisää pelaajat** -kortissa, jos pelaajia ei vielä ole) voit liittää koko nimilistan kerralla: **Liitä leikepöydältä** tai kirjoita nimet, yksi per rivi. Rivin alussa olevat numerot ja luettelomerkit poistetaan. Etunimet riittävät.
+
+### Yksi kerrallaan
 
 <Steps>
-<Step title="Avaa pelaajapaneeli">
-Avaa valikko (☰) ja valitse **Kaikki pelaajat**.
+<Step title="Lisää pelaaja">
+Napauta listassa **Lisää pelaaja**.
 </Step>
-
-<Step title="Napauta Lisää pelaaja">
-Napauta **Lisää pelaaja** -painiketta pelaajapaneelissa.
+<Step title="Tiedot">
+- **Pelaajan nimi** (pakollinen)
+- **Kutsumanimi** - näytetään kentällä kiekossa, jos annettu
+- **Pelinumero** (valinnainen, pitää olla yksilöllinen)
+- **Muistiinpanot** (valinnainen)
+- **Maalivahti** - merkitsee pelaajan maalivahdiksi
 </Step>
-
-<Step title="Syötä tiedot">
-Täytä pelaajan tiedot pelaajanlisäyslomakkeessa:
-- **Nimi** (pakollinen)
-- **Lempinimi** (valinnainen) - näytetään kenttäkiekoissa jos annettu
-- **Pelinumero** (valinnainen)
-- **Muistiinpanot** (valinnainen) - omia muistiinpanoja pelaajasta
-</Step>
-
 <Step title="Tallenna">
-Napauta **Tallenna** lisätäksesi pelaajan listallesi.
+Pelaaja lisätään listalle.
 </Step>
 </Steps>
 
-## Pelaajien muokkaaminen
+## Muokkaaminen
 
-Muokataksesi olemassa olevaa pelaajaa:
+Napauta pelaajaa listassa. **Pelaajan tiedot** aukeaa, ja voit muuttaa nimeä, kutsumanimeä, numeroa, muistiinpanoja ja maalivahtimerkintää.
 
-1. Napauta pelaajaa pelaajapaneelissa
-2. Pelaajanlisäyslomake avautuu nykyisillä tiedoilla
-3. Tee haluamasi muutokset
-4. Napauta **Tallenna** vahvistaaksesi
+Pelinumeroiden pitää olla yksilöllisiä. Kun vaihdat kahden pelaajan numerot keskenään, anna ensin toiselle väliaikainen numero.
 
-### Pelinumeroiden vaihtaminen
+## Rivin toiminnot
 
-Pelinumeroiden täytyy olla yksilöllisiä. Jos haluat vaihtaa numeroita pelaajien välillä:
+Pelaajarivin **Toiminnot**-valikossa:
 
-1. Muokkaa ensimmäinen pelaaja väliaikaiseen numeroon
-2. Muokkaa toinen pelaaja ensimmäisen alkuperäiseen numeroon
-3. Muokkaa ensimmäinen pelaaja toisen alkuperäiseen numeroon
+- **Tilastot** - avaa pelaajan tilastot
+- **Täydennä tilastoja** - lisää pelaajalle muualla pelatun pelin (ks. [Tilastot](/guide/statistics))
+- **Arkistoi** - piilottaa pelaajan listalta ja valinnoista; tilastot säilyvät. **Näytä arkistoidut pelaajat** näyttää heidät, ja **Palauta** tuo pelaajan takaisin.
+- **Poista** - poistaa pelaajan seuran pelaajista ja kaikista joukkueista. Pelatut ottelut säilyttävät pelaajan tilastot.
 
-## Pelaaja-arviointi
+<Callout type="tip">
+Kun pelaaja lopettaa kesken kauden, **Arkistoi** on yleensä parempi kuin **Poista**.
+</Callout>
 
-MatchOps sisältää kattavan pelaajan arviointijärjestelmän kehityksen seurantaan:
+## Haku ja järjestys
 
-### Arviointiulottuvuudet
+Hakukenttä (**Etsi pelaajaa...**) etsii nimellä. **Järjestä**: **Sukunimi**, **Uusimmat** tai **Vanhimmat**.
 
-Avataksesi pelaaja-arvioinnit, napauta kolmen pisteen valikkoa (⋮) pelaajarivillä ja valitse **Tilastot**. Voit arvioida pelaajia 10 ulottuvuudella (kukin 1-10):
+## Pelaaja-arviot
 
-- **Intensiteetti** - Peliin sitoutuminen ja työskentelytahti
-- **Rohkeus** - Uskallus ja halu haastaa
-- **Kamppailut** - Suoriutuminen kaksinkamppailuissa
-- **Tekniikka** - Pallonhallinta ja taito
-- **Luovuus** - Kyky luoda tilanteita ja pelinteko
-- **Päätöksenteko** - Päätösten laatu
-- **Pelinluku** - Pelitietoisuus ja sijoittuminen
-- **Joukkuepeli** - Yhteistyö ja joukkuetovereiden tukeminen
-- **Reilu peli** - Kuri ja käytös
-- **Vaikuttavuus** - Kokonaisvaikutus peliin
+Pelaaja-arviot ovat oletuksena pois päältä. Ota ne käyttöön: ratas → **Asetukset** → **Pelaaja-arviot**. Samassa kohdassa valitaan:
 
-Lisäksi voit asettaa **Kokonaisarvosanan** (1-10) ja lisätä **Muistiinpanoja** yksityiskohtaisiin havaintoihin. Arviointi seuraa myös **Peliminuutteja** automaattisesti.
+- **Arviointimittarit**: **Tasapainoinen (10)**, **Kevyt 6 (U7-U9)** tai **Luova hyökkäys (14)**
+- **Arvioinnin asteikko**: **Sanat (5 tasoa)**, **Numerot 1-5** tai **Numerot 1-10**
+
+Vaihtaminen on turvallista - aiemmat arviot säilyvät.
+
+### Mittarit (Tasapainoinen)
+
+- **Pallonhallinta** - ensikosketus ja pallon pitäminen paineessa
+- **Syöttöpeli** - syötön voima, ajoitus ja valinta
+- **Havainnointi** - katsoo ympärille ja kerää tietoa ennen vastaanottoa
+- **Pelikäsitys** - sijoittuminen ja pelin lukeminen, sekä hyökätessä että puolustaessa
+- **Päätöksenteko** - tekee oikean valinnan hetkeen
+- **Rohkeus** - vaatii palloa, pelaa eteenpäin, uskaltaa ottaa riskejä
+- **Yritteliäisyys** - työmäärä, palaa puolustamaan, yrittää sinnikkäästi
+- **Ilo** - näkyvä ilo ja innostus pelaamiseen
+- **Joukkuepeli** - jakaa palloa ja tukee joukkuekavereita
+- **Fair play** - kunnioitus erotuomaria, vastustajaa, omia virheitä ja tappiota kohtaan
+
+**Kevyt 6** käyttää mittareita Pallonhallinta, Rohkeus, Yritteliäisyys, Ilo, Joukkuepeli ja Fair play. **Luova hyökkäys** lisää Tasapainoiseen mittarit Luovuus, Kuljettaminen, Viimeistely ja Liike ilman palloa.
+
+### Arviointi ottelun jälkeen
+
+- Ottelun valikko → **Kirjaa ottelusuoritukset**, tai
+- **Viimeistele ottelu** → **Pelaaja-arviot** → **Avaa pelaaja-arviot** (Perusnäkymässä kohdan **Lisää kirjauksia** alla)
+
+Jokaiselle pelaajalle voi antaa mittarikohtaiset arviot, **Kokonaisarvion** ja muistiinpanot. Tulokset näkyvät pelaajan tilastoissa: **Suoritusarviot**, **Arvioiden trendit**, **Vahvuudet** ja **Kehityskohteet**, sekä vietävä **Kehitysraportti**.
 
 <Callout type="info">
-Pelaaja-arvioinnit ovat yksityisiä ja tallennetaan turvallisesti. Ne ovat hyödyllisiä yksilöllisten kehitystavoitteiden seurannassa.
+Arviot ja muistiinpanot ovat vain sinun. Niitä ei jaeta kenellekään.
 </Callout>
-
-## Listan järjestäminen
-
-### Lajitteluvaihtoehdot
-
-Lajittele listasi:
-- **Sukunimi** - Aakkosjärjestyksessä sukunimen mukaan (oletus)
-- **Uusimmat** - Viimeksi lisätyt pelaajat ensin
-- **Vanhimmat** - Aikaisimmin lisätyt pelaajat ensin
-
-## Pelaajien poistaminen
-
-<Callout type="warning">
-Pelaajan poistaminen ei poista häntä menneistä peleistä. Historiatieto säilyy.
-</Callout>
-
-Pelaajan poistamiseksi:
-
-1. Etsi pelaaja pelaajapaneelista
-2. Napauta kolmen pisteen valikkoa (⋮) hänen rivillään
-3. Valitse **Poista** pudotusvalikosta
-4. Vahvista toiminto
 
 ## Useita joukkueita
 
-Jos valmennat useita joukkueita, käytä joukkue- ja kausijärjestelmää:
-
-- Luo erilliset joukkueet organisaatioasetuksissa
-- Jokaisella joukkueella on oma pelaajalistansa
-- Vaihda joukkueiden välillä luodessasi pelejä
-- Katso [Joukkueet ja organisointi](/guide/teams-organization) lisätietoja
-
-## Datan varmuuskopiointi
-
-Pelaajalistasi tallennetaan turvallisesti. Datasi synkronoituu automaattisesti laitteidesi välillä ja varmuuskopioituu pilveen.
-
-Lisäsuojaksi voit myös luoda manuaalisia varmuuskopioita:
-1. Käytä **Vie**-toimintoa säännöllisesti
-2. Tallenna varmuuskopiot pilvitallennukseen tai toiselle laitteelle
-3. Vie data ennen laitemuutoksia tai päivityksiä
-
-Katso [Datan hallinta](/guide/data-management) yksityiskohtaiset varmuuskopiointiohjeet.
+Koko näkymässä samat pelaajat voi jakaa useaan joukkueeseen (**Seura** → **Joukkueet**). Ks. [Joukkueet ja organisointi](/guide/teams-organization).

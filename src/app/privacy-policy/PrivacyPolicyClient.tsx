@@ -47,6 +47,7 @@ export function PrivacyPolicyClient() {
             <li>{t('privacyPolicy.dataStorage.cloudDataItems.dataOwnership')}</li>
           </ul>
           <p className="text-slate-300 font-medium mb-4">{t('privacyPolicy.dataStorage.cloudDataNote')}</p>
+          <p className="text-slate-300 mb-4">{t('privacyPolicy.dataStorage.operatorAccess')}</p>
 
           <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataStorage.dataRetentionTitle')}</h3>
           <p className="text-slate-300">{t('privacyPolicy.dataStorage.dataRetentionContent')}</p>
@@ -71,6 +72,8 @@ export function PrivacyPolicyClient() {
             <li>{t('privacyPolicy.dataWeCollect.errorReportingItems.deviceType')}</li>
             <li>{t('privacyPolicy.dataWeCollect.errorReportingItems.appVersion')}</li>
             <li>{t('privacyPolicy.dataWeCollect.errorReportingItems.sessionInfo')}</li>
+            <li>{t('privacyPolicy.dataWeCollect.errorReportingItems.replay')}</li>
+            <li>{t('privacyPolicy.dataWeCollect.errorReportingItems.performance')}</li>
           </ul>
           <p className="text-slate-300 mb-4">{t('privacyPolicy.dataWeCollect.errorReportingNote')}</p>
           <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataWeCollect.licenseValidationTitle')}</h3>
@@ -78,9 +81,9 @@ export function PrivacyPolicyClient() {
           <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataWeCollect.consentTrackingTitle')}</h3>
           <p className="text-slate-300 mb-2">{t('privacyPolicy.dataWeCollect.consentTrackingIntro')}</p>
           <ul className="list-disc list-inside text-slate-300 mb-3 space-y-1">
+            <li>{t('privacyPolicy.dataWeCollect.consentTrackingItems.consentType')}</li>
             <li>{t('privacyPolicy.dataWeCollect.consentTrackingItems.timestamp')}</li>
             <li>{t('privacyPolicy.dataWeCollect.consentTrackingItems.policyVersion')}</li>
-            <li>{t('privacyPolicy.dataWeCollect.consentTrackingItems.ipAddress')}</li>
             <li>{t('privacyPolicy.dataWeCollect.consentTrackingItems.userAgent')}</li>
           </ul>
           <p className="text-slate-300 mb-4">{t('privacyPolicy.dataWeCollect.consentTrackingNote')}</p>
@@ -92,7 +95,9 @@ export function PrivacyPolicyClient() {
             <li>{t('privacyPolicy.dataWeCollect.personnelDataItems.phone')}</li>
             <li>{t('privacyPolicy.dataWeCollect.personnelDataItems.certifications')}</li>
           </ul>
-          <p className="text-slate-300">{t('privacyPolicy.dataWeCollect.personnelDataNote')}</p>
+          <p className="text-slate-300 mb-4">{t('privacyPolicy.dataWeCollect.personnelDataNote')}</p>
+          <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataWeCollect.onboardingTitle')}</h3>
+          <p className="text-slate-300">{t('privacyPolicy.dataWeCollect.onboardingContent')}</p>
         </section>
 
         <section className="mb-8">
@@ -135,7 +140,13 @@ export function PrivacyPolicyClient() {
                 {t('privacyPolicy.thirdPartyServices.vercelLink')}
               </a>
             </p>
-            {/* Reached only while the coach is typing in the match location
+            <p>
+              <strong>{t('privacyPolicy.thirdPartyServices.resend')}</strong> - {t('privacyPolicy.thirdPartyServices.resendDesc')}{' '}
+              <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
+                {t('privacyPolicy.thirdPartyServices.resendLink')}
+              </a>
+            </p>
+            {/* Reached only while the coach types in the venue or starting-point
                 field, which is why the description says "when used". */}
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.photon')}</strong> - {t('privacyPolicy.thirdPartyServices.photonDesc')}{' '}
@@ -156,6 +167,11 @@ export function PrivacyPolicyClient() {
               </a>
             </p>
           </div>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.marketing.title')}</h2>
+          <p className="text-slate-300">{t('privacyPolicy.marketing.content')}</p>
         </section>
 
         <section className="mb-8">

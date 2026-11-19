@@ -23,6 +23,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
+import { useDiagnosticsPreferenceSync } from '@/hooks/useDiagnosticsPreference';
 import { useMultiTabPrevention } from '@/hooks/useMultiTabPrevention';
 import { useDeepLinkHandler } from '@/hooks/useDeepLinkHandler';
 import DeepLinkClubRouter from '@/components/DeepLinkClubRouter';
@@ -251,6 +252,9 @@ export default function Home() {
   // Cloud subscription status - fetched from Supabase (NOT local storage)
   const { isActive: hasActiveSubscription, isLoading: isSubscriptionLoading } = useSubscription();
   const queryClient = useQueryClient();
+  // Settings -> Data "Error reporting and usage statistics": keep Sentry in
+  // step with the signed-in account's choice.
+  useDiagnosticsPreferenceSync();
 
   // Note: Cloud upgrade gate removed - account creation is free
   // Subscription status is checked after login via SubscriptionContext

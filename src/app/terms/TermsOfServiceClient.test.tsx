@@ -86,6 +86,9 @@ jest.mock('react-i18next', () => ({
         'termsOfService.thirdPartyServices.vercelDesc': 'PWA hosting',
         'termsOfService.thirdPartyServices.note': 'Subject to their terms.',
         'termsOfService.aiServices.title': 'Optional AI Services',
+        'termsOfService.dataProcessing.title': 'Data Processing (GDPR Art. 28)',
+        'termsOfService.dataProcessing.intro': 'Based on Implementing Decision (EU) 2021/915.',
+        'termsOfService.playerData.title': 'Player Data: Your Responsibilities',
         'termsOfService.aiServices.content1': 'Your own AI provider account; MatchOps is not a party.',
         'termsOfService.aiServices.content2': 'You are responsible for what you dictate.',
         'termsOfService.aiServices.content3': 'AI output is a draft you review.',
@@ -145,6 +148,8 @@ describe('TermsOfServiceClient', () => {
       'License',
       'User Responsibilities',
       'Data and Privacy',
+      'Data Processing (GDPR Art. 28)',
+      'Player Data: Your Responsibilities',
       'Intellectual Property',
       'Disclaimer',
       'Limitation of Liability',
@@ -164,6 +169,18 @@ describe('TermsOfServiceClient', () => {
 
     sectionTitles.forEach((title) => {
       expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+    });
+  });
+
+  /** The art. 28 section names the Commission decision it is based on. */
+  it('renders the data processing section with its legal reference', () => {
+    render(<TermsOfServiceClient />);
+    expect(screen.getByText(/2021\/915/)).toBeInTheDocument();
+    [
+      'roles', 'scope', 'instructions', 'confidentiality', 'security',
+      'subprocessors', 'assistance', 'deletion', 'compliance',
+    ].forEach((item) => {
+      expect(screen.getByText(`termsOfService.dataProcessing.items.${item}`)).toBeInTheDocument();
     });
   });
 

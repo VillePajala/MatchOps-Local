@@ -21,7 +21,8 @@ import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import logger from "@/utils/logger";
 import i18n from "i18next";
-import { getDataStore } from '@/datastore/factory';
+import { getDataStore, getAuthService } from '@/datastore/factory';
+import type { ConsentRecord } from '@/interfaces/AuthService';
 import { getLatestGameId } from './savedGames';
 import { markOffDeviceBackupNow } from './appSettings';
 import { DEFAULT_GAME_ID } from '@/config/constants';
@@ -36,12 +37,25 @@ import type { BackupRestoreResult } from '@/components/BackupRestoreResultsModal
 import { retryWithBackoff, countPushFailures } from '@/utils/retry';
 import type { PushAllToCloudResult } from '@/datastore/SyncedDataStore';
 
+/**
+ * The signed-in account's own record (GDPR Art. 15/20): its email and its
+ * consent history (terms/privacy acceptances, marketing grants/withdrawals).
+ * Export only - a restore never reads it (import reads `localStorage` alone),
+ * so it can never overwrite an account's email or consent trail.
+ */
+interface BackupAccountRecord {
+  email: string | null;
+  /** Absent when the history could not be read (offline, read failed). */
+  consentRecords?: ConsentRecord[];
+}
+
 // Define the structure of the backup file
 interface FullBackupData {
   meta: {
     schema: number;
     exportedAt: string;
   };
+  account?: BackupAccountRecord;
   localStorage: { // Note: field name kept for backward compatibility with existing backups
     [SAVED_GAMES_KEY]?: SavedGamesCollection | null;
     [APP_SETTINGS_KEY]?: AppSettings | null;
@@ -205,6 +219,33 @@ function validateBackupData(backupData: FullBackupData): BackupValidationResult 
 }
 
 /**
+ * The account section of an export: the signed-in user's email and consent
+ * records. Best-effort - a backup must never fail because of it - and only
+ * for the account whose data is being exported.
+ */
+async function readAccountRecord(userId?: string): Promise<BackupAccountRecord | undefined> {
+  try {
+    const authService = await getAuthService();
+    if (!authService || authService.getMode() !== 'cloud') return undefined;
+    const user = await authService.getCurrentUser();
+    if (!user || (userId !== undefined && user.id !== userId)) return undefined;
+
+    const record: BackupAccountRecord = { email: user.email ?? null };
+    if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+      try {
+        record.consentRecords = await authService.getConsentRecords();
+      } catch (error) {
+        logger.warn('[fullBackup] Consent records not included in export', error);
+      }
+    }
+    return record;
+  } catch (error) {
+    logger.warn('[fullBackup] Account record not included in export', error);
+    return undefined;
+  }
+}
+
+/**
  * Generate backup JSON from DataStore.
  *
  * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
@@ -352,6 +393,11 @@ export const generateFullBackupJson = async (userId?: string, dataStoreOverride?
       if (plans && Object.keys(plans).length > 0) {
         logger.log(`Backed up ${Object.keys(plans).length} playtime plans`);
       }
+    }
+
+    const account = await readAccountRecord(userId);
+    if (account) {
+      backupData.account = account;
     }
 
   } catch (error) {

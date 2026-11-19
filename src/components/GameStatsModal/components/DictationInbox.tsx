@@ -387,6 +387,9 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
       {audioUrl && (
         <audio src={audioUrl} autoPlay controls className="w-full mb-3" onEnded={stopPlayback} data-testid="dictation-audio" />
       )}
+      <p className="text-sm text-ink-3 mb-3">
+        {t('privacyHints.noHealthData', 'Do not record health information.')}
+      </p>
       <ul className="space-y-3">
         {clips.map((clip) => {
           const draft = draftFor(clip.id);

@@ -16,6 +16,10 @@ import {
   scrubSecretsInString,
   scrubUrl,
 } from '@/utils/sentryScrub';
+import {
+  isDiagnosticsEnabled,
+  onDiagnosticsPreferenceChange,
+} from '@/utils/diagnosticsPreference';
 
 /**
  * CRITICAL SECURITY CHECK: Prevent mock billing in production
@@ -65,16 +69,17 @@ const BOT_UA_PATTERNS = [
 ];
 
 /**
- * Initialize Sentry only in production or when explicitly enabled
+ * Initialize Sentry (called only in production or when explicitly enabled,
+ * and only while the coach's error-reporting switch is on - see below)
  *
  * Configuration features:
- * - 100% performance trace sampling (small user base)
+ * - 10% performance trace sampling, 0% while the switch is off
  * - Session replays only on errors (privacy-conscious)
  * - Automatic filtering of common browser noise
  * - PII scrubbing for auth-related data (emails, tokens, headers)
  * - Debug mode in development for easier troubleshooting
  */
-if (dsn && (isProduction || isForceEnabled)) {
+function initSentry(): void {
   Sentry.init({
     dsn,
 
@@ -88,8 +93,14 @@ if (dsn && (isProduction || isForceEnabled)) {
       }),
     ],
 
-    // Performance monitoring - 10% sampling (sustainable at scale for Play Store release)
-    tracesSampleRate: 0.1,
+    // Performance monitoring - 10% sampling (sustainable at scale for Play Store release),
+    // none at all while the coach has turned error reporting off.
+    tracesSampler: () => (isDiagnosticsEnabled() ? 0.1 : 0),
+
+    // Settings -> Data switch off: no transaction leaves the device.
+    beforeSendTransaction(event) {
+      return isDiagnosticsEnabled() ? event : null;
+    },
 
     // Session replay - capture all error replays for debugging
     replaysSessionSampleRate: 0.0, // Disable session replays by default (privacy)
@@ -120,6 +131,11 @@ if (dsn && (isProduction || isForceEnabled)) {
      * @returns The event to send, or null to filter it out
      */
     beforeSend(event) {
+      // Settings -> Data "Error reporting and usage statistics" is off.
+      if (!isDiagnosticsEnabled()) {
+        return null;
+      }
+
       // Filter out development-only errors
       if (!isProduction && !isForceEnabled) {
         return null;
@@ -264,6 +280,26 @@ if (dsn && (isProduction || isForceEnabled)) {
 
       return breadcrumb;
     },
+  });
+}
+
+if (dsn && (isProduction || isForceEnabled)) {
+  // A coach who turned error reporting off (Settings -> Data) is never
+  // initialised at all, so not even a session ping is sent.
+  if (isDiagnosticsEnabled()) {
+    initSentry();
+  }
+
+  onDiagnosticsPreferenceChange((enabled) => {
+    if (enabled) {
+      if (!Sentry.isEnabled()) initSentry();
+      return;
+    }
+    // Off: drop the buffered error replay, then disable the client. The
+    // beforeSend/beforeSendTransaction gates above already return null for
+    // anything raised in between.
+    void Sentry.getReplay()?.stop().catch(() => undefined);
+    void Sentry.close().catch(() => undefined);
   });
 }
 

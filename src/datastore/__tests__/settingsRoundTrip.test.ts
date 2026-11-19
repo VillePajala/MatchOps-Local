@@ -45,6 +45,7 @@ const PERSISTED: Array<[setting: string, column: string]> = [
   ['knownVenues', 'known_venues'],
   ['appLayout', 'app_layout'],
   ['onboardingMilestones', 'onboarding_milestones'],
+  ['diagnosticsEnabled', 'diagnostics_enabled'],
 ];
 
 describe('every setting survives the round trip to the cloud', () => {
@@ -139,5 +140,29 @@ describe('the layout and the onboarding milestones (Onboarding v3, migration 062
   it('is written only when set', () => {
     expect(toDb).toContain('...(settings.appLayout ? { app_layout: settings.appLayout } : {})');
     expect(toDb).toContain('...(settings.onboardingMilestones');
+  });
+});
+
+describe('the error-reporting switch (privacy 2026-11, migration 063)', () => {
+  const migration = fs.readFileSync(
+    path.join(process.cwd(), 'supabase/migrations/063_privacy_diagnostics_consent_deletion.sql'),
+    'utf8',
+  );
+
+  it('adds the column nullable, with no backfill (NULL reads as on)', () => {
+    expect(migration).toContain('ADD COLUMN IF NOT EXISTS diagnostics_enabled boolean');
+    expect(migration).not.toMatch(/diagnostics_enabled boolean NOT NULL/);
+    expect(migration).not.toMatch(/UPDATE user_settings/i);
+  });
+
+  /** Sent only once chosen: an account that never touched it writes its old row. */
+  it('is written only when set, and false survives the read', () => {
+    expect(toDb).toContain('...(settings.diagnosticsEnabled !== undefined');
+    expect(fromDb).toContain("typeof row.diagnostics_enabled === 'boolean'");
+  });
+
+  /** Consent records go with the account (the policy says so). */
+  it('makes consent records follow the account on deletion', () => {
+    expect(migration).toContain('REFERENCES auth.users(id) ON DELETE CASCADE');
   });
 });

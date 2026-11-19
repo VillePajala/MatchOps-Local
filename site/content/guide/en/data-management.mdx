@@ -1,319 +1,112 @@
 ---
 title: Data Management
-description: Storage modes, backup, export, restore, and manage your MatchOps data
-lastUpdated: "2026-06-23"
+description: Account, sync, backups, restore, settings and layout
+lastUpdated: "2026-11-19"
 ---
 
-Your data in MatchOps is stored securely. This guide covers how your data is stored and how to protect and manage your valuable match data effectively.
+Your data is saved to your free account and on your phone at the same time. The app also works without a connection, and changes sync in the background when you are back online.
 
-## How Your Data Is Stored
+## How data is stored
 
-MatchOps stores your data in your private cloud account and keeps a copy cached on your device. This means the app works fully offline and syncs in the background whenever you're online.
+- **Account** - free, email and password
+- **Sync** - the same data on every device you sign in on
+- **Safe in the cloud** - your data stays even if you change phones
+- **Offline** - changes save on the phone at once and sync later
 
-- **Account required** - Sign up with email and password (free)
-- **Synced across devices** - Access your data from any device
-- **Backed up in the cloud** - Your data is safe even if you lose your device
-- **Works offline** - Changes save on your device and sync when you're back online
+Data is stored in Supabase in the EU region. Row-level security makes sure only you can see your data. Data is not shared with third parties.
 
-<Callout type="info">
-Your data is encrypted in transit and at rest, and protected so that only you can access it.
-</Callout>
+## Account
 
-## Account Management
+### Creating an account
 
-### Creating an Account
+1. Open the app and choose **Create a free account**
+2. Enter your email and a password (at least 8 characters) and accept the Terms of Service and Privacy Policy
+3. Type the code from your email at **Enter Verification Code** and tap **Verify**
 
-<Steps>
-<Step title="Open the Welcome Screen">
-On the Welcome Screen, tap **Use Cloud Sync**.
-</Step>
+### Signing in
 
-<Step title="Choose Sign Up">
-Select the sign-up option to create a new account.
-</Step>
+Choose **Sign in**, enter your email and password and tap **Sign In**.
 
-<Step title="Enter Your Details">
-Provide your email address and choose a password.
-</Step>
+### Forgotten password
 
-<Step title="Verify Email">
-Check your email and click the verification link.
-</Step>
-</Steps>
+1. Tap **Forgot password?** on the sign-in screen
+2. Enter your email and tap **Send Reset Email**
+3. Type the code from your email at **Enter Reset Code**
+4. **Set New Password**
 
-### Signing In
+### Signing out
 
-If you already have an account:
-
-1. Tap **Use Cloud Sync** on the Welcome Screen
-2. Enter your email and password
-3. Tap **Sign In**
-
-### Password Reset
-
-Forgot your password?
-
-1. On the sign-in screen, tap **Forgot Password**
-2. Enter your email address
-3. Check your email for the reset link
-4. Follow the link to set a new password
-
-### Signing Out
-
-To sign out of your cloud account:
-
-1. Open the menu (☰) and select **Settings**
-2. Find the Account section
-3. Tap **Sign Out**
+Gear → **Sign out**, or **Settings** → **Account** → **Sign Out**.
 
 <Callout type="warning">
-Before signing out, ensure all data has synced. Check that the sync indicator shows no pending changes.
+Before signing out, make sure the sync status shows no pending changes. If there are some, the app warns you before signing out.
 </Callout>
 
-## Moving Existing Local Data to Your Account
+## Sync status
 
-If you used MatchOps without an account before creating one, you can upload that existing on-device data to your account so it syncs across your devices.
+The sync status shows in the app:
 
-<Steps>
-<Step title="Open Settings">
-Open the menu (☰) and select **Settings**.
-</Step>
+- **Synced** - all data is in the cloud
+- **Syncing** - upload in progress
+- **Pending** - changes waiting to sync
+- **Offline** - no connection; changes sync when you are online
+- **Error** - tap to retry
 
-<Step title="Find Cloud Options">
-Look for the cloud/sync section.
-</Step>
+## Settings
 
-<Step title="Start Upload">
-Select the option to move your data to your account.
-</Step>
+Gear → **Settings**. Tabs:
 
-<Step title="Create or Sign In">
-Create a free account or sign in to your existing one.
-</Step>
+- **General** - **Language**, **Layout** (Basic / Full), **Player assessments**, **Default Team Name**, **Voice notes and AI**, **Season Start Date**
+- **Data** - backup, restore and the Danger Zone
+- **Account** - the cloud account and signing out
+- **About** - app version and **Storage Usage**
 
-<Step title="Confirm">
-Review what will be uploaded and confirm.
-</Step>
-</Steps>
+### Layout
 
-Your existing data will be uploaded to your account and kept in sync from then on.
+**Layout** switches between the **basic** and the **full** layout. "The full layout shows every feature. Nothing is removed." The choice is saved to your account. The differences are described in the [Quick Start](/guide/getting-started).
 
-## Sync Status
+## Backups
 
-### Understanding Sync Indicators
+On top of sync, you can save a backup to a file.
 
-You'll see sync status indicators that tell you the state of your data:
+- Gear → **Backup & Restore**, or
+- **Settings** → **Data** → **Backup & Export** → **Backup All Data**
 
-- **Synced** - All changes saved to cloud
-- **Syncing** - Upload in progress
-- **Pending** - Changes waiting to sync
-- **Offline** - No connection, changes saved locally
+The backup is a JSON file with players, matches, teams, leagues, tournaments, staff and settings. Keep it somewhere safe, such as a cloud folder.
 
-### Offline Behavior
-
-The app works fully offline after you sign in:
-
-1. Changes save to your device immediately
-2. When you reconnect, changes sync automatically
-3. No data is lost during offline periods
-
-<Callout type="tip">
-You can use the app normally even without internet. Go to a game, track everything, and it will sync when you're back online.
-</Callout>
-
-### Sync Troubleshooting
-
-If sync seems stuck:
-
-1. Check your internet connection
-2. Wait a few moments for retry
-3. Try closing and reopening the app
-4. Sign out and sign back in as last resort
-
-## Backup
-
-### Why Backup?
-
-Even with cloud sync, manual backups are valuable:
-
-- **Extra protection** - Belt and suspenders approach
-- **Point-in-time snapshots** - Restore to specific dates
-- **Transferable** - Share data with others
-- **Always available** - A backup file works no matter what
-
-### Creating a Backup
-
-<Steps>
-<Step title="Open Backup & Restore">
-Open the menu (☰) and select **Backup & Restore**.
-</Step>
-
-<Step title="Select Export All">
-Choose to export all your data.
-</Step>
-
-<Step title="Save the File">
-Save the backup file to a secure location.
-</Step>
-</Steps>
-
-### Backup File Format
-
-Backups are saved as JSON files containing:
-
-- All roster data
-- Complete game history
-- Season/tournament information
-- App settings
-
-### Backup Best Practices
-
-1. **Regular backups** - Weekly or after important games
-2. **Multiple locations** - Save to cloud storage (Google Drive, iCloud, Dropbox)
-3. **Before updates** - Backup before app or device updates
-4. **Before device changes** - Essential when switching devices
-
-<Callout type="info">
-Your data syncs automatically to the cloud, but manual backups give you additional protection and flexibility.
-</Callout>
+The app also makes **Automatic Restore Points**, listed in the same place.
 
 ## Restore
 
-### Restoring from Backup
-
-<Steps>
-<Step title="Open Backup & Restore">
-Open the menu (☰) and select **Backup & Restore**.
-</Step>
-
-<Step title="Select Import">
-Choose the import/restore option.
-</Step>
-
-<Step title="Select Backup File">
-Navigate to your saved backup file.
-</Step>
-
-<Step title="Confirm Full Data Replacement">
-The app shows what will be imported. Importing replaces all existing data with the backup contents. Confirm to proceed with the restore.
-</Step>
-</Steps>
+1. **Settings** → **Data** → **Restore from Backup** (or gear → **Backup & Restore**)
+2. Pick the backup file
+3. Confirm: restoring replaces all current data
 
 <Callout type="warning">
-Restoring from backup replaces all existing data with the backup contents. Make sure to export your current data first if you want to keep it.
+A restore cannot be undone. Back up your current data first.
 </Callout>
 
-### Transfer to New Device
+### A new phone
 
-Moving to a new device is automatic:
+Install MatchOps and sign in with the same account. Your data syncs automatically.
 
-1. Install MatchOps on the new device
-2. Sign in with your account
-3. Your data syncs automatically
+## Excel export
 
-<Callout type="info">
-If you have a legacy setup without an account, you can instead create a full backup on the old device, transfer the file (email, cloud, etc.), install MatchOps on the new device, and restore from that backup.
-</Callout>
+- A match: **Finish this game** → **Export Excel**
+- Combined statistics: the export button in the statistics view
+- A player's development: the player's statistics → **Export development report**
 
-## Export Options
+## Deleting data
 
-### Excel Export
-
-Export data to Excel for:
-
-- Detailed analysis
-- Sharing with others
-- External reporting
-- Creating custom reports
-
-### What Can Be Exported
-
-- **Single Game** - One game's complete data
-- **Season Data** - All games in a season
-- **Full Database** - Everything in JSON format
-- **Player Stats** - Cumulative statistics
-
-## Data Privacy
-
-### How Your Data Is Protected
-
-Your data is stored securely and remains private:
-
-- A copy is cached on your device, so the app works fully offline
-- The synced copy is stored in Supabase (EU region)
-- Protected by your account credentials
-- Row-level security ensures only you access your data
-- No sharing with third parties
-- You can delete your account and all data anytime
-
-<Callout type="info">
-Legacy note: if you use MatchOps without an account, your data stays only on your device and is never transmitted.
-</Callout>
-
-### Sharing Data
-
-When you export, you control who receives it. Consider:
-
-- Only share what's necessary
-- Use secure transfer methods
-- Delete exports after sharing
-
-## Storage Management
-
-### Checking Storage
-
-View your storage usage in the Settings modal (About section):
-
-- **Storage Usage** - Shows used space vs. available quota (e.g., "45 MB of 50 MB")
-- Visual progress bar indicating percentage used
-
-### App Settings
-
-The Settings modal provides:
-
-- **Language** - Switch between English and Finnish
-- **Default Team Name** - Pre-fill your team name for new games
-- **Season Period** - Customize season start/end dates (default: October-May)
-- **Account** - View account info and sign out
-
-### Clearing Data
-
-If you need to clear data:
-
-- **Delete individual games** - Open the menu (☰), select **Load Game...**, then use the delete option on any game
-- **Re-sync from Cloud** - Clear the on-device copy and re-download from your account (Settings > Data & Privacy > Danger Zone)
-- **Delete All Data** - Permanently delete your data everywhere, on this device and in your account (Settings > Data & Privacy > Danger Zone)
+- **A single match** - **All games** (basic layout) or **Saved games** (full layout) and the match's delete action. On the basic-layout Next game card, **Remove** is offered if the game was not started.
+- **Re-sync from Cloud** - clears the phone's copy and downloads the data again from your account (Settings → **Data** → Danger Zone)
+- **Delete All Data** - permanently deletes the data from the phone and the cloud
+- **Delete Account** - permanently deletes the account and all its data. **Export backup first** if you want to keep the data.
 
 <Callout type="tip">
-Export a backup before deleting data. Storage space is rarely a limiting factor, so consider keeping data rather than deleting it.
+Take a backup before deleting anything.
 </Callout>
 
-## Troubleshooting Data Issues
+## Problems
 
-### Data Not Saving
-
-If data isn't persisting:
-
-1. Check that the app has storage permissions
-2. Verify available device storage
-3. Try restarting the app
-4. Clear app cache and try again
-
-### Corrupted Data
-
-If data appears corrupted:
-
-1. Try refreshing the app
-2. Restore from a recent backup
-3. Export working data before any fixes
-
-### Cloud Sync Issues
-
-If cloud data isn't syncing:
-
-1. Check your internet connection
-2. Verify you're signed in
-3. Wait for automatic retry
-4. Try signing out and back in
-
-See [Troubleshooting](/guide/troubleshooting) for more help.
+See [Troubleshooting](/guide/troubleshooting).

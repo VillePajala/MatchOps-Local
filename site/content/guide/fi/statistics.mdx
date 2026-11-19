@@ -1,363 +1,76 @@
 ---
 title: Tilastot
-description: Kattava opas Tilastomodaaliin - välilehdet, suodattimet, pelaajaanalytiikka
-lastUpdated: "2025-01-08"
+description: Ottelu-, sarja-, turnaus-, kokonais- ja pelaajatilastot, suodattimet ja vienti
+lastUpdated: "2026-11-19"
 ---
 
-Tilastomodaali on keskitetty näkymä suoritustietojen tarkasteluun ja analysointiin pelien, kausien, turnausten ja yksittäisten pelaajien osalta.
+Tilastot kertyvät automaattisesti otteluista: tulokset, maalit, syötöt, pelatut ottelut, pelipaikat ja (jos käytössä) pelaaja-arviot.
 
 ## Tilastojen avaaminen
 
-Avaa tilastot napauttamalla **Tilastot**-painiketta ohjauspalkissa tai valikossa.
+- **Perusnäkymä:** etusivun rivi **Tilastot · N peliä** (näkyy ensimmäisen pelatun ottelun jälkeen)
+- **Koko näkymä:** **Tilastot**-välilehti. Yläosassa ovat voitot-tasapelit-häviöt (V–T–H), maaliero ja parhaat maalintekijät, alla **Sarjatilastot**, **Turnaustilastot**, **Kokonaistilastot**, **Pelaajatilastot** ja **Täydennä pelaajan tilastoja**
+- **Ottelun aikana:** valikko → **Joukkueen tilastot**
+- **Pelaajalistasta:** pelaajan toiminnot → **Tilastot**
 
-## Välilehtien yleiskatsaus
+## Välilehdet
 
-Modaalissa on viisi välilehteä, joista jokainen näyttää dataa eri koontitasolla:
+- **Nykyinen** - avoimen ottelun tiedot (tämä on **Viimeistele ottelu** -näkymä, ks. [Viimeistele ottelu](/guide/after-the-game))
+- **Sarja** - sarjapelit yhteensä
+- **Turnaus** - turnauspelit yhteensä
+- **Kaikki** - kaikki pelit
+- **Pelaaja** - yhden pelaajan tilastot
 
-- **Nykyinen peli** - Aktiivisen pelin tilastot
-- **Kausi** - Kootut tilastot kauden peleistä
-- **Turnaus** - Kootut tilastot turnauksen peleistä
-- **Kokonais** - Yhdistetyt tilastot KAIKISTA peleistä
-- **Pelaaja** - Yksittäisen pelaajan tilastot ja uratiedot
+## Suodattimet
 
-<Callout type="info">
-Suodattimet nollautuvat välilehteä vaihdettaessa. Jokainen välilehti alkaa puhtaalla suodatintilalla.
-</Callout>
+Sarja- ja turnausvälilehdellä valitaan ensin sarja tai turnaus (tai **Kaikki sarjat** / **Kaikki turnaukset**). **Suodattimet**-paneelissa:
 
----
+- **Joukkue**
+- Laji (**Kaikki lajit**, Jalkapallo, Futsal)
+- **Sukupuoli**
+- Seurakausi (esim. "24/25")
+- **Taso** - turnauksella, jolla on kilpailutasoja
 
-## Nykyinen peli -välilehti
+Harjoitusottelut eivät ole mukana, ellei valintaa **Sisällytä harjoitusottelut** ole tehty.
 
-Näyttää tilastot pelistä, jota parhaillaan katselet.
+## Joukkueen luvut
 
-### Mitä näet
+Sarja-, turnaus- ja kokonaisnäkymässä näkyvät ottelut, voitot-tasapelit-häviöt, maalit ja maaliero.
 
-- **Pelin tiedot** - Joukkueet, tulos, sijainti, aika, jaksot
-- **Pelaajakohtaiset tilastot** - Maalit ja syötöt vain tähän peliin valituille pelaajille
-- **Maalitapahtumat** - Muokattava lista maaleista aikoineen, tekijöineen ja syöttäjineen
-- **Henkilöstöyhteenveto** - Peliin määritetyt valmentajat ja henkilökunta
-- **Pelimuistiinpanot** - Kirjaamasi havainnot (muokattavissa)
+- **Vastustajittain** - tuloksesi kutakin vastustajaa vastaan
+- Jos sama joukkue on kirjoitettu usealla tavalla, sovellus ilmoittaa siitä; **Tarkista joukkueiden nimet** yhdistää kirjoitusasut
+- **Pelipaikkojen tasapaino** - kuka on pelannut missäkin linjassa (MV, PUO, KESK, HYÖ) tai pelipaikassa, toteutuneiden pelipaikkojen perusteella
 
-### Maalien muokkaaminen
+## Pelaajataulukko
 
-Napauta mitä tahansa maalitapahtumaa muokataksesi:
-- Vaihda maalintekijää tai syöttäjää
-- Säädä aikaa
-- Poista maali kokonaan
-
-Muutokset päivittävät tuloksen automaattisesti.
-
-### Suodattimet
-
-Tällä välilehdellä ei ole suodattimia - se näyttää vain nykyisen pelin tiedot.
-
----
-
-## Kausi-välilehti
-
-Näyttää kootut tilastot kaikista kauden peleistä (pois lukien turnauspelit).
-
-### Mitä näet
-
-**Kun tietty kausi on valittuna:**
-- Joukkueen suorituskortti kyseisen kauden tuloksella
-- Pelaajakohtainen tilastotaulukko kauden summilla
-
-**Kun "Kaikki kaudet" on valittuna:**
-- Koontitilastokortti, joka näyttää summat kaikista kausista
-- Yhdistetyt pelaajakohtaiset tilastot
-
-### Suodattimet
-
-**Aina näkyvissä:**
-- **Kausivalitsin** - Valitse tietty kausi tai "Kaikki kaudet"
-
-**Avattavassa paneelissa (napauta "Suodattimet"):**
-- **Joukkue** - Suodata tietyn joukkueen, "Kaikki joukkueet" tai "Vanhat pelit" (ennen joukkuejärjestelmää luodut) mukaan
-- **Pelityyppi** - Jalkapallo, Futsal tai Kaikki
-- **Sukupuoli** - Pojat, Tytöt tai Kaikki
-- **Seuran kausi** - Suodata kauden mukaan (esim. "24/25")
-
----
-
-## Turnaus-välilehti
-
-Näyttää kootut tilastot turnauksen peleistä (pois lukien kausipelit).
-
-### Mitä näet
-
-Sama kuin Kausi-välilehti, mutta turnauskontekstissa:
-- Joukkueen suorituskortti valitulle turnaukselle
-- Pelaajakohtaiset tilastot koottuna turnauksen peleistä
-
-### Suodattimet
-
-**Aina näkyvissä:**
-- **Turnausvalitsin** - Valitse tietty turnaus tai "Kaikki turnaukset"
-
-**Avattavassa paneelissa:**
-- **Sarja** - Näkyy vain jos valitulla turnauksella on sarjoja/lohkoja määritettynä. Suodata tiettyyn sarjaan turnauksen sisällä.
-- **Joukkue** - Suodata joukkueen mukaan
-- **Pelityyppi** - Jalkapallo, Futsal tai Kaikki
-- **Sukupuoli** - Pojat, Tytöt tai Kaikki
-- **Seuran kausi** - Suodata kauden mukaan
-
-<Callout type="tip">
-Sarjasuodatin näkyy vain kun valitset tietyn turnauksen, jolle on määritetty sarjoja. Se ei näy "Kaikki turnaukset" -valinnalla tai turnauksille ilman sarjoja.
-</Callout>
-
----
-
-## Kokonais-välilehti
-
-Näyttää yhdistetyt tilastot KAIKISTA peleistä - sekä kausilta että turnauksista.
-
-### Mitä näet
-
-- Joukkueen suorituskortti kaikkien aikojen tilastoilla
-- Valinnaiset joukkueen arviointikeskiarvot (jos olet arvioinut pelejä)
-- Pelaajakohtainen tilastotaulukko kaikista pelaajista kaikista peleistä
-
-### Suodattimet
-
-**Aina näkyvissä:**
-- **Joukkuevalitsin** - Näkyy aina tällä välilehdellä kolmella vaihtoehdolla:
-  - **Kaikki joukkueet** - Tilastot kaikista joukkueistasi yhdistettynä
-  - **Vanhat pelit** - Ennen joukkuejärjestelmää luodut pelit (ei joukkuemääritystä)
-  - **Tietty joukkue** - Vain yhden joukkueen tilastot
-
-**Avattavassa paneelissa:**
-- **Pelityyppi** - Jalkapallo, Futsal tai Kaikki
-- **Sukupuoli** - Pojat, Tytöt tai Kaikki
-- **Seuran kausi** - Suodata kauden mukaan
-
----
+Sarakkeet: pelaaja, ottelut, maalit, syötöt ja pisteet. Napauta sarakkeen otsikkoa lajitellaksesi. Napauta pelaajariviä avataksesi hänen tilastonsa **Pelaaja**-välilehdellä. Alimpana on **Yhteensä**-rivi.
 
 ## Pelaaja-välilehti
 
-Ominaisuusrikkain välilehti - näyttää kattavat yksittäisen pelaajan tilastot ja uratiedot.
+Hae pelaaja (**Etsi pelaajaa...**). Näet:
 
-### Pelaajan valinta
+- **Ottelut**, **Maalit**, **Syötöt**, **Pisteet** ja keskiarvot per ottelu
+- **Pelipaikat** - missä linjoissa pelaaja on pelannut
+- **Fair Play -kortit**, kapteenipelit ja **Turnauksen pelaaja** -palkinnot
+- **Sarjasuoritus** ja **Turnaussuoritus**
+- **Otteluloki** - pelit yksitellen; napauta peliä avataksesi sen
+- Jos pelaaja-arviot ovat käytössä: **Suoritusarviot**, **Arvioiden trendit**, **Vahvuudet**, **Kehityskohteet**, valinnat **Vaikeuspainotus** ja **Nykyinen vire** sekä **Vie kehitysraportti**
 
-Käytä hakukenttää pelaajan valitsemiseen. Voit hakea nimellä tai lempinimellä. Lista sisältää kaikki pelaajat kokoonpanostasi.
+### Täydennä pelaajan tilastoja
 
-### Yhteenvetotilastot
+Pelin, jota ei kirjattu sovelluksessa (esim. toisen joukkueen peli), voi lisätä pelaajan tilastoihin:
 
-Näyttää neljä avainmittaria kortissa:
-- **Pelatut pelit** - Pelien kokonaismäärä
-- **Maalit** - Maalien kokonaismäärä + keskiarvo per peli
-- **Syötöt** - Syöttöjen kokonaismäärä + keskiarvo per peli
-- **Pisteet** - Maalit + Syötöt yhdistettynä + keskiarvo per peli
+- Koko näkymä: **Tilastot** → **Täydennä pelaajan tilastoja**, tai pelaajan toiminnot → **Täydennä tilastoja**
+- Tiedot: sarja tai turnaus (valinnainen), koti/vieras/neutraali, joukkue ja vastustaja, tulos, päivä, ottelut, maalit ja syötöt, pelipaikat sekä muistiinpano
+- **Sisällytä sarja/turnaus-tilastoihin** - valitse, jos peli pelattiin samassa joukkueessa
 
-### Suodatuksen tilailmaisin
+Lisätyt pelit merkitään tilastoissa merkinnällä **LISÄTTY**.
 
-Kun Seuran kausi -suodatin on aktiivinen, sininen banneri näyttää: "Näytetään tilastot vain valitulta seurakaudelta (X / Y pelistä)" - auttaen ymmärtämään, että näet suodatettua dataa.
+## Excel-vienti
 
-### Suodattimet
+- Yksittäinen ottelu: **Viimeistele ottelu** → **Vie Excel**
+- Koonnit: tilastonäkymän vientipainike (**Lataa EXCEL**)
 
-**Avattavassa paneelissa:**
-- **Pelityyppi** - Jalkapallo, Futsal tai Kaikki
-- **Sukupuoli** - Pojat, Tytöt tai Kaikki
-- **Seuran kausi** - Suodata kauden mukaan
+## Seurakausi
 
-<Callout type="info">
-Joukkuesuodatinta ei näytetä Pelaaja-välilehdellä - pelaajakohtaiset tilastot ovat luonteeltaan pelaajakohtaisia kaikkien heidän joukkueidensa osalta.
-</Callout>
-
-### Ulkoiset pelit -osio
-
-Kirjaa pelit, jotka pelaaja pelasi muissa joukkueissa tai sarjoissa:
-
-**Lisää ulkoinen peli seuraavilla tiedoilla:**
-- Kausi tai Turnaus (valinnainen - järjestelyä varten)
-- Koti/Vieras/Neutraali-ilmaisin
-- Ulkoisen joukkueen nimi ja vastustaja
-- Tulos
-- Pelin päivämäärä
-- Tilastot: Pelit, Maalit, Syötöt
-- Reilun pelin kortti -valintaruutu
-- "Sisällytä kausi-/turnaustilastoihin" -kytkin
-- Valinnainen muistiinpano
-
-**Sisällytä kausi-/turnaustilastoihin -kytkin:**
-- Kun PÄÄLLÄ: Ulkoisen pelin tilastot lasketaan kausi-/turnauskoonteissa
-- Kun POIS: Lasketaan vain pelaajan kokonaisuratilastoihin
-
-Olemassa olevat lisäykset näkyvät listassa muokkaus-/poistovaihtoehdoilla.
-
-### Peliloki ja trendit
-
-**Mittarivalitsin** - Valitse mitä visualisoidaan:
-- Maalit ja syötöt (kaksiviivalinen sparkline-kaavio)
-- Vain maalit (aluekaavio)
-- Vain syötöt (aluekaavio)
-- Pisteet (aluekaavio)
-- Arviointimittarit (aluekaaviot)
-
-Kaaviot näyttävät pelaajan suoritustrendit ajan myötä.
-
-### Suoritusarvioinnit-osio
-
-Jos olet kirjannut pelaaja-arviointeja:
-
-- **Yksittäiset mittariarviot** - Intensiteetti, Rohkeus, Kaksinkamppailut, Tekniikka, Luovuus, Päätöksenteko, Pelikäsitys, Joukkuepeli, Reilu peli, Vaikuttavuus
-- **Kokonaisarvio** - Yhdistetty arvio
-- **Keskiarvoarvio** - Painotettu keskiarvo mittareista
-- **Arvioitujen pelien määrä** - Kuinka monessa pelissä on arvioinnit
-
-**Vaativuuskorjaus-kytkin:**
-- Kun päällä, arviot vaikeammista vastustajista painottuvat enemmän
-- Painottaa keskiarvoja pelin vaikeuden mukaan
-
-**Arviointitrendit** - Minikaaviot, jotka näyttävät miten kukin mittari on muuttunut ajan myötä
-
-**Arviointimuistiinpanot** - Lista pelien aikana lisäämistäsi muistiinpanoista
-
-### Kausi-/Turnaussuoritus
-
-Erittelytaulukot, jotka näyttävät:
-- Kausikohtaiset tilastot (PP, maalit, syötöt, pisteet, reilun pelin kortit)
-- Turnauskohtaiset tilastot (samat mittarit + turnausvoittaja-ilmaisin)
-
-### Peli-peli-erittely
-
-Yksittäiset pelirivit, jotka näyttävät:
-- **Tulosraita** - Värikoodattu: vihreä (voitto), punainen (tappio), harmaa (tasapeli)
-- **Joukkueet ja vastustaja**
-- **Päivämäärä**
-- **Maalit ja syötöt** - Värikoodatut numerot
-- **Merkit:**
-  - EXT (violetti) - Ulkoinen peli
-  - RP (vihreä) - Reilun pelin kortti saatu
-  - Futsal (oranssi) - Futsalpeli
-
-Napauta mitä tahansa peliriviä siirtyäksesi kyseisen pelin täysiin tilastoihin (paitsi ulkoiset pelit).
-
----
-
-## Joukkueen suorituskortti
-
-Näkyy Kausi-, Turnaus- ja Kokonais-välilehdillä.
-
-### Näytettävät mittarit
-
-- **Pelatut pelit** - Kokonaismäärä
-- **Tulos** - Voitot-Tappiot-Tasapelit -muodossa (esim. "12-3-2")
-- **Voitto-%** - Voitettujen pelien prosenttiosuus
-- **Maaliero** - Tehdyt maalit miinus päästetyt (vihreä jos positiivinen, punainen jos negatiivinen)
-- **Tehdyt maalit** - Yhteensä tehty
-- **Päästetyt maalit** - Yhteensä päästetty
-- **Ka TM** - Keskimääräiset tehdyt maalit per peli
-- **Ka PM** - Keskimääräiset päästetyt maalit per peli
-- **Viimeisen pelin päivämäärä** - Kun näytetään
-
-### Tietty vs Kaikki
-
-**Kun tarkastelet tiettyä kautta/turnausta:**
-- Näyttää yhden joukkueen suorituskortin vain kyseiselle kontekstille
-
-**Kun tarkastelet "Kaikki kaudet" tai "Kaikki turnaukset":**
-- Näyttää koontitilastokortin yhdistetyin summoin kaikista konteksteista
-
----
-
-## Pelaajakohtainen tilastotaulukko
-
-Näkyy Nykyinen peli-, Kausi-, Turnaus- ja Kokonais-välilehdillä.
-
-### Sarakkeet
-
-- **Pelaaja** - Nimi (napauta nähdäksesi lisätiedot)
-- **PP** - Pelatut pelit
-- **Maalit** - Tehtyjen maalien kokonaismäärä
-- **Syötöt** - Syöttöjen kokonaismäärä
-- **Pist** - Pisteet (Maalit + Syötöt)
-- **Ka** - Keskimääräiset pisteet per peli
-
-### Lajittelu
-
-Napauta mitä tahansa sarakkeen otsikkoa lajitellaksesi. Napauta uudelleen kääntääksesi. Lajittelunuolet näyttävät nykyisen lajittelutilan.
-
-### Rivin napautus
-
-Napauta mitä tahansa pelaajariviä:
-1. Vaihda Pelaaja-välilehteen
-2. Valitse kyseinen pelaaja
-3. Näe hänen yksityiskohtaiset uratilastonsa
-
-### Yhteensä-rivi
-
-Alarivi näyttää kokonaissummat kaikista näytetyistä pelaajista.
-
----
-
-## Seuran kausi -suodatin
-
-Suodattaa pelit seuran/akateemisen kauden jakson mukaan (esim. lokakuusta toukokuuhun).
-
-### Asetus vaaditaan
-
-Seuran kausi -suodatin vaatii määrityksen Asetuksissa:
-- Aseta kauden alkupäivämäärä (kuukausi-päivä)
-- Aseta kauden loppupäivämäärä (kuukausi-päivä)
-
-Jos ei ole määritetty, suodatin näkyy poissa käytöstä asetuspainikkeella sen määrittämiseksi.
-
-### Vaihtoehdot
-
-- **Kaikki kaudet** - Näyttää kaikki pelit kaudesta riippumatta
-- **Tietyt kaudet** - esim. "23/24", "24/25"
-- **Kauden ulkopuolella** - Pelit määritetyn kausijakson ulkopuolella
-
----
-
-## Tilastojen vienti
-
-Vientipainikkeet näkyvät modaalin alareunassa. Saatavilla olevat viennit riippuvat aktiivisesta välilehdestä:
-
-- **Nykyinen peli** - Yksittäisen pelin tiedot (tapahtumat, pelaajakohtaiset tilastot, muistiinpanot)
-- **Kausi** - Kauden koontitilastot
-- **Turnaus** - Turnauksen koontitilastot
-- **Kokonais** - Täydet koontitilastot kaikista peleistä
-- **Pelaaja** - Yksittäisen pelaajan uratiedot
-
-Viennit tallentuvat Excel-tiedostoina (.xlsx).
-
----
-
-## Yleiset käyttötapaukset
-
-### Pelin jälkeinen tarkastelu
-
-1. Tilastot avautuu automaattisesti Nykyinen peli -välilehteen
-2. Varmista maalitapahtumat oikeiksi
-3. Tarkista pelaajien panokset
-4. Lisää pelimuistiinpanot tarvittaessa
-
-### Kauden edistymisen seuranta
-
-1. Vaihda Kausi-välilehteen
-2. Valitse kautesi pudotusvalikosta
-3. Tarkastele joukkueen tulosta ja voittoprosenttia
-4. Tarkista parhaat maalintekijät pelaajataulukosta
-5. Napauta pelaajariviä yksityiskohtiin
-
-### Pelaajan kehityksen seuranta
-
-1. Vaihda Pelaaja-välilehteen
-2. Valitse pelaaja pudotusvalikosta
-3. Tarkastele uratilastoja ja trendejä
-4. Tarkista arviointien kehitys ajan myötä
-5. Käytä Seuran kausi -suodatinta kausien vertailuun
-6. Lisää ulkoiset pelit jos pelasi muualla
-
-### Turnausanalyysi
-
-1. Vaihda Turnaus-välilehteen
-2. Valitse turnaus
-3. Käytä Sarjasuodatinta lohkosuoritusten vertailuun
-4. Tarkastele joukkueen tilastoja ja pelaajien panoksia
-
-<Callout type="tip">
-Napauta mitä tahansa pelaajariviä tilastotaulukossa siirtyäksesi nopeasti heidän yksityiskohtaiseen Pelaaja-välilehteen täysine uratietoineen.
-</Callout>
+Seurakausi määrittää, mihin kauteen (esim. "24/25") pelit kuuluvat. Alkamispäivä asetetaan kohdassa ratas → **Asetukset** → **Yleiset** → **Seurakauden alkamispäivä**.

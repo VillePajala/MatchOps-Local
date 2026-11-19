@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 description: Common issues and solutions for MatchOps
-lastUpdated: "2026-06-23"
+lastUpdated: "2026-11-19"
 ---
 
 This guide helps you resolve common issues with MatchOps.
@@ -92,20 +92,20 @@ The app is designed to work offline. Track your game, and everything syncs when 
 **Solutions**:
 1. Verify email and password are correct
 2. Check if Caps Lock is on
-3. Try the "Forgot Password" option to reset
+3. Try the **Forgot password?** link
 4. Check your internet connection
-5. If using a new account, ensure you verified your email
+5. If the account is new, make sure you entered the verification code from your email
 
 ### Forgot Password
 
 **Problem**: Can't remember your password.
 
 **Solution**:
-1. On the sign-in screen, tap **Forgot Password**
-2. Enter your email address
-3. Check your email (including spam folder) for reset link
-4. Click the link and set a new password
-5. Return to the app and sign in
+1. On the sign-in screen, tap **Forgot password?**
+2. Enter your email address and tap **Send Reset Email**
+3. Check your email (including the spam folder)
+4. Type the code at **Enter Reset Code** and set a new password
+5. Sign in with the new password
 
 ### Session Expired
 
@@ -123,9 +123,35 @@ The app is designed to work offline. Track your game, and everything syncs when 
 
 **Solutions**:
 - Check that email address is valid
-- Use a stronger password (minimum requirements shown)
+- The password must be at least 8 characters
 - Check internet connection
 - Try a different email address if issues persist
+
+## The match and the plan
+
+### Home has no tabs
+
+You are in the **basic layout**. The **Games**, **Club**, **Competitions** and **Stats** tabs are in the full layout: gear → **Settings** → **Layout** → **Full**. Nothing is removed.
+
+### Who is here? does not let me mark absences
+
+Absences can only be marked before kick-off. If the clock has started or the match has events, change the squad in **Match details**.
+
+### The large clock does not show the next change
+
+The **Next change** block shows when the game has a plan. A game created without a plan does not show it.
+
+### Reset sub timer is missing
+
+The button is only in the full layout.
+
+### Finish this game shows 1/2
+
+The counter checks two things: the squad is selected and the goal log matches the score. Check that every goal is logged (opponent goals too). Scorers are not required.
+
+### Home shows a game whose date has passed
+
+A game that was not started stays on the Next game card. Choose **Move to another day** or **Remove**.
 
 ## Performance Issues
 
@@ -137,7 +163,7 @@ The app is designed to work offline. Track your game, and everything syncs when 
 1. Close other apps running in the background
 2. Restart the app
 3. Clear app cache in Android settings
-4. Reduce stored data (archive old seasons)
+4. Archive finished leagues and tournaments
 
 ### Timer Not Accurate
 
@@ -218,7 +244,7 @@ Common issues:
 
 Gather this information:
 1. Device model and Android version
-2. App version (found in Settings)
+2. App version (**Settings** → **About**)
 3. Whether you're signed in to your account
 4. Steps to reproduce the issue
 5. Any error messages
@@ -229,10 +255,10 @@ Gather this information:
 If issues persist:
 
 1. **Sign out and back in**: Often fixes sync issues
-2. **Re-sync from cloud**: In Settings, find the option to clear the on-device copy and re-download from your account
+2. **Re-sync from Cloud**: **Settings** → **Data** → Danger Zone; clears the phone's copy and downloads the data again from your account
 3. **Soft reset**: Clear app cache in Android settings, then reopen
 4. **Clean reinstall**: Uninstall and reinstall the app, then sign back in
-5. **Delete All Data**: In Settings, permanently clears your data everywhere (last resort)
+5. **Delete All Data**: **Settings** → **Data** → Danger Zone; permanently deletes your data everywhere (last resort)
 
 <Callout type="info">
 Legacy note: if you use MatchOps without an account, export a backup before any reset, since there is no cloud copy to re-sync from.

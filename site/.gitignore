@@ -9,7 +9,6 @@
 # Next.js
 /.next/
 /out/
-/pages/docs/
 
 # Production
 /build

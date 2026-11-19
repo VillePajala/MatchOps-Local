@@ -116,6 +116,7 @@ describe('AuthService Interface Exports', () => {
         recordConsent: async () => {},
         hasConsentedToVersion: async () => true,
         getLatestConsent: async () => null,
+        getConsentRecords: async () => [],
         getMarketingConsentStatus: async () => null,
         setMarketingConsent: async () => {},
         verifySignUpOtp: async () => ({ user: localUser, session: null }),

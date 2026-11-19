@@ -10,7 +10,7 @@
  * @see docs/03-active-plans/supabase-implementation-guide.md Section 6
  */
 
-import type { AuthService, SignOutOptions } from '@/interfaces/AuthService';
+import type { AuthService, ConsentRecord, SignOutOptions } from '@/interfaces/AuthService';
 import type {
   User,
   Session,
@@ -1097,6 +1097,36 @@ export class SupabaseAuthService implements AuthService {
       }
       throw error;
     }
+  }
+
+  async getConsentRecords(): Promise<ConsentRecord[]> {
+    this.ensureInitialized();
+
+    if (!this.currentUser) {
+      throw new AuthError('Must be authenticated to read consent records');
+    }
+
+    // RLS (migration 031) lets a user SELECT only their own rows. One attempt,
+    // no retry: the export treats this as best-effort and must not stall.
+    const { data, error } = await this.client!
+      .from('user_consents')
+      .select('consent_type, policy_version, status, consented_at, ip_address, user_agent')
+      .eq('user_id', this.currentUser.id)
+      .order('consented_at', { ascending: true });
+
+    if (error) {
+      logger.warn('[SupabaseAuthService] Failed to read consent records:', error.message);
+      throw new AuthError('Failed to read consent records. Please try again.');
+    }
+
+    return (data ?? []).map((row) => ({
+      consentType: row.consent_type,
+      policyVersion: row.policy_version,
+      status: row.status,
+      consentedAt: row.consented_at,
+      ipAddress: row.ip_address ?? null,
+      userAgent: row.user_agent ?? null,
+    }));
   }
 
   // ==========================================================================

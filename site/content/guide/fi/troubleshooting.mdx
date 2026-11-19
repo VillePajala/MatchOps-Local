@@ -1,7 +1,7 @@
 ---
 title: Vianetsintä
 description: Yleiset ongelmat ja ratkaisut MatchOpsille
-lastUpdated: "2026-06-23"
+lastUpdated: "2026-11-19"
 ---
 
 Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
@@ -92,20 +92,20 @@ Sovellus on suunniteltu toimimaan offline-tilassa. Seuraa peliäsi, ja kaikki sy
 **Ratkaisut**:
 1. Varmista, että sähköposti ja salasana ovat oikein
 2. Tarkista, onko Caps Lock päällä
-3. Kokeile "Unohtuiko salasana" -vaihtoehtoa nollataksesi
+3. Kokeile **Unohditko salasanasi?** -linkkiä
 4. Tarkista internetyhteytesi
-5. Jos käytät uutta tiliä, varmista että olet vahvistanut sähköpostisi
+5. Jos tili on uusi, varmista että syötit sähköpostiin tulleen vahvistuskoodin
 
 ### Unohtunut salasana
 
 **Ongelma**: Salasana ei muistu mieleen.
 
 **Ratkaisu**:
-1. Napauta kirjautumisnäytöllä **Unohtuiko salasana**
-2. Syötä sähköpostiosoitteesi
-3. Tarkista sähköpostisi (myös roskapostikansio) nollauslinkin varalta
-4. Napauta linkkiä ja aseta uusi salasana
-5. Palaa sovellukseen ja kirjaudu sisään
+1. Napauta kirjautumisnäytöllä **Unohditko salasanasi?**
+2. Syötä sähköpostiosoitteesi ja napauta **Lähetä nollaussähköposti**
+3. Tarkista sähköpostisi (myös roskapostikansio)
+4. Syötä koodi kohtaan **Syötä nollauskoodi** ja aseta uusi salasana
+5. Kirjaudu sisään uudella salasanalla
 
 ### Istunto vanhentunut
 
@@ -123,9 +123,35 @@ Sovellus on suunniteltu toimimaan offline-tilassa. Seuraa peliäsi, ja kaikki sy
 
 **Ratkaisut**:
 - Tarkista, että sähköpostiosoite on kelvollinen
-- Käytä vahvempaa salasanaa (vähimmäisvaatimukset näytetään)
+- Salasanassa on oltava vähintään 8 merkkiä
 - Tarkista internetyhteys
 - Kokeile eri sähköpostiosoitetta jos ongelmat jatkuvat
+
+## Ottelu ja suunnitelma
+
+### Etusivulla ei ole välilehtiä
+
+Käytössäsi on **Perusnäkymä**. Välilehdet **Pelit**, **Seura**, **Kilpailut** ja **Tilastot** ovat Koko näkymässä: ratas → **Asetukset** → **Näkymä** → **Koko näkymä**. Mitään ei poisteta.
+
+### Ketkä ovat paikalla? ei anna merkitä poissaoloja
+
+Poissaoloja voi merkitä vain ennen ottelun alkua. Jos kello on käynnistetty tai otteluun on kirjattu tapahtumia, muuta kokoonpanoa kohdasta **Ottelun tiedot**.
+
+### Iso kello ei näytä seuraavaa vaihtoa
+
+Lohko **Seuraava vaihto** näkyy, kun pelillä on suunnitelma. Peli, joka on luotu ilman suunnitelmaa, ei näytä sitä.
+
+### Nollaa vaihtoajastin puuttuu
+
+Painike on vain Koko näkymässä.
+
+### Viimeistele ottelu näyttää 1/2
+
+Laskuri katsoo kahta asiaa: kokoonpano on valittu ja maaliloki vastaa tulosta. Tarkista, että jokainen maali on kirjattu (myös vastustajan maalit). Maalintekijät eivät ole pakollisia.
+
+### Etusivulla näkyy peli, jonka päivä on jo mennyt
+
+Peli, jota ei aloitettu, jää Seuraava peli -korttiin. Valitse **Siirrä päivää** tai **Poista**.
 
 ## Suorituskykyongelmat
 
@@ -137,7 +163,7 @@ Sovellus on suunniteltu toimimaan offline-tilassa. Seuraa peliäsi, ja kaikki sy
 1. Sulje muut taustalla olevat sovellukset
 2. Käynnistä sovellus uudelleen
 3. Tyhjennä sovelluksen välimuisti Androidin asetuksista
-4. Vähennä tallennettua dataa (arkistoi vanhat kaudet)
+4. Arkistoi päättyneet sarjat ja turnaukset
 
 ### Ajastin ei ole tarkka
 
@@ -218,7 +244,7 @@ Yleisiä ongelmia:
 
 Kerää nämä tiedot:
 1. Laitteen malli ja Android-versio
-2. Sovelluksen versio (löytyy Asetuksista)
+2. Sovelluksen versio (**Asetukset** → **Tietoja**)
 3. Oletko kirjautunut sisään tilillesi
 4. Vaiheet ongelman toistamiseksi
 5. Mahdolliset virheilmoitukset
@@ -229,10 +255,10 @@ Kerää nämä tiedot:
 Jos ongelmat jatkuvat:
 
 1. **Kirjaudu ulos ja takaisin sisään**: Usein korjaa synkronointiongelmat
-2. **Synkronoi uudelleen pilvestä**: Asetuksissa, etsi vaihtoehto tyhjentää laitteella oleva kopio ja ladata uudelleen tililtäsi
+2. **Synkronoi pilvestä uudelleen**: **Asetukset** → **Tiedot** → Vaaravyöhyke; tyhjentää puhelimen kopion ja lataa tiedot uudelleen tililtä
 3. **Pehmeä nollaus**: Tyhjennä sovelluksen välimuisti Androidin asetuksista, avaa uudelleen
 4. **Puhdas uudelleenasennus**: Poista ja asenna sovellus uudelleen, kirjaudu sitten takaisin sisään
-5. **Poista kaikki data**: Asetuksissa, tyhjentää datasi pysyvästi kaikkialta (viimeinen keino)
+5. **Poista kaikki tiedot**: **Asetukset** → **Tiedot** → Vaaravyöhyke; poistaa tiedot pysyvästi kaikkialta (viimeinen keino)
 
 <Callout type="info">
 Huomio vanhoille käyttäjille: jos käytät MatchOpsia ilman tiliä, vie varmuuskopio ennen mitään nollausta, sillä pilvikopiota ei ole josta synkronoida uudelleen.

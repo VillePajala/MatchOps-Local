@@ -31,7 +31,9 @@ jest.mock("@/datastore/factory");
 // (will be removed when tests are fully migrated to DataStore patterns in Step 11)
 jest.mock("./storage");
 
-import { getDataStore } from "@/datastore/factory";
+import { getDataStore, getAuthService } from "@/datastore/factory";
+import logger from "@/utils/logger";
+import type { AuthService } from "@/interfaces/AuthService";
 import { getStorageJSON, setStorageJSON, setStorageItem } from "./storage";
 
 // Create mock store for DataStore data
@@ -1599,6 +1601,77 @@ describe("generateFullBackupJson - planner stores", () => {
     expect(json).not.toContain('matchops_ai_usage');
     // The device keeps them; only the backup file is free of them.
     expect(localStorage.getItem('matchops_ai_key')).toBe('sk-proj-secret-value-0000');
+  });
+});
+
+/**
+ * The export carries the account's own record (GDPR Art. 15/20): its email and
+ * its consent history. A restore ignores it.
+ * @critical
+ */
+describe("generateFullBackupJson - account record", () => {
+  const consents = [
+    { consentType: 'terms_and_privacy', policyVersion: '2026-09', status: 'granted', consentedAt: '2026-09-01T10:00:00Z', ipAddress: null, userAgent: 'UA' },
+    { consentType: 'marketing', policyVersion: '2026-11', status: 'withdrawn', consentedAt: '2026-11-19T10:00:00Z', ipAddress: null, userAgent: 'UA' },
+  ];
+
+  function mockAuth(overrides: Partial<AuthService> = {}): void {
+    const auth = {
+      getMode: jest.fn().mockReturnValue('cloud'),
+      getCurrentUser: jest.fn().mockResolvedValue({ id: 'user-1', email: 'coach@example.com' }),
+      getConsentRecords: jest.fn().mockResolvedValue(consents),
+      ...overrides,
+    };
+    (getAuthService as jest.Mock).mockResolvedValue(auth);
+  }
+
+  beforeEach(() => {
+    Object.keys(mockStore).forEach(key => delete mockStore[key]);
+    jest.clearAllMocks();
+    mockDataStore = createMockDataStore();
+    (getDataStore as jest.Mock).mockImplementation(async () => mockDataStore);
+  });
+
+  afterEach(() => {
+    (getAuthService as jest.Mock).mockReset();
+  });
+
+  it("includes the signed-in account's email and every consent record", async () => {
+    mockAuth();
+    const json = JSON.parse(await generateFullBackupJson('user-1'));
+    expect(json.account).toEqual({ email: 'coach@example.com', consentRecords: consents });
+  });
+
+  it("leaves the account out for a different user's data or in local mode", async () => {
+    mockAuth();
+    expect(JSON.parse(await generateFullBackupJson('someone-else')).account).toBeUndefined();
+
+    mockAuth({ getMode: jest.fn().mockReturnValue('local') } as Partial<AuthService>);
+    expect(JSON.parse(await generateFullBackupJson('user-1')).account).toBeUndefined();
+  });
+
+  /** @edge-case - the backup itself must never fail because of the account read */
+  it("still exports, with the email only, when the consent read fails", async () => {
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    mockAuth({ getConsentRecords: jest.fn().mockRejectedValue(new Error('offline')) } as Partial<AuthService>);
+    const json = JSON.parse(await generateFullBackupJson('user-1'));
+    expect(json.account).toEqual({ email: 'coach@example.com' });
+    expect(json.localStorage).toBeDefined();
+    warnSpy.mockRestore();
+  });
+
+  it("a restore ignores the account section", async () => {
+    const backup = {
+      meta: { schema: 1, exportedAt: new Date().toISOString() },
+      account: { email: 'coach@example.com', consentRecords: consents },
+      localStorage: { [MASTER_ROSTER_KEY]: [{ id: 'p1', name: 'Aada', isGoalie: false, receivedFairPlayCard: false }] },
+    };
+    const result = await importFullBackup(JSON.stringify(backup), undefined, undefined, true, true);
+    expect(result).not.toBeNull();
+    expect(mockDataStore.upsertPlayer).toHaveBeenCalled();
+    const allCalls = JSON.stringify((mockDataStore.upsertPlayer as jest.Mock).mock.calls)
+      + JSON.stringify((mockDataStore.saveSettings as jest.Mock | undefined)?.mock?.calls ?? []);
+    expect(allCalls).not.toContain('coach@example.com');
   });
 });
 

@@ -252,6 +252,9 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         placeholder={t('noteComposer.placeholder', 'What did you see? One observation is enough.')}
         className={`${textareaStyle} text-[15px]!`}
       />
+      <p className="mt-1 text-sm text-ink-3">
+        {t('privacyHints.noHealthData', 'Do not record health information.')}
+      </p>
       {/* One action row: add the note, and beside it the 44px microphone
           (stop while this card records). */}
       <div className="mt-2.5 flex items-center gap-2">

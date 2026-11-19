@@ -712,7 +712,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           <>
             <h1 className={`${titleStyle} mt-1`}>{t('setupWizard.playersTitle', 'Players')}</h1>
             <p className={`${subtextStyle} mt-1`}>
-              {t('setupWizard.playersHint', 'Paste a list of names or type one at a time.')}
+              {t('setupWizard.playersHint', 'Paste a list of names or type one at a time.')}{' '}
+              {t('privacyHints.firstNameEnough', 'A first name or nickname is enough.')}
             </p>
             <div className="flex-1 min-h-0 mt-4 flex flex-col">
               <button

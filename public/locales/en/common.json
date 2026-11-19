@@ -2519,11 +2519,11 @@
   },
   "privacyPolicy": {
     "title": "Privacy Policy for MatchOps",
-    "version": "Policy Version: 2026-09",
-    "lastUpdated": "Last Updated: September 2026",
+    "version": "Policy Version: 2026-11",
+    "lastUpdated": "Last Updated: November 2026",
     "dataController": {
       "title": "Data Controller",
-      "content": "MatchOps is developed and operated by Ville Pajala, based in Finland. As the data controller, we are responsible for the processing of your personal data as described in this policy."
+      "content": "MatchOps is developed and operated by Ville Pajala, based in Finland. We are the controller of your account data (your email, settings, consent records) and of the error reports and usage statistics described below. For the personal data you enter about other people (players, staff), you - or the club you act for - are the controller and we act as your processor (see Data Processing in the Terms of Service)."
     },
     "overview": {
       "title": "Overview",
@@ -2546,45 +2546,48 @@
       "cloudDataTitle": "Cloud Sync",
       "cloudDataIntro": "Your data is stored on our secure cloud servers:",
       "cloudDataItems": {
-        "syncedData": "Copied to our secure EU-based servers (Supabase, hosted in EU)",
+        "syncedData": "Stored on Supabase servers in the EU (Stockholm, Sweden)",
         "encryption": "Encrypted in transit (HTTPS/TLS) and at rest",
-        "rowLevelSecurity": "Protected by row-level security (only you can access your data)",
+        "rowLevelSecurity": "Protected by row-level security: through the app, each account can reach only its own data",
         "multiDevice": "Synced across your devices",
         "dataOwnership": "Retained under your full ownership"
       },
-      "cloudDataNote": "Cloud data is stored in secure EU-based data centers. You can delete your cloud data at any time from Settings.",
+      "cloudDataNote": "Cloud data is stored in EU data centres (Stockholm, Sweden). You can delete your cloud data or your whole account at any time in Settings → Data.",
       "dataRetentionTitle": "Data Retention",
-      "dataRetentionContent": "Cloud data is retained while your account is active. When you delete your cloud data or your account, data is permanently removed within a reasonable period. If your account becomes inactive for an extended period, we may delete cloud data with prior notice. Local data remains on your device until you clear it. Consent records are retained even after account deletion for GDPR compliance."
+      "dataRetentionContent": "Your cloud data is kept while your account exists. When you delete your cloud data or your account (Settings → Data), it is removed from the live database immediately; any copy in our hosting provider's backups is removed when that backup expires (at most 30 days). Deleting your account also deletes your consent records. If an account is unused for a long time, we may delete its cloud data after notifying you first. Data on your device stays there until you delete it or clear the app's storage. Error reports are deleted by Sentry automatically within at most 90 days.",
+      "operatorAccess": "Who can see your data: you. As the operator we technically have administrator access to the database, but we do not look at your content. We access it only when you ask us to (for example to solve a problem you report) or when the law requires it."
     },
     "legalBasis": {
       "title": "Legal Basis for Data Processing (GDPR Art. 6)",
       "intro": "We process personal data on the following legal bases:",
-      "contract": "Contract (Art. 6(1)(b)): Processing necessary for cloud sync service delivery",
-      "consent": "Consent (Art. 6(1)(a)): Acceptance of Terms of Service and Privacy Policy for cloud mode users. Consent records are stored to demonstrate compliance",
-      "legitimateInterest": "Legitimate interest (Art. 6(1)(f)): Error reporting via Sentry to maintain app quality and fix bugs. This processing involves minimal anonymized data and does not involve profiling or tracking We do not carry out automated decision-making or profiling."
+      "contract": "Contract (Art. 6(1)(b)): providing the service you signed up for - your account and email address, storing and syncing your data, and the account emails the service needs (sign-up confirmation, password reset).",
+      "consent": "Consent (Art. 6(1)(a)): only for marketing emails (see Marketing Emails) and for connecting your own AI provider (see Voice Notes and Optional AI). You can withdraw consent at any time; withdrawal does not affect earlier processing.",
+      "legitimateInterest": "Legitimate interest (Art. 6(1)(f)): error reporting via Sentry to find and fix bugs, and onboarding milestones to improve how new coaches get started - both can be turned off in Settings → Data → Error reporting and usage statistics. Keeping the record of your acceptance of the Terms of Service and this Privacy Policy is also based on our legitimate interest in being able to demonstrate it (accountability, Art. 5(2)). None of this involves profiling or tracking, and we make no automated decisions about you."
     },
     "dataWeCollect": {
       "title": "Data We May Collect",
-      "errorReportingTitle": "Error Reporting",
-      "errorReportingIntro": "When the app encounters an error, we may collect:",
+      "errorReportingTitle": "Error Reporting and Usage Statistics",
+      "errorReportingIntro": "Unless you turn it off, Sentry receives the following from the app:",
       "errorReportingItems": {
-        "errorType": "Error type and stack trace",
-        "deviceType": "Device type and OS version",
+        "errorType": "When an error happens: the error type and stack trace",
+        "deviceType": "Device type, browser and operating system version",
         "appVersion": "App version",
-        "sessionInfo": "Anonymized session information"
+        "sessionInfo": "A pseudonymous session identifier, not linked to your account or email",
+        "replay": "When an error happens: a replay of the screen in the moments before it, with all text and images masked",
+        "performance": "Performance traces for a sample of page loads and screen changes (about 1 in 10): timings and the app address visited"
       },
-      "errorReportingNote": "This helps us fix bugs and improve the app. Error reports do not contain your game data or player information. They are processed by Sentry.io (data may be processed in the US under Standard Contractual Clauses).",
+      "errorReportingNote": "This is pseudonymous data, not anonymous. We use it only to find and fix bugs and keep the app fast. Reports are built to leave out your game data and player information: text and images are masked in replays, and keys and sign-in data are scrubbed before sending. Sentry processes it in the US under Standard Contractual Clauses. You can turn this off at any time in Settings → Data → Error reporting and usage statistics; from then on the app sends Sentry nothing for your account.",
       "licenseValidationTitle": "Play Store License Validation",
       "licenseValidationContent": "If paid features are introduced, Google Play will handle all payment processing. We verify license status through Play Store API but do not receive your payment information.",
-      "consentTrackingTitle": "Consent Records (Cloud Mode)",
-      "consentTrackingIntro": "When you accept our Terms of Service and Privacy Policy in Cloud Mode, we record:",
+      "consentTrackingTitle": "Consent Records",
+      "consentTrackingIntro": "When you accept the Terms of Service and this Privacy Policy, or grant or withdraw marketing consent, we record:",
       "consentTrackingItems": {
-        "timestamp": "Date and time of consent",
-        "policyVersion": "Which policy version you accepted",
-        "ipAddress": "Your IP address (for legal verification)",
-        "userAgent": "Your browser/device information"
+        "timestamp": "Date and time",
+        "policyVersion": "Which policy version was in force",
+        "userAgent": "Your browser and device information",
+        "consentType": "What you accepted, granted or withdrew (terms and privacy, or marketing emails)"
       },
-      "consentTrackingNote": "This information is required for GDPR compliance to prove that valid consent was obtained (GDPR Art. 7(1)). Consent records are retained even after account deletion for legal purposes.",
+      "consentTrackingNote": "We keep these records to be able to demonstrate your acceptance and your marketing choices (GDPR Art. 5(2) and 7(1)) while your account exists. They are deleted together with your account and are included in your data export.",
       "personnelDataTitle": "Personnel Data",
       "personnelDataIntro": "When you add team personnel (coaches, assistants, medical staff), you may optionally enter:",
       "personnelDataItems": {
@@ -2593,63 +2596,68 @@
         "phone": "Phone number (optional)",
         "certifications": "Certifications (optional)"
       },
-      "personnelDataNote": "This data is stored on your device and synced to our secure EU-based database, accessible only to you. Personnel contact information (email, phone) is considered personally identifiable information (PII) under GDPR. You are responsible for ensuring you have appropriate grounds to store their contact details. For any personal data you enter about other people (such as players and personnel), you act as the data controller and are solely responsible for having a lawful basis and any required consent to store it."
+      "personnelDataNote": "This data is stored on your device and synced to your cloud account in the EU (Stockholm, Sweden). Staff contact details (email, phone) are personal data under GDPR. For any personal data you enter about other people (such as players and staff), you - or the club you act for - are the controller and are responsible for having a lawful basis to store it and for informing the people concerned; we process it only on your behalf (see Data Processing in the Terms of Service).",
+      "onboardingTitle": "Onboarding Progress and Layout",
+      "onboardingContent": "Unless you turn it off, we store a few timestamps about your onboarding progress (account created, setup finished or skipped, first plan seen, first and second match finished) in your account settings, together with your chosen layout (Basic or Full). We use the timestamps only to improve how new coaches get started. They contain none of your game data, are never shared or sold, and are deleted with your account. To object, turn off Settings → Data → Error reporting and usage statistics: no further timestamps are then recorded. The layout is a setting of the app and is always kept."
     },
     "dataWeDoNotCollect": {
-      "title": "Data We Do NOT Collect",
+      "title": "What We Do Not Do With Your Data",
       "items": {
-        "gameContent": "Game content, scores, or statistics (stored locally only, or in your private cloud account)",
-        "location": "Location data. Nothing about where you or your device are is sent to us or stored by us. The venue search does reach a map provider on your behalf while you use it - see Third-Party Services.",
-        "photos": "Photos or media",
-        "deviceIds": "Device identifiers for tracking or advertising",
-        "playerNames": "Player names or personal details (these are stored locally by you, or in your private cloud account)"
+        "gameContent": "Your games, scores and statistics: we store them only to provide the app and its sync. We never use, analyse, share or sell them.",
+        "location": "Your device's location: the app never reads it (no GPS). Places you choose to save - match venues and your team's starting point, with their address and map pin - are stored as part of your data to show travel and departure times. Searching for a place sends the text you type to Photon (see Third-Party Services and Recipients).",
+        "photos": "Photos or media: the app does not collect them.",
+        "deviceIds": "Tracking or advertising: the app has no ads and no advertising or analytics trackers, and uses no device identifiers for them.",
+        "playerNames": "Player names, notes and other details about people: the same - stored only to provide the sync, never used, analysed, shared or sold."
       },
-      "personnelNote": "Note: If you enter personnel contact information (email, phone), this is stored by your choice and under your control — see the Personnel Data section in our full Privacy Policy."
+      "personnelNote": "Note: staff contact details (email, phone) you enter are stored by your choice and under your control - see Personnel Data above."
     },
     "thirdPartyServices": {
-      "title": "Third-Party Services (Sub-processors)",
-      "intro": "We use the following third-party services to operate MatchOps. Data processing agreements are in place with each provider where required.",
+      "title": "Third-Party Services and Recipients",
+      "intro": "Supabase, Sentry, Resend and Vercel are our sub-processors; data processing agreements are in place with each of them. Google Play, Photon, palloliitto.fi and an AI provider you connect are not our sub-processors: they receive data directly from your device, only when you use them, under their own terms.",
       "googlePlay": "Google Play Store",
       "googlePlayDesc": "App distribution and payments (Google infrastructure).",
       "sentry": "Sentry",
-      "sentryDesc": "Error reporting and crash analysis (US, Standard Contractual Clauses).",
+      "sentryDesc": "Error reporting, error replays and performance traces, unless you turn them off (US, Standard Contractual Clauses).",
       "supabase": "Supabase",
-      "supabaseDesc": "Cloud database and authentication (EU, Frankfurt).",
+      "supabaseDesc": "Cloud database and authentication, hosted in the EU (Stockholm, Sweden).",
       "vercel": "Vercel",
-      "vercelDesc": "PWA web hosting (Global edge network, Standard Contractual Clauses).",
+      "vercelDesc": "Hosting of the app and the website. Like any web host it processes your IP address in its request logs (global edge network, Standard Contractual Clauses).",
       "googlePlayLink": "Google's Privacy Policy",
       "sentryLink": "Sentry's Privacy Policy",
       "supabaseLink": "Supabase's Privacy Policy",
       "vercelLink": "Vercel's Privacy Policy",
       "photon": "Photon (Komoot)",
-      "photonDesc": "Venue search in the match location field, when used (EU, Germany).",
+      "photonDesc": "Place search in the match venue field and the starting-point field (Settings), when used. It receives the text you type, not your location (EU, Germany).",
       "photonLink": "Komoot Privacy Policy",
       "openai": "OpenAI, or the AI provider you connect",
       "openaiDesc": "Only if you connect your own account: the voice notes and text you choose to send go to that provider under your own key. We hold no key and see no content (see Voice notes and AI).",
       "openaiLink": "OpenAI Privacy Policy",
       "palloliitto": "palloliitto.fi (Football Association of Finland)",
       "palloliittoDesc": "The rulebook PDF is fetched from their site when you open a law; they see the request as they would any website visit (IP address), nothing else.",
-      "palloliittoLink": "Palloliitto Privacy Notice"
+      "palloliittoLink": "Palloliitto Privacy Notice",
+      "resend": "Resend",
+      "resendDesc": "Sends the account emails (sign-up confirmation, password reset) from noreply@auth.match-ops.com and, if you opt in, marketing emails. It receives your email address and the message (may be processed in the US under Standard Contractual Clauses).",
+      "resendLink": "Resend's Privacy Policy"
     },
     "yourRights": {
       "title": "Your Rights (GDPR)",
       "intro": "Under GDPR and applicable data protection laws, you have the right to:",
-      "access": "Access (Art. 15): View and export all your data at any time",
-      "rectification": "Rectification (Art. 16): Correct any inaccurate data directly in the app",
-      "erasure": "Erasure (Art. 17): Delete your local data or cloud data at any time",
-      "portability": "Portability (Art. 20): Export your data in standard JSON format",
-      "restriction": "Restriction (Art. 18): Ask us to limit how we process your data, or delete your cloud data at any time from Settings.",
-      "objection": "Objection (Art. 21): Turn off optional error reporting in Settings; to stop all cloud processing, delete your account.",
-      "withdrawConsent": "Withdraw consent: Delete your cloud account to withdraw consent to cloud processing",
-      "deleteLocal": "For local data: Use Settings → Data → Your Data Rights",
-      "deleteCloud": "For cloud data: Use Settings → Data → Your Data Rights",
-      "contactUs": "All data management options are available directly in the app under Settings → Data tab. No email request is needed — you can self-serve all GDPR rights through the app interface.",
+      "access": "Access (Art. 15): export all your data at any time in Settings → Data → Backup & Export - your games, players, staff, settings, your account email and your consent records",
+      "rectification": "Rectification (Art. 16): correct your data directly in the app",
+      "erasure": "Erasure (Art. 17): delete the data on your device, your cloud data or your whole account at any time in Settings → Data",
+      "portability": "Portability (Art. 20): the export is a standard JSON file you can take elsewhere",
+      "restriction": "Restriction (Art. 18): ask us to limit how we process your data by emailing support@match-ops.com",
+      "objection": "Objection (Art. 21): turn off Settings → Data → Error reporting and usage statistics - error reports and onboarding milestones then stop for your account. For any other objection, email support@match-ops.com",
+      "withdrawConsent": "Withdraw consent (Art. 7(3)): withdraw marketing consent in Settings → Account → Email Preferences, and disconnect an AI provider in Settings at any time",
+      "deleteLocal": "Data on this device: Settings → Data",
+      "deleteCloud": "Cloud data and your account: Settings → Data",
+      "contactUs": "Most rights can be used directly in the app under Settings → Data. For anything else, email support@match-ops.com.",
       "supervisoryAuthority": "If you believe your data protection rights have been violated, you have the right to lodge a complaint with a supervisory authority. In Finland: Office of the Data Protection Ombudsman (Tietosuojavaltuutetun toimisto)",
       "supervisoryAuthorityUrl": "https://tietosuoja.fi/en/home"
     },
     "childrensPrivacy": {
       "title": "Children's Privacy",
-      "content": "MatchOps is a tool designed for adult coaches, not for use by children. The app does not knowingly collect personal information from children under 16. Player names and statistics are entered by the coach (the app user), not by the players themselves. This data is stored locally on the coach's device or in their private cloud account and is never transmitted to us or any third party (except when cloud sync is enabled, in which case it is stored securely in the coach's private account). No age verification is required because the app collects data from coaches about their players, not directly from children."
+      "content": "MatchOps is a tool for adult coaches, not for children. Players do not use the app: the coach enters player names, statistics and notes. That data is stored on the coach's device and in the coach's cloud account in the EU only to provide the service, and we never send it to third parties other than our sub-processors listed above - except when the coach connects their own AI provider and chooses to send notes or recordings to it (see Voice Notes and Optional AI). The coach, or the club the coach acts for, is the controller of the player data and is responsible for informing players' families; Settings → Data has a ready-made notice for that."
     },
     "dataSecurity": {
       "title": "Data Security",
@@ -2660,15 +2668,15 @@
         "noTransmission": "The on-device copy is only transmitted when syncing to your private cloud account, over an encrypted connection"
       },
       "localNote": "Your device's security is your primary protection for local data. We recommend using a strong screen lock.",
-      "cloudIntro": "In cloud mode, your data is protected by:",
+      "cloudIntro": "In your cloud account, your data is protected by:",
       "cloudItems": {
         "tlsEncryption": "Encrypted in transit (HTTPS/TLS)",
-        "atRestEncryption": "Encrypted at rest in secure EU-based servers (Supabase, Frankfurt)",
+        "atRestEncryption": "Encryption at rest on Supabase servers in the EU (Stockholm, Sweden)",
         "rowLevelSecurity": "Row-level security ensuring you can only access your own data",
         "soc2": "Backed by Supabase's security infrastructure and SOC 2 compliance"
       },
       "backupTitle": "Backup File Security",
-      "backupContent": "When you export your data, the backup file contains all your data including any personnel contact information. Backup files are not encrypted and should be stored securely. We recommend storing backup files in a secure location and deleting them after import."
+      "backupContent": "When you export your data, the file contains all of it, including staff contact details, your account email and your consent records. Export files are not encrypted, so store them somewhere safe and delete copies you no longer need."
     },
     "changes": {
       "title": "Changes to This Policy",
@@ -2676,7 +2684,7 @@
     },
     "contact": {
       "title": "Contact",
-      "intro": "Most data requests can be handled directly in the app (Settings → Data tab) without contacting us. For other privacy questions or concerns:",
+      "intro": "Most data requests can be handled directly in the app (Settings → Data). For anything else, email us:",
       "email": "Email"
     },
     "footer": "This privacy policy applies to the MatchOps application available on Google Play Store.",
@@ -2698,6 +2706,10 @@
         "pseudonymized": "Before drafting requests, player names are replaced with codes on your device (on by default). Transcription requests necessarily contain the words you spoke.",
         "disconnect": "You can disconnect the provider and delete all recordings at any time from Settings. The key is stored only on your device."
       }
+    },
+    "marketing": {
+      "title": "Marketing Emails",
+      "content": "Only if you opt in, we send occasional emails about new features and tips to your account email. The legal basis is your consent (Art. 6(1)(a)). You can withdraw it at any time in Settings → Account → Email Preferences; each grant and withdrawal is recorded (see Consent Records). The emails are sent through Resend. Without your consent we send only the account emails the service needs (sign-up confirmation, password reset)."
     }
   },
   "voiceNotesInfo": {
@@ -2726,8 +2738,8 @@
   },
   "termsOfService": {
     "title": "Terms of Service for MatchOps",
-    "version": "Terms Version: 2026-09",
-    "lastUpdated": "Last Updated: September 2026",
+    "version": "Terms Version: 2026-11",
+    "lastUpdated": "Last Updated: November 2026",
     "agreement": {
       "title": "Agreement to Terms",
       "content": "By downloading, installing, or using MatchOps (\"the app\"), you agree to these Terms of Service. If you do not agree, do not use the app."
@@ -2803,7 +2815,7 @@
       "title": "Data Loss",
       "intro": "You acknowledge that:",
       "items": {
-        "localStorage": "Data is stored locally on your device (or in cloud if enabled)",
+        "localStorage": "Your data is stored in your cloud account and cached on your device for offline use",
         "notResponsible": "We are not responsible for data loss due to device failure, app uninstallation, or any other cause",
         "backupAdvice": "You should regularly export and backup important data"
       }
@@ -2820,12 +2832,14 @@
       "vercel": "Vercel",
       "vercelDesc": "For PWA web hosting",
       "photon": "Photon (Komoot)",
-      "photonDesc": "For venue search in the match location field; it receives the text you type there",
+      "photonDesc": "For place search in the match venue and starting-point fields; it receives the text you type there",
       "openai": "OpenAI, or another AI provider you connect",
       "openaiDesc": "For voice-note transcription and match report drafts, only through your own account and API key, and only if you connect one",
       "palloliitto": "palloliitto.fi",
       "palloliittoDesc": "The rulebook is fetched from the Football Association of Finland's own site when you open a law",
-      "note": "Your use of these services is governed by their respective terms and policies."
+      "note": "Your use of these services is governed by their respective terms and policies.",
+      "resend": "Resend",
+      "resendDesc": "For account emails (sign-up confirmation, password reset) and, if you opt in, marketing emails"
     },
     "premiumSubscription": {
       "title": "Paid Features",
@@ -2893,8 +2907,28 @@
     "aiServices": {
       "title": "Optional AI Services",
       "content1": "MatchOps lets you connect your own account with a third-party AI provider to transcribe voice notes and draft reports. Any such use is governed by your agreement with that provider. MatchOps is not a party to it, does not receive the data, and is not responsible for the provider's processing, availability, output or fees.",
-      "content2": "You are responsible for the content you record or dictate and for having the right to process it, including informing players' families where your circumstances require it. Do not record health information or other sensitive personal data.",
+      "content2": "You are responsible for the content you record or dictate and for having the right to process it. Do not record health information or other special categories of personal data (see Player Data: Your Responsibilities).",
       "content3": "AI output is a draft. You review and accept every item before it is saved, and you remain responsible for what you keep."
+    },
+    "dataProcessing": {
+      "title": "Data Processing (GDPR Art. 28)",
+      "intro": "This section is the data processing agreement between you and us under GDPR Art. 28(3). It is based on the standard contractual clauses between controllers and processors adopted by the European Commission in Implementing Decision (EU) 2021/915, and it applies whenever you enter personal data about other people (players and staff).",
+      "items": {
+        "roles": "Roles: you - or the club you act for - are the controller of that data. MatchOps (Ville Pajala) is your processor.",
+        "scope": "Subject, nature and duration: storing, syncing and showing the data you enter (such as names, shirt numbers, positions, match events, statistics, notes and staff contact details) about the players and staff of your teams, for as long as your account exists.",
+        "instructions": "Instructions: we process the data only to provide the service, on your documented instructions - these Terms and the actions you take in the app - unless EU or Finnish law requires otherwise; in that case we tell you first, unless the law forbids it.",
+        "confidentiality": "Confidentiality: everyone authorised to process the data on our behalf is bound by confidentiality. We do not look at your content except when you ask us to or the law requires it.",
+        "security": "Security (Art. 32): the data is hosted in the EU (Stockholm, Sweden), encrypted in transit (HTTPS/TLS) and at rest, and separated per account by row-level security. If a personal data breach affects your data, we notify you without undue delay.",
+        "subprocessors": "Sub-processors: you give general authorisation for Supabase (database and authentication, EU), Sentry (error reporting), Resend (account emails) and Vercel (hosting). We bind them by contract to the same data protection obligations. We tell you about any intended addition or replacement in advance by updating this list and the Privacy Policy, so you can object; if you object, you can stop using the service and delete your account.",
+        "assistance": "Assistance: the app lets you access, correct, export and delete the data yourself, which is how we help you answer requests from the people concerned. As far as the nature of the processing allows, we also help you with security, breach notification and impact assessments.",
+        "deletion": "End of the service: when you delete your account, we delete the data (see the Privacy Policy for backups). You can export it at any time before that.",
+        "compliance": "Demonstrating compliance: on request to support@match-ops.com, we make available the information needed to demonstrate that these obligations are met, and allow and contribute to reasonable audits."
+      }
+    },
+    "playerData": {
+      "title": "Player Data: Your Responsibilities",
+      "informFamilies": "Informing players and their families about the data you keep (GDPR Art. 13-14) is your duty, or your club's. Settings → Data has a ready-made notice you can copy and send.",
+      "noSpecialCategories": "Do not enter health data or other special categories of personal data (GDPR Art. 9) - for example injuries, illnesses, diagnoses, religion or ethnic origin - in notes, match reports or any other field. A first name or nickname is enough to identify a player."
     }
   },
   "premium": {
@@ -4173,5 +4207,17 @@
   },
   "soccerField": {
     "ariaLabel": "Soccer field with player positions and tactical drawings"
+  },
+  "privacySettings": {
+    "title": "Privacy",
+    "diagnosticsLabel": "Error reporting and usage statistics",
+    "diagnosticsHint": "Sends error reports to help fix bugs and records when you reach the first onboarding steps. Never your game data. Turning this off stops both for your account.",
+    "familyNoticeTitle": "Notice to players' families",
+    "familyNoticeHint": "A ready-made message you can send to families: what the app stores about players, why, where and for how long, and who to ask.",
+    "familyNoticeText": "Hi! As the coach I use the MatchOps app to run the team. In it I store each player's first name or nickname, shirt number, match events (such as playing time, goals and assists) and short coaching notes. I use this information only to coach the team: line-ups, planning playing time and match statistics. It is kept on my phone and in my coaching account, on a server in the EU (Stockholm, Sweden). It is not shared with anyone else, sold or used for advertising, and I do not record health information. I keep it while I coach the team and delete it when it is no longer needed. You can ask me or the club at any time what has been stored about your child, and I will correct or delete it."
+  },
+  "privacyHints": {
+    "noHealthData": "Do not record health information.",
+    "firstNameEnough": "A first name or nickname is enough."
   }
 }

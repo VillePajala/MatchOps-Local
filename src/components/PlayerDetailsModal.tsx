@@ -211,6 +211,9 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   className={`${inputBaseStyle} ${nameError ? inputErrorStyle : ''}`}
                   required
                 />
+                <p className={fieldHintStyle}>
+                  {t('privacyHints.firstNameEnough', 'A first name or nickname is enough.')}
+                </p>
                 {nameError && (
                   <p className={fieldErrorStyle}>{nameError}</p>
                 )}
@@ -285,6 +288,9 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   rows={3}
                   className={textareaStyle}
                 />
+                <p className={fieldHintStyle}>
+                  {t('privacyHints.noHealthData', 'Do not record health information.')}
+                </p>
               </div>
             </div>
           </div>

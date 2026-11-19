@@ -139,6 +139,13 @@ export interface AppSettings {
   appLayout?: AppLayout;
   /** First-time onboarding milestones (see ONBOARDING_MILESTONES). */
   onboardingMilestones?: OnboardingMilestones;
+  /**
+   * Settings -> Data "Error reporting and usage statistics". UNSET MEANS ON
+   * (the default). false turns off Sentry for this account and stops the
+   * onboarding milestones being written. Read it through
+   * `diagnosticsEnabledFromSettings`, never directly.
+   */
+  diagnosticsEnabled?: boolean;
   /** ISO timestamp of last update - used for conflict resolution in cloud sync */
   updatedAt?: string;
   // Add other settings as needed

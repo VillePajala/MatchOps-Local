@@ -1,108 +1,133 @@
 ---
 title: Usein kysytyt kysymykset
 description: Yleisimmät kysymykset ja vastaukset MatchOpsista
-lastUpdated: "2026-06-23"
+lastUpdated: "2026-11-19"
 ---
-
-Vastauksia yleisimpiin kysymyksiin MatchOpsista.
 
 ## Aloitus
 
 ### Miten asennan sovelluksen?
 
-Avaa sovellus selaimessa. Sovellus kehottaa asentamaan sen - napauta "Asenna" tai "Lisää aloitusnäyttöön". Androidilla voit asentaa myös Play Kaupasta.
+Androidilla asenna MatchOps Google Play Kaupasta. Selaimessa avaa [match-ops.com](https://match-ops.com) ja valitse selaimen "Lisää aloitusnäytölle".
 
-### Tarvitseeko minulla olla tili?
+### Tarvitsenko tilin?
 
-Kyllä. Luot ilmaisen tilin sähköpostilla ja salasanalla, kun avaat MatchOpsin ensimmäistä kertaa. Google Play -versio vaatii tilin. Tilisi pitää datasi synkronoituna laitteiden välillä ja varmuuskopioituna pilveen.
+Kyllä. Tili on ilmainen: sähköposti, salasana ja sähköpostiin tuleva vahvistuskoodi. Tilin ansiosta tietosi säilyvät, vaikka vaihtaisit puhelinta.
 
-### Minne tietoni tallennetaan?
+### Onko MatchOps maksullinen?
 
-Datasi tallennetaan yksityiselle pilvitilillesi (Supabase, EU-alue) ja kopio pidetään välimuistissa laitteellasi. Tämä laitteella oleva kopio tarkoittaa, että sovellus toimii täysin offline-tilassa sisäänkirjautumisen jälkeen - muutokset synkronoituvat kun olet taas verkossa. Yksityisyytesi on suojattu suunnitteluperiaatteena.
+Ei. Tili ja sovellus ovat ilmaisia.
 
-### Onko pilvisynkronointia?
+### Mitä aloituksessa kysytään?
 
-Kyllä - se on tapa, jolla sovellus toimii. Kun olet luonut tilisi, datasi synkronoituu automaattisesti kaikkien laitteidesi välillä ja varmuuskopioituu pilveen. Sovellus toimii silti täysin offline-tilassa; muutokset synkronoituvat kun olet taas verkossa.
+Joukkueen nimi, laji, ikäluokka ja pelimuoto, sitten pelaajien nimet (listan voi liittää kerralla). Lopuksi sovellus kysyy **Milloin seuraava peli?** ja tekee pelille valmiin suunnitelman. Ks. [Pikaopas](/guide/getting-started).
+
+## Perusnäkymä ja Koko näkymä
+
+### Miksi etusivulla ei ole välilehtiä?
+
+Käytössäsi on **Perusnäkymä**, joka näyttää pelipäivän tärkeimmät: seuraavan pelin, joukkueen, ottelut ja tilastot. Välilehdet **Pelit**, **Seura**, **Kilpailut** ja **Tilastot** ovat **Koko näkymässä**.
+
+### Miten vaihdan Koko näkymään?
+
+Perusnäkymän etusivulta **Kaikki toiminnot** → **Vaihda koko näkymään**, tai ratas → **Asetukset** → **Näkymä** → **Koko näkymä**. Mitään ei poisteta, ja takaisin pääset samasta asetuksesta.
+
+### Mitä Koko näkymässä on lisäksi?
+
+Etusivun välilehdet, Ottelusuunnittelu monelle pelille (esim. turnauspäivälle), sarjat ja turnaukset, taustahenkilöt, lämmittely ja säännöt, pelipaikat ja lähtöajat sekä muualla pelattujen pelien lisääminen pelaajatilastoihin. Isossa kellossa on lisäksi **Nollaa vaihtoajastin**.
+
+### Miksi en löydä Nollaa vaihtoajastin -painiketta?
+
+Se on vain Koko näkymässä. Perusnäkymässä iso kello näyttää suunnitelman seuraavan vaihdon ilman erillistä vaihtoajastimen nollausta.
+
+## Suunnitelma ja poissaolot
+
+### Mikä suunnitelma on?
+
+Pelin suunnitelma kertoo, kuka aloittaa missäkin paikassa, kuka on maalissa ja milloin vaihdot tehdään. Sovellus tekee sen, kun luot pelin. Voit vaihtaa pelaajia keskenään, vaihtaa maalivahdin, sekoittaa uudelleen tai muokata tarkemmin. Ks. [Ennen peliä](/guide/before-the-game).
+
+### Miten merkitsen poissaolijat?
+
+Etusivun Seuraava peli -kortista: **Aloita ottelu** (pelipäivänä) tai **Merkitse poissaolijat**. Avautuu **Ketkä ovat paikalla?** - napauta poissaolevat ja tallenna. Ennen aloitusta saman löydät myös ottelun valikosta.
+
+### Muuttuuko suunnitelma kokonaan, kun joku on poissa?
+
+Ei. Tekemäsi muutokset säilyvät, ja vain poissaolijan paikat ja vaihdot täytetään paikalla olevilla. Jos olit siirtänyt pelaajia kentällä käsin, sovellus varoittaa ennen kuin kokoonpano tehdään uudelleen.
+
+### Lasketaanko peli poissaolijalle pelatuksi?
+
+Ei. Poissaolija ei ole ottelun kokoonpanossa, joten peli ei näy hänen tilastoissaan.
+
+### Miksi en voi enää merkitä poissaoloja?
+
+Poissaoloja voi merkitä vain ennen ottelun alkua. Kun kello on käynnistetty tai otteluun on kirjattu tapahtumia, muuta kokoonpanoa kohdasta **Ottelun tiedot**.
+
+### Miten jaan suunnitelman?
+
+Seuraava peli -kortin **Jaa** lähettää suunnitelman tekstinä esimerkiksi joukkueen viestiketjuun.
+
+## Ottelu
+
+### Miten kirjaan maalin nopeasti?
+
+Isossa kellossa **Maali meille**. Tulos muuttuu heti; valitse sitten **Kuka teki?** ja syöttäjä, tai paina **Ohita**.
+
+### Voinko muokata pelin tietoja jälkikäteen?
+
+Kyllä. Avaa peli (**Kaikki ottelut** tai **Tallennetut pelit**) ja valitse ottelun valikosta **Viimeistele ottelu**. Siellä voit muokata maaleja, kokoonpanoa, pöytäkirjaa ja otteluraporttia.
+
+### Mitä eroa on pöytäkirjalla ja otteluraportilla?
+
+**Pöytäkirja** on ottelun tiedot (kokoonpano, tulos, maalit) kopioitavassa muodossa. **Otteluraportti** on oma tekstisi ottelusta; **Jaa otteluraportti** lähettää sen tuloksen, maalintekijöiden ja kokoonpanon kanssa.
 
 ## Pilvi ja synkronointi
 
 ### Voinko käyttää sovellusta usealla laitteella?
 
-Kyllä. Kirjaudu sisään tililläsi jokaisella laitteella, niin datasi synkronoituu automaattisesti niiden kaikkien välillä.
+Kyllä. Kirjaudu samalla tilillä, niin tiedot synkronoituvat.
 
-### Mitä tapahtuu, jos olen offline-tilassa pilvitilin kanssa?
+### Toimiiko sovellus ilman verkkoa?
 
-Sovellus toimii normaalisti! Kaikki muutokset tallentuvat laitteellesi välittömästi. Kun olet taas verkossa, kaikki synkronoituu automaattisesti. Et menetä mitään dataa.
+Kyllä. Muutokset tallentuvat puhelimeen heti ja synkronoituvat, kun yhteys palaa. Koko ottelun voi seurata ilman verkkoa.
 
-<Callout type="tip">
-Voit seurata kokonaisen pelin ilman internetiä. Data synkronoituu, kun yhdistät uudelleen.
-</Callout>
+### Käytin sovellusta ennen tilin luomista. Saanko tiedot tililleni?
 
-### Käytin sovellusta ennen tilin luomista. Voinko säilyttää sen datan?
-
-Kyllä. Jos sinulla on olemassa olevaa dataa MatchOpsin käytöstä ilman tiliä, avaa Asetukset ja etsi pilvi/synkronointi-vaihtoehto ladataksesi sen tilillesi. Siitä eteenpäin se synkronoituu laitteidesi välillä.
+Kyllä. **Asetukset** → **Tili** → **Tuo paikalliset tiedot pilveen**.
 
 ### Onko datani yksityinen?
 
-Kyllä:
-
-- Synkronoitu datasi tallennetaan Supabaseen (EU-alue)
-- Suojattu tilitunnuksillasi
-- Rivitason suojaus varmistaa, että vain sinä pääset dataasi
-- Ei jakamista kolmansille osapuolille
-- Voit poistaa tilisi ja kaiken datan milloin tahansa
+Kyllä. Tiedot tallennetaan Supabaseen EU-alueelle, ja vain sinä pääset niihin. Tietoja ei jaeta kolmansille osapuolille. Voit poistaa tilisi ja kaikki tiedot milloin tahansa.
 
 ## Tietojen hallinta
 
 ### Miten varmuuskopioin tietoni?
 
-Avaa valikko (☰) ja valitse **Varmuuskopiointi**. Käytä Vie-toimintoa luodaksesi JSON-tiedoston kaikista tiedoistasi.
+Ratas → **Varmuuskopiointi ja palautus**, tai **Asetukset** → **Tiedot** → **Varmuuskopioi kaikki tiedot**.
 
-<Callout type="info">
-Datasi synkronoituu automaattisesti pilveen. Manuaaliset varmuuskopiot ovat silti suositeltavia lisäsuojaksi.
-</Callout>
+### Mitä tapahtuu, jos kadotan puhelimeni?
 
-### Mitä tapahtuu, jos kadotan puhelimeni tai se hajoaa?
-
-Kirjaudu sisään uudella laitteella - kaikki datasi on siellä. (Jos käytät vanhaa kokoonpanoa ilman tiliä, tuo sen sijaan viimeisin varmuuskopiosi; ilman varmuuskopioita tiedot menetetään laitteen mukana.)
-
-<Callout type="tip">
-Tee varmuuskopio säännöllisesti, erityisesti tärkeiden otteluiden jälkeen tai kauden lopussa.
-</Callout>
-
-### Voinko muokata pelitietoja jälkikäteen?
-
-Kyllä. Voit muokata, lisätä tai poistaa maalitapahtumia ja muuttaa ottelun tietoja. Avaa peli historiasta ja tee korjaukset.
-
-## Ominaisuudet
+Kirjaudu uudella laitteella samalla tilillä - tiedot ovat siellä.
 
 ### Voinko hallita useita joukkueita?
 
-Kyllä. Voit luoda ja hallita useita joukkueita (esim. P12, P14) samassa sovelluksessa ja vaihtaa niiden välillä helposti.
+Kyllä, Koko näkymässä (**Seura** → **Joukkueet**).
 
-### Voinko jakaa tilastoja muille valmentajille?
+### Voinko jakaa tilastoja?
 
-Kyllä. Voit viedä tilastoja Excel- tai JSON-muodossa ja jakaa tiedostot muille valmentajille sähköpostilla tai viestipalveluissa.
+Kyllä. Vie tilastot Excel-tiedostona ja lähetä tiedosto. Ottelun tiedot voi jakaa myös **Pöytäkirjalla** ja **Jaa otteluraportti** -toiminnolla.
 
 ## Tekniset kysymykset
 
-### Kuinka paljon tallennustilaa sovellus käyttää?
+### Miten sovellus päivittyy?
 
-Sovellus käyttää laitteesi vapaata tallennustilaa. Tyypillinen käyttö yli 100 pelillä ja täysillä tilastoilla vie alle 50 Mt.
+Sovellus päivittyy automaattisesti, kun avaat sen verkossa. Uudesta versiosta tulee ilmoitus.
 
-### Miten päivitän sovelluksen?
+### Paljonko tilaa sovellus vie?
 
-Sovellus päivittyy automaattisesti, kun avaat sen ja sinulla on internetyhteys. Päivityksen jälkeen sovellus ilmoittaa uudesta versiosta ja pyytää lataamaan sivun uudelleen.
+Yli 100 peliä tilastoineen vie tyypillisesti alle 50 Mt.
 
-### Toimiiko sovellus offline-tilassa?
+## Lisäapua
 
-Kyllä! Ensimmäisen latauksen jälkeen sovellus toimii täysin ilman internetyhteyttä. Voit seurata pelejä ilman verkkoyhteyttä, ja datasi synkronoituu kun yhdistät uudelleen.
-
-## Tarvitsetko lisäapua?
-
-Jos et löydä vastausta kysymykseesi:
-
-- Tarkista [Vianetsintä](/guide/troubleshooting)-opas yleisiin ongelmiin
-- Tutustu [Vinkit ja parhaat käytännöt](/guide/tips-best-practices) -osioon
-- Lue [Datan hallinta](/guide/data-management) yksityiskohtaiseen tietoon tallennuksesta, varmuuskopioinnista ja synkronoinnista
-- Ota yhteyttä: hello@match-ops.com
+- [Vianetsintä](/guide/troubleshooting)
+- [Vinkit ja parhaat käytännöt](/guide/tips-best-practices)
+- Sähköposti: hello@match-ops.com

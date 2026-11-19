@@ -2519,11 +2519,11 @@
   },
   "privacyPolicy": {
     "title": "MatchOpsin tietosuojakäytäntö",
-    "version": "Käytännön versio: 2026-09",
-    "lastUpdated": "Päivitetty: syyskuu 2026",
+    "version": "Käytännön versio: 2026-11",
+    "lastUpdated": "Päivitetty: marraskuu 2026",
     "dataController": {
       "title": "Rekisterinpitäjä",
-      "content": "MatchOpsin kehittää ja ylläpitää Ville Pajala, Suomi. Rekisterinpitäjänä olemme vastuussa henkilötietojesi käsittelystä tässä käytännössä kuvatulla tavalla."
+      "content": "MatchOpsin kehittää ja ylläpitää Ville Pajala, Suomi. Olemme rekisterinpitäjä tilisi tiedoille (sähköpostiosoite, asetukset, suostumustiedot) sekä alla kuvatuille virheraporteille ja käyttötilastoille. Muista henkilöistä (pelaajat, henkilöstö) syöttämiesi henkilötietojen rekisterinpitäjä olet sinä - tai seura, jonka puolesta toimit - ja me olemme henkilötietojen käsittelijäsi (ks. käyttöehtojen kohta Henkilötietojen käsittely)."
     },
     "overview": {
       "title": "Yleiskatsaus",
@@ -2546,45 +2546,48 @@
       "cloudDataTitle": "Pilvisynkronointi",
       "cloudDataIntro": "Tietosi tallennetaan turvallisille pilvipalvelimillemme:",
       "cloudDataItems": {
-        "syncedData": "Kopioidaan turvallisille EU-palvelimille (Supabase, EU)",
+        "syncedData": "Tallennetaan Supabasen palvelimille EU:ssa (Tukholma, Ruotsi)",
         "encryption": "Salataan siirron aikana (HTTPS/TLS) ja tallennettuna palvelimella",
-        "rowLevelSecurity": "Suojattu rivitason suojauksella (vain sinä pääset tietoihisi)",
+        "rowLevelSecurity": "Suojattu rivitason suojauksella: sovelluksen kautta jokainen tili pääsee vain omiin tietoihinsa",
         "multiDevice": "Synkronoitu laitteidesi välillä",
         "dataOwnership": "Säilytetään täydessä omistuksessasi"
       },
-      "cloudDataNote": "Pilvitiedot tallennetaan turvallisiin EU-datakeskuksiin. Voit poistaa pilvitietosi milloin tahansa Asetuksista.",
+      "cloudDataNote": "Pilvitiedot tallennetaan EU:ssa sijaitseviin datakeskuksiin (Tukholma, Ruotsi). Voit poistaa pilvitietosi tai koko tilisi milloin tahansa kohdassa Asetukset → Tiedot.",
       "dataRetentionTitle": "Tietojen säilytys",
-      "dataRetentionContent": "Pilvitiedot säilytetään niin kauan kuin tilisi on aktiivinen. Kun poistat pilvitietosi tai tilisi, tiedot poistetaan pysyvästi kohtuullisen ajan kuluessa. Jos tilisi on käyttämättömänä pitkän aikaa, saatamme poistaa pilvitiedot ennakkoilmoituksella. Paikalliset tiedot säilyvät laitteellasi kunnes tyhjennät ne. Suostumustiedot säilytetään tilin poistamisen jälkeenkin GDPR-vaatimustenmukaisuutta varten."
+      "dataRetentionContent": "Pilvitietosi säilytetään niin kauan kuin tilisi on olemassa. Kun poistat pilvitietosi tai tilisi (Asetukset → Tiedot), ne poistetaan käytössä olevasta tietokannasta heti; mahdollinen kopio palveluntarjoajamme varmuuskopioissa poistuu, kun varmuuskopio vanhenee (enintään 30 päivää). Tilin poistaminen poistaa myös suostumustietosi. Jos tiliä ei käytetä pitkään aikaan, voimme poistaa sen pilvitiedot ilmoitettuamme siitä ensin. Laitteellasi olevat tiedot säilyvät siellä, kunnes poistat ne tai tyhjennät sovelluksen tallennustilan. Sentry poistaa virheraportit automaattisesti viimeistään 90 päivän kuluttua.",
+      "operatorAccess": "Kuka näkee tietosi: sinä. Ylläpitäjänä meillä on teknisesti pääkäyttäjän pääsy tietokantaan, mutta emme katso sisältöäsi. Käsittelemme sitä vain, kun pyydät (esimerkiksi ilmoittamasi ongelman selvittämiseksi) tai kun laki sitä edellyttää."
     },
     "legalBasis": {
       "title": "Tietojenkäsittelyn oikeusperuste (GDPR 6 art.)",
       "intro": "Käsittelemme henkilötietoja seuraavilla oikeusperusteilla:",
-      "contract": "Sopimus (6(1)(b) art.): Pilvisynkronointipalvelun toteuttamiseksi välttämätön käsittely",
-      "consent": "Suostumus (6(1)(a) art.): Käyttöehtojen ja tietosuojakäytännön hyväksyminen pilvitilan käyttäjille. Suostumustiedot tallennetaan vaatimustenmukaisuuden osoittamiseksi",
-      "legitimateInterest": "Oikeutettu etu (6(1)(f) art.): Virheraportit Sentryn kautta sovelluksen laadun ylläpitämiseksi ja virheiden korjaamiseksi. Käsittely koskee vähäisiä anonymisoituja tietoja eikä sisällä profilointia tai seurantaa Emme tee automaattista päätöksentekoa emmekä profilointia."
+      "contract": "Sopimus (6(1)(b) art.): tilaamasi palvelun tarjoaminen - tilisi ja sähköpostiosoitteesi, tietojesi tallennus ja synkronointi sekä palvelun tarvitsemat tilisähköpostit (rekisteröitymisen vahvistus, salasanan palautus).",
+      "consent": "Suostumus (6(1)(a) art.): vain markkinointiviesteihin (ks. Markkinointiviestit) ja oman tekoälypalvelusi yhdistämiseen (ks. Äänimuistiinpanot ja valinnainen tekoäly). Voit peruuttaa suostumuksen milloin tahansa; peruutus ei vaikuta aiempaan käsittelyyn.",
+      "legitimateInterest": "Oikeutettu etu (6(1)(f) art.): Sentryn virheraportit virheiden löytämiseksi ja korjaamiseksi sekä käyttöönoton aikaleimat uusien valmentajien käyttöönoton parantamiseksi - molemmat voi kytkeä pois kohdassa Asetukset → Tiedot → Virheraportit ja käyttötilastot. Myös tieto siitä, että olet hyväksynyt käyttöehdot ja tämän tietosuojakäytännön, säilytetään oikeutetun etumme perusteella, jotta voimme osoittaa sen (osoitusvelvollisuus, 5(2) art.). Mikään tästä ei sisällä profilointia tai seurantaa, emmekä tee sinusta automaattisia päätöksiä."
     },
     "dataWeCollect": {
       "title": "Tiedot, joita saatamme kerätä",
-      "errorReportingTitle": "Virheraportit",
-      "errorReportingIntro": "Kun sovelluksessa tapahtuu virhe, saatamme kerätä:",
+      "errorReportingTitle": "Virheraportit ja käyttötilastot",
+      "errorReportingIntro": "Ellet kytke sitä pois, Sentry vastaanottaa sovelluksesta seuraavat tiedot:",
       "errorReportingItems": {
-        "errorType": "Virhetyyppi ja pinojälki",
-        "deviceType": "Laitetyyppi ja käyttöjärjestelmäversio",
+        "errorType": "Virheen sattuessa: virhetyyppi ja pinojälki",
+        "deviceType": "Laitetyyppi, selain ja käyttöjärjestelmän versio",
         "appVersion": "Sovelluksen versio",
-        "sessionInfo": "Anonymisoitu istuntotieto"
+        "sessionInfo": "Pseudonyymi istuntotunniste, jota ei yhdistetä tiliisi tai sähköpostiosoitteeseesi",
+        "replay": "Virheen sattuessa: tallenne näytöstä virhettä edeltäviltä hetkiltä, jossa kaikki teksti ja kuvat on peitetty",
+        "performance": "Suorituskykymittaukset otoksesta sivulatauksia ja näkymävaihtoja (noin joka kymmenes): ajoitukset ja avattu sovelluksen osoite"
       },
-      "errorReportingNote": "Tämä auttaa meitä korjaamaan virheitä ja parantamaan sovellusta. Virheraportit eivät sisällä pelitietojasi tai pelaajatietoja. Ne käsittelee Sentry.io (tietoja voidaan käsitellä Yhdysvalloissa vakiosopimuslausekkeiden nojalla).",
+      "errorReportingNote": "Tiedot ovat pseudonyymejä, eivät anonyymejä. Käytämme niitä vain virheiden löytämiseen ja korjaamiseen sekä sovelluksen nopeuden ylläpitoon. Raportit on rakennettu jättämään pois pelitietosi ja pelaajatiedot: teksti ja kuvat peitetään tallenteissa, ja avaimet sekä kirjautumistiedot poistetaan ennen lähetystä. Sentry käsittelee tiedot Yhdysvalloissa vakiosopimuslausekkeiden nojalla. Voit kytkeä tämän pois milloin tahansa kohdassa Asetukset → Tiedot → Virheraportit ja käyttötilastot; sen jälkeen sovellus ei lähetä Sentrylle mitään tilisi osalta.",
       "licenseValidationTitle": "Play Kaupan lisenssivahvistus",
       "licenseValidationContent": "Jos maksullisia ominaisuuksia otetaan käyttöön, Google Play käsittelee kaikki maksut. Vahvistamme lisenssitilan Play Kaupan API:n kautta, mutta emme saa maksutietojasi.",
-      "consentTrackingTitle": "Suostumustiedot (Pilvisynkronointi)",
-      "consentTrackingIntro": "Kun hyväksyt käyttöehtomme ja tietosuojakäytäntömme pilvisynkronoinnissa, tallennamme:",
+      "consentTrackingTitle": "Suostumustiedot",
+      "consentTrackingIntro": "Kun hyväksyt käyttöehdot ja tämän tietosuojakäytännön tai annat tai peruutat markkinointisuostumuksen, tallennamme:",
       "consentTrackingItems": {
-        "timestamp": "Suostumuksen päivämäärä ja aika",
-        "policyVersion": "Hyväksytyn käytännön versio",
-        "ipAddress": "IP-osoitteesi (oikeudellista todentamista varten)",
-        "userAgent": "Selain- ja laitetietosi"
+        "timestamp": "Päivämäärä ja kellonaika",
+        "policyVersion": "Voimassa ollut käytännön versio",
+        "userAgent": "Selain- ja laitetietosi",
+        "consentType": "Mitä hyväksyit, annoit tai peruutit (käyttöehdot ja tietosuoja tai markkinointiviestit)"
       },
-      "consentTrackingNote": "Nämä tiedot vaaditaan GDPR-vaatimustenmukaisuuteen todisteeksi pätevän suostumuksen antamisesta (GDPR 7(1) art.). Suostumustiedot säilytetään tilin poistamisen jälkeenkin oikeudellisista syistä.",
+      "consentTrackingNote": "Säilytämme näitä tietoja voidaksemme osoittaa hyväksyntäsi ja markkinointivalintasi (GDPR 5(2) ja 7(1) art.) niin kauan kuin tilisi on olemassa. Ne poistetaan tilisi mukana ja sisältyvät tietojesi vientiin.",
       "personnelDataTitle": "Henkilöstötiedot",
       "personnelDataIntro": "Kun lisäät joukkueen henkilöstöä (valmentajat, avustajat, lääkintähenkilöstö), voit valinnaisesti syöttää:",
       "personnelDataItems": {
@@ -2593,63 +2596,68 @@
         "phone": "Puhelinnumero (valinnainen)",
         "certifications": "Pätevyydet (valinnainen)"
       },
-      "personnelDataNote": "Nämä tiedot tallennetaan laitteellesi ja synkronoidaan turvalliseen EU-pohjaiseen tietokantaamme, johon vain sinulla on pääsy. Henkilöstön yhteystiedot (sähköposti, puhelin) katsotaan GDPR:n mukaisiksi henkilötiedoiksi (PII). Olet vastuussa siitä, että sinulla on asianmukaiset perusteet näiden yhteystietojen tallentamiseen. Kaikista muista henkilöistä (kuten pelaajista ja henkilöstöstä) syöttämistäsi henkilötiedoista toimit rekisterinpitäjänä ja olet yksin vastuussa siitä, että sinulla on laillinen peruste ja tarvittava suostumus niiden tallentamiseen."
+      "personnelDataNote": "Nämä tiedot tallennetaan laitteellesi ja synkronoidaan pilvitilillesi EU:ssa (Tukholma, Ruotsi). Henkilöstön yhteystiedot (sähköposti, puhelin) ovat GDPR:n mukaisia henkilötietoja. Muista henkilöistä (kuten pelaajista ja henkilöstöstä) syöttämiesi henkilötietojen rekisterinpitäjä olet sinä - tai seura, jonka puolesta toimit - ja vastaat siitä, että tallentamiselle on oikeusperuste ja että asianomaisia informoidaan; me käsittelemme niitä vain puolestasi (ks. käyttöehtojen kohta Henkilötietojen käsittely).",
+      "onboardingTitle": "Käyttöönoton eteneminen ja näkymä",
+      "onboardingContent": "Ellet kytke sitä pois, tallennamme tilisi asetuksiin muutaman aikaleiman käyttöönoton etenemisestä (tili luotu, aloitusohjattu asetus valmis tai ohitettu, ensimmäinen suunnitelma nähty, ensimmäinen ja toinen ottelu viimeistelty) sekä valitsemasi näkymän (Perusnäkymä tai Koko näkymä). Käytämme aikaleimoja vain uusien valmentajien käyttöönoton parantamiseen. Ne eivät sisällä pelitietojasi, niitä ei jaeta eikä myydä kenellekään, ja ne poistetaan tilisi mukana. Voit vastustaa käsittelyä kytkemällä pois kohdan Asetukset → Tiedot → Virheraportit ja käyttötilastot: sen jälkeen uusia aikaleimoja ei tallenneta. Näkymä on sovelluksen asetus ja säilyy aina."
     },
     "dataWeDoNotCollect": {
-      "title": "Tiedot, joita EMME kerää",
+      "title": "Mitä emme tee tiedoillasi",
       "items": {
-        "gameContent": "Pelisisältöä, tuloksia tai tilastoja (tallennettu vain paikallisesti tai yksityiselle pilvitilillesi)",
-        "location": "Sijaintitiedot. Mitään tietoa siitä missä sinä tai laitteesi olette ei lähetetä meille eikä tallenneta meille. Paikkahaku ottaa yhteyttä karttapalveluun puolestasi silloin kun käytät sitä - katso Kolmannen osapuolen palvelut.",
-        "photos": "Valokuvia tai mediaa",
-        "deviceIds": "Laitetunnisteita seurantaa tai mainontaa varten",
-        "playerNames": "Pelaajien nimiä tai henkilötietoja (ne tallentaa paikallisesti sinä, tai yksityiselle pilvitilillesi)"
+        "gameContent": "Ottelusi, tulokset ja tilastot: tallennamme ne vain sovelluksen ja sen synkronoinnin tarjoamiseksi. Emme koskaan käytä, analysoi, jaa tai myy niitä.",
+        "location": "Laitteesi sijainti: sovellus ei koskaan lue sitä (ei GPS:ää). Tallentamasi paikat - ottelupaikat ja joukkueen lähtöpaikka osoitteineen ja karttamerkintöineen - tallennetaan osana tietojasi matka- ja lähtöaikojen näyttämiseksi. Paikkahaku lähettää kirjoittamasi tekstin Photonille (ks. Kolmannen osapuolen palvelut ja vastaanottajat).",
+        "photos": "Valokuvat tai media: sovellus ei kerää niitä.",
+        "deviceIds": "Seuranta tai mainonta: sovelluksessa ei ole mainoksia eikä mainonta- tai analytiikkaseurantaa, eikä se käytä laitetunnisteita niihin.",
+        "playerNames": "Pelaajien nimet, muistiinpanot ja muut henkilöitä koskevat tiedot: sama - tallennetaan vain synkronoinnin tarjoamiseksi, eikä niitä koskaan käytetä, analysoida, jaeta tai myydä."
       },
-      "personnelNote": "Huomautus: Jos syötät henkilöstön yhteystietoja (sähköposti, puhelin), ne tallennetaan valintasi mukaan ja sinun hallinnassasi — katso Henkilöstötiedot-osio tietosuojakäytännöstämme."
+      "personnelNote": "Huomautus: syöttämäsi henkilöstön yhteystiedot (sähköposti, puhelin) tallennetaan valintasi mukaan ja sinun hallinnassasi - ks. Henkilöstötiedot yllä."
     },
     "thirdPartyServices": {
-      "title": "Kolmannen osapuolen palvelut (alikäsittelijät)",
-      "intro": "Käytämme seuraavia kolmannen osapuolen palveluita MatchOpsin toimintaan. Tietojenkäsittelysopimukset ovat voimassa jokaisen palveluntarjoajan kanssa.",
+      "title": "Kolmannen osapuolen palvelut ja vastaanottajat",
+      "intro": "Supabase, Sentry, Resend ja Vercel ovat alikäsittelijöitämme, ja jokaisen kanssa on voimassa tietojenkäsittelysopimus. Google Play, Photon, palloliitto.fi ja yhdistämäsi tekoälypalvelu eivät ole alikäsittelijöitämme: ne vastaanottavat tietoja suoraan laitteeltasi vain käyttäessäsi niitä, omien ehtojensa mukaisesti.",
       "googlePlay": "Google Play -kauppa",
       "googlePlayDesc": "Sovelluksen jakelu ja maksut (Googlen infrastruktuuri).",
       "sentry": "Sentry",
-      "sentryDesc": "Virheraportit ja kaatumisanalyysi (Yhdysvallat, vakiosopimuslausekkeet).",
+      "sentryDesc": "Virheraportit, virhetallenteet ja suorituskykymittaukset, ellet kytke niitä pois (Yhdysvallat, vakiosopimuslausekkeet).",
       "supabase": "Supabase",
-      "supabaseDesc": "Pilvitietokanta ja todennus (EU, Frankfurt).",
+      "supabaseDesc": "Pilvitietokanta ja todennus, EU (Tukholma, Ruotsi).",
       "vercel": "Vercel",
-      "vercelDesc": "PWA-verkkopalvelun isännöinti (globaali reunaverkko, vakiosopimuslausekkeet).",
+      "vercelDesc": "Sovelluksen ja verkkosivuston isännöinti. Kuten mikä tahansa verkkopalvelin, se käsittelee IP-osoitettasi pyyntölokeissaan (globaali reunaverkko, vakiosopimuslausekkeet).",
       "googlePlayLink": "Googlen tietosuojakäytäntö",
       "sentryLink": "Sentryn tietosuojakäytäntö",
       "supabaseLink": "Supabasen tietosuojakäytäntö",
       "vercelLink": "Vercelin tietosuojakäytäntö",
       "photon": "Photon (Komoot)",
-      "photonDesc": "Paikkahaku ottelun sijaintikentässä, kun sitä käytetään (EU, Saksa).",
+      "photonDesc": "Paikkahaku ottelupaikan ja lähtöpaikan (Asetukset) kentissä, kun sitä käytetään. Se vastaanottaa kirjoittamasi tekstin, ei sijaintiasi (EU, Saksa).",
       "photonLink": "Komootin tietosuojakäytäntö",
       "openai": "OpenAI tai yhdistämäsi tekoälypalvelu",
       "openaiDesc": "Vain jos yhdistät oman tilisi: valitsemasi äänimuistiinpanot ja tekstit lähetetään palveluun omalla avaimellasi. Meillä ei ole avainta emmekä näe sisältöä (ks. Äänimuistiinpanot ja tekoäly).",
       "openaiLink": "OpenAI:n tietosuojakäytäntö",
       "palloliitto": "palloliitto.fi (Suomen Palloliitto)",
       "palloliittoDesc": "Sääntökirjan PDF haetaan heidän sivustoltaan, kun avaat säännön; he näkevät pyynnön kuten minkä tahansa sivustokäynnin (IP-osoite), eivät muuta.",
-      "palloliittoLink": "Palloliiton tietosuojaseloste"
+      "palloliittoLink": "Palloliiton tietosuojaseloste",
+      "resend": "Resend",
+      "resendDesc": "Lähettää tilisähköpostit (rekisteröitymisen vahvistus, salasanan palautus) osoitteesta noreply@auth.match-ops.com sekä, jos annat suostumuksen, markkinointiviestit. Se vastaanottaa sähköpostiosoitteesi ja viestin (tietoja voidaan käsitellä Yhdysvalloissa vakiosopimuslausekkeiden nojalla).",
+      "resendLink": "Resendin tietosuojakäytäntö"
     },
     "yourRights": {
       "title": "Oikeutesi (GDPR)",
       "intro": "GDPR:n ja sovellettavan tietosuojalainsäädännön mukaan sinulla on oikeus:",
-      "access": "Pääsy (15 art.): Nähdä ja viedä kaikki tietosi milloin tahansa",
-      "rectification": "Oikaisu (16 art.): Korjata virheelliset tiedot suoraan sovelluksessa",
-      "erasure": "Poistaminen (17 art.): Poistaa paikalliset tai pilvitietosi milloin tahansa",
-      "portability": "Siirrettävyys (20 art.): Viedä tietosi standardissa JSON-muodossa",
-      "restriction": "Rajoittaminen (art. 18): Pyydä meitä rajoittamaan tietojesi käsittelyä, tai poista pilvitietosi milloin tahansa asetuksista.",
-      "objection": "Vastustaminen (art. 21): Voit poistaa valinnaisen virheraportoinnin käytöstä asetuksista; pysäyttääksesi kaiken pilvikäsittelyn poista tilisi.",
-      "withdrawConsent": "Suostumuksen peruuttaminen: Poista pilvitilisi peruuttaaksesi suostumuksen pilvikäsittelyyn",
-      "deleteLocal": "Paikallisille tiedoille: Käytä Asetukset → Tiedot → Tietojesi oikeudet",
-      "deleteCloud": "Pilvitiedoille: Käytä Asetukset → Tiedot → Tietojesi oikeudet",
-      "contactUs": "Kaikki tiedonhallintavaihtoehdot löytyvät suoraan sovelluksesta Asetukset → Tiedot-välilehdeltä. Sähköpostipyyntöä ei tarvita.",
+      "access": "Pääsy (15 art.): vie kaikki tietosi milloin tahansa kohdassa Asetukset → Tiedot → Varmuuskopiointi ja vienti - ottelut, pelaajat, henkilöstö, asetukset, tilisi sähköpostiosoite ja suostumustietosi",
+      "rectification": "Oikaisu (16 art.): korjaa tietosi suoraan sovelluksessa",
+      "erasure": "Poistaminen (17 art.): poista laitteesi tiedot, pilvitietosi tai koko tilisi milloin tahansa kohdassa Asetukset → Tiedot",
+      "portability": "Siirrettävyys (20 art.): vienti on standardi JSON-tiedosto, jonka voit viedä muualle",
+      "restriction": "Rajoittaminen (18 art.): pyydä meitä rajoittamaan tietojesi käsittelyä sähköpostilla osoitteeseen support@match-ops.com",
+      "objection": "Vastustaminen (21 art.): kytke pois Asetukset → Tiedot → Virheraportit ja käyttötilastot - virheraportit ja käyttöönoton aikaleimat loppuvat silloin tilisi osalta. Muissa vastustamisasioissa lähetä sähköpostia osoitteeseen support@match-ops.com",
+      "withdrawConsent": "Suostumuksen peruuttaminen (7(3) art.): peruuta markkinointisuostumus kohdassa Asetukset → Tili → Sähköpostiasetukset ja irrota tekoälypalvelu asetuksista milloin tahansa",
+      "deleteLocal": "Tämän laitteen tiedot: Asetukset → Tiedot",
+      "deleteCloud": "Pilvitiedot ja tilisi: Asetukset → Tiedot",
+      "contactUs": "Useimpia oikeuksia voit käyttää suoraan sovelluksessa kohdassa Asetukset → Tiedot. Muissa asioissa lähetä sähköpostia osoitteeseen support@match-ops.com.",
       "supervisoryAuthority": "Jos uskot tietosuojaoikeuksiasi loukatun, sinulla on oikeus tehdä valitus valvontaviranomaiselle. Suomessa: Tietosuojavaltuutetun toimisto",
       "supervisoryAuthorityUrl": "https://tietosuoja.fi"
     },
     "childrensPrivacy": {
       "title": "Lasten yksityisyys",
-      "content": "MatchOps on suunniteltu aikuisille valmentajille, ei lasten käyttöön. Sovellus ei tietoisesti kerää alle 16-vuotiaiden henkilötietoja. Pelaajien nimet ja tilastot syöttää valmentaja (sovelluksen käyttäjä), ei pelaajat itse. Nämä tiedot tallennetaan paikallisesti valmentajan laitteelle tai hänen yksityiselle pilvitililleen, eikä niitä koskaan lähetetä meille tai kolmansille osapuolille (paitsi kun pilvisynkronointi on käytössä, jolloin ne tallennetaan turvallisesti valmentajan yksityiselle tilille). Ikävahvistusta ei vaadita, koska sovellus kerää tietoja valmentajilta heidän pelaajistaan, ei suoraan lapsilta."
+      "content": "MatchOps on aikuisille valmentajille tarkoitettu työkalu, ei lasten käyttöön. Pelaajat eivät käytä sovellusta: valmentaja syöttää pelaajien nimet, tilastot ja muistiinpanot. Nämä tiedot tallennetaan valmentajan laitteelle ja valmentajan pilvitilille EU:ssa vain palvelun tarjoamiseksi, emmekä koskaan lähetä niitä kolmansille osapuolille yllä lueteltuja alikäsittelijöitämme lukuun ottamatta - paitsi kun valmentaja yhdistää oman tekoälypalvelunsa ja päättää lähettää sinne muistiinpanoja tai tallenteita (ks. Äänimuistiinpanot ja valinnainen tekoäly). Pelaajatietojen rekisterinpitäjä on valmentaja tai seura, jonka puolesta hän toimii, ja hän vastaa pelaajien perheiden informoinnista; kohdassa Asetukset → Tiedot on siihen valmis tiedote."
     },
     "dataSecurity": {
       "title": "Tietoturva",
@@ -2660,15 +2668,15 @@
         "noTransmission": "Laitteella oleva kopio siirretään vain synkronoitaessa yksityiselle pilvitilillesi salatun yhteyden kautta"
       },
       "localNote": "Laitteesi suojaus on ensisijainen suoja paikallisille tiedoillesi. Suosittelemme vahvan näytön lukituksen käyttöä.",
-      "cloudIntro": "Pilvitilassa tietosi on suojattu:",
+      "cloudIntro": "Pilvitililläsi tietosi on suojattu:",
       "cloudItems": {
         "tlsEncryption": "Salattu siirron aikana (HTTPS/TLS)",
-        "atRestEncryption": "Salattu tallennettuna turvallisissa EU-palvelimissa (Supabase, Frankfurt)",
+        "atRestEncryption": "Salaus tallennettuna Supabasen palvelimilla EU:ssa (Tukholma, Ruotsi)",
         "rowLevelSecurity": "Rivitason suojaus varmistaa, että pääset vain omiin tietoihisi",
         "soc2": "Supabasen turvainfrastruktuuri ja SOC 2 -vaatimustenmukaisuus"
       },
       "backupTitle": "Varmuuskopiotiedostojen turvallisuus",
-      "backupContent": "Kun viet tietojasi, varmuuskopiotiedosto sisältää kaikki tietosi mukaan lukien mahdolliset henkilöstön yhteystiedot. Varmuuskopiotiedostot eivät ole salattuja ja ne tulee säilyttää turvallisesti. Suosittelemme varmuuskopiotiedostojen tallentamista turvalliseen paikkaan ja poistamista tuonnin jälkeen."
+      "backupContent": "Kun viet tietosi, tiedosto sisältää ne kaikki, myös henkilöstön yhteystiedot, tilisi sähköpostiosoitteen ja suostumustietosi. Vientitiedostot eivät ole salattuja, joten säilytä ne turvallisessa paikassa ja poista tarpeettomat kopiot."
     },
     "changes": {
       "title": "Muutokset tähän käytäntöön",
@@ -2676,7 +2684,7 @@
     },
     "contact": {
       "title": "Yhteystiedot",
-      "intro": "Useimmat tietopyynnöt voit hoitaa suoraan sovelluksessa (Asetukset → Tiedot-välilehti) ilman yhteydenottoa. Muihin tietosuojakysymyksiin tai huolenaiheisiin:",
+      "intro": "Useimmat tietopyynnöt voit hoitaa suoraan sovelluksessa (Asetukset → Tiedot). Muissa asioissa lähetä meille sähköpostia:",
       "email": "Sähköposti"
     },
     "footer": "Tämä tietosuojakäytäntö koskee Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta.",
@@ -2698,6 +2706,10 @@
         "pseudonymized": "Ennen luonnostelupyyntöjä pelaajien nimet korvataan laitteellasi koodeilla (oletuksena päällä). Litterointipyynnöt sisältävät väistämättä puhumasi sanat.",
         "disconnect": "Voit irrottaa palvelun ja poistaa kaikki tallenteet milloin tahansa asetuksista. Avain säilytetään vain laitteellasi."
       }
+    },
+    "marketing": {
+      "title": "Markkinointiviestit",
+      "content": "Vain jos annat suostumuksen, lähetämme tilisi sähköpostiosoitteeseen silloin tällöin viestejä uusista ominaisuuksista ja vinkeistä. Oikeusperuste on suostumuksesi (6(1)(a) art.). Voit peruuttaa sen milloin tahansa kohdassa Asetukset → Tili → Sähköpostiasetukset; jokainen suostumus ja peruutus tallennetaan (ks. Suostumustiedot). Viestit lähetetään Resendin kautta. Ilman suostumustasi lähetämme vain palvelun tarvitsemat tilisähköpostit (rekisteröitymisen vahvistus, salasanan palautus)."
     }
   },
   "voiceNotesInfo": {
@@ -2726,8 +2738,8 @@
   },
   "termsOfService": {
     "title": "MatchOpsin käyttöehdot",
-    "version": "Ehtojen versio: 2026-09",
-    "lastUpdated": "Päivitetty: syyskuu 2026",
+    "version": "Ehtojen versio: 2026-11",
+    "lastUpdated": "Päivitetty: marraskuu 2026",
     "agreement": {
       "title": "Ehtojen hyväksyminen",
       "content": "Lataamalla, asentamalla tai käyttämällä MatchOpsia (\"sovellus\") hyväksyt nämä käyttöehdot. Jos et hyväksy ehtoja, älä käytä sovellusta."
@@ -2803,7 +2815,7 @@
       "title": "Tietojen menetys",
       "intro": "Hyväksyt seuraavat:",
       "items": {
-        "localStorage": "Tiedot tallennetaan paikallisesti laitteellesi (tai pilveen, jos käytössä)",
+        "localStorage": "Tietosi tallennetaan pilvitilillesi, ja niistä pidetään välimuistikopio laitteellasi offline-käyttöä varten",
         "notResponsible": "Emme ole vastuussa tietojen menetyksestä laitevian, sovelluksen poistamisen tai muun syyn vuoksi",
         "backupAdvice": "Sinun tulisi säännöllisesti viedä ja varmuuskopioida tärkeät tiedot"
       }
@@ -2820,12 +2832,14 @@
       "vercel": "Vercel",
       "vercelDesc": "PWA-version isännöintiin",
       "photon": "Photon (Komoot)",
-      "photonDesc": "Paikkahakuun ottelun sijaintikentässä; se vastaanottaa siihen kirjoittamasi tekstin",
+      "photonDesc": "Paikkahakuun ottelupaikan ja lähtöpaikan kentissä; se vastaanottaa niihin kirjoittamasi tekstin",
       "openai": "OpenAI tai muu yhdistämäsi tekoälypalvelu",
       "openaiDesc": "Äänimuistiinpanojen litterointiin ja otteluraporttien luonnoksiin, vain omalla tililläsi ja API-avaimellasi ja vain jos yhdistät sellaisen",
       "palloliitto": "palloliitto.fi",
       "palloliittoDesc": "Sääntökirja haetaan Palloliiton omalta sivustolta, kun avaat säännön",
-      "note": "Näiden palveluiden käyttöäsi koskevat niiden omat ehdot ja käytännöt."
+      "note": "Näiden palveluiden käyttöäsi koskevat niiden omat ehdot ja käytännöt.",
+      "resend": "Resend",
+      "resendDesc": "Tilisähköposteihin (rekisteröitymisen vahvistus, salasanan palautus) sekä, jos annat suostumuksen, markkinointiviesteihin"
     },
     "premiumSubscription": {
       "title": "Maksulliset ominaisuudet",
@@ -2893,8 +2907,28 @@
     "aiServices": {
       "title": "Valinnaiset tekoälypalvelut",
       "content1": "MatchOpsissa voit yhdistää oman tilisi kolmannen osapuolen tekoälypalveluun äänimuistiinpanojen litterointia ja raporttien luonnostelua varten. Tällaiseen käyttöön sovelletaan sopimustasi kyseisen palvelun kanssa. MatchOps ei ole sen osapuoli, ei vastaanota tietoja eikä vastaa palvelun käsittelystä, saatavuudesta, tuloksista tai maksuista.",
-      "content2": "Vastaat itse tallentamastasi tai sanelemastasi sisällöstä ja oikeudestasi käsitellä sitä, mukaan lukien pelaajien perheiden informoinnista, jos olosuhteesi sitä edellyttävät. Älä tallenna terveystietoja tai muita arkaluonteisia henkilötietoja.",
+      "content2": "Vastaat itse tallentamastasi tai sanelemastasi sisällöstä ja oikeudestasi käsitellä sitä. Älä tallenna terveystietoja tai muita erityisiin henkilötietoryhmiin kuuluvia tietoja (ks. Pelaajatiedot: sinun vastuusi).",
       "content3": "Tekoälyn tuottama sisältö on luonnos. Tarkistat ja hyväksyt jokaisen kohdan ennen tallennusta ja vastaat siitä, mitä säilytät."
+    },
+    "dataProcessing": {
+      "title": "Henkilötietojen käsittely (GDPR 28 art.)",
+      "intro": "Tämä kohta on GDPR:n 28(3) artiklan mukainen henkilötietojen käsittelysopimus välillämme. Se perustuu Euroopan komission täytäntöönpanopäätöksellä (EU) 2021/915 hyväksymiin rekisterinpitäjien ja henkilötietojen käsittelijöiden välisiin vakiosopimuslausekkeisiin, ja sitä sovelletaan aina, kun syötät muita henkilöitä (pelaajia ja henkilöstöä) koskevia henkilötietoja.",
+      "items": {
+        "roles": "Roolit: näiden tietojen rekisterinpitäjä olet sinä - tai seura, jonka puolesta toimit. MatchOps (Ville Pajala) on henkilötietojen käsittelijäsi.",
+        "scope": "Kohde, luonne ja kesto: syöttämiesi tietojen (kuten nimet, pelinumerot, pelipaikat, ottelutapahtumat, tilastot, muistiinpanot ja henkilöstön yhteystiedot) tallentaminen, synkronointi ja näyttäminen joukkueidesi pelaajista ja henkilöstöstä niin kauan kuin tilisi on olemassa.",
+        "instructions": "Ohjeet: käsittelemme tietoja vain palvelun tarjoamiseksi dokumentoitujen ohjeidesi mukaisesti - nämä ehdot ja sovelluksessa tekemäsi toimet - ellei EU:n tai Suomen laki edellytä muuta; siinä tapauksessa kerromme siitä ensin, ellei laki sitä kiellä.",
+        "confidentiality": "Luottamuksellisuus: jokainen, jolla on lupa käsitellä tietoja puolestamme, on sitoutunut salassapitoon. Emme katso sisältöäsi muulloin kuin pyynnöstäsi tai lain edellyttäessä.",
+        "security": "Turvallisuus (32 art.): tiedot säilytetään EU:ssa (Tukholma, Ruotsi), ne salataan siirron aikana (HTTPS/TLS) ja tallennettuina, ja rivitason suojaus erottaa jokaisen tilin tiedot. Jos henkilötietojen tietoturvaloukkaus koskee tietojasi, ilmoitamme siitä sinulle ilman aiheetonta viivytystä.",
+        "subprocessors": "Alikäsittelijät: annat yleisen luvan seuraaville: Supabase (tietokanta ja todennus, EU), Sentry (virheraportit), Resend (tilisähköpostit) ja Vercel (isännöinti). Sidomme ne sopimuksella samoihin tietosuojavelvoitteisiin. Ilmoitamme suunnitellusta lisäyksestä tai vaihdosta etukäteen päivittämällä tämän luettelon ja tietosuojakäytännön, jotta voit vastustaa sitä; jos vastustat, voit lopettaa palvelun käytön ja poistaa tilisi.",
+        "assistance": "Avustaminen: sovelluksessa voit itse tarkastella, korjata, viedä ja poistaa tiedot, ja näin autamme sinua vastaamaan rekisteröityjen pyyntöihin. Käsittelyn luonteen sallimissa rajoissa autamme myös turvallisuudessa, tietoturvaloukkauksista ilmoittamisessa ja vaikutustenarvioinneissa.",
+        "deletion": "Palvelun päättyminen: kun poistat tilisi, poistamme tiedot (varmuuskopioista ks. tietosuojakäytäntö). Voit viedä ne milloin tahansa sitä ennen.",
+        "compliance": "Vaatimustenmukaisuuden osoittaminen: pyynnöstä osoitteeseen support@match-ops.com annamme käyttöösi tiedot, joita tarvitaan näiden velvoitteiden täyttymisen osoittamiseen, ja sallimme kohtuulliset tarkastukset ja osallistumme niihin."
+      }
+    },
+    "playerData": {
+      "title": "Pelaajatiedot: sinun vastuusi",
+      "informFamilies": "Pelaajien ja heidän perheidensä informointi tallentamistasi tiedoista (GDPR 13-14 art.) on sinun tai seurasi velvollisuus. Kohdassa Asetukset → Tiedot on valmis tiedote, jonka voit kopioida ja lähettää.",
+      "noSpecialCategories": "Älä kirjaa terveystietoja tai muita erityisiin henkilötietoryhmiin kuuluvia tietoja (GDPR 9 art.) - esimerkiksi loukkaantumisia, sairauksia, diagnooseja, uskontoa tai etnistä alkuperää - muistiinpanoihin, otteluraportteihin tai mihinkään muuhun kenttään. Pelaajan tunnistamiseen riittää etunimi tai lempinimi."
     }
   },
   "premium": {
@@ -4173,5 +4207,17 @@
   },
   "soccerField": {
     "ariaLabel": "Jalkapallokenttä, jossa pelaajien sijainnit ja taktiikkapiirrokset"
+  },
+  "privacySettings": {
+    "title": "Tietosuoja",
+    "diagnosticsLabel": "Virheraportit ja käyttötilastot",
+    "diagnosticsHint": "Lähettää virheraportteja virheiden korjaamiseksi ja tallentaa, milloin ensimmäiset käyttöönoton vaiheet tehtiin. Ei koskaan pelitietojasi. Kun kytket tämän pois, molemmat loppuvat tilisi osalta.",
+    "familyNoticeTitle": "Tiedote pelaajien perheille",
+    "familyNoticeHint": "Valmis viesti, jonka voit lähettää perheille: mitä sovellus tallentaa pelaajista, miksi, missä ja kuinka kauan, ja keneltä voi kysyä.",
+    "familyNoticeText": "Hei! Valmentajana käytän joukkueen hoitamiseen MatchOps-sovellusta. Tallennan siihen pelaajista etunimen tai lempinimen, pelinumeron, ottelutapahtumat (kuten peliajat, maalit ja syötöt) sekä lyhyitä valmennuksellisia muistiinpanoja. Käytän tietoja vain joukkueen valmentamiseen: kokoonpanoihin, peliaikojen suunnitteluun ja ottelutilastoihin. Tiedot ovat puhelimessani ja valmentajan tililläni palvelimella EU:ssa (Tukholma, Ruotsi). Niitä ei jaeta kenellekään muulle, myydä eikä käytetä mainontaan, enkä kirjaa terveystietoja. Säilytän tietoja niin kauan kuin valmennan joukkuetta ja poistan ne, kun niitä ei enää tarvita. Voit milloin tahansa kysyä minulta tai seuralta, mitä lapsestasi on tallennettu, ja korjaan tai poistan tiedot."
+  },
+  "privacyHints": {
+    "noHealthData": "Älä kirjaa terveystietoja.",
+    "firstNameEnough": "Etunimi tai lempinimi riittää."
   }
 }

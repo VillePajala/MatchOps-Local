@@ -403,7 +403,8 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
             className={inputBaseStyle}
           />
           <p className="text-sm text-ink-3">
-            {t('spokenReport.editHint', 'Fix anything the transcription got wrong before you keep it.')}
+            {t('spokenReport.editHint', 'Fix anything the transcription got wrong before you keep it.')}{' '}
+            {t('privacyHints.noHealthData', 'Do not record health information.')}
           </p>
           <button
             type="button"
