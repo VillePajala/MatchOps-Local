@@ -3,6 +3,11 @@
   "releases": [
     {
       "date": "2026-11-19",
+      "en": ["Timer: the next substitution shows players coming on with a green arrow and players going off with a red one."],
+      "fi": ["Ajastin: seuraavassa vaihdossa kentälle tulevat näkyvät vihreällä ja pois lähtevät punaisella nuolella."]
+    },
+    {
+      "date": "2026-11-19",
       "en": [
         "Kilpailut is now a short overview: the season card with your last five results, and one row each for leagues and tournaments.",
         "Tilastot is calmer: results and goal difference, the top scorers, and the statistics views in one list.",

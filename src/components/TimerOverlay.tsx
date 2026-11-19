@@ -708,7 +708,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               className="mt-1 flex items-baseline gap-2 text-[15px] font-semibold text-ink"
               data-testid="planned-sub-on"
             >
-              <span aria-hidden="true" className="w-3 shrink-0 text-center text-ink-3">↑</span>
+              <span aria-hidden="true" className="w-3 shrink-0 text-center text-win">↑</span>
               <span aria-hidden="true" className="min-w-0">{shownSubGroup.inShortNames.join(', ')}</span>
               <span className="sr-only">{t('timerOverlay.plannedSubsOn', 'On')}: {shownSubGroup.inNames.join(', ')}</span>
             </p>
@@ -717,7 +717,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 className="flex items-baseline gap-2 text-[15px] font-medium text-ink-2"
                 data-testid="planned-sub-off"
               >
-                <span aria-hidden="true" className="w-3 shrink-0 text-center text-ink-3">↓</span>
+                <span aria-hidden="true" className="w-3 shrink-0 text-center text-loss">↓</span>
                 <span aria-hidden="true" className="min-w-0">{shownSubGroup.outShortNames.join(', ')}</span>
                 <span className="sr-only">{t('timerOverlay.plannedSubsOff', 'Off')}: {shownSubGroup.outNames.join(', ')}</span>
               </p>
