@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import fs from 'fs';
 import path from 'path';
@@ -233,6 +234,8 @@ describe('SetupWizard', () => {
     expect(mockAddPlayer).not.toHaveBeenCalled();
     expect(mockSetTeamRoster).not.toHaveBeenCalled();
     expect(localStorage.getItem(DONE_KEY)).toBe('1');
+    // The ACCOUNT remembers the skip too (R9), not only this device.
+    expect(mockRecordMilestone).toHaveBeenCalledWith('wizardSkipped', 'user-1');
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
@@ -821,6 +824,77 @@ describe('SetupWizard - Onboarding v3', () => {
       fireEvent.click(screen.getByTestId('next-game-skip'));
       expect(onComplete).toHaveBeenCalledTimes(1);
       expect(mockCreateNextGamePair).not.toHaveBeenCalled();
+    });
+
+    it('offers "Today" first (R13)', async () => {
+      renderWizard();
+      await toNextGame();
+      const chips = screen.getAllByRole('button', { pressed: false }).filter((b) =>
+        (b.getAttribute('data-testid') ?? '').startsWith('next-game-date-'),
+      );
+      expect(chips[0]).toHaveAttribute('data-testid', 'next-game-date-today');
+      expect(chips[0]).toHaveTextContent('Today');
+    });
+
+    /** @critical R3: an app kill on this step must not lose it */
+    it('keeps the open step and its answers on the device until it is left', async () => {
+      renderWizard();
+      await toNextGame();
+      const key = 'matchops_next_game_step_user-1';
+      expect(localStorage.getItem(key)).not.toBeNull();
+      fireEvent.click(firstDateChip());
+      fireEvent.change(screen.getByTestId('next-game-opponent'), { target: { value: 'Rantakylä' } });
+      const kept = JSON.parse(localStorage.getItem(key)!);
+      expect(kept.gameDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(kept.opponent).toBe('Rantakylä');
+      fireEvent.click(screen.getByTestId('next-game-submit'));
+      await screen.findByTestId('plan-quick-view-mock');
+      expect(localStorage.getItem(key)).toBeNull();
+    });
+
+    it('"Not now" forgets the open step', async () => {
+      renderWizard();
+      await toNextGame();
+      fireEvent.click(screen.getByTestId('next-game-skip'));
+      expect(localStorage.getItem('matchops_next_game_step_user-1')).toBeNull();
+    });
+  });
+
+  /** R10: Android/browser back steps back inside the wizard. */
+  describe('hardware back', () => {
+    let backSpy: jest.SpyInstance;
+    beforeEach(() => {
+      __resetModalHardwareBackForTests();
+      backSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+    });
+    afterEach(() => backSpy.mockRestore());
+    const pressBack = () =>
+      act(() => {
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      });
+
+    it('goes from the player list to the team step', async () => {
+      renderWizard();
+      toStepTwo();
+      expect(screen.getByTestId('wizard-player-input')).toBeInTheDocument();
+      pressBack();
+      await waitFor(() => expect(screen.getByTestId('wizard-team-name')).toBeInTheDocument());
+      expect(screen.getByTestId('wizard-team-name')).toHaveValue('FC Test');
+    });
+
+    it('goes from the next-game step back to the player list, and Valmis again creates nothing twice', async () => {
+      const { onComplete } = renderWizard();
+      toStepTwo();
+      addPlayerRow('Onni');
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await expectNextGameStep();
+      pressBack();
+      await waitFor(() => expect(screen.getAllByTestId('wizard-player-row')).toHaveLength(1));
+      expect(onComplete).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await expectNextGameStep();
+      expect(mockAddPlayer).toHaveBeenCalledTimes(1);
+      expect(mockAddTeam).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
-import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
+import { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
 import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonCard, HomeStatsTiles, HomeIcon, HOME_CARD, HOME_FOCUS } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -237,10 +237,16 @@ interface StartScreenProps {
   onSwitchToFullLayout?: () => void;
   /** "Ketkä ovat paikalla?" for a game ('start' opens the game afterwards). */
   onOpenAttendance?: (gameId: string, mode: 'save' | 'start') => void;
-  /** "Näytä peluutus" for a one-game plan: the compact plan screen. */
+  /** "Näytä suunnitelma" for a one-game plan: the compact plan screen. */
   onShowPlan?: (planId: string, gameId: string) => void;
-  /** "Näytä peluutus" for a game of a multi-game plan: the planner on that game. */
+  /** "Näytä suunnitelma" for a game of a multi-game plan: the planner on that game. */
   onOpenPlannerAt?: (planId: string, planGameId: string) => void;
+  /** Basic Home: "Siirrä päivää" on a game that never started (R2). */
+  onMoveGameDate?: (gameId: string, gameDate: string) => Promise<boolean>;
+  /** Basic Home: "Poista" on a game that never started (R2). */
+  onDeleteGame?: (gameId: string) => Promise<boolean>;
+  /** Basic Home: "Lisää pelaajat" with no players yet (R12). */
+  onAddPlayers?: (names: string[]) => Promise<number>;
 }
 
 const StartScreen: React.FC<StartScreenProps> = ({
@@ -286,6 +292,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onOpenAttendance,
   onShowPlan,
   onOpenPlannerAt,
+  onMoveGameDate,
+  onDeleteGame,
+  onAddPlayers,
 }) => {
   const { t } = useTranslation();
   // Dashboard is the default view, but it only renders once there are games to
@@ -334,46 +343,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // device- or account-scoped lives here, off the front page.
   const [showGearSheet, setShowGearSheet] = useState(false);
 
-  // Recommended-setup card dismissal. Read post-hydration (SSR-safe): both server and
-  // first client render show nothing until setupHydrated flips true.
-  const [setupDismissed, setSetupDismissed] = useState(false);
-  const [setupHydrated, setSetupHydrated] = useState(false);
-  const setupDismissKey = `matchops_recommended_setup_dismissed_${user?.id ?? 'local'}`;
-
   const isCloudMode = mode === 'cloud' && user;
-
-  useEffect(() => {
-    try {
-      // Setting state here is the point: a post-hydration read of a client-only value
-      // (the server cannot know it), once per key.
-      // eslint-disable-next-line no-restricted-globals, react-hooks/set-state-in-effect -- one-time UI dismissal flag, not app data
-      setSetupDismissed(localStorage.getItem(setupDismissKey) === '1');
-    } catch {
-      // localStorage unavailable — treat as not dismissed
-    }
-    setSetupHydrated(true);
-  }, [setupDismissKey]);
-
-  const handleDismissSetup = () => {
-    setSetupDismissed(true);
-    try {
-      // eslint-disable-next-line no-restricted-globals -- one-time UI dismissal flag, not app data
-      localStorage.setItem(setupDismissKey, '1');
-    } catch {
-      // localStorage unavailable — dismissal won't persist, acceptable
-    }
-  };
-
-  const setupComplete = !!setupProgress &&
-    setupProgress.players && setupProgress.competition && setupProgress.team && setupProgress.teamLinkedGame;
-  // The setup tracker moved OFF the (space-tight) home tabs into an on-demand
-  // gear-sheet entry - the contextual empty-states already nudge setup inline
-  // where there's room. This entry shows its progress and opens the checklist.
-  const showSetupEntry = !isFirstTimeUser && setupHydrated && !setupDismissed && !!setupProgress && !setupComplete;
-  const setupDoneCount = setupProgress
-    ? [setupProgress.players, setupProgress.competition, setupProgress.team, setupProgress.teamLinkedGame].filter(Boolean).length
-    : 0;
-  const [showSetupSheet, setShowSetupSheet] = useState(false);
 
   /**
    * Switching the language is an ACTION, not a state sync.
@@ -481,8 +451,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
               onOpenAttendance={onOpenAttendance}
               onShowPlan={onShowPlan}
               onOpenPlannerAt={onOpenPlannerAt}
-              onManageTeams={onManageTeams}
+              // The team row is the player list in the basic layout (R4).
+              onOpenPlayers={onManageRoster ?? onManageTeams}
               onLoadGame={onLoadGame}
+              onMoveGameDate={onMoveGameDate}
+              onDeleteGame={onDeleteGame}
+              onAddPlayers={onAddPlayers}
               onViewStats={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
               onSwitchToFull={onSwitchToFullLayout}
               locale={language}
@@ -877,7 +851,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   className={SHEET_ROW}
                 >
                   <span className={SHEET_ROW_RULE}>
-                    <span className={ROW_LABEL}>{t('startScreen.gearSimplifiedView', 'Simplified view')}</span>
+                    <span className={ROW_LABEL}>{t('startScreen.gearSimplifiedView', 'Compact home cards')}</span>
                     <span className={`inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full p-0.5 transition-colors ${homeView === 'simple' ? 'bg-action' : 'bg-surface-2 ring-1 ring-inset ring-white/10'}`} aria-hidden="true">
                       <span className={`h-6 w-6 rounded-full bg-ink shadow transition-transform ${homeView === 'simple' ? 'translate-x-5' : ''}`} />
                     </span>
@@ -926,15 +900,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 </button>
               ) : null}
               {/* Rules lives on the Club tab - deliberately NOT duplicated here. */}
-              {/* Setup tracker (moved off the home tabs) - on-demand, shows N/4. */}
-              {showSetupEntry && (
-                <button type="button" onClick={() => { setShowGearSheet(false); setShowSetupSheet(true); }} className={SHEET_ROW}>
-                  <span className={SHEET_ROW_RULE}>
-                    <span className={ROW_LABEL}>{t('startScreen.gearSetup', 'Setup checklist ({{done}}/4)', { done: setupDoneCount })}</span>
-                    {ROW_CHEVRON}
-                  </span>
-                </button>
-              )}
               {/* In-app "How it works" guide (rebuilt for the two-level UI). */}
               {onOpenGuide && (
                 <button type="button" onClick={() => { setShowGearSheet(false); onOpenGuide(); }} className={SHEET_ROW}>
@@ -977,30 +942,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 match-ops.com
               </a>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Setup tracker sheet (opened from the gear entry). Backdrop tap just
-          closes it; the card's × permanently dismisses (hides the gear entry). */}
-      {showSetupSheet && setupProgress && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70"
-          onClick={() => setShowSetupSheet(false)}
-          data-testid="setup-sheet-backdrop"
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('recommendedSetup.title', 'Get the most out of MatchOps')}
-            className="s1-sheet w-full max-w-md max-h-[80vh] overflow-y-auto rounded-t-[28px] px-4 pt-3 pb-[max(24px,env(safe-area-inset-bottom))]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" aria-hidden="true" />
-            <RecommendedSetupCard
-              progress={setupProgress}
-              onDismiss={() => { handleDismissSetup(); setShowSetupSheet(false); }}
-            />
           </div>
         </div>
       )}

@@ -102,7 +102,7 @@ interface ModalContextValue {
   /** The attendance sheet's game, or null when it is closed (renders in ClubModalsHost). */
   attendanceRequest: AttendanceRequest | null;
   setAttendanceRequest: React.Dispatch<React.SetStateAction<AttendanceRequest | null>>;
-  /** Home's "Näytä peluutus": the one-game plan screen as a layer, or null. */
+  /** Home's "Näytä suunnitelma": the one-game plan screen as a layer, or null. */
   planQuickViewTarget: PlanQuickViewTarget | null;
   setPlanQuickViewTarget: React.Dispatch<React.SetStateAction<PlanQuickViewTarget | null>>;
   /** See PlannerLiveGameHooks - registered by the match view while mounted. */

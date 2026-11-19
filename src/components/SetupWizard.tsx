@@ -14,16 +14,17 @@ import { addTeam, setTeamRoster, updateTeam } from '@/utils/teams';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { FIELD_SIZES, type FieldSize } from '@/config/formationPresets';
 import { suggestFormatForAgeGroup, suggestPeriodsForAgeGroup } from '@/config/formatsByAgeGroup';
-import { setSetupWizardActive, storeSetupFormat, storeSetupAgeGroup } from './setupWizardActive';
-import { splitPastedNames, PASTE_MAX_NAMES } from '@/utils/splitPastedNames';
+import {
+  markOnboardingJustFinished,
+  setSetupWizardActive,
+  storeSetupFormat,
+  storeSetupAgeGroup,
+} from './setupWizardActive';
+import { defaultNickname, splitPastedNames, PASTE_MAX_NAMES } from '@/utils/splitPastedNames';
 import { recordMilestone } from '@/utils/onboardingMilestones';
-import { createNextGamePair, type NextGamePair } from '@/services/nextGamePair';
-import { buildAndPersistNewGame } from '@/components/HomePage/utils/newGameHandlers';
-import { savePlan, deletePlan } from '@/utils/playtimePlanner/storage';
-import { saveGame as utilSaveGame } from '@/utils/savedGames';
-import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
-import NextGameStep from './NextGameStep';
-import PlanQuickView from './PlanQuickView';
+import type { NextGameContext } from '@/services/nextGameContext';
+import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
+import NextGameFlow from './NextGameFlow';
 import type { GameType, Player, Team, TeamPlayer } from '@/types';
 import logger from '@/utils/logger';
 import {
@@ -52,9 +53,16 @@ import {
  *   3. "Milloin seuraava peli?" - date + optional opponent. Only now are a game
  *      and its one-game playing-time plan created (no placeholder game ever).
  *   4. the plan, in the planner's compact mode (PlanQuickView).
+ *   Steps 3-4 are NextGameFlow, the same flow basic Home's "Uusi ottelu" opens.
  * Skipping (a deliberately QUIET text link) creates nothing; Home's empty
  * states pick the coach up instead. With no players there is nothing to plan,
  * so "Valmis" goes straight to Home.
+ *
+ * Seen-ness is stored twice (review R9): the localStorage flag below is the
+ * fast per-device cache, and the `wizardDone` / `wizardSkipped` milestones in
+ * the synced settings row are the account's own record, which page.tsx checks
+ * before ever opening the wizard - so a new phone never shows it again.
+ * Hardware back steps back (R10): player list -> team, date step -> player list.
  */
 
 // --- Per-user one-time flag --------------------------------------------------
@@ -169,7 +177,7 @@ interface SetupWizardProps {
   onComplete: () => void;
 }
 
-type Step = 1 | 2 | 'nextGame' | 'plan';
+type Step = 1 | 2 | 'nextGame';
 
 /** What "Valmis" created - the next-game step builds the game from it. */
 interface CreatedSquad {
@@ -206,8 +214,6 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const [draft, setDraft] = useState(restored?.draft ?? '');
   const [isSaving, setIsSaving] = useState(false);
   const [squad, setSquad] = useState<CreatedSquad | null>(null);
-  const [pair, setPair] = useState<NextGamePair | null>(null);
-  const [isCreatingGame, setIsCreatingGame] = useState(false);
 
   const suggestion = useMemo(() => suggestFormatForAgeGroup(ageGroup, sport), [ageGroup, sport]);
 
@@ -299,14 +305,23 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
     finishedRef.current = true;
     clearWizardDraft(userId);
     markSetupWizardDone(userId);
+    // The first Home visit after this is the coach's first look at their own
+    // Home: no marketing prompt on it (R13).
+    markOnboardingJustFinished();
     onComplete();
   }, [userId, onComplete]);
 
   /** Quiet skip: creates NOTHING on steps 1-2. "Valmis" is the only creator. */
   const handleSkip = useCallback(() => {
     if (savingRef.current) return;
+    // The account remembers the skip, not only this device (R9).
+    void recordMilestone('wizardSkipped', userId);
     finish();
-  }, [finish]);
+  }, [finish, userId]);
+
+  // Hardware back on the player list goes to the team step (R10). The date
+  // step registers its own back (NextGameFlow); the team step has none.
+  useModalHardwareBack(step === 2, () => setStep(1));
 
   /** Append names as rows (capped at PASTE_MAX_NAMES rows); returns how many were added. */
   const appendNames = useCallback((list: string[]): number => {
@@ -408,13 +423,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       for (const row of rows) {
         if (created.has(row.id)) continue;
         const name = row.name;
-        // "Matti Meikalainen" -> disc shows "Matti": multi-word names get
-        // the first word as the nickname, the same outcome as a coach setting
-        // one in the roster (the disc renders nickname || name). Single words
-        // stay nickname-free so the roster list doesn't echo "Aino (Aino)".
-        const firstWord = name.trim().split(/\s+/)[0] ?? '';
+        // "Matti Meikalainen" -> disc shows "Matti" (defaultNickname).
         const player = await addPlayer(
-          { name, nickname: firstWord === name.trim() ? '' : firstWord, jerseyNumber: '', notes: '' },
+          { name, nickname: defaultNickname(name), jerseyNumber: '', notes: '' },
           userId ?? undefined,
         );
         if (!player) throw new Error(`player creation failed: ${name}`);
@@ -493,69 +504,6 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
     }
   }, [draft, names, teamName, sport, format, ageGroup, userId, queryClient, showToast, t, finish, saveDraftNow]);
 
-  /** "Tee suunnitelma": the game and its one-game plan, then the plan screen. */
-  const handleCreateGame = useCallback(
-    async (gameDate: string, opponent: string) => {
-      if (!squad || isCreatingGame) return;
-      setIsCreatingGame(true);
-      const periods = suggestPeriodsForAgeGroup(ageGroup, sport);
-      try {
-        const created = await createNextGamePair(
-          {
-            savePlan,
-            deletePlan,
-            createGame: (request) =>
-              buildAndPersistNewGame(
-                {
-                  availablePlayers: squad.players,
-                  savedGames: {},
-                  queryClient,
-                  showToast,
-                  t,
-                  utilSaveGame,
-                  utilSaveCurrentGameIdSetting,
-                  defaultSubIntervalMinutes: 5,
-                  // The game belongs to no season or tournament, so the
-                  // per-competition limit check in buildAndPersistNewGame
-                  // never runs for it; these are inert by construction.
-                  canCreate: () => true,
-                  showUpgradePrompt: () => undefined,
-                  userId: userId ?? undefined,
-                },
-                request,
-              ),
-          },
-          {
-            team: { id: squad.team.id, name: squad.team.name },
-            players: squad.players,
-            fieldSize: format,
-            gameType: sport,
-            ageGroup,
-            numberOfPeriods: periods.numberOfPeriods,
-            periodMinutes: periods.periodMinutes,
-            gameDate,
-            opponentName:
-              opponent.trim() || t('nextGameStep.opponentDefault', 'Opponent'),
-          },
-        );
-        if (!mountedRef.current) return;
-        // The plan counts as seen the moment its screen opens (plan decision):
-        // closing the app on it lands on Home next time.
-        recordMilestone('firstPlanSeen', userId);
-        setPair(created);
-        setStep('plan');
-      } catch (error) {
-        logger.error('[SetupWizard] next game creation failed:', error);
-        if (mountedRef.current) {
-          showToast(t('nextGameStep.error', 'Could not create the game - please try again.'), 'error');
-        }
-      } finally {
-        if (mountedRef.current) setIsCreatingGame(false);
-      }
-    },
-    [squad, isCreatingGame, ageGroup, sport, format, queryClient, showToast, t, userId],
-  );
-
   const skipLabel = t('setupWizard.skip', "Skip, I'll do this later");
 
   /**
@@ -566,21 +514,29 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
    */
   const [language, changeLanguage] = useAppLanguage();
 
-  if (step === 'plan' && pair) {
+  if (step === 'nextGame' && squad) {
+    const periods = suggestPeriodsForAgeGroup(ageGroup, sport);
+    const context: NextGameContext = {
+      team: { id: squad.team.id, name: squad.team.name },
+      players: squad.players,
+      fieldSize: format,
+      gameType: sport,
+      ageGroup,
+      numberOfPeriods: periods.numberOfPeriods,
+      periodMinutes: periods.periodMinutes,
+    };
     return (
       <div data-testid="setup-wizard">
-        <PlanQuickView planId={pair.planId} gameId={pair.gameId} userId={userId ?? undefined} onDone={finish} />
-      </div>
-    );
-  }
-
-  if (step === 'nextGame') {
-    return (
-      <div data-testid="setup-wizard">
-        <NextGameStep
-          onSubmit={handleCreateGame}
-          onSkip={finish}
-          isSaving={isCreatingGame}
+        <NextGameFlow
+          userId={userId ?? undefined}
+          context={context}
+          onClose={finish}
+          onBack={() => {
+            // Back to the player list (R10). What "Valmis" created stays known
+            // (the created-row map), so Valmis again creates nothing twice.
+            finishedRef.current = false;
+            setStep(2);
+          }}
         />
       </div>
     );

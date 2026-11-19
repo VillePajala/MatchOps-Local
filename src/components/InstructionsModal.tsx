@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { CollapsibleModalHeader, modalContainerStyle } from '@/styles/modalStyles';
 import packageJson from '../../package.json';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useAppLayout } from '@/hooks/useAppLayout';
 import {
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,
@@ -63,6 +64,9 @@ const GuideSection: React.FC<{ title: string; children: React.ReactNode }> = ({ 
 
 const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
+  // Basic layout has no tabs: describe its short Home instead (R8). Unknown
+  // (loading) is treated as full, matching the app's default.
+  const isBasic = useAppLayout() === 'basic';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -89,6 +93,25 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
         <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-2 pb-8 space-y-3 font-ui">
           {/* === HOME: the club hub === */}
           <GuideSection title={t('appGuide.homeTitle', 'Home — your club hub')}>
+            {isBasic ? (
+              <>
+                <p className="font-ui text-[15px] leading-snug text-ink-2">{t('appGuide.homeBasicIntro', 'The Basic Home is short: you see the next game and can start it. A match opens on its own field.')}</p>
+                <div>
+                  <ul className={list}>
+                    <li>{t('appGuide.homeBasicNextGame', 'Next game card: the date, opponent and plan. Tap "Start match" on game day or "Mark absences" before it; "Show plan" opens the plan.')}</li>
+                    <li>{t('appGuide.homeBasicNewGame', 'New game: pick a date and an opponent and you get a ready plan.')}</li>
+                    <li>{t('appGuide.homeBasicTeam', 'Team row: opens the player list where you edit names, numbers and the keeper, and add or remove players.')}</li>
+                    <li>{t('appGuide.homeBasicAll', 'All features: shows what the Full view adds and switches to it. You can switch back in Settings.')}</li>
+                    <li>{t('appGuide.homeGearBasic', 'The gear icon (top-left): settings (including Basic/Full view), backups, your account and this guide.')}</li>
+                {/* The one behaviour in the app that changes what a coach
+                    typed. Unexplained it looks like a bug, so it is explained
+                    here rather than left to be discovered. */}
+                <li>{t('appGuide.opponentNames', 'Opponent names: type a team you have played before and the field settles on the spelling you already used, so one team stays one team in your statistics. If that earlier spelling is the wrong one, choose "use mine instead" and it is corrected in every past game too.')}</li>
+                  </ul>
+                </div>
+              </>
+            ) : (
+              <>
             <p className="font-ui text-[15px] leading-snug text-ink-2">{t('appGuide.homeIntro', 'The Home screen has four tabs plus the gear menu. Everything about your club lives here; a match opens on its own field.')}</p>
             <div>
               <ul className={list}>
@@ -96,7 +119,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                 <li>{t('appGuide.homeTeamTab', 'Club: your players, teams, staff, the warmup plan, the rules for your age group and coaching materials.')}</li>
                 <li>{t('appGuide.homeCompetitionsTab', 'Competitions: set up leagues and tournaments to group your games.')}</li>
                 <li>{t('appGuide.homeStatsTab', 'Stats: league, tournament, overall and player statistics (available once you\'ve played a game).')}</li>
-                <li>{t('appGuide.homeGear', 'The gear icon (top-left): the home view toggle (summary or simplified), settings, backups, your account, the setup checklist and this guide.')}</li>
+                <li>{t('appGuide.homeGear', 'The gear icon (top-left): the compact/full home cards toggle, settings, backups, your account and this guide.')}</li>
                 {/* The one behaviour in the app that changes what a coach
                     typed. Unexplained it looks like a bug, so it is explained
                     here rather than left to be discovered. */}
@@ -104,13 +127,15 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                 <li>{t('appGuide.externalGames', "Added stats: a game not recorded in the app as a match can be added to a player's stats from the Add to player stats row on the Stats tab or from the player's menu on the Club tab. Positions, sport and gender place it in the right stats.")}</li>
               </ul>
             </div>
+              </>
+            )}
           </GuideSection>
 
           {/* === PLAN === */}
           <GuideSection title={t('firstGameGuide.planTitle', 'Plan the game')}>
             <div>
               <ul className={list}>
-                <li>{t('firstGameGuide.planPlanner', 'Peluutus (the planner) makes a plan for who plays when, from your squad. Open it from the next-game card on Home. Tap two players to swap them.')}</li>
+                <li>{t('firstGameGuide.planPlanner', 'The match planner makes a plan for who plays when, from your squad. Open it from the next-game card on Home. Tap two players to swap them.')}</li>
                 <li>{t('firstGameGuide.planAttendance', 'Who is here? Before kick-off, tap the players who are absent - the plan is re-made without them.')}</li>
               </ul>
             </div>
@@ -151,7 +176,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <div>
               <ul className={list}>
                 <li>{t('firstGameGuide.finishStart', 'At full time tap "Finish this game".')}</li>
-                <li>{t('firstGameGuide.finishSheet', 'Match sheet: a copy-ready text of the match data that you can paste into Taso or any other system.')}</li>
+                <li>{t('firstGameGuide.finishSheet', 'Match sheet: a copy-ready text of the match data that you can paste into any system.')}</li>
                 <li>{t('firstGameGuide.finishReport', 'Match report: your own text - write it, dictate it or make an AI draft. "Share match report" sends it on.')}</li>
               </ul>
             </div>
@@ -198,7 +223,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <div>
               <ul className={list}>
                 <li>{t('firstGameGuide.gameSettingsTip', 'Edit match details')}</li>
-                <li>{t('firstGameGuide.assessPlayersTip', 'Finish the game: match report, positions played and stats')}</li>
+                <li>{t('firstGameGuide.assessPlayersTip', 'Finish the game: match sheet, match report, positions played and stats')}</li>
                 <li>{t('firstGameGuide.backHomeTip', 'Return to the Home screen (Koti) — the phone back button does the same')}</li>
               </ul>
             </div>
@@ -209,7 +234,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <div>
               <ul className={list}>
                 <li>{t('instructionsModal.tips.tip1')}</li>
-                <li>{t('instructionsModal.tips.tip2')}</li>
+                {!isBasic && <li>{t('instructionsModal.tips.tip2')}</li>}
                 <li>{t('instructionsModal.tips.tip3')}</li>
               </ul>
             </div>

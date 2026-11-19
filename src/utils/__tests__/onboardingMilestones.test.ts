@@ -8,6 +8,7 @@ import {
   beginNewAccountOnboarding,
   flushMilestoneWrites,
   getMilestones,
+  hasSeenSetupWizard,
   milestonePatch,
   recordGameFinished,
   recordMilestone,
@@ -120,6 +121,21 @@ describe('milestones', () => {
     expect(stored.onboardingMilestones).toMatchObject({
       firstGameFinished: T1.toISOString(),
       secondGameFinished: T2.toISOString(),
+    });
+  });
+
+  /**
+   * The wizard is remembered with the ACCOUNT (review R9): finished or skipped.
+   * @critical
+   */
+  it('hasSeenSetupWizard: true once the wizard was finished or skipped', async () => {
+    expect(hasSeenSetupWizard(undefined)).toBe(false);
+    expect(hasSeenSetupWizard({ signedUp: T1.toISOString() })).toBe(false);
+    expect(hasSeenSetupWizard({ wizardDone: T1.toISOString() })).toBe(true);
+    await recordMilestone('wizardSkipped', 'u1', T1);
+    expect(hasSeenSetupWizard(await getMilestones('u1'))).toBe(true);
+    expect(sanitizeOnboardingMilestones({ wizardSkipped: T1.toISOString() })).toEqual({
+      wizardSkipped: T1.toISOString(),
     });
   });
 

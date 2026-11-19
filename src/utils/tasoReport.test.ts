@@ -56,6 +56,55 @@ describe('buildTasoReport', () => {
     expect(buildTasoReport(base, players, t).lineup).not.toContain('(C)');
   });
 
+  describe('positions in the line-up', () => {
+    const onField = (id: string, relX: number, relY: number) => ({ id, relX, relY });
+
+    /**
+     * @critical - the recorded positions win; the pitch is only the fallback,
+     * and a player with neither gets no position at all.
+     */
+    it('adds the recorded position, else the starting spot on the pitch, else nothing', () => {
+      const { lineup } = buildTasoReport({
+        ...base,
+        captainId: 'p2',
+        playerPositions: { p1: ['st', 'cb'], p2: ['gk'] },
+        // p1's pitch spot is ignored (recorded wins); p3 has only a pitch spot.
+        playersOnField: [onField('p1', 0.5, 0.2), onField('p3', 0.5, 0.8)],
+      }, players, t);
+      expect(lineup.split('\n')).toEqual([
+        'Squad',
+        // The keeper mark already says GK: not repeated as a position.
+        '1 Emma Jones (GK, C)',
+        '7 Noah Brown · CB',
+        // Back-to-front order, whatever order they were recorded in.
+        '10 Liam Smith · CB/ST',
+        '- Ada Lovelace',
+      ]);
+    });
+
+    it('reads the position abbreviations through the translations', () => {
+      const tr = (key: string, fallback: string) =>
+        ({ 'playingPositions.cb.abbrev': 'TP', 'positions.ST': 'HY' } as Record<string, string>)[key] ?? fallback;
+      const { lineup } = buildTasoReport({
+        ...base,
+        playerPositions: { p1: ['cb'] },
+        playersOnField: [onField('p3', 0.5, 0.2)],
+      }, players, tr);
+      expect(lineup).toContain('10 Liam Smith · TP');
+      expect(lineup).toContain('7 Noah Brown · HY');
+    });
+
+    it('gives no position to a player standing on the sideline', () => {
+      const { lineup } = buildTasoReport({ ...base, playersOnField: [onField('p3', 0.97, 0.5)] }, players, t);
+      expect(lineup).toContain('\n7 Noah Brown\n');
+    });
+
+    it('keeps a keeper\'s outfield spell as their position', () => {
+      const { lineup } = buildTasoReport({ ...base, playerPositions: { p2: ['gk', 'lb'] } }, players, t);
+      expect(lineup).toContain('1 Emma Jones (GK) · LB');
+    });
+  });
+
   it('writes the result home team first, with the half-time score from the first period end', () => {
     const game: TasoGame = {
       ...base,
@@ -142,5 +191,19 @@ describe('tasoMinute and tasoPeriod', () => {
     const goals = [ev('goal', 5 * 60, { scorerId: 'p1' })];
     expect(buildTasoReport({ ...base, numberOfPeriods: 4, periodDurationMinutes: 15, gameEvents: goals, homeScore: 1, awayScore: 0 }, players, t).report)
       .not.toContain('half-time');
+  });
+
+  /**
+   * @critical - review R13: the copied sheet starts with what a reader wants
+   * first, the title and the score, then the line-up, then the goals.
+   */
+  it('copies as title + score, then the line-up, then the goals', () => {
+    const goals = [ev('goal', 5 * 60, { scorerId: 'p1' }), ev('goal', 30 * 60, { scorerId: 'p3' }), ev('opponentGoal', 40 * 60)];
+    const { text, lineup } = buildTasoReport({ ...base, gameEvents: goals }, players, t);
+    const blocks = text.split('\n\n');
+    expect(blocks[0].split('\n')).toEqual(['Match sheet', 'Tigers - Lions 2-1 (half-time 1-0)']);
+    expect(blocks[1]).toBe(lineup);
+    expect(blocks[2].startsWith('Goals (minute, scorer, assist):')).toBe(true);
+    expect(blocks).toHaveLength(3);
   });
 });

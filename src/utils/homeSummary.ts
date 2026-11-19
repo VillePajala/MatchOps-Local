@@ -16,6 +16,7 @@ import { filterGameIds } from '@/components/GameStatsModal/utils/gameFilters';
 import { getClubSeasonForDate } from './clubSeason';
 import { resolveGameResult, type GameResult } from './gameResult';
 import { computeTeamRecord, type TeamRecord } from './teamRecord';
+import { hasBeenPlayed } from './matchPlayedDefault';
 
 /**
  * Whole days from one ISO date to another, floored at zero.
@@ -37,6 +38,50 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
  */
 function isUsableDate(value: string | undefined): value is string {
   return !!value && ISO_DATE.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+}
+
+/**
+ * Whether a match has visibly begun (review R2, "started = played"): its clock
+ * ran, something was recorded against it (`hasBeenPlayed` - the app's one
+ * evidence rule), it has a score, or its status moved past "not started".
+ *
+ * A match that has NOT begun is still ahead of the coach whatever its
+ * "played" flag says and whatever its date: a game created this morning with
+ * the flag on, or last Saturday's game that never kicked off, is not a 0-0
+ * result. Home shows it as the next game, never as "Viimeisin peli 0-0".
+ */
+export function hasMatchStarted(game: AppState, today: string): boolean {
+  if (game.gameStatus && game.gameStatus !== 'notStarted') return true;
+  if ((game.homeScore ?? 0) > 0 || (game.awayScore ?? 0) > 0) return true;
+  return hasBeenPlayed(game, today);
+}
+
+/**
+ * When the match was created, for ordering matches on the same day and time:
+ * `createdAt`, else the timestamp in the id (`game_<ms>_...`), else 0.
+ */
+function creationOrder(id: string, game: AppState): number {
+  const created = game.createdAt ? Date.parse(game.createdAt) : NaN;
+  if (!Number.isNaN(created)) return created;
+  const fromId = Number.parseInt(id.split('_')[1] ?? '', 10);
+  return Number.isNaN(fromId) ? 0 : fromId;
+}
+
+/**
+ * Nearest first by date, then by kick-off time (a match without a time after
+ * the timed ones that day), then in the order the coach created them (R5).
+ */
+function compareFixtures(a: [string, AppState], b: [string, AppState]): number {
+  const byDate = (a[1].gameDate || '').localeCompare(b[1].gameDate || '');
+  if (byDate !== 0) return byDate;
+  const ta = a[1].gameTime || '';
+  const tb = b[1].gameTime || '';
+  if (ta !== tb) {
+    if (!ta) return 1;
+    if (!tb) return -1;
+    return ta.localeCompare(tb);
+  }
+  return creationOrder(a[0], a[1]) - creationOrder(b[0], b[1]);
 }
 
 function daysBetween(fromIso: string, toIso: string): number {
@@ -98,6 +143,11 @@ export interface HomeUpcomingGame {
   mapsUrl: string | null;
   /** Whole days from today: 0 = today, 1 = tomorrow. Drives the countdown. */
   daysAway: number;
+  /**
+   * Whole days since its date, for a match that never kicked off and whose day
+   * has passed (basic Home's "Siirrä päivää / Poista" card, R2). Absent otherwise.
+   */
+  daysOverdue?: number;
   /** Our side's name on this match ('' when none) - the basic Home card's title. */
   teamName?: string;
   /** How many players are in this match's squad (selected), for "N pelaajaa". */
@@ -150,6 +200,8 @@ export interface HomeResumeGame {
   timeElapsedSeconds?: number;
   /** The clock has started and the match has not reached full time. */
   inProgress?: boolean;
+  /** The match has begun (see `hasMatchStarted`) - false for one still ahead. */
+  started?: boolean;
 }
 
 /** Entity counts for the Joukkue / Kilpailut tab headers. */
@@ -202,6 +254,20 @@ export interface HomeSummary {
   topScorer: HomeTopScorer | null;
   /** Every played game in scope (not capped like `recent`) - the basic Home's "Pelatut pelit · N". */
   playedCount?: number;
+  /** Every game in scope, played or not - the basic Home's "Kaikki ottelut" row (R5). */
+  gameCount?: number;
+  /**
+   * The nearest match whose day has passed without it kicking off (only with
+   * `startedDecidesPlayed`): it stays on the basic card with "Siirrä päivää" and
+   * "Poista" instead of turning into a 0-0 result (R2). Null when none.
+   */
+  overdue?: HomeUpcomingGame | null;
+  /**
+   * A match that has kicked off and not reached full time - the current game
+   * when it is one, else the latest such match. It always wins the basic card
+   * ("Jatka ottelua", R5). Null when none.
+   */
+  unfinished?: HomeResumeGame | null;
 }
 
 export interface HomeSummaryOptions {
@@ -238,6 +304,15 @@ export interface HomeSummaryOptions {
    * whose it is.
    */
   teamFilter?: string;
+  /**
+   * Basic layout (R2): whether a match was played is read off the match itself
+   * (`hasMatchStarted`), never off its "played" flag. Every basic-layout
+   * account was created under the new rules, so a past match with nothing
+   * recorded really is one that never kicked off. The full layout keeps
+   * trusting the flag for past matches: accounts there have history entered
+   * by hand, where a 0-0 with nothing recorded may be a real result.
+   */
+  startedDecidesPlayed?: boolean;
   teamsCount?: number;
   personnelCount?: number;
   seasonsCount?: number;
@@ -291,6 +366,7 @@ export function buildHomeSummary(
       currentPeriod: c.currentPeriod,
       timeElapsedSeconds: c.timeElapsedInSeconds,
       inProgress: c.gameStatus === 'inProgress' || c.gameStatus === 'periodEnd',
+      started: hasMatchStarted(c, opts.today),
     };
   }
 
@@ -374,13 +450,28 @@ export function buildHomeSummary(
 
   // --- Recent strip ---
   const scoped = opts.teamFilter && opts.teamFilter !== 'all' ? opts.teamFilter : null;
+  const inScope = (g: AppState): boolean => {
+    if (!scoped) return true;
+    return scoped === 'legacy' ? !(g.teamId ?? '') : g.teamId === scoped;
+  };
+  const strict = opts.startedDecidesPlayed === true;
+  /**
+   * Still ahead of the coach (R2): not begun, and either the basic layout (the
+   * match decides) or dated today or later (a match created today with the
+   * "played" flag on is not a result yet). Past matches in the full layout keep
+   * trusting the flag - see `startedDecidesPlayed`.
+   */
+  const isAhead = (g: AppState): boolean => {
+    if (!isUsableDate(g.gameDate) || hasMatchStarted(g, opts.today)) return false;
+    return strict || g.gameDate >= opts.today || g.isPlayed === false;
+  };
   const playedInScope = Object.entries(all)
     // Scoped too: showing another team's matches under this team's record is
     // the same confusion one line down.
     .filter(([, g]) => {
-      if (!g || g.isPlayed === false || !g.gameDate) return false;
-      if (!scoped) return true;
-      return scoped === 'legacy' ? !(g.teamId ?? '') : g.teamId === scoped;
+      if (!g || !g.gameDate || !inScope(g)) return false;
+      if (strict) return hasMatchStarted(g, opts.today);
+      return g.isPlayed !== false && !isAhead(g);
     });
   const playedCount = playedInScope.length;
   const recent: HomeRecentGame[] = playedInScope
@@ -439,45 +530,91 @@ export function buildHomeSummary(
     measuredDrives.set(`${g.locationLat},${g.locationLng}`, g.travelMinutes);
   }
 
+  const toFixture = ([id, g]: [string, AppState]): HomeUpcomingGame => ({
+    id,
+    opponent: g.opponentName || '',
+    date: g.gameDate || '',
+    time: g.gameTime || undefined,
+    venue: g.gameLocation || undefined,
+    venueTown: townFromAddress(g.locationAddress, g.gameLocation),
+    venueAddress: g.locationAddress || undefined,
+    fieldNumber: g.fieldNumber || undefined,
+    mapsUrl: mapsDirectionsUrl(g.locationLat, g.locationLng, g.locationAddress),
+    daysAway: daysBetween(opts.today, g.gameDate || ''),
+    teamName: g.teamName || '',
+    squadCount: g.selectedPlayerIds?.length ?? 0,
+    travel: planDeparture({
+      kickoff: g.gameTime,
+      from: opts.startingPoint ?? null,
+      to:
+        typeof g.locationLat === 'number' && typeof g.locationLng === 'number'
+          ? { latitude: g.locationLat, longitude: g.locationLng }
+          : null,
+      // This match's own figure wins over the club default: a cup tie asking
+      // for an hour must not drag every other fixture with it.
+      arrivalBufferMinutes:
+        g.arrivalBufferMinutes ?? opts.arrivalBufferMinutes ?? DEFAULT_ARRIVAL_BUFFER_MINUTES,
+      confirmedTravelMinutes:
+        g.travelMinutes ?? measuredDrives.get(`${g.locationLat},${g.locationLng}`) ?? null,
+    }),
+  });
+
   const upcomingAll: HomeUpcomingGame[] = Object.entries(all)
     .filter(([, g]) => {
-      if (!g || g.isPlayed !== false || !isUsableDate(g.gameDate)) return false;
-      if (g.gameDate < opts.today) return false;
-      if (!scoped) return true;
-      return scoped === 'legacy' ? !(g.teamId ?? '') : g.teamId === scoped;
+      if (!g || !isUsableDate(g.gameDate) || g.gameDate < opts.today || !inScope(g)) return false;
+      // A flagged-unplayed fixture keeps its place (as before); an unflagged
+      // one joins it while it has not begun (R2).
+      return g.isPlayed === false ? !strict || !hasMatchStarted(g, opts.today) : isAhead(g);
     })
-    .sort((a, b) => (a[1].gameDate || '').localeCompare(b[1].gameDate || ''))
+    .sort(compareFixtures)
     .slice(0, recentLimit)
-    .map(([id, g]) => ({
-      id,
-      opponent: g.opponentName || '',
-      date: g.gameDate || '',
-      time: g.gameTime || undefined,
-      venue: g.gameLocation || undefined,
-      venueTown: townFromAddress(g.locationAddress, g.gameLocation),
-      venueAddress: g.locationAddress || undefined,
-      fieldNumber: g.fieldNumber || undefined,
-      mapsUrl: mapsDirectionsUrl(g.locationLat, g.locationLng, g.locationAddress),
-      daysAway: daysBetween(opts.today, g.gameDate || ''),
-      teamName: g.teamName || '',
-      squadCount: g.selectedPlayerIds?.length ?? 0,
-      travel: planDeparture({
-        kickoff: g.gameTime,
-        from: opts.startingPoint ?? null,
-        to:
-          typeof g.locationLat === 'number' && typeof g.locationLng === 'number'
-            ? { latitude: g.locationLat, longitude: g.locationLng }
-            : null,
-        // This match's own figure wins over the club default: a cup tie asking
-        // for an hour must not drag every other fixture with it.
-        arrivalBufferMinutes:
-          g.arrivalBufferMinutes ?? opts.arrivalBufferMinutes ?? DEFAULT_ARRIVAL_BUFFER_MINUTES,
-        confirmedTravelMinutes:
-          g.travelMinutes ?? measuredDrives.get(`${g.locationLat},${g.locationLng}`) ?? null,
-      }),
-    }));
+    .map(toFixture);
 
   const upcoming = upcomingAll[0] ?? null;
+
+  // Basic layout only (R2): a match whose day passed without it kicking off -
+  // the latest such, so the one the coach most likely still means to play.
+  const overdueEntry = strict
+    ? Object.entries(all)
+        .filter(([, g]) => !!g && isUsableDate(g.gameDate) && g.gameDate < opts.today && inScope(g) && isAhead(g))
+        .sort((a, b) => compareFixtures(b, a))[0]
+    : undefined;
+  const overdue: HomeUpcomingGame | null = overdueEntry
+    ? { ...toFixture(overdueEntry), daysOverdue: daysBetween(overdueEntry[1].gameDate || '', opts.today) }
+    : null;
+
+  // A match under way, wherever it is (R5): the current game first.
+  const isUnderWay = (g: AppState | undefined): boolean =>
+    !!g && (g.gameStatus === 'inProgress' || g.gameStatus === 'periodEnd');
+  let unfinished: HomeResumeGame | null = resume?.inProgress ? resume : null;
+  if (!unfinished) {
+    const latest = Object.entries(all)
+      .filter(([, g]) => isUnderWay(g) && inScope(g))
+      .sort((a, b) => compareFixtures(b, a))[0];
+    if (latest) {
+      const [id, g] = latest;
+      unfinished = {
+        id,
+        opponent: g.opponentName || '',
+        ourScore: g.homeOrAway === 'home' ? g.homeScore : g.awayScore,
+        theirScore: g.homeOrAway === 'home' ? g.awayScore : g.homeScore,
+        homeOrAway: g.homeOrAway,
+        isPlayed: g.isPlayed !== false,
+        date: g.gameDate || undefined,
+        time: g.gameTime || undefined,
+        venue: g.gameLocation || undefined,
+        venueTown: townFromAddress(g.locationAddress, g.gameLocation),
+        venueAddress: g.locationAddress || undefined,
+        fieldNumber: g.fieldNumber || undefined,
+        mapsUrl: mapsDirectionsUrl(g.locationLat, g.locationLng, g.locationAddress),
+        currentPeriod: g.currentPeriod,
+        timeElapsedSeconds: g.timeElapsedInSeconds,
+        inProgress: true,
+        started: true,
+      };
+    }
+  }
+  const gameCount = Object.values(all).filter((g) => !!g && inScope(g)).length;
   // The strip shows what comes AFTER the card, not including it. Repeating the
   // carded fixture directly beneath itself is the same duplication the accent
   // rule exists to avoid - and with only one fixture booked it means no strip
@@ -514,10 +651,25 @@ export function buildHomeSummary(
         mapsUrl: null,
         currentPeriod: lastPlayedGame.currentPeriod,
         timeElapsedSeconds: lastPlayedGame.timeElapsedInSeconds,
+        started: hasMatchStarted(lastPlayedGame, opts.today),
       }
     : null;
 
-  return { resume, lastPlayed, vuosi, recent, upcoming, upcomingList, counts, countsReady, topScorer, playedCount };
+  return {
+    resume,
+    lastPlayed,
+    vuosi,
+    recent,
+    upcoming,
+    upcomingList,
+    counts,
+    countsReady,
+    topScorer,
+    playedCount,
+    gameCount,
+    overdue,
+    unfinished,
+  };
 }
 
 /** The same calendar day a year earlier (29 February clamps to the 28th). */

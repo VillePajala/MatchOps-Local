@@ -200,7 +200,9 @@ describe('buildHomeSummary — recent strip', () => {
 
   it('respects the recent limit', () => {
     const games: SavedGamesCollection = {};
-    for (let i = 1; i <= 8; i++) games['g' + i] = g({ gameDate: `2024-0${i % 9 || 1}-15` });
+    // Finished matches: a match dated today or later with nothing recorded is
+    // still ahead of the coach (R2), not part of the recent strip.
+    for (let i = 1; i <= 8; i++) games['g' + i] = g({ gameDate: `2024-0${i % 9 || 1}-15`, gameStatus: 'gameEnd' });
     const { recent } = buildHomeSummary(games, { ...opts, recentLimit: 6 });
     expect(recent).toHaveLength(6);
   });

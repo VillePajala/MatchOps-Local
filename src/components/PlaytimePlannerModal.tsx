@@ -88,7 +88,7 @@ import {
   clearAllPlacements,
 } from '@/utils/playtimePlanner/lineup';
 import { addSub, removeSub, moveSubToSlot, setSubPlayer } from '@/utils/playtimePlanner/subs';
-import { swapPlayersInGame } from '@/utils/playtimePlanner/swap';
+import { placePlayerInSlot, swapPlayersInGame } from '@/utils/playtimePlanner/swap';
 import { suggestFairShareLineup } from '@/utils/playtimePlanner/suggest';
 import {
   addPlayerToPlan,
@@ -742,22 +742,16 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     }
   };
 
-  // Assign (or clear) a player in a game's starting lineup. Normalizes the
-  // game's slots to its formation first, so stored data always matches the shape.
-  // Scheduled subs bringing the placed player on are KEPT (rotations are legal);
-  // any impossible same-minutes overlap is flagged by the conflict banner instead.
+  // Assign (or clear) a player in a game's starting lineup (placePlayerInSlot):
+  // onto a held position the two players swap their whole games; onto an empty
+  // one the player starts there and any planned change that would have them on
+  // elsewhere at the same time is dropped. A player is never in two slots at
+  // once (review R13); a later return after they come off is kept.
   const handleAssign = useCallback(
     (gameId: string, slotId: string, playerId: string | null) => {
       updateActivePlan((plan) => ({
         ...plan,
-        games: plan.games.map((g) =>
-          g.id === gameId
-            ? {
-                ...g,
-                startingSlots: assignPlayerToSlot(ensureStartingSlots(g), slotId, playerId),
-              }
-            : g,
-        ),
+        games: plan.games.map((g) => (g.id === gameId ? placePlayerInSlot(g, slotId, playerId) : g)),
       }));
     },
     [updateActivePlan],
@@ -2425,7 +2419,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               }}
               className={`${primaryButtonStyle} w-full`}
             >
-              {t('playtimePlanner.overview.suggestButton', 'Suggest fair lineups')}
+              {t('playtimePlanner.overview.suggestButton', 'Suggest lineups')}
             </button>
 
             {/* Games are EDITED here as data (standalone Settings-tab pattern):
@@ -2804,7 +2798,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
       <ConfirmationModal
         isOpen={showSuggestConfirm}
-        title={t('playtimePlanner.overview.suggestConfirmTitle', 'Suggest fair lineups?')}
+        title={t('playtimePlanner.overview.suggestConfirmTitle', 'Suggest lineups?')}
         message={t(
           'playtimePlanner.overview.suggestConfirmMessage',
           'Builds lineups and substitutions for every included game so playing time comes out as even as possible and every player gets on the pitch. The goalkeeper is never subbed mid-game.',
@@ -2820,7 +2814,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             return;
           }
           updateActivePlan((plan) => suggestFairShareLineup(plan));
-          showToast(t('playtimePlanner.overview.suggestDone', 'Fair lineups suggested - check the balance view.'), 'success');
+          showToast(t('playtimePlanner.overview.suggestDone', 'Lineups suggested - check the balance view.'), 'success');
         }}
         onCancel={() => setShowSuggestConfirm(false)}
         confirmLabel={t('playtimePlanner.overview.suggestConfirmLabel', 'Suggest')}

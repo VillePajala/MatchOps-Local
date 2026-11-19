@@ -724,11 +724,12 @@ describe('timer lifecycle scenarios (review 4.21 bench)', () => {
 });
 
 /**
- * Review 5.12: the menu's "finish this game" badge counts pending voice clips like the
- * wrap-up checklist does - they disagreed by one for every game with dictation.
+ * Review R7: the menu's "finish this game" badge counts only the D2 core (squad
+ * + goal log), like the checklist's counter, so it agrees with "Valmis". Pending
+ * voice clips are a checklist row, never part of the count.
  * @critical
  */
-describe('finish-this-game badge counts voice clips', () => {
+describe('finish-this-game badge counts the D2 core only', () => {
   let queryClient: QueryClient;
   const GAME = 'game-done';
   beforeEach(() => {
@@ -741,38 +742,20 @@ describe('finish-this-game badge counts voice clips', () => {
   });
   afterEach(() => queryClient.clear());
 
-  const badgeTotal = async () => {
+  const mountBadge = async () => {
     const Wrapper = ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
     const view = renderHook(() => useGameOrchestration({ skipInitialSetup: true }), { wrapper: Wrapper });
     await waitFor(() => expect(view.result.current.isBootstrapping).toBe(false), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
-    await waitFor(() => expect(view.result.current.gameContainerProps.fieldProps.finishProgress).not.toBeNull(), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
-    await waitFor(() => expect(mockCountClips).toHaveBeenCalled());
-    await act(async () => { await Promise.resolve(); });
+    await waitFor(() => expect(view.result.current.gameContainerProps.controlBarProps.finishProgress).not.toBeNull(), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
     return view;
   };
-  const total = (view: Awaited<ReturnType<typeof badgeTotal>>) => view.result.current.gameContainerProps.fieldProps.finishProgress!.total;
 
-  it('a pending clip adds the voice-notes item to the badge total', async () => {
-    mockCountClips.mockResolvedValue(0);
-    const a = await badgeTotal();
-    const without = total(a);
-    a.unmount();
-    mockCountClips.mockResolvedValue(1);
-    const b = await badgeTotal();
-    expect(total(b)).toBe(without + 1);
-    b.unmount();
-  });
-
-  it('re-counts when the clip store reports a saved clip (after the write)', async () => {
-    mockCountClips.mockResolvedValue(0);
-    const view = await badgeTotal();
-    const without = total(view);
-    mockCountClips.mockResolvedValue(1);
-    await act(async () => { clipListeners.forEach((l) => l()); });
-    await waitFor(() => expect(total(view)).toBe(without + 1));
+  it('has two items whether or not voice clips wait', async () => {
+    mockCountClips.mockResolvedValue(3);
+    const view = await mountBadge();
+    expect(view.result.current.gameContainerProps.controlBarProps.finishProgress?.total).toBe(2);
     view.unmount();
   });
 });
-

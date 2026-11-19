@@ -530,6 +530,10 @@ describe('LoadGameModal', () => {
           tournamentId: '',
           isPlayed: true,
           selectedPlayerIds: ['p1'],
+          // A score with no goals logged: unfinished under the D2 rule.
+          homeScore: 1,
+          awayScore: 0,
+          gameEvents: [],
           assessments: {},
         } as unknown as AppState,
       };
@@ -543,6 +547,36 @@ describe('LoadGameModal', () => {
       const badge = within(gameCard).getByTitle(/needsFinishing/i);
       expect(badge).toHaveClass('bg-white/[0.06]');
       expect(badge.className).not.toContain('text-action');
+    });
+
+    /**
+     * @critical - D2: squad + a goal log matching the score is "valmis"; the
+     * written report and scorers are not required.
+     */
+    it('shows no "needs finishing" badge for a game with goals logged but no report or scorers', async () => {
+      const games: SavedGamesCollection = {
+        'game_valmis': {
+          teamName: 'Valmis Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-03-15',
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: '',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          homeScore: 1,
+          awayScore: 1,
+          gameEvents: [
+            { id: 'g1', type: 'goal', time: 60 },
+            { id: 'g2', type: 'opponentGoal', time: 120 },
+          ],
+          gameNotes: '',
+          assessments: {},
+        } as unknown as AppState,
+      };
+      await renderModal({ savedGames: games });
+      const gameCard = await screen.findByTestId('game-item-game_valmis');
+      expect(within(gameCard).queryByTitle(/needsFinishing/i)).not.toBeInTheDocument();
     });
 
     it('does not display league badge when season has no leagueId', async () => {

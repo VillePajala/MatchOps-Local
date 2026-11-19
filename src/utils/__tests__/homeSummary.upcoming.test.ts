@@ -67,7 +67,7 @@ describe('upcoming fixtures', () => {
   });
 
   it('ignores played matches, however recent', () => {
-    const s = summary({ a: g({ isPlayed: true, gameDate: '2026-09-20' }) });
+    const s = summary({ a: g({ isPlayed: true, gameDate: '2026-09-20', gameStatus: 'gameEnd' }) });
 
     expect(s.upcoming).toBeNull();
   });

@@ -38,14 +38,20 @@ export type AppLayout = (typeof APP_LAYOUTS)[number];
 
 /**
  * First-time onboarding milestones (D17), stored as ISO timestamps in the
- * coach's own settings row. Measurement only - nothing in the app branches on
- * them except "already recorded".
+ * coach's own settings row. Measurement, plus one decision: `wizardDone` /
+ * `wizardSkipped` mean the setup wizard has been seen on this ACCOUNT (R9).
  */
 export const ONBOARDING_MILESTONES = [
   /** The account was created (the auth record's creation time). */
   'signedUp',
   /** The setup wizard's "Valmis" created the team and players. */
   'wizardDone',
+  /**
+   * The coach skipped the setup wizard (review R9). With `wizardDone`, this is
+   * how the account - not just this device - remembers the wizard was seen, so
+   * it never opens again on a new phone.
+   */
+  'wizardSkipped',
   /** The first plan screen opened. */
   'firstPlanSeen',
   /** The first game reached full time. */

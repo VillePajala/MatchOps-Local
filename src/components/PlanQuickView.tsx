@@ -2,7 +2,7 @@
 
 /**
  * PlanQuickView - the playing-time planner in COMPACT mode for one game
- * (Onboarding v3, "Peluutus").
+ * (Onboarding v3, "Suunnitelma").
  *
  * The coach lands here right after naming the next game. It is the planner
  * reduced to one game: no Pelit / Tasapaino / Asetukset tabs, just the facts,
@@ -16,7 +16,7 @@
  * Copy rule: facts only (who starts, minutes, changes) - never a claim about
  * fairness or that everyone plays.
  *
- * Reusable on purpose: Home's "Näytä peluutus" will open this same screen.
+ * Reusable on purpose: Home's "Näytä suunnitelma" will open this same screen.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -28,8 +28,8 @@ import { useToast } from '@/contexts/ToastProvider';
 import { getPlan, savePlan } from '@/utils/playtimePlanner/storage';
 import { getPlanLink } from '@/utils/playtimePlanner/planLinks';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
-import { swapPlayersInGame } from '@/utils/playtimePlanner/swap';
-import { assignPlayerToSlot, ensureStartingSlots, getGameSlots } from '@/utils/playtimePlanner/lineup';
+import { placePlayerInSlot, swapPlayersInGame } from '@/utils/playtimePlanner/swap';
+import { ensureStartingSlots, getGameSlots } from '@/utils/playtimePlanner/lineup';
 import { computePlanMinutes } from '@/utils/playtimePlanner/minutes';
 import { toEnginePlan } from '@/utils/playtimePlanner/adapter';
 import type { PlaytimePlan, PlanGame } from '@/utils/playtimePlanner/types';
@@ -40,6 +40,9 @@ import { changePlanGameLength, reshufflePlan, syncPairedGame } from '@/services/
 import { formatShortGameDay } from '@/utils/nextGameDates';
 import type { AppState } from '@/types';
 import PlanFieldView from '@/components/PlanFieldView';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { lineupMatchesPlan } from '@/services/attendance';
+import { isGamePlayed } from '@/utils/playtimePlanner/reapply';
 import { lazyModal } from '@/components/lazyModal';
 import logger from '@/utils/logger';
 import {
@@ -93,6 +96,11 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
   const [dateDraft, setDateDraft] = useState('');
   const [periodsDraft, setPeriodsDraft] = useState<1 | 2>(2);
   const [minutesDraft, setMinutesDraft] = useState(15);
+  // The coach moved players on the game's pitch by hand since the plan was
+  // applied (the attendance sheet's same check). A plan edit re-applies the
+  // plan to the pitch, so the first one asks first (review R13).
+  const handEditedRef = useRef(false);
+  const [pendingEdit, setPendingEdit] = useState<(() => void) | null>(null);
 
   // ── Load ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -104,6 +112,15 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
         if (!p || !g || p.games.length === 0) {
           setLoadFailed(true);
           return;
+        }
+        if (!isGamePlayed(g)) {
+          const link = await getPlanLink(gameId);
+          const linked = link?.planId === p.id ? p.games.find((pg) => pg.id === link.planGameId) : undefined;
+          if (linked) {
+            const roster = await getMasterRoster(userId);
+            if (cancelled) return;
+            handEditedRef.current = !lineupMatchesPlan(g, p, linked, roster);
+          }
         }
         setPlan(p);
         setGame(g);
@@ -147,6 +164,36 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
     [gameId, userId, queryClient, showToast, t],
   );
 
+  /** Run a plan edit, asking first when it would replace hand-moved players. */
+  const guardedEdit = useCallback((apply: () => void) => {
+    if (handEditedRef.current) setPendingEdit(() => apply);
+    else apply();
+  }, []);
+  const confirmPendingEdit = useCallback(() => {
+    handEditedRef.current = false; // asked once: the coach chose the plan
+    pendingEdit?.();
+    setPendingEdit(null);
+  }, [pendingEdit]);
+
+  /** A date change touches only the game: no reason to redo its line-up. */
+  const persistGameDate = useCallback(
+    (gameDate: string) => {
+      chainRef.current = chainRef.current.then(async () => {
+        try {
+          const stored = await getGame(gameId, userId);
+          if (!stored) throw new Error('game missing');
+          await saveGame(gameId, { ...stored, gameDate }, userId);
+          await queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
+        } catch (error) {
+          logger.error('[PlanQuickView] date save failed:', error);
+          showToast(t('firstPlan.saveError', 'Could not save the change. Please try again.'), 'error');
+        }
+      });
+      return chainRef.current;
+    },
+    [gameId, userId, queryClient, showToast, t],
+  );
+
   const planGame: PlanGame | null = plan?.games[0] ?? null;
 
   const updatePlanGame = useCallback(
@@ -156,10 +203,12 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
         ...plan,
         games: plan.games.map((g) => (g.id === planGame.id ? mutate(g) : g)),
       };
-      setPlan(next);
-      void persist(next);
+      guardedEdit(() => {
+        setPlan(next);
+        void persist(next);
+      });
     },
-    [plan, planGame, persist],
+    [plan, planGame, persist, guardedEdit],
   );
 
   // ── Pitch interactions ──────────────────────────────────────────────────
@@ -168,23 +217,21 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
     [updatePlanGame],
   );
   // A bench player tapped onto a position takes that player's WHOLE game (a
-  // swap), so a substitute never ends up in two places; an empty spot is filled.
+  // swap), so a substitute never ends up in two places; an empty spot is filled
+  // (the full planner's same rule, placePlayerInSlot).
   const handleAssign = useCallback(
-    (slotId: string, playerId: string | null) =>
-      updatePlanGame((g) => {
-        const occupant = ensureStartingSlots(g).find((s) => s.slotId === slotId)?.playerId ?? null;
-        if (occupant && playerId && occupant !== playerId) return swapPlayersInGame(g, occupant, playerId);
-        return { ...g, startingSlots: assignPlayerToSlot(ensureStartingSlots(g), slotId, playerId) };
-      }),
+    (slotId: string, playerId: string | null) => updatePlanGame((g) => placePlayerInSlot(g, slotId, playerId)),
     [updatePlanGame],
   );
 
   const handleReshuffle = useCallback(() => {
     if (!plan) return;
     const next = reshufflePlan(plan);
-    setPlan(next);
-    void persist(next);
-  }, [plan, persist]);
+    guardedEdit(() => {
+      setPlan(next);
+      void persist(next);
+    });
+  }, [plan, persist, guardedEdit]);
 
   // ── Derived facts ───────────────────────────────────────────────────────
   const nameById = useMemo(() => new Map((plan?.players ?? []).map((p) => [p.id, p.name])), [plan]);
@@ -236,15 +283,17 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
     if (!plan || !game || !/^\d{4}-\d{2}-\d{2}$/.test(dateDraft)) return;
     setGame({ ...game, gameDate: dateDraft });
     setEditing(null);
-    void persist(plan, { gameDate: dateDraft });
+    void persistGameDate(dateDraft);
   };
   const applyLength = () => {
     if (!plan || !planGame || !game) return;
     const next = changePlanGameLength(plan, planGame.id, periodsDraft, minutesDraft);
-    setPlan(next);
-    setGame({ ...game, numberOfPeriods: periodsDraft, periodDurationMinutes: minutesDraft });
     setEditing(null);
-    void persist(next, { numberOfPeriods: periodsDraft, periodDurationMinutes: minutesDraft });
+    guardedEdit(() => {
+      setPlan(next);
+      setGame({ ...game, numberOfPeriods: periodsDraft, periodDurationMinutes: minutesDraft });
+      void persist(next, { numberOfPeriods: periodsDraft, periodDurationMinutes: minutesDraft });
+    });
   };
   const pickKeeper = (playerId: string) => {
     if (keeperId && playerId !== keeperId) handleSwap(keeperId, playerId);
@@ -264,18 +313,23 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
     const edited = latestFromFullRef.current;
     latestFromFullRef.current = null;
     if (!edited || edited.games.length === 0) return;
+    // The full planner already stored the plan: show it either way. Bringing
+    // the game in line is what may replace hand-moved players, so that waits
+    // for the coach's answer.
     setPlan(edited);
     const g0 = edited.games[0];
     const lengthChanged =
       game && (game.numberOfPeriods !== g0.numberOfPeriods || game.periodDurationMinutes !== g0.periodMinutes);
-    if (game && lengthChanged) {
-      const periods: 1 | 2 = g0.numberOfPeriods === 1 ? 1 : 2;
-      setGame({ ...game, numberOfPeriods: periods, periodDurationMinutes: g0.periodMinutes });
-      void persist(edited, { numberOfPeriods: periods, periodDurationMinutes: g0.periodMinutes });
-    } else {
-      void persist(edited);
-    }
-  }, [game, persist]);
+    guardedEdit(() => {
+      if (game && lengthChanged) {
+        const periods: 1 | 2 = g0.numberOfPeriods === 1 ? 1 : 2;
+        setGame({ ...game, numberOfPeriods: periods, periodDurationMinutes: g0.periodMinutes });
+        void persist(edited, { numberOfPeriods: periods, periodDurationMinutes: g0.periodMinutes });
+      } else {
+        void persist(edited);
+      }
+    });
+  }, [game, persist, guardedEdit]);
 
   const handleDone = useCallback(async () => {
     await chainRef.current; // the last edit is written before leaving
@@ -314,7 +368,7 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
     >
       <div className="w-full max-w-md mx-auto px-4 pt-5 pb-8 pb-safe space-y-4">
         <header className="space-y-2">
-          <h1 className={titleStyle}>{t('firstPlan.title', 'Rotation')}</h1>
+          <h1 className={titleStyle}>{t('firstPlan.title', 'Plan')}</h1>
           <p className="text-[15px] text-ink-2 flex flex-wrap items-center gap-x-1.5">
             <span data-testid="plan-quick-date">{formatShortGameDay(game.gameDate, language)}</span>
             <button
@@ -531,6 +585,17 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={pendingEdit !== null}
+        title={t('firstPlan.handEditedTitle', 'Moved by hand')}
+        message={t('attendance.redoWarning', 'The line-up will be made again from the plan. Changes made by hand on the pitch are replaced.')}
+        confirmLabel={t('firstPlan.handEditedConfirm', 'Use the plan')}
+        cancelLabel={t('common.cancel', 'Cancel')}
+        onConfirm={confirmPendingEdit}
+        onCancel={() => setPendingEdit(null)}
+        variant="primary"
+      />
 
       {fullPlannerOpen && (
         <PlaytimePlannerModal

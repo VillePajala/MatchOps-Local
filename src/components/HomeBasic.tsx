@@ -6,17 +6,27 @@
  * there is no tab bar.
  *
  * Zones, top to bottom:
- *   1. the next-game card (or, with no game booked, the last result and
- *      "Uusi ottelu"; a match under way gets the Continue card),
- *   2. rows that appear once there is something behind them: the team, the
- *      played games (from the first), the statistics (from the third),
+ *   1. the card, first match wins (review R2/R5/R12):
+ *        a match under way          -> "Jatka ottelua"
+ *        the next game              -> "Aloita ottelu" / "Merkitse poissaolijat"
+ *        a game that never started  -> "Siirrä päivää" / "Poista"
+ *        no players yet             -> "Lisää pelaajat" (then the next game)
+ *        otherwise                  -> the last result and "Uusi ottelu"
+ *   2. rows that appear once there is something behind them: the team (opens
+ *      the player list), all games (from the first), statistics (from the
+ *      first played game),
  *   3. "Kaikki toiminnot": what the full layout adds, and one switch to it.
  *
- * Copy rule: facts only - "Peluutus valmis · 14 pelaajaa", never a fairness
+ * Copy rule: facts only - "Suunnitelma valmis · 14 pelaajaa", never a fairness
  * claim.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { useEscapeToClose } from '@/hooks/useEscapeToClose';
+import { splitPastedNames, PASTE_MAX_NAMES } from '@/utils/splitPastedNames';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { toLocalIsoDate } from '@/utils/nextGameDates';
 import { createPortal } from 'react-dom';
 import type { TFunction } from 'i18next';
 import {
@@ -24,6 +34,7 @@ import {
   HiOutlineFolderOpen,
   HiOutlineChartBar,
   HiOutlineChevronRight,
+  HiOutlineXMark,
 } from 'react-icons/hi2';
 import type { HomeSummary } from '@/utils/homeSummary';
 import { getPlanLink } from '@/utils/playtimePlanner/planLinks';
@@ -49,8 +60,8 @@ interface NextGamePlan {
   planGameId?: string;
 }
 
-/** Statistics are worth a row once there is something to compare. */
-const STATS_ROW_FROM_GAMES = 3;
+/** Statistics get a row from the first played game (R13). */
+const STATS_ROW_FROM_GAMES = 1;
 
 export interface HomeBasicProps {
   summary: HomeSummary | null | undefined;
@@ -59,12 +70,24 @@ export interface HomeBasicProps {
   onNewGame?: () => void;
   /** "Ketkä ovat paikalla?" for a game; 'start' opens the game after it. */
   onOpenAttendance?: (gameId: string, mode: 'save' | 'start') => void;
-  /** "Näytä peluutus" for a one-game plan: the compact plan screen. */
+  /** "Näytä suunnitelma" for a one-game plan: the compact plan screen. */
   onShowPlan?: (planId: string, gameId: string) => void;
-  /** "Näytä peluutus" for a game in a multi-game plan: the full planner on that game. */
+  /** "Näytä suunnitelma" for a game in a multi-game plan: the full planner on that game. */
   onOpenPlannerAt?: (planId: string, planGameId: string) => void;
-  onManageTeams?: () => void;
+  /** The team row: the player list (tap a player to edit, add, remove - R4). */
+  onOpenPlayers?: () => void;
   onLoadGame?: () => void;
+  /** "Siirrä päivää" on a game that never started (R2). Resolves false on failure. */
+  onMoveGameDate?: (gameId: string, gameDate: string) => Promise<boolean>;
+  /** "Poista" on a game that never started (R2), after the confirm. Resolves false on failure. */
+  onDeleteGame?: (gameId: string) => Promise<boolean>;
+  /**
+   * "Lisää pelaajat" with no players yet (R12): creates the named players and
+   * resolves how many were created, in order (the rest stay in the field).
+   */
+  onAddPlayers?: (names: string[]) => Promise<number>;
+  /** Today, YYYY-MM-DD (the date editor's starting value). */
+  today?: string;
   onViewStats?: () => void;
   /** "Vaihda koko näkymään". */
   onSwitchToFull?: () => void;
@@ -132,6 +155,7 @@ function AllFeaturesSheet({ onClose, onSwitchToFull, t }: {
   t: TFunction;
 }) {
   useModalHardwareBack(true, onClose);
+  useEscapeToClose(true, onClose);
   const items = [
     t('allFeatures.itemTabs', 'Home with tabs: games, club, competitions and statistics'),
     t('allFeatures.itemPlanner', 'Rotation planning for several games, such as a tournament day'),
@@ -157,7 +181,19 @@ function AllFeaturesSheet({ onClose, onSwitchToFull, t }: {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" aria-hidden="true" />
-        <h2 className="font-display text-[26px] font-bold leading-tight">{t('allFeatures.title', 'All features')}</h2>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="font-display text-[26px] font-bold leading-tight">{t('allFeatures.title', 'All features')}</h2>
+          {/* A visible way out besides the backdrop and back (R13). */}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('common.close', 'Close')}
+            data-testid="all-features-close"
+            className={`-mr-2 -mt-1 grid h-11 w-11 flex-shrink-0 place-items-center rounded-full text-ink-3 transition-colors hover:bg-white/[0.06] hover:text-ink ${HOME_FOCUS}`}
+          >
+            <HiOutlineXMark className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
         <p className="mt-1.5 text-[15px] leading-snug text-ink-2">
           {t('allFeatures.intro', 'The basic layout shows what matters on match day. The full layout adds:')}
         </p>
@@ -190,6 +226,89 @@ function AllFeaturesSheet({ onClose, onSwitchToFull, t }: {
   );
 }
 
+/**
+ * "Lisää pelaajat" - the card when there are no players yet (R12). The same
+ * input as the wizard's player step: paste the list from WhatsApp or type the
+ * names one per line; numbers in front ("1.", "#12") are list positions and
+ * are dropped (splitPastedNames). "Jatka" creates them and goes on to the next
+ * game. After a partial failure only the names not yet created stay in the box.
+ */
+function AddPlayersCard({ onAddPlayers, t }: {
+  onAddPlayers?: (names: string[]) => Promise<number>;
+  t: TFunction;
+}) {
+  const { showToast } = useToast();
+  const [text, setText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const names = splitPastedNames(text, { maxNameLength: VALIDATION_LIMITS.PLAYER_NAME_MAX, maxNames: PASTE_MAX_NAMES });
+
+  const pasteFromClipboard = async () => {
+    try {
+      const clip = await navigator.clipboard.readText();
+      if (splitPastedNames(clip).length === 0) {
+        showToast(t('setupWizard.pasteEmpty', 'No names found on the clipboard.'), 'info');
+        return;
+      }
+      setText((prev) => (prev.trim() ? `${prev.replace(/\s+$/, '')}\n${clip}` : clip));
+    } catch {
+      showToast(
+        t('setupWizard.pasteUnavailable', 'Could not read the clipboard. Long-press the name field and choose Paste.'),
+        'info',
+      );
+    }
+  };
+
+  const submit = async () => {
+    if (!onAddPlayers || names.length === 0 || saving) return;
+    setSaving(true);
+    try {
+      const created = await onAddPlayers(names);
+      if (created < names.length) setText(names.slice(created).join('\n'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="s1-hero p-5 text-ink" data-testid="basic-add-players">
+      <h2 className="font-display text-[26px] font-bold leading-tight">{t('basicHome.addPlayersTitle', 'Add players')}</h2>
+      <p className="mt-1.5 text-[15px] leading-snug text-ink-2">
+        {t('basicHome.addPlayersHint', 'Paste the list or type the names, one per line. First names are enough.')}
+      </p>
+      <button
+        type="button"
+        onClick={() => void pasteFromClipboard()}
+        className={`s1-ghost mt-4 flex h-12 w-full items-center justify-center rounded-full px-4 text-[15px] font-semibold text-ink ${HOME_FOCUS}`}
+        data-testid="basic-add-players-paste"
+      >
+        {t('setupWizard.pasteButton', 'Paste from clipboard')}
+      </button>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={5}
+        maxLength={VALIDATION_LIMITS.PLAYER_NAME_MAX * PASTE_MAX_NAMES}
+        aria-label={t('basicHome.addPlayersTitle', 'Add players')}
+        placeholder={t('basicHome.addPlayersPlaceholder', 'Onni\nToivo\nAatos') ?? undefined}
+        data-testid="basic-add-players-input"
+        className="mt-3 w-full resize-none rounded-2xl bg-white/[0.06] px-4 py-3 text-base leading-snug text-ink placeholder:text-ink-3 ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+      />
+      <p className="mt-1.5 text-right text-sm text-ink-3" data-testid="basic-add-players-count">
+        {t('setupWizard.playersAdded', '{{count}} players added', { count: names.length })}
+      </p>
+      <button
+        type="button"
+        onClick={() => void submit()}
+        disabled={!onAddPlayers || names.length === 0 || saving}
+        className={`s1-primary mt-3 flex h-14 w-full items-center justify-center rounded-full px-5 text-base font-bold disabled:opacity-50 ${HOME_FOCUS}`}
+        data-testid="basic-add-players-submit"
+      >
+        {saving ? t('setupWizard.saving', 'Saving…') : t('basicHome.addPlayersContinue', 'Continue')}
+      </button>
+    </div>
+  );
+}
+
 const HomeBasic: React.FC<HomeBasicProps> = ({
   summary,
   onOpenGame,
@@ -198,8 +317,12 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
   onOpenAttendance,
   onShowPlan,
   onOpenPlannerAt,
-  onManageTeams,
+  onOpenPlayers,
   onLoadGame,
+  onMoveGameDate,
+  onDeleteGame,
+  onAddPlayers,
+  today,
   onViewStats,
   onSwitchToFull,
   locale,
@@ -207,7 +330,11 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
 }) => {
   const { showToast } = useToast();
   const [allFeaturesOpen, setAllFeaturesOpen] = useState(false);
-  const upcoming = summary?.upcoming ?? null;
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  // The game on the card: the next one, else one whose day passed without it
+  // kicking off (R2) - which keeps its "Siirrä päivää / Poista" card.
+  const upcoming = summary?.upcoming ?? summary?.overdue ?? null;
   // The summary is rebuilt whenever Home re-reads its data (a modal closed, the
   // match was left), which is also when a plan could have been made or removed.
   const nextPlan = useNextGamePlan(upcoming?.id, summary);
@@ -255,14 +382,39 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
     }
   }, [upcoming, nextPlan, locale, t, showToast]);
 
-  const resumeInProgress = summary?.resume?.inProgress ? summary.resume : null;
-  const last = summary?.resume ?? summary?.lastPlayed ?? null;
+  // A match under way always wins the card (R5), the current game or another.
+  const unfinished = summary?.unfinished ?? (summary?.resume?.inProgress ? summary.resume : null);
+  // Never a match that has not begun as "Viimeisin peli 0-0" (R2).
+  const last = (summary?.resume?.started ? summary.resume : null) ?? summary?.lastPlayed ?? null;
   const counts = summary?.countsReady ? summary.counts : undefined;
   const playedCount = summary?.playedCount ?? 0;
+  const gameCount = summary?.gameCount ?? 0;
+  const noPlayers = !!counts && counts.players === 0;
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!confirmDeleteId || !onDeleteGame || deleting) return;
+    setDeleting(true);
+    try {
+      if (await onDeleteGame(confirmDeleteId)) setConfirmDeleteId(null);
+    } finally {
+      setDeleting(false);
+    }
+  }, [confirmDeleteId, onDeleteGame, deleting]);
 
   return (
     <div className="flex min-h-full flex-col gap-3.5" data-testid="home-basic">
-      {upcoming ? (
+      {unfinished ? (
+        <ResumeCard
+          // Under way, so no result yet: no win/draw/loss pill on a live score.
+          resume={{ ...unfinished, isPlayed: false }}
+          onResume={
+            // The current game resumes in place; another one under way opens by id.
+            unfinished.id === summary?.resume?.id ? onResumeGame : () => onOpenGame(unfinished.id)
+          }
+          locale={locale}
+          t={t}
+        />
+      ) : upcoming ? (
         <BasicNextGameCard
           game={upcoming}
           planState={nextPlan.state}
@@ -270,11 +422,14 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
           onPrimary={() => onOpenAttendance?.(upcoming.id, upcoming.daysAway === 0 ? 'start' : 'save')}
           onShowPlan={onShowPlan || onOpenPlannerAt ? handleShowPlan : undefined}
           onShare={() => void handleShare()}
+          onMoveDate={onMoveGameDate ? (date) => onMoveGameDate(upcoming.id, date) : undefined}
+          onDelete={onDeleteGame ? () => setConfirmDeleteId(upcoming.id) : undefined}
+          today={today ?? toLocalIsoDate(new Date())}
           locale={locale}
           t={t}
         />
-      ) : resumeInProgress ? (
-        <ResumeCard resume={resumeInProgress} onResume={onResumeGame} locale={locale} t={t} />
+      ) : noPlayers ? (
+        <AddPlayersCard onAddPlayers={onAddPlayers} t={t} />
       ) : (
         <BasicNoNextGameCard
           last={last}
@@ -293,15 +448,16 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
               ? t('basicHome.teamRow', 'Team · {{count}} players', { count: counts.players })
               : t('basicHome.teamRowEmpty', 'Team')
           }
-          onClick={onManageTeams}
+          onClick={onOpenPlayers}
           testId="basic-team-row"
         />
-        {playedCount > 0 && (
+        {/* Every game, played or not, once there is one (R5). */}
+        {gameCount > 0 && (
           <BasicRow
             icon={HiOutlineFolderOpen}
-            label={t('basicHome.playedRow', 'Played games · {{count}}', { count: playedCount })}
+            label={t('basicHome.allGamesRow', 'All games · {{count}}', { count: gameCount })}
             onClick={onLoadGame}
-            testId="basic-played-row"
+            testId="basic-all-games-row"
           />
         )}
         {playedCount >= STATS_ROW_FROM_GAMES && (
@@ -316,7 +472,7 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
 
       {/* "Uusi ottelu" is the card's own action when nothing is booked; with a
           game booked it is here, one tap below the card. */}
-      {upcoming && onNewGame && (
+      {(unfinished || upcoming) && onNewGame && (
         <button
           type="button"
           onClick={onNewGame}
@@ -341,6 +497,17 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
       {allFeaturesOpen && (
         <AllFeaturesSheet onClose={() => setAllFeaturesOpen(false)} onSwitchToFull={onSwitchToFull} t={t} />
       )}
+
+      <ConfirmationModal
+        isOpen={confirmDeleteId !== null}
+        title={t('basicHome.deleteGameTitle', 'Remove this game?')}
+        message={t('basicHome.deleteGameMessage', 'The game and its plan are removed. This cannot be undone.')}
+        confirmLabel={t('basicHome.deleteGame', 'Remove')}
+        variant="danger"
+        isConfirming={deleting}
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 };

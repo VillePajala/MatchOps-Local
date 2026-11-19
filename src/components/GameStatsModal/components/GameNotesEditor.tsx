@@ -68,7 +68,10 @@ export function GameNotesEditor({
     // Composed from the same seven heading keys the AI draft uses, so the blank
     // template and a drafted report can never drift apart.
     const template = `${reportSectionHeadings(t).map(({ label }) => `${label}:`).join('\n\n')}\n`;
-    onEditNotesChange(editGameNotes.trim() ? `${editGameNotes.trimEnd()}\n\n${template}` : template);
+    // From the read view the editor is not open yet: open it on the saved text.
+    const base = isEditingNotes ? editGameNotes : gameNotes;
+    if (!isEditingNotes) onStartEdit();
+    onEditNotesChange(base.trim() ? `${base.trimEnd()}\n\n${template}` : template);
     requestAnimationFrame(() => notesTextareaRef.current?.focus());
   };
 
@@ -144,8 +147,19 @@ export function GameNotesEditor({
         </div>
       )}
       {/* Offered while reading too: the coach does not have to enter edit mode
-          to ask for the text they are looking at to be organised. */}
-      {!isEditingNotes && canTidy && <div className="flex gap-2 mt-3">{tidyButton}</div>}
+          to ask for the text they are looking at to be organised. The template
+          is offered for an empty report - hidden behind a tap on the text box,
+          coaches never found it (review R7). */}
+      {!isEditingNotes && (canTidy || !gameNotes.trim()) && (
+        <div className="flex gap-2 mt-3">
+          {!gameNotes.trim() && (
+            <button type="button" onClick={handleUseTemplate} className={ROW_BTN} data-testid="report-editor-template">
+              {t('gameSettingsModal.useTemplate' as TranslationKey, 'Template')}
+            </button>
+          )}
+          {tidyButton}
+        </div>
+      )}
     </div>
   );
 }

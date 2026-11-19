@@ -447,7 +447,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
             deltaMin === null
               ? ''
               : deltaMin === 0
-                ? t('playtimePlanner.balance.focusOnShare', 'on fair share')
+                ? t('playtimePlanner.balance.focusOnShare', 'on own share')
                 : t('playtimePlanner.balance.focusDelta', '{{delta}} min vs own share', {
                     delta: deltaMin > 0 ? `+${deltaMin}` : `${deltaMin}`,
                   });

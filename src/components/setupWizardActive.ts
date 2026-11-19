@@ -76,6 +76,11 @@ const homeListeners = new Set<() => void>();
 export const setHomeShowing = (value: boolean): void => {
   if (homeShowing === value) return;
   homeShowing = value;
+  // Leaving Home ends the first visit after onboarding (see below).
+  if (!value && onboardingJustFinished) {
+    onboardingJustFinished = false;
+    onboardingListeners.forEach((l) => l());
+  }
   homeListeners.forEach((l) => l());
 };
 
@@ -91,6 +96,37 @@ const getHomeServerSnapshot = () => false;
 /** True while Home is the screen in front. */
 export function useHomeShowing(): boolean {
   return useSyncExternalStore(subscribeHome, getHomeSnapshot, getHomeServerSnapshot);
+}
+
+// --- First Home visit after onboarding (review R13) ---------------------------
+// The coach who has just finished the wizard (team, players, first game and its
+// plan) lands on Home - and the marketing-consent prompt used to pop up there
+// five seconds later, over the very first look at their own Home. The flag is
+// raised when onboarding ends and cleared the first time Home leaves the screen
+// (opening a match, a reload starts a new visit too), so the prompt waits for a
+// later visit. In memory only: it is about this one visit.
+let onboardingJustFinished = false;
+const onboardingListeners = new Set<() => void>();
+
+/** Called when the setup wizard (or its next-game step) hands over to Home. */
+export const markOnboardingJustFinished = (): void => {
+  if (onboardingJustFinished) return;
+  onboardingJustFinished = true;
+  onboardingListeners.forEach((l) => l());
+};
+
+const subscribeOnboarding = (listener: () => void) => {
+  onboardingListeners.add(listener);
+  return () => {
+    onboardingListeners.delete(listener);
+  };
+};
+const getOnboardingSnapshot = () => onboardingJustFinished;
+const getOnboardingServerSnapshot = () => false;
+
+/** True during the first Home visit right after onboarding. */
+export function useOnboardingJustFinished(): boolean {
+  return useSyncExternalStore(subscribeOnboarding, getOnboardingSnapshot, getOnboardingServerSnapshot);
 }
 
 // --- Onboarding user id (review #728 round 2) --------------------------------

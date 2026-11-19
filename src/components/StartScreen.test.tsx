@@ -374,29 +374,6 @@ describe('StartScreen', () => {
 
     const openGear = () => fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
-    it('shows a "Setup checklist (N/4)" gear entry that opens the checklist (not on the home tabs)', async () => {
-      render(
-        <StartScreen
-          {...baseHandlers()}
-          canResume={true}
-          hasSavedGames={true}
-          isFirstTimeUser={false}
-          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
-        />
-      );
-      // The card no longer sits on the home surface.
-      expect(screen.queryByText('Get the most out of MatchOps')).not.toBeInTheDocument();
-
-      openGear();
-      const sheet = screen.getByRole('dialog', { name: 'App & account' });
-      const entry = await within(sheet).findByRole('button', { name: /Setup checklist/ });
-      fireEvent.click(entry);
-
-      // The checklist opens in its own sheet.
-      expect(await screen.findByText('Get the most out of MatchOps')).toBeInTheDocument();
-      expect(screen.getByText('Build a team')).toBeInTheDocument();
-    });
-
     it('the home-surface getting-started banner is GONE (superseded by the composed start screen)', async () => {
       render(
         <StartScreen
@@ -440,6 +417,21 @@ describe('StartScreen', () => {
       expect(screen.queryByText('Getting started guide')).not.toBeInTheDocument();
     });
 
+    it('has no setup checklist entry in the gear sheet (first-use help removed, R8)', async () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={true}
+          hasSavedGames={true}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
+        />
+      );
+      openGear();
+      const sheet = await screen.findByRole('dialog', { name: 'App & account' });
+      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
+    });
+
     it('has no getting-started banner once setup is complete', async () => {
       render(
         <StartScreen
@@ -455,97 +447,6 @@ describe('StartScreen', () => {
       expect(screen.queryByTestId('setup-banner')).not.toBeInTheDocument();
     });
 
-    it('has no setup entry once all steps are complete', async () => {
-      render(
-        <StartScreen
-          {...baseHandlers()}
-          canResume={true}
-          hasSavedGames={true}
-          isFirstTimeUser={false}
-          setupProgress={{ players: true, competition: true, team: true, teamLinkedGame: true }}
-        />
-      );
-      openGear();
-      const sheet = await screen.findByRole('dialog', { name: 'App & account' });
-      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
-    });
-
-    it('has no setup entry for first-time users', () => {
-      render(
-        <StartScreen
-          {...baseHandlers()}
-          canResume={false}
-          hasSavedGames={false}
-          isFirstTimeUser={true}
-          setupProgress={{ players: false, competition: false, team: false, teamLinkedGame: false }}
-        />
-      );
-      openGear();
-      const sheet = screen.getByRole('dialog', { name: 'App & account' });
-      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
-    });
-
-    it('the checklist × dismisses the gear entry across renders', async () => {
-      const props = {
-        ...baseHandlers(),
-        canResume: true,
-        hasSavedGames: true,
-        isFirstTimeUser: false,
-        setupProgress: { players: false, competition: false, team: false, teamLinkedGame: false },
-      };
-      const { unmount } = render(<StartScreen {...props} />);
-      openGear();
-      let sheet = screen.getByRole('dialog', { name: 'App & account' });
-      fireEvent.click(await within(sheet).findByRole('button', { name: /Setup checklist/ }));
-      fireEvent.click(screen.getByRole('button', { name: 'Dismiss' })); // the card's ×
-
-      unmount();
-      render(<StartScreen {...props} />);
-      openGear();
-      sheet = screen.getByRole('dialog', { name: 'App & account' });
-      // Persisted dismissal keeps the gear entry hidden.
-      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
-    });
-
-    it('opening the setup sheet closes the gear sheet (not stacked)', async () => {
-      render(
-        <StartScreen
-          {...baseHandlers()}
-          canResume={true}
-          hasSavedGames={true}
-          isFirstTimeUser={false}
-          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
-        />
-      );
-      openGear();
-      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Setup checklist/ }));
-      // Gear sheet is gone; only the setup sheet remains.
-      expect(screen.queryByRole('dialog', { name: 'App & account' })).not.toBeInTheDocument();
-      expect(screen.getByRole('dialog', { name: 'Get the most out of MatchOps' })).toBeInTheDocument();
-    });
-
-    it('backdrop tap closes the setup sheet WITHOUT dismissing it (entry survives)', async () => {
-      render(
-        <StartScreen
-          {...baseHandlers()}
-          canResume={true}
-          hasSavedGames={true}
-          isFirstTimeUser={false}
-          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
-        />
-      );
-      openGear();
-      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Setup checklist/ }));
-      expect(screen.getByText('Get the most out of MatchOps')).toBeInTheDocument();
-
-      // Tap the backdrop (not the ×) - closes the sheet only.
-      fireEvent.click(screen.getByTestId('setup-sheet-backdrop'));
-      expect(screen.queryByText('Get the most out of MatchOps')).not.toBeInTheDocument();
-
-      // The gear entry is NOT dismissed - it reopens.
-      openGear();
-      expect(within(screen.getByRole('dialog', { name: 'App & account' })).getByRole('button', { name: /Setup checklist/ })).toBeInTheDocument();
-    });
   });
 });
 
@@ -894,7 +795,7 @@ describe('Home dashboard view (opt-in)', () => {
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' })); // opens gear sheet
     const sheet = screen.getByRole('dialog', { name: 'App & account' });
-    fireEvent.click(within(sheet).getByRole('button', { name: /Simplified view/ }));
+    fireEvent.click(within(sheet).getByRole('button', { name: /Compact home cards/ }));
     expect(props.onSetHomeView).toHaveBeenCalledWith('simple'); // was 'dashboard'
   });
 
@@ -1031,7 +932,7 @@ describe('Home guide + empty-state guidance', () => {
       expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
       expect(screen.getByTestId('all-features')).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-      expect(screen.queryByText('Simplified view')).not.toBeInTheDocument();
+      expect(screen.queryByText('Compact home cards')).not.toBeInTheDocument();
     });
 
     it('full (the default): the tabbed Home as before', () => {

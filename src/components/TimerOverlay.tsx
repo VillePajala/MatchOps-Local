@@ -39,8 +39,6 @@ interface TimerOverlayProps {
    *  Finish this game spine. When wired, it replaces the assess-players button
    *  (assessments are step 5 of the spine). */
   onFinishGame?: () => void;
-  /** Finishing progress, so the whistle answers "how much is left". */
-  finishProgress?: { done: number; total: number } | null;
   onRecordOpponentGoal?: () => void;
   teamName: string;
   opponentName: string;
@@ -110,7 +108,6 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   onToggleGoalLogModal = () => { logger.warn('onToggleGoalLogModal handler not provided'); },
   onOpenPlayerAssessmentModal,
   onFinishGame,
-  finishProgress,
   onRecordOpponentGoal = () => { logger.warn('onRecordOpponentGoal handler not provided'); },
   teamName = "Team",
   opponentName = "Opponent",
@@ -166,6 +163,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // Overtime/penalties are edge-of-game actions; keep them collapsed so the
   // substitution-interval list keeps its room. Open by default if OT is already on.
   const [showEndGameControls, setShowEndGameControls] = useState(wentToOvertime);
+  // Full-time extra-time panel: closed behind a quiet link until asked for.
+  const [showExtraTimePanel, setShowExtraTimePanel] = useState(false);
   // --- End State ---
 
   // Determine display names (must be before useEffect that depends on it)
@@ -375,8 +374,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // Full time with somewhere to go (D3b): the hand-off is the one big action
   // and the clock steps down to a small readout above it.
   const finishMode = gameStatus === 'gameEnd' && Boolean(onFinishGame);
-  // The next planned change (D3c): the latest due group, amber, until the next
-  // one falls due; before the first is due, the upcoming one, quiet. Never
+  // The next planned change (D3c): a group due now, amber, for its short due
+  // window (usePlannedSubPrompts); otherwise the next one ahead, quiet. Never
   // after full time - the plan has nothing left to say then.
   const shownSubGroup = gameStatus === 'gameEnd' ? null : plannedSubGroup;
   const shownSubDue = shownSubGroup !== null && shownSubGroup.due !== false;
@@ -511,12 +510,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             data-testid="timer-finish-game"
             className={`${primaryActionStyle} w-full min-h-16 text-xl mb-4`}
           >
+            {/* No count here (review R7): an "x/y" on this button read as steps
+                to work through. What is left lives on the finish screen. */}
             {t('timerOverlay.finishGameButton', 'Finish this game')}
-            {finishProgress && (
-              <span className="text-sm font-semibold tabular-nums opacity-80" data-testid="timer-finish-progress">
-                {finishProgress.done}/{finishProgress.total}
-              </span>
-            )}
           </button>
         )}
 
@@ -583,7 +579,20 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           </button>
         </div>
 
-        {offerExtraTime && (
+        {/* Full time: extra time / penalties is a quiet link (review R7), not a
+            second amber button under "Finish this game" - most matches end
+            here. The link opens the same panel. */}
+        {offerExtraTime && !showExtraTimePanel && (
+          <button
+            type="button"
+            onClick={() => setShowExtraTimePanel(true)}
+            data-testid="extra-time-link"
+            className={`mb-3 min-h-11 px-3 rounded-full text-[15px] font-medium text-ink-2 underline underline-offset-4 decoration-white/30 hover:text-ink ${focusRingClass}`}
+          >
+            {t('timerOverlay.extraTimeLink', 'Extra time or penalties')}
+          </button>
+        )}
+        {offerExtraTime && showExtraTimePanel && (
           <div
             data-testid="extra-time-panel"
             className="w-full mb-3 p-4 s1-list"
@@ -624,7 +633,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 data-testid="start-extra-time"
                 disabled={!extraMinutesValid}
                 onClick={() => onStartExtraTime?.(extraPeriodsChoice, extraMinutesChoice)}
-                className={`${primaryActionStyle} flex-1 text-base`}
+                className={`${secondaryActionStyle} flex-1 text-base`}
               >
                 {t('timerOverlay.startExtraTime', 'Start extra time')}
               </button>
@@ -637,8 +646,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
         {/* The next planned change (Playing-Time Planner, D3c): every change
             planned for one moment, as one block. Persistent - no dismiss, no
-            "OK", and it records nothing: it moves on by itself when the next
-            group falls due. Amber while due, quiet while still ahead. Shown
+            "OK", and it records nothing: it moves on by itself once its time
+            has passed. Amber while due, quiet while still ahead. Shown
             before kick-off and through the breaks (half-time is exactly when
             planned subs happen), never after full time. */}
         {shownSubGroup && (

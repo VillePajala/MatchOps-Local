@@ -2,10 +2,14 @@
  * Playing-Time Planner — the live "planned subs" block in the timer overlay.
  *
  * Reads the planned sub schedule for the current game and, as the match clock
- * advances, returns the latest GROUP of planned subs that is due (every sub planned
- * for the same moment, e.g. six changes at half-time, is one group). Before the
- * first group is due it returns the next group ahead of the clock instead, marked
- * not due, so the timer always shows the next planned change (onboarding v3, D3c).
+ * advances, returns the GROUP of planned subs that is due now (every sub planned
+ * for the same moment, e.g. six changes at half-time, is one group). A group is
+ * due from its time for DUE_WINDOW_SECONDS of match clock - long enough to make
+ * the change, and the whole break for a half-time change, because the clock
+ * stands still then. After that it clears (review R13: an overdue block that
+ * stayed up all period read as a change still to make) and the next group ahead
+ * of the clock is shown instead, marked not due, or nothing after the last one
+ * (onboarding v3, D3c).
  *
  * A pure function of the clock and the schedule - advisory only. It never touches
  * the field, records nothing and keeps no state of its own:
@@ -42,14 +46,20 @@ export interface PlannedSubPrompt extends PlannedSubGroup {
 
 export interface UsePlannedSubPromptsResult {
   /**
-   * The next planned change to show: the latest group whose time has come
-   * (`due: true`), or before the first one, the first group ahead of the clock
-   * (`due: false`). Null when the game has no planned subs.
+   * The planned change to show: the latest group due now (`due: true`), or
+   * otherwise the next group ahead of the clock (`due: false`). Null when
+   * nothing is due and nothing is left ahead.
    */
   current: PlannedSubPrompt | null;
-  /** How many earlier groups were also due (e.g. after reopening the app mid-game). */
+  /** How many earlier groups are also due now (changes planned seconds apart). */
   overdueEarlier: number;
 }
+
+/**
+ * How long a group stays due, in match-clock seconds after its time. While the
+ * clock is stopped (a break) it does not run out.
+ */
+export const DUE_WINDOW_SECONDS = 60;
 
 /** Key prefix of the per-game dismissals the old prompt kept in sessionStorage. */
 const LEGACY_DISMISSED_PREFIX = 'matchops_dismissed_sub_prompts_';
@@ -140,7 +150,9 @@ export function usePlannedSubPrompts(
   return useMemo<UsePlannedSubPromptsResult>(() => {
     const subs = loaded && loaded.gameId === gameId ? loaded.subs : [];
     const groups = groupSubs(subs, players);
-    const due = groups.filter((g) => g.timeSeconds <= timeElapsedInSeconds);
+    const due = groups.filter(
+      (g) => g.timeSeconds <= timeElapsedInSeconds && timeElapsedInSeconds < g.timeSeconds + DUE_WINDOW_SECONDS,
+    );
     if (due.length > 0) {
       return { current: { ...due[due.length - 1], due: true }, overdueEarlier: due.length - 1 };
     }

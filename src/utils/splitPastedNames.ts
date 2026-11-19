@@ -8,8 +8,9 @@
  * - With line breaks, split on line breaks ONLY - so "Meikäläinen, Matti" on
  *   one line stays one name.
  * - Without line breaks, split on ";" if present, else on ",".
- * - A leading number ("1.", "7)", "12") or bullet ("-", "*", "•") is stripped.
- *   It is a list position, not a shirt number (D8): numbers can be added later.
+ * - A leading number ("1.", "7)", "12", "#12") or bullet ("-", "*", "•") is
+ *   stripped. It is a list position, not a shirt number (D8): numbers can be
+ *   added later.
  * - Trim, drop empty entries, cap each name at `maxNameLength` characters and
  *   the list at `maxNames` entries.
  *
@@ -26,9 +27,9 @@ export interface SplitPastedNamesOptions {
 /** Defaults sized to what the store accepts and a real youth squad. */
 export const PASTE_MAX_NAMES = 60;
 
-const LEADING_MARKER = /^\s*(?:\d+\s*[.):-]?|[-*•–])\s*/u;
+const LEADING_MARKER = /^\s*(?:#?\s*\d+\s*[.):-]?|[-*•–])\s*/u;
 
-/** Remove a leading list number or bullet; "1. Onni" -> "Onni". */
+/** Remove a leading list number or bullet; "1. Onni" / "#12 Onni" -> "Onni". */
 export function stripListMarker(line: string): string {
   // A line that is ONLY a number ("7") is not a name - strip it to empty.
   return line.replace(LEADING_MARKER, '').trim();
@@ -62,4 +63,17 @@ export function splitPastedNames(text: string, options: SplitPastedNamesOptions 
     if (names.length >= maxNames) break;
   }
   return names;
+}
+
+/**
+ * The disc name for a pasted/typed player: "Matti Meikäläinen" -> "Matti". A
+ * multi-word name gets its first word as the nickname (the disc renders
+ * nickname || name); a single word stays nickname-free so the roster list does
+ * not echo "Aino (Aino)". Shared by the setup wizard and basic Home's
+ * "Lisää pelaajat" so both create the same players.
+ */
+export function defaultNickname(name: string): string {
+  const trimmed = name.trim();
+  const firstWord = trimmed.split(/\s+/)[0] ?? '';
+  return firstWord === trimmed ? '' : firstWord;
 }

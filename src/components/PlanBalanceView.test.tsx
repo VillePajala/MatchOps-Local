@@ -162,8 +162,8 @@ describe('PlanBalanceView', () => {
         onReplaceHighlights={noop}
       />,
     );
-    // Alex: full game = 100% of share, on fair share; his tile names the GK slot.
-    expect(screen.getByText(/100% of share · on fair share/)).toBeInTheDocument();
+    // Alex: full game = 100% of share, on own share; his tile names the GK slot.
+    expect(screen.getByText(/100% of share · on own share/)).toBeInTheDocument();
     expect(screen.getByText(/0% of share · -24 min vs own share/)).toBeInTheDocument();
     expect(screen.getByText('GK')).toBeInTheDocument();
   });

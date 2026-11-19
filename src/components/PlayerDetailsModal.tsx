@@ -43,6 +43,8 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const [nickname, setNickname] = useState('');
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [notes, setNotes] = useState('');
+  // Edit only (review R4): the coach's regular keeper, as the roster has always stored it.
+  const [isGoalie, setIsGoalie] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   // Review 7.10: a duplicate number or a failed save used to close the form and
   // drop what was typed; the only message was off-screen under the roster list.
@@ -65,12 +67,14 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         setNickname('');
         setJerseyNumber('');
         setNotes('');
+        setIsGoalie(false);
       } else if (player) {
         // Load existing player data for edit mode
         setName(player.name || '');
         setNickname(player.nickname || '');
         setJerseyNumber(player.jerseyNumber || '');
         setNotes(player.notes || '');
+        setIsGoalie(!!player.isGoalie);
       }
     }
   }, [mode, player, isOpen]);
@@ -143,6 +147,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         if (trimmedNickname !== (player.nickname || '')) updates.nickname = trimmedNickname;
         if (jerseyNumber !== (player.jerseyNumber || '')) updates.jerseyNumber = jerseyNumber;
         if (notes !== (player.notes || '')) updates.notes = notes;
+        if (isGoalie !== !!player.isGoalie) updates.isGoalie = isGoalie;
 
         if (Object.keys(updates).length > 0) {
           await onUpdatePlayer(player.id, updates);
@@ -250,6 +255,22 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
 
               {numberError && (
                 <p className={`${fieldErrorStyle} -mt-3.5`} role="alert" data-testid="player-number-error">{numberError}</p>
+              )}
+
+              {/* Keeper (edit only, review R4) */}
+              {mode === 'edit' && (
+                <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+                  <span className={`${labelStyle} mb-0!`}>{t('playerDetailsModal.goalieLabel', 'Goalkeeper')}</span>
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-checked={isGoalie}
+                    checked={isGoalie}
+                    onChange={(e) => setIsGoalie(e.target.checked)}
+                    data-testid="player-goalie-toggle"
+                    className="h-6 w-6 flex-shrink-0 accent-action [color-scheme:dark]"
+                  />
+                </label>
               )}
 
               {/* Notes */}

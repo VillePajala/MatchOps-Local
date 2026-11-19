@@ -63,6 +63,15 @@ export function recordMilestone(
   });
 }
 
+/**
+ * Whether this ACCOUNT has already been through the setup wizard - finished
+ * ("Valmis") or skipped (review R9). Read from the synced settings row, so a new
+ * phone knows it too; the per-device localStorage flag is only a fast cache.
+ */
+export function hasSeenSetupWizard(milestones: OnboardingMilestones | undefined | null): boolean {
+  return !!(milestones?.wizardDone || milestones?.wizardSkipped);
+}
+
 /** Every milestone recorded for the account (empty when none). */
 export async function getMilestones(userId: string | null | undefined): Promise<OnboardingMilestones> {
   try {

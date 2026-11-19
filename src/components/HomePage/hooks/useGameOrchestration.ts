@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { countClips, onClipsChanged } from '@/utils/audioClipStore';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { completenessProgress, computeGameCompleteness } from '@/utils/gameCompleteness';
 import { todayIso } from '@/utils/todayIso';
@@ -1763,33 +1762,21 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, [currentGameId, dispatchGameSession, showToast, t]);
 
   /**
-   * How much of the finishing work is left, for the surfaces that are not the
-   * checklist itself: the game-end button and the menu. Computed once, from the
-   * same model the checklist uses, so no two places can disagree.
+   * How much of the finishing work is left, for the menu badge. Computed from
+   * the same model the checklist uses, and like the checklist's counter it
+   * counts only the D2 core (squad + goal log, review R7), so it reaches its
+   * end exactly when the game is "valmis".
    */
-  // Voice clips awaiting review count in the checklist (review 5.12): the wrap-up
-  // card passes them, the menu badge did not, so the two disagreed by one for every
-  // game with dictation (4/6 vs 4/7). Re-read when the game changes and whenever the
-  // clip store reports a change (a clip saved, reviewed or deleted) - after the write
-  // has landed, which the recording signal (cleared before the last save) is not.
-  const [voiceClipsPending, setVoiceClipsPending] = useState(0);
-  const [clipsVersion, setClipsVersion] = useState(0);
-  useEffect(() => onClipsChanged(() => setClipsVersion((v) => v + 1)), []);
-  useEffect(() => {
-    setVoiceClipsPending(0); // never carry another game's count
-    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
-    let cancelled = false;
-    countClips(currentGameId, userId ?? undefined)
-      .then((n) => { if (!cancelled) setVoiceClipsPending(n); })
-      .catch((error) => logger.debug('[finish badge] clip count unavailable', error));
-    return () => { cancelled = true; };
-  }, [currentGameId, userId, clipsVersion]);
-
+  // Only whether the clock has run matters here; depending on the seconds
+  // themselves would rebuild the badge every tick.
+  const clockHasRun = gameSessionState.timeElapsedInSeconds > 0;
   const finishProgress = useMemo(() => {
     const saved = currentGameId ? savedGames?.[currentGameId] : undefined;
     if (!saved) return null;
     const completeness = computeGameCompleteness({
       isPlayed: saved.isPlayed,
+      timeElapsedInSeconds: clockHasRun ? 1 : 0,
+      gameStatus: gameSessionState.gameStatus,
       gameNotes: gameSessionState.gameNotes,
       selectedPlayerIds: gameSessionState.selectedPlayerIds,
       seasonId: saved.seasonId,
@@ -1802,11 +1789,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       awayScore: gameSessionState.awayScore,
     }, { assessmentsEnabled });
     if (!completeness.applicable) return null;
-    return completenessProgress(completeness, { voiceClipsPending });
+    return completenessProgress(completeness);
   }, [
-    voiceClipsPending,
     currentGameId,
     savedGames,
+    clockHasRun,
+    gameSessionState.gameStatus,
     gameSessionState.gameNotes,
     gameSessionState.selectedPlayerIds,
     gameSessionState.playerPositions,
@@ -2662,7 +2650,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   const fieldContainerProps: FieldContainerProps = {
     gameSessionState,
-    finishProgress,
     fieldVM,
     timerVM,
     currentGameId,

@@ -1,6 +1,7 @@
 /**
  * "Ketkä ovat paikalla?" (Onboarding v3): marking a player absent before
- * kick-off updates the plan (absentIds + a fresh suggestion) and the game
+ * kick-off updates the plan (absentIds; the coach's edits kept, only the
+ * absentee's stretches refilled) and the game
  * (squad + line-up); a started game is never touched; a line-up edited by hand
  * is detected so the sheet can warn before it is redone.
  * @critical
@@ -16,6 +17,9 @@ import {
 import { buildFirstPlan, type NextGamePairInput } from '../nextGamePair';
 import { buildReapplyPatch } from '@/utils/playtimePlanner/reapply';
 import { ensureStartingSlots } from '@/utils/playtimePlanner/lineup';
+import { swapPlayersInGame } from '@/utils/playtimePlanner/swap';
+import { toEngineGame } from '@/utils/playtimePlanner/adapter';
+import { computeSlotSegments } from '@/utils/playtimePlanner/minutes';
 import { TestFixtures } from '../../../tests/fixtures';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
@@ -94,6 +98,15 @@ describe('loadAttendance', () => {
   });
 
   /** @edge-case */
+  it('a squad change alone is not a hand edit of the pitch', async () => {
+    const { deps, games } = setup();
+    const game = games.get(GAME_ID)!;
+    games.set(GAME_ID, { ...game, selectedPlayerIds: game.selectedPlayerIds.filter((id) => id !== 'p14') });
+    const ctx = await loadAttendance(deps, GAME_ID);
+    expect(ctx?.kind === 'plan' && ctx.handEdited).toBe(false);
+  });
+
+  /** @edge-case */
   it('detects a line-up moved by hand since the plan was applied', async () => {
     const { deps, games } = setup();
     const game = games.get(GAME_ID)!;
@@ -125,7 +138,7 @@ describe('loadAttendance', () => {
 
 describe('saveAttendance - a game made from a plan', () => {
   /** @critical */
-  it('marks the absent player in the plan, re-suggests, and re-applies line-up + squad', async () => {
+  it('marks the absent player in the plan, refills their place, and re-applies line-up + squad', async () => {
     const { deps, games, plans, plan, subs } = setup();
     const ctx = (await loadAttendance(deps, GAME_ID))!;
     const leo = 'p12';
@@ -136,7 +149,7 @@ describe('saveAttendance - a game made from a plan', () => {
 
     const savedPlan = plans.get(plan.id)!;
     expect(savedPlan.games[0].absentIds).toEqual([leo]);
-    // The suggestion was re-run: Leo neither starts nor comes on.
+    // Leo's place was refilled: he neither starts nor comes on.
     expect(ensureStartingSlots(savedPlan.games[0]).some((s) => s.playerId === leo)).toBe(false);
     expect(savedPlan.games[0].subs.some((s) => s.inPlayerId === leo)).toBe(false);
     // Every attending player still has a place (start or sub).
@@ -212,8 +225,122 @@ describe('saveAttendance - a game with no plan', () => {
   });
 });
 
+/** Who holds every slot over the game, as comparable strings ("slot:from-to=player"). */
+const stretches = (game: PlaytimePlan['games'][number]): string[] => {
+  const engine = toEngineGame(game);
+  return engine.slots.flatMap((slot) =>
+    computeSlotSegments(engine, slot.slotId).map((seg) => `${seg.slotId}:${seg.startSeconds}-${seg.endSeconds}=${seg.playerId}`),
+  );
+};
+
+/** No player holds two slots at the same moment. */
+const noDoubleBooking = (game: PlaytimePlan['games'][number]): boolean => {
+  const engine = toEngineGame(game);
+  const segs = engine.slots.flatMap((slot) => computeSlotSegments(engine, slot.slotId)).filter((s) => s.playerId);
+  return segs.every((a, i) =>
+    segs.every((b, j) => i === j || a.playerId !== b.playerId || a.endSeconds <= b.startSeconds || b.endSeconds <= a.startSeconds),
+  );
+};
+
+describe('planWithAbsences - keeps the coach\'s plan', () => {
+  /**
+   * Live repro (review R6): the coach made Toivo the keeper, then marked two
+   * players absent. The keeper must stay Toivo; nothing but the absentees'
+   * stretches may move.
+   * @critical
+   */
+  it('a keeper changed by hand stays after two absences', () => {
+    const suggested = buildFirstPlan(input);
+    const game0 = suggested.games[0];
+    const keeper = ensureStartingSlots(game0).find((s) => s.slotId === 'gk')!.playerId!;
+    const toivo = 'p2';
+    expect(keeper).not.toBe(toivo);
+    const edited: PlaytimePlan = { ...suggested, games: [swapPlayersInGame(game0, keeper, toivo)] };
+    const before = stretches(edited.games[0]);
+
+    const absentees = ['p9', 'p11'].filter((id) => id !== toivo);
+    const next = planWithAbsences(edited, game0.id, absentees);
+    const game = next.games[0];
+
+    expect(ensureStartingSlots(game).find((s) => s.slotId === 'gk')?.playerId).toBe(toivo);
+    expect(game.absentIds).toEqual(absentees);
+    // Absentees appear nowhere.
+    expect(stretches(game).some((s) => absentees.some((id) => s.endsWith(`=${id}`)))).toBe(false);
+    // Every stretch that did not belong to an absentee is still there, unchanged.
+    const after = new Set(stretches(game));
+    for (const s of before) {
+      if (absentees.some((id) => s.endsWith(`=${id}`))) continue;
+      expect(after.has(s)).toBe(true);
+    }
+    // Every sub of a present player keeps its time and slot.
+    for (const sub of edited.games[0].subs) {
+      if (sub.inPlayerId && !absentees.includes(sub.inPlayerId)) {
+        expect(game.subs).toContainEqual(sub);
+      }
+    }
+    expect(noDoubleBooking(game)).toBe(true);
+    // No slot is left empty: 12 players are enough for 8 places.
+    expect(stretches(game).some((s) => s.endsWith('=null'))).toBe(false);
+  });
+
+  /** @critical */
+  it('fills an absent starter from the unused bench first', () => {
+    const plan = buildFirstPlan(input);
+    const game0 = plan.games[0];
+    // Make Oliver (p14) an unused bench player: drop the change that brings
+    // him on (whoever held that place simply stays on).
+    expect(game0.subs.some((s) => s.inPlayerId === 'p14')).toBe(true);
+    const benched = { ...game0, subs: game0.subs.filter((s) => s.inPlayerId !== 'p14') };
+    const withBench: PlaytimePlan = { ...plan, games: [benched] };
+    const starter = ensureStartingSlots(benched).find((s) => s.slotId !== 'gk' && s.playerId)!;
+
+    const next = planWithAbsences(withBench, game0.id, [starter.playerId!]);
+    const game = next.games[0];
+    expect(ensureStartingSlots(game).find((s) => s.slotId === starter.slotId)?.playerId).toBe('p14');
+    // Nothing else in the slot's schedule moved.
+    expect(game.subs.filter((s) => s.slotId === starter.slotId)).toEqual(
+      benched.subs.filter((s) => s.slotId === starter.slotId),
+    );
+    expect(noDoubleBooking(game)).toBe(true);
+  });
+
+  /** @edge-case */
+  it('without a free bench player, someone off the pitch covers and the schedule stays whole', () => {
+    const plan = buildFirstPlan(input);
+    const absentees = ['p1', 'p2', 'p3', 'p4'];
+    const game = planWithAbsences(plan, plan.games[0].id, absentees).games[0];
+    expect(noDoubleBooking(game)).toBe(true);
+    // 10 players for 8 places: nobody absent plays, no place is left empty.
+    expect(stretches(game).some((s) => absentees.some((id) => s.endsWith(`=${id}`)))).toBe(false);
+    expect(stretches(game).some((s) => s.endsWith('=null'))).toBe(false);
+  });
+
+  /** @edge-case */
+  it('more absentees than places leaves the extra places empty, never double-booked', () => {
+    const plan = buildFirstPlan(input);
+    const absentees = squad.slice(0, 8).map((p) => p.id);
+    const game = planWithAbsences(plan, plan.games[0].id, absentees).games[0];
+    expect(noDoubleBooking(game)).toBe(true);
+    const players = new Set(stretches(game).map((s) => s.split('=')[1]).filter((id) => id !== 'null'));
+    expect([...players].sort()).toEqual(squad.slice(8).map((p) => p.id).sort());
+  });
+
+  it('a player marked present again gets time back without moving anyone else', () => {
+    const plan = buildFirstPlan(input);
+    const gid = plan.games[0].id;
+    const away = planWithAbsences(plan, gid, ['p12']);
+    const back = planWithAbsences(away, gid, []);
+    const game = back.games[0];
+    expect(game.absentIds).toEqual([]);
+    expect(stretches(game).some((s) => s.endsWith('=p12'))).toBe(true);
+    // Exactly one planned change added.
+    expect(game.subs).toHaveLength(away.games[0].subs.length + 1);
+    expect(noDoubleBooking(game)).toBe(true);
+  });
+});
+
 describe('helpers', () => {
-  it('planWithAbsences re-suggests only the one game of a multi-game plan', () => {
+  it('planWithAbsences changes only the one game of a multi-game plan', () => {
     const one = buildFirstPlan(input);
     const second = { ...one.games[0], id: 'g2', label: 'Second' };
     const plan: PlaytimePlan = { ...one, games: [one.games[0], second] };

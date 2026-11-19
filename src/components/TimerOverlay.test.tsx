@@ -421,20 +421,10 @@ describe('TimerOverlay', () => {
       expect(screen.getByTestId('timer-clock').firstElementChild).toHaveStyle({ fontSize: '2.75rem' });
     });
 
-    it('says how much is left, and nothing when it does not apply', () => {
-      const { unmount } = render(
-        <TimerOverlay
-          {...baseProps}
-          gameStatus="gameEnd"
-          onFinishGame={jest.fn()}
-          finishProgress={{ done: 3, total: 5 }}
-        />,
-      );
-      expect(screen.getByTestId('timer-finish-progress')).toHaveTextContent('3/5');
-
-      unmount();
-      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" onFinishGame={jest.fn()} finishProgress={null} />);
-      expect(screen.queryByTestId('timer-finish-progress')).not.toBeInTheDocument();
+    /** Review R7: no step-count-looking badge on the hand-off. */
+    it('carries no "x/y" count', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" onFinishGame={jest.fn()} />);
+      expect(screen.getByTestId('timer-finish-game')).not.toHaveTextContent(/\d\/\d/);
     });
 
     it('falls back to the assess-players button when no hand-off is wired', () => {
@@ -453,10 +443,24 @@ describe('TimerOverlay', () => {
   describe('Extra time', () => {
     const fullTime = { ...baseProps, gameStatus: 'gameEnd' as const, currentPeriod: 2, timeElapsedInSeconds: 1200 };
     const minutesInput = () => within(screen.getByTestId('extra-time-panel')).getByRole('spinbutton');
+    const openPanel = () => fireEvent.click(screen.getByTestId('extra-time-link'));
+
+    /** Review R7: a quiet link at full time, not a second amber button. */
+    it('starts as a quiet link under the finish hand-off; the panel has no amber button', () => {
+      render(<TimerOverlay {...fullTime} onFinishGame={jest.fn()} onStartExtraTime={jest.fn()} />);
+      expect(screen.queryByTestId('extra-time-panel')).not.toBeInTheDocument();
+      const link = screen.getByTestId('extra-time-link');
+      expect(link.className).not.toContain('s1-primary');
+      openPanel();
+      expect(screen.getByTestId('start-extra-time').className).not.toContain('s1-primary');
+      // The finish hand-off stays the only primary action.
+      expect(screen.getByTestId('timer-finish-game').className).toContain('s1-primary');
+    });
 
     it('offers extra time at full time, 2 x 15 min by default, and starts it on tap', () => {
       const onStartExtraTime = jest.fn();
       render(<TimerOverlay {...fullTime} onStartExtraTime={onStartExtraTime} />);
+      openPanel();
       expect(minutesInput()).toHaveValue(15);
       fireEvent.click(screen.getByTestId('start-extra-time'));
       expect(onStartExtraTime).toHaveBeenCalledWith(2, 15);
@@ -465,6 +469,7 @@ describe('TimerOverlay', () => {
     it('takes 1 period and the length typed in; futsal defaults to 5 min', () => {
       const onStartExtraTime = jest.fn();
       render(<TimerOverlay {...fullTime} gameType="futsal" onStartExtraTime={onStartExtraTime} />);
+      openPanel();
       expect(minutesInput()).toHaveValue(5);
       const panel = within(screen.getByTestId('extra-time-panel'));
       fireEvent.click(panel.getAllByRole('button', { pressed: false })[0]);
@@ -475,6 +480,7 @@ describe('TimerOverlay', () => {
 
     it('follows the game type until a length is typed (the game can load after mount)', () => {
       const { rerender } = render(<TimerOverlay {...fullTime} onStartExtraTime={jest.fn()} />);
+      openPanel();
       expect(minutesInput()).toHaveValue(15);
       rerender(<TimerOverlay {...fullTime} gameType="futsal" onStartExtraTime={jest.fn()} />);
       expect(minutesInput()).toHaveValue(5);
@@ -486,17 +492,18 @@ describe('TimerOverlay', () => {
     it('cannot start with an empty length', () => {
       const onStartExtraTime = jest.fn();
       render(<TimerOverlay {...fullTime} onStartExtraTime={onStartExtraTime} />);
+      openPanel();
       fireEvent.change(minutesInput(), { target: { value: '' } });
       expect(screen.getByTestId('start-extra-time')).toBeDisabled();
     });
 
     it('is not offered before full time, once extra time exists, or without the handler', () => {
       const { rerender } = render(<TimerOverlay {...baseProps} gameStatus="periodEnd" currentPeriod={1} timeElapsedInSeconds={600} onStartExtraTime={jest.fn()} />);
-      expect(screen.queryByTestId('extra-time-panel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('extra-time-link')).not.toBeInTheDocument();
       rerender(<TimerOverlay {...fullTime} currentPeriod={4} timeElapsedInSeconds={2400} extraTimePeriods={2} extraTimeMinutes={5} onStartExtraTime={jest.fn()} />);
-      expect(screen.queryByTestId('extra-time-panel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('extra-time-link')).not.toBeInTheDocument();
       rerender(<TimerOverlay {...fullTime} />);
-      expect(screen.queryByTestId('extra-time-panel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('extra-time-link')).not.toBeInTheDocument();
     });
 
     it('labels extra-time periods and their start button', () => {

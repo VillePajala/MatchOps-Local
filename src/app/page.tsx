@@ -47,7 +47,9 @@ import { getDataStore } from '@/datastore';
 import type { TranslationKey } from '@/i18n-types';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
-import { beginNewAccountOnboarding, recordGameFinished } from '@/utils/onboardingMilestones';
+import { beginNewAccountOnboarding, hasSeenSetupWizard, recordGameFinished } from '@/utils/onboardingMilestones';
+import { resolveAppLayout } from '@/utils/appLayout';
+import { isSetupWizardEligible } from '@/utils/setupWizardGate';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
 import { getSavedGames, getLatestGameId, saveGame as utilSaveGame } from '@/utils/savedGames';
@@ -180,6 +182,20 @@ export default function Home() {
    * on that frame, so it waits until the flags are from the latest read.
    */
   const [stateCheckedFor, setStateCheckedFor] = useState<string | null>(null);
+  /**
+   * Which (account, refresh) the SETUP signals (teams, competitions) were read
+   * for (review R9). They come from a second, non-blocking read that can land
+   * after `stateCheckedFor`; until it has, `hasTeam` is still false for an
+   * account that has a team, and the wizard would open over it. Never set when
+   * that read failed - unknown is not empty.
+   */
+  const [setupSignalsCheckedFor, setSetupSignalsCheckedFor] = useState<string | null>(null);
+  /**
+   * The account has been through the setup wizard - finished or skipped - per
+   * its synced settings row (review R9). True until known: a settings read that
+   * fails must not open the wizard (and flip the layout) on an existing account.
+   */
+  const [accountWizardSeen, setAccountWizardSeen] = useState(true);
   const [isCheckingState, setIsCheckingState] = useState(true);
   const [showMigrationWizard, setShowMigrationWizard] = useState(false);
   // Welcome screen state (first-install onboarding)
@@ -436,7 +452,14 @@ export default function Home() {
   // its anchor (losing time), and a paused match lost its screen lock.
   const backgroundCheckRef = useRef(false);
 
-  const checkAppState = useCallback(async ({ inBackground = false }: { inBackground?: boolean } = {}) => {
+  /**
+   * Resolves once the fast part of the check is done (the loading gate can
+   * lift). `signals` is the slower setup read (teams, competitions, counts) -
+   * true when it succeeded - for the setup wizard's gate (review R9).
+   */
+  const checkAppState = useCallback(async (
+    { inBackground = false }: { inBackground?: boolean } = {},
+  ): Promise<{ signals: Promise<boolean> } | undefined> => {
     if (!inBackground) setIsCheckingState(true);
     // Consume the "first check" slot once per page load (boot / WebView recreation),
     // regardless of outcome, so later refreshTrigger re-runs can't auto-resume.
@@ -521,8 +544,11 @@ export default function Home() {
         queryClient.setQueryData([...queryKeys.settings.detail(), userId], homeSettings);
         // Dashboard is the default; only an explicit 'simple' preference opts out.
         setHomeView(homeSettings.homeView === 'simple' ? 'simple' : 'dashboard');
+        setAccountWizardSeen(hasSeenSetupWizard(homeSettings.onboardingMilestones));
         const firstArgs: Parameters<typeof buildHomeSummary> = [games, {
           today,
+          // Basic layout: the match itself says whether it was played (R2).
+          startedDecidesPlayed: resolveAppLayout(homeSettings) === 'basic',
           clubSeasonStartDate: homeSettings.clubSeasonStartDate,
           clubSeasonEndDate: homeSettings.clubSeasonEndDate,
           hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
@@ -538,6 +564,8 @@ export default function Home() {
         publishHomeSummaries(firstArgs);
       } catch (summaryErr) {
         logger.warn('Failed to build home summary', { error: summaryErr });
+        // Unknown whether the wizard was seen: never open it on a guess.
+        setAccountWizardSeen(true);
       }
 
       // Check if user has any players in roster
@@ -561,7 +589,7 @@ export default function Home() {
           (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
         )
       );
-      void Promise.all([
+      const signals = Promise.all([
         getSeasons(userId), getTournaments(userId), getTeams(userId), getAllPersonnel(userId),
         // External games for the Home top scorer (review 5.8); a failed read only
         // leaves the tile counting app games, never the other signals.
@@ -582,6 +610,7 @@ export default function Home() {
           if (homeSettings) {
             applyTeamScope(games, teamsList, seasonsList, tournamentsList, {
               today,
+              startedDecidesPlayed: resolveAppLayout(homeSettings) === 'basic',
               clubSeasonStartDate: homeSettings.clubSeasonStartDate,
               clubSeasonEndDate: homeSettings.clubSeasonEndDate,
               hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
@@ -596,8 +625,13 @@ export default function Home() {
               tournamentsCount: tournamentsList.length,
             })
           }
+          return true;
         })
-        .catch((setupErr) => logger.warn('Failed to compute recommended-setup signals', { error: setupErr }));
+        .catch((setupErr) => {
+          logger.warn('Failed to compute recommended-setup signals', { error: setupErr });
+          return false;
+        });
+      return { signals };
     } catch (error) {
       logger.warn('Failed to check initial game state', { error });
       // A background re-check (app resume) that fails - a transient IndexedDB error
@@ -682,6 +716,8 @@ export default function Home() {
       if (prev) {
         applyTeamScope(games, teamsList, seasonsList, tournamentsList, {
           ...prev[1],
+          // The layout can have changed in Settings ("Kaikki toiminnot").
+          startedDecidesPlayed: resolveAppLayout(settings) === 'basic',
           clubSeasonStartDate: settings.clubSeasonStartDate,
           clubSeasonEndDate: settings.clubSeasonEndDate,
           hasConfiguredSeasonDates: settings.hasConfiguredSeasonDates,
@@ -1002,7 +1038,15 @@ export default function Home() {
     }
 
     const checkKey = `${userId ?? 'local'}:${refreshTrigger}`;
-    void checkAppState({ inBackground }).finally(() => setStateCheckedFor(checkKey));
+    const run = checkAppState({ inBackground });
+    void run.finally(() => setStateCheckedFor(checkKey));
+    // The setup read lands later (review R9): the wizard waits for it too.
+    void run
+      .then((result) => result?.signals)
+      .then((ok) => {
+        if (ok) setSetupSignalsCheckedFor(checkKey);
+      })
+      .catch(() => undefined);
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId, tabMayBoot]);
 
   // Deep-review fix (stale Home): all Home flags (canResume, hasPlayers,
@@ -1920,11 +1964,22 @@ export default function Home() {
     !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard &&
     screen === 'start' && mode === 'cloud';
   const setupWizardKey = userId ?? 'local';
+  // Review R9: only once EVERYTHING the account holds has been read for this
+  // (account, refresh) and all of it is empty, and the account itself has never
+  // seen the wizard - see isSetupWizardEligible. An existing account must never
+  // reach the wizard: opening it flips the layout to basic.
   const setupWizardEligible =
     setupWizardScreenGates &&
-    stateCheckedFor === `${userId ?? 'local'}:${refreshTrigger}` &&
-    isFirstTimeUser && !hasTeam &&
-    setupWizardDismissedFor !== setupWizardKey && !isSetupWizardDone(userId);
+    isSetupWizardEligible({
+      checkKey: `${userId ?? 'local'}:${refreshTrigger}`,
+      stateCheckedFor,
+      setupSignalsCheckedFor,
+      isFirstTimeUser,
+      hasTeam,
+      hasCompetition,
+      accountWizardSeen,
+      deviceWizardSeen: setupWizardDismissedFor === setupWizardKey || isSetupWizardDone(userId),
+    });
   // Onboarding v3: once open, the wizard stays until IT says it is done. Its
   // later steps (next game, plan) run after "Valmis" created the team and
   // players, which ends "first-time user" the moment any signal refresh runs;

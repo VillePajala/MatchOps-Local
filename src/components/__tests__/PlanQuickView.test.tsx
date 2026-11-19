@@ -1,5 +1,5 @@
 /**
- * The compact plan screen ("Peluutus", Onboarding v3): the planner for ONE
+ * The compact plan screen ("Suunnitelma", Onboarding v3): the planner for ONE
  * game, without its tabs. Every edit is saved to the plan AND re-applied to
  * the linked game, so the two can never drift apart.
  * @critical
@@ -9,6 +9,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import PlanQuickView from '../PlanQuickView';
 import { buildFirstPlan } from '@/services/nextGamePair';
+import { buildReapplyPatch } from '@/utils/playtimePlanner/reapply';
 import { ensureStartingSlots, getGameSlots } from '@/utils/playtimePlanner/lineup';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { AppState, Player } from '@/types';
@@ -141,18 +142,19 @@ beforeEach(() => {
     opponentName: 'Rantakylän FC',
   });
   mockPlanStore = { [plan.id]: plan };
-  mockGameStore = {
-    'game-1': TestFixtures.games.newGame({
-      teamName: 'MePa P12',
-      opponentName: 'Rantakylän FC',
-      gameDate: '2026-11-22',
-      numberOfPeriods: 2,
-      periodDurationMinutes: 25,
-      availablePlayers: squad,
-      selectedPlayerIds: squad.map((p) => p.id),
-      playersOnField: [],
-    }),
-  };
+  const fresh = TestFixtures.games.newGame({
+    teamName: 'MePa P12',
+    opponentName: 'Rantakylän FC',
+    gameDate: '2026-11-22',
+    numberOfPeriods: 2,
+    periodDurationMinutes: 25,
+    availablePlayers: squad,
+    selectedPlayerIds: squad.map((p) => p.id),
+    playersOnField: [],
+    gameEvents: [],
+  }) as AppState;
+  // Lined up from the plan, exactly as creating the game does.
+  mockGameStore = { 'game-1': { ...fresh, ...buildReapplyPatch(fresh, plan, plan.games[0], squad).patch! } };
   mockLink = { planId: plan.id, planGameId: plan.games[0].id };
 });
 
@@ -162,7 +164,7 @@ describe('PlanQuickView (compact planner)', () => {
     expect(await screen.findByTestId('plan-quick-view')).toBeInTheDocument();
 
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Rotation' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Plan' })).toBeInTheDocument();
     expect(screen.getByText('MePa P12 – Rantakylän FC')).toBeInTheDocument();
     expect(screen.getByTestId('plan-quick-facts')).toHaveTextContent('10 players · 8v8 · 2 × 25 min');
     // Planned minutes for every player.
@@ -276,5 +278,60 @@ describe('PlanQuickView (compact planner)', () => {
     await waitFor(() =>
       expect(mockShowToast).toHaveBeenCalledWith('Could not save the change. Please try again.', 'error'),
     );
+  });
+
+  /**
+   * Review R13: the coach moved players on the game's pitch by hand. A plan
+   * edit re-applies the plan to the pitch, so the first one asks first.
+   * @critical
+   */
+  describe('hand-moved players on the pitch', () => {
+    const moveOneByHand = () => {
+      const game = mockGameStore['game-1'];
+      const [first, ...rest] = game.playersOnField;
+      mockGameStore['game-1'] = { ...game, playersOnField: [{ ...first, relX: (first.relX ?? 0) + 0.1 }, ...rest] };
+      return first.id;
+    };
+
+    it('asks before an edit replaces them; Cancel leaves plan and pitch alone', async () => {
+      const moved = moveOneByHand();
+      const pitchBefore = JSON.stringify(mockGameStore['game-1'].playersOnField);
+      renderView();
+      await screen.findByTestId('plan-quick-view');
+      fireEvent.click(screen.getByTestId('plan-quick-reshuffle'));
+      expect(await screen.findByText('Moved by hand')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await act(async () => {});
+      expect(mockPlanStore[plan.id]).toBe(plan);
+      expect(JSON.stringify(mockGameStore['game-1'].playersOnField)).toBe(pitchBefore);
+      expect(mockGameStore['game-1'].playersOnField.some((p) => p.id === moved)).toBe(true);
+    });
+
+    it('applies the edit once the coach chooses the plan, and asks only once', async () => {
+      moveOneByHand();
+      renderView();
+      await screen.findByTestId('plan-quick-view');
+      fireEvent.click(screen.getByTestId('plan-quick-reshuffle'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Use the plan' }));
+      await waitFor(() => expect(mockPlanStore[plan.id]).not.toBe(plan));
+      await waitFor(() => expect(mockSetGameSubs).toHaveBeenCalled());
+      const saved = mockPlanStore[plan.id];
+      fireEvent.click(screen.getByTestId('plan-quick-reshuffle'));
+      expect(screen.queryByText('Moved by hand')).not.toBeInTheDocument();
+      await waitFor(() => expect(mockPlanStore[plan.id]).not.toBe(saved));
+    });
+
+    it('a date change does not touch the line-up, so it does not ask', async () => {
+      moveOneByHand();
+      const pitchBefore = JSON.stringify(mockGameStore['game-1'].playersOnField);
+      renderView();
+      await screen.findByTestId('plan-quick-view');
+      fireEvent.click(screen.getByRole('button', { name: 'Change the date' }));
+      fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-11-29' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(mockGameStore['game-1'].gameDate).toBe('2026-11-29'));
+      expect(screen.queryByText('Moved by hand')).not.toBeInTheDocument();
+      expect(JSON.stringify(mockGameStore['game-1'].playersOnField)).toBe(pitchBefore);
+    });
   });
 });

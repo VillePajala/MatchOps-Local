@@ -1,5 +1,5 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { usePlannedSubPrompts } from './usePlannedSubPrompts';
+import { DUE_WINDOW_SECONDS, usePlannedSubPrompts } from './usePlannedSubPrompts';
 import { getGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import type { Player } from '@/types';
 
@@ -53,7 +53,7 @@ describe('usePlannedSubPrompts', () => {
    * of the clock moves on as each group falls due, and is null after the last.
    * @critical
    */
-  it('the shown group is quiet until due, then due until the next group falls due', async () => {
+  it('the shown group is quiet until due, due for a minute, then the next one shows', async () => {
     mockGetGameSubs.mockResolvedValue([
       sub({ id: 'a', timeSeconds: 600, inPlayerId: 'in1' }),
       sub({ id: 'b', timeSeconds: 1200, inPlayerId: 'in2' }),
@@ -66,11 +66,33 @@ describe('usePlannedSubPrompts', () => {
     expect(result.current.current?.due).toBe(false);
     rerender({ t: 600 });
     expect(result.current.current).toMatchObject({ timeSeconds: 600, due: true });
-    rerender({ t: 1199 });
+    rerender({ t: 659 });
     expect(result.current.current).toMatchObject({ timeSeconds: 600, due: true });
     rerender({ t: 1200 });
     expect(result.current.current).toMatchObject({ timeSeconds: 1200, due: true });
-    expect(result.current.overdueEarlier).toBe(1);
+    expect(result.current.overdueEarlier).toBe(0);
+  });
+
+  /**
+   * Review R13: once its time has passed, the block clears - the next change
+   * ahead shows quietly instead, and after the last one nothing does.
+   * @critical
+   */
+  it('an overdue group clears: the next upcoming shows, or nothing after the last', async () => {
+    mockGetGameSubs.mockResolvedValue([
+      sub({ id: 'a', timeSeconds: 900, inPlayerId: 'in1' }),
+      sub({ id: 'b', timeSeconds: 1500, inPlayerId: 'in2' }),
+    ]);
+    const { result, rerender } = renderHook(
+      ({ t }) => usePlannedSubPrompts('g1', t, players),
+      { initialProps: { t: 900 } },
+    );
+    // At the break the clock stands at 15:00, so the change stays due.
+    await waitFor(() => expect(result.current.current).toMatchObject({ timeSeconds: 900, due: true }));
+    rerender({ t: 900 + DUE_WINDOW_SECONDS });
+    expect(result.current.current).toMatchObject({ timeSeconds: 1500, due: false });
+    rerender({ t: 1500 + DUE_WINDOW_SECONDS });
+    expect(result.current.current).toBeNull();
   });
 
   it('surfaces the due group with resolved player names once the clock passes it', async () => {
@@ -90,7 +112,7 @@ describe('usePlannedSubPrompts', () => {
     // caller bumps refreshKey to force a re-read for the same game.
     mockGetGameSubs.mockResolvedValueOnce([]).mockResolvedValueOnce([sub({ timeSeconds: 600 })]);
     const { result, rerender } = renderHook(
-      ({ key }) => usePlannedSubPrompts('g1', 1000, players, key),
+      ({ key }) => usePlannedSubPrompts('g1', 610, players, key),
       { initialProps: { key: 0 } },
     );
     await act(async () => {});
@@ -137,11 +159,11 @@ describe('usePlannedSubPrompts', () => {
   });
 
   /**
-   * Reopening the app at 31:00 with groups at 10, 20 and 30 shows the latest
-   * group and how many earlier ones were also due.
+   * Reopening the app at 31:00 with groups at 10, 20, 30 and 40: the passed
+   * ones are over, so the next one ahead shows.
    * @critical
    */
-  it('after a resume, shows the latest due group and counts the earlier ones', async () => {
+  it('after a resume, shows the next change ahead rather than passed ones', async () => {
     mockGetGameSubs.mockResolvedValue([
       sub({ id: 'a', timeSeconds: 600, inPlayerId: 'in1' }),
       sub({ id: 'b', timeSeconds: 1200, inPlayerId: 'in2' }),
@@ -149,9 +171,19 @@ describe('usePlannedSubPrompts', () => {
       sub({ id: 'd', timeSeconds: 2400, inPlayerId: 'aapo' }),
     ]);
     const { result } = renderHook(() => usePlannedSubPrompts('g1', 1860, players));
-    await waitFor(() => expect(result.current.current?.timeSeconds).toBe(1800));
-    expect(result.current.current?.inNames).toEqual(['Eino']);
-    expect(result.current.overdueEarlier).toBe(2);
+    await waitFor(() => expect(result.current.current?.timeSeconds).toBe(2400));
+    expect(result.current.current?.due).toBe(false);
+    expect(result.current.overdueEarlier).toBe(0);
+  });
+
+  it('counts other groups due in the same window', async () => {
+    mockGetGameSubs.mockResolvedValue([
+      sub({ id: 'a', timeSeconds: 600, inPlayerId: 'in1' }),
+      sub({ id: 'b', timeSeconds: 630, inPlayerId: 'in2' }),
+    ]);
+    const { result } = renderHook(() => usePlannedSubPrompts('g1', 640, players));
+    await waitFor(() => expect(result.current.current?.timeSeconds).toBe(630));
+    expect(result.current.overdueEarlier).toBe(1);
   });
 
   it('removes the dismissal keys the old prompt left in sessionStorage', async () => {
@@ -171,7 +203,7 @@ describe('usePlannedSubPrompts', () => {
       sub({ id: 'gone', timeSeconds: 600, inPlayerId: 'deleted_player' }),
       sub({ id: 'ok', timeSeconds: 600, inPlayerId: 'in2', outPlayerId: null }),
     ]);
-    const { result } = renderHook(() => usePlannedSubPrompts('g1', 720, players));
+    const { result } = renderHook(() => usePlannedSubPrompts('g1', 620, players));
     await waitFor(() => expect(result.current.current).not.toBeNull());
     expect(result.current.current).toEqual({ timeSeconds: 600, inNames: ['Alex'], outNames: [], due: true });
   });

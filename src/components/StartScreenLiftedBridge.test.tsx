@@ -11,6 +11,10 @@ import ModalProvider, { useModalContext } from '@/contexts/ModalProvider';
 
 jest.mock('@/hooks/useAppLayout', () => ({ useAppLayout: () => 'full', useSetAppLayout: () => jest.fn() }));
 jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast: jest.fn() }) }));
+// Basic Home's own writes need the data layer; these taps never reach them.
+jest.mock('@/hooks/useBasicHomeActions', () => ({
+  useBasicHomeActions: () => ({ moveGameDate: jest.fn(), deleteGame: jest.fn(), addPlayers: jest.fn() }),
+}));
 
 jest.mock('@/components/StartScreen', () => ({
   __esModule: true,

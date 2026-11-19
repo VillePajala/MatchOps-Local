@@ -41,7 +41,8 @@ import { buildTasoReport } from '@/utils/tasoReport';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
 import { extraTimeGoals } from '@/utils/matchStructure';
-import { computeGameCompleteness } from '@/utils/gameCompleteness';
+import { competitionRowRelevant, computeGameCompleteness } from '@/utils/gameCompleteness';
+import { useAppLayout } from '@/hooks/useAppLayout';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { dictationVocabularyFor } from '@/utils/transcription';
 import {
@@ -319,6 +320,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [sortColumn, setSortColumn] = useState<SortableColumn>('totalScore');
   // Finish view: the player-stats table is folded away until asked for.
   const [finishStatsOpen, setFinishStatsOpen] = useState(false);
+  // Basic layout (review R7): the extra records sit folded under "More records".
+  const [moreRecordsOpen, setMoreRecordsOpen] = useState(false);
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filterText, setFilterText] = useState<string>('');
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -722,6 +725,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const scrollToId = useCallback((id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+  // A target inside the folded "More records" group opens it first, then
+  // scrolls once it has rendered.
+  const revealAndScroll = useCallback((id: string) => {
+    setMoreRecordsOpen(true);
+    requestAnimationFrame(() => scrollToId(id));
+  }, [scrollToId]);
   const scrollToInbox = useCallback(() => scrollToId('dictation-inbox'), [scrollToId]);
   const scrollToReport = useCallback(() => scrollToId('game-report-editor'), [scrollToId]);
   const scrollToPositions = useCallback(() => scrollToId('positions-editor'), [scrollToId]);
@@ -837,6 +846,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     return homeOrAway === 'home' ? { home: extra.us, away: extra.them } : { home: extra.them, away: extra.us };
   }, [numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, gameEvents, homeOrAway, homeScore, awayScore]);
 
+  // The pitch as last saved: the fallback position for a player with none
+  // recorded, in both the match sheet and the shared report.
+  const savedPlayersOnField = currentGameId ? savedGames?.[currentGameId]?.playersOnField : undefined;
+
   // Ready-to-paste text recap of the current game (score, our scorers/assisters,
   // the coach's match report).
   const recapText = useMemo(() => buildGameRecap(
@@ -852,6 +865,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       gameNotes,
       shootoutKicks,
       playerPositions,
+      playersOnField: savedPlayersOnField,
+      selectedPlayerIds,
       numberOfPeriods: numPeriods ?? 2,
       periodDurationMinutes: periodDurationMinutes ?? 0,
       extraTimePeriods,
@@ -859,7 +874,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     },
     availablePlayers,
     (key, fallback) => t(key, fallback) as string,
-  ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, playerPositions, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, availablePlayers, t]);
+  ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, playerPositions, savedPlayersOnField, selectedPlayerIds, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, availablePlayers, t]);
 
   /**
    * Who wore the armband. Captaincy is game metadata rather than live session
@@ -886,12 +901,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         periodDurationMinutes: periodDurationMinutes ?? 0,
         extraTimePeriods,
         extraTimeMinutes,
+        playerPositions,
+        playersOnField: savedPlayersOnField,
       },
       availablePlayers,
       (key, fallback) => t(key, fallback) as string,
     );
-    return `${r.lineup}\n\n${r.report}`;
-  }, [teamName, opponentName, homeOrAway, homeScore, awayScore, gameEvents, selectedPlayerIds, captainId, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, availablePlayers, t]);
+    return r.text;
+  }, [teamName, opponentName, homeOrAway, homeScore, awayScore, gameEvents, selectedPlayerIds, captainId, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, playerPositions, savedPlayersOnField, availablePlayers, t]);
 
   // Completeness for the current game: live-editable fields from props over the
   // saved snapshot (which carries competition/team/assessments).
@@ -900,6 +917,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     if (!saved) return null;
     return computeGameCompleteness({
       isPlayed: saved.isPlayed,
+      // Started-ness (R2) from the saved game; live goals below count too.
+      timeElapsedInSeconds: saved.timeElapsedInSeconds,
+      gameStatus: saved.gameStatus,
       gameNotes,
       selectedPlayerIds,
       seasonId: saved.seasonId,
@@ -912,6 +932,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       awayScore,
     }, { assessmentsEnabled });
   }, [currentGameId, savedGames, gameNotes, selectedPlayerIds, playerPositions, assessmentsEnabled, gameEvents, homeScore, awayScore]);
+
+  // "Competition & team" is a task only in the full layout and only once the
+  // coach has an active season or tournament to link to (Onboarding v3).
+  const appLayout = useAppLayout();
+  const showCompetitionRow = competitionRowRelevant(
+    appLayout,
+    seasons.filter((s) => !s.archived).length + tournaments.filter((tr) => !tr.archived).length,
+  );
 
   // --- Handlers ---
   const handleSaveNotes = useCallback(() => {
@@ -1075,8 +1103,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // The finish screen (onboarding v3, D3a/C9) reads top to bottom: the result
   // with a quick squad and goals check, the amber Match sheet, the match report
   // with its quiet Share, then everything else. No step numbers: nothing here
-  // is a mandatory sequence, and every editor stays on the page.
-  const spineSteps: Array<{ key: string; id?: string; content: React.ReactNode }> = [];
+  // is a mandatory sequence, and every editor stays on the page. In the basic
+  // layout (review R7) "everything else" - the checklist, player notes, actual
+  // positions, assessments and Excel - is folded under one "More records".
+  const isBasicLayout = appLayout === 'basic';
+  const spineSteps: Array<{ key: string; id?: string; content: React.ReactNode; more?: boolean }> = [];
   if (activeTab === 'currentGame') {
     spineSteps.push({
       key: 'goals',
@@ -1160,7 +1191,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               stamp={draftStamp}
               language={i18n.language}
               onSaveSummary={onAddGameNote}
-              onShowNotes={() => scrollToId('game-notes-step')}
+              onShowNotes={() => revealAndScroll('game-notes-step')}
               onInsertIntoReport={(spoken) => {
                 // Append to what is ON SCREEN, not to the last saved value: an
                 // open editor may hold a paragraph the coach has not saved.
@@ -1231,7 +1262,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     // The rest of the record, as a checklist that scrolls to each editor below.
     if (currentGameCompleteness?.applicable) {
       spineSteps.push({
-        key: 'checklist',
+        key: 'checklist', more: true,
         content: (
           <GameWrapUpCard
             completeness={currentGameCompleteness}
@@ -1243,12 +1274,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             onOpenNotes={() => scrollToId('game-notes-step')}
             onOpenReport={scrollToReport}
             onOpenPositions={onPlayerPositionsChange ? scrollToPositions : undefined}
+            showCompetition={showCompetitionRow}
           />
         ),
       });
     }
     spineSteps.push({
-      key: 'notes',
+      key: 'notes', more: true,
       id: 'game-notes-step',
       content: (
         <>
@@ -1293,7 +1325,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     });
     if (onPlayerPositionsChange) {
       spineSteps.push({
-        key: 'positions',
+        key: 'positions', more: true,
         id: 'positions-editor',
         content: (
           <div data-testid="positions-editor" className={`${cardStyle} font-ui`}>
@@ -1311,7 +1343,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
     if (assessmentsEnabled && onOpenAssessments && currentGameCompleteness?.applicable) {
       spineSteps.push({
-        key: 'assessments',
+        key: 'assessments', more: true,
         content: (
           <div className={`${cardStyle} font-ui`}>
             <h3 className="text-base font-semibold text-ink mb-1">{t('gameStatsModal.wrapUpAssessments', 'Player assessments')}</h3>
@@ -1330,7 +1362,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
     if (currentGameId && onExportOneExcel) {
       spineSteps.push({
-        key: 'export',
+        key: 'export', more: true,
         content: (
           <button type="button" onClick={() => onExportOneExcel(currentGameId)} data-testid="spine-export-excel" className={`${secondaryButtonStyle} w-full`}>
             {t('common.exportExcel', 'Export Excel')}
@@ -1549,11 +1581,33 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     extraTimeScore={extraTimeScore}
                     shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
                   />
-                  {spineSteps.map((step) => (
+                  {spineSteps.filter((step) => !(isBasicLayout && step.more)).map((step) => (
                     <section key={step.key} id={step.id} data-testid={`spine-${step.key}`} className="space-y-3">
                       {step.content}
                     </section>
                   ))}
+                  {isBasicLayout && spineSteps.some((step) => step.more) && (
+                    <section data-testid="finish-more-records" className="space-y-6">
+                      <button
+                        type="button"
+                        onClick={() => setMoreRecordsOpen((v) => !v)}
+                        aria-expanded={moreRecordsOpen}
+                        data-testid="finish-more-records-toggle"
+                        className="s1-ghost flex min-h-12 w-full items-center gap-3 rounded-full px-4 text-[15px] font-semibold text-ink font-ui focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                      >
+                        <span className="flex-1 text-left">{t('gameStatsModal.moreRecords', 'More records')}</span>
+                        <HiChevronDown
+                          className={`h-[18px] w-[18px] shrink-0 text-ink-3 transition-transform ${moreRecordsOpen ? 'rotate-180' : ''}`}
+                          aria-hidden="true"
+                        />
+                      </button>
+                      {moreRecordsOpen && spineSteps.filter((step) => step.more).map((step) => (
+                        <section key={step.key} id={step.id} data-testid={`spine-${step.key}`} className="space-y-3">
+                          {step.content}
+                        </section>
+                      ))}
+                    </section>
+                  )}
                   <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
                   {/* The read-only table comes last and folded: the steps above
                       are what the coach came to do. */}

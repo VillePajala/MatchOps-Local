@@ -131,3 +131,43 @@ describe('AttendanceSheet', () => {
     expect(deps.saveGame).not.toHaveBeenCalled();
   });
 });
+
+/** R13: match day is when the coach finally knows who the opponent is. */
+describe('AttendanceSheet opponent field', () => {
+  it('asks for the opponent while it is still the placeholder, and saves it with the attendance', async () => {
+    const { deps, getGame } = makeDeps((g) => ({ ...g, opponentName: 'Vastustaja' }));
+    const onClose = jest.fn();
+    const onSaved = jest.fn();
+    render(<AttendanceSheet gameId="g" mode="save" userId="u" onClose={onClose} onSaved={onSaved} deps={deps} />);
+    const field = await screen.findByTestId('attendance-opponent');
+    fireEvent.change(field, { target: { value: '  Rantakylän FC ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Leevi' }));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('attendance-save'));
+    });
+    expect(getGame().opponentName).toBe('Rantakylän FC');
+    // The attendance change landed too (the opponent write must not undo it).
+    expect(getGame().selectedPlayerIds).not.toContain('p7');
+    expect(onSaved).toHaveBeenCalledWith('g');
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('a named opponent alone is a change worth saving', async () => {
+    const { deps, getGame } = makeDeps((g) => ({ ...g, opponentName: 'Opponent' }));
+    const onSaved = jest.fn();
+    render(<AttendanceSheet gameId="g" mode="save" userId="u" onClose={jest.fn()} onSaved={onSaved} deps={deps} />);
+    fireEvent.change(await screen.findByTestId('attendance-opponent'), { target: { value: 'HJK' } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('attendance-save'));
+    });
+    expect(getGame().opponentName).toBe('HJK');
+    expect(onSaved).toHaveBeenCalledWith('g');
+  });
+
+  it('does not ask when the game already has a real opponent', async () => {
+    const { deps } = makeDeps((g) => ({ ...g, opponentName: 'Rantakylän FC' }));
+    render(<AttendanceSheet gameId="g" mode="save" userId="u" onClose={jest.fn()} deps={deps} />);
+    await waitFor(() => expect(screen.getByTestId('attendance-count')).toBeInTheDocument());
+    expect(screen.queryByTestId('attendance-opponent')).not.toBeInTheDocument();
+  });
+});

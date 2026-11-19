@@ -27,10 +27,13 @@ let mockWizardActive = false;
 let mockFirstGameExists = true;
 // Default TRUE (Home on screen) for the same reason; the 7.5 test flips it.
 let mockHomeShowing = true;
+// The first Home visit right after onboarding (review R13); default off.
+let mockJustOnboarded = false;
 jest.mock('@/components/setupWizardActive', () => ({
   useSetupWizardActive: () => mockWizardActive,
   useFirstGameExists: () => mockFirstGameExists,
   useHomeShowing: () => mockHomeShowing,
+  useOnboardingJustFinished: () => mockJustOnboarded,
 }));
 
 jest.mock('@/contexts/AuthProvider', () => ({
@@ -95,6 +98,7 @@ describe('MarketingConsentPrompt', () => {
     mockWizardActive = false;
     mockFirstGameExists = true;
     mockHomeShowing = true;
+    mockJustOnboarded = false;
     mockUseAuth.mockReturnValue(defaultMockAuth);
   });
 
@@ -177,6 +181,24 @@ describe('MarketingConsentPrompt', () => {
 
     // On Home for the full delay: it appears.
     mockHomeShowing = true;
+    rerender(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(screen.getByText('Stay in the loop?')).toBeInTheDocument();
+  });
+
+  it('never opens on the first Home visit right after onboarding (review R13)', () => {
+    mockUseAuth.mockReturnValue({ ...defaultMockAuth, showMarketingPrompt: true });
+    mockJustOnboarded = true;
+    const { rerender } = render(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+    expect(screen.queryByText('Stay in the loop?')).not.toBeInTheDocument();
+
+    // A later visit (the flag clears when Home leaves the screen): it may appear.
+    mockJustOnboarded = false;
     rerender(<MarketingConsentPrompt />);
     act(() => {
       jest.advanceTimersByTime(5000);

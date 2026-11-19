@@ -2,13 +2,19 @@
  * Per-game completeness - the shared "is this game fully recorded?" model.
  *
  * Read by both the post-game wrap-up card and the completeness badges so they
- * never disagree. Deliberately does NOT depend on the timer / `gameStatus`
- * ('gameEnd'): a game "finished but never timed to max" must still read as a
- * real game. The only played-vs-planned gate is `isPlayed` (defaults true).
+ * never disagree. A game is judged only once it has STARTED (review R2,
+ * "started = played"): its clock has run or it has a play event (the evidence
+ * `hasBeenPlayed` reads), it has left `notStarted`, or it has a score. A game that has not
+ * started is never "valmis" and never a recorded 0-0, whatever its `isPlayed`
+ * flag says. It does not need to have reached 'gameEnd': a game "finished but
+ * never timed to max" is still a real game. `isPlayed: false` still opts out.
  *
- * Core (makes a game `complete`) = Report + Roster. Competition/team link,
- * positions and assessments are recommended enrichment - they contribute to the
- * optional `enriched` flag but never block `complete`. Pure + i18n-free.
+ * Core (makes a game `complete`, "valmis") = squad selected + the goal log
+ * matches the score (D2, Onboarding v3). Scorers are optional: a goal with no
+ * scorer still counts as logged. The written report, competition/team link,
+ * positions and assessments are checklist items and feed the optional
+ * `enriched` flag, but never block `complete`. Applied on read to every game,
+ * so no stored data changes when the rule does. Pure + i18n-free.
  *
  * Three of the checks ask a different question from the rest. "Did you fill in
  * this field" is easy to see; "does the record contradict itself" is not, and
@@ -18,9 +24,16 @@
  * the squad is checked for who has had nothing written about them at all.
  */
 
+import type { AppLayout } from '@/types/settings';
+import { hasBeenPlayed } from '@/utils/matchPlayedDefault';
+
 /** The subset of a game needed to judge completeness. */
 export interface CompletenessGame {
   isPlayed?: boolean;
+  /** Match clock; any time on it means the game has started. */
+  timeElapsedInSeconds?: number;
+  /** Anything other than 'notStarted' means the game has started. */
+  gameStatus?: string;
   gameNotes?: string;
   selectedPlayerIds?: string[];
   seasonId?: string;
@@ -40,7 +53,7 @@ export interface CountCheck {
 }
 
 export interface GameCompleteness {
-  /** false for planned/unplayed games - callers show nothing. */
+  /** false for planned/unplayed or not-yet-started games - callers show nothing. */
   applicable: boolean;
   report: boolean;
   roster: boolean;
@@ -59,9 +72,9 @@ export interface GameCompleteness {
   notesCoverage: CountCheck;
   /** Notes that came from a recording. Proof this game had audio at all. */
   dictatedNotes: number;
-  /** Report + Roster - the bar for `complete`. */
+  /** Squad selected + goal log matches the score - the bar for `complete`. */
   coreComplete: boolean;
-  /** coreComplete + competition + team + at least some positions & assessments. */
+  /** coreComplete + report + competition + team + at least some positions & assessments. */
   enriched: boolean;
   overall: 'empty' | 'partial' | 'complete';
 }
@@ -99,55 +112,30 @@ export function goalLogStatus(c: CountCheck): CompletenessRowStatus {
 }
 
 /**
- * How much of the finishing work is done, as a fraction the UI can show.
- *
- * The bar counts exactly the rows the checklist does not show in amber, because
- * both read this same function - not two parallel expressions that have twice
- * drifted apart. A bar, a menu badge and the list therefore cannot disagree
- * without the shared rule itself changing.
+ * Whether the checklist's "Competition & team" row is a real task for this
+ * coach. The basic layout hides it; in the full layout it only asks for a link
+ * when there is something to link to - a coach with no (active) season or
+ * tournament would otherwise carry a permanently open item they cannot close.
+ * `undefined` layout = settings still loading: not shown rather than flashed.
  */
-export interface ProgressOptions {
-  /**
-   * Recordings from this match not yet turned into notes.
-   *
-   * Audio is device state, not part of the saved game, so the model cannot see
-   * it and a caller that cannot either (the menu badge, the saved-games list)
-   * leaves it out - the item then does not exist, rather than being guessed.
-   * Unhandled audio is real unfinished work: the clip is deleted after 30 days
-   * and the words are gone with it.
-   */
-  voiceClipsPending?: number;
+export function competitionRowRelevant(
+  layout: AppLayout | undefined,
+  activeSeasonAndTournamentCount: number,
+): boolean {
+  return layout === 'full' && activeSeasonAndTournamentCount > 0;
 }
 
-export function completenessProgress(
-  c: GameCompleteness,
-  options: ProgressOptions = {},
-): { done: number; total: number } {
+/**
+ * The finishing counter ("x/y", the amber/green dot, the menu badge, the
+ * saved-games badge): ONLY the D2 core items - squad selected and a goal log
+ * that adds up to the score (review R7). It therefore reaches its end exactly
+ * when the game is "valmis" (`coreComplete`), on every surface. The report,
+ * positions, assessments, competition link and voice notes are checklist rows
+ * the coach can do, never part of the count.
+ */
+export function completenessProgress(c: GameCompleteness): { done: number; total: number } {
   if (!c.applicable) return { done: 0, total: 0 };
-  // Only for a game that has audio, or had some and dealt with it: a coach who
-  // never records should not collect a free tick for it.
-  const audioItem =
-    options.voiceClipsPending !== undefined && (options.voiceClipsPending > 0 || c.dictatedNotes > 0);
-  const items = [
-    c.report,
-    c.roster,
-    // Both, because the checklist's "Competition & team" row is done only when
-    // both are set. Counting just one made the badge claim all-done while the
-    // list underneath still showed the row outstanding.
-    c.competition && c.team,
-    goalLogStatus(c.goalsLogged) === 'done',
-    countRowStatus(c.positions) !== 'todo',
-    // 0/0 = the assessment feature is off, or there is nothing of that kind in
-    // this game (no goals to attribute, no squad): not an item, or the bar
-    // could never reach the end.
-    ...(c.goalsAttributed.total > 0 ? [countRowStatus(c.goalsAttributed) === 'done'] : []),
-    ...(audioItem ? [options.voiceClipsPending === 0] : []),
-    // Notes coverage is NOT counted. A meter that says "not complete" is a
-    // demand however it is worded, and nobody should owe an observation about
-    // every child in every match - that is how the rating sliders filled up
-    // with "hyva peli". The number is still shown, as information.
-    ...(c.assessments.total > 0 ? [countRowStatus(c.assessments) !== 'todo'] : []),
-  ];
+  const items = [c.roster, goalLogStatus(c.goalsLogged) === 'done'];
   return { done: items.filter(Boolean).length, total: items.length };
 }
 
@@ -159,7 +147,14 @@ export interface CompletenessOptions {
 
 export function computeGameCompleteness(game: CompletenessGame, options: CompletenessOptions = {}): GameCompleteness {
   const assessmentsEnabled = options.assessmentsEnabled ?? true;
-  const applicable = game.isPlayed !== false;
+  // R2: not started = not played, whatever the flag says - never a 0-0 "valmis".
+  // A score on the board is evidence too: it cannot be a 0-0 nobody played,
+  // and a score with no goals logged is exactly the record to flag.
+  const started =
+    hasBeenPlayed({ timeElapsedInSeconds: game.timeElapsedInSeconds, gameEvents: game.gameEvents }) ||
+    (game.gameStatus !== undefined && game.gameStatus !== 'notStarted') ||
+    (game.homeScore ?? 0) + (game.awayScore ?? 0) > 0;
+  const applicable = game.isPlayed !== false && started;
 
   const squad = game.selectedPlayerIds ?? [];
   const total = squad.length;
@@ -188,10 +183,14 @@ export function computeGameCompleteness(game: CompletenessGame, options: Complet
   const notesCoverage: CountCheck = { done: squad.filter(id => written.has(id)).length, total };
   const dictatedNotes = events.filter(e => e.type === 'note' && e.source === 'dictation').length;
 
-  const coreComplete = report && roster;
-  const enriched = coreComplete && competition && team && positionsDone > 0 && (!assessmentsEnabled || assessmentsDone > 0);
+  // D2: "valmis" = squad + a goal log that adds up to the score. Scorers are
+  // optional and the report is a checklist item, not a gate.
+  const coreComplete = roster && goalLogStatus(goalsLogged) === 'done';
+  const enriched =
+    coreComplete && report && competition && team && positionsDone > 0 && (!assessmentsEnabled || assessmentsDone > 0);
 
-  const anyProgress = report || competition || team || positionsDone > 0 || assessmentsDone > 0;
+  const anyProgress =
+    report || competition || team || positionsDone > 0 || assessmentsDone > 0 || loggedGoals > 0;
   const overall: GameCompleteness['overall'] = !applicable
     ? 'empty'
     : coreComplete

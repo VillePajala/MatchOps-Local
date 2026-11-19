@@ -389,6 +389,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             // (the actionable case); a complete one is announced to screen readers only.
             const completeness = computeGameCompleteness(game);
             const isUnplayed = game.isPlayed === false;
+            // A game that has not started is never judged (review R2): no chip.
             const showReadinessDot = !isUnplayed && completeness.applicable;
             const isRecordComplete = completeness.overall === 'complete';
 

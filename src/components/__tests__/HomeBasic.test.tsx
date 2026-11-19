@@ -4,7 +4,7 @@
  * @critical
  */
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { TFunction } from 'i18next';
 import HomeBasic from '../HomeBasic';
@@ -93,7 +93,7 @@ const handlers = () => ({
   onOpenAttendance: jest.fn(),
   onShowPlan: jest.fn(),
   onOpenPlannerAt: jest.fn(),
-  onManageTeams: jest.fn(),
+  onOpenPlayers: jest.fn(),
   onLoadGame: jest.fn(),
   onViewStats: jest.fn(),
   onSwitchToFull: jest.fn(),
@@ -185,15 +185,34 @@ describe('HomeBasic next-game card', () => {
 });
 
 describe('HomeBasic rows and Kaikki toiminnot', () => {
-  it('shows the team row always, played games from the first, statistics from the third', async () => {
-    const { rerender } = render(<HomeBasic summary={summary()} {...handlers()} locale="en" t={t} />);
+  it('shows the team row always, all games from the first game, statistics from the first played (R5, R13)', async () => {
+    const h = handlers();
+    const { rerender } = render(<HomeBasic summary={summary({ gameCount: 0 })} {...h} locale="en" t={t} />);
     expect(screen.getByTestId('basic-team-row')).toHaveTextContent('Team · 14 players');
-    expect(screen.queryByTestId('basic-played-row')).not.toBeInTheDocument();
-    rerender(<HomeBasic summary={summary({ playedCount: 1 })} {...handlers()} locale="en" t={t} />);
-    expect(screen.getByTestId('basic-played-row')).toHaveTextContent('Played games · 1');
+    expect(screen.queryByTestId('basic-all-games-row')).not.toBeInTheDocument();
     expect(screen.queryByTestId('basic-stats-row')).not.toBeInTheDocument();
-    rerender(<HomeBasic summary={summary({ playedCount: 3 })} {...handlers()} locale="en" t={t} />);
-    expect(screen.getByTestId('basic-stats-row')).toBeInTheDocument();
+    // The team row is the player list (R4).
+    fireEvent.click(screen.getByTestId('basic-team-row'));
+    expect(h.onOpenPlayers).toHaveBeenCalledTimes(1);
+    // One game booked, none played: "Kaikki ottelut" already, statistics not yet.
+    rerender(<HomeBasic summary={summary({ gameCount: 1 })} {...h} locale="en" t={t} />);
+    expect(screen.getByTestId('basic-all-games-row')).toHaveTextContent('All games · 1');
+    expect(screen.queryByTestId('basic-stats-row')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('basic-all-games-row'));
+    expect(h.onLoadGame).toHaveBeenCalledTimes(1);
+    rerender(<HomeBasic summary={summary({ gameCount: 2, playedCount: 1 })} {...h} locale="en" t={t} />);
+    expect(screen.getByTestId('basic-stats-row')).toHaveTextContent('Statistics · 1 games');
+    await waitFor(() => expect(mockGetPlan).toHaveBeenCalled());
+  });
+
+  it('Kaikki toiminnot closes from its close button and with Escape (R13)', async () => {
+    render(<HomeBasic summary={summary()} {...handlers()} locale="en" t={t} />);
+    fireEvent.click(screen.getByTestId('all-features'));
+    fireEvent.click(screen.getByTestId('all-features-close'));
+    expect(screen.queryByTestId('all-features-sheet')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('all-features'));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByTestId('all-features-sheet')).not.toBeInTheDocument();
     await waitFor(() => expect(mockGetPlan).toHaveBeenCalled());
   });
 
@@ -206,5 +225,114 @@ describe('HomeBasic rows and Kaikki toiminnot', () => {
     expect(h.onSwitchToFull).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('all-features-sheet')).not.toBeInTheDocument();
     await waitFor(() => expect(mockGetPlan).toHaveBeenCalled());
+  });
+});
+
+describe('HomeBasic card priorities (R2, R5, R12)', () => {
+  /** @critical a match under way always wins the card */
+  it('a match under way wins over the next game: "Jatka ottelua"', async () => {
+    const h = handlers();
+    const onResumeGame = jest.fn();
+    const live: HomeResumeGame = { ...lastPlayed, id: 'live', inProgress: true, started: true };
+    render(
+      <HomeBasic summary={summary({ unfinished: live, resume: live })} {...h} onResumeGame={onResumeGame} locale="en" t={t} />,
+    );
+    expect(screen.queryByTestId('basic-next-game')).not.toBeInTheDocument();
+    expect(screen.getByTestId('basic-new-game-secondary')).toBeInTheDocument();
+    await waitFor(() => expect(mockGetPlan).toHaveBeenCalled());
+  });
+
+  it('a match under way that is not the current game opens by id', async () => {
+    const h = handlers();
+    const live: HomeResumeGame = { ...lastPlayed, id: 'other-live', inProgress: true, started: true };
+    render(<HomeBasic summary={summary({ unfinished: live, resume: null })} {...h} locale="en" t={t} />);
+    fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    expect(h.onOpenGame).toHaveBeenCalledWith('other-live');
+    await waitFor(() => expect(mockGetPlan).toHaveBeenCalled());
+  });
+
+  /** @critical a game that never kicked off is never "Viimeisin peli 0-0" */
+  it('a past game that never started keeps the card: move it or remove it', async () => {
+    const h = handlers();
+    const onMoveGameDate = jest.fn().mockResolvedValue(true);
+    const onDeleteGame = jest.fn().mockResolvedValue(true);
+    render(
+      <HomeBasic
+        summary={summary({ upcoming: null, overdue: upcoming({ daysOverdue: 4, daysAway: 0 }) })}
+        {...h}
+        onMoveGameDate={onMoveGameDate}
+        onDeleteGame={onDeleteGame}
+        today="2026-11-26"
+        locale="en"
+        t={t}
+      />,
+    );
+    const card = screen.getByTestId('basic-next-game');
+    expect(card).toHaveTextContent('4 d ago');
+    expect(screen.queryByTestId('basic-primary')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('basic-no-next-game')).not.toBeInTheDocument();
+
+    // Move: the editor starts on today and saves the picked day.
+    fireEvent.click(screen.getByTestId('basic-move-date'));
+    const input = screen.getByTestId('basic-move-date-input') as HTMLInputElement;
+    expect(input.value).toBe('2026-11-26');
+    fireEvent.change(input, { target: { value: '2026-11-29' } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('basic-move-date-save'));
+    });
+    expect(onMoveGameDate).toHaveBeenCalledWith('game-1', '2026-11-29');
+    await waitFor(() => expect(screen.queryByTestId('basic-move-date-form')).not.toBeInTheDocument());
+
+    // Remove: only after the confirm.
+    fireEvent.click(screen.getByTestId('basic-delete-game'));
+    expect(onDeleteGame).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }));
+    });
+    expect(onDeleteGame).toHaveBeenCalledWith('game-1');
+  });
+
+  it('a resumable game that never started is not shown as the last result', async () => {
+    const notStarted: HomeResumeGame = { ...lastPlayed, id: 'fresh', ourScore: 0, theirScore: 0, started: false };
+    render(<HomeBasic summary={summary({ upcoming: null, resume: notStarted, lastPlayed })} {...handlers()} locale="en" t={t} />);
+    expect(screen.getByTestId('basic-no-next-game')).toHaveTextContent('Joen Pallo');
+    expect(screen.getByTestId('basic-no-next-game')).not.toHaveTextContent('0–0');
+  });
+
+  it('no players yet: "Add players" takes a pasted list and creates it', async () => {
+    const onAddPlayers = jest.fn().mockResolvedValue(3);
+    render(
+      <HomeBasic
+        summary={summary({ upcoming: null, counts: { players: 0, teams: 1, personnel: 0, seasons: 0, tournaments: 0 } })}
+        {...handlers()}
+        onAddPlayers={onAddPlayers}
+        locale="en"
+        t={t}
+      />,
+    );
+    fireEvent.change(screen.getByTestId('basic-add-players-input'), { target: { value: '1. Onni\n#12 Toivo\nAatos' } });
+    expect(screen.getByTestId('basic-add-players-count')).toHaveTextContent('3 players added');
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('basic-add-players-submit'));
+    });
+    expect(onAddPlayers).toHaveBeenCalledWith(['Onni', 'Toivo', 'Aatos']);
+  });
+
+  it('after a partial failure only the names not yet created stay', async () => {
+    const onAddPlayers = jest.fn().mockResolvedValue(1);
+    render(
+      <HomeBasic
+        summary={summary({ upcoming: null, counts: { players: 0, teams: 1, personnel: 0, seasons: 0, tournaments: 0 } })}
+        {...handlers()}
+        onAddPlayers={onAddPlayers}
+        locale="en"
+        t={t}
+      />,
+    );
+    fireEvent.change(screen.getByTestId('basic-add-players-input'), { target: { value: 'Onni\nToivo' } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('basic-add-players-submit'));
+    });
+    expect((screen.getByTestId('basic-add-players-input') as HTMLTextAreaElement).value).toBe('Toivo');
   });
 });

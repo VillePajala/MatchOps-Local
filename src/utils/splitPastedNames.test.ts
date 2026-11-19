@@ -3,7 +3,7 @@
  * WhatsApp; every row must become one clean first-name row.
  * @critical
  */
-import { looksLikeNameList, splitPastedNames, stripListMarker } from './splitPastedNames';
+import { defaultNickname, looksLikeNameList, splitPastedNames, stripListMarker } from './splitPastedNames';
 
 describe('splitPastedNames', () => {
   it('splits a numbered WhatsApp list and strips the numbers (not shirt numbers)', () => {
@@ -43,6 +43,12 @@ describe('splitPastedNames', () => {
     expect(splitPastedNames('1. Onni\r\n\r\n  2.   Toivo   Virtanen  \r\n')).toEqual(['Onni', 'Toivo Virtanen']);
   });
 
+  it('strips a "#12" shirt-style prefix too (R13)', () => {
+    expect(splitPastedNames('#12 Onni\n# 7 Toivo\n#3. Aatos')).toEqual(['Onni', 'Toivo', 'Aatos']);
+    // A "#" later in the name is part of the name.
+    expect(splitPastedNames('Onni #2\nToivo')).toEqual(['Onni #2', 'Toivo']);
+  });
+
   it('drops a line that is only a number', () => {
     expect(splitPastedNames('1.\nOnni\n2')).toEqual(['Onni']);
   });
@@ -70,5 +76,12 @@ describe('helpers', () => {
     expect(looksLikeNameList('Onni')).toBe(false);
     expect(looksLikeNameList('Onni\nToivo')).toBe(true);
     expect(looksLikeNameList('Onni, Toivo')).toBe(true);
+  });
+});
+
+describe('defaultNickname', () => {
+  it('gives a multi-word name its first word, a single word none', () => {
+    expect(defaultNickname('Matti Meikäläinen')).toBe('Matti');
+    expect(defaultNickname('  Aino ')).toBe('');
   });
 });

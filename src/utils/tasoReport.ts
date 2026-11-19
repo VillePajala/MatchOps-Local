@@ -7,7 +7,7 @@
  * two blocks of plain text, each matching a Taso screen.
  *
  * Before the match, Taso wants the squad with shirt numbers and the keeper
- * marked. After it: the final and half-time score, and every goal as minute,
+ * marked; each line also carries the player's position when one is known. After it: the final and half-time score, and every goal as minute,
  * scorer's number, assist's number - which is exactly the "Maalit" table.
  *
  * The app never records a periodEnd event (prod has none; the reducer emits
@@ -23,6 +23,8 @@
 import type { GameEvent } from '@/types/game';
 import type { Player } from '@/types';
 import { extraTimeGoals } from './matchStructure';
+import { orderPositionIds, POSITION_ABBREV_FALLBACK } from '@/config/positions';
+import { getPositionLabel, isSidelinePosition } from './positionLabels';
 
 export interface TasoGame {
   teamName: string;
@@ -39,6 +41,13 @@ export interface TasoGame {
   /** Extra time (review 11.1): its score is shown separately in the header. */
   extraTimePeriods?: number;
   extraTimeMinutes?: number;
+  /** Where each player actually played (post-game record), as gameRecap.ts reads it. */
+  playerPositions?: Record<string, string[]>;
+  /**
+   * The pitch as saved. Used only for a player with no recorded position: their
+   * spot on the field gives the label the field itself shows (CB, ST, ...).
+   */
+  playersOnField?: Array<Pick<Player, 'id' | 'relX' | 'relY'>>;
 }
 
 export type TasoTranslate = (key: string, fallback: string) => string;
@@ -48,6 +57,12 @@ export interface TasoReport {
   lineup: string;
   /** Result, half-time, and the goals table. */
   report: string;
+  /**
+   * The whole sheet as one text to copy (review R13): the title and the score
+   * first - what anyone reading it wants to see before anything else - then
+   * the line-up, then the goals.
+   */
+  text: string;
 }
 
 const numberOf = (p: Player | undefined): number | undefined => {
@@ -76,6 +91,28 @@ export function tasoPeriod(seconds: number, numberOfPeriods: number, periodDurat
   return Math.min(Math.max(1, p), numberOfPeriods);
 }
 
+/**
+ * A player's position for the line-up: the recorded positions when there are
+ * any (in back-to-front order, joined with "/"), otherwise the label of their
+ * spot on the pitch. A keeper already carries the keeper mark, so GK is not
+ * repeated as their position. Undefined = nothing to show.
+ */
+function lineupPosition(p: Player, game: TasoGame, t: TasoTranslate): string | undefined {
+  const recorded = orderPositionIds(game.playerPositions?.[p.id] ?? []).filter(id => !(p.isGoalie && id === 'gk'));
+  if ((game.playerPositions?.[p.id]?.length ?? 0) > 0) {
+    if (recorded.length === 0) return undefined;
+    return recorded
+      .map(id => t(`playingPositions.${id}.abbrev`, POSITION_ABBREV_FALLBACK[id] ?? id.toUpperCase()))
+      .join('/');
+  }
+  if (p.isGoalie) return undefined;
+  const onField = game.playersOnField?.find(f => f.id === p.id);
+  if (!onField || typeof onField.relX !== 'number' || typeof onField.relY !== 'number') return undefined;
+  if (isSidelinePosition(onField.relX)) return undefined;
+  const { label } = getPositionLabel(onField.relX, onField.relY);
+  return t(`positions.${label}`, label);
+}
+
 export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTranslate): TasoReport {
   const byId = new Map(players.map((p) => [p.id, p]));
   const squad = game.selectedPlayerIds
@@ -99,7 +136,10 @@ export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTransl
       p.isGoalie ? t('taso.goalie', 'GK') : undefined,
       p.id === game.captainId ? t('taso.captain', 'C') : undefined,
     ].filter(Boolean);
-    return `${num} ${p.name.trim()}${marks.length ? ` (${marks.join(', ')})` : ''}`;
+    // Position last, after a separator, so the line still pastes as
+    // "number name" first: "7 Onni Virtanen (Mv, C) · CB".
+    const position = lineupPosition(p, game, t);
+    return `${num} ${p.name.trim()}${marks.length ? ` (${marks.join(', ')})` : ''}${position ? ` · ${position}` : ''}`;
   });
   const lineup = [t('taso.lineupTitle', 'Squad'), ...lineupLines].join('\n');
 
@@ -150,13 +190,13 @@ export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTransl
     return `${min}' ${ref(e.scorerId)}${assist}`;
   });
 
-  const report = [
-    t('taso.reportTitle', 'Match sheet'),
-    header,
-    ...(goalLines.length
-      ? [`${t('taso.goals', 'Goals (minute, scorer, assist)')}:`, ...goalLines]
-      : [t('taso.noGoals', 'No goals recorded.')]),
-  ].join('\n');
+  const title = t('taso.reportTitle', 'Match sheet');
+  const goalsBlock = (goalLines.length
+    ? [`${t('taso.goals', 'Goals (minute, scorer, assist)')}:`, ...goalLines]
+    : [t('taso.noGoals', 'No goals recorded.')]
+  ).join('\n');
+  const report = [title, header, goalsBlock].join('\n');
+  const text = [`${title}\n${header}`, lineup, goalsBlock].join('\n\n');
 
-  return { lineup, report };
+  return { lineup, report, text };
 }

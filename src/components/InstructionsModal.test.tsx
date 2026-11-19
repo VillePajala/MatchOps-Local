@@ -4,6 +4,9 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 import InstructionsModal from './InstructionsModal';
 
+let mockLayout: 'basic' | 'full' | undefined = 'full';
+jest.mock('@/hooks/useAppLayout', () => ({ useAppLayout: () => mockLayout }));
+
 const renderModal = (isOpen = true) =>
   render(
     <I18nextProvider i18n={i18n}>
@@ -15,6 +18,20 @@ const renderModal = (isOpen = true) =>
 const expand = (title: string) => fireEvent.click(screen.getByRole('button', { name: title }));
 
 describe('InstructionsModal ("How it works", two-level rebuild)', () => {
+  beforeEach(() => { mockLayout = 'full'; });
+
+  it('basic layout: describes the basic Home, not the four tabs or tip2', () => {
+    mockLayout = 'basic';
+    renderModal();
+    expand(i18n.t('appGuide.homeTitle', 'Home — your club hub'));
+    expect(screen.getByText(i18n.t('appGuide.homeBasicNextGame'))).toBeInTheDocument();
+    expect(screen.getByText(i18n.t('appGuide.homeBasicTeam'))).toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('appGuide.homeGamesTab'))).not.toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('appGuide.homeStatsTab'))).not.toBeInTheDocument();
+    expand(i18n.t('instructionsModal.tips.title'));
+    expect(screen.queryByText(i18n.t('instructionsModal.tips.tip2'))).not.toBeInTheDocument();
+  });
+
   it('renders nothing when closed', () => {
     const { container } = renderModal(false);
     expect(container).toBeEmptyDOMElement();

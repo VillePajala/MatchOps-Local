@@ -553,7 +553,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           onLiveGameChanged={plannerLiveGameHooks?.onLinkedGamesUpdated}
         />
       )}
-      {/* Home's "Näytä peluutus": the one-game plan screen as a layer. */}
+      {/* Home's "Näytä suunnitelma": the one-game plan screen as a layer. */}
       {planQuickViewTarget && (
         <HostPlanQuickView target={planQuickViewTarget} onClose={() => setPlanQuickViewTarget(null)} />
       )}

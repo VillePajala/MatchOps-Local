@@ -137,8 +137,6 @@ export interface TimerInteractions {
 }
 
 export interface FieldContainerProps {
-  /** Finishing progress for the current game, or null when it does not apply. */
-  finishProgress?: { done: number; total: number } | null;
   // Optional grouped state to reduce prop count (2.4.4)
   fieldVM: {
     playersOnField: AppState['playersOnField'];
@@ -214,7 +212,6 @@ export function FieldContainer({
   onWentToPenaltiesChange,
   interactions,
   timerInteractions,
-  finishProgress,
 }: FieldContainerProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
@@ -402,7 +399,6 @@ export function FieldContainer({
           showSubTimerReset={appLayout !== 'basic'}
           onOpenPlayerAssessmentModal={assessmentsEnabled ? onOpenPlayerAssessmentModal : undefined}
           onFinishGame={onFinishGame}
-          finishProgress={finishProgress}
           onRecordOpponentGoal={() => logOpponentGoal(tmTime)}
           teamName={gameSessionState.teamName}
           opponentName={gameSessionState.opponentName}
@@ -627,7 +623,7 @@ export function FieldContainer({
                     onClick={() => onOpenRosterModal?.()}
                     className={`${primaryButtonStyle} w-full min-h-[52px]`}
                   >
-                    {t('firstGame.setupRoster', 'Set Up Team Roster')}
+                    {t('firstGame.setupRoster', 'Add players')}
                   </button>
                 ) : (
                   <button

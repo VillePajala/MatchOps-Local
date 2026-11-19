@@ -869,7 +869,7 @@ describe('PlaytimePlannerModal', () => {
     await screen.findByDisplayValue('Saved Cup');
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Suggest fair lineups' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Suggest lineups' }));
     });
     // Nothing changes until confirmed.
     expect(screen.getByText(/0\/\d+ placed/)).toBeInTheDocument();
@@ -879,7 +879,7 @@ describe('PlaytimePlannerModal', () => {
     // 8v8 formation, but only 1 roster player -> exactly 1 placed.
     await waitFor(() => expect(screen.getByText(/1\/\d+ placed/)).toBeInTheDocument());
     expect(mockShowToast).toHaveBeenCalledWith(
-      'Fair lineups suggested - check the balance view.',
+      'Lineups suggested - check the balance view.',
       'success',
     );
   });
@@ -1144,10 +1144,14 @@ describe('PlaytimePlannerModal', () => {
     expect(announcement()).toHaveAttribute('data-announcement-nonce', '4');
   });
 
-  it('placing a starter KEEPS their scheduled subs (rotations survive lineup edits)', async () => {
-    // Alex is scheduled to come into s0 at 6' but starts nowhere. Placing him
-    // as the GK starter must NOT strip that sub - the old Phase-1 guard did,
-    // which made rotations unbuildable from the lineup side.
+  /**
+   * Review R13: a player is never in two slots at once. Alex is scheduled to
+   * come into s0 at 6' but starts nowhere; placed as the keeper (on for the
+   * whole game) that change would put him in goal AND in s0, so it goes. A
+   * return after a player comes off is kept (placePlayerInSlot unit tests).
+   * @critical
+   */
+  it('placing a starter drops a planned change that would put them in two slots at once', async () => {
     mockGetPlans.mockResolvedValue({
       existing: {
         ...existingPlan,
@@ -1180,9 +1184,9 @@ describe('PlaytimePlannerModal', () => {
       );
     });
 
-    // The sub survives: the pill still announces Alex coming into s0 at 6'.
-    expect(screen.getByRole('button', { name: "6' Alex (#1)" })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'GK: Alex' })).toBeInTheDocument();
+    // In goal all game, so the 6' change into s0 is gone.
+    expect(screen.queryByRole('button', { name: "6' Alex (#1)" })).not.toBeInTheDocument();
   });
 
   it('swaps two players whole-game by tapping one placement then another', async () => {

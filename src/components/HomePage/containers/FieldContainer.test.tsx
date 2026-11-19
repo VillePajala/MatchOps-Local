@@ -236,14 +236,14 @@ describe('FieldContainer', () => {
 
   it('suggests roster creation when no players exist', () => {
     render(<FieldContainer {...baseProps()} />);
-    expect(screen.getByText('Set Up Team Roster')).toBeInTheDocument();
+    expect(screen.getByText('Add players')).toBeInTheDocument();
   });
 
   it('invokes roster callback when CTA is used without a roster', () => {
     const props = baseProps();
     render(<FieldContainer {...props} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /set up team roster/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add players/i }));
     expect(props.onOpenRosterModal).toHaveBeenCalledTimes(1);
   });
 

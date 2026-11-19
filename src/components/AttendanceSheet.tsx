@@ -12,6 +12,10 @@
  * When the coach had moved discs by hand since the plan was applied, a change
  * here redoes the line-up, so the sheet says so before the save button does it
  * (the save button is the confirm, "Peruuta" the cancel).
+ *
+ * While the game's opponent is still the placeholder the next-game step saves
+ * for an empty answer ("Vastustaja"), the sheet also asks who the opponent is
+ * (review R13): match day is when the coach finally knows.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -30,6 +34,7 @@ import { getPlanLink } from '@/utils/playtimePlanner/planLinks';
 import { getPlan, savePlan } from '@/utils/playtimePlanner/storage';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { getMasterRoster } from '@/utils/masterRosterManager';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import logger from '@/utils/logger';
 import {
   Z_LAYER,
@@ -39,7 +44,20 @@ import {
   chipSelectedStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
+  labelStyle,
+  inputBaseStyle,
 } from '@/styles/modalStyles';
+
+/**
+ * The opponent names the next-game step saves when the coach left it empty, in
+ * both app languages (the game keeps whichever language it was created in).
+ */
+const PLACEHOLDER_OPPONENTS = ['vastustaja', 'opponent'];
+export function isPlaceholderOpponent(name: string | undefined, current?: string): boolean {
+  const n = (name ?? '').trim().toLowerCase();
+  if (!n) return true;
+  return PLACEHOLDER_OPPONENTS.includes(n) || (!!current && n === current.trim().toLowerCase());
+}
 
 export interface AttendanceSheetProps {
   gameId: string;
@@ -87,12 +105,16 @@ const AttendanceSheet: React.FC<AttendanceSheetProps> = ({
   const [present, setPresent] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  // The game's stored opponent; the field shows only while it is still the
+  // placeholder (R13).
+  const [storedOpponent, setStoredOpponent] = useState<string | null>(null);
+  const [opponentDraft, setOpponentDraft] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const loaded = await loadAttendance(deps, gameId);
+        const [loaded, game] = await Promise.all([loadAttendance(deps, gameId), deps.getGame(gameId)]);
         if (cancelled) return;
         if (!loaded) {
           setLoadFailed(true);
@@ -100,6 +122,7 @@ const AttendanceSheet: React.FC<AttendanceSheetProps> = ({
         }
         setCtx(loaded);
         setPresent(new Set(loaded.presentIds));
+        setStoredOpponent(game ? game.opponentName ?? '' : null);
       } catch (error) {
         logger.error('[AttendanceSheet] load failed:', error);
         if (!cancelled) setLoadFailed(true);
@@ -122,6 +145,11 @@ const AttendanceSheet: React.FC<AttendanceSheetProps> = ({
   const presentIds = useMemo(() => (ctx ? ctx.players.map((p) => p.id).filter((id) => present.has(id)) : []), [ctx, present]);
   const changed = !!ctx && attendanceChanged(ctx, presentIds);
   const showRedoWarning = ctx?.kind === 'plan' && ctx.handEdited && changed;
+  const askOpponent =
+    !!ctx &&
+    ctx.kind !== 'started' &&
+    storedOpponent !== null &&
+    isPlaceholderOpponent(storedOpponent, t('nextGameStep.opponentDefault', 'Opponent'));
 
   const handleSave = useCallback(async () => {
     if (!ctx || savingRef.current) return;
@@ -143,7 +171,18 @@ const AttendanceSheet: React.FC<AttendanceSheetProps> = ({
         );
         return;
       }
-      if (result.changed) onSaved?.(gameId);
+      // The opponent, when the coach named one (after the attendance save,
+      // which re-reads and rewrites the game - this must not be overwritten).
+      const opponent = askOpponent ? opponentDraft.trim() : '';
+      let opponentChanged = false;
+      if (opponent) {
+        const game = await deps.getGame(gameId);
+        if (game && game.opponentName !== opponent) {
+          await deps.saveGame(gameId, { ...game, opponentName: opponent });
+          opponentChanged = true;
+        }
+      }
+      if (result.changed || opponentChanged) onSaved?.(gameId);
       onClose();
       if (mode === 'start') onStart?.();
     } catch (error) {
@@ -153,7 +192,7 @@ const AttendanceSheet: React.FC<AttendanceSheetProps> = ({
       savingRef.current = false;
       setSaving(false);
     }
-  }, [ctx, deps, presentIds, mode, onClose, onSaved, onStart, showToast, t, gameId]);
+  }, [ctx, deps, presentIds, mode, onClose, onSaved, onStart, showToast, t, gameId, askOpponent, opponentDraft]);
 
   const title = t('attendance.title', 'Who is here?');
   const total = ctx?.players.length ?? 0;
@@ -201,6 +240,23 @@ const AttendanceSheet: React.FC<AttendanceSheetProps> = ({
               >
                 {t('attendance.redoWarning', 'The line-up will be made again from the plan. Changes made by hand on the pitch are replaced.')}
               </p>
+            )}
+            {askOpponent && (
+              <div className="mt-4 px-1">
+                <label htmlFor="attendance-opponent" className={labelStyle}>
+                  {t('attendance.opponentLabel', 'Opponent')}
+                </label>
+                <input
+                  id="attendance-opponent"
+                  type="text"
+                  data-testid="attendance-opponent"
+                  value={opponentDraft}
+                  maxLength={VALIDATION_LIMITS.TEAM_NAME_MAX}
+                  onChange={(e) => setOpponentDraft(e.target.value)}
+                  placeholder={t('nextGameStep.opponentPlaceholder', 'e.g. FC Kasiysi') ?? undefined}
+                  className={inputBaseStyle}
+                />
+              </div>
             )}
             <div className="mt-4 flex flex-wrap gap-2" data-testid="attendance-chips">
               {ctx.players.map((p) => {

@@ -1438,3 +1438,156 @@ describe('GameStatsModal', () => {
     });
   });
 });
+
+/**
+ * The checklist's "Competition & team" row (Onboarding v3): hidden in the basic
+ * layout; in the full one a task only when the coach has an active season or
+ * tournament to link the game to.
+ * @critical
+ */
+describe('GameStatsModal - competition & team checklist row', () => {
+  const settings = (appLayout?: 'basic' | 'full') => ({
+    currentGameId: null,
+    language: 'fi',
+    clubSeasonStartDate: '2000-10-01',
+    clubSeasonEndDate: '2000-05-01',
+    assessmentsEnabled: false,
+    ...(appLayout ? { appLayout } : {}),
+  });
+
+  /** Waits until every async source the row depends on has been read. */
+  const renderLoaded = async () => {
+    renderComponent(getDefaultProps());
+    await waitFor(() => {
+      expect(mockGetSeasons).toHaveBeenCalled();
+      expect(mockGetTournaments).toHaveBeenCalled();
+      expect(mockGetAppSettings).toHaveBeenCalled();
+    });
+    await act(async () => {});
+    await screen.findByTestId('wrap-up-progress-count');
+  };
+
+  beforeEach(async () => {
+    mockGetTeams.mockResolvedValue([]);
+    await i18n.changeLanguage('fi');
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('shows and counts the row in the full layout when the coach has a season', async () => {
+    mockGetSeasons.mockResolvedValue(sampleSeasonsData);
+    mockGetTournaments.mockResolvedValue([]);
+    mockGetAppSettings.mockResolvedValue(settings('full'));
+    await renderLoaded();
+    expect(await screen.findByTestId('wrap-up-status-competition-todo')).toBeInTheDocument();
+  });
+
+  it('hides the row in the basic layout, even with seasons', async () => {
+    mockGetSeasons.mockResolvedValue(sampleSeasonsData);
+    mockGetTournaments.mockResolvedValue(sampleTournamentsData);
+    mockGetAppSettings.mockResolvedValue(settings('basic'));
+    renderComponent(getDefaultProps());
+    await waitFor(() => {
+      expect(mockGetSeasons).toHaveBeenCalled();
+      expect(mockGetTournaments).toHaveBeenCalled();
+      expect(mockGetAppSettings).toHaveBeenCalled();
+    });
+    // Basic layout: the checklist sits under "More records" (review R7).
+    const toggle = await screen.findByTestId('finish-more-records-toggle');
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+    await screen.findByTestId('wrap-up-progress-count');
+    expect(screen.queryByTestId('wrap-up-status-competition-todo')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('wrap-up-status-competition-done')).not.toBeInTheDocument();
+  });
+
+  it('hides the row in the full layout when every season and tournament is archived', async () => {
+    mockGetSeasons.mockResolvedValue([{ id: 's9', name: 'Old', archived: true }]);
+    mockGetTournaments.mockResolvedValue([{ id: 't9', name: 'Old cup', archived: true }]);
+    mockGetAppSettings.mockResolvedValue(settings('full'));
+    await renderLoaded();
+    expect(screen.queryByTestId('wrap-up-status-competition-todo')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Review R7: the basic layout's finish screen is result -> match sheet ->
+ * match report; the checklist, player notes, positions, assessments and Excel
+ * sit folded under one "More records". The full layout keeps everything open.
+ * @critical
+ */
+describe('GameStatsModal - basic layout finish screen', () => {
+  const settings = (appLayout: 'basic' | 'full') => ({
+    currentGameId: null,
+    language: 'fi',
+    clubSeasonStartDate: '2000-10-01',
+    clubSeasonEndDate: '2000-05-01',
+    assessmentsEnabled: false,
+    appLayout,
+  });
+
+  beforeEach(async () => {
+    mockGetTeams.mockResolvedValue([]);
+    mockGetSeasons.mockResolvedValue([]);
+    mockGetTournaments.mockResolvedValue([]);
+    await i18n.changeLanguage('fi');
+  });
+  afterEach(() => jest.clearAllMocks());
+
+  it('shows sheet and report first and folds the rest under "More records"', async () => {
+    mockGetAppSettings.mockResolvedValue(settings('basic'));
+    renderComponent(getDefaultProps());
+    await waitFor(() => {
+      expect(mockGetSeasons).toHaveBeenCalled();
+      expect(mockGetAppSettings).toHaveBeenCalled();
+    });
+    const toggle = await screen.findByTestId('finish-more-records-toggle');
+    await act(async () => {});
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    const sheet = screen.getByTestId('spine-taso');
+    const report = screen.getByTestId('spine-report');
+    expect(sheet.compareDocumentPosition(report) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(report.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (const id of ['spine-checklist', 'spine-notes', 'spine-positions', 'spine-export']) {
+      expect(screen.queryByTestId(id)).not.toBeInTheDocument();
+    }
+
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('spine-checklist')).toBeInTheDocument();
+    expect(screen.getByTestId('spine-notes')).toBeInTheDocument();
+  });
+
+  it('keeps every section open in the full layout', async () => {
+    mockGetAppSettings.mockResolvedValue(settings('full'));
+    renderComponent(getDefaultProps());
+    await waitFor(() => {
+      expect(mockGetSeasons).toHaveBeenCalled();
+      expect(mockGetAppSettings).toHaveBeenCalled();
+    });
+    await screen.findByTestId('wrap-up-progress-count');
+    expect(screen.getByTestId('spine-notes')).toBeInTheDocument();
+    expect(screen.queryByTestId('finish-more-records-toggle')).not.toBeInTheDocument();
+  });
+
+  it('offers the report template without opening the editor first', async () => {
+    mockGetAppSettings.mockResolvedValue(settings('basic'));
+    renderComponent({ ...getDefaultProps(), gameNotes: '' });
+    await waitFor(() => {
+      expect(mockGetSeasons).toHaveBeenCalled();
+      expect(mockGetAppSettings).toHaveBeenCalled();
+    });
+    const template = await screen.findByTestId('report-editor-template');
+    await act(async () => {});
+    await act(async () => {
+      fireEvent.click(template);
+    });
+    const editor = screen.getByTestId('report-editor-text') as HTMLTextAreaElement;
+    expect(editor.value).toMatch(/:\n/);
+  });
+});

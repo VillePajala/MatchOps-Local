@@ -1011,8 +1011,8 @@ export type BasicCardPlanState = 'loading' | 'none' | 'ready';
 /**
  * The basic layout's next-game card (Onboarding v3, step 6): the same hero
  * surface and top line as the full layout's next-match card, then the match,
- * "Peluutus valmis · N pelaajaa", ONE primary action - "Aloita ottelu" on game
- * day, "Merkitse poissaolijat" before it - and "Näytä peluutus" / "Jaa" for a
+ * "Suunnitelma valmis · N pelaajaa", ONE primary action - "Aloita ottelu" on game
+ * day, "Merkitse poissaolijat" before it - and "Näytä suunnitelma" / "Jaa" for a
  * game made from a plan. No travel row: the basic layout leaves it out.
  */
 export function BasicNextGameCard({
@@ -1022,6 +1022,9 @@ export function BasicNextGameCard({
   onPrimary,
   onShowPlan,
   onShare,
+  onMoveDate,
+  onDelete,
+  today,
   locale,
   t,
 }: {
@@ -1033,15 +1036,30 @@ export function BasicNextGameCard({
   onPrimary: () => void;
   onShowPlan?: () => void;
   onShare?: () => void;
+  /**
+   * A game whose day passed without it kicking off (`game.daysOverdue`, R2):
+   * "Siirrä päivää" saves a new date. Resolves false when the save failed.
+   */
+  onMoveDate?: (gameDate: string) => Promise<boolean>;
+  /** ...and "Poista" (the caller confirms first). */
+  onDelete?: () => void;
+  /** Today, YYYY-MM-DD - the date editor's starting value. */
+  today?: string;
   locale: string;
   t: TFunction;
 }) {
-  const gameDay = game.daysAway === 0;
-  const countdown = gameDay
-    ? t('startScreen.dashToday', 'Today')
-    : game.daysAway === 1
-      ? t('startScreen.dashTomorrow', 'Tomorrow')
-      : t('startScreen.dashInDays', '{{count}} d', { count: game.daysAway });
+  const overdue = game.daysOverdue !== undefined;
+  const [editingDate, setEditingDate] = useState(false);
+  const [dateDraft, setDateDraft] = useState('');
+  const [savingDate, setSavingDate] = useState(false);
+  const gameDay = !overdue && game.daysAway === 0;
+  const countdown = overdue
+    ? t('basicHome.overdueDays', '{{count}} d ago', { count: game.daysOverdue })
+    : gameDay
+      ? t('startScreen.dashToday', 'Today')
+      : game.daysAway === 1
+        ? t('startScreen.dashTomorrow', 'Tomorrow')
+        : t('startScreen.dashInDays', '{{count}} d', { count: game.daysAway });
   const when = [formatWeekdayDate(game.date, locale), game.time].filter(Boolean).join(' ');
   const opponent = game.opponent || t('startScreen.dashResumeGame', 'Game');
   const title = game.teamName ? `${game.teamName} – ${opponent}` : opponent;
@@ -1062,12 +1080,82 @@ export function BasicNextGameCard({
           {planState === 'ready' ? `${t('basicHome.planReady', 'Rotation ready')} · ${players}` : players}
         </span>
       </button>
-      <div className="mt-4">
-        <button type="button" onClick={onPrimary} className={PRIMARY_BTN} data-testid="basic-primary">
-          {gameDay ? t('basicHome.startMatch', 'Start the match') : t('basicHome.markAbsences', 'Mark who is away')}
-        </button>
-      </div>
-      {planState === 'ready' && (onShowPlan || onShare) && (
+      {overdue ? (
+        <>
+          <p className="mt-3 text-[15px] leading-snug text-ink-2" data-testid="basic-overdue-note">
+            {t('basicHome.overdueNote', 'This game was not started. Move it to a new date or remove it.')}
+          </p>
+          {editingDate ? (
+            <form
+              className="mt-4 flex flex-col gap-2.5"
+              data-testid="basic-move-date-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!dateDraft || savingDate || !onMoveDate) return;
+                setSavingDate(true);
+                void onMoveDate(dateDraft).then((ok) => {
+                  setSavingDate(false);
+                  if (ok) setEditingDate(false);
+                });
+              }}
+            >
+              <input
+                type="date"
+                required
+                value={dateDraft}
+                onChange={(e) => setDateDraft(e.target.value)}
+                aria-label={t('basicHome.newDate', 'New date')}
+                data-testid="basic-move-date-input"
+                className="h-12 w-full rounded-2xl bg-white/[0.06] px-4 text-base text-ink [color-scheme:dark] ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              />
+              <div className="flex gap-2.5">
+                <button type="button" onClick={() => setEditingDate(false)} className={GHOST_PILL}>
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={!dateDraft || savingDate}
+                  className={`s1-primary flex h-12 min-w-0 flex-1 items-center justify-center rounded-full px-2.5 text-[15px] font-bold disabled:opacity-50 ${HOME_FOCUS}`}
+                  data-testid="basic-move-date-save"
+                >
+                  {t('common.save', 'Save')}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDateDraft(today ?? game.date);
+                    setEditingDate(true);
+                  }}
+                  disabled={!onMoveDate}
+                  className={PRIMARY_BTN}
+                  data-testid="basic-move-date"
+                >
+                  {t('basicHome.moveDate', 'Move to another day')}
+                </button>
+              </div>
+              {onDelete && (
+                <div className="mt-2.5 flex gap-2.5">
+                  <button type="button" onClick={onDelete} className={GHOST_PILL} data-testid="basic-delete-game">
+                    {t('basicHome.deleteGame', 'Remove')}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      ) : (
+        <div className="mt-4">
+          <button type="button" onClick={onPrimary} className={PRIMARY_BTN} data-testid="basic-primary">
+            {gameDay ? t('basicHome.startMatch', 'Start the match') : t('basicHome.markAbsences', 'Mark who is away')}
+          </button>
+        </div>
+      )}
+      {!overdue && planState === 'ready' && (onShowPlan || onShare) && (
         <div className="mt-2.5 flex gap-2.5">
           {onShowPlan && (
             <button type="button" onClick={onShowPlan} className={GHOST_PILL} data-testid="basic-show-plan">

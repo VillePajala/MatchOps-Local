@@ -24,6 +24,11 @@ interface GameWrapUpCardProps {
   /** Opens the notes step, for the notes-coverage row. */
   onOpenNotes?: () => void;
   onOpenVoiceNotes?: () => void;
+  /**
+   * Whether the "Competition & team" row is a task for this coach (see
+   * competitionRowRelevant). When false the row is not shown. Default true.
+   */
+  showCompetition?: boolean;
 }
 
 type RowStatus = CompletenessRowStatus;
@@ -34,9 +39,12 @@ type RowStatus = CompletenessRowStatus;
  * (where it applies) taps into Game Settings. Reads the shared completeness
  * model, so it never disagrees with the badges.
  */
-const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes, completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
+const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes, completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes, showCompetition = true }) => {
   const { t } = useTranslation();
-  const progress = completenessProgress(completeness, { voiceClipsPending: voiceClipCount });
+  // The counter is the D2 core only (squad + goal log), so it reaches its end
+  // exactly when the badge says "Complete" (review R7). The other rows are
+  // things the coach can do, shown but not counted.
+  const progress = completenessProgress(completeness);
 
   interface Row {
     key: string;
@@ -63,6 +71,7 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
   }
   // Always a row, done or not: the counter counts it, so the list must show
   // it. Hiding it when done left three rows under a "3/4" (owner, 2026-09-09).
+  // Squad and goals are the two counted rows (the D2 core).
   rows.push({
     key: 'roster',
     label: t('gameStatsModal.wrapUpRoster', 'Squad selected'),
@@ -112,15 +121,17 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
       onClick: onOpenAssessments,
     });
   }
-  rows.push({
-    key: 'competition',
-    label: t('gameStatsModal.wrapUpCompetition', 'Competition & team'),
-    status: completeness.competition && completeness.team ? 'done' : 'todo',
-    onClick: onOpenSettings && (() => onOpenSettings('competition')),
-  });
+  if (showCompetition) {
+    rows.push({
+      key: 'competition',
+      label: t('gameStatsModal.wrapUpCompetition', 'Competition & team'),
+      status: completeness.competition && completeness.team ? 'done' : 'todo',
+      onClick: onOpenSettings && (() => onOpenSettings('competition')),
+    });
+  }
 
-  // Clips waiting are unfinished work even when the record itself is complete.
-  const done = completeness.coreComplete && voiceClipCount === 0;
+  // The same rule as the counter: "Complete" exactly when the core is.
+  const done = completeness.coreComplete;
 
   return (
     <div className="s1-list p-4 font-ui">
@@ -177,8 +188,7 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
                   row.onClick ? 'hover:bg-white/[0.04] transition-colors' : ''
                 }`}
               >
-                {/* Amber means nothing recorded, and amber is exactly what the
-                    progress bar does not count - see countRowStatus. */}
+                {/* Amber means nothing recorded yet - see countRowStatus. */}
                 {row.status === 'done'
                   ? <HiCheckCircle className="shrink-0 text-win text-xl" data-testid={`wrap-up-status-${row.key}-done`} />
                   : row.status === 'partial'
