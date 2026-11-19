@@ -4,6 +4,17 @@
     {
       "date": "2026-11-19",
       "en": [
+        "Every home tab now has its own summary card: Kilpailut shows the season record and your leagues and tournaments, Tilastot shows results, goal difference and the top scorers.",
+        "Smaller polish: \"Uusi ottelu\" sits right under the match card, a finished game opens with \"Avaa\", and the selected tab is marked across its full width."
+      ],
+      "fi": [
+        "Jokaisella etusivun välilehdellä on oma yhteenvetokortti: Kilpailut näyttää kauden tuloksen sekä sarjasi ja turnauksesi, Tilastot tulokset, maalieron ja parhaat maalintekijät.",
+        "Pientä hiontaa: \"Uusi ottelu\" on heti ottelukortin alla, pelattu ottelu avataan \"Avaa\"-napista ja valittu välilehti on merkitty koko leveydeltään."
+      ]
+    },
+    {
+      "date": "2026-11-19",
+      "en": [
         "Timer: the goal buttons sit right under Start, the next substitution is two short lines with first names, and nothing hides behind the bottom bar any more."
       ],
       "fi": [

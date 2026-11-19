@@ -158,6 +158,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     isSeasonTournamentModalOpen,
     setIsSeasonTournamentModalOpen,
     competitionManagerKind,
+    competitionManagerTarget,
     isPersonnelManagerOpen,
     setIsPersonnelManagerOpen,
     isRosterModalOpen,
@@ -453,6 +454,8 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
         <SeasonTournamentManagementModal
           isOpen
           kind={competitionManagerKind}
+          openItemId={competitionManagerTarget && 'itemId' in competitionManagerTarget ? competitionManagerTarget.itemId : undefined}
+          openCreate={!!competitionManagerTarget && 'create' in competitionManagerTarget}
           onClose={() => setIsSeasonTournamentModalOpen(false)}
           // Archived ones too: "Show archived" restores them (review 7.20).
           seasons={seasonTournament.allSeasons}

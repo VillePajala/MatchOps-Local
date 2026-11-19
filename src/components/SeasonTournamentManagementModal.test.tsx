@@ -839,3 +839,73 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
   });
 
 });
+/**
+ * Home's Kilpailut tab (owner, 2026-11-19): a card opens that league or
+ * tournament's sheet straight away, an add row the add sheet, and closing the
+ * sheet goes back to Home rather than to a list the coach never asked for.
+ */
+describe('opened from a Home card', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetFilteredGames.mockResolvedValue([]);
+  });
+
+  const tree = (props: Record<string, unknown>) => (
+    <QueryClientProvider client={createTestQueryClient()}>
+      <PremiumProvider>
+        <I18nextProvider i18n={i18n}>
+          <ToastProvider>
+            <SeasonTournamentManagementModal {...defaultProps} {...props} />
+          </ToastProvider>
+        </I18nextProvider>
+      </PremiumProvider>
+    </QueryClientProvider>
+  );
+
+  it('opens the item sheet at once, and closing it closes the manager', async () => {
+    const onClose = jest.fn();
+    await act(async () => {
+      render(tree({ openItemId: 's1', onClose }));
+    });
+    await act(async () => {});
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(cancel);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits for the list to load before opening the sheet', async () => {
+    const onClose = jest.fn();
+    const view = render(tree({ seasons: [], openItemId: 's1', onClose }));
+    await act(async () => {});
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    await act(async () => {
+      view.rerender(tree({ seasons: [{ id: 's1', name: 'Season 1' }], openItemId: 's1', onClose }));
+    });
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+  });
+
+  it('opens the add sheet at once for an add row, and closing it closes the manager', async () => {
+    const onClose = jest.fn();
+    await act(async () => {
+      render(tree({ kind: 'tournament', openCreate: true, onClose }));
+    });
+    await act(async () => {});
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('opened plainly, closing a sheet keeps the list open', async () => {
+    const onClose = jest.fn();
+    await act(async () => {
+      render(tree({ onClose }));
+    });
+    await act(async () => {});
+    fireEvent.click(screen.getByText('Season 1'));
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText('Season 1')).toBeInTheDocument();
+  });
+});

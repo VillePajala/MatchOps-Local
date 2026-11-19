@@ -424,7 +424,13 @@ export default function Home() {
       futsal: tRef.current('common.gameTypeFutsal', 'Futsal'),
       level: (level) => tRef.current(`common.level${level}` as TranslationKey, level),
     }));
-    const args: Parameters<typeof buildHomeSummary> = [games, { ...rest, teamFilter: scope }];
+    // The lists also feed the Kilpailut tab's league / tournament cards.
+    const args: Parameters<typeof buildHomeSummary> = [games, {
+      ...rest,
+      seasons: seasonsList,
+      tournaments: tournamentsList,
+      teamFilter: scope,
+    }];
     homeSummaryInputsRef.current = args;
     publishHomeSummaries(args);
     // `t` is read through tRef so a language change cannot rebuild this

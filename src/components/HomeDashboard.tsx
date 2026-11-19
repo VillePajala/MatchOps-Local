@@ -168,11 +168,15 @@ function HeroTop({ left, right }: { left: React.ReactNode; right?: React.ReactNo
   );
 }
 
-/** Amber label with the live dot: "Next match", "Last opened". */
-function LiveLabel({ children }: { children: React.ReactNode }) {
+/**
+ * The label with the live dot: "Next match", "Last opened". Neutral on the full
+ * layout's hero (owner, 2026-11-19: amber is the card's one primary button and
+ * nothing else); the basic layout's card keeps the amber.
+ */
+function LiveLabel({ children, quiet = false }: { children: React.ReactNode; quiet?: boolean }) {
   return (
-    <span className={`${HERO_LABEL} pl-[3px] text-action`}>
-      <i className="s1-live-dot" aria-hidden="true" />
+    <span className={`${HERO_LABEL} pl-[3px] ${quiet ? 'text-ink-2' : 'text-action'}`} data-testid="hero-live-label">
+      <i className={quiet ? 's1-live-dot-quiet' : 's1-live-dot'} aria-hidden="true" />
       {children}
     </span>
   );
@@ -232,11 +236,15 @@ function KickOff({ big, weekday, date }: { big: string; weekday?: string; date?:
   );
 }
 
-/** "vs Opponent" in the display face. The opponent is its own element. */
-function Opponent({ who, t, stacked = false, className = '' }: { who: string; t: TFunction; stacked?: boolean; className?: string }) {
+/**
+ * "vs Opponent" in the display face, the small "vs" inline before the name -
+ * ONE pattern on every hero state (owner, 2026-11-19: the played card had
+ * stacked it above the name). The opponent is its own element.
+ */
+function Opponent({ who, t, className = '' }: { who: string; t: TFunction; className?: string }) {
   return (
     <span className={`block break-words font-display text-[30px] font-bold leading-[1.1] tracking-[0.005em] text-ink ${className}`}>
-      <small className={`font-ui text-xs font-semibold uppercase tracking-[0.14em] text-ink-3 ${stacked ? 'mb-1 block' : 'mr-2 align-[4px]'}`}>
+      <small className="mr-2 align-[4px] font-ui text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">
         {t('playerStats.vs', 'vs')}
       </small>
       <span>{who}</span>
@@ -376,6 +384,11 @@ export function ResumeCard({ resume, onResume, locale, t }: {
   const name = venueName(resume.venue);
   const lastOpened = t('startScreen.dashLastOpened', 'Last opened');
   const heroTint = result === 'W' ? 's1-hero-win' : result === 'L' ? 's1-hero-loss' : '';
+  // A match that is over is OPENED, not continued (owner, 2026-11-19): "Jatka"
+  // promised a match still running.
+  const finished = resume.isPlayed && !resume.inProgress && resume.started !== false;
+  const longName = who.length > 12;
+  const hasVenue = !!(name || resume.venueTown || resume.fieldNumber);
 
   return (
     <div className={`s1-hero ${heroTint} p-5 text-ink`}>
@@ -388,7 +401,7 @@ export function ResumeCard({ resume, onResume, locale, t }: {
         />
       ) : (
         <HeroTop
-          left={<LiveLabel>{lastOpened}</LiveLabel>}
+          left={<LiveLabel quiet>{lastOpened}</LiveLabel>}
           right={!notStarted && when ? <HeroEyebrow>{when}</HeroEyebrow> : undefined}
         />
       )}
@@ -416,25 +429,26 @@ export function ResumeCard({ resume, onResume, locale, t }: {
         <button type="button" onClick={onResume} className={`${HERO_BODY} mt-3`}>
           {/* A short name sits beside the score (no dead space when the venue is
               missing); only a long one takes its own row above it. */}
-          {who.length > 12 && <Opponent who={who} t={t} stacked className="text-[28px]" />}
-          <span className="mt-1 flex items-end justify-between gap-3">
-            <span className="block min-w-0 pb-1">
-              {who.length <= 12 && <Opponent who={who} t={t} stacked className="text-[28px]" />}
-              {(name || resume.venueTown || resume.fieldNumber) && (
-                <span className="mt-1 block break-words text-[13px] leading-[1.35] text-ink-2">
-                  {name && <span className="block">{name}</span>}
-                  {(resume.venueTown || resume.fieldNumber) && (
-                    <span className="block text-ink-3">
-                      {resume.venueTown && <span>{resume.venueTown}</span>}
-                      {resume.venueTown && resume.fieldNumber && ' · '}
-                      {resume.fieldNumber && <span>{resume.fieldNumber}</span>}
-                    </span>
-                  )}
-                </span>
-              )}
-            </span>
+          {longName && <Opponent who={who} t={t} className="text-[28px]" />}
+          {/* A grid, so the venue can move: beside the score from 360px, UNDER
+              it below that - at 320px the score crowded the venue text. */}
+          <span className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-3">
+            {!longName && <Opponent who={who} t={t} className="col-start-1 row-start-1 pb-1 text-[28px]" />}
+            {hasVenue && (
+              <span className="col-start-1 row-start-2 mt-1 block break-words pb-1 text-[13px] leading-[1.35] text-ink-2 max-[359px]:col-span-2 max-[359px]:row-start-3">
+                {name && <span className="block">{name}</span>}
+                {(resume.venueTown || resume.fieldNumber) && (
+                  <span className="block text-ink-3">
+                    {resume.venueTown && <span>{resume.venueTown}</span>}
+                    {resume.venueTown && resume.fieldNumber && ' · '}
+                    {resume.fieldNumber && <span>{resume.fieldNumber}</span>}
+                  </span>
+                )}
+              </span>
+            )}
             <span
-              className={`${result ? numeralClass[result] : 's1-numeral'} -mr-1.5 shrink-0 whitespace-nowrap pl-1 pr-2.5 font-display text-[clamp(64px,22vw,96px)] font-extrabold italic leading-[0.8] tracking-[-0.01em] tabular-nums`}
+              className={`${result ? numeralClass[result] : 's1-numeral'} col-start-2 row-start-1 row-span-2 -mr-1.5 shrink-0 self-end whitespace-nowrap pl-1 pr-2.5 font-display text-[clamp(64px,22vw,96px)] font-extrabold italic leading-[0.8] tracking-[-0.01em] tabular-nums max-[359px]:row-span-1`}
+              data-testid="hero-score"
             >
               {`${resume.ourScore}–${resume.theirScore}`}
             </span>
@@ -448,8 +462,8 @@ export function ResumeCard({ resume, onResume, locale, t }: {
         primary={
           // The arrow stays TEXT: the accessible name reads "Continue →", the
           // card's action, distinct from the plain launcher's Continue button.
-          <button type="button" onClick={onResume} className={PRIMARY_BTN}>
-            {t('startScreen.resumeCard', 'Continue')} →
+          <button type="button" onClick={onResume} className={PRIMARY_BTN} data-testid="hero-primary">
+            {finished ? t('startScreen.openGame', 'Open') : t('startScreen.resumeCard', 'Continue')} →
           </button>
         }
       />
@@ -507,7 +521,7 @@ function NextMatchCard({
     <div className="relative">
       <div className="s1-hero p-5 text-ink">
         <HeroTop
-          left={<LiveLabel>{t('startScreen.dashNextMatch', 'Next match')}</LiveLabel>}
+          left={<LiveLabel quiet>{t('startScreen.dashNextMatch', 'Next match')}</LiveLabel>}
           right={<HeroChip>{countdown}</HeroChip>}
         />
         <button type="button" onClick={() => onOpen?.(game.id)} className={HERO_BODY}>
@@ -745,10 +759,16 @@ export function HomeDashboard({
   onNewGame,
   onSetStartingPoint,
   onMarkAbsences,
+  afterHero,
   locale = 'fi',
   t,
 }: {
   summary: HomeSummary;
+  /**
+   * What sits directly under the hero, above the list: "Uusi ottelu" (owner,
+   * 2026-11-19 - starting a match is the next thing a coach looks for).
+   */
+  afterHero?: React.ReactNode;
   /** The next fixture's "Merkitse poissaolijat" (Onboarding v3). */
   onMarkAbsences?: (id: string) => void;
   onResume?: () => void;
@@ -793,6 +813,7 @@ export function HomeDashboard({
           : summary.lastPlayed
             ? <ResumeCard resume={summary.lastPlayed} onResume={() => onOpenGame?.(summary.lastPlayed!.id)} locale={locale} t={t} />
             : <NoMatchCard onNewGame={onNewGame} t={t} />}
+      {afterHero}
       {(summary.recent.length > 0 || summary.upcomingList.length > 0) && (
         <div>
           {/* THE TOGGLE IS THE LABEL, not a control above it: two words at the
@@ -893,38 +914,85 @@ export function HomeTeamScopeSelect({
   );
 }
 
-/** Kilpailut tab: the club-season card - the season (the previous one while the
- *  current has no game yet) and its record. The league / tournament counts live
- *  on the rows below it. */
-export function HomeSeasonCard({ vuosi, onOpen, t }: {
+/** The season label to show, or null for the off-season (it has no label of its own). */
+const seasonLabelOf = (vuosi: HomeSummary['vuosi']): string | null =>
+  vuosi && vuosi.label !== 'off-season' ? vuosi.label : null;
+
+/**
+ * The full season record, wins - draws - losses, each in its result colour.
+ * Shown in Kilpailut and Tilastot only (owner, 2026-11-19); the Seura card
+ * keeps its compact line and the Pelit list has none.
+ */
+function SeasonRecord({ vuosi, className = '', t }: {
+  vuosi: NonNullable<HomeSummary['vuosi']>;
+  className?: string;
+  t: TFunction;
+}) {
+  return (
+    <span
+      className={`whitespace-nowrap pr-[3px] font-display font-extrabold italic leading-none tabular-nums ${className}`}
+      title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
+    >
+      <span className="sr-only">{t('startScreen.dashRecordTitle', 'Wins - draws - losses')}: </span>
+      <span className="text-win">{vuosi.wins}</span>
+      <span className="text-ink-3">-</span>
+      <span className="text-draw">{vuosi.ties}</span>
+      <span className="text-ink-3">-</span>
+      <span className="text-loss">{vuosi.losses}</span>
+    </span>
+  );
+}
+
+/** A count on Home: Barlow Condensed italic, like every other number here. */
+export function HomeCount({ n, className = '' }: { n: React.ReactNode; className?: string }) {
+  return <span className={`pr-[2px] font-display font-bold italic tabular-nums ${className}`}>{n}</span>;
+}
+
+/**
+ * Kilpailut tab's hero: the club season (the previous one while the current
+ * has no game yet) - its label, the full record, and "N games · GF–GA". It
+ * opens OVERALL stats: the record is the club season's, not one league's.
+ */
+export function HomeSeasonHero({ vuosi, onOpen, t }: {
   vuosi: HomeSummary['vuosi'];
   onOpen?: () => void;
   t: TFunction;
 }) {
+  const label = seasonLabelOf(vuosi);
+  const played = !!vuosi && vuosi.gamesPlayed > 0;
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={`${HOME_CARD} flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-white/[0.03] ${HOME_FOCUS}`}
+      data-testid="competitions-hero"
+      className={`s1-hero s1-hero-quiet block w-full px-5 py-5 text-left text-ink transition-opacity hover:opacity-95 ${HOME_FOCUS}`}
     >
-      <span className="min-w-0 flex-1">
-        <span className="block text-xs font-bold uppercase tracking-[0.16em] text-ink-3">
+      <span className="flex items-center justify-between gap-3">
+        <span className="text-xs font-semibold uppercase tracking-[0.09em] text-ink-3">
           {t('startScreen.dashSeason', 'Season')}
         </span>
-        <span className="mt-1 flex items-baseline justify-between gap-3">
-          <span className="font-display text-[30px] font-bold leading-none text-ink">
-            {vuosi ? vuosi.label : t('startScreen.tabSeasons', 'Competitions')}
-          </span>
-          {vuosi && (
-            <span className="whitespace-nowrap font-display text-[34px] font-extrabold italic leading-none tabular-nums">
-              <span className="text-win">{vuosi.wins}</span>
-              <span className="text-ink-3">-{vuosi.ties}-</span>
-              <span className="text-loss">{vuosi.losses}</span>
-            </span>
+        <HomeIcon name="chev" className="h-4 w-4 text-ink-3" strokeWidth={2} />
+      </span>
+      <span className="mt-2 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <span className="font-display text-[34px] font-bold leading-none text-ink">
+          {label ?? t('startScreen.tabSeasons', 'Competitions')}
+        </span>
+        {played && <SeasonRecord vuosi={vuosi} className="text-[44px]" t={t} />}
+      </span>
+      {vuosi && (
+        <span className="mt-3.5 block border-t border-hairline pt-3 text-[13px] text-ink-2" data-testid="competitions-hero-line">
+          {played ? (
+            <>
+              <HomeCount n={vuosi.gamesPlayed} className="text-lg text-ink" />{' '}
+              {t('startScreen.dashGamesWord', 'games', { count: vuosi.gamesPlayed })}
+              <span className="mx-1 text-ink-3" aria-hidden="true">·</span>
+              <HomeCount n={`${vuosi.goalsFor}–${vuosi.goalsAgainst}`} className="text-lg text-ink" />
+            </>
+          ) : (
+            t('startScreen.dashStatsEmpty', 'No games played yet')
           )}
         </span>
-      </span>
-      <HomeIcon name="chev" className="h-4 w-4 text-ink-3" strokeWidth={2} />
+      )}
     </button>
   );
 }
@@ -1021,47 +1089,122 @@ export function HomeClubCard({ title, showClubEyebrow, counts, vuosi, topScorer,
   );
 }
 
-/** Tilastot tab: a three-tile overview of the current club season. */
-export function HomeStatsTiles({ vuosi, topScorer, t }: {
+/** One tappable figure on the Tilastot hero: the number, then what it is. */
+function StatTile({ figure, label, onClick, testId }: {
+  figure: React.ReactNode;
+  label: React.ReactNode;
+  onClick?: () => void;
+  testId: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      data-testid={testId}
+      className={`flex min-h-[92px] min-w-0 flex-col items-center justify-center gap-2 rounded-[18px] bg-white/[0.04] px-1.5 py-3 text-center ring-1 ring-inset ring-white/[0.07] transition-colors enabled:hover:bg-white/[0.07] enabled:active:bg-white/[0.09] ${HOME_FOCUS}`}
+    >
+      <span className="block whitespace-nowrap font-display text-[clamp(26px,8.5vw,36px)] font-extrabold italic leading-none text-ink tabular-nums">
+        {figure}
+      </span>
+      {/* Sentence case and allowed to wrap: an uppercase caption was wider
+          than a third-width tile on a 320px phone. */}
+      <span className="block max-w-full break-words text-xs font-semibold leading-tight text-ink-2">{label}</span>
+    </button>
+  );
+}
+
+/**
+ * Tilastot tab's hero: the club season's three figures, each labelled and
+ * each a way in - the record and goal difference open overall stats, the top
+ * scorer opens that player's stats.
+ */
+export function HomeStatsHero({ vuosi, topScorer, onOpenOverall, onOpenPlayer, t }: {
   vuosi: HomeSummary['vuosi'];
   topScorer: HomeSummary['topScorer'];
+  onOpenOverall?: () => void;
+  /** The player's id when known; without one, the player stats tab. */
+  onOpenPlayer?: (playerId?: string) => void;
   t: TFunction;
 }) {
   if (!vuosi) return null;
   // Nothing played yet: one clear message instead of a row of zero tiles.
   if (vuosi.gamesPlayed === 0) {
     return (
-      <div className={`${HOME_CARD} px-5 py-5 text-center`} data-testid="home-stats-empty">
+      <div className="s1-hero s1-hero-quiet px-5 py-5 text-center text-ink" data-testid="home-stats-empty">
         <p className="text-base font-semibold text-ink">{t('startScreen.dashStatsEmpty', 'No games played yet')}</p>
         <p className="mt-1 text-[13px] text-ink-3">{t('startScreen.dashStatsEmptyHint', 'The season record and top scorer appear here after the first game.')}</p>
       </div>
     );
   }
-  // NUMBERS LEAD (owner, 2026-09-16): these three figures are the whole reason
-  // the Tilastot tab exists, so the number is the display element and the
-  // label drops to a caption. Not pressable, so no hover.
-  const tile = (n: React.ReactNode, label: string) => (
-    <div className={`${HOME_CARD} min-w-0 flex-1 px-1.5 py-4 text-center`}>
-      <div className="whitespace-nowrap font-display text-[clamp(26px,9vw,40px)] font-extrabold italic leading-none text-ink tabular-nums">{n}</div>
-      {/* Sentence case: in Inter an uppercase "MAALINTEKIJÄ" is wider than a
-          third-width tile on a 360px phone and broke mid-word. */}
-      <div className="mt-2 break-words text-xs font-semibold leading-tight text-ink-3">
-        {label}
+  const label = seasonLabelOf(vuosi);
+  return (
+    <div className="s1-hero s1-hero-quiet px-4 py-5 text-ink" data-testid="stats-hero">
+      <span className="flex items-baseline justify-between gap-3 px-1 text-xs font-semibold uppercase tracking-[0.09em] text-ink-3">
+        <span>{[t('startScreen.dashSeason', 'Season'), label].filter(Boolean).join(' ')}</span>
+        <span className="normal-case tracking-normal text-[13px] font-medium text-ink-2">
+          <HomeCount n={vuosi.gamesPlayed} className="text-base text-ink" />{' '}
+          {t('startScreen.dashGamesWord', 'games', { count: vuosi.gamesPlayed })}
+        </span>
+      </span>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <StatTile
+          testId="stats-tile-record"
+          figure={<SeasonRecord vuosi={vuosi} t={t} />}
+          label={t('startScreen.dashTileRecord', 'W–D–L')}
+          onClick={onOpenOverall}
+        />
+        <StatTile
+          testId="stats-tile-goal-diff"
+          figure={`${vuosi.goalDifference >= 0 ? '+' : ''}${vuosi.goalDifference}`}
+          label={t('startScreen.dashTileGoalDiff', 'Goal diff')}
+          onClick={onOpenOverall}
+        />
+        {topScorer && (
+          <StatTile
+            testId="stats-tile-scorer"
+            figure={topScorer.goals}
+            label={`${topScorer.name} · ${topScorer.goals} ${t('startScreen.dashGoalsWord', 'goals', { count: topScorer.goals })}`}
+            onClick={onOpenPlayer ? () => onOpenPlayer(topScorer.id) : undefined}
+          />
+        )}
       </div>
     </div>
   );
+}
+
+/** Tilastot tab: the season's best scorers, each opening that player's stats. */
+export function HomeTopScorersCard({ scorers, onOpenPlayer, t }: {
+  scorers: HomeSummary['topScorers'];
+  onOpenPlayer?: (playerId?: string) => void;
+  t: TFunction;
+}) {
+  // One scorer is already the hero's third tile; a list of one says nothing more.
+  if (!scorers || scorers.length < 2) return null;
   return (
-    <div className="flex gap-2.5">
-      {tile(
-        <span><span className="text-win">{vuosi.wins}</span>-{vuosi.ties}-<span className="text-loss">{vuosi.losses}</span></span>,
-        t('startScreen.dashTileResults', 'Results'),
-      )}
-      {tile(
-        `${vuosi.goalDifference >= 0 ? '+' : ''}${vuosi.goalDifference}`,
-        t('startScreen.dashTileGoalDiff', 'Goal diff'),
-      )}
-      {/* Goals big, name as the label - a name set as the big number overflowed a third-width tile. */}
-      {topScorer && tile(topScorer.goals, topScorer.name)}
+    <div className="s1-list p-0.5" data-testid="top-scorers">
+      <h3 className={`${SECTION_LABEL} flex min-h-11 items-center px-4 text-ink-3`}>
+        {t('startScreen.dashTopScorers', 'Top scorers')}
+      </h3>
+      {scorers.map((s, i) => (
+        <button
+          key={s.id ?? s.name}
+          type="button"
+          onClick={onOpenPlayer ? () => onOpenPlayer(s.id) : undefined}
+          disabled={!onOpenPlayer}
+          className={LIST_ROW}
+        >
+          <RowRule />
+          <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-white/[0.08] font-display text-[17px] font-bold italic leading-none text-ink-2">
+            {i + 1}
+          </span>
+          <b className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-5 text-ink">{s.name}</b>
+          <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+            <HomeCount n={s.goals} className="text-[24px] leading-none text-ink" />
+            <span className="text-xs font-medium text-ink-3">{t('startScreen.dashGoalsWord', 'goals', { count: s.goals })}</span>
+          </span>
+        </button>
+      ))}
     </div>
   );
 }

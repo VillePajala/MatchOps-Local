@@ -30,12 +30,11 @@ import DeleteBlockedDialog from './DeleteBlockedDialog';
 import { useResourceLimit } from '@/hooks/usePremium';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useDataStore } from '@/hooks/useDataStore';
-import { CLUB_SEASON_OFF_SEASON } from '@/utils/entityDisplayNames';
+import CompetitionCard from '@/components/CompetitionCard';
 import type { EntityReferences } from '@/interfaces/DataStore';
 import logger from '@/utils/logger';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
-import { formatAppDate } from '@/utils/localeFormat';
 
 /** `actionsMenuId` of the list header's ⋮ menu (row menus use item ids). */
 const LIST_MENU_ID = '__competitions-list-menu__';
@@ -55,6 +54,10 @@ interface SeasonTournamentManagementModalProps {
     updateTournamentMutation: UseMutationResult<Tournament | null, Error, Tournament, unknown>;
     deleteTournamentMutation: UseMutationResult<boolean, Error, string, unknown>;
     onOpenSettings?: () => void;
+    /** Opened from a Home card: that league / tournament's sheet opens at once. */
+    openItemId?: string;
+    /** Opened from Home's "Lisää sarja / turnaus": the add sheet opens at once. */
+    openCreate?: boolean;
 }
 
 const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalProps> = ({
@@ -62,7 +65,9 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     addSeasonMutation, addTournamentMutation,
     updateSeasonMutation, deleteSeasonMutation,
     updateTournamentMutation, deleteTournamentMutation,
-    onOpenSettings
+    onOpenSettings,
+    openItemId,
+    openCreate = false,
 }) => {
     const { t } = useTranslation();
     const headerCollapse = useCollapsingHeader();
@@ -75,16 +80,35 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     // Premium limit checks (count non-archived items)
     const activeSeasonCount = seasons.filter(s => !s.archived).length;
     const activeTournamentCount = tournaments.filter(t => !t.archived).length;
-    const { checkAndPrompt: checkSeasonLimitAndPrompt } = useResourceLimit('season', activeSeasonCount);
-    const { checkAndPrompt: checkTournamentLimitAndPrompt } = useResourceLimit('tournament', activeTournamentCount);
+    const { checkAndPrompt: checkSeasonLimitAndPrompt, canAdd: canAddSeason } = useResourceLimit('season', activeSeasonCount);
+    const { checkAndPrompt: checkTournamentLimitAndPrompt, canAdd: canAddTournament } = useResourceLimit('tournament', activeTournamentCount);
 
-    // Modal state for create
-    const [createSeasonModalOpen, setCreateSeasonModalOpen] = useState(false);
-    const [createTournamentModalOpen, setCreateTournamentModalOpen] = useState(false);
+    // Modal state for create. Opened from Home's add row, the add sheet is
+    // the first thing shown - unless the limit is reached, when the list's
+    // own Add button is the one that explains why.
+    const [createSeasonModalOpen, setCreateSeasonModalOpen] = useState(openCreate && kind === 'season' && canAddSeason);
+    const [createTournamentModalOpen, setCreateTournamentModalOpen] = useState(openCreate && kind === 'tournament' && canAddTournament);
 
     // Modal state for edit
     const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
     const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
+
+    // A Home card asks for one item's sheet. The lists load after this modal
+    // mounts, so the sheet opens once the item is in them (adjust-during-render;
+    // an item that never appears - deleted meanwhile - leaves the list showing).
+    const [pendingOpenId, setPendingOpenId] = useState<string | null>(openItemId ?? null);
+    if (pendingOpenId && (kind === 'season' ? seasons : tournaments).some((d) => d.id === pendingOpenId)) {
+        setPendingOpenId(null);
+        if (kind === 'season') setSelectedSeasonId(pendingOpenId);
+        else setSelectedTournamentId(pendingOpenId);
+    }
+    // Opened for one sheet: closing that sheet goes back to Home, not to a
+    // list the coach never asked for.
+    const [openedForOneSheet] = useState(!!openItemId || openCreate);
+    const closeSheet = (close: () => void) => {
+        close();
+        if (openedForOneSheet) onClose();
+    };
 
     const [stats, setStats] = useState<Record<string, { games: number; goals: number }>>({});
 
@@ -294,8 +318,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                 return a.name.localeCompare(b.name, 'fi', { sensitivity: 'base' });
             });
 
-        const chipClass = "inline-flex items-center h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold tracking-[0.04em] text-ink-2 whitespace-nowrap";
-
         return (
             <>
                 {filtered.length === 0 && searchText.trim() !== '' && (
@@ -330,94 +352,52 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                             className={`pt-4 font-ui cursor-pointer transition-colors hover:bg-white/[0.03] first:rounded-t-[22px] last:rounded-b-[22px] ${item.archived ? 'opacity-60' : ''}`}
                             onClick={() => type === 'season' ? handleSeasonClick(item.id) : handleTournamentClick(item.id)}
                         >
-                            <div className="flex items-start gap-2 pl-[18px] pr-2">
-                                <div className="flex-1 min-w-0 pt-1.5">
-                                    <p className="font-display text-[26px] font-bold leading-[1.1] text-ink break-words">{item.name}</p>
-                                    {type==='tournament' && ((item as Tournament).startDate || (item as Tournament).endDate) && (
-                                        <p className="mt-1 text-sm text-ink-3">{(item as Tournament).startDate ? formatAppDate((item as Tournament).startDate!) : ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' – ' : ''}{(item as Tournament).endDate ? formatAppDate((item as Tournament).endDate!) : ''}</p>
-                                    )}
-                                    {/* Context chips: plain text (green/red mean results only) */}
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {item.archived && (
-                                            <span className={chipClass}>
-                                                {t('seasonTournamentModal.archivedBadge', 'Archived')}
-                                            </span>
+                            <CompetitionCard
+                                item={item}
+                                showDates={type === 'tournament'}
+                                games={stats[item.id]?.games || 0}
+                                goals={stats[item.id]?.goals || 0}
+                                t={t}
+                                menu={
+                                    <div className="relative flex-shrink-0" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            onClick={(e) => handleActionsMenuToggle(e, item.id)}
+                                            className={iconButtonEditStyle}
+                                            aria-label={t('seasonTournamentModal.itemActions', 'Actions for {{name}}', { name: item.name })}
+                                        >
+                                            <HiOutlineEllipsisVertical className="w-5 h-5" />
+                                        </button>
+    
+                                        {actionsMenuId === item.id && (
+                                            <div className={`${popoverMenuStyle} ${menuPositions[item.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                                                <button
+                                                    onClick={() => handleEditClick(item, type)}
+                                                    className={popoverItemStyle}
+                                                >
+                                                    <HiOutlinePencil className="w-4 h-4" />
+                                                    {t('common.edit', 'Edit')}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleToggleArchive(item, type)}
+                                                    className={popoverItemStyle}
+                                                >
+                                                    <HiOutlineArchiveBox className="w-4 h-4" />
+                                                    {item.archived
+                                                        ? t('seasonTournamentModal.unarchive', 'Unarchive')
+                                                        : t('seasonTournamentModal.archive', 'Archive')}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(item, type)}
+                                                    className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
+                                                >
+                                                    <HiOutlineTrash className="w-4 h-4" />
+                                                    {t('common.delete', 'Delete')}
+                                                </button>
+                                            </div>
                                         )}
-                                        {item.clubSeason && item.clubSeason !== CLUB_SEASON_OFF_SEASON && (
-                                            <span className={chipClass}>
-                                                <span className="sr-only">{t('seasonDetailsModal.clubSeasonLabel', 'Season')}: </span>
-                                                {item.clubSeason}
-                                            </span>
-                                        )}
-                                        {item.gameType === 'futsal' && (
-                                            <span className={chipClass}>
-                                                <span className="sr-only">{t('common.gameTypeLabel', 'Sport Type')}: </span>
-                                                {t('common.futsal', 'Futsal')}
-                                            </span>
-                                        )}
-                                        {item.gender && (
-                                            <span className={chipClass}>
-                                                <span className="sr-only">{t('common.genderLabel', 'Gender')}: </span>
-                                                {item.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
-                                            </span>
-                                        )}
-                                        {type === 'tournament' && (item as Tournament).series?.map(series => (
-                                            <span key={series.id} className={chipClass}>
-                                                <span className="sr-only">{t('common.seriesLabel', 'Level')}: </span>
-                                                {t(`common.level${series.level}`, series.level)}
-                                            </span>
-                                        ))}
                                     </div>
-                                </div>
-                                <div className="relative flex-shrink-0" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                        onClick={(e) => handleActionsMenuToggle(e, item.id)}
-                                        className={iconButtonEditStyle}
-                                        aria-label={t('seasonTournamentModal.itemActions', 'Actions for {{name}}', { name: item.name })}
-                                    >
-                                        <HiOutlineEllipsisVertical className="w-5 h-5" />
-                                    </button>
-
-                                    {actionsMenuId === item.id && (
-                                        <div className={`${popoverMenuStyle} ${menuPositions[item.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
-                                            <button
-                                                onClick={() => handleEditClick(item, type)}
-                                                className={popoverItemStyle}
-                                            >
-                                                <HiOutlinePencil className="w-4 h-4" />
-                                                {t('common.edit', 'Edit')}
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleArchive(item, type)}
-                                                className={popoverItemStyle}
-                                            >
-                                                <HiOutlineArchiveBox className="w-4 h-4" />
-                                                {item.archived
-                                                    ? t('seasonTournamentModal.unarchive', 'Unarchive')
-                                                    : t('seasonTournamentModal.archive', 'Archive')}
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(item, type)}
-                                                className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
-                                            >
-                                                <HiOutlineTrash className="w-4 h-4" />
-                                                {t('common.delete', 'Delete')}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            {/* Matches / goals as the home screen's italic numerals */}
-                            <div className="mt-4 flex border-t border-hairline">
-                                <div className="flex-1 flex items-baseline gap-2.5 px-[18px] pt-3 pb-3.5">
-                                    <span className="s1-numeral pr-[3px] font-display text-[34px] font-bold italic leading-none">{stats[item.id]?.games || 0}</span>
-                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">{t('seasonTournamentModal.statsGames')}</span>
-                                </div>
-                                <div className="flex-1 flex items-baseline gap-2.5 px-[18px] pt-3 pb-3.5 border-l border-hairline">
-                                    <span className="s1-numeral pr-[3px] font-display text-[34px] font-bold italic leading-none">{stats[item.id]?.goals || 0}</span>
-                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">{t('seasonTournamentModal.statsGoals')}</span>
-                                </div>
-                            </div>
+                                }
+                            />
                         </div>
                     ))}
                 </div>
@@ -545,7 +525,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
       {/* Season Create Modal */}
       <SeasonDetailsModal
         isOpen={createSeasonModalOpen}
-        onClose={() => setCreateSeasonModalOpen(false)}
+        onClose={() => closeSheet(() => setCreateSeasonModalOpen(false))}
         mode="create"
         addSeasonMutation={addSeasonMutation}
         onOpenSettings={onOpenSettings}
@@ -554,7 +534,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
       {/* Season Edit Modal */}
       <SeasonDetailsModal
         isOpen={selectedSeasonId !== null}
-        onClose={() => setSelectedSeasonId(null)}
+        onClose={() => closeSheet(() => setSelectedSeasonId(null))}
         mode="edit"
         season={seasons.find(s => s.id === selectedSeasonId) || null}
         updateSeasonMutation={updateSeasonMutation}
@@ -564,7 +544,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
       {/* Tournament Create Modal */}
       <TournamentDetailsModal
         isOpen={createTournamentModalOpen}
-        onClose={() => setCreateTournamentModalOpen(false)}
+        onClose={() => closeSheet(() => setCreateTournamentModalOpen(false))}
         mode="create"
         masterRoster={masterRoster}
         addTournamentMutation={addTournamentMutation}
@@ -574,7 +554,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
       {/* Tournament Edit Modal */}
       <TournamentDetailsModal
         isOpen={selectedTournamentId !== null}
-        onClose={() => setSelectedTournamentId(null)}
+        onClose={() => closeSheet(() => setSelectedTournamentId(null))}
         mode="edit"
         tournament={tournaments.find(t => t.id === selectedTournamentId) || null}
         masterRoster={masterRoster}
