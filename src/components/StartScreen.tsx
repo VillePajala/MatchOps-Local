@@ -7,7 +7,10 @@ import { useAppLanguage } from '@/hooks/useAppLanguage';
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonCard, HomeStatsTiles, HomeClubCard, HomeIcon, HOME_CARD, HOME_FOCUS } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonHero, HomeStatsHero, HomeTopScorersCard, HomeClubCard, HomeCount, HomeIcon, HOME_CARD, HOME_FOCUS } from '@/components/HomeDashboard';
+import CompetitionCard from '@/components/CompetitionCard';
+import type { HomeCompetition } from '@/utils/homeSummary';
+import packageJson from '../../package.json';
 import { commonClubName } from '@/utils/homeTeamScope';
 import { useAuth } from '@/contexts/AuthProvider';
 import HomeBasic from '@/components/HomeBasic';
@@ -29,6 +32,13 @@ import {
   HiOutlineFolderOpen,
   HiOutlineGlobeAlt,
   HiOutlineClipboard,
+  HiOutlineCog6Tooth,
+  HiOutlineArchiveBoxArrowDown,
+  HiOutlineCloud,
+  HiOutlineCloudArrowUp,
+  HiOutlineQuestionMarkCircle,
+  HiOutlineDocumentText,
+  HiOutlineArrowRightStartOnRectangle,
 } from 'react-icons/hi2';
 import { TASO_URL } from '@/config/externalLinks';
 
@@ -54,12 +64,15 @@ const ROW_BASE =
   'group/row relative w-full flex items-stretch gap-3.5 pl-4 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action first:rounded-t-[22px] last:rounded-b-[22px]';
 const ROW_ON = 'hover:bg-white/[0.04] active:bg-white/[0.06]';
 const ROW_OFF = 'opacity-40 cursor-not-allowed';
-/** The row's text area carries the divider, so it starts after the icon. */
-const ROW_RULE = 'flex min-h-14 flex-1 min-w-0 items-center gap-3 pr-4 border-t border-hairline group-first/row:border-transparent';
+/** The row's text area carries the divider, so it starts after the icon. A
+ *  minimum height plus padding, not a fixed height: a label that wraps to two
+ *  lines gets room instead of touching the dividers. */
+const ROW_RULE = 'flex min-h-14 flex-1 min-w-0 items-center gap-3 py-2.5 pr-4 border-t border-hairline group-first/row:border-transparent';
 const ROW_ICON = 'w-[22px] h-[22px] flex-shrink-0 self-center text-ink-2';
 // Labels wrap rather than truncate: "Taso - kokoonpanot ja tulokset" lost its last word at 16px.
 const ROW_LABEL = 'flex-1 min-w-0 break-words text-left text-base font-semibold leading-snug text-ink';
-const ROW_COUNT = 'flex-shrink-0 text-base font-semibold tabular-nums text-ink-3';
+/** Counts are numerals: Barlow Condensed italic, like every number on Home. */
+const ROW_COUNT = 'flex-shrink-0 pr-[2px] font-display text-lg font-bold italic leading-none tabular-nums text-ink-2';
 const ROW_CHEVRON = <HiOutlineChevronRight className="w-4 h-4 flex-shrink-0 text-ink-3" aria-hidden="true" />;
 const ROW_EXTERNAL = <HiOutlineArrowTopRightOnSquare className="w-[18px] h-[18px] flex-shrink-0 text-ink-3" aria-hidden="true" />;
 
@@ -95,7 +108,7 @@ const HomeRow: React.FC<{
     <Icon className={ROW_ICON} aria-hidden="true" />
     <span className={ROW_RULE}>
       {subtitle ? (
-        <span className="min-w-0 flex-1 py-2">
+        <span className="min-w-0 flex-1">
           <span className="block break-words text-base font-semibold leading-snug text-ink">{label}</span>
           <span className="block break-words text-[13px] leading-tight text-ink-3">{subtitle}</span>
         </span>
@@ -114,7 +127,7 @@ const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; subtitle?: string; h
     <Icon className={ROW_ICON} aria-hidden="true" />
     <span className={ROW_RULE}>
       {subtitle ? (
-        <span className="min-w-0 flex-1 py-2">
+        <span className="min-w-0 flex-1">
           <span className="block break-words text-base font-semibold leading-snug text-ink">{label}</span>
           <span className="block break-words text-[13px] leading-tight text-ink-3">{subtitle}</span>
         </span>
@@ -131,13 +144,72 @@ const PRIMARY_BTN = `s1-primary w-full flex h-14 items-center justify-center gap
 /** The outline secondary pill. */
 const GHOST_BTN = `s1-ghost flex h-12 items-center justify-center gap-2 rounded-full px-4 text-[15px] font-semibold text-ink transition-colors ${HOME_FOCUS}`;
 
-/** A row in a bottom sheet: same group/row grammar as the Home tabs. */
+/** A row in a bottom sheet: same group/row grammar - and the same line icons - as the Home tabs. */
 const SHEET_ROW = `${ROW_BASE} ${ROW_ON} pl-4`;
 const SHEET_ROW_RULE = ROW_RULE;
 
 /** Step badge on an onboarding row. */
 const StepBadge: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <span className="flex-shrink-0 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold text-ink-2">{children}</span>
+);
+
+/**
+ * A Kilpailut section's heading - "SARJAT 3 ›" - which opens that manager:
+ * the full list, archived ones and sorting live there.
+ */
+const SectionHeader: React.FC<{ label: string; count?: number; onClick?: () => void; testId?: string }> = ({ label, count, onClick, testId }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={!onClick}
+    data-testid={testId}
+    className={`-mb-1.5 flex min-h-11 w-full items-center gap-2 rounded-lg px-1 text-left transition-colors hover:text-ink disabled:opacity-40 ${HOME_FOCUS}`}
+  >
+    <span className="text-xs font-bold uppercase tracking-[0.16em] text-ink-3">{label}</span>
+    {count !== undefined && <>{' '}<HomeCount n={count} className="text-[17px] leading-none text-ink-2" /></>}
+    <span className="flex-1" aria-hidden="true" />
+    {ROW_CHEVRON}
+  </button>
+);
+
+/** A quiet "+ Lisää ..." row: an invitation, not a second primary action. */
+const AddRow: React.FC<{ label: string; onClick?: () => void; testId?: string }> = ({ label, onClick, testId }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={!onClick}
+    data-testid={testId}
+    className={`flex min-h-12 w-full items-center gap-3 rounded-[22px] border border-dashed border-white/20 px-4 py-2.5 text-left text-[15px] font-semibold text-ink-2 transition-colors hover:bg-white/[0.03] hover:text-ink disabled:opacity-40 ${HOME_FOCUS}`}
+  >
+    <HomeIcon name="plus" className="h-5 w-5 text-ink-3" strokeWidth={2} />
+    <span className="min-w-0 break-words">{label}</span>
+  </button>
+);
+
+/** How many league / tournament cards Kilpailut shows inline; the header opens the rest. */
+const COMPETITION_CARDS = 3;
+
+/** The active leagues or tournaments as the manager's own cards; each opens its sheet. */
+const CompetitionCards: React.FC<{
+  items: HomeCompetition[];
+  kind: 'season' | 'tournament';
+  onOpen?: (id: string) => void;
+  t: ReturnType<typeof useTranslation>['t'];
+}> = ({ items, kind, onOpen, t }) => (
+  <>
+    {items.slice(0, COMPETITION_CARDS).map((c) => (
+      <button
+        key={c.id}
+        type="button"
+        onClick={onOpen ? () => onOpen(c.id) : undefined}
+        disabled={!onOpen}
+        data-testid={`home-${kind}-card`}
+        className={`${HOME_CARD} block w-full pt-4 text-left font-ui transition-colors hover:bg-white/[0.03] ${HOME_FOCUS}`}
+      >
+        <CompetitionCard item={c} showDates={kind === 'tournament'} games={c.games} goals={c.goals} t={t} />
+      </button>
+    ))}
+  </>
 );
 
 type HomeTabId = 'games' | 'team' | 'seasons' | 'stats';
@@ -156,6 +228,12 @@ interface StartScreenProps {
   onViewStats: () => void;
   /** Stats panel rows mirror the aggregate tabs (W8): open club stats on one. */
   onViewStatsTab?: (tab: 'season' | 'tournament' | 'overall' | 'player') => void;
+  /** Tilastot's top-scorer tile and list: that player's stats. */
+  onViewPlayerStats?: (playerId: string) => void;
+  /** Kilpailut's league / tournament cards: that one's sheet. */
+  onOpenCompetition?: (kind: 'season' | 'tournament', id: string) => void;
+  /** Kilpailut's "Lisää sarja / turnaus" rows: the add sheet. */
+  onAddCompetition?: (kind: 'season' | 'tournament') => void;
   /** Gear sheet: direct sign out (cloud mode only). */
   onSignOut?: () => void;
   onOpenSettings: () => void;
@@ -233,6 +311,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onNewGame,
   onViewStats,
   onViewStatsTab,
+  onViewPlayerStats,
+  onOpenCompetition,
+  onAddCompetition,
   onSignOut,
   onOpenSettings,
   onManageRoster,
@@ -279,6 +360,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // Entity counts on the Club / Competitions rows - only once the enriched
   // summary has loaded, so a still-loading 0 never reads as "you have none".
   const counts = homeSummary?.countsReady ? homeSummary.counts : undefined;
+  // Kilpailut's cards: club-wide, like its season hero. Undefined until loaded.
+  const competitions = homeSummary?.competitions;
+  // Tilastot reads the team-scoped copy of the summary.
+  const statsSummary = homeStatsSummary ?? homeSummary;
+  // Its record and goal-difference tiles open overall stats; the scorer tile
+  // and the scorers list open that player (the player tab when no id is known).
+  const openOverall = onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats;
+  const openPlayer = (playerId?: string) => {
+    if (playerId && onViewPlayerStats) onViewPlayerStats(playerId);
+    else if (onViewStatsTab) onViewStatsTab('player');
+    else onViewStats();
+  };
   // Club card title: the app has no club-name field, so it shows a club name
   // only when every team's name starts with the same one ("Kotkat P12",
   // "Kotkat T11" -> "Kotkat"); otherwise the neutral "Seura".
@@ -348,6 +441,23 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const showPlayersStep = heroStep !== 'players' && !setupProgress?.players;
   const showTeamStep = heroStep !== 'team' && !setupProgress?.team;
   const showGameStep = heroStep !== 'game';
+
+  /**
+   * New Game in the outline style, for when something else is the hero. Its
+   * "+" is neutral (owner, 2026-11-19): amber is the screen's one primary
+   * action, and this is not it.
+   */
+  const newGameGhost = (
+    <button
+      type="button"
+      onClick={onNewGame ?? onGetStarted}
+      data-testid="tour-new-game"
+      className={`${GHOST_BTN} w-full`}
+    >
+      <HomeIcon name="plus" className="h-5 w-5 text-ink-2" strokeWidth={2.2} />
+      <span className="truncate">{t('startScreen.newGame', 'New Game')}</span>
+    </button>
+  );
 
   const tabs: Array<{ id: HomeTabId; label: string; testId?: string }> = [
     { id: 'games', label: t('startScreen.tabGames', 'Games'), testId: 'tour-tab-games' },
@@ -504,11 +614,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </HomeGroup>
             </>
           ) : activeTab === 'seasons' ? (
-            /* Competitions panel: separate Kaudet and Turnaukset entries,
-               each opening the manager scoped to that kind. */
+            /* Competitions panel (owner, 2026-11-19): the season hero, then the
+               active leagues and tournaments as the managers' own cards. Each
+               section heading opens its manager; a card opens its sheet. */
             <>
               {dashboardOn && homeSummary && (
-                <HomeSeasonCard
+                <HomeSeasonHero
                   vuosi={homeSummary.vuosi}
                   onOpen={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
                   t={t}
@@ -517,28 +628,57 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
                 <p className="px-1 text-center text-sm text-ink-3">{t('startScreen.emptyCompetitions', 'Create a league or tournament to group your games.')}</p>
               )}
-              <HomeGroup>
-                <HomeRow
-                  icon={HiOutlineCalendarDays}
-                  label={t('seasonTournamentModal.seasons', 'Leagues')}
-                  onClick={onManageSeasons}
-                  disabled={!onManageSeasons}
-                  count={counts?.seasons}
-                />
-                <HomeRow
-                  icon={HiOutlineTrophy}
-                  label={t('seasonTournamentModal.tournaments', 'Tournaments')}
-                  onClick={onManageTournaments}
-                  disabled={!onManageTournaments}
-                  count={counts?.tournaments}
-                />
-              </HomeGroup>
+              <SectionHeader
+                label={t('seasonTournamentModal.seasons', 'Leagues')}
+                count={counts?.seasons}
+                onClick={onManageSeasons}
+                testId="home-seasons-header"
+              />
+              {competitions && (
+                <>
+                  <CompetitionCards
+                    items={competitions.seasons}
+                    kind="season"
+                    onOpen={onOpenCompetition ? (id) => onOpenCompetition('season', id) : onManageSeasons && (() => onManageSeasons())}
+                    t={t}
+                  />
+                  {/* A second league is the rarer act: its add lives in the manager. */}
+                  {competitions.seasons.length === 0 && (
+                    <AddRow
+                      label={t('seasonTournamentModal.addSeason', 'Add League')}
+                      onClick={onAddCompetition ? () => onAddCompetition('season') : onManageSeasons}
+                      testId="home-add-season"
+                    />
+                  )}
+                </>
+              )}
+              <SectionHeader
+                label={t('seasonTournamentModal.tournaments', 'Tournaments')}
+                count={counts?.tournaments}
+                onClick={onManageTournaments}
+                testId="home-tournaments-header"
+              />
+              {competitions && (
+                <>
+                  <CompetitionCards
+                    items={competitions.tournaments}
+                    kind="tournament"
+                    onOpen={onOpenCompetition ? (id) => onOpenCompetition('tournament', id) : onManageTournaments && (() => onManageTournaments())}
+                    t={t}
+                  />
+                  <AddRow
+                    label={t('seasonTournamentModal.addTournament', 'Add Tournament')}
+                    onClick={onAddCompetition ? () => onAddCompetition('tournament') : onManageTournaments}
+                    testId="home-add-tournament"
+                  />
+                </>
+              )}
             </>
           ) : activeTab === 'stats' ? (
             /* Stats panel (W8): one row per aggregate stats tab. Disabled until
                there is a game to aggregate - never silently dead-clickable. */
             <>
-              {dashboardOn && (homeStatsSummary ?? homeSummary) && (
+              {dashboardOn && statsSummary && (
                 <>
                   {/* The team choice narrows only these tiles. Pelit stays
                       club-wide on purpose. */}
@@ -548,36 +688,44 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     onChange={onTeamScopeChange ?? (() => {})}
                     t={t}
                   />
-                  <HomeStatsTiles
-                    vuosi={(homeStatsSummary ?? homeSummary)!.vuosi}
-                    topScorer={(homeStatsSummary ?? homeSummary)!.topScorer}
+                  <HomeStatsHero
+                    vuosi={statsSummary.vuosi}
+                    topScorer={statsSummary.topScorer}
+                    onOpenOverall={openOverall}
+                    onOpenPlayer={openPlayer}
                     t={t}
                   />
+                  <HomeTopScorersCard scorers={statsSummary.topScorers} onOpenPlayer={openPlayer} t={t} />
                 </>
               )}
               {!hasSavedGames && (
                 <p className="px-1 text-center text-sm text-ink-3">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
               )}
-              {/* Each scope gets the icon of the thing it aggregates. */}
-              <HomeGroup>
+              {/* The four stats scopes as a 2x2 grid of tiles (owner, 2026-11-19),
+                  each with the icon of the thing it aggregates. */}
+              <div className="grid grid-cols-2 gap-2.5" data-testid="home-stats-grid">
                 {([
                   ['season', t('startScreen.statsSeason', 'League stats'), HiOutlineCalendarDays],
                   ['tournament', t('startScreen.statsTournament', 'Tournament stats'), HiOutlineTrophy],
                   ['overall', t('startScreen.statsOverall', 'Overall stats'), HiOutlineChartBar],
                   ['player', t('startScreen.statsPlayer', 'Player stats'), HiOutlineUserCircle],
-                ] as const).map(([tab, label, icon]) => (
-                  <HomeRow
+                ] as const).map(([tab, label, Icon]) => (
+                  <button
                     key={tab}
-                    icon={icon}
-                    label={label}
+                    type="button"
                     onClick={onViewStatsTab ? () => onViewStatsTab(tab) : onViewStats}
                     disabled={!hasSavedGames}
-                  />
+                    className={`${HOME_CARD} flex min-h-[92px] min-w-0 flex-col items-start justify-between gap-3 px-4 py-3.5 text-left transition-colors max-[359px]:px-3 ${hasSavedGames ? ROW_ON : ROW_OFF} ${HOME_FOCUS}`}
+                  >
+                    <Icon className="h-[22px] w-[22px] flex-shrink-0 text-ink-2" aria-hidden="true" />
+                    {/* One word ("Turnaustilastot") must fit a half-width tile at 320px. */}
+                    <span className="block max-w-full break-words text-[15px] font-semibold leading-snug text-ink max-[359px]:text-[13px]">{label}</span>
+                  </button>
                 ))}
-                {/* Topping up one player's record is a stats task; it works
-                    before the first recorded match too. */}
-                {externalGameRow}
-              </HomeGroup>
+              </div>
+              {/* Topping up one player's record is a stats task; it works
+                  before the first recorded match too. */}
+              {externalGameRow && <HomeGroup>{externalGameRow}</HomeGroup>}
             </>
           ) : (
             /* The Pelit front page (two-level restructure PR 1.3). */
@@ -667,6 +815,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onNewGame={onNewGame}
                   onSetStartingPoint={onOpenSettings}
                   onMarkAbsences={onOpenAttendance ? (id) => onOpenAttendance(id, 'save') : undefined}
+                  afterHero={newGameGhost}
                   locale={language}
                   t={t}
                 />
@@ -681,7 +830,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   to the outline style - paired with Saved games in dashboard
                   mode, stacked in the simple launcher. Saved games hides when
                   there are none. */}
-              {(!composeOnboarding || heroStep === 'game') && (newGamePrimary ? (
+              {/* In the dashboard the outline New Game sits right under the
+                  hero instead (afterHero above). */}
+              {(!composeOnboarding || heroStep === 'game') && !(dashboardOn && homeSummary) && (newGamePrimary ? (
                 <>
                   <button
                     type="button"
@@ -709,15 +860,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                    Saved games joins the navigation rows below instead (a
                    half-width pill truncated its label). */
                 <div className="flex flex-col gap-2.5">
-                  <button
-                    type="button"
-                    onClick={onNewGame ?? onGetStarted}
-                    data-testid="tour-new-game"
-                    className={`${GHOST_BTN} w-full`}
-                  >
-                    <HomeIcon name="plus" className="h-5 w-5 text-action" strokeWidth={2.2} />
-                    <span className="truncate">{t('startScreen.newGame', 'New Game')}</span>
-                  </button>
+                  {newGameGhost}
                   {hasSavedGames && !dashboardOn && (
                     <button type="button" onClick={onLoadGame} className={`${GHOST_BTN} w-full`}>
                       <HomeIcon name="folder" className="h-5 w-5 text-ink-2" strokeWidth={1.9} />
@@ -781,9 +924,20 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 data-testid={testId}
                 onClick={() => setActiveTab(id)}
                 className={`relative flex min-h-[46px] items-center justify-center rounded-xl px-1 text-[13px] font-semibold tracking-[0.01em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action ${
-                  on ? 's1-tab-on text-action' : 'text-ink-2 opacity-60 hover:opacity-100'
+                  on ? 'text-action' : 'text-ink-2 opacity-60 hover:opacity-100'
                 }`}
               >
+                {/* The selected tab's indicator: the FULL width of its block,
+                    flush with the bar's top edge (owner, 2026-11-19) - the
+                    bar's 2px top padding is exactly what -top-0.5 undoes, so
+                    it never overlaps the label. */}
+                {on && (
+                  <span
+                    aria-hidden="true"
+                    data-testid="home-tab-indicator"
+                    className="pointer-events-none absolute inset-x-0 -top-0.5 h-[3px] rounded-b-[3px] bg-action"
+                  />
+                )}
                 <span className="max-w-full truncate px-0.5">{label}</span>
               </button>
             );
@@ -811,6 +965,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <h4 className="mb-2.5 px-1 text-xs font-bold uppercase tracking-[0.16em] text-ink-3">{t('startScreen.gearTitle', 'App & account')}</h4>
             <div className={HOME_CARD + ' flex flex-col'}>
               <button type="button" onClick={() => { setShowGearSheet(false); onOpenSettings(); }} className={SHEET_ROW}>
+                <HiOutlineCog6Tooth className={ROW_ICON} aria-hidden="true" />
                 <span className={SHEET_ROW_RULE}>
                   <span className={ROW_LABEL}>{t('startScreen.appSettings', 'Settings')}</span>
                   {ROW_CHEVRON}
@@ -818,6 +973,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </button>
               {onOpenBackup && (
                 <button type="button" onClick={() => { setShowGearSheet(false); onOpenBackup(); }} className={SHEET_ROW}>
+                  <HiOutlineArchiveBoxArrowDown className={ROW_ICON} aria-hidden="true" />
                   <span className={SHEET_ROW_RULE}>
                     <span className={ROW_LABEL}>{t('startScreen.gearBackup', 'Backup & Restore')}</span>
                     {ROW_CHEVRON}
@@ -827,7 +983,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {isCloudMode ? (
                 onOpenAccount && (
                   <button type="button" onClick={() => { setShowGearSheet(false); onOpenAccount(); }} className={SHEET_ROW}>
-                    <span className={`${SHEET_ROW_RULE} py-2`}>
+                    <HiOutlineCloud className={ROW_ICON} aria-hidden="true" />
+                    <span className={SHEET_ROW_RULE}>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-base font-semibold text-ink">{t('startScreen.gearAccount', 'Cloud account')}</span>
                         <span className="block truncate text-[13px] text-ink-3">{user.email}</span>
@@ -845,6 +1002,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   }}
                   className={SHEET_ROW}
                 >
+                  <HiOutlineCloudArrowUp className={ROW_ICON} aria-hidden="true" />
                   <span className={SHEET_ROW_RULE}>
                     <span className={`${ROW_LABEL} text-action`}>{t('startScreen.enableCloudSync', 'Enable Cloud Sync')}</span>
                     {ROW_CHEVRON}
@@ -855,6 +1013,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {/* In-app "How it works" guide (rebuilt for the two-level UI). */}
               {onOpenGuide && (
                 <button type="button" onClick={() => { setShowGearSheet(false); onOpenGuide(); }} className={SHEET_ROW}>
+                  <HiOutlineQuestionMarkCircle className={ROW_ICON} aria-hidden="true" />
                   <span className={SHEET_ROW_RULE}>
                     <span className={ROW_LABEL}>{t('startScreen.gearGuide', 'How it works')}</span>
                     {ROW_CHEVRON}
@@ -862,6 +1021,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 </button>
               )}
               <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className={SHEET_ROW}>
+                <HiOutlineDocumentText className={ROW_ICON} aria-hidden="true" />
                 <span className={SHEET_ROW_RULE}>
                   <span className={ROW_LABEL}>{t('controlBar.userGuide', 'User Guide')}</span>
                   {ROW_EXTERNAL}
@@ -878,18 +1038,22 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={() => { setShowGearSheet(false); onSignOut(); }}
                   className={SHEET_ROW}
                 >
+                  <HiOutlineArrowRightStartOnRectangle className={`${ROW_ICON} text-loss`} aria-hidden="true" />
                   <span className={SHEET_ROW_RULE}>
                     <span className={`${ROW_LABEL} text-loss`}>{t('startScreen.gearSignOut', 'Sign out')}</span>
                   </span>
                 </button>
               </div>
             )}
-            <div className="mt-2 px-1">
+            {/* Which build this is, and where the app lives. */}
+            <div className="mt-2 flex flex-wrap items-center gap-x-1.5 px-1 text-[13px] text-ink-3" data-testid="gear-footer">
+              <span>MatchOps v{packageJson.version}</span>
+              <span aria-hidden="true">·</span>
               <a
                 href="https://www.match-ops.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center rounded-lg text-[13px] text-ink-3 transition-colors hover:text-action focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                className="inline-flex min-h-11 items-center rounded-lg transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
               >
                 match-ops.com
               </a>

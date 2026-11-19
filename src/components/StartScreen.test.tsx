@@ -785,16 +785,16 @@ describe('Home dashboard view (opt-in)', () => {
     const scoped = { ...summary, vuosi: { ...summary.vuosi, gamesPlayed: 3, goalsFor: 4 }, topScorer: { name: 'Virta', goals: 2 } };
     render(<StartScreen {...dashProps({ teamScopeOptions: teams, teamScope: 'a', homeStatsSummary: scoped })} />);
     expect(screen.queryByTestId('home-team-scope')).not.toBeInTheDocument();
-    // The scorer tile shows the goals as the figure and the NAME as its label
-    // (a name set as the big number overflowed a third-width tile), so the two
-    // are asserted separately.
-    expect(screen.queryByText('Virta')).not.toBeInTheDocument();
+    // The scorer tile shows the goals as the figure and "<name> · N goals" as
+    // its label (a name set as the big number overflowed a third-width tile).
+    expect(screen.queryByText(/Virta/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(screen.getByTestId('home-team-scope')).toBeInTheDocument();
-    expect(screen.getByText('Virta')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
+    const scorer = screen.getByTestId('stats-tile-scorer');
+    expect(within(scorer).getByText('Virta · 2 goals')).toBeInTheDocument();
+    expect(within(scorer).getByText('2')).toBeInTheDocument();
     // The club-wide scorer must not leak into the team-scoped tiles.
-    expect(screen.queryByText('Aho')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Aho/)).not.toBeInTheDocument();
   });
 
   /**
@@ -864,7 +864,16 @@ describe('Home dashboard view (opt-in)', () => {
     const props = { ...dashProps(), onManageSeasons: jest.fn(), onManageTournaments: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
-    expect(screen.getByText('24/25')).toBeInTheDocument();
+    const hero = screen.getByTestId('competitions-hero');
+    expect(within(hero).getByText('24/25')).toBeInTheDocument();
+    // The full record lives here, each figure in its result colour.
+    const record = within(hero).getByTitle('Wins - draws - losses');
+    expect(record).toHaveTextContent('5-2-1');
+    expect(within(record).getByText('5')).toHaveClass('text-win');
+    expect(within(record).getByText('2')).toHaveClass('text-draw');
+    expect(within(record).getByText('1')).toHaveClass('text-loss');
+    // "8 games · 18–9" - played games and goals for and against.
+    expect(screen.getByTestId('competitions-hero-line')).toHaveTextContent('8 games·18–9');
     expect(screen.getByRole('button', { name: /Leagues\s*3/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Tournaments\s*2/ })).toBeInTheDocument();
     // The card shows the club-season (Vuosi) record, so it must open OVERALL
@@ -882,14 +891,182 @@ describe('Home dashboard view (opt-in)', () => {
     expect(screen.queryByText('Goal diff')).not.toBeInTheDocument();
   });
 
-  it('Tilastot tab shows the overview tiles when on', () => {
+  it('Tilastot tab shows the labelled overview tiles when on', () => {
     render(<StartScreen {...dashProps()} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
-    expect(screen.getByText('Results')).toBeInTheDocument();
-    expect(screen.getByText('Goal diff')).toBeInTheDocument();
-    // Goals are the figure, the name is the label beneath it.
-    expect(screen.getByText('6')).toBeInTheDocument();
-    expect(screen.getByText('Aho')).toBeInTheDocument();
+    const hero = screen.getByTestId('stats-hero');
+    expect(within(hero).getByText('W–D–L')).toBeInTheDocument();
+    expect(within(screen.getByTestId('stats-tile-record')).getByTitle('Wins - draws - losses')).toHaveTextContent('5-2-1');
+    expect(within(hero).getByText('Goal diff')).toBeInTheDocument();
+    expect(within(screen.getByTestId('stats-tile-goal-diff')).getByText('+9')).toBeInTheDocument();
+    // Goals are the figure; the label says whose and what.
+    expect(within(screen.getByTestId('stats-tile-scorer')).getByText('6')).toBeInTheDocument();
+    expect(within(hero).getByText('Aho · 6 goals')).toBeInTheDocument();
+  });
+
+  /**
+   * Owner, 2026-11-19: every Tilastot tile is a way in - the record and goal
+   * difference open overall stats, the top scorer opens that player.
+   * @critical
+   */
+  it('Tilastot tiles are tappable: record and goal diff open overall, the scorer opens that player', () => {
+    const scorer = { id: 'p-aho', name: 'Aho', goals: 6 };
+    const props = {
+      ...dashProps({ homeSummary: { ...summary, topScorer: scorer, topScorers: [scorer] } }),
+      onViewPlayerStats: jest.fn(),
+    };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    fireEvent.click(screen.getByTestId('stats-tile-record'));
+    expect(props.onViewStatsTab).toHaveBeenLastCalledWith('overall');
+    fireEvent.click(screen.getByTestId('stats-tile-goal-diff'));
+    expect(props.onViewStatsTab).toHaveBeenLastCalledWith('overall');
+    expect(props.onViewStatsTab).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByTestId('stats-tile-scorer'));
+    expect(props.onViewPlayerStats).toHaveBeenCalledWith('p-aho');
+    // One scorer is already the third tile: no list of one.
+    expect(screen.queryByTestId('top-scorers')).not.toBeInTheDocument();
+  });
+
+  it('Tilastot scorer tile falls back to the player stats tab without a player id', () => {
+    const props = dashProps();
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    fireEvent.click(screen.getByTestId('stats-tile-scorer'));
+    expect(props.onViewStatsTab).toHaveBeenCalledWith('player');
+  });
+
+  it('Tilastot lists the top three scorers, each opening that player', () => {
+    const scorers = [
+      { id: 'p1', name: 'Aho', goals: 6 },
+      { id: 'p2', name: 'Virta', goals: 4 },
+      { id: 'p3', name: 'Lehto', goals: 1 },
+    ];
+    const props = {
+      ...dashProps({ homeSummary: { ...summary, topScorer: scorers[0], topScorers: scorers } }),
+      onViewPlayerStats: jest.fn(),
+    };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    const list = screen.getByTestId('top-scorers');
+    expect(within(list).getByText('Top scorers')).toBeInTheDocument();
+    const rows = within(list).getAllByRole('button');
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent('1Aho6goals');
+    expect(rows[1]).toHaveTextContent('2Virta4goals');
+    expect(rows[2]).toHaveTextContent('3Lehto1goals');
+    fireEvent.click(rows[1]);
+    expect(props.onViewPlayerStats).toHaveBeenCalledWith('p2');
+  });
+
+  it('Tilastot stats scopes are a 2x2 grid of tiles; the add-to-stats row stays a row', () => {
+    const props = { ...dashProps(), onAddExternalGame: jest.fn() };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    const grid = screen.getByTestId('home-stats-grid');
+    expect(grid).toHaveClass('grid-cols-2');
+    expect(within(grid).getAllByRole('button').map((b) => b.textContent)).toEqual([
+      'League stats', 'Tournament stats', 'Overall stats', 'Player stats',
+    ]);
+    expect(grid).not.toContainElement(screen.getByTestId('home-add-external-game'));
+    fireEvent.click(within(grid).getByRole('button', { name: 'Tournament stats' }));
+    expect(props.onViewStatsTab).toHaveBeenCalledWith('tournament');
+  });
+
+  const competitions = {
+    seasons: [{ id: 's1', name: 'P12 Harrastesarja 2026', clubSeason: '25/26', gender: 'boys' as const, games: 7, goals: 13 }],
+    tournaments: [{ id: 't1', name: 'Kevätcup', series: [{ id: 'x', level: 'Elite' }], games: 3, goals: 5 }],
+  };
+
+  /**
+   * Owner, 2026-11-19: the active leagues and tournaments show inline as the
+   * managers' own cards, and a card opens its sheet.
+   * @critical
+   */
+  it('Kilpailut shows the active leagues and tournaments as cards that open their sheets', () => {
+    const props = {
+      ...dashProps({ homeSummary: { ...summary, competitions } }),
+      onManageSeasons: jest.fn(), onManageTournaments: jest.fn(),
+      onOpenCompetition: jest.fn(), onAddCompetition: jest.fn(),
+    };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
+    const league = screen.getByTestId('home-season-card');
+    expect(league).toHaveTextContent('P12 Harrastesarja 2026');
+    expect(league).toHaveTextContent('25/26');
+    expect(league).toHaveTextContent('Boys');
+    expect(league).toHaveTextContent('7Games');
+    expect(league).toHaveTextContent('13Goals');
+    fireEvent.click(league);
+    expect(props.onOpenCompetition).toHaveBeenCalledWith('season', 's1');
+    fireEvent.click(screen.getByTestId('home-tournament-card'));
+    expect(props.onOpenCompetition).toHaveBeenCalledWith('tournament', 't1');
+    // A league exists, so its add lives in the manager; tournaments always offer one.
+    expect(screen.queryByTestId('home-add-season')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('home-add-tournament'));
+    expect(props.onAddCompetition).toHaveBeenCalledWith('tournament');
+    // The section headings still open the managers.
+    fireEvent.click(screen.getByTestId('home-seasons-header'));
+    expect(props.onManageSeasons).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByTestId('home-tournaments-header'));
+    expect(props.onManageTournaments).toHaveBeenCalledTimes(1);
+  });
+
+  it('Kilpailut offers "Add League" when there is none, instead of a dead zero', () => {
+    const props = {
+      ...dashProps({ homeSummary: { ...summary, competitions: { seasons: [], tournaments: [] } } }),
+      onAddCompetition: jest.fn(),
+    };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
+    expect(screen.queryByTestId('home-season-card')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add League' }));
+    expect(props.onAddCompetition).toHaveBeenCalledWith('season');
+    fireEvent.click(screen.getByRole('button', { name: 'Add Tournament' }));
+    expect(props.onAddCompetition).toHaveBeenLastCalledWith('tournament');
+  });
+
+  it('the full season record is on Kilpailut and Tilastot only, not on Pelit', () => {
+    render(<StartScreen {...dashProps()} />);
+    expect(screen.queryByTitle('Wins - draws - losses')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
+    expect(screen.getByTitle('Wins - draws - losses')).toHaveTextContent('5-2-1');
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.getByTitle('Wins - draws - losses')).toHaveTextContent('5-2-1');
+  });
+
+  /**
+   * Owner, 2026-11-19: the selected tab's amber line spans the whole tab
+   * block and sits on the bar's top edge (it was a short centred dash).
+   */
+  it('marks only the selected tab, with a full-width indicator on the bar edge', () => {
+    render(<StartScreen {...dashProps()} />);
+    const indicators = screen.getAllByTestId('home-tab-indicator');
+    expect(indicators).toHaveLength(1);
+    expect(screen.getByRole('tab', { name: 'Games' })).toContainElement(indicators[0]);
+    expect(indicators[0]).toHaveClass('inset-x-0', '-top-0.5', 'bg-action');
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.getAllByTestId('home-tab-indicator')).toHaveLength(1);
+    expect(screen.getByRole('tab', { name: 'Stats' })).toContainElement(screen.getByTestId('home-tab-indicator'));
+  });
+
+  it('puts the outline New Game directly under the hero, with a neutral "+"', () => {
+    render(<StartScreen {...dashProps()} />);
+    const newGame = screen.getByTestId('tour-new-game');
+    const listRow = screen.getByText('HJK');
+    expect(newGame.compareDocumentPosition(listRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(newGame.querySelector('svg')).not.toHaveClass('text-action');
+  });
+
+  it('gear sheet rows carry line icons and the footer names the version', () => {
+    render(<StartScreen {...dashProps()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const sheet = screen.getByRole('dialog', { name: 'App & account' });
+    const settingsRow = within(sheet).getByRole('button', { name: 'Settings' });
+    expect(settingsRow.querySelector('svg')).not.toBeNull();
+    expect(within(sheet).getByRole('link', { name: 'User Guide' }).querySelector('svg')).not.toBeNull();
+    expect(screen.getByTestId('gear-footer')).toHaveTextContent(/^MatchOps v\d+\.\d+\.\d+·match-ops\.com$/);
+    expect(within(sheet).getByRole('link', { name: 'match-ops.com' })).toHaveAttribute('href', 'https://www.match-ops.com');
   });
 });
 

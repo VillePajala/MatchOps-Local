@@ -30,6 +30,9 @@ export interface PlanQuickViewTarget {
   gameId: string;
 }
 
+/** Where the competition manager opens: one league / tournament, or adding one. */
+export type CompetitionManagerTarget = { itemId: string } | { create: true };
+
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
 type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
@@ -46,6 +49,13 @@ interface ModalContextValue {
   // Turnaukset rows are two entry points into the same kind-parameterized modal.
   competitionManagerKind: 'season' | 'tournament';
   setCompetitionManagerKind: React.Dispatch<React.SetStateAction<'season' | 'tournament'>>;
+  /**
+   * Home's Kilpailut cards open the manager straight onto one league or
+   * tournament (`itemId`) or onto adding one (`create`); null opens the list.
+   * Cleared whenever the manager closes, so no later open inherits it.
+   */
+  competitionManagerTarget: CompetitionManagerTarget | null;
+  setCompetitionManagerTarget: React.Dispatch<React.SetStateAction<CompetitionManagerTarget | null>>;
   isTrainingResourcesOpen: boolean;
   setIsTrainingResourcesOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isRulesDirectoryOpen: boolean;
@@ -165,6 +175,14 @@ export const ModalProvider = ({ children, currentUserId }: {
   // Which competition kind the manager modal shows (set by the Kaudet/Turnaukset
   // rows before opening the shared modal).
   const [competitionManagerKind, setCompetitionManagerKind] = useState<'season' | 'tournament'>('season');
+  const [competitionManagerTarget, setCompetitionManagerTarget] = useState<CompetitionManagerTarget | null>(null);
+  // Adjust-during-render, as for the club-stats player deep-link below: a
+  // closed manager must not reopen onto the last card's sheet.
+  const [prevSeasonTournamentOpen, setPrevSeasonTournamentOpen] = useState(modalState.seasonTournament);
+  if (prevSeasonTournamentOpen !== modalState.seasonTournament) {
+    setPrevSeasonTournamentOpen(modalState.seasonTournament);
+    if (!modalState.seasonTournament) setCompetitionManagerTarget(null);
+  }
   // L.4: club-level aggregate stats surface (setters defined below, after
   // the match stats setter they mutually exclude against).
   const [clubStatsOpen, setClubStatsOpen] = useState(false);
@@ -432,6 +450,8 @@ export const ModalProvider = ({ children, currentUserId }: {
     setIsSeasonTournamentModalOpen,
     competitionManagerKind,
     setCompetitionManagerKind,
+    competitionManagerTarget,
+    setCompetitionManagerTarget,
     isTrainingResourcesOpen,
     setIsTrainingResourcesOpen,
     isRulesDirectoryOpen,
@@ -484,6 +504,7 @@ export const ModalProvider = ({ children, currentUserId }: {
     modalState.roster, setIsRosterModalOpen,
     modalState.seasonTournament, setIsSeasonTournamentModalOpen,
     competitionManagerKind, setCompetitionManagerKind,
+    competitionManagerTarget,
     isTrainingResourcesOpen, setIsTrainingResourcesOpen,
     isRulesDirectoryOpen, setIsRulesDirectoryOpen,
     isInstructionsModalOpen, setIsInstructionsModalOpen,

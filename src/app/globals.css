@@ -194,23 +194,21 @@
     background: var(--color-action);
     box-shadow: 0 0 0 3px rgb(255 178 36 / 0.2), 0 0 10px rgb(255 178 36 / 0.7);
   }
+  /* The same dot without the amber: the full layout's hero keeps amber for its
+     one primary button. */
+  .s1-live-dot-quiet {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--color-ink-2);
+    box-shadow: 0 0 0 3px rgb(255 255 255 / 0.08);
+  }
 
   /* Bottom tab bar. */
   .s1-tabbar {
     /* Ends on slate-800, the Android navigation bar's colour below it. */
     background: linear-gradient(180deg, #172036, #1e293b);
     box-shadow: 0 -1px 0 rgb(255 255 255 / 0.06);
-  }
-  .s1-tab-on::before {
-    content: "";
-    position: absolute;
-    top: -4px;
-    left: 50%;
-    width: 24px;
-    height: 3px;
-    transform: translateX(-50%);
-    border-radius: 0 0 3px 3px;
-    background: var(--color-action);
   }
 
   /* A select drawn as the house text field with a chevron (popups'

@@ -355,12 +355,13 @@ describe('the top slot is never empty', () => {
    * when it was also the match you last had open left Home's most prominent
    * element gone entirely.
    */
-  it('falls back to the latest match played, with the same action', () => {
+  it('falls back to the latest match played, opened with "Open" (it is over)', () => {
     const onOpenGame = jest.fn();
     render(<HomeDashboard summary={base({ lastPlayed })} onOpenGame={onOpenGame} t={t} />);
 
     expect(screen.getByText('FC Espoo')).toBeInTheDocument();
-    expect(screen.getByText(/Continue/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open →' })).toBeInTheDocument();
+    expect(screen.queryByText(/Continue/)).toBeNull();
   });
 
   it('opens that match when the card is pressed', async () => {
@@ -572,13 +573,78 @@ describe('the top card composition', () => {
   });
 
   /** No action row: the pill rides the venue row and the whole card resumes. */
-  it('keeps the Jatka action pressable', async () => {
+  it('keeps the card action pressable', async () => {
     const onResume = jest.fn();
     render(<HomeDashboard summary={base({ resume: played })} onResume={onResume} t={t} />);
 
-    await userEvent.click(screen.getByText(/Continue/));
+    await userEvent.click(screen.getByTestId('hero-primary'));
 
     expect(onResume).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Owner, 2026-11-19: a match that is over is OPENED - "Jatka" promised one
+   * still running. A match under way, or one not yet begun, keeps "Jatka".
+   * @critical
+   */
+  it('says "Open" on a finished match and "Continue" on one still going', () => {
+    const { rerender } = render(<HomeDashboard summary={base({ resume: played })} t={t} />);
+    expect(screen.getByTestId('hero-primary')).toHaveTextContent('Open →');
+
+    rerender(<HomeDashboard summary={base({ resume: { ...played, inProgress: true } })} t={t} />);
+    expect(screen.getByTestId('hero-primary')).toHaveTextContent('Continue →');
+
+    rerender(<HomeDashboard summary={base({ resume: { ...played, isPlayed: false } })} t={t} />);
+    expect(screen.getByTestId('hero-primary')).toHaveTextContent('Continue →');
+
+    rerender(<HomeDashboard summary={base({ resume: { ...played, started: false } })} t={t} />);
+    expect(screen.getByTestId('hero-primary')).toHaveTextContent('Continue →');
+  });
+
+  /** One "vs" pattern in every hero state (owner, 2026-11-19): inline before the name. */
+  it('puts "vs" inline before the opponent on the played card and on the fixture', () => {
+    const { rerender } = render(<HomeDashboard summary={base({ resume: played })} t={t} />);
+    const playedVs = screen.getByText('vs');
+    expect(playedVs.className).not.toMatch(/\bblock\b/);
+    expect(playedVs.parentElement).toHaveTextContent('vsPePo / Musta');
+
+    rerender(<HomeDashboard summary={base({ upcoming: fixture() })} t={t} />);
+    const fixtureVs = screen.getByText('vs');
+    expect(fixtureVs.className).toBe(playedVs.className);
+  });
+
+  /** Amber is the card's one primary button: the "Last opened" label and its dot are neutral. */
+  it('keeps the hero label and dot neutral, not amber', () => {
+    render(<HomeDashboard summary={base({ resume: { ...played, isPlayed: false } })} t={t} />);
+    const label = screen.getByTestId('hero-live-label');
+    expect(label.className).not.toMatch(/text-action/);
+    expect(label.querySelector('.s1-live-dot')).toBeNull();
+    expect(label.querySelector('.s1-live-dot-quiet')).not.toBeNull();
+  });
+
+  /** At 320px the score crowded the venue: below 360px the venue moves under it. */
+  it('moves the venue under the score on narrow screens', () => {
+    render(<HomeDashboard summary={base({ resume: played })} t={t} />);
+    const venue = screen.getByText('Sammonlahden tekonurmi').parentElement as HTMLElement;
+    expect(venue.className).toMatch(/max-\[359px\]:col-span-2/);
+    expect(venue.className).toMatch(/max-\[359px\]:row-start-3/);
+    expect(screen.getByTestId('hero-score').className).toMatch(/max-\[359px\]:row-span-1/);
+  });
+
+  /** "Uusi ottelu" sits directly under the hero, above the list. */
+  it('renders the after-hero slot between the hero and the list', () => {
+    render(
+      <HomeDashboard
+        summary={base({ resume: played, recent: [recent('r1', 'Ilves')] })}
+        afterHero={<button type="button">New Game</button>}
+        t={t}
+      />,
+    );
+    const newGame = screen.getByRole('button', { name: 'New Game' });
+    const hero = screen.getByTestId('hero-primary');
+    const listRow = screen.getByText('Ilves');
+    expect(hero.compareDocumentPosition(newGame) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(newGame.compareDocumentPosition(listRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   /** Owner, 2026-09-20: the card had grown a row for "Pelattu" and overflowed its slot. */

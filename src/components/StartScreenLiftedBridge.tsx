@@ -26,6 +26,8 @@ import { useModalContext } from '@/contexts/ModalProvider';
 import { useAppLayout, useSetAppLayout } from '@/hooks/useAppLayout';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
+import { getMasterRoster } from '@/utils/masterRosterManager';
+import logger from '@/utils/logger';
 
 /** "Milloin seuraava peli?" + the plan screen (basic Home's "Uusi ottelu", R1). */
 const NextGameFlow = lazyModal(() => import('@/components/NextGameFlow'));
@@ -40,6 +42,9 @@ type LiftedHandlerProps =
   | 'onOpenPlanner'
   | 'onViewStats'
   | 'onViewStatsTab'
+  | 'onViewPlayerStats'
+  | 'onOpenCompetition'
+  | 'onAddCompetition'
   | 'onManageRoster'
   | 'onManageTeams'
   | 'onManagePersonnel'
@@ -81,6 +86,8 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
     setIsPersonnelManagerOpen,
     setIsSeasonTournamentModalOpen,
     setCompetitionManagerKind,
+    setCompetitionManagerTarget,
+    setSelectedPlayerForStats,
     setIsTrainingResourcesOpen,
     setIsRulesDirectoryOpen,
     setIsInstructionsModalOpen,
@@ -183,15 +190,46 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
       onOpenPlanner={() => setIsPlaytimePlannerOpen(true)}
       onViewStats={() => openClubStatsToTab('season')}
       onViewStatsTab={(tab) => openClubStatsToTab(tab)}
+      onViewPlayerStats={(playerId) => {
+        // The stats surface deep-links by Player (the roster's per-player
+        // shortcut uses the same pair). A player the roster no longer has, or
+        // a failed read, still lands on the player tab - never on nothing.
+        // accountId is page.tsx's userId (setOnboardingUserId), the key every
+        // other Home read uses.
+        void getMasterRoster(accountId ?? undefined)
+          .then((roster) => roster.find((p) => p.id === playerId) ?? null)
+          .catch((err) => {
+            logger.warn('Failed to read roster for player stats', { error: err });
+            return null;
+          })
+          .then((player) => {
+            setSelectedPlayerForStats(player);
+            openClubStatsToTab('player');
+          });
+      }}
       onManageRoster={() => setIsRosterModalOpen(true)}
       onManageTeams={() => setIsTeamManagerOpen(true)}
       onManagePersonnel={() => setIsPersonnelManagerOpen(true)}
       onManageSeasons={() => {
         setCompetitionManagerKind('season');
+        setCompetitionManagerTarget(null);
         setIsSeasonTournamentModalOpen(true);
       }}
       onManageTournaments={() => {
         setCompetitionManagerKind('tournament');
+        setCompetitionManagerTarget(null);
+        setIsSeasonTournamentModalOpen(true);
+      }}
+      // Kilpailut's cards and add rows: the manager opens straight onto that
+      // sheet, and closing the sheet comes back here.
+      onOpenCompetition={(kind, id) => {
+        setCompetitionManagerKind(kind);
+        setCompetitionManagerTarget({ itemId: id });
+        setIsSeasonTournamentModalOpen(true);
+      }}
+      onAddCompetition={(kind) => {
+        setCompetitionManagerKind(kind);
+        setCompetitionManagerTarget({ create: true });
         setIsSeasonTournamentModalOpen(true);
       }}
       onOpenTraining={() => setIsTrainingResourcesOpen(true)}

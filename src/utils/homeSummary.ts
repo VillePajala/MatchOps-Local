@@ -7,7 +7,8 @@
  * "Season" here always means the CLUB SEASON (Vuosi), derived from today's date
  * and the coach's configured season window - never one of the coach's Kaudet.
  */
-import type { SavedGamesCollection, AppState, Player, PlayerStatAdjustment } from '@/types';
+import type { SavedGamesCollection, AppState, Player, PlayerStatAdjustment, Season, Tournament } from '@/types';
+import type { CompetitionCardItem } from '@/components/CompetitionCard';
 import { adjustmentInScope } from './adjustmentScope';
 import { planDeparture, DEFAULT_ARRIVAL_BUFFER_MINUTES, type TravelPlan, type Coordinates } from './travelPlan';
 import { mapsDirectionsUrl } from '@/config/externalLinks';
@@ -214,7 +215,19 @@ export interface HomeCounts {
 }
 
 export interface HomeTopScorer {
+  /** The roster player's id - Tilastot opens that player's stats. */
+  id?: string;
   name: string;
+  goals: number;
+}
+
+/**
+ * One active league or tournament for the Kilpailut tab: the same facts the
+ * manager's card shows (see CompetitionCard), with its matches and goals.
+ */
+export interface HomeCompetition extends CompetitionCardItem {
+  id: string;
+  games: number;
   goals: number;
 }
 
@@ -252,6 +265,13 @@ export interface HomeSummary {
   countsReady: boolean;
   /** Top scorer of the current club season - null when none / no season config. */
   topScorer: HomeTopScorer | null;
+  /** The season's three best scorers, most goals first (Tilastot's scorer card). */
+  topScorers?: HomeTopScorer[];
+  /**
+   * The active (not archived) leagues and tournaments, newest first - the
+   * Kilpailut tab's cards. Absent until the entity data has loaded.
+   */
+  competitions?: { seasons: HomeCompetition[]; tournaments: HomeCompetition[] };
   /** Every played game in scope (not capped like `recent`) - the basic Home's "Pelatut pelit · N". */
   playedCount?: number;
   /** Every game in scope, played or not - the basic Home's "Kaikki ottelut" row (R5). */
@@ -317,6 +337,9 @@ export interface HomeSummaryOptions {
   personnelCount?: number;
   seasonsCount?: number;
   tournamentsCount?: number;
+  /** Leagues and tournaments, for the Kilpailut tab's cards (archived ones are skipped). */
+  seasons?: Season[];
+  tournaments?: Tournament[];
 }
 
 /**
@@ -373,6 +396,7 @@ export function buildHomeSummary(
   // --- Vuosi (current club season) record + top scorer ---
   let vuosi: HomeVuosi | null = null;
   let topScorer: HomeTopScorer | null = null;
+  let topScorers: HomeTopScorer[] = [];
   if (opts.hasConfiguredSeasonDates) {
     const gamesOfSeason = (seasonLabel: string): AppState[] =>
       filterGameIds(all, {
@@ -436,15 +460,13 @@ export function buildHomeSummary(
         })) continue;
         goalsById.set(adj.playerId, (goalsById.get(adj.playerId) ?? 0) + adj.goalsDelta);
       }
-      let bestId: string | null = null;
-      let bestGoals = 0;
-      for (const [id, n] of goalsById) {
-        if (n > bestGoals) { bestGoals = n; bestId = id; }
-      }
-      if (bestId && bestGoals > 0) {
-        const name = nameById.get(bestId) || '';
-        if (name) topScorer = { name, goals: bestGoals };
-      }
+      // Most goals first; a stable sort keeps ties in first-seen order.
+      topScorers = Array.from(goalsById)
+        .filter(([id, n]) => n > 0 && !!nameById.get(id))
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([id, goals]) => ({ id, name: nameById.get(id) as string, goals }));
+      topScorer = topScorers[0] ?? null;
     }
   }
 
@@ -665,11 +687,59 @@ export function buildHomeSummary(
     counts,
     countsReady,
     topScorer,
+    topScorers,
+    competitions: opts.seasons || opts.tournaments
+      ? {
+          seasons: activeCompetitions(opts.seasons ?? [], all, 'seasonId'),
+          tournaments: activeCompetitions(opts.tournaments ?? [], all, 'tournamentId'),
+        }
+      : undefined,
     playedCount,
     gameCount,
     overdue,
     unfinished,
   };
+}
+
+/**
+ * The not-archived leagues or tournaments as Home cards, ordered as the
+ * manager lists them (newest start date first, undated last, then by name).
+ * Matches and goals are counted the way the manager's card counts them: every
+ * game linked to it, and the goal events recorded in those games.
+ */
+function activeCompetitions(
+  list: Array<Season | Tournament>,
+  games: SavedGamesCollection,
+  key: 'seasonId' | 'tournamentId',
+): HomeCompetition[] {
+  return list
+    .filter((c) => !c.archived)
+    .sort((a, b) => {
+      if (a.startDate && b.startDate) {
+        const byDate = b.startDate.localeCompare(a.startDate);
+        if (byDate !== 0) return byDate;
+      } else if (a.startDate) {
+        return -1;
+      } else if (b.startDate) {
+        return 1;
+      }
+      return a.name.localeCompare(b.name, 'fi', { sensitivity: 'base' });
+    })
+    .map((c) => {
+      const linked = Object.values(games).filter((g) => !!g && (g[key] ?? '') === c.id);
+      return {
+        id: c.id,
+        name: c.name,
+        clubSeason: c.clubSeason,
+        gameType: c.gameType,
+        gender: c.gender,
+        startDate: c.startDate,
+        endDate: c.endDate,
+        series: 'series' in c ? c.series : undefined,
+        games: linked.length,
+        goals: linked.reduce((sum, g) => sum + (g.gameEvents?.filter((e) => e.type === 'goal').length ?? 0), 0),
+      };
+    });
 }
 
 /** The same calendar day a year earlier (29 February clamps to the 28th). */

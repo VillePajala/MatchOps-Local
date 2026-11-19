@@ -16,6 +16,11 @@ jest.mock('@/hooks/useBasicHomeActions', () => ({
   useBasicHomeActions: () => ({ moveGameDate: jest.fn(), deleteGame: jest.fn(), addPlayers: jest.fn() }),
 }));
 
+// The player deep-link reads the roster to hand the stats surface a Player.
+jest.mock('@/utils/masterRosterManager', () => ({
+  getMasterRoster: jest.fn().mockResolvedValue([{ id: 'p1', name: 'Aho' }]),
+}));
+
 jest.mock('@/components/StartScreen', () => ({
   __esModule: true,
   default: (props: Record<string, (...args: unknown[]) => void>) => (
@@ -36,6 +41,10 @@ jest.mock('@/components/StartScreen', () => ({
       <button onClick={() => props.onViewStatsTab?.('player')}>tap-player-stats</button>
       <button onClick={props.onGetStarted}>tap-get-started</button>
       <button onClick={() => props.onOpenAttendance?.('g1', 'start')}>tap-attendance</button>
+      <button onClick={() => props.onOpenCompetition?.('tournament', 't1')}>tap-open-tournament</button>
+      <button onClick={() => props.onAddCompetition?.('season')}>tap-add-season</button>
+      <button onClick={() => props.onViewPlayerStats?.('p1')}>tap-player-p1</button>
+      <button onClick={() => props.onViewPlayerStats?.('gone')}>tap-player-gone</button>
     </div>
   ),
 }));
@@ -51,6 +60,9 @@ function Probe() {
     ctx.isTeamManagerOpen && 'teams',
     ctx.isPersonnelManagerOpen && 'personnel',
     ctx.isSeasonTournamentModalOpen && 'seasons',
+    ctx.isSeasonTournamentModalOpen && `kind(${ctx.competitionManagerKind})`,
+    ctx.competitionManagerTarget && `target(${JSON.stringify(ctx.competitionManagerTarget)})`,
+    ctx.selectedPlayerForStats && `player(${ctx.selectedPlayerForStats.id})`,
     ctx.isTrainingResourcesOpen && 'training',
     ctx.isRulesDirectoryOpen && 'rules',
     ctx.isSettingsModalOpen && `settings(${ctx.settingsInitialTab ?? 'default'})`,
@@ -72,6 +84,7 @@ function Closer() {
       <button onClick={() => ctx.setIsSettingsModalOpen(false)}>close-settings</button>
       <button onClick={() => ctx.setIsClubStatsOpen(true)}>open-club-stats</button>
       <button onClick={() => ctx.setIsClubStatsOpen(false)}>close-club-stats</button>
+      <button onClick={() => ctx.setIsSeasonTournamentModalOpen(false)}>close-seasons</button>
     </>
   );
 }
@@ -129,6 +142,39 @@ describe('StartScreenLiftedBridge (L.2)', () => {
     fireEvent.click(screen.getByText('tap-get-started'));
     expect(onGetStarted).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('probe')).toHaveTextContent('none');
+  });
+
+  /**
+   * Home's Kilpailut cards and add rows open the manager straight onto that
+   * sheet; closing the manager drops the target so the next open is the list.
+   */
+  it('a competition card opens the manager on that item; the target clears on close', () => {
+    renderBridgeWithCloser();
+    fireEvent.click(screen.getByText('tap-open-tournament'));
+    expect(screen.getByTestId('probe')).toHaveTextContent('seasons,kind(tournament),target({"itemId":"t1"})');
+    fireEvent.click(screen.getByText('close-seasons'));
+    expect(screen.getByTestId('probe')).toHaveTextContent('none');
+    fireEvent.click(screen.getByText('tap-seasons'));
+    expect(screen.getByTestId('probe')).toHaveTextContent(/^seasons,kind\(season\)$/);
+  });
+
+  it('an add row opens the manager onto adding one', () => {
+    renderBridge();
+    fireEvent.click(screen.getByText('tap-add-season'));
+    expect(screen.getByTestId('probe')).toHaveTextContent('seasons,kind(season),target({"create":true})');
+  });
+
+  /** Tilastot's scorer tile and list open that player's stats. */
+  it('a player deep-link opens club stats on the player tab with that player', async () => {
+    renderBridge();
+    fireEvent.click(screen.getByText('tap-player-p1'));
+    expect(await screen.findByText(/player\(p1\)/)).toHaveTextContent('clubStats(player),player(p1)');
+  });
+
+  it('a player the roster no longer has still lands on the player tab', async () => {
+    renderBridge();
+    fireEvent.click(screen.getByText('tap-player-gone'));
+    expect(await screen.findByText('clubStats(player)')).toBeInTheDocument();
   });
 
   /** Onboarding v3: the next-game card's "Aloita ottelu" opens the attendance sheet in start mode. */
