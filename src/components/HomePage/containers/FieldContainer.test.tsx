@@ -1,11 +1,15 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 // The assessment setting is on here: these tests assert the handlers are wired.
 jest.mock('@/hooks/useAssessmentsEnabled', () => ({ useAssessmentsEnabled: () => true }));
 // The account's layout (Onboarding v3); 'full' unless a test says otherwise.
 let mockAppLayout: 'basic' | 'full' | undefined = 'full';
 jest.mock('@/hooks/useAppLayout', () => ({ useAppLayout: () => mockAppLayout }));
+// Planned-sub markers for the plan-view toggle; none unless a test sets them.
+let mockPlannedGhosts: unknown[] = [];
+jest.mock('@/hooks/usePlannedGhosts', () => ({ usePlannedGhosts: () => mockPlannedGhosts }));
+jest.mock('@/hooks/usePlannedChains', () => ({ usePlannedChains: () => [] }));
 import type { ReactNode } from 'react';
-import { FieldContainer } from './FieldContainer';
+import { FieldContainer, FIELD_TOOL_PILL_VISIBLE_MS, FIELD_TOOL_PILL_FADE_MS } from './FieldContainer';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { TestFixtures } from '../../../../tests/fixtures';
@@ -221,6 +225,7 @@ const baseProps = () => ({
 describe('FieldContainer', () => {
   afterEach(() => {
     mockAppLayout = 'full';
+    mockPlannedGhosts = [];
   });
 
   /** Onboarding v3 (D13): the basic layout has no "Nollaa vaihtoajastin". */
@@ -406,6 +411,97 @@ describe('FieldContainer', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /view rules/i }));
       expect(onOpenRulesModal).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /**
+   * The plan-view name pill is a brief confirmation of a tap, not a standing
+   * label on the grass: shown when the tool switches on, gone after a moment.
+   * @edge-case
+   */
+  describe('Plan view name pill', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      mockPlannedGhosts = [{ id: 'ghost-1' }];
+    });
+    afterEach(() => {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    });
+
+    const toggle = () => screen.getByTestId('toggle-planned-ghosts');
+    const tap = () =>
+      act(() => {
+        fireEvent.click(toggle());
+      });
+
+    it('shows no pill on first render; the button carries the state', () => {
+      render(<FieldContainer {...baseProps()} />);
+      expect(screen.queryByTestId('field-tool-pill')).not.toBeInTheDocument();
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      expect(toggle()).toHaveAccessibleName('Planned substitutions');
+    });
+
+    it('switching off shows nothing; switching on shows the name, then fades it out', () => {
+      render(<FieldContainer {...baseProps()} />);
+
+      tap(); // ghosts -> lineup (no chains in this game)
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+      expect(toggle()).toHaveAccessibleName('Lineup only');
+      expect(screen.queryByTestId('field-tool-pill')).not.toBeInTheDocument();
+
+      tap(); // lineup -> ghosts
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      expect(toggle()).toHaveAccessibleName('Planned substitutions');
+      expect(screen.getByTestId('field-tool-pill')).toHaveTextContent('Planned substitutions');
+
+      act(() => {
+        jest.advanceTimersByTime(FIELD_TOOL_PILL_VISIBLE_MS);
+      });
+      expect(screen.getByTestId('field-tool-pill').firstChild).toHaveClass('opacity-0');
+
+      act(() => {
+        jest.advanceTimersByTime(FIELD_TOOL_PILL_FADE_MS);
+      });
+      expect(screen.queryByTestId('field-tool-pill')).not.toBeInTheDocument();
+      // State persists on the button after the pill is gone.
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      expect(toggle()).toHaveAccessibleName('Planned substitutions');
+    });
+
+    it('toggling off mid-display hides the pill at once and leaves no timer running', () => {
+      render(<FieldContainer {...baseProps()} />);
+      tap(); // -> lineup
+      tap(); // -> ghosts (pill up)
+      expect(screen.getByTestId('field-tool-pill')).toBeInTheDocument();
+
+      tap(); // -> lineup
+      expect(screen.queryByTestId('field-tool-pill')).not.toBeInTheDocument();
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('re-toggling on restarts the display time', () => {
+      render(<FieldContainer {...baseProps()} />);
+      tap(); // -> lineup
+      tap(); // -> ghosts
+      act(() => {
+        jest.advanceTimersByTime(FIELD_TOOL_PILL_VISIBLE_MS - 100);
+      });
+      tap(); // -> lineup
+      tap(); // -> ghosts again: a fresh full display
+      act(() => {
+        jest.advanceTimersByTime(FIELD_TOOL_PILL_VISIBLE_MS - 100);
+      });
+      expect(screen.getByTestId('field-tool-pill').firstChild).toHaveClass('opacity-100');
+    });
+
+    it('clears its timers on unmount', () => {
+      const { unmount } = render(<FieldContainer {...baseProps()} />);
+      tap();
+      tap();
+      expect(jest.getTimerCount()).toBeGreaterThan(0);
+      unmount();
+      expect(jest.getTimerCount()).toBe(0);
     });
   });
 });

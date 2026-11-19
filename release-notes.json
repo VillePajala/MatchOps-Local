@@ -4,6 +4,15 @@
     {
       "date": "2026-11-19",
       "en": [
+        "Match view: the \"Suunnitellut vaihdot\" label now shows briefly when you switch it on and then fades, so it no longer covers the pitch."
+      ],
+      "fi": [
+        "Ottelunäkymä: \"Suunnitellut vaihdot\" -teksti näkyy hetken, kun kytket sen päälle, ja häviää sitten, joten se ei enää peitä kenttää."
+      ]
+    },
+    {
+      "date": "2026-11-19",
+      "en": [
         "The home screen always opens on the full view with your next match and recent games; the compact view was removed.",
         "The season record next to the game list no longer runs off the screen."
       ],

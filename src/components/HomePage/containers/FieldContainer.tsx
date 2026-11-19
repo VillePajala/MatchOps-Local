@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
@@ -51,6 +51,10 @@ const EMPTY_PLAYERS: Player[] = [];
 const EMPTY_OPPONENTS: AppState['opponents'] = [];
 const EMPTY_SUB_SLOTS: SubSlot[] = [];
 const EMPTY_SNAP_POINTS: Point[] = [];
+/** How long a field tool's name pill stays up after the tool is switched on. */
+export const FIELD_TOOL_PILL_VISIBLE_MS = 1500;
+/** Its fade-out; matches the pill's `duration-300` class. */
+export const FIELD_TOOL_PILL_FADE_MS = 300;
 
 /**
  * Player drag/drop handlers for moving roster members on the field.
@@ -316,15 +320,38 @@ export function FieldContainer({
     fcPlayersOnField,
   );
   const hasChainView = plannedChains.length > 0;
+  /**
+   * The name pill under the tools is a brief confirmation, not a standing
+   * label: it appears when a tap switches the plan view ON (ghosts or chains),
+   * then fades out so it does not sit on the grass and the players. The
+   * filled button carries the state afterwards; the button's aria-label and
+   * aria-pressed carry it for screen readers. Switching to lineup (off) shows
+   * nothing. Nothing shows on first render either - only a tap earns a pill.
+   */
+  const [planPill, setPlanPill] = useState<'hidden' | 'shown' | 'fading'>('hidden');
+  const planPillTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const clearPlanPillTimers = useCallback(() => {
+    planPillTimers.current.forEach(clearTimeout);
+    planPillTimers.current = [];
+  }, []);
+  useEffect(() => clearPlanPillTimers, [clearPlanPillTimers]);
   const cyclePlanView = useCallback(() => {
-    setPlanView((prev) => {
-      if (prev === 'lineup') return 'ghosts';
-      // Skip a chain view there is nothing to show in, rather than offering a
-      // blank field as one of the three steps.
-      if (prev === 'ghosts') return hasChainView ? 'chains' : 'lineup';
-      return 'lineup';
-    });
-  }, [hasChainView]);
+    // Skip a chain view there is nothing to show in, rather than offering a
+    // blank field as one of the three steps.
+    const next =
+      planView === 'lineup' ? 'ghosts' : planView === 'ghosts' ? (hasChainView ? 'chains' : 'lineup') : 'lineup';
+    setPlanView(next);
+    clearPlanPillTimers();
+    if (next === 'lineup') {
+      setPlanPill('hidden');
+      return;
+    }
+    setPlanPill('shown');
+    planPillTimers.current = [
+      setTimeout(() => setPlanPill('fading'), FIELD_TOOL_PILL_VISIBLE_MS),
+      setTimeout(() => setPlanPill('hidden'), FIELD_TOOL_PILL_VISIBLE_MS + FIELD_TOOL_PILL_FADE_MS),
+    ];
+  }, [planView, hasChainView, clearPlanPillTimers]);
   const showingChains = planView === 'chains' && hasChainView;
   // A cycling control has to say what it just became, or the second tap is a
   // guess. The label doubles as the button's accessible name.
@@ -555,6 +582,7 @@ export function FieldContainer({
             className={planView === 'lineup' ? matchFieldToolStyle : matchFieldToolOnStyle}
             title={planViewLabel}
             aria-label={planViewLabel}
+            aria-pressed={planView !== 'lineup'}
           >
             {showingChains ? (
               <HiOutlineListBullet className="w-5 h-5" />
@@ -567,11 +595,19 @@ export function FieldContainer({
         )}
       </div>
 
-      {/* Which step of the plan cycle is showing. A three-way control needs to
-          name its state - the icon alone only tells the person who built it. */}
-      {(plannedGhosts.length > 0 || hasChainView) && planView !== 'lineup' && (
-        <div className="absolute top-[60px] right-[14px] z-20 pointer-events-none">
-          <span className="inline-flex items-center px-3 py-[7px] rounded-full bg-[rgb(15_23_42/0.86)] font-ui text-[13px] font-semibold text-white shadow-[0_10px_18px_-10px_rgb(2_6_23/0.8)]">
+      {/* Which step of the plan cycle a tap just switched to. A three-way
+          control needs to name its state - the icon alone only tells the
+          person who built it - but only for a moment: see planPill. Hidden
+          from screen readers, which get the same name from the button. */}
+      {(plannedGhosts.length > 0 || hasChainView) && planView !== 'lineup' && planPill !== 'hidden' && (
+        <div
+          className="absolute top-[60px] right-[14px] z-20 pointer-events-none"
+          data-testid="field-tool-pill"
+          aria-hidden="true"
+        >
+          <span
+            className={`inline-flex items-center px-3 py-[7px] rounded-full bg-[rgb(15_23_42/0.86)] font-ui text-[13px] font-semibold text-white shadow-[0_10px_18px_-10px_rgb(2_6_23/0.8)] transition-opacity duration-300 motion-reduce:transition-none ${planPill === 'fading' ? 'opacity-0' : 'opacity-100'}`}
+          >
             {planViewLabel}
           </span>
         </div>
