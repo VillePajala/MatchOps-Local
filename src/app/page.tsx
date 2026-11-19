@@ -2,10 +2,8 @@
 
 import { useDeviceHasSignedIn } from '@/utils/deviceSignInMemory';
 import ModalProvider from '@/contexts/ModalProvider';
-import GuidedTourController from '@/components/GuidedTour/GuidedTourController';
 import SetupWizard, { isSetupWizardDone } from '@/components/SetupWizard';
 import { setFirstGameExists, setHomeShowing, setOnboardingUserId } from '@/components/setupWizardActive';
-import GuidedTourRosterReporter from '@/components/GuidedTour/GuidedTourRosterReporter';
 import HomePage from '@/components/HomePage';
 import StartScreenLiftedBridge from '@/components/StartScreenLiftedBridge';
 import LoginScreen from '@/components/LoginScreen';
@@ -49,6 +47,7 @@ import { getDataStore } from '@/datastore';
 import type { TranslationKey } from '@/i18n-types';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
+import { beginNewAccountOnboarding, recordGameFinished } from '@/utils/onboardingMilestones';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
 import { getSavedGames, getLatestGameId, saveGame as utilSaveGame } from '@/utils/savedGames';
@@ -172,6 +171,15 @@ export default function Home() {
   const [homeView, setHomeView] = useState<'simple' | 'dashboard'>('dashboard');
   const [lastGameType, setLastGameType] = useState<GameType | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  /**
+   * Which (account, refresh) the Home flags were last read for. A cloud pull
+   * on a new device bumps refreshTrigger and ends the loading screen in the
+   * same render, while hasPlayers / hasSavedGames still hold the EMPTY local
+   * read from before the pull - one frame in which an existing account looks
+   * brand new. The setup wizard (which marks the account basic) must not open
+   * on that frame, so it waits until the flags are from the latest read.
+   */
+  const [stateCheckedFor, setStateCheckedFor] = useState<string | null>(null);
   const [isCheckingState, setIsCheckingState] = useState(true);
   const [showMigrationWizard, setShowMigrationWizard] = useState(false);
   // Welcome screen state (first-install onboarding)
@@ -491,6 +499,12 @@ export default function Home() {
       // game - counting it enabled stats rows and flipped first-time mode
       // on a phantom.
       setHasSavedGames(Object.keys(games).filter(id => id !== 'unsaved_game').length > 0);
+      // Milestones (D17): first and second game at full time. A no-op for
+      // accounts that predate milestone tracking (see recordGameFinished).
+      void recordGameFinished(
+        userId,
+        Object.entries(games).filter(([id, g]) => id !== 'unsaved_game' && g?.gameStatus === 'gameEnd').length,
+      );
 
       // Home view preference + dashboard summary (opt-in dashboard).
       // The Pelit-tab summary (resume/vuosi/recent) derives from settings + the
@@ -501,6 +515,10 @@ export default function Home() {
       const today = todayIso();
       try {
         homeSettings = await getAppSettings(userId);
+        // Seed the shared settings query with what was just read, so Home's
+        // layout (useAppLayout) is known on its first frame - no flash of the
+        // other layout while the query would fetch the same row again.
+        queryClient.setQueryData([...queryKeys.settings.detail(), userId], homeSettings);
         // Dashboard is the default; only an explicit 'simple' preference opts out.
         setHomeView(homeSettings.homeView === 'simple' ? 'simple' : 'dashboard');
         const firstArgs: Parameters<typeof buildHomeSummary> = [games, {
@@ -595,17 +613,15 @@ export default function Home() {
     } finally {
       setIsCheckingState(false);
     }
-  }, [userId, setAction, applyTeamScope, publishHomeSummaries]);
+  }, [userId, setAction, applyTeamScope, publishHomeSummaries, queryClient]);
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
 
-  // Targeted refresh of the recommended-setup / guided-tour signals after a setup
-  // modal closes. Reads directly and sets state WITHOUT the full checkAppState
-  // round-trip (no loading-screen flash). NOT gated on isFirstTimeUser: the guided
-  // tour keeps advancing past the point where the account stops being empty (add
-  // players -> the account is no longer "first-time", but the tour still needs
-  // hasTeam / hasTeamLinkedGame to refresh so its later steps auto-advance), and
-  // the Start Screen recommended-setup card wants fresh signals too.
+  // Targeted refresh of the recommended-setup signals after a setup modal
+  // closes. Reads directly and sets state WITHOUT the full checkAppState
+  // round-trip (no loading-screen flash). NOT gated on isFirstTimeUser: the
+  // Start Screen wants fresh signals (hasTeam / hasTeamLinkedGame) even after
+  // the account stops being empty.
 
   const refreshSetupSignals = useCallback(async () => {
     try {
@@ -985,7 +1001,8 @@ export default function Home() {
       checkAppStateTriggeredRef.current = true;
     }
 
-    void checkAppState({ inBackground });
+    const checkKey = `${userId ?? 'local'}:${refreshTrigger}`;
+    void checkAppState({ inBackground }).finally(() => setStateCheckedFor(checkKey));
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId, tabMayBoot]);
 
   // Deep-review fix (stale Home): all Home flags (canResume, hasPlayers,
@@ -1898,12 +1915,45 @@ export default function Home() {
   // use, and only for a truly empty account (no roster, no games, no team).
   // Finishing or skipping sets the durable per-user flag; the session state
   // hides it immediately without waiting for the signal refresh.
-  const showSetupWizard =
+  const setupWizardScreenGates =
     !isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
     !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard &&
-    screen === 'start' && mode === 'cloud' &&
+    screen === 'start' && mode === 'cloud';
+  const setupWizardKey = userId ?? 'local';
+  const setupWizardEligible =
+    setupWizardScreenGates &&
+    stateCheckedFor === `${userId ?? 'local'}:${refreshTrigger}` &&
     isFirstTimeUser && !hasTeam &&
-    setupWizardDismissedFor !== (userId ?? 'local') && !isSetupWizardDone(userId);
+    setupWizardDismissedFor !== setupWizardKey && !isSetupWizardDone(userId);
+  // Onboarding v3: once open, the wizard stays until IT says it is done. Its
+  // later steps (next game, plan) run after "Valmis" created the team and
+  // players, which ends "first-time user" the moment any signal refresh runs;
+  // without this latch a refresh would swap the plan screen for Home mid-flow.
+  // Set during render (previous-value pattern) so no frame shows Home.
+  const [setupWizardOpenFor, setSetupWizardOpenFor] = useState<string | null>(null);
+  if (setupWizardEligible && setupWizardOpenFor !== setupWizardKey) {
+    setSetupWizardOpenFor(setupWizardKey);
+  }
+  const showSetupWizard =
+    setupWizardScreenGates &&
+    (setupWizardEligible || setupWizardOpenFor === setupWizardKey) &&
+    setupWizardDismissedFor !== setupWizardKey;
+
+  // Onboarding v3: an account that reaches the wizard is NEW (the wizard only
+  // opens after the empty-account check succeeded), so it gets the basic
+  // layout and its sign-up time is recorded - once, when the wizard opens, so
+  // a coach who closes the app mid-wizard is still a basic-layout account.
+  // Existing accounts never get here and keep the full layout (OD4, D14).
+  const onboardingBegunForRef = useRef<string | null>(null);
+  const userCreatedAt = user?.createdAt;
+  useEffect(() => {
+    if (setupWizardOpenFor !== setupWizardKey) return;
+    if (onboardingBegunForRef.current === setupWizardKey) return;
+    onboardingBegunForRef.current = setupWizardKey;
+    void beginNewAccountOnboarding(userId, userCreatedAt ? new Date(userCreatedAt) : undefined).then(() =>
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.settings.detail(), userId] }),
+    );
+  }, [setupWizardOpenFor, setupWizardKey, userId, userCreatedAt, queryClient]);
 
   // Publish the first-game signal for the marketing-consent prompt's re-gate
   // (PR 22): the prompt waits until the coach has actually arrived.
@@ -1920,8 +1970,8 @@ export default function Home() {
     setHomeShowing(homeOnScreen);
   }, [homeOnScreen]);
 
-  // Publish the SETTLED user id for the first-visit banners: undefined while
-  // auth is resolving (banners stay hidden - no 'local'-key misfiling).
+  // Publish the SETTLED user id for the per-user wizard hints: undefined while
+  // auth is resolving (no 'local'-key misfiling).
   useEffect(() => {
     setOnboardingUserId(isAuthLoading ? undefined : (userId ?? null));
   }, [isAuthLoading, userId]);
@@ -1938,18 +1988,6 @@ export default function Home() {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider currentUserId={userId}>
-        {/* Guided-tour signal feed (headless). Onboarding v2: the tour no longer
-            auto-starts - first-run onboarding is the SetupWizard below, and the
-            tour is opt-in via gear -> "Aloitusopastus". This feed keeps the
-            opt-in tour's steps auto-advancing on real progress. */}
-        <GuidedTourController
-          hasPlayers={hasPlayers}
-          hasTeam={hasTeam}
-          hasTeamLinkedGame={hasTeamLinkedGame}
-          screen={screen}
-        />
-        {/* Live roster-size feed for the tour's add-players progress/goal. */}
-        <GuidedTourRosterReporter />
         {/* Club/app-scope modals render at PAGE level (two-level restructure
             L-waves): opening them from Home never mounts the match view.
             Gated behind the SAME readiness checks as the app screens below:

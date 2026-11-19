@@ -37,12 +37,40 @@ beforeEach(() => {
 });
 
 describe('usePlannedSubPrompts', () => {
-  it('shows nothing before the clock reaches a planned sub time', async () => {
+  it('before the clock reaches a planned sub time, shows that group as not yet due', async () => {
     mockGetGameSubs.mockResolvedValue([sub()]);
     const { result } = renderHook(() => usePlannedSubPrompts('g1', 0, players));
-    // Give the load effect a tick to resolve, then assert still null (720 > 0).
+    // Give the load effect a tick to resolve, then assert nothing is due (720 > 0).
     await act(async () => {});
-    expect(result.current).toEqual({ current: null, overdueEarlier: 0 });
+    expect(result.current).toEqual({
+      current: { timeSeconds: 720, inNames: ['Niko'], outNames: ['Sam'], due: false },
+      overdueEarlier: 0,
+    });
+  });
+
+  /**
+   * D3c: the next planned change is always visible - the upcoming group ahead
+   * of the clock moves on as each group falls due, and is null after the last.
+   * @critical
+   */
+  it('the shown group is quiet until due, then due until the next group falls due', async () => {
+    mockGetGameSubs.mockResolvedValue([
+      sub({ id: 'a', timeSeconds: 600, inPlayerId: 'in1' }),
+      sub({ id: 'b', timeSeconds: 1200, inPlayerId: 'in2' }),
+    ]);
+    const { result, rerender } = renderHook(
+      ({ t }) => usePlannedSubPrompts('g1', t, players),
+      { initialProps: { t: 0 } },
+    );
+    await waitFor(() => expect(result.current.current?.timeSeconds).toBe(600));
+    expect(result.current.current?.due).toBe(false);
+    rerender({ t: 600 });
+    expect(result.current.current).toMatchObject({ timeSeconds: 600, due: true });
+    rerender({ t: 1199 });
+    expect(result.current.current).toMatchObject({ timeSeconds: 600, due: true });
+    rerender({ t: 1200 });
+    expect(result.current.current).toMatchObject({ timeSeconds: 1200, due: true });
+    expect(result.current.overdueEarlier).toBe(1);
   });
 
   it('surfaces the due group with resolved player names once the clock passes it', async () => {
@@ -54,7 +82,7 @@ describe('usePlannedSubPrompts', () => {
     await act(async () => {});
     rerender({ t: 720 });
     await waitFor(() => expect(result.current.current).not.toBeNull());
-    expect(result.current.current).toEqual({ timeSeconds: 720, inNames: ['Niko'], outNames: ['Sam'] });
+    expect(result.current.current).toEqual({ timeSeconds: 720, inNames: ['Niko'], outNames: ['Sam'], due: true });
   });
 
   it('re-reads the schedule when refreshKey changes (re-apply plan)', async () => {
@@ -104,7 +132,7 @@ describe('usePlannedSubPrompts', () => {
     );
     const { result } = renderHook(() => usePlannedSubPrompts('g1', 1500, players));
     await waitFor(() => expect(result.current.current).not.toBeNull());
-    expect(result.current.current).toEqual({ timeSeconds: 1500, inNames: ['Niko', 'Alex', 'Aapo'], outNames: ['Sam'] });
+    expect(result.current.current).toEqual({ timeSeconds: 1500, inNames: ['Niko', 'Alex', 'Aapo'], outNames: ['Sam'], due: true });
     expect(result.current.overdueEarlier).toBe(0);
   });
 
@@ -145,7 +173,7 @@ describe('usePlannedSubPrompts', () => {
     ]);
     const { result } = renderHook(() => usePlannedSubPrompts('g1', 720, players));
     await waitFor(() => expect(result.current.current).not.toBeNull());
-    expect(result.current.current).toEqual({ timeSeconds: 600, inNames: ['Alex'], outNames: [] });
+    expect(result.current.current).toEqual({ timeSeconds: 600, inNames: ['Alex'], outNames: [], due: true });
   });
 
   it('loads nothing and shows nothing when there is no game', async () => {

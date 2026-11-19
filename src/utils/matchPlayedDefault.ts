@@ -33,6 +33,23 @@ export function defaultIsPlayed(gameDate: string, today: string): boolean {
 export default defaultIsPlayed;
 
 /**
+ * The New Game form's "Ei vielä pelattu" switch: OFF by default (owner,
+ * Onboarding v3, 2026-11-19).
+ *
+ * A coach creating a game in this form is almost always about to play it - the
+ * form opens the match - so the switch starts off for today and for the past.
+ * A FUTURE date still defaults to not played: that is the case
+ * {@link defaultIsPlayed} exists for, where a fixture booked in advance would
+ * otherwise sit in the season record as a 0-0 draw until match day.
+ *
+ * Only this form uses it; reading old games (`is_played ?? true`) and every other
+ * caller of {@link defaultIsPlayed} are unchanged.
+ */
+export function newGameIsPlayedDefault(gameDate: string, today: string): boolean {
+  return gameDate <= today;
+}
+
+/**
  * Evidence that a match actually took place, read off the match itself.
  *
  * WHY THIS EXISTS RATHER THAN A CHECKBOX. "Played" started as a flag defaulting

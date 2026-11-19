@@ -96,7 +96,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                 <li>{t('appGuide.homeTeamTab', 'Club: your players, teams, staff, the warmup plan, the rules for your age group and coaching materials.')}</li>
                 <li>{t('appGuide.homeCompetitionsTab', 'Competitions: set up leagues and tournaments to group your games.')}</li>
                 <li>{t('appGuide.homeStatsTab', 'Stats: league, tournament, overall and player statistics (available once you\'ve played a game).')}</li>
-                <li>{t('appGuide.homeGear', 'The gear icon (top-left): the home view toggle (summary or simplified), settings, backups, your account, the setup checklist, the getting-started guide and this one.')}</li>
+                <li>{t('appGuide.homeGear', 'The gear icon (top-left): the home view toggle (summary or simplified), settings, backups, your account, the setup checklist and this guide.')}</li>
                 {/* The one behaviour in the app that changes what a coach
                     typed. Unexplained it looks like a bug, so it is explained
                     here rather than left to be discovered. */}
@@ -106,44 +106,53 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             </div>
           </GuideSection>
 
-          {/* === MATCH MODE: the field === */}
-          <GuideSection title={t('firstGameGuide.playerSelection', 'Player Selection (Top Bar)')}>
+          {/* === PLAN === */}
+          <GuideSection title={t('firstGameGuide.planTitle', 'Plan the game')}>
             <div>
               <ul className={list}>
-                <li>{t('firstGameGuide.tapToSelect', 'Tap player disc to select')}</li>
-                <li>{t('firstGameGuide.tapFieldPlace', 'Tap field to place player')}</li>
-                <li>{t('firstGameGuide.dragToAdjust', 'Drag players to reposition them')}</li>
-                <li>{t('firstGameGuide.doubleTapRemove', 'Double-tap to remove a player from the field')}</li>
-                <li>{t('firstGameGuide.goalieInstructions', 'Set goalies by tapping a player disc in the top bar')}</li>
+                <li>{t('firstGameGuide.planPlanner', 'Peluutus (the planner) makes a plan for who plays when, from your squad. Open it from the next-game card on Home. Tap two players to swap them.')}</li>
+                <li>{t('firstGameGuide.planAttendance', 'Who is here? Before kick-off, tap the players who are absent - the plan is re-made without them.')}</li>
               </ul>
             </div>
           </GuideSection>
 
-          <GuideSection title={t('firstGameGuide.controlBar', 'Control Bar (Bottom)')}>
+          {/* === MATCH MODE: the field === */}
+          <GuideSection title={t('firstGameGuide.fieldTitle', 'The match view')}>
             <div>
               <ul className={list}>
+                <li>{t('firstGameGuide.fieldLayout', 'The score row and the player bar are above the pitch, the control bar below it.')}</li>
+                <li>{t('firstGameGuide.fieldPlace', 'Place a player: tap them in the player bar, then tap the pitch. Bench players show as outlined discs.')}</li>
+                <li>{t('firstGameGuide.doubleTapRemove', 'Double-tap a player on the pitch to remove them')}</li>
+                <li>{t('firstGameGuide.goalieInstructions', 'Set goalies by tapping a player disc in the player bar')}</li>
                 <li>
-                  <span className="text-ink">{t('firstGameGuide.tacticsButtonTip', 'Click Tactics Board to access drawing tools:')}</span>
-                  <HiOutlineClipboard aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
-                </li>
-                <li>
-                  <span className="text-ink">{t('firstGameGuide.placeAllTip', 'Place all players at once:')}</span>
+                  <span className="text-ink">{t('firstGameGuide.fieldButtons', 'The control bar has five buttons: field tools, tactics board, the clock in the middle, reset field and the menu.')}</span>
                   <HiOutlineSquares2X2 aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
+                  <HiOutlineClipboard aria-hidden className="inline-block align-[-2px] ml-1 text-ink-2" size={18} />
+                  <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-1 text-ink-2" size={18} />
+                  <HiBars3 aria-hidden className="inline-block align-[-2px] ml-1 text-ink-2" size={18} />
                 </li>
-                <li>
-                  <span className="text-ink">{t('firstGameGuide.timerTip', 'Click timer to show/hide large overlay')}</span>
-                </li>
-                <li>
-                  <span className="text-ink">{t('firstGameGuide.dictationTip', 'Hold the microphone button on the timer overlay to dictate a voice note - it stays on your phone.')}</span>
-                </li>
-                <li>
-                  <span className="text-ink">{t('firstGameGuide.resetFieldTip', 'Reset field:')}</span>
-                  <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
-                </li>
-                <li>
-                  <span className="text-ink">{t('firstGameGuide.menuTip', 'Open menu for more options:')}</span>
-                  <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-ink-2" size={18} />
-                </li>
+              </ul>
+            </div>
+          </GuideSection>
+
+          <GuideSection title={t('firstGameGuide.clockTitle', 'Clock and goals')}>
+            <div>
+              <ul className={list}>
+                <li>{t('firstGameGuide.clockNext', 'Tap the clock to open the large clock. The next planned change is shown there as a block.')}</li>
+                <li>{t('firstGameGuide.clockGoal', 'Our goal: tap "Goal for us". The goal is logged and the score moves at once. Then pick the scorer from "Who scored?" (all squad players) or tap "Skip".')}</li>
+                <li>{t('firstGameGuide.clockOpponent', 'Opponent goal: tap "Opponent +1".')}</li>
+                <li>{t('firstGameGuide.clockReset', 'In the full layout, "Reset sub timer" restarts the change timer.')}</li>
+                <li>{t('firstGameGuide.dictationTip', 'Hold the microphone button on the large clock to dictate a voice note - it stays on your phone.')}</li>
+              </ul>
+            </div>
+          </GuideSection>
+
+          <GuideSection title={t('firstGameGuide.finishTitle', 'Finishing the match')}>
+            <div>
+              <ul className={list}>
+                <li>{t('firstGameGuide.finishStart', 'At full time tap "Finish this game".')}</li>
+                <li>{t('firstGameGuide.finishSheet', 'Match sheet: a copy-ready text of the match data that you can paste into Taso or any other system.')}</li>
+                <li>{t('firstGameGuide.finishReport', 'Match report: your own text - write it, dictate it or make an AI draft. "Share match report" sends it on.')}</li>
               </ul>
             </div>
           </GuideSection>

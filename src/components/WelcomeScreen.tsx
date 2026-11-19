@@ -5,7 +5,7 @@
  *
  * First-install welcome screen with 2 primary paths + footer link:
  * - Start without an account (local mode) - data stays on device
- * - Use Cloud Sync - enables cloud mode, shows login screen after reload
+ * - Create a free account (cloud) - enables cloud mode, shows the sign-up after reload
  * - Have a backup file? (footer link) - restore from exported file
  *
  * Only shown once on first launch. After user makes a choice,
@@ -129,16 +129,14 @@ export default function WelcomeScreen({
               <button
                 onClick={onUseCloudSync}
                 className={`${cardStyle} block w-full min-h-14 text-left transition-colors hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-action`}
-                aria-label={t('welcome.useCloudSyncAria', 'Use cloud sync, access from any device')}
+                aria-label={t('welcome.useCloudSyncAria', 'Create a free account')}
               >
-                <div className="text-ink font-semibold text-lg">
-                  {t('welcome.useCloudSync', 'Use Cloud Sync')}
-                </div>
-                <div className="text-win text-xs font-semibold uppercase tracking-wide mb-1">
-                  {t('welcome.badgeFree', 'FREE')}
+                {/* "Free" is in the title itself (D9), so no FREE badge here. */}
+                <div className="text-ink font-semibold text-lg mb-1">
+                  {t('welcome.useCloudSync', 'Create a free account')}
                 </div>
                 <div className="text-ink-3 text-sm">
-                  {t('welcome.useCloudSyncDesc', 'Sync your data across all your devices.')}
+                  {t('welcome.useCloudSyncDesc', 'With an account your data stays safe, even if you change phones.')}
                 </div>
               </button>
             )}

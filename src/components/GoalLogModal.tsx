@@ -13,7 +13,6 @@ import { TFunction } from 'i18next';
 
 import ConfirmationModal from './ConfirmationModal';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
-import FirstVisitIntro from '@/components/FirstVisitIntro';
 import {
   Z_LAYER,
   inputBaseStyle,
@@ -434,11 +433,6 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
 
         {/* Scrollable Content - Split View Layout */}
         <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-5 pb-8">
-          <FirstVisitIntro
-            surface="goal-log"
-            className="mb-4"
-            text={t('firstVisit.goalLog', 'Pick the scorer - and an assister if there was one - then tap Log Goal.')}
-          />
           <div className="flex flex-col md:flex-row gap-6">
             {/* Left: Goal Logging Form (40% on desktop) */}
             <div className="md:w-2/5">

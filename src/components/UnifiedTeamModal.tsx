@@ -24,7 +24,6 @@ import logger from '@/utils/logger';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
-import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import { teamMemberIds, sortPlayersByLastName } from '@/utils/gamePlayerList';
@@ -562,12 +561,6 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
               <div className={`space-y-5 ${isEditingRoster ? 'flex flex-col h-full' : ''}`}>
                 {!isEditingRoster && (
                   <>
-                    {/* First-visit note INSIDE the card (audit #1: outside it,
-                        its margin collided with the card's responsive -mt). */}
-                    <FirstVisitIntro
-                      surface="team-form"
-                      text={t('firstVisit.teamForm', 'Three steps: name the team, pick players via Edit Roster, then tap Create.')}
-                    />
                     {/* Name */}
                     <div>
                       <label className={labelStyle}>
@@ -577,7 +570,6 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        data-testid="tour-team-name"
                         placeholder={t('teamDetailsModal.namePlaceholder', 'Enter team name')}
                         className={`${inputBaseStyle} ${duplicateError ? inputErrorStyle : ''}`}
                         required
@@ -861,7 +853,6 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         <button
                           type="button"
                           onClick={() => setIsEditingRoster(true)}
-                          data-testid="tour-edit-roster"
                           aria-label={t('unifiedTeamModal.editRoster', 'Edit Roster')}
                           className={`${secondaryButtonStyle} shrink-0 px-5`}
                         >

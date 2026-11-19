@@ -20,6 +20,7 @@ import {
   HiOutlineTableCells,
   HiOutlineScale,
   HiOutlineBookOpen,
+  HiOutlineUserGroup,
 } from 'react-icons/hi2';
 import { TASO_URL, mapsDirectionsUrl } from '@/config/externalLinks';
 import { MdDirectionsCar } from 'react-icons/md';
@@ -130,6 +131,11 @@ interface ControlBarProps {
    * already came from, and it cannot be reached any other way.
    */
   onOpenThisGamePlan?: () => void;
+  /**
+   * "Ketkä ovat paikalla?" (Onboarding v3): mark who is away before kick-off.
+   * Absent once the match has started - the sheet can no longer change it.
+   */
+  onOpenAttendance?: () => void;
   /** R6: game-day reference material stays reachable mid-match. */
   onOpenTraining?: () => void;
   onOpenRules?: () => void;
@@ -183,6 +189,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onOpenPlayerAssessmentModal,
   onOpenPlanner,
   onOpenThisGamePlan,
+  onOpenAttendance,
   onOpenTraining,
   onOpenRules,
   onOpenAppSettings,
@@ -462,7 +469,6 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             {/* Clickable Timer Display - Fixed height and width */}
             <button
               onClick={onToggleLargeTimerOverlay}
-              data-testid="tour-timer-button"
               className="h-11 w-[min(120px,calc(100vw-216px))] shrink-0 flex items-center justify-center gap-1.5 pr-1 rounded-full bg-white/[0.12] shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] hover:bg-white/[0.16] transition-colors active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon"
               title={t('controlBar.openTimer', 'Open Timer')}
               aria-label={t('controlBar.openTimer', 'Open Timer')}
@@ -649,6 +655,16 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             >
               <HiOutlineAdjustmentsHorizontal className={MENU_ICON} /> {t('controlBar.gameSettingsButton', 'Match details')}
             </button>
+            {onOpenAttendance && (
+              <button
+                onClick={wrapModal(onOpenAttendance)}
+                data-testid="menu-attendance"
+                className={MENU_ROW}
+              >
+                <HiOutlineUserGroup className={MENU_ICON} />
+                {t('controlBar.attendance', 'Who is here?')}
+              </button>
+            )}
             {onOpenPlayerAssessmentModal && (
               <button
                 onClick={wrapModal(onOpenPlayerAssessmentModal)}

@@ -19,6 +19,9 @@ jest.mock('@/utils/appSettings', () => ({
   updateAppSettings: jest.fn().mockResolvedValue({}),
 }));
 
+jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast: jest.fn() }) }));
+jest.mock('@/utils/playtimePlanner/planLinks', () => ({ getPlanLink: jest.fn().mockResolvedValue(null) }));
+
 jest.mock('@/utils/fullBackup', () => ({
   __esModule: true,
   exportFullBackup: jest.fn().mockResolvedValue('{}'),
@@ -51,7 +54,6 @@ jest.mock('react-i18next', () => ({
 
 import i18n, { saveLanguagePreference } from '@/i18n';
 import StartScreen from './StartScreen';
-import GuidedTourProvider from '@/contexts/GuidedTourProvider';
 
 describe('StartScreen', () => {
   /** Phase 3 entry point: "Add to player stats" is the last row of the Stats tab, live even before the first match. */
@@ -423,25 +425,7 @@ describe('StartScreen', () => {
       expect(screen.queryByTestId('setup-banner')).not.toBeInTheDocument();
     });
 
-    it('gear sheet offers a restart-the-guide entry when the tour provider is present', () => {
-      render(
-        <GuidedTourProvider>
-          <StartScreen
-            {...baseHandlers()}
-            canResume={false}
-            hasSavedGames={false}
-            isFirstTimeUser={false}
-            setupProgress={{ players: true, competition: true, team: true, teamLinkedGame: true }}
-          />
-        </GuidedTourProvider>
-      );
-      openGear();
-      fireEvent.click(screen.getByTestId('gear-restart-tour'));
-      // The coached tour starts from its first step.
-      expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Welcome to MatchOps');
-    });
-
-    it('has no restart-the-guide entry without a tour provider', () => {
+    it('has no getting-started guide entry (first-use help removed, Onboarding v3 C11)', () => {
       render(
         <StartScreen
           {...baseHandlers()}
@@ -453,6 +437,7 @@ describe('StartScreen', () => {
       );
       openGear();
       expect(screen.queryByTestId('gear-restart-tour')).not.toBeInTheDocument();
+      expect(screen.queryByText('Getting started guide')).not.toBeInTheDocument();
     });
 
     it('has no getting-started banner once setup is complete', async () => {
@@ -606,7 +591,8 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
       const props = composeProps({ players: false, team: false });
       render(<StartScreen {...props} />);
 
-      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('Welcome! Start by adding your players.');
+      // No welcome strip any more (Onboarding v3, C11): the hero names the step.
+      expect(screen.queryByTestId('welcome-strip')).not.toBeInTheDocument();
       fireEvent.click(screen.getByTestId('hero-add-players'));
       expect(props.onManageRoster).toHaveBeenCalledTimes(1);
 
@@ -621,7 +607,6 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
       const props = composeProps({ players: true, team: false });
       render(<StartScreen {...props} />);
 
-      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('Good start! Next, create your team.');
       fireEvent.click(screen.getByTestId('hero-create-team'));
       expect(props.onManageTeams).toHaveBeenCalledTimes(1);
 
@@ -648,11 +633,10 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
      * @critical - Wizard graduates here: team + players exist, no games ->
      * the stock amber New Game hero takes over (no duplicate custom hero).
      */
-    it('team ready: the stock New Game hero leads and the strip says all set', () => {
+    it('team ready: the stock New Game hero leads', () => {
       const props = composeProps({ players: true, team: true });
       render(<StartScreen {...props} />);
 
-      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('All set!');
       expect(screen.queryByTestId('hero-add-players')).not.toBeInTheDocument();
       expect(screen.queryByTestId('hero-create-team')).not.toBeInTheDocument();
       // Exactly ONE tour-new-game element (the stock hero), no step duplicate.
@@ -666,17 +650,6 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
       render(<StartScreen {...props} />);
       expect(screen.queryByTestId('welcome-strip')).not.toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-steps')).not.toBeInTheDocument();
-    });
-
-    it('the welcome strip carries the opt-in tour link', () => {
-      const props = composeProps({ players: false, team: false });
-      render(
-        <GuidedTourProvider>
-          <StartScreen {...props} />
-        </GuidedTourProvider>
-      );
-      fireEvent.click(screen.getByTestId('welcome-strip-tour'));
-      expect(screen.getByTestId('guided-tour-overlay')).toBeInTheDocument();
     });
   });
 
@@ -1021,5 +994,57 @@ describe('Home guide + empty-state guidance', () => {
     render(<StartScreen {...props({ hasSavedGames: false })} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(screen.getByText("Statistics appear once you've played games.")).toBeInTheDocument();
+  });
+
+  /**
+   * Onboarding v3 layouts: the basic layout is its own Home with no tab bar,
+   * and while the account's layout is not known yet neither layout renders.
+   * @critical
+   */
+  describe('layouts', () => {
+    const summary = {
+      resume: null,
+      lastPlayed: null,
+      vuosi: null,
+      recent: [],
+      upcoming: null,
+      upcomingList: [],
+      counts: { players: 9, teams: 1, personnel: 0, seasons: 0, tournaments: 0 },
+      countsReady: true,
+      topScorer: null,
+      playedCount: 0,
+    };
+    const shellProps = () => ({
+      onLoadGame: jest.fn(),
+      onResumeGame: jest.fn(),
+      onGetStarted: jest.fn(),
+      onViewStats: jest.fn(),
+      onOpenSettings: jest.fn(),
+      canResume: false,
+      hasSavedGames: true,
+      isFirstTimeUser: false,
+    });
+
+    it('basic: the basic Home, no tablist, no simplified-view switch in the gear', () => {
+      render(<StartScreen {...shellProps()} appLayout="basic" homeSummary={summary} homeView="dashboard" onSetHomeView={jest.fn()} />);
+      expect(screen.getByTestId('home-basic')).toBeInTheDocument();
+      expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+      expect(screen.getByTestId('all-features')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+      expect(screen.queryByText('Simplified view')).not.toBeInTheDocument();
+    });
+
+    it('full (the default): the tabbed Home as before', () => {
+      render(<StartScreen {...shellProps()} homeSummary={summary} />);
+      expect(screen.queryByTestId('home-basic')).not.toBeInTheDocument();
+      expect(screen.getByRole('tablist')).toBeInTheDocument();
+    });
+
+    it('loading: neither layout renders (no flash of the wrong one)', () => {
+      render(<StartScreen {...shellProps()} appLayout="loading" homeSummary={summary} />);
+      expect(screen.queryByTestId('home-basic')).not.toBeInTheDocument();
+      expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+      expect(screen.queryByText('New Game')).not.toBeInTheDocument();
+    });
   });
 });

@@ -13,6 +13,7 @@ import { useExportMetadata } from '@/hooks/useExportMetadata';
 import { usePlannedSubPrompts } from '@/hooks/usePlannedSubPrompts';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
+import { useAppLayout } from '@/hooks/useAppLayout';
 import type {
   Player,
   Team,
@@ -26,8 +27,7 @@ import type {
 import type { SubSlot } from '@/utils/formations';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
-import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { HiOutlineSquares2X2, HiOutlineListBullet } from 'react-icons/hi2';
+import { HiOutlineListBullet } from 'react-icons/hi2';
 import { usePlannedGhosts } from '@/hooks/usePlannedGhosts';
 import { usePlannedChains } from '@/hooks/usePlannedChains';
 import { isExtraTimePeriod } from '@/utils/matchStructure';
@@ -118,7 +118,11 @@ export interface FieldInteractions {
 
 export interface TimerInteractions {
   toggleLargeOverlay: () => void;
-  toggleGoalLogModal: () => void;
+  /**
+   * The timer's "Maali meille": logs our goal at once (the score moves) and
+   * opens the quick "Kuka teki?" sheet (D16). Not the goal-log form.
+   */
+  quickGoal: () => void;
   onOpenPlayerAssessmentModal: () => void;
   onFinishGame?: () => void;
   logOpponentGoal: (timeInSeconds: number) => void;
@@ -215,6 +219,7 @@ export function FieldContainer({
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const assessmentsEnabled = useAssessmentsEnabled();
+  const appLayout = useAppLayout();
   const [isShootoutModalOpen, setIsShootoutModalOpen] = useState(false);
   const fieldRef = useRef<SoccerFieldHandle>(null);
 
@@ -259,7 +264,7 @@ export function FieldContainer({
 
   const {
     toggleLargeOverlay,
-    toggleGoalLogModal,
+    quickGoal,
     onOpenPlayerAssessmentModal,
     onFinishGame,
     logOpponentGoal,
@@ -368,20 +373,6 @@ export function FieldContainer({
     // and its control strip (see GameContainer), nothing overlapping it. The
     // canvas fills it, so relative player coordinates map to this box exactly.
     <div className="absolute inset-0 overflow-hidden">
-      {/* First-visit orientation card (Onboarding v2 PR 21): overlays the top
-          of the pitch once, never blocks it. */}
-      <FirstVisitIntro
-        overlay
-        surface="match-field"
-        text={
-          <>
-            {t('firstVisit.matchFieldPlace', 'This is your field - the squad is already in formation. Change it from the formation menu')}{' '}
-            <HiOutlineSquares2X2 className="inline h-4 w-4 -mt-0.5" aria-hidden="true" />
-            {'. '}
-            {t('firstVisit.matchFieldClock', 'The game clock and goal logging open from the 00:00 button below.')}
-          </>
-        }
-      />
       {/* DELIBERATE: the planned-sub nudge (inside TimerOverlay) is only
           visible while the large timer overlay is open - the same surface the
           existing interval sub-alerts use. On game day the overlay IS the
@@ -405,7 +396,10 @@ export function FieldContainer({
           gameType={gameSessionState.gameType}
           plannedSubGroup={plannedSubGroup}
           plannedSubsEarlier={plannedSubsEarlier}
-          onToggleGoalLogModal={toggleGoalLogModal}
+          onToggleGoalLogModal={quickGoal}
+          // Basic layout: no "Nollaa vaihtoajastin" (D13) - the plan's
+          // reminders are the basic coach's sub timing.
+          showSubTimerReset={appLayout !== 'basic'}
           onOpenPlayerAssessmentModal={assessmentsEnabled ? onOpenPlayerAssessmentModal : undefined}
           onFinishGame={onFinishGame}
           finishProgress={finishProgress}

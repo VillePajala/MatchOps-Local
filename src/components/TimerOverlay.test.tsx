@@ -132,7 +132,8 @@ describe('TimerOverlay', () => {
 
   it('opens reset confirmation and calls onResetTimer on confirm', async () => {
     render(<TimerOverlay {...baseProps} timeElapsedInSeconds={10} />);
-    const resetButton = screen.getByRole('button', { name: /reset/i });
+    // Exact name: "Reset sub timer" is a different control (D13).
+    const resetButton = screen.getByRole('button', { name: /^reset$/i });
     fireEvent.click(resetButton);
 
     // Confirmation modal should appear
@@ -230,9 +231,36 @@ describe('TimerOverlay', () => {
       expect(screen.getByTestId('planned-sub-group')).not.toHaveTextContent('Aapo');
     });
 
-    it('does not show the block before the game starts', () => {
-      render(<TimerOverlay {...baseProps} gameStatus="notStarted" plannedSubGroup={group} />);
-      expect(screen.queryByTestId('planned-sub-group')).not.toBeInTheDocument();
+    /**
+     * D3c: the next planned change is always visible. Ahead of the clock it
+     * is quiet; once its time comes it turns amber, and stays until the next
+     * group is due. Nothing to tap, nothing recorded.
+     * @critical
+     */
+    it('shows the upcoming change quietly before kick-off, and amber once due', () => {
+      const { unmount } = render(
+        <TimerOverlay {...baseProps} gameStatus="notStarted" plannedSubGroup={{ ...group, due: false }} />,
+      );
+      const quiet = screen.getByTestId('planned-sub-group');
+      expect(quiet).toHaveAttribute('data-due', 'false');
+      expect(quiet).toHaveTextContent('Next change');
+      expect(quiet).toHaveTextContent('Eino, Niilo, Veeti');
+      expect(within(quiet).queryByRole('button')).not.toBeInTheDocument();
+      unmount();
+
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={{ ...group, due: true }} />);
+      expect(screen.getByTestId('planned-sub-group')).toHaveAttribute('data-due', 'true');
+    });
+
+    it('marks a change planned for the end of a regulation period as at the break', () => {
+      // 2 x 10 min: 10:00 is the half-time break; 25:00 is not a break.
+      const { unmount } = render(
+        <TimerOverlay {...baseProps} gameStatus="periodEnd" plannedSubGroup={{ ...group, timeSeconds: 600 }} />,
+      );
+      expect(screen.getByTestId('planned-sub-group')).toHaveTextContent('10:00 (at the break)');
+      unmount();
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={group} />);
+      expect(screen.getByTestId('planned-sub-group')).not.toHaveTextContent('at the break');
     });
 
     it('keeps the block through a period break (half-time is when subs happen)', () => {
@@ -379,6 +407,20 @@ describe('TimerOverlay', () => {
     });
 
     /** At the whistle the only question is how much is left. */
+    /**
+     * D3b: at full time the hand-off is the one big action, above the clock
+     * controls, and the clock is a small readout - no longer the hero.
+     */
+    it('puts Finish this game above the clock controls and makes it the only amber action', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" timeElapsedInSeconds={1200} onFinishGame={jest.fn()} />);
+      const finish = screen.getByTestId('timer-finish-game');
+      const start = screen.getByTestId('tour-timer-startpause');
+      expect(finish.compareDocumentPosition(start) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(finish.className).toContain('s1-primary');
+      expect(start.className).not.toContain('s1-primary');
+      expect(screen.getByTestId('timer-clock').firstElementChild).toHaveStyle({ fontSize: '2.75rem' });
+    });
+
     it('says how much is left, and nothing when it does not apply', () => {
       const { unmount } = render(
         <TimerOverlay
@@ -463,6 +505,26 @@ describe('TimerOverlay', () => {
       expect(screen.getByText(/^(ET|JA) 1\/2$/)).toBeInTheDocument();
       rerender(<TimerOverlay {...et} gameStatus="periodEnd" currentPeriod={3} timeElapsedInSeconds={1500} />);
       expect(screen.getByTestId('tour-timer-startpause')).toHaveTextContent(/Start extra time 2|Aloita jatkoajan 2/);
+    });
+  });
+
+  describe('goal and sub-timer buttons (onboarding v3)', () => {
+    /** D16: the team's goal button is "Goal for us" and hands straight to the host. */
+    it('"Goal for us" calls the goal handler in one tap', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" />);
+      fireEvent.click(screen.getByRole('button', { name: 'Goal for us' }));
+      expect(baseProps.onToggleGoalLogModal).toHaveBeenCalledTimes(1);
+    });
+
+    /** D13: the button restarts the interval countdown; it records no substitution. */
+    it('labels the interval reset "Reset sub timer" and hides it when the host asks', () => {
+      const { unmount } = render(<TimerOverlay {...baseProps} gameStatus="inProgress" isTimerRunning />);
+      fireEvent.click(screen.getByRole('button', { name: 'Reset sub timer' }));
+      expect(baseProps.onSubstitutionMade).toHaveBeenCalledTimes(1);
+      unmount();
+
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" isTimerRunning showSubTimerReset={false} />);
+      expect(screen.queryByRole('button', { name: 'Reset sub timer' })).not.toBeInTheDocument();
     });
   });
 });

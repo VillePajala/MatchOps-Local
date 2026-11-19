@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import GoalLogModal from '@/components/GoalLogModal';
+import QuickGoalSheet from '@/components/QuickGoalSheet';
 const GameSettingsModal = lazyModal(() => import('@/components/GameSettingsModal'));
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
@@ -38,6 +39,8 @@ import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 interface ModalManagerState {
   isGoalLogModalOpen: boolean;
+  /** The goal the quick "Who scored?" sheet is naming (D16), or null/absent when closed. */
+  quickGoalEventId?: string | null;
   isGameStatsModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
   /** R3: wrap-up rows land scrolled to their section. */
@@ -71,6 +74,10 @@ interface ModalManagerData {
 
 interface ModalManagerHandlers {
   toggleGoalLogModal: () => void;
+  /** Closes the quick "Who scored?" sheet; the goal stays as logged. */
+  closeQuickGoal?: () => void;
+  /** Names the quick goal's scorer/assister as part of the goal's own undo step. */
+  nameQuickGoal?: (event: GameEvent) => void;
   addGoalEvent: (playerId: string | undefined, assistId?: string) => void;
   logOpponentGoal: (timeSeconds: number) => void;
   recalculateScore: () => void;
@@ -169,6 +176,9 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
   // the sentinel via setTimeout AFTER back#1 - a re-arm that fails on Android
   // WebViews, so back#2 exited the app (device bug).
   useHardwareBackSubLevel(state.isGoalLogModalOpen, handlers.toggleGoalLogModal);
+  const closeQuickGoal = handlers.closeQuickGoal;
+  const quickGoalOpen = Boolean(state.quickGoalEventId && closeQuickGoal);
+  useHardwareBackSubLevel(quickGoalOpen, () => closeQuickGoal?.());
   useHardwareBackSubLevel(state.isGameStatsModalOpen, handlers.toggleGameStatsModal);
   useHardwareBackSubLevel(state.isGameSettingsModalOpen, handlers.closeGameSettingsModal);
   useHardwareBackSubLevel(state.isPlayerAssessmentModalOpen, handlers.closePlayerAssessmentModal);
@@ -201,6 +211,21 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           onDeleteGameEvent={handlers.deleteGameEvent}
           onRecalculateScore={handlers.recalculateScore}
         />
+
+        {/* Quick goal entry (D16): the goal is already logged; this only names
+            the scorer and assister, from the whole squad. */}
+        {state.quickGoalEventId && closeQuickGoal && (
+          <QuickGoalSheet
+            key={state.quickGoalEventId}
+            eventId={state.quickGoalEventId}
+            gameEvents={data.gameSessionState.gameEvents}
+            players={data.playersForCurrentGame}
+            homeScore={data.gameSessionState.homeScore}
+            awayScore={data.gameSessionState.awayScore}
+            onUpdateGameEvent={handlers.nameQuickGoal ?? handlers.updateGameEvent}
+            onClose={closeQuickGoal}
+          />
+        )}
 
         {state.isGameStatsModalOpen && (
           <GameStatsModal

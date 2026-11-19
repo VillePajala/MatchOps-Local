@@ -98,8 +98,8 @@ describe('WelcomeScreen', () => {
 
       expect(screen.getByText('Start without an account')).toBeInTheDocument();
       // Cloud option - enables cloud mode and shows login
-      expect(screen.getByText('Use Cloud Sync')).toBeInTheDocument();
-      expect(screen.getByText('Sync your data across all your devices.')).toBeInTheDocument();
+      expect(screen.getByText('Create a free account')).toBeInTheDocument();
+      expect(screen.getByText('With an account your data stays safe, even if you change phones.')).toBeInTheDocument();
       // Import is now a footer link
       expect(screen.getByText('Have a backup file?')).toBeInTheDocument();
     });
@@ -121,7 +121,7 @@ describe('WelcomeScreen', () => {
       // "Change in settings" hidden — misleading when there's no choice
       expect(screen.queryByText('You can change this later in Settings')).not.toBeInTheDocument();
       // Cloud option still visible
-      expect(screen.getByText('Use Cloud Sync')).toBeInTheDocument();
+      expect(screen.getByText('Create a free account')).toBeInTheDocument();
     });
 
     it('hides cloud option when cloud is not available', () => {
@@ -134,7 +134,7 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Start without an account')).toBeInTheDocument();
-      expect(screen.queryByText('Use Cloud Sync')).not.toBeInTheDocument();
+      expect(screen.queryByText('Create a free account')).not.toBeInTheDocument();
       expect(screen.getByText('Have a backup file?')).toBeInTheDocument();
     });
 
@@ -148,12 +148,12 @@ describe('WelcomeScreen', () => {
       );
 
       expect(screen.getByText('Your data is saved on this device only.')).toBeInTheDocument();
-      expect(screen.getByText('Sync your data across all your devices.')).toBeInTheDocument();
+      expect(screen.getByText('With an account your data stays safe, even if you change phones.')).toBeInTheDocument();
       // Import is now a footer link with simpler text
       expect(screen.getByText('Have a backup file?')).toBeInTheDocument();
     });
 
-    it('renders Free badges for both options', () => {
+    it('marks both options free (badge on local, "free" in the cloud title)', () => {
       render(
         <WelcomeScreen
           {...mockHandlers}
@@ -162,8 +162,8 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      // Two "FREE" badges (for local and cloud options)
-      expect(screen.getAllByText(/^FREE$/i)).toHaveLength(2);
+      // One "FREE" badge (local); the cloud option says "free" in its title (D9)
+      expect(screen.getAllByText(/^FREE$/i)).toHaveLength(1);
     });
 
     it('shows footer note about settings', () => {
@@ -204,7 +204,7 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Use Cloud Sync'));
+      fireEvent.click(screen.getByText('Create a free account'));
       expect(mockHandlers.onUseCloudSync).toHaveBeenCalledTimes(1);
     });
 
@@ -282,7 +282,7 @@ describe('WelcomeScreen', () => {
         screen.getByRole('button', { name: /start without an account/i })
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: /use cloud sync/i })
+        screen.getByRole('button', { name: /create a free account/i })
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: /import backup file/i })

@@ -122,11 +122,6 @@ export interface UseGameOrchestrationReturn {
   gameContainerProps: GameContainerProps;
   modalManagerProps: ModalManagerProps;
   isBootstrapping: boolean;
-  /** Guided-tour match signals (funnel Phase 2 PR3): the page-level tour reads
-   *  these to auto-advance the set-formation, start-timer and log-goal steps. */
-  isTimerRunning: boolean;
-  hasLoggedGoal: boolean;
-  hasAppliedFormation: boolean;
 }
 
 /**
@@ -323,20 +318,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     t,
     onAssignGoalieByPosition: handleAssignGoalieByPosition,
   });
-
-  // Guided-tour signal: has a formation template been applied in THIS match
-  // view? (Component remounts per match, so it naturally resets.) Wraps the
-  // field handler so the ControlBar keeps a single entry point.
-  const [formationApplyCount, setFormationApplyCount] = useState(0);
-  const placeAllPlayersHandler = fieldCoordination.handlePlaceAllPlayers;
-  const handlePlaceAllPlayersTracked = useCallback((presetId: string | null) => {
-    // Count only ACTUAL applies (review #722): the field handler no-ops on an
-    // empty selection, and a no-op tap must not advance the tour's
-    // set-formation step.
-    if (placeAllPlayersHandler(presetId)) {
-      setFormationApplyCount(c => c + 1);
-    }
-  }, [placeAllPlayersHandler]);
 
   // Extract stable setters for use in effects
   // React useState setters are guaranteed stable (same identity across renders)
@@ -605,6 +586,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
     setPlannerTarget,
+    setAttendanceRequest,
   } = useModalContext();
 
   /**
@@ -690,6 +672,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // handleManageTeamRosterFromNewGame LIFTED to ClubModalsHost (L.3b).
 
+  // "Not played yet" flips to played the first time the clock starts (Onboarding
+  // v3). Set in the same event as the start: the save the start triggers (the
+  // isTimerRunning flip is an immediate autosave) writes isPlayed from this state,
+  // through the normal local + cloud path.
+  const handleFirstTimerStart = useCallback(() => {
+    setIsPlayed(true);
+  }, []);
+
   // --- Timer Management Hook (Step 2.6.5) ---
   const timerManagement = useTimerManagement({
     gameSessionState,
@@ -701,6 +691,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsGameStatsModalOpen,
     setIsPlayerAssessmentModalOpen,
     onActionLogged: notifyUndoableAction,
+    onFirstTimerStart: handleFirstTimerStart,
   });
 
   const {
@@ -2698,8 +2689,25 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     dictation,
   };
 
+  // "Ketkä ovat paikalla?" from the match menu (Onboarding v3): before
+  // kick-off only - the same rule the re-apply itself enforces. The live
+  // game's pending autosave is written first, so the sheet reads (and the
+  // hand-edit check compares) the line-up that is on screen; after a save
+  // the sheet refreshes this game through the planner's live hooks.
+  const canOpenAttendance =
+    !!currentGameId &&
+    currentGameId !== DEFAULT_GAME_ID &&
+    gameSessionState.gameStatus === 'notStarted' &&
+    !hasPlayEvents(gameSessionState.gameEvents);
+  const handleOpenAttendance = useCallback(async () => {
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
+    await handleFlushLiveGame();
+    setAttendanceRequest({ gameId: currentGameId, mode: 'save' });
+  }, [currentGameId, handleFlushLiveGame, setAttendanceRequest]);
+
   const controlBarProps: ComponentProps<typeof ControlBar> = {
     onOpenThisGamePlan: thisGamePlanLink ? handleOpenThisGamePlan : undefined,
+    onOpenAttendance: canOpenAttendance ? () => void handleOpenAttendance() : undefined,
     timeElapsedInSeconds,
     isTimerRunning,
     onToggleLargeTimerOverlay: handleToggleLargeTimerOverlay,
@@ -2714,7 +2722,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onResetField: fieldCoordination.handleResetFieldClick,
     onClearDrawings: fieldCoordination.handleClearDrawingsForView,
     onAddOpponent: fieldCoordination.handleAddOpponent,
-    onPlaceAllPlayers: handlePlaceAllPlayersTracked,
+    onPlaceAllPlayers: fieldCoordination.handlePlaceAllPlayers,
     selectedPlayerCount: gameSessionState.selectedPlayerIds.length,
     isTacticsBoardView: fieldCoordination.isTacticsBoardView,
     onToggleTacticsBoard: fieldCoordination.handleToggleTacticsBoard,
@@ -2846,10 +2854,5 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameContainerProps,
     modalManagerProps,
     isBootstrapping,
-    isTimerRunning: gameSessionState.isTimerRunning,
-    hasLoggedGoal: (gameSessionState.gameEvents ?? []).some(
-      (e) => e.type === 'goal' || e.type === 'opponentGoal',
-    ),
-    hasAppliedFormation: formationApplyCount > 0,
   };
 }

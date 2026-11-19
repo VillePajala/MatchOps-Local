@@ -358,7 +358,7 @@ function NoMatchCard({ onNewGame, t }: { onNewGame?: () => void; t: TFunction })
  * the same green / grey / red as the results list. NOTHING TRUNCATES: a long
  * name wraps and the card grows. Home and away are not shown (owner's call).
  */
-function ResumeCard({ resume, onResume, locale, t }: {
+export function ResumeCard({ resume, onResume, locale, t }: {
   resume: HomeResumeGame;
   onResume?: () => void;
   locale: string;
@@ -470,11 +470,14 @@ function NextMatchCard({
   onOpen,
   onAdjustTravel,
   onSetStartingPoint,
+  onMarkAbsences,
   locale,
   t,
 }: {
   game: HomeUpcomingGame;
   onOpen?: (id: string) => void;
+  /** "Merkitse poissaolijat": the attendance sheet for this fixture (Onboarding v3). */
+  onMarkAbsences?: (id: string) => void;
   /** Opens where the starting point is set; offered on a pinned fixture with no departure time. */
   onSetStartingPoint?: () => void;
   /** Sets this match's own arrival buffer and the drive time actually taken. */
@@ -569,6 +572,16 @@ function NextMatchCard({
             </button>
           }
         />
+        {onMarkAbsences && (
+          <button
+            type="button"
+            onClick={() => onMarkAbsences(game.id)}
+            data-testid="next-match-mark-absences"
+            className={`mt-2.5 flex h-12 w-full items-center justify-center rounded-full border border-dashed border-white/25 px-4 text-[15px] font-semibold text-ink-2 transition-colors hover:text-ink ${HOME_FOCUS}`}
+          >
+            {t('basicHome.markAbsences', 'Mark who is away')}
+          </button>
+        )}
       </div>
 
       {/* OVER the content below, not shoved into it: expanding in the flow
@@ -758,10 +771,13 @@ export function HomeDashboard({
   onAdjustTravel,
   onNewGame,
   onSetStartingPoint,
+  onMarkAbsences,
   locale = 'fi',
   t,
 }: {
   summary: HomeSummary;
+  /** The next fixture's "Merkitse poissaolijat" (Onboarding v3). */
+  onMarkAbsences?: (id: string) => void;
   onResume?: () => void;
   onOpenVuosi?: () => void;
   onOpenGame?: (id: string) => void;
@@ -796,7 +812,7 @@ export function HomeDashboard({
       {/* Always something here - see NoMatchCard for why the slot must not
           be allowed to empty. */}
       {summary.upcoming
-        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} onSetStartingPoint={onSetStartingPoint} locale={locale} t={t} />
+        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} onSetStartingPoint={onSetStartingPoint} onMarkAbsences={onMarkAbsences} locale={locale} t={t} />
         : summary.resume
           ? <ResumeCard resume={summary.resume} onResume={onResume} locale={locale} t={t} />
           // Nothing booked and nothing open: the latest match played, with the
@@ -980,6 +996,151 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
       )}
       {/* Goals big, name as the label - a name set as the big number overflowed a third-width tile. */}
       {topScorer && tile(topScorer.goals, topScorer.name)}
+    </div>
+  );
+}
+
+/* ------------------------------------------------- basic layout (Perusnäkymä) */
+
+/** The quiet outline pill under the basic card's primary action. */
+const GHOST_PILL = `s1-ghost flex h-12 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full px-2.5 text-[15px] font-semibold text-ink transition-colors ${HOME_FOCUS}`;
+
+/** What the basic card knows about the game's plan (looked up asynchronously). */
+export type BasicCardPlanState = 'loading' | 'none' | 'ready';
+
+/**
+ * The basic layout's next-game card (Onboarding v3, step 6): the same hero
+ * surface and top line as the full layout's next-match card, then the match,
+ * "Peluutus valmis · N pelaajaa", ONE primary action - "Aloita ottelu" on game
+ * day, "Merkitse poissaolijat" before it - and "Näytä peluutus" / "Jaa" for a
+ * game made from a plan. No travel row: the basic layout leaves it out.
+ */
+export function BasicNextGameCard({
+  game,
+  planState,
+  onOpen,
+  onPrimary,
+  onShowPlan,
+  onShare,
+  locale,
+  t,
+}: {
+  game: HomeUpcomingGame;
+  planState: BasicCardPlanState;
+  /** Opens the game on the pitch (the card body). */
+  onOpen: () => void;
+  /** Game day: start (the attendance sheet, then the game); otherwise mark absences. */
+  onPrimary: () => void;
+  onShowPlan?: () => void;
+  onShare?: () => void;
+  locale: string;
+  t: TFunction;
+}) {
+  const gameDay = game.daysAway === 0;
+  const countdown = gameDay
+    ? t('startScreen.dashToday', 'Today')
+    : game.daysAway === 1
+      ? t('startScreen.dashTomorrow', 'Tomorrow')
+      : t('startScreen.dashInDays', '{{count}} d', { count: game.daysAway });
+  const when = [formatWeekdayDate(game.date, locale), game.time].filter(Boolean).join(' ');
+  const opponent = game.opponent || t('startScreen.dashResumeGame', 'Game');
+  const title = game.teamName ? `${game.teamName} – ${opponent}` : opponent;
+  const players = t('basicHome.players', '{{count}} players', { count: game.squadCount ?? 0 });
+
+  return (
+    <div className="s1-hero p-5 text-ink" data-testid="basic-next-game">
+      <HeroTop
+        left={<LiveLabel>{[t('basicHome.nextGame', 'Next game'), when].filter(Boolean).join(' · ')}</LiveLabel>}
+        right={<HeroChip>{countdown}</HeroChip>}
+      />
+      <button type="button" onClick={onOpen} className={`${HERO_BODY} mt-3`}>
+        <span className="block break-words font-display text-[28px] font-bold leading-[1.1] tracking-[0.005em] text-ink">
+          {title}
+        </span>
+        <span className="mt-2 flex items-center gap-2 text-[15px] text-ink-2" data-testid="basic-plan-line">
+          {planState === 'ready' && <HomeIcon name="check" className="h-[18px] w-[18px] text-win" strokeWidth={2.4} />}
+          {planState === 'ready' ? `${t('basicHome.planReady', 'Rotation ready')} · ${players}` : players}
+        </span>
+      </button>
+      <div className="mt-4">
+        <button type="button" onClick={onPrimary} className={PRIMARY_BTN} data-testid="basic-primary">
+          {gameDay ? t('basicHome.startMatch', 'Start the match') : t('basicHome.markAbsences', 'Mark who is away')}
+        </button>
+      </div>
+      {planState === 'ready' && (onShowPlan || onShare) && (
+        <div className="mt-2.5 flex gap-2.5">
+          {onShowPlan && (
+            <button type="button" onClick={onShowPlan} className={GHOST_PILL} data-testid="basic-show-plan">
+              {t('basicHome.showPlan', 'Show rotation')}
+            </button>
+          )}
+          {onShare && (
+            <button type="button" onClick={onShare} className={GHOST_PILL} data-testid="basic-share">
+              {t('basicHome.share', 'Share')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The basic layout's card when no game is booked: the latest result, if there
+ * is one, and "Uusi ottelu". The body opens that game.
+ */
+export function BasicNoNextGameCard({
+  last,
+  onOpenLast,
+  onNewGame,
+  locale,
+  t,
+}: {
+  last: HomeResumeGame | null;
+  onOpenLast?: () => void;
+  onNewGame?: () => void;
+  locale: string;
+  t: TFunction;
+}) {
+  const result = last && last.isPlayed ? resultOf(last.ourScore, last.theirScore) : null;
+  return (
+    <div className="s1-hero s1-hero-quiet p-5 text-ink" data-testid="basic-no-next-game">
+      {last ? (
+        <>
+          <HeroTop
+            left={
+              <span className={`${HERO_LABEL} text-ink-3`}>
+                {[t('basicHome.lastGame', 'Last game'), last.date ? formatWeekdayDate(last.date, locale) : '']
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            }
+            right={result ? <ResultPill result={result} t={t} /> : undefined}
+          />
+          <button type="button" onClick={onOpenLast} className={`${HERO_BODY} mt-3 flex items-end justify-between gap-3`}>
+            <span className="min-w-0 break-words font-display text-[28px] font-bold leading-[1.1] text-ink">
+              {last.opponent || t('startScreen.dashResumeGame', 'Game')}
+            </span>
+            <span
+              className={`${result ? numeralClass[result] : 's1-numeral'} shrink-0 font-display text-[44px] font-extrabold italic leading-none tabular-nums`}
+            >
+              {`${last.ourScore}–${last.theirScore}`}
+            </span>
+          </button>
+          <p className="mt-3 text-[15px] text-ink-2">{t('basicHome.noNextGame', 'No next game yet')}</p>
+        </>
+      ) : (
+        <>
+          <HeroTop left={<span className={`${HERO_LABEL} text-ink-3`}>{t('basicHome.nextGame', 'Next game')}</span>} />
+          <p className="mt-2 text-[15px] text-ink-2">{t('startScreen.dashNoMatchesYet', 'No matches yet.')}</p>
+        </>
+      )}
+      <div className="mt-4">
+        <button type="button" onClick={onNewGame} className={PRIMARY_BTN} data-testid="basic-new-game">
+          <HomeIcon name="plus" className="h-5 w-5" strokeWidth={2.4} />
+          {t('basicHome.newGame', 'New game')}
+        </button>
+      </div>
     </div>
   );
 }

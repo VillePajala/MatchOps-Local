@@ -3,6 +3,126 @@
 **Goal:** stop new-install churn before spending energy on growth. Evidence shows
 installs are lost at the front door, not to bugs.
 
+## Onboarding v3 - APPROVED PLAN (owner, 2026-11-19) - read this first
+
+Source: the 2026-11 review's onboarding plan (`review-2026-11/onboarding/FINAL-PLAN.md`,
+decisions D1-D29), walked through with the owner one decision at a time, then reviewed
+against a full mock of the path in the new navy style
+(https://claude.ai/artifact/Y11CWhJ4RVtoQEJFUtMYEr). **Where this section and
+FINAL-PLAN.md disagree, this section wins.** Builds on the app-wide redesign branch
+(`feat/home-syke-refined`), not before it. Everything below is decided unless marked open.
+
+### The path a new coach takes
+
+1. **Welcome screen** (two-step sign-up; text agreed word for word):
+   "Suunnittele, peluuta, kirjaa." · Pelisuunnitelma aina mukana · Ottelukello ·
+   Kirjaa ottelutapahtumat · Tilastot kertyvät automaattisesti · [Luo ilmainen tili] ·
+   Kirjaudu. Content block centred; the point list is a centred block with ticks in a column.
+2. **Form screen:** form centred as today (`LoginScreen.tsx` `justify-center`) with a small
+   logo above the title; note "Tilin ansiosta tietosi säilyvät, vaikka vaihtaisit puhelinta."
+   "Ilmainen" shown (D9). One password field with show/hide; no confirm field on sign-up
+   ("Set new password" keeps its confirm field, D26).
+3. **Wizard:** team name; sport (Jalkapallo / Futsal); **age group, which suggests the
+   format** - futsal: 7 and younger 3v3, 8-10 4v4, 11+ 5v5 (most teams); football (2027
+   table): 7 and younger 3v3/4v4, to 10 5v5, to 13 8v8, then 11v11 - every format
+   selectable (D10); period length from the same table, else 2 x 15, with "muuta" (D7);
+   paste the player list (leading numbers stripped, D8). Last button: **"Valmis"**.
+4. **"Milloin seuraava peli?"** - one short step: date + optional opponent; copy "Teemme
+   pelille valmiin suunnitelman. Kaiken voi muuttaa myöhemmin."; button **"Tee
+   suunnitelma"**. Only now are the game and its one-game plan created. **No placeholder
+   game is ever created without this step** (supersedes D20). Date only, no time field.
+   An empty opponent is saved as "Vastustaja" (en "Opponent").
+5. **Plan screen** (title OPEN; mock shows "Peluutus"): the planner in compact mode for one
+   game. In place: tap-to-swap two players incl. the keeper "Maalissa X · vaihda" (exists:
+   `PlanFieldView.tsx`), "Sekoita uudelleen", date/length "muuta". Link **"Tarkempi
+   muokkaus"** opens the FULL planner for this game as a layer; closing returns here with
+   the changes. "Näyttää hyvältä" -> Home. No "Useita pelejä samana päivänä". No keeper
+   question in the wizard (D12). The plan counts as seen when this screen opens; closing
+   the app mid-planner lands on Home next time.
+6. **Home (basic layout)**: next-game card "Seuraava peli · Peluutus valmis · 14 pelaajaa ·
+   [Aloita ottelu] · Näytä peluutus · Jaa". "Näytä peluutus" opens the plan screen above;
+   "Jaa" shares the plan as text. Without a next game: "Uusi ottelu".
+7. **"Ketkä ovat paikalla?"** - one sheet for EVERY coach: tap the absent; that marks them
+   absent for this game in the plan (`absentIds`), re-runs the suggestion and re-applies it
+   to the game (line-up + squad; the absent player's game does not count as played).
+   Before kick-off only. Entry points: Home card ("Aloita ottelu" on game day,
+   "Merkitse poissaolijat" otherwise), inside the game before kick-off (match menu or a
+   small banner), and the planner. If the line-up was edited by hand, warn first:
+   "Kokoonpano tehdään uudelleen suunnitelman mukaan".
+8. **Match:** opens on the PITCH in both layouts (D15; the stacked match view). Control
+   capsule unchanged everywhere: five buttons, clock centred. Timer: persistent next-sub
+   block without "Selvä" (D3c); at full time a clear "Viimeistele ottelu" (D3b). **Quick
+   goal entry for everyone (D16):** "Maali meille" replaces "Kirjaa maali" on the timer;
+   the score moves at once; then "Kuka teki?" with name buttons for ALL players in the
+   game's squad (no "Muut" split - pitch/bench is only the starting line-up), "Ohita"
+   (no scorer); optional assister step; the full form stays for editing. "Vaihto tehty":
+   hidden in basic, renamed "Nollaa vaihtoajastin" in full (D13).
+9. **"Viimeistele ottelu"** (name kept, D4; for ALL coaches): result + quick line-up/goals
+   check -> amber **[Pöytäkirja]** -> **Otteluraportti** (coach's own text: template,
+   dictate, AI draft) with a quiet visible **"Jaa"** at its bottom -> done. No step
+   numbers (D3a). "Valmis" = squad selected + goal log matches the score, scorers optional,
+   applied on read to all games after a count (D2).
+
+### Outputs (C9, all coaches)
+
+- **"Pöytäkirja"** (was "Pöytäkirja Tasoon"; `utils/tasoReport.ts`): unchanged content
+  (squad with numbers, full names, keeper/captain; score + half-time + extra time; goals
+  as minute #number name (assist)); "Kopioi". The word "Tasoon" leaves the app; buttons
+  that really open the Taso website keep "Taso".
+- **"Otteluraportti"** (`gameNotes`): unchanged.
+- **Ottelukooste** (`utils/gameRecap.ts`: score/date/place, scorer+assist tallies, line-up
+  by first name, + the whole otteluraportti): no standalone "Luo ottelukooste" button; the
+  same text is the "Jaa" of the Otteluraportti section ("Jaa otteluraportti"). The word
+  "ottelukooste" leaves the app.
+- **Parents:** "Viesti vanhemmille" is never built. AI settings' "Teksti vanhemmille"
+  (the AI-notes notice to families) is renamed "Tiedote perheille tekoälyn käytöstä".
+
+### Copy rule
+
+No fairness or equal-play claims in product copy ("reilu", "tasapuolinen", "kaikki
+pelaavat"); fairness is the owner's value, not the app's promise. The copy says the app lets
+you plan. The suggester's behaviour (every selected player gets time) is unchanged.
+
+### First-use help (C11)
+
+Remove the guided tour (`components/GuidedTour/*`), the Home welcome strips
+(`startScreen.welcomeStrip*`) and every FirstVisitIntro note. Keep only "Näin se toimii"
+(`InstructionsModal`), updated to the new flows. Add help back only where the milestones
+show coaches getting stuck.
+
+### Layouts, rollout, measurement
+
+- Two layouts only: basic (Perusnäkymä) and full (Koko näkymä, today's app); no module
+  switches (D21). Existing accounts keep the full layout (OD4), including the 6 with
+  players but no game (D14).
+- The basic layout goes live for new accounts **as soon as it is built** (D23).
+- Milestone timestamps in the settings row (D17); no anonymous counter; one privacy-policy
+  sentence; whether that bumps `POLICY_VERSION` is a legal call.
+- New-game defaults for everyone (D6): team, all its players, previous settings; the four
+  detail rules of D26 accepted. "Ei vielä pelattu" OFF by default in New Game for today/past dates, ON for future
+  dates, and a game flips to played automatically the first time its timer starts.
+- Separate small PR: the `home_view` drift (D22) - count first; nobody's view changes.
+- No feature freeze (D29).
+
+### Dropped (do not build)
+
+"Vuorot" (starter/keeper turn tracking, D11); automatic next-game creation anywhere and the
+"Milloin pelaatte seuraavan kerran?" question with its date chips (D28, Phase 4.1); the
+basic layout opening on the clock (D15); module switches (D21); lapsed-coach outreach (D18,
+not now); "Names first" before an account (D19, revisit only if sign-ups look low);
+the three-game milestone note.
+
+### Later / open
+
+- **Google sign-in** via free Google brand verification (no Supabase Pro / custom domain for
+  now); consent wording and policy version checked first (D25).
+- **Plan screen title** (open).
+- **One-game plan from New Game** without hiding the multi-game planner:
+  `playing-time-fairness-and-planner.md` §10 item 5.
+- Update the promo-video sign-up selector in the same PR as the sign-up copy (D27).
+- After onboarding: match-ops.com review incl. the online guide (`site/content/guide`,
+  13 articles x fi/en) and rebuilt promo videos.
+
 **Status as of 2026-08-31 - ONBOARDING v2 DELIVERED. Master PR #709 is the whole
 feature; validate CI + review only - the OWNER merges after phone testing.**
 PRs 19-22 (#725, #726, #727, #728, #729) built, CI-greened, Claude-review-approved and

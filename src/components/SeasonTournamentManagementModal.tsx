@@ -33,7 +33,6 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { CLUB_SEASON_OFF_SEASON } from '@/utils/entityDisplayNames';
 import type { EntityReferences } from '@/interfaces/DataStore';
 import logger from '@/utils/logger';
-import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import { formatAppDate } from '@/utils/localeFormat';
@@ -452,11 +451,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6" onScroll={headerCollapse.onScroll}>
-            <FirstVisitIntro
-              surface="seasons"
-              className="mb-4"
-              text={t('firstVisit.seasons', 'Group games into a league or tournament to get standings and per-competition stats.')}
-            />
             {/* The list header with its own ⋮ menu (as the planner's list has).
                 One team written several ways is several opponents to every
                 aggregation, so the cleanup lives next to the lists it cleans;

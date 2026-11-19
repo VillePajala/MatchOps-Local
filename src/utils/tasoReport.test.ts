@@ -34,7 +34,7 @@ describe('buildTasoReport', () => {
   it('lists the squad by shirt number, keeper marked, unnumbered last', () => {
     const { lineup } = buildTasoReport(base, players, t);
     expect(lineup.split('\n')).toEqual([
-      'Squad for Taso',
+      'Squad',
       '1 Emma Jones (GK)',
       '7 Noah Brown',
       '10 Liam Smith',
@@ -68,7 +68,7 @@ describe('buildTasoReport', () => {
     };
     const { report } = buildTasoReport(game, players, t);
     expect(report.split('\n')).toEqual([
-      'Match report for Taso',
+      'Match sheet',
       'Tigers - Lions 2-1 (half-time 1-1)',
       'Goals (minute, scorer, assist):',
       "13' #10 Liam Smith (assist #7 Noah Brown)",

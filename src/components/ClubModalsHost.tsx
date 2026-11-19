@@ -55,7 +55,7 @@ import React from 'react';
 import { lazyModal, warmLazyModals } from '@/components/lazyModal';
 import { useTranslation } from 'react-i18next';
 import { preferredRulesContext } from '@/utils/rulesContext';
-import { useModalContext } from '@/contexts/ModalProvider';
+import { useModalContext, type AttendanceRequest, type PlanQuickViewTarget } from '@/contexts/ModalProvider';
 import { useModalHardwareBack, useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useKnownVenues } from '@/hooks/useKnownVenues';
 import { useAppSettingsController } from '@/hooks/useAppSettingsController';
@@ -69,6 +69,14 @@ import { useNewGameSetupController } from '@/hooks/useNewGameSetupController';
 import { useTeamsQuery, useAllTeamsQuery } from '@/hooks/useTeamQueries';
 import { useOpponentRename } from '@/hooks/useOpponentRename';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import AttendanceSheet from '@/components/AttendanceSheet';
+// Not lazy: the wizard already bundles it, and a lazy layer that failed to
+// load would leave an empty full-screen layer with no way to close it.
+import PlanQuickView from '@/components/PlanQuickView';
+import { useQueryClient } from '@tanstack/react-query';
+import { useDataStore } from '@/hooks/useDataStore';
+import { queryKeys } from '@/config/queryKeys';
+import { Z_LAYER } from '@/styles/modalStyles';
 
 const TrainingResourcesModal = lazyModal(() => import('@/components/TrainingResourcesModal'));
 const RulesDirectoryModal = lazyModal(() => import('@/components/RulesDirectoryModal'));
@@ -93,6 +101,46 @@ export interface ClubModalsHostProps {
   /** The persisted current game was deleted - the page remounts a live match
    *  so it cannot keep autosaving a ghost. No-op on the start screen. */
   onActiveGameDeleted?: () => void;
+}
+
+/**
+ * The attendance sheet at host level. Its own component so the query client
+ * and the account are read only while it is open.
+ */
+function HostAttendanceSheet({ request, onClose, onLiveGameChanged }: {
+  request: AttendanceRequest;
+  onClose: () => void;
+  onLiveGameChanged?: (gameIds: string[]) => void;
+}) {
+  const queryClient = useQueryClient();
+  const { userId } = useDataStore();
+  return (
+    <AttendanceSheet
+      gameId={request.gameId}
+      mode={request.mode}
+      userId={userId}
+      onClose={onClose}
+      onSaved={(gameId) => {
+        // The live match, when it is this game (the planner's re-apply hook),
+        // and every saved-games reader.
+        onLiveGameChanged?.([gameId]);
+        void queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
+      }}
+      onStart={request.onStart}
+    />
+  );
+}
+
+/** The compact plan screen as a full-screen layer over Home. */
+function HostPlanQuickView({ target, onClose }: { target: PlanQuickViewTarget; onClose: () => void }) {
+  const { userId } = useDataStore();
+  // Hardware back closes the layer like any other surface.
+  useModalHardwareBack(true, onClose);
+  return (
+    <div className={`fixed inset-0 ${Z_LAYER.modal}`} data-testid="plan-quick-view-layer">
+      <PlanQuickView planId={target.planId} gameId={target.gameId} userId={userId} onDone={onClose} />
+    </div>
+  );
 }
 
 export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: ClubModalsHostProps = {}) {
@@ -131,6 +179,10 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     plannerTarget,
     setPlannerTarget,
     plannerLiveGameHooks,
+    attendanceRequest,
+    setAttendanceRequest,
+    planQuickViewTarget,
+    setPlanQuickViewTarget,
     isClubStatsOpen,
     setIsClubStatsOpen,
     clubStatsInitialTab,
@@ -150,7 +202,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   const seasonTournament = useSeasonTournamentManagement(isSeasonTournamentModalOpen);
   const personnelManager = usePersonnelManager();
   const rosterSettings = useRosterSettingsController();
-  const { data: teams = [] } = useTeamsQuery();
+  const { data: teams = [], isLoading: isTeamsLoading } = useTeamsQuery();
   const { data: allTeams = [] } = useAllTeamsQuery(isTeamManagerOpen);
   // The match registers this while mounted (L.3c hooks) - the crossings
   // reuse it to land pending edits before switching games.
@@ -272,8 +324,17 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   // form could flash an empty roster over a truly empty one.
   const showNoPlayersInsteadOfNewGame =
     isNewGameSetupModalOpen && !newGameSetup.isRosterLoading && newGameSetup.masterRoster.length === 0;
+  // The form's defaults (team, players, previous game, competition) are applied
+  // ONCE when it opens, so it also waits for the teams, games and competitions
+  // while they are LOADING (a cold start). A failed query is not loading: the
+  // form then opens with whatever loaded, never stuck.
+  const isNewGameDefaultsDataLoading =
+    isTeamsLoading || !!newGameSetup.isSavedGamesLoading || !!seasonTournament.isCompetitionsLoading;
   const showNewGameSetup =
-    isNewGameSetupModalOpen && !newGameSetup.isRosterLoading && !showNoPlayersInsteadOfNewGame;
+    isNewGameSetupModalOpen &&
+    !newGameSetup.isRosterLoading &&
+    !isNewGameDefaultsDataLoading &&
+    !showNoPlayersInsteadOfNewGame;
 
   // Roster modal's per-player stats shortcut: set the shared deep-link and
   // open the HOST-level club stats on the player tab (L.4) - no match mount.
@@ -480,6 +541,22 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
         confirmLabel={t('common.addPlayers', 'Add Players')}
         variant="primary"
       />
+      {/* "Ketkä ovat paikalla?" - from Home's next-game card or the match
+          menu before kick-off. A save that changed the game refreshes the
+          live match when it is the one on screen (the same hook the
+          planner's re-apply uses) and every saved-games reader. */}
+      {attendanceRequest && (
+        <HostAttendanceSheet
+          key={attendanceRequest.gameId}
+          request={attendanceRequest}
+          onClose={() => setAttendanceRequest(null)}
+          onLiveGameChanged={plannerLiveGameHooks?.onLinkedGamesUpdated}
+        />
+      )}
+      {/* Home's "Näytä peluutus": the one-game plan screen as a layer. */}
+      {planQuickViewTarget && (
+        <HostPlanQuickView target={planQuickViewTarget} onClose={() => setPlanQuickViewTarget(null)} />
+      )}
       {isPlaytimePlannerOpen && (
         <PlaytimePlannerModal
           isOpen

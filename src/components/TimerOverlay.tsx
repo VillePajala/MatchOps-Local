@@ -9,7 +9,6 @@ import { formatTime } from '@/utils/time';
 import SteadyDigits from '@/components/SteadyDigits';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
-import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { HiOutlineMicrophone, HiOutlineChevronDown, HiOutlineMinus, HiOutlinePlus } from 'react-icons/hi2';
 import { chipStyle, chipSelectedStyle, inlineFieldStyle, sectionLabelStyle } from '@/styles/modalStyles';
 import type { DictationControls } from '@/hooks/useDictationCapture';
@@ -30,6 +29,10 @@ interface TimerOverlayProps {
   onResetTimer: () => void;
   /** End the current period now (review 4.31). Shown while a period is in play. */
   onEndPeriod?: () => void;
+  /**
+   * The "Goal for us" button. The match host wires quick goal entry here (D16:
+   * the goal is logged at once, then "Who scored?"); the name is historical.
+   */
   onToggleGoalLogModal?: () => void;
   onOpenPlayerAssessmentModal?: () => void;
   /** Phase 1b (7c): the one CTA at game end - closes the overlay and opens the
@@ -64,12 +67,21 @@ interface TimerOverlayProps {
   gameType?: 'soccer' | 'futsal';
   onClose?: () => void;
   isLoaded: boolean;
-  /** Playing-Time Planner: the latest due group of planned subs, or null. */
-  plannedSubGroup?: PlannedSubGroup | null;
+  /**
+   * Playing-Time Planner: the next planned change to show (see
+   * usePlannedSubPrompts) - the latest due group, or the first one still ahead
+   * (`due: false`). A group without `due` is treated as due.
+   */
+  plannedSubGroup?: (PlannedSubGroup & { due?: boolean }) | null;
   /** How many earlier groups were also due (shown as "+N earlier"). */
   plannedSubsEarlier?: number;
   /** Kirjuri voice notes (PR 2): press-hold recorder controls; absent = feature not wired. */
   dictation?: DictationControls;
+  /**
+   * Shows "Reset sub timer" (D13). The basic layout will pass false to hide it;
+   * the full layout keeps it. Defaults to shown.
+   */
+  showSubTimerReset?: boolean;
 }
 
 /**
@@ -124,6 +136,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   isLoaded,
   plannedSubGroup = null,
   plannedSubsEarlier = 0,
+  showSubTimerReset = true,
 }) => {
   const { t } = useTranslation(); // Initialize translation hook
 
@@ -359,6 +372,18 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
     && extraPeriodsPlanned === 0 && continueAfterEnd === null && !isTimerRunning;
   const scoreLevel = homeScore === awayScore;
   const clockText = formatTime(timeElapsedInSeconds);
+  // Full time with somewhere to go (D3b): the hand-off is the one big action
+  // and the clock steps down to a small readout above it.
+  const finishMode = gameStatus === 'gameEnd' && Boolean(onFinishGame);
+  // The next planned change (D3c): the latest due group, amber, until the next
+  // one falls due; before the first is due, the upcoming one, quiet. Never
+  // after full time - the plan has nothing left to say then.
+  const shownSubGroup = gameStatus === 'gameEnd' ? null : plannedSubGroup;
+  const shownSubDue = shownSubGroup !== null && shownSubGroup.due !== false;
+  // A change planned for the end of a regulation period happens at the break.
+  const shownSubAtBreak = shownSubGroup !== null
+    && Array.from({ length: Math.max(0, numberOfPeriods - 1) }, (_, i) => periodEndSeconds(structure, i + 1))
+      .includes(shownSubGroup.timeSeconds);
 
   return (
     // Full screen over the pitch; the control capsule (z-40) floats over its
@@ -370,11 +395,6 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
       style={{ background: 'radial-gradient(110% 38% at 50% -8%, rgb(30 41 59 / 0.7) 0%, transparent 72%), rgb(15 23 42 / 0.975)' }}
     >
       <div className="w-full max-w-lg flex flex-col items-center">
-        <FirstVisitIntro
-          surface="timer"
-          className="w-full mb-4"
-          text={t('firstVisit.timer', 'Start and pause the clock here - goals and substitutions are logged from this view too.')}
-        />
         {/* Game Score Display - MOVED TO TOP ABOVE TIMER.
             3-column grid so long team names wrap inside their own column while
             the score stays fixed in the centre and vertically centred against
@@ -435,10 +455,10 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             and text size. The boxed width depends only on how many characters
             the clock has, never on which digits, so the size holds still
             while it ticks (it steps down once, at 100:00). */}
-        <div className="mb-1 w-full" style={{ containerType: 'inline-size' }}>
+        <div className="mb-1 w-full" style={{ containerType: 'inline-size' }} data-testid="timer-clock">
           <div
             className="flex justify-center whitespace-nowrap"
-            style={{ fontSize: `min(10rem, calc(100cqw / ${clockWidthEm(clockText)}))` }}
+            style={{ fontSize: finishMode ? '2.75rem' : `min(10rem, calc(100cqw / ${clockWidthEm(clockText)}))` }}
           >
             <SteadyDigits className={`block font-display italic font-extrabold leading-none tracking-[-0.01em] pr-[0.06em] ${clockAlertClass ?? 's1-numeral'}`}>
               {clockText}
@@ -482,6 +502,24 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           )}
         </div>
 
+        {/* Full time (D3b): one clear hand-off into "Finish this game", right
+            under the clock, which has stepped down to a small readout. */}
+        {finishMode && onFinishGame && (
+          <button
+            type="button"
+            onClick={() => { onClose?.(); onFinishGame(); }}
+            data-testid="timer-finish-game"
+            className={`${primaryActionStyle} w-full min-h-16 text-xl mb-4`}
+          >
+            {t('timerOverlay.finishGameButton', 'Finish this game')}
+            {finishProgress && (
+              <span className="text-sm font-semibold tabular-nums opacity-80" data-testid="timer-finish-progress">
+                {finishProgress.done}/{finishProgress.total}
+              </span>
+            )}
+          </button>
+        )}
+
         {/* Substitution interval adjuster, opened from the info line. */}
         {showIntervalAdjuster && (
           <div className="w-full mb-4 s1-list min-h-[60px] flex items-center justify-between gap-3 pl-[18px] pr-2">
@@ -514,7 +552,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             onClick={onStartPauseTimer}
             data-testid="tour-timer-startpause"
             disabled={startDisabled} // Game over (nothing left to play) OR not loaded
-            className={`${primaryActionStyle} flex-1 min-h-16 text-xl`}
+            className={`${finishMode ? secondaryActionStyle : primaryActionStyle} flex-1 ${finishMode ? 'min-h-14 text-base' : 'min-h-16 text-xl'}`}
             aria-label={isTimerRunning ? t('timerOverlay.pauseButton', 'Pause') : t('timerOverlay.startButton', 'Start')}
           >
             {isTimerRunning ? <FaPause size={18}/> : <FaPlay size={18}/>}
@@ -579,7 +617,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               />
               <span className="text-sm text-ink-3">{t('timerOverlay.minutesShort', 'min')}</span>
             </div>
-            <div className="flex gap-2 mt-3">
+            {/* Stacked on narrow phones: "Rangaistuslaukaukset" is one long word. */}
+            <div className="flex flex-col min-[400px]:flex-row gap-2 mt-3">
               <button
                 type="button"
                 data-testid="start-extra-time"
@@ -596,31 +635,42 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           </div>
         )}
 
-        {/* Planned subs (Playing-Time Planner): every change planned for the
-            latest due moment, as one block. No dismiss - it moves on by itself
-            when the next group falls due. Shown while the match is live
-            INCLUDING period breaks (half-time is exactly when planned subs
-            happen), but never before kick-off or after full time. */}
-        {plannedSubGroup && gameStatus !== 'notStarted' && gameStatus !== 'gameEnd' && (
+        {/* The next planned change (Playing-Time Planner, D3c): every change
+            planned for one moment, as one block. Persistent - no dismiss, no
+            "OK", and it records nothing: it moves on by itself when the next
+            group falls due. Amber while due, quiet while still ahead. Shown
+            before kick-off and through the breaks (half-time is exactly when
+            planned subs happen), never after full time. */}
+        {shownSubGroup && (
           <div
             role="status"
             data-testid="planned-sub-group"
-            className="w-full mb-3 s1-list p-4 text-left pointer-events-auto shadow-[inset_0_0_0_1px_rgb(255_178_36/0.45)]"
+            data-due={shownSubDue ? 'true' : 'false'}
+            className={`w-full mb-3 p-4 text-left rounded-[18px] ${
+              shownSubDue
+                ? 'bg-[linear-gradient(180deg,rgb(255_178_36/0.16),rgb(255_178_36/0.07))] shadow-[inset_0_0_0_1.5px_rgb(255_178_36/0.75)]'
+                : 's1-list'
+            }`}
           >
-            <div className="text-xs font-bold uppercase tracking-[0.14em] text-action">
-              {t('timerOverlay.plannedSubTitle', 'Planned subs')} · {formatTime(plannedSubGroup.timeSeconds)}
-              {plannedSubsEarlier > 0 && (
+            <div className={`text-xs font-bold uppercase tracking-[0.14em] ${shownSubDue ? 'text-action' : 'text-ink-3'}`}>
+              {t('timerOverlay.plannedSubTitle', 'Next change')} · {formatTime(shownSubGroup.timeSeconds)}
+              {shownSubAtBreak && (
+                <span className="normal-case tracking-normal"> ({t('timerOverlay.plannedSubAtBreak', 'at the break')})</span>
+              )}
+              {shownSubDue && plannedSubsEarlier > 0 && (
                 <span className="ml-2 normal-case tracking-normal font-medium text-ink-3">
                   {t('timerOverlay.plannedSubsEarlier', '+{{count}} earlier', { count: plannedSubsEarlier })}
                 </span>
               )}
             </div>
             <div className="mt-1 text-[15px] text-ink">
-              {t('timerOverlay.plannedSubsOn', 'On')}: {plannedSubGroup.inNames.join(', ')}
+              <span className="font-semibold text-ink-3 mr-1.5">{t('timerOverlay.plannedSubsOn', 'On')}:</span>
+              {shownSubGroup.inNames.join(', ')}
             </div>
-            {plannedSubGroup.outNames.length > 0 && (
+            {shownSubGroup.outNames.length > 0 && (
               <div className="text-[15px] text-ink-2">
-                {t('timerOverlay.plannedSubsOff', 'Off')}: {plannedSubGroup.outNames.join(', ')}
+                <span className="font-semibold text-ink-3 mr-1.5">{t('timerOverlay.plannedSubsOff', 'Off')}:</span>
+                {shownSubGroup.outNames.join(', ')}
               </div>
             )}
           </div>
@@ -630,22 +680,6 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         <div className="w-full mb-3 space-y-3">
           {/* Main Action Buttons Section */}
           <div className="flex flex-col gap-2.5">
-            {/* Game over: one hand-off into the Finish this game spine (7c). */}
-            {gameStatus === 'gameEnd' && onFinishGame && (
-              <button
-                type="button"
-                onClick={() => { onClose?.(); onFinishGame(); }}
-                data-testid="timer-finish-game"
-                className={`${primaryActionStyle} w-full`}
-              >
-                {t('timerOverlay.finishGameButton', 'Finish this game')}
-                {finishProgress && (
-                  <span className="text-sm font-semibold tabular-nums opacity-80" data-testid="timer-finish-progress">
-                    {finishProgress.done}/{finishProgress.total}
-                  </span>
-                )}
-              </button>
-            )}
             {/* Legacy fallback for hosts that do not wire onFinishGame. */}
             {gameStatus === 'gameEnd' && !onFinishGame && onOpenPlayerAssessmentModal && (
               <button
@@ -656,7 +690,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 {t('timerOverlay.assessPlayersButton', 'Assess players')}
               </button>
             )}
-            {/* Substitution made: a quiet pill, dimmed while the clock is stopped */}
+            {/* Reset sub timer (D13; was "Substitution made"): restarts the
+                interval countdown and records nothing about who came on. A
+                quiet pill, dimmed while the clock is stopped. Hidden where the
+                host says so (the basic layout). */}
+            {showSubTimerReset && (
             <div className="flex justify-center">
               <button 
                 onClick={handleConfirmSubClick}
@@ -665,9 +703,10 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 title={!(gameStatus === 'inProgress' && isTimerRunning) ? t('timerOverlay.disabledWhenPaused', 'Disabled while paused') ?? undefined : undefined}
                 className={`${secondaryActionStyle} w-full`}
               >
-                {t('timerOverlay.confirmSubButton', 'Substitution Made')}
+                {t('timerOverlay.confirmSubButton', 'Reset sub timer')}
               </button>
             </div>
+            )}
             
             {/* Kirjuri voice note (PR 2): one full-width press-hold row above
                 the goals - thumb-findable without looking. Release = stop.
@@ -738,12 +777,13 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 phone). */}
             <div className="grid grid-cols-[7fr_5fr] gap-2.5">
               <button
+                type="button"
                 onClick={onToggleGoalLogModal}
                 data-testid="tour-log-goal"
                 className={`${lightActionStyle} min-w-0 px-3 whitespace-nowrap`}
                 title={`${displayHomeTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >
-                {t('timerOverlay.teamGoalButton', 'Log Goal')}
+                {t('timerOverlay.teamGoalButton', 'Goal for us')}
               </button>
               <button 
                 onClick={handleOpponentGoalClick} 

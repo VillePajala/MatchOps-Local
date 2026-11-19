@@ -16,6 +16,7 @@ import {
   HiChevronDown,
   HiChevronRight,
   HiOutlineArchiveBox,
+  HiOutlineChevronLeft,
   HiOutlineArrowDownTray,
   HiOutlineArrowUpTray,
   HiOutlineDocumentDuplicate,
@@ -116,7 +117,6 @@ import PlayerSelectionSection from '@/components/PlayerSelectionSection';
 import PlanBalanceView from '@/components/PlanBalanceView';
 import type { PlaytimePlan, PlanSub, PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 import type { Player } from '@/types';
-import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { teamMemberIds, activePlayers } from '@/utils/gamePlayerList';
 
 interface PlaytimePlannerModalProps {
@@ -144,6 +144,20 @@ interface PlaytimePlannerModalProps {
   onTargetConsumed?: () => void;
   /** Open a real game created from the planned game. Absent = no jump offered. */
   onOpenGame?: (gameId: string) => void;
+  /**
+   * Reports the open plan after every change (Onboarding v3's compact plan
+   * screen opens this planner as a layer and must see the edits the moment it
+   * closes - its debounced save may still be in flight then). Optional; the
+   * planner behaves exactly the same without it.
+   */
+  onActivePlanChange?: (plan: PlaytimePlan) => void;
+  /**
+   * Opened as a layer over ONE plan (the compact plan screen's "Tarkempi
+   * muokkaus"): back / Escape from the plan closes the planner straight back
+   * to the caller instead of stepping out to the plan list first. Default
+   * false = the usual plan -> manager -> close ladder.
+   */
+  singlePlanLayer?: boolean;
 }
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
@@ -186,6 +200,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   initialTarget,
   onTargetConsumed,
   onOpenGame,
+  onActivePlanChange,
+  singlePlanLayer = false,
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -198,6 +214,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // stays in use to show players already in a plan.
   const pickableRoster = useMemo(() => activePlayers(roster), [roster]);
   const [activePlan, setActivePlan] = useState<PlaytimePlan | null>(null);
+  const onActivePlanChangeRef = useRef(onActivePlanChange);
+  onActivePlanChangeRef.current = onActivePlanChange;
+  useEffect(() => {
+    if (activePlan) onActivePlanChangeRef.current?.(activePlan);
+  }, [activePlan]);
   const [editingGameId, setEditingGameId] = useState<string | null>(null);
   const [planList, setPlanList] = useState<PlaytimePlan[]>([]);
   // Per-planned-game count of unplayed real games created from it (Phase 3.4 bulk
@@ -1533,7 +1554,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Whether the current view is a sub-level that a hardware back should STEP up
   // from (rather than close): a plan's tabs, or the setup form when there are
   // saved plans to return to.
-  const atSubLevel = isPlanTab(view) || (view === 'setup' && planList.length > 0);
+  const atSubLevel = (isPlanTab(view) && !singlePlanLayer) || (view === 'setup' && planList.length > 0);
 
   // Step up one internal level to the manager (from a plan or the setup form).
   const stepToManager = useCallback(() => {
@@ -1590,6 +1611,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // gesture back (the sub-level guard above). Hidden on phones that have
   // gesture/hardware back (desktop pointer / iOS standalone only).
   const showClose = useModalCloseVisible();
+  // Opened as a layer over the compact plan screen (Onboarding v3): where the X
+  // is hidden, a visible "Back" returns there - hardware back must not be the
+  // only way out of a screen a brand-new coach was sent into.
+  const showBack = singlePlanLayer && !showClose;
+  const headerSideSlot = showBack
+    ? 'w-24'
+    : showClose || (activePlan && view === 'plan') ? 'min-w-11' : 'w-0';
 
   // Open a plan from the manager (re-opening the already-loaded plan is instant).
   const handleOpenPlan = useCallback(
@@ -1631,7 +1659,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         setSubSheetTarget(null);
         return;
       }
-      if (isPlanTab(view)) {
+      if (isPlanTab(view) && !singlePlanLayer) {
         void handleBackToManager();
       } else {
         handleClose();
@@ -1639,7 +1667,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
+  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, subSheetTarget, actionsMenuId, handleBackToManager, singlePlanLayer]);
 
   const startNewPlan = () => {
     resetSetupForm(pickableRoster);
@@ -1712,16 +1740,28 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           line, and a 44px slot on the right holding the plan menu or an
           invisible spacer. The X fully closes from any view. */}
       <div className="flex-shrink-0 flex items-center gap-2 pt-8 pb-3 px-4">
-        <div className={`flex items-center justify-start ${showClose || (activePlan && view === 'plan') ? 'min-w-11' : 'w-0'} shrink-0`}>
-          <button
-            type="button"
-            onClick={handleClose}
-            aria-label={t('common.close', 'Close')}
-            title={t('common.close', 'Close')}
-            className={`${showClose ? 'flex' : 'hidden'} ${modalCloseButtonStyle}`}
-          >
-            <HiOutlineXMark className="w-5 h-5" />
-          </button>
+        <div className={`flex items-center justify-start ${headerSideSlot} shrink-0`}>
+          {showBack ? (
+            <button
+              type="button"
+              onClick={handleClose}
+              data-testid="planner-layer-back"
+              className="inline-flex min-h-11 items-center gap-1 rounded-full pr-3 text-ink-2 hover:text-ink transition-colors font-ui text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+            >
+              <HiOutlineChevronLeft className="w-5 h-5" aria-hidden="true" />
+              {t('common.back', 'Back')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleClose}
+              aria-label={t('common.close', 'Close')}
+              title={t('common.close', 'Close')}
+              className={`${showClose ? 'flex' : 'hidden'} ${modalCloseButtonStyle}`}
+            >
+              <HiOutlineXMark className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Header names what's on screen: tool name outside a plan; the ACTIVE
@@ -1766,7 +1806,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         </div>
 
         <div
-          className={`relative flex items-center justify-end ${showClose || (activePlan && view === 'plan') ? 'min-w-11' : 'w-0'} shrink-0`}
+          className={`relative flex items-center justify-end ${headerSideSlot} shrink-0`}
           ref={activePlan && view === 'plan' && actionsMenuId === PLAN_MENU_ID ? actionsMenuRef : null}
         >
           {/* The plan's ⋮ menu (Settings tab): export the plan to a file. */}
@@ -1802,13 +1842,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         </div>
       </div>
 
-      {view === 'manager' && (
-        <FirstVisitIntro
-          surface="planner"
-          className="mx-6 my-4"
-          text={t('firstVisit.planner', 'Plan substitutions and fair playing time for upcoming games - plans prefill new games.')}
-        />
-      )}
       {/* House pattern (TeamManager/RosterSettings): create-new is pinned under
           the header, not buried in the scroll. Importing a plan from a file is
           rare - it lives in the list's ⋮ menu. */}

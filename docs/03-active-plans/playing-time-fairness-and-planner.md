@@ -334,6 +334,18 @@ migration). (Status: **shipped**, reworked on `feat/playtime-3.5-link-store`.)
 4. **DONE (2026-07-12) - moved to footer (left) in field views. Undo/redo placement.** The undo/redo row as the first element of the game
    view breaks up the composition. Candidates: field-view toolbar row (with
    Sub/Clear/Auto-fill), floating corner buttons, or the footer.
+5. **OPEN (owner, 2026-11-19). A one-game plan from New Game - without hiding
+   the multi-game planner.** Raised during the onboarding-mock review: a coach
+   may want to plan a single game straight from New Game. Risk: every shortcut
+   to a one-game plan teaches that the planner is a single-game tool, while
+   planning several games together is its real value. Direction agreed for
+   later (not decided, needs thinking before building): (a) New Game offers
+   "Suunnittele tämä peli", which opens the NORMAL planner with this game in it
+   (no separate mini planner); (b) inside the planner an obvious "Lisää peli
+   samaan suunnitelmaan" puts the multi-game side in front of the coach where
+   they already are. Every route leads to the same planner. Related: the
+   onboarding plan screen's "Tarkempi muokkaus" link also opens the full
+   planner for the same game (onboarding decision C4).
 
 ## 11. Cloud sync for plans — design (drafted 2026-07-13, build after feature is perfected)
 

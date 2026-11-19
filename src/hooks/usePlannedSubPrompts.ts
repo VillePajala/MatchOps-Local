@@ -3,7 +3,9 @@
  *
  * Reads the planned sub schedule for the current game and, as the match clock
  * advances, returns the latest GROUP of planned subs that is due (every sub planned
- * for the same moment, e.g. six changes at half-time, is one group).
+ * for the same moment, e.g. six changes at half-time, is one group). Before the
+ * first group is due it returns the next group ahead of the clock instead, marked
+ * not due, so the timer always shows the next planned change (onboarding v3, D3c).
  *
  * A pure function of the clock and the schedule - advisory only. It never touches
  * the field, records nothing and keeps no state of its own:
@@ -29,9 +31,22 @@ export interface PlannedSubGroup {
   outNames: string[];
 }
 
+/** The group the timer shows, and whether its time has come. */
+export interface PlannedSubPrompt extends PlannedSubGroup {
+  /**
+   * True from the group's time until the next group falls due (shown amber);
+   * false for the first group while it is still ahead of the clock (quiet).
+   */
+  due: boolean;
+}
+
 export interface UsePlannedSubPromptsResult {
-  /** The latest group whose time has come, or null before the first one. */
-  current: PlannedSubGroup | null;
+  /**
+   * The next planned change to show: the latest group whose time has come
+   * (`due: true`), or before the first one, the first group ahead of the clock
+   * (`due: false`). Null when the game has no planned subs.
+   */
+  current: PlannedSubPrompt | null;
   /** How many earlier groups were also due (e.g. after reopening the app mid-game). */
   overdueEarlier: number;
 }
@@ -63,10 +78,14 @@ export function groupDueSubs(
   timeElapsedInSeconds: number,
   players: Player[],
 ): PlannedSubGroup[] {
+  return groupSubs(subs.filter((s) => s.timeSeconds <= timeElapsedInSeconds), players);
+}
+
+/** Groups subs by time (any time), resolving names; see groupDueSubs for the rules. */
+export function groupSubs(subs: PlannedGameSub[], players: Player[]): PlannedSubGroup[] {
   const nameById = new Map(players.map((p) => [p.id, p.name]));
   const byTime = new Map<number, PlannedSubGroup>();
   for (const s of subs) {
-    if (s.timeSeconds > timeElapsedInSeconds) continue;
     const inName = nameById.get(s.inPlayerId);
     if (!inName) continue;
     const group = byTime.get(s.timeSeconds) ?? { timeSeconds: s.timeSeconds, inNames: [], outNames: [] };
@@ -120,8 +139,12 @@ export function usePlannedSubPrompts(
 
   return useMemo<UsePlannedSubPromptsResult>(() => {
     const subs = loaded && loaded.gameId === gameId ? loaded.subs : [];
-    const due = groupDueSubs(subs, timeElapsedInSeconds, players);
-    if (due.length === 0) return { current: null, overdueEarlier: 0 };
-    return { current: due[due.length - 1], overdueEarlier: due.length - 1 };
+    const groups = groupSubs(subs, players);
+    const due = groups.filter((g) => g.timeSeconds <= timeElapsedInSeconds);
+    if (due.length > 0) {
+      return { current: { ...due[due.length - 1], due: true }, overdueEarlier: due.length - 1 };
+    }
+    const upcoming = groups.find((g) => g.timeSeconds > timeElapsedInSeconds);
+    return { current: upcoming ? { ...upcoming, due: false } : null, overdueEarlier: 0 };
   }, [loaded, gameId, timeElapsedInSeconds, players]);
 }

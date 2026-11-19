@@ -158,6 +158,10 @@ export type GameSessionAction =
   | { type: 'SET_DEMAND_FACTOR'; payload: number }
   | { type: 'ADD_GAME_EVENT'; payload: GameEvent }
   | { type: 'UPDATE_GAME_EVENT'; payload: GameEvent }
+  /** Name the scorer/assister of the goal just logged by quick goal entry (D16).
+   *  Same change as UPDATE_GAME_EVENT, but it joins the undo step that logged the
+   *  goal instead of starting its own (see useGameSessionWithHistory). */
+  | { type: 'AMEND_GAME_EVENT'; payload: GameEvent }
   | { type: 'DELETE_GAME_EVENT'; payload: string } // eventId (legacy - kept for tests)
   | { type: 'DELETE_GAME_EVENT_WITH_SCORE'; payload: GameEvent } // Atomic delete + score adjustment
   | { type: 'SET_TIMER_ELAPSED'; payload: number }
@@ -543,7 +547,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, demandFactor: action.payload };
     case 'ADD_GAME_EVENT':
       return { ...state, gameEvents: [...state.gameEvents, action.payload] };
-    case 'UPDATE_GAME_EVENT': {
+    case 'UPDATE_GAME_EVENT':
+    case 'AMEND_GAME_EVENT': {
       const index = state.gameEvents.findIndex(e => e.id === action.payload.id);
       if (index === -1) return state;
       const newGameEvents = [...state.gameEvents];

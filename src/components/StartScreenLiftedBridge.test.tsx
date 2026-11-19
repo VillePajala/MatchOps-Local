@@ -9,6 +9,9 @@ import '@testing-library/jest-dom';
 import StartScreenLiftedBridge from './StartScreenLiftedBridge';
 import ModalProvider, { useModalContext } from '@/contexts/ModalProvider';
 
+jest.mock('@/hooks/useAppLayout', () => ({ useAppLayout: () => 'full', useSetAppLayout: () => jest.fn() }));
+jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast: jest.fn() }) }));
+
 jest.mock('@/components/StartScreen', () => ({
   __esModule: true,
   default: (props: Record<string, (...args: unknown[]) => void>) => (
@@ -28,6 +31,7 @@ jest.mock('@/components/StartScreen', () => ({
       <button onClick={props.onViewStats}>tap-stats</button>
       <button onClick={() => props.onViewStatsTab?.('player')}>tap-player-stats</button>
       <button onClick={props.onGetStarted}>tap-get-started</button>
+      <button onClick={() => props.onOpenAttendance?.('g1', 'start')}>tap-attendance</button>
     </div>
   ),
 }));
@@ -46,6 +50,7 @@ function Probe() {
     ctx.isTrainingResourcesOpen && 'training',
     ctx.isRulesDirectoryOpen && 'rules',
     ctx.isSettingsModalOpen && `settings(${ctx.settingsInitialTab ?? 'default'})`,
+    ctx.attendanceRequest && `attendance(${ctx.attendanceRequest.gameId},${ctx.attendanceRequest.mode})`,
   ].filter(Boolean).join(',');
   return <div data-testid="probe">{open || 'none'}</div>;
 }
@@ -120,6 +125,13 @@ describe('StartScreenLiftedBridge (L.2)', () => {
     fireEvent.click(screen.getByText('tap-get-started'));
     expect(onGetStarted).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('probe')).toHaveTextContent('none');
+  });
+
+  /** Onboarding v3: the next-game card's "Aloita ottelu" opens the attendance sheet in start mode. */
+  it('attendance opens in place for the game, in the requested mode', () => {
+    renderBridge();
+    fireEvent.click(screen.getByText('tap-attendance'));
+    expect(screen.getByTestId('probe')).toHaveTextContent('attendance(g1,start)');
   });
 
   // A first-time user who adds players in the roster modal must graduate off the

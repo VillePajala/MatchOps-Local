@@ -113,6 +113,9 @@ const NO_HISTORY_ACTION_TYPES = [
   'CONTINUE_CLOCK',
   'END_PERIOD_OR_GAME',
   'PAUSE_TIMER',
+  // Naming a quick goal's scorer/assister (D16) amends the goal's own undo step
+  // in place: one Undo removes the goal with its names (see AMEND below).
+  'AMEND_GAME_EVENT',
 ] as const satisfies readonly ActionType[];
 export const NO_HISTORY_ACTIONS: ReadonlySet<string> = new Set<ActionType>(NO_HISTORY_ACTION_TYPES);
 
@@ -172,7 +175,19 @@ export function useGameSessionWithHistory(
   // chosen) runs no effect, and a flag left set would turn the next tick into an undo
   // step that reverts nothing.
   const pendingHistoryRef = useRef(false);
+  // Quick goal entry (D16) logs the goal first and names its scorer/assister a
+  // moment later. The names belong to the goal's undo step - one Undo must remove
+  // the goal, not just its scorer. AMEND_GAME_EVENT patches the current history
+  // entry in place, but only while that entry IS the goal's: the id of the event
+  // the latest coach action added, cleared by any other coach action, undo/redo or
+  // load. Otherwise the amend is an ordinary edit with its own undo step.
+  const amendableEventIdRef = useRef<string | null>(null);
+  // Set when an amend changed the state and the current entry must take it (same
+  // tick-proof flag pattern as pendingHistoryRef).
+  const pendingPatchRef = useRef(false);
   const [state, dispatch] = useReducer(gameSessionReducer, initialState);
+  const patchCurrentHistoryRef = useRef(patchCurrentHistory);
+  useEffect(() => { patchCurrentHistoryRef.current = patchCurrentHistory; }, [patchCurrentHistory]);
   const committedStateRef = useRef(state);
   useEffect(() => { committedStateRef.current = state; }, [state]);
 
@@ -180,13 +195,37 @@ export function useGameSessionWithHistory(
   const lastActionTypeRef = useRef<string | null>(null);
 
   // Enhanced dispatch that tracks action types
-  const enhancedDispatch: GameSessionDispatch = useCallback((action: GameSessionAction) => {
+  const enhancedDispatch: GameSessionDispatch = useCallback((incoming: GameSessionAction) => {
+    let action = incoming;
+    if (
+      action.type === 'AMEND_GAME_EVENT'
+      && (amendableEventIdRef.current !== action.payload.id || !patchCurrentHistoryRef.current)
+    ) {
+      // Not the event the latest coach action added (or no entry to amend): an
+      // ordinary edit.
+      action = { type: 'UPDATE_GAME_EVENT', payload: action.payload };
+    }
     lastActionTypeRef.current = action.type;
-    if (HISTORY_SAVING_ACTIONS.has(action.type)) {
+    if (action.type === 'AMEND_GAME_EVENT') {
+      const base = committedStateRef.current;
+      // A still-unsaved entry (pendingHistoryRef) takes the amend when it is saved.
+      if (!pendingHistoryRef.current && gameSessionReducer(base, action) !== base) {
+        pendingPatchRef.current = true;
+      }
+    } else if (HISTORY_SAVING_ACTIONS.has(action.type)) {
       const base = committedStateRef.current;
       if (gameSessionReducer(base, action) !== base) pendingHistoryRef.current = true;
+      if (action.type === 'ADD_GAME_EVENT') {
+        amendableEventIdRef.current = action.payload.id;
+      } else if (action.type !== 'ADJUST_SCORE_FOR_EVENT') {
+        // The goal's score adjustment is part of the same step; anything else
+        // starts a new one.
+        amendableEventIdRef.current = null;
+      }
     } else if (STATE_REPLACING_ACTIONS.has(action.type)) {
       pendingHistoryRef.current = false;
+      pendingPatchRef.current = false;
+      amendableEventIdRef.current = null;
     }
     dispatch(action);
   }, [dispatch]);
@@ -194,8 +233,6 @@ export function useGameSessionWithHistory(
   // Keep latest function refs stable to avoid effect churn when identities change upstream
   const buildHistorySliceRef = useRef(buildHistorySlice);
   const saveToHistoryRef = useRef(saveToHistory);
-  const patchCurrentHistoryRef = useRef(patchCurrentHistory);
-  useEffect(() => { patchCurrentHistoryRef.current = patchCurrentHistory; }, [patchCurrentHistory]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production' && !process.env.JEST_WORKER_ID && debug.enabled('history')) {
@@ -228,7 +265,15 @@ export function useGameSessionWithHistory(
     // (a clock tick) has become the last action since.
     if (pendingHistoryRef.current) {
       pendingHistoryRef.current = false;
+      pendingPatchRef.current = false;
       saveToHistoryRef.current(buildHistorySliceRef.current(state));
+      return;
+    }
+
+    // A quick goal's names join the goal's own entry (see amendableEventIdRef).
+    if (pendingPatchRef.current) {
+      pendingPatchRef.current = false;
+      patchCurrentHistoryRef.current?.({ gameEvents: state.gameEvents });
       return;
     }
 

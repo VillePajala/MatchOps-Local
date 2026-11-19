@@ -7,7 +7,6 @@ import { AuthProvider } from '@/contexts/AuthProvider';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import ReConsentModal from '@/components/ReConsentModal';
 import MarketingConsentPrompt from '@/components/MarketingConsentPrompt';
-import GuidedTourProvider from '@/contexts/GuidedTourProvider';
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import InstallPrompt from "@/components/InstallPrompt";
 import I18nInitializer from "@/components/I18nInitializer";
@@ -105,13 +104,9 @@ export default function RootLayout({
           <QueryProvider>
             <AuthProvider>
               <SubscriptionProvider>
-                {/* App-level so the marketing prompt (below) can defer to an
-                    active first-run tour instead of racing it. */}
-                <GuidedTourProvider>
-                  <ClientWrapper>{children}</ClientWrapper>
-                  <ReConsentModal />
-                  <MarketingConsentPrompt />
-                </GuidedTourProvider>
+                <ClientWrapper>{children}</ClientWrapper>
+                <ReConsentModal />
+                <MarketingConsentPrompt />
               </SubscriptionProvider>
             </AuthProvider>
           </QueryProvider>

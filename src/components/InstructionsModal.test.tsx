@@ -46,7 +46,7 @@ describe('InstructionsModal ("How it works", two-level rebuild)', () => {
 
   it('keeps the Match Mode field sections and the slim match menu', () => {
     renderModal();
-    expect(screen.getByText(i18n.t('firstGameGuide.playerSelection'))).toBeInTheDocument();
+    expect(screen.getByText(i18n.t('firstGameGuide.fieldTitle'))).toBeInTheDocument();
     expect(screen.getByText(i18n.t('appGuide.matchMenuTitle', 'The match menu'))).toBeInTheDocument();
     expand(i18n.t('appGuide.matchMenuTitle', 'The match menu'));
     expect(screen.getByText(i18n.t('firstGameGuide.backHomeTip'))).toBeInTheDocument();
@@ -57,5 +57,16 @@ describe('InstructionsModal ("How it works", two-level rebuild)', () => {
     // The retired sections' headings must be gone.
     expect(screen.queryByText(i18n.t('firstGameGuide.otherFeatures', 'Other Features'))).not.toBeInTheDocument();
     expect(screen.queryByText('Using the menu')).not.toBeInTheDocument();
+  });
+
+  it('describes select-and-place, quick goals and finishing, without tour or drag wording', () => {
+    renderModal();
+    expand(i18n.t('firstGameGuide.fieldTitle'));
+    expect(screen.getByText(i18n.t('firstGameGuide.fieldPlace'))).toBeInTheDocument();
+    expand(i18n.t('firstGameGuide.clockTitle'));
+    expect(screen.getByText(i18n.t('firstGameGuide.clockGoal'))).toBeInTheDocument();
+    expand(i18n.t('firstGameGuide.finishTitle'));
+    expect(screen.getByText(i18n.t('firstGameGuide.finishReport'))).toBeInTheDocument();
+    expect(screen.queryByText(/drag|raaha/i)).not.toBeInTheDocument();
   });
 });

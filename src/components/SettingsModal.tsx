@@ -43,6 +43,8 @@ import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE } fro
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
+import { useAppLayout, useSetAppLayout } from '@/hooks/useAppLayout';
+import type { AppLayout } from '@/types/settings';
 import AiSettingsCard from '@/components/AiSettingsCard';
 import CloudSyncSection from './CloudSyncSection';
 import TransitionOverlay from './TransitionOverlay';
@@ -146,6 +148,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { userId } = useDataStore();
+  // Perusnäkymä / Koko näkymä (Onboarding v3): the one layout control.
+  const appLayout = useAppLayout();
+  const setAppLayout = useSetAppLayout();
+  const handleAppLayoutChange = async (layout: AppLayout) => {
+    if (layout === appLayout) return;
+    if (!(await setAppLayout(layout))) {
+      showToast(t('settingsModal.saveSettingError', 'Failed to save setting. Please try again.'), 'error');
+    }
+  };
   const [teamName, setTeamName] = useState(defaultTeamName);
   // Committed on blur - and when the modal closes (review 4.17): back with the
   // cursor still in the field closed it without a blur and the name was lost.
@@ -703,6 +714,33 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   <option value="en">English</option>
                   <option value="fi">Suomi</option>
                 </select>
+              </div>
+              {/* Layout: basic or full - the only switch (no module switches, D21). */}
+              <div className={`${listRowStyle} py-3 pr-4 flex-col items-stretch gap-2`}>
+                <p className="font-ui text-base font-medium text-ink">
+                  {t('settingsModal.layoutLabel', 'Layout')}
+                </p>
+                <div className={segmentTrackStyle} role="group" aria-label={t('settingsModal.layoutLabel', 'Layout')}>
+                  {([
+                    ['basic', t('settingsModal.layoutBasic', 'Basic')],
+                    ['full', t('settingsModal.layoutFull', 'Full')],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      data-testid={`layout-${value}`}
+                      onClick={() => void handleAppLayoutChange(value)}
+                      aria-pressed={appLayout === value}
+                      disabled={!appLayout}
+                      className={appLayout === value ? segmentSelectedStyle : segmentStyle}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className={subtextStyle}>
+                  {t('settingsModal.layoutHint', 'The full layout shows every feature. Nothing is removed.')}
+                </p>
               </div>
               {/* Player assessments: off by default (owner decision 2026-09-09).
                   Ratings already recorded are kept; the style and metric

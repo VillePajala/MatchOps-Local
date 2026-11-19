@@ -14,7 +14,14 @@ import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as
 import { getPlans } from '@/utils/playtimePlanner/storage';
 import { buildVenueBook, type KnownVenue } from '@/utils/venueBook';
 import { todayIso } from '@/utils/todayIso';
-import { defaultIsPlayed } from '@/utils/matchPlayedDefault';
+import { newGameIsPlayedDefault } from '@/utils/matchPlayedDefault';
+import {
+  buildNewGameDefaults,
+  gamesNewestFirst,
+  previousGameOfTeam,
+  resolveFormation,
+  venueFor,
+} from '@/utils/newGameDefaults';
 import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
@@ -44,8 +51,7 @@ import {
   segmentStyle,
   segmentSelectedStyle,
 } from '@/styles/modalStyles';
-import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
+import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize, type FieldSize } from '@/config/formationPresets';
 import { officialFieldSize } from '@/config/officialFieldSize';
 import { getStoredSetupAgeGroup, getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
 import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
@@ -235,6 +241,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [periodDurationError, setPeriodDurationError] = useState<string | null>(null);
   const [customLeagueError, setCustomLeagueError] = useState<string | null>(null);
   const teamSelectionRequestRef = useRef<number>(0); // Track current team selection request
+  /** The team name was set by the defaults or typed: the late "last team name" read keeps off it. */
+  const homeNameLockedRef = useRef(false);
+  /** The venue came from the previous game and is untouched, so a home/away flip may swap it. */
+  const venueFromDefaultsRef = useRef(false);
+  /** Assigned every render below (it closes over the handlers); run once per opening. */
+  const applyNewGameDefaultsRef = useRef<() => void>(() => {});
 
   // State for season/tournament selection
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
@@ -264,13 +276,17 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
    * Derived rather than stored so that an explicit toggle still wins and
    * changing the date afterwards still updates the default - and so there is
    * no setState in an effect to cascade renders.
+   *
+   * Onboarding v3 (owner): the switch starts OFF - today and past dates default
+   * to played, because this form opens the match. A FUTURE date still defaults
+   * to not played; see `newGameIsPlayedDefault`.
    */
   const [isPlayedOverride, setIsPlayedOverride] = useState<boolean | null>(null);
   const today = todayIso();
-  const isPlayed = isPlayedOverride ?? defaultIsPlayed(gameDate, today);
+  const isPlayed = isPlayedOverride ?? newGameIsPlayedDefault(gameDate, today);
   const setIsPlayed = (next: boolean | ((v: boolean) => boolean)) =>
     setIsPlayedOverride((prev) => {
-      const current = prev ?? defaultIsPlayed(gameDate, today);
+      const current = prev ?? newGameIsPlayedDefault(gameDate, today);
       return typeof next === 'function' ? next(current) : next;
     });
   const [isFriendly, setIsFriendly] = useState<boolean>(false);
@@ -306,35 +322,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // under the coach mid-edit.
   const onboardingUserIdRef = useRef(onboardingUserId);
   onboardingUserIdRef.current = onboardingUserId;
-  /**
-   * The official format for this age group, when there is one worth naming.
-   *
-   * Only appears once the coach has given an age group AND the chosen
-   * formation disagrees with it - a hint that restates what you already picked
-   * is noise. It never blocks or changes the choice: a series may deviate from
-   * the national default, and the coach is the one who knows.
-   *
-   * Dated by the GAME, not by today, so a fixture scheduled into next season
-   * gets next season's answer. Football's new formats do not start until
-   * season 2027, and until then this says nothing for football rather than
-   * claiming a U10 team should be playing 5v5 when their league still says
-   * 8v8 (see config/officialFieldSize).
-   */
-  const preferredFormationSize =
-    getStoredSetupFormat(onboardingUserId) ?? getRecommendedFieldSize(selectedPlayerIds.length);
-
-  /**
-   * The official format, only when it disagrees with what is selected.
-   * null = nothing to say: no age group, no table in force yet, or they match.
-   */
-  const formatMismatch = useMemo(() => {
-    const official = officialFieldSize(ageGroup, gameType, gameDate);
-    if (!official) return null;
-    const chosen = formationPresetId ? getPresetById(formationPresetId)?.fieldSize : undefined;
-    const effective = chosen ?? preferredFormationSize;
-    return effective === official.fieldSize ? null : official;
-  }, [ageGroup, gameType, gameDate, formationPresetId, preferredFormationSize]);
-
   // Playing-Time Planner prefill (Phase 2): pick a saved plan + one of its games to
   // pre-load the planned lineup. Payload rides onStart; missing-count drives a hint.
   const [playtimePlans, setPlaytimePlans] = useState<PlaytimePlan[]>([]);
@@ -359,6 +346,74 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [isTeamNameAutoFilled, setIsTeamNameAutoFilled] = useState<boolean>(false);
 
+  /**
+   * The player selection was changed by hand. Two jobs: a roster that arrives
+   * late from the defaults must not overwrite the coach's edit, and the player
+   * COUNT only starts to suggest a format once the coach has chosen the squad
+   * (a defaulted selection is the whole team - see resolveFormation).
+   */
+  const [playersTouched, setPlayersTouched] = useState(false);
+  const playersTouchedRef = useRef(false);
+  const handleSelectedPlayersChange = useCallback((ids: string[]) => {
+    playersTouchedRef.current = true;
+    setPlayersTouched(true);
+    setSelectedPlayerIds(ids);
+  }, []);
+
+  /**
+   * The format shown and created with, from ONE precedence (utils/newGameDefaults):
+   * explicit pick -> plan prefill -> the team's previous game -> the wizard's
+   * Pelimuoto -> the official format for the age group -> the player count
+   * (only once the coach has edited the selection). The wizard's answer is
+   * DELIBERATELY permanent, not first-game-only: it describes the TEAM's format
+   * (review #742 issue 3). Null = "Automatic".
+   */
+  const teamPreviousGame = useMemo(
+    () => previousGameOfTeam(savedGames, selectedTeamId),
+    [savedGames, selectedTeamId],
+  );
+  const resolvedFormation = useMemo(
+    () =>
+      resolveFormation({
+        planSnapPoints: prefillPayload?.formationSnapPoints,
+        previousGame: teamPreviousGame,
+        storedFormat: getStoredSetupFormat(onboardingUserId),
+        ageGroup,
+        sport: gameType,
+        gameDate,
+        playerCount: selectedPlayerIds.length,
+        playersTouched,
+      }),
+    [prefillPayload, teamPreviousGame, onboardingUserId, ageGroup, gameType, gameDate, selectedPlayerIds.length, playersTouched],
+  );
+  const explicitPreset = formationPresetId ? getPresetById(formationPresetId) : undefined;
+  /** The size tagged "Recommended" and used when the coach leaves "Automatic". */
+  const preferredFormationSize: FieldSize =
+    resolvedFormation?.fieldSize ?? getRecommendedFieldSize(selectedPlayerIds.length);
+
+  /**
+   * The official format for this age group, when there is one worth naming.
+   *
+   * Only appears once the coach has given an age group AND the chosen
+   * formation disagrees with it - a hint that restates what you already picked
+   * is noise. It never blocks or changes the choice: a series may deviate from
+   * the national default, and the coach is the one who knows.
+   *
+   * Dated by the GAME, not by today, so a fixture scheduled into next season
+   * gets next season's answer. Football's new formats do not start until
+   * season 2027, and until then this says nothing for football rather than
+   * claiming a U10 team should be playing 5v5 when their league still says
+   * 8v8 (see config/officialFieldSize).
+   *
+   * null = nothing to say: no age group, no table in force yet, or they match.
+   */
+  const formatMismatch = useMemo(() => {
+    const official = officialFieldSize(ageGroup, gameType, gameDate);
+    if (!official) return null;
+    const effective = explicitPreset?.fieldSize ?? preferredFormationSize;
+    return effective === official.fieldSize ? null : official;
+  }, [ageGroup, gameType, gameDate, explicitPreset, preferredFormationSize]);
+
   // Confirmation modal state
   const [showManageRosterConfirm, setShowManageRosterConfirm] = useState(false);
   const [emptyRosterTeamId, setEmptyRosterTeamId] = useState<string | null>(null);
@@ -368,14 +423,16 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const initializingRef = useRef(false);
 
   // "Repeat last game": the most recent saved game (by createdAt, fall back to
-  // updatedAt), used to quick-fill the non-cascading fields below.
-  const lastGame = useMemo(() => {
-    const games = savedGames ? Object.values(savedGames) : [];
-    if (games.length === 0) return null;
-    return [...games].sort((a, b) =>
-      (b.createdAt ?? b.updatedAt ?? '').localeCompare(a.createdAt ?? a.updatedAt ?? '')
-    )[0] ?? null;
-  }, [savedGames]);
+  // updatedAt), used to quick-fill the non-cascading fields below. Team-aware:
+  // with a team selected it is THAT team's last game, so repeating never pulls
+  // another team's opponent and squad into this one.
+  const lastGame = useMemo(
+    () =>
+      selectedTeamId
+        ? previousGameOfTeam(savedGames, selectedTeamId)
+        : gamesNewestFirst(savedGames)[0] ?? null,
+    [savedGames, selectedTeamId],
+  );
 
   /**
    * The venues this coach has actually played at, offered ahead of any map
@@ -441,6 +498,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // No team selected - start with no players pre-selected
       setSelectedPlayerIds([]);
     }
+    playersTouchedRef.current = false;
+    setPlayersTouched(false);
+    setFormationPresetId(null);
     setSelectedPersonnelIds([]);
     setActiveTab('none');
     // The coach's own Ikäluokka answer from the setup wizard, if they gave
@@ -462,6 +522,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     if (isOpen && !wasOpenRef.current && !initializingRef.current) {
       initializingRef.current = true;
       resetForm();
+      homeNameLockedRef.current = false;
+      venueFromDefaultsRef.current = false;
+      // The coach's team, its players and its previous game's settings (D6).
+      // Once per opening: the host renders this form only after the teams,
+      // games and competitions have loaded, and nothing re-applies it later
+      // over the coach's edits.
+      applyNewGameDefaultsRef.current();
 
       // Reset + load Playing-Time Planner plans for the optional "Prefill from plan".
       setPrefillPlanId('');
@@ -489,9 +556,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       const loadLastTeamName = async () => {
         try {
           const lastHomeTeam = await utilGetLastHomeTeamName();
+          // A slow read must not overwrite the preselected team's name or
+          // anything the coach typed meanwhile.
+          if (homeNameLockedRef.current) return;
           setHomeTeamName(lastHomeTeam || t('newGameSetupModal.defaultTeamName', 'My Team'));
         } catch (err) {
           logger.error("[NewGameSetupModal] Error loading last home team name:", err);
+          if (homeNameLockedRef.current) return;
           setHomeTeamName(t('newGameSetupModal.defaultTeamName', 'My Team'));
         }
       };
@@ -813,6 +884,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const handleSeasonChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value) {
+      venueFromDefaultsRef.current = false;
       setSelectedSeasonId(value);
       setSelectedTournamentId(null);
       applySeasonSettings(value);
@@ -822,8 +894,44 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     }
   };
 
-  // Team selection handler with roster auto-load and name auto-fill
-  const handleTeamSelection = async (teamId: string | null) => {
+  /**
+   * Fill the form from the team's bound competition. Synchronous, so the
+   * defaults can apply their overrides after it (see applyNewGameDefaults).
+   */
+  const applyTeamBoundCompetition = (team: Team) => {
+    if (team.boundSeasonId) {
+      setSelectedSeasonId(team.boundSeasonId);
+      setSelectedTournamentId(null);
+      applySeasonSettings(team.boundSeasonId);
+    } else if (team.boundTournamentId) {
+      setSelectedTournamentId(team.boundTournamentId);
+      setSelectedSeasonId(null);
+      applyTournamentSettings(team.boundTournamentId);
+
+      // Also apply team's specific series if bound to one
+      const series = getTeamBoundSeries(team, tournaments);
+      if (series) {
+        setSelectedTournamentSeriesId(series.id);
+        setTournamentLevel(series.level);
+      }
+    }
+  };
+
+  /**
+   * Team selection: name and bound competition at once, then the team's
+   * players once its roster has loaded.
+   *
+   * @param options.fromDefaults the form preselected this team on opening (not
+   *   a tap): no empty-roster prompt, the competition is left to the defaults,
+   *   and a roster arriving after the coach has edited the selection is ignored.
+   * @param options.keepPlayers an explicit selection (in-match "new game")
+   *   wins over the team's roster.
+   */
+  const handleTeamSelection = async (
+    teamId: string | null,
+    options: { fromDefaults?: boolean; keepPlayers?: boolean } = {},
+  ) => {
+    const { fromDefaults = false, keepPlayers = false } = options;
     // Increment request counter to track this request
     const requestId = ++teamSelectionRequestRef.current;
 
@@ -840,8 +948,23 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     }
 
     setSelectedTeamId(teamId);
-    
+
     if (teamId) {
+      // Auto-fill team name (but keep it editable) and the team's bound
+      // competition BEFORE the roster await, so nothing that follows (the
+      // defaults' overrides, the coach's own edits) can be overwritten by it.
+      const team = teams.find(t => t.id === teamId);
+      if (team) {
+        setHomeTeamName(team.name);
+        setIsTeamNameAutoFilled(true);
+        homeNameLockedRef.current = true;
+        if (!fromDefaults) {
+          venueFromDefaultsRef.current = false;
+          applyTeamBoundCompetition(team);
+        }
+      }
+      if (keepPlayers) return;
+
       try {
         // Load team roster
         const teamRoster = await getTeamRoster(teamId);
@@ -850,12 +973,15 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         if (requestId !== teamSelectionRequestRef.current) {
           return; // A newer request has been made, abandon this one
         }
+        // The coach already chose the squad while the roster loaded: keep theirs.
+        if (fromDefaults && playersTouchedRef.current) return;
 
         // Always show master roster from props, but pre-select only team players
         setAvailablePlayersForSetup(pickableRoster);
 
         if (teamRoster && teamRoster.length > 0) {
-          // Pre-select the team's players: by id, with a name fallback for old rosters
+          // Pre-select the team's players: by id, with a per-player name
+          // fallback for rosters whose ids never matched (duplicated teams)
           const selectedIds = teamMemberIds(teamRoster, pickableRoster);
 
           setSelectedPlayerIds(selectedIds);
@@ -863,38 +989,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           // Team roster is empty - no players pre-selected
           setSelectedPlayerIds([]);
 
-          // Optionally prompt user to manage roster
-          setEmptyRosterTeamId(teamId);
-          setShowManageRosterConfirm(true);
-        }
-
-        // Check if this is still the current request before updating team name
-        if (requestId !== teamSelectionRequestRef.current) {
-          return;
-        }
-
-        // Auto-fill team name (but keep it editable)
-        const team = teams.find(t => t.id === teamId);
-        if (team) {
-          setHomeTeamName(team.name);
-          setIsTeamNameAutoFilled(true);
-
-          // Auto-apply team's bound season/tournament settings
-          if (team.boundSeasonId) {
-            setSelectedSeasonId(team.boundSeasonId);
-            setSelectedTournamentId(null);
-            applySeasonSettings(team.boundSeasonId);
-          } else if (team.boundTournamentId) {
-            setSelectedTournamentId(team.boundTournamentId);
-            setSelectedSeasonId(null);
-            applyTournamentSettings(team.boundTournamentId);
-
-            // Also apply team's specific series if bound to one
-            const series = getTeamBoundSeries(team, tournaments);
-            if (series) {
-              setSelectedTournamentSeriesId(series.id);
-              setTournamentLevel(series.level);
-            }
+          // Prompt to manage the roster - only when the coach picked the team.
+          if (!fromDefaults) {
+            setEmptyRosterTeamId(teamId);
+            setShowManageRosterConfirm(true);
           }
         }
       } catch (error) {
@@ -904,6 +1002,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         if (requestId !== teamSelectionRequestRef.current) {
           return;
         }
+        if (fromDefaults && playersTouchedRef.current) return;
 
         // Fallback to master roster on error
         setAvailablePlayersForSetup(pickableRoster);
@@ -923,6 +1022,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   };
 
   const handleTeamNameChange = (newName: string) => {
+    homeNameLockedRef.current = true;
     setHomeTeamName(newName);
     if (homeTeamError) setHomeTeamError(null);
     // If user manually changes the name, it's no longer auto-filled
@@ -978,9 +1078,80 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     }
   }, [tournaments, prefillPayload]);
 
+  /**
+   * The form's starting values (Onboarding v3, D6/D7/D26) - see
+   * utils/newGameDefaults for the rules. Order matters: team (name, players)
+   * -> competition (the previous game's, else the team's bound one) -> the
+   * previous game's own values last, because applying a competition
+   * overwrites venue, periods and age group.
+   */
+  applyNewGameDefaultsRef.current = () => {
+    const defaults = buildNewGameDefaults({
+      teams,
+      games: savedGames,
+      seasons,
+      tournaments,
+      fallbackAgeGroup: getStoredSetupAgeGroup(onboardingUserIdRef.current) ?? undefined,
+    });
+    const team = defaults.teamId ? teams.find((t) => t.id === defaults.teamId) : undefined;
+    if (team) {
+      void handleTeamSelection(team.id, {
+        fromDefaults: true,
+        keepPlayers: !!initialPlayerSelection && initialPlayerSelection.length > 0,
+      });
+    }
+
+    const competition = defaults.competition;
+    if (competition?.kind === 'season') {
+      setSelectedSeasonId(competition.id);
+      setSelectedTournamentId(null);
+      applySeasonSettings(competition.id);
+    } else if (competition?.kind === 'tournament') {
+      setSelectedTournamentId(competition.id);
+      setSelectedSeasonId(null);
+      applyTournamentSettings(competition.id);
+      const series = competition.seriesId
+        ? tournaments.find((tt) => tt.id === competition.id)?.series?.find((se) => se.id === competition.seriesId)
+        : undefined;
+      if (series) {
+        setSelectedTournamentSeriesId(series.id);
+        setTournamentLevel(series.level);
+      }
+    } else if (team) {
+      applyTeamBoundCompetition(team);
+    }
+
+    if (defaults.periods) {
+      setLocalNumPeriods(defaults.periods.numberOfPeriods);
+      setLocalPeriodDurationString(String(defaults.periods.periodMinutes));
+    }
+    if (defaults.homeOrAway) setLocalHomeOrAway(defaults.homeOrAway);
+    if (defaults.venue) {
+      handleVenueChange(defaults.venue);
+      setFieldNumber('');
+      venueFromDefaultsRef.current = true;
+    }
+    if (defaults.ageGroup) setAgeGroup(defaults.ageGroup);
+    if (defaults.gameType) setGameType(defaults.gameType);
+  };
+
+  /**
+   * Home / away. A venue that came from the previous game belongs to that
+   * game's side (D26), so flipping the side swaps it for the team's last venue
+   * on the new side, or clears it - unless the coach has changed the venue.
+   */
+  const handleHomeOrAwayChange = (side: 'home' | 'away') => {
+    setLocalHomeOrAway(side);
+    if (side === localHomeOrAway || !venueFromDefaultsRef.current) return;
+    const venue = venueFor(savedGames, selectedTeamId, side);
+    handleVenueChange(venue ?? { name: '' });
+    setFieldNumber('');
+  };
+
   const handleTournamentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value) {
+      venueFromDefaultsRef.current = false;
       setSelectedTournamentId(value);
       setSelectedSeasonId(null);
       applyTournamentSettings(value); // handles series/level internally
@@ -1088,10 +1259,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       prefillPayload, // Planner prefill (Phase 2): planned XI + subs, or undefined
       isFriendly, // Friendly / practice match flag
       // Any KNOWN preset is valid regardless of squad size (owner round 6);
-      // unknown/absent ids fall back to the recommended size's default.
-      formationPresetId && getPresetById(formationPresetId)
-        ? formationPresetId
-        : getDefaultPresetIdForSize(preferredFormationSize),
+      // then the resolved default; "Automatic" falls back to the squad size.
+      explicitPreset?.id ?? resolvedFormation?.presetId ?? getDefaultPresetIdForSize(preferredFormationSize),
     );
 
     // Modal will be closed by parent component after onStart
@@ -1170,12 +1339,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 {t('newGameSetupModal.repeatLastGame', 'Repeat last game')}
               </button>
             )}
-            {/* First-visit note above the first section (the old cards' negative
-                margins that once made its placement matter are gone). */}
-            <FirstVisitIntro
-              surface="game-setup"
-              text={t('firstVisit.gameSetup', 'Pick your team - a league or tournament can be added now or later.')}
-            />
             {/* SECTION 1: Teams & Roster - a section label over one solid
                 list surface; the player and personnel pickers follow as their
                 own lists instead of nesting inside this card. */}
@@ -1331,7 +1494,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               <PlayerSelectionSection
                 availablePlayers={availablePlayersForSetup}
                 selectedPlayerIds={selectedPlayerIds}
-                onSelectedPlayersChange={setSelectedPlayerIds}
+                onSelectedPlayersChange={handleSelectedPlayersChange}
                 title={t('newGameSetupModal.selectPlayers', 'Select Players')}
                 playersSelectedText={t('newGameSetupModal.playersSelected', 'selected')}
                 selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
@@ -1356,6 +1519,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         setAvailablePlayersForSetup((prev) =>
                           prev.some((p) => p.id === saved.id) ? prev : [...prev, saved],
                         );
+                        playersTouchedRef.current = true;
+                        setPlayersTouched(true);
                         setSelectedPlayerIds((prev) => [...prev, saved.id]);
                         return true as const;
                       }
@@ -1594,21 +1759,22 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                      5v5 with subs); the player count only PRESELECTS and tags
                      the recommended size's default. Unknown/stale ids fall
                      back to that default. */
-                  value={
-                    formationPresetId && getPresetById(formationPresetId)
-                      ? formationPresetId
-                      : getDefaultPresetIdForSize(preferredFormationSize)
-                  }
-                  onChange={(e) => setFormationPresetId(e.target.value)}
+                  value={explicitPreset?.id ?? resolvedFormation?.presetId ?? ''}
+                  onChange={(e) => setFormationPresetId(e.target.value || null)}
                   className={selectStyle}
                 >
+                  {/* Nothing to go on yet (no previous game, no age group, the
+                      squad not chosen by hand): say so rather than tag a guess
+                      such as "3v3 1-1 · Recommended" at zero players. */}
+                  {!explicitPreset && !resolvedFormation && (
+                    <option value="">{t('newGameSetupModal.formationAuto', 'Automatic')}</option>
+                  )}
                   {FIELD_SIZES.map((size) => (
                     <optgroup key={size} label={size}>
                       {PRESETS_BY_SIZE[size].map((preset) => (
                         <option key={preset.id} value={preset.id}>
                           {t(preset.labelKey, preset.name)}
-                          {preset.id ===
-                          getDefaultPresetIdForSize(preferredFormationSize)
+                          {resolvedFormation && preset.id === getDefaultPresetIdForSize(resolvedFormation.fieldSize)
                             ? ` · ${t('formations.recommended', 'Recommended')}`
                             : ''}
                         </option>
@@ -1743,7 +1909,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           longitude={locationLng}
                           address={locationAddress}
                           knownVenues={knownVenues}
-                          onChange={handleVenueChange}
+                          onChange={(venue) => {
+                            venueFromDefaultsRef.current = false;
+                            handleVenueChange(venue);
+                          }}
                           onKeyDown={handleKeyDown}
                           className={inputBaseStyle}
                         />
@@ -1787,14 +1956,14 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 </label>
                 <div className={segmentTrackStyle}>
                   <button
-                    onClick={() => setLocalHomeOrAway('home')}
+                    onClick={() => handleHomeOrAwayChange('home')}
                     aria-pressed={localHomeOrAway === 'home'}
                     className={localHomeOrAway === 'home' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.home', 'Home')}
                   </button>
                   <button
-                    onClick={() => setLocalHomeOrAway('away')}
+                    onClick={() => handleHomeOrAwayChange('away')}
                     aria-pressed={localHomeOrAway === 'away'}
                     className={localHomeOrAway === 'away' ? segmentSelectedStyle : segmentStyle}
                   >

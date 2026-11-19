@@ -1,6 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 // The assessment setting is on here: these tests assert the handlers are wired.
 jest.mock('@/hooks/useAssessmentsEnabled', () => ({ useAssessmentsEnabled: () => true }));
+// The account's layout (Onboarding v3); 'full' unless a test says otherwise.
+let mockAppLayout: 'basic' | 'full' | undefined = 'full';
+jest.mock('@/hooks/useAppLayout', () => ({ useAppLayout: () => mockAppLayout }));
 import type { ReactNode } from 'react';
 import { FieldContainer } from './FieldContainer';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
@@ -8,7 +11,9 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 import { TestFixtures } from '../../../../tests/fixtures';
 
 jest.mock('@/components/TimerOverlay', () => {
-  const TimerOverlay = () => <div data-testid="timer-overlay" />;
+  const TimerOverlay = ({ showSubTimerReset }: { showSubTimerReset?: boolean }) => (
+    <div data-testid="timer-overlay" data-sub-timer-reset={String(showSubTimerReset)} />
+  );
   TimerOverlay.displayName = 'TimerOverlay';
   return { __esModule: true, default: TimerOverlay };
 });
@@ -203,7 +208,7 @@ const baseProps = () => ({
   onWentToPenaltiesChange: jest.fn(),
   timerInteractions: {
     toggleLargeOverlay: jest.fn(),
-    toggleGoalLogModal: jest.fn(),
+    quickGoal: jest.fn(),
     onOpenPlayerAssessmentModal: jest.fn(),
     logOpponentGoal: jest.fn(),
     substitutionMade: jest.fn(),
@@ -214,6 +219,21 @@ const baseProps = () => ({
 });
 
 describe('FieldContainer', () => {
+  afterEach(() => {
+    mockAppLayout = 'full';
+  });
+
+  /** Onboarding v3 (D13): the basic layout has no "Nollaa vaihtoajastin". */
+  it('hides the sub-timer reset on the timer in the basic layout only', () => {
+    const withOverlay = () => ({ ...baseProps(), timerVM: { ...baseProps().timerVM, showLargeTimerOverlay: true } });
+    const { unmount } = render(<FieldContainer {...withOverlay()} />);
+    expect(screen.getByTestId('timer-overlay')).toHaveAttribute('data-sub-timer-reset', 'true');
+    unmount();
+    mockAppLayout = 'basic';
+    render(<FieldContainer {...withOverlay()} />);
+    expect(screen.getByTestId('timer-overlay')).toHaveAttribute('data-sub-timer-reset', 'false');
+  });
+
   it('suggests roster creation when no players exist', () => {
     render(<FieldContainer {...baseProps()} />);
     expect(screen.getByText('Set Up Team Roster')).toBeInTheDocument();

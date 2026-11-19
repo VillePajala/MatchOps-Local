@@ -159,6 +159,7 @@ interface TestProps {
   onAddGoal?: jest.Mock;
   onOpenAssessments?: jest.Mock;
   onExportOneExcel?: jest.Mock;
+  onOpenGameSettings?: jest.Mock;
   onUpdateGameEvent: jest.Mock;
   onExportOneJson: jest.Mock;
   onExportOneCsv: jest.Mock;
@@ -1192,7 +1193,13 @@ describe('GameStatsModal', () => {
         el.getAttribute('data-testid'),
       );
 
-    it('renders the six steps in the plan order when every handler is wired', async () => {
+    /**
+     * Onboarding v3 (D3a, C9): result and the quick squad/goals check, then the
+     * amber match sheet, then the match report with its Share, then the rest.
+     * No step numbers.
+     * @critical
+     */
+    it('renders the finish screen in the approved order with no step numbers', async () => {
       renderComponent({
         ...getDefaultProps(),
         onPlayerPositionsChange: jest.fn(),
@@ -1201,9 +1208,38 @@ describe('GameStatsModal', () => {
         onExportOneExcel: jest.fn(),
       });
       await tabReady();
-      expect(stepKeys()).toEqual(['spine-goals', 'spine-notes', 'spine-positions', 'spine-report', 'spine-assessments', 'spine-share']);
-      expect(screen.getByText('Step 1 of 6')).toBeInTheDocument();
-      expect(screen.getByText('Step 6 of 6')).toBeInTheDocument();
+      await waitFor(() => expect(stepKeys()).toContain('spine-assessments'));
+      expect(stepKeys()).toEqual([
+        'spine-goals', 'spine-taso', 'spine-report', 'spine-checklist',
+        'spine-notes', 'spine-positions', 'spine-assessments', 'spine-export',
+      ]);
+      expect(screen.queryByText(/Step \d+ of \d+/)).not.toBeInTheDocument();
+      // The match sheet is the one amber action; Share sits inside the report section.
+      expect(screen.getByTestId('spine-taso-helper').className).toContain('s1-primary');
+      expect(within(screen.getByTestId('spine-report')).getByTestId('spine-share-report')).toBeInTheDocument();
+    });
+
+    it('shows the squad size with a way to change it', async () => {
+      const onOpenGameSettings = jest.fn();
+      renderComponent({ ...getDefaultProps(), onOpenGameSettings });
+      await tabReady();
+      const line = screen.getByTestId('spine-squad-line');
+      expect(line).toHaveTextContent(`Squad: ${getDefaultProps().selectedPlayerIds.length} players`);
+      fireEvent.click(screen.getByTestId('spine-squad-change'));
+      expect(onOpenGameSettings).toHaveBeenCalledWith('roster');
+    });
+
+    /**
+     * C9: there is no standalone recap button any more; the same text is the
+     * report's Share.
+     */
+    it('shares the match report from the report section, with no separate recap button', async () => {
+      renderComponent(getDefaultProps());
+      await tabReady();
+      expect(screen.queryByRole('button', { name: /recap/i })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('spine-share-report'));
+      const box = await screen.findByRole('textbox', { name: i18n.t('recap.title', 'Share match report') });
+      expect((box as HTMLTextAreaElement).value).toContain(getDefaultProps().teamName);
     });
 
     /**
@@ -1227,13 +1263,13 @@ describe('GameStatsModal', () => {
      * @critical - what the coach copies into the official Taso report. The
      * button must exist and the text must be the Taso order, not the recap.
      */
-    it('offers the Taso helper in the Share step and opens it with squad and report', async () => {
+    it('offers the match sheet and opens it with squad and report', async () => {
       renderComponent(getDefaultProps());
       await screen.findByTestId('finish-game-spine');
       fireEvent.click(screen.getByTestId('spine-taso-helper'));
-      const box = await screen.findByRole('textbox', { name: i18n.t('taso.title', 'For Taso') });
-      expect((box as HTMLTextAreaElement).value).toContain(i18n.t('taso.lineupTitle', 'Squad for Taso'));
-      expect((box as HTMLTextAreaElement).value).toContain(i18n.t('taso.reportTitle', 'Match report for Taso'));
+      const box = await screen.findByRole('textbox', { name: i18n.t('taso.title', 'Match sheet') });
+      expect((box as HTMLTextAreaElement).value).toContain(i18n.t('taso.lineupTitle', 'Squad'));
+      expect((box as HTMLTextAreaElement).value).toContain(i18n.t('taso.reportTitle', 'Match sheet'));
     });
 
     it('offers a way to write a note about a player by hand', async () => {
@@ -1242,11 +1278,13 @@ describe('GameStatsModal', () => {
       expect(screen.getByTestId('note-composer')).toBeInTheDocument();
     });
 
-    it('omits the positions and assessments steps when their handlers are absent and renumbers', async () => {
+    it('omits the positions, assessments and export sections when their handlers are absent', async () => {
       renderComponent(getDefaultProps());
       await tabReady();
-      expect(stepKeys()).toEqual(['spine-goals', 'spine-notes', 'spine-report', 'spine-share']);
-      expect(screen.getByText('Step 4 of 4')).toBeInTheDocument();
+      expect(stepKeys()).not.toContain('spine-positions');
+      expect(stepKeys()).not.toContain('spine-assessments');
+      expect(stepKeys()).not.toContain('spine-export');
+      expect(stepKeys().slice(0, 3)).toEqual(['spine-goals', 'spine-taso', 'spine-report']);
       expect(screen.queryByTestId('spine-add-goal')).not.toBeInTheDocument();
       expect(screen.queryByTestId('spine-export-excel')).not.toBeInTheDocument();
     });

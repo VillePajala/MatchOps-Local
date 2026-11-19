@@ -98,6 +98,10 @@ export interface HomeUpcomingGame {
   mapsUrl: string | null;
   /** Whole days from today: 0 = today, 1 = tomorrow. Drives the countdown. */
   daysAway: number;
+  /** Our side's name on this match ('' when none) - the basic Home card's title. */
+  teamName?: string;
+  /** How many players are in this match's squad (selected), for "N pelaajaa". */
+  squadCount?: number;
   /**
    * When to set off, when there is enough to work it out: a kick-off time, a
    * pinned venue, and a home ground to leave from. Null whenever any of those
@@ -144,6 +148,8 @@ export interface HomeResumeGame {
   mapsUrl: string | null;
   currentPeriod?: number;
   timeElapsedSeconds?: number;
+  /** The clock has started and the match has not reached full time. */
+  inProgress?: boolean;
 }
 
 /** Entity counts for the Joukkue / Kilpailut tab headers. */
@@ -194,6 +200,8 @@ export interface HomeSummary {
   countsReady: boolean;
   /** Top scorer of the current club season - null when none / no season config. */
   topScorer: HomeTopScorer | null;
+  /** Every played game in scope (not capped like `recent`) - the basic Home's "Pelatut pelit · N". */
+  playedCount?: number;
 }
 
 export interface HomeSummaryOptions {
@@ -282,6 +290,7 @@ export function buildHomeSummary(
       mapsUrl: mapsDirectionsUrl(c.locationLat, c.locationLng, c.locationAddress),
       currentPeriod: c.currentPeriod,
       timeElapsedSeconds: c.timeElapsedInSeconds,
+      inProgress: c.gameStatus === 'inProgress' || c.gameStatus === 'periodEnd',
     };
   }
 
@@ -365,14 +374,16 @@ export function buildHomeSummary(
 
   // --- Recent strip ---
   const scoped = opts.teamFilter && opts.teamFilter !== 'all' ? opts.teamFilter : null;
-  const recent: HomeRecentGame[] = Object.entries(all)
+  const playedInScope = Object.entries(all)
     // Scoped too: showing another team's matches under this team's record is
     // the same confusion one line down.
     .filter(([, g]) => {
       if (!g || g.isPlayed === false || !g.gameDate) return false;
       if (!scoped) return true;
       return scoped === 'legacy' ? !(g.teamId ?? '') : g.teamId === scoped;
-    })
+    });
+  const playedCount = playedInScope.length;
+  const recent: HomeRecentGame[] = playedInScope
     .sort((a, b) => (b[1].gameDate || '').localeCompare(a[1].gameDate || ''))
     .slice(0, recentLimit)
     .map(([id, g]) => {
@@ -448,6 +459,8 @@ export function buildHomeSummary(
       fieldNumber: g.fieldNumber || undefined,
       mapsUrl: mapsDirectionsUrl(g.locationLat, g.locationLng, g.locationAddress),
       daysAway: daysBetween(opts.today, g.gameDate || ''),
+      teamName: g.teamName || '',
+      squadCount: g.selectedPlayerIds?.length ?? 0,
       travel: planDeparture({
         kickoff: g.gameTime,
         from: opts.startingPoint ?? null,
@@ -504,7 +517,7 @@ export function buildHomeSummary(
       }
     : null;
 
-  return { resume, lastPlayed, vuosi, recent, upcoming, upcomingList, counts, countsReady, topScorer };
+  return { resume, lastPlayed, vuosi, recent, upcoming, upcomingList, counts, countsReady, topScorer, playedCount };
 }
 
 /** The same calendar day a year earlier (29 February clamps to the 28th). */

@@ -49,7 +49,7 @@ interface GameRecapModalProps {
  */
 const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap, title, subtitle, sections, onToggleSection }) => {
   const { t } = useTranslation();
-  const heading = title ?? t('recap.title', 'Game recap');
+  const heading = title ?? t('recap.title', 'Share match report');
   const hint = subtitle === undefined
     ? t('recap.subtitle', 'Ready to paste into the team chat. Edit if you like.')
     : subtitle;

@@ -13,6 +13,23 @@ export interface PlannerLiveGameHooks {
   onLinkedGamesUpdated: (gameIds: string[]) => void;
 }
 
+/**
+ * "Ketkä ovat paikalla?" (Onboarding v3): which game the attendance sheet is
+ * for. 'save' ends with "Tallenna" and stays where it was opened; 'start' ends
+ * with "Aloita" and then `onStart` opens the game.
+ */
+export interface AttendanceRequest {
+  gameId: string;
+  mode: 'save' | 'start';
+  onStart?: () => void;
+}
+
+/** The compact plan screen (PlanQuickView) opened as a layer from Home. */
+export interface PlanQuickViewTarget {
+  planId: string;
+  gameId: string;
+}
+
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
 type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
@@ -82,6 +99,12 @@ interface ModalContextValue {
    */
   plannerTarget: { planId: string; planGameId: string } | null;
   setPlannerTarget: React.Dispatch<React.SetStateAction<{ planId: string; planGameId: string } | null>>;
+  /** The attendance sheet's game, or null when it is closed (renders in ClubModalsHost). */
+  attendanceRequest: AttendanceRequest | null;
+  setAttendanceRequest: React.Dispatch<React.SetStateAction<AttendanceRequest | null>>;
+  /** Home's "Näytä peluutus": the one-game plan screen as a layer, or null. */
+  planQuickViewTarget: PlanQuickViewTarget | null;
+  setPlanQuickViewTarget: React.Dispatch<React.SetStateAction<PlanQuickViewTarget | null>>;
   /** See PlannerLiveGameHooks - registered by the match view while mounted. */
   plannerLiveGameHooks: PlannerLiveGameHooks | null;
   setPlannerLiveGameHooks: React.Dispatch<React.SetStateAction<PlannerLiveGameHooks | null>>;
@@ -137,6 +160,8 @@ export const ModalProvider = ({ children, currentUserId }: {
   const [isPlaytimePlannerOpen, setIsPlaytimePlannerOpen] = useState(false);
   const [plannerTarget, setPlannerTarget] = useState<{ planId: string; planGameId: string } | null>(null);
   const [plannerLiveGameHooks, setPlannerLiveGameHooks] = useState<PlannerLiveGameHooks | null>(null);
+  const [attendanceRequest, setAttendanceRequest] = useState<AttendanceRequest | null>(null);
+  const [planQuickViewTarget, setPlanQuickViewTarget] = useState<PlanQuickViewTarget | null>(null);
   // Which competition kind the manager modal shows (set by the Kaudet/Turnaukset
   // rows before opening the shared modal).
   const [competitionManagerKind, setCompetitionManagerKind] = useState<'season' | 'tournament'>('season');
@@ -368,6 +393,8 @@ export const ModalProvider = ({ children, currentUserId }: {
     setPlayerIdsForNewGame(null);
     setSelectedPlayerForStats(null);
     setClubStatsOpen(false);
+    setAttendanceRequest(null);
+    setPlanQuickViewTarget(null);
     // Club-scope (the #681 gap): these stayed open across sign-out and popped
     // back over Home on the next sign-in.
     setIsSettingsModalOpen(false);
@@ -435,6 +462,10 @@ export const ModalProvider = ({ children, currentUserId }: {
     setIsPlaytimePlannerOpen,
     plannerTarget,
     setPlannerTarget,
+    attendanceRequest,
+    setAttendanceRequest,
+    planQuickViewTarget,
+    setPlanQuickViewTarget,
     plannerLiveGameHooks,
     setPlannerLiveGameHooks,
     isClubStatsOpen: clubStatsOpen,
@@ -467,6 +498,7 @@ export const ModalProvider = ({ children, currentUserId }: {
     playerIdsForNewGame, setPlayerIdsForNewGame,
     isPlaytimePlannerOpen, setIsPlaytimePlannerOpen,
     plannerTarget, setPlannerTarget,
+    attendanceRequest, planQuickViewTarget,
     plannerLiveGameHooks, setPlannerLiveGameHooks,
     clubStatsOpen, setIsClubStatsOpen, openClubStatsToTab, clubStatsInitialTab,
     modalState.settings, setIsSettingsModalOpen,

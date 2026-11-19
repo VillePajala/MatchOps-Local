@@ -327,9 +327,9 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
       </details>
 
       <details className={rowStyle}>
-        <summary className={`${rowKey} cursor-pointer min-h-8 flex items-center`}>{t('aiSettings.parentTextTitle', 'Text for parents')}</summary>
+        <summary className={`${rowKey} cursor-pointer min-h-8 flex items-center`}>{t('aiSettings.parentTextTitle', 'Notice to families about AI use')}</summary>
         <p className={`${subtextStyle} mt-2 mb-2`}>{t('aiSettings.parentTextHint', 'A ready-made note you can send to families about the notes you keep.')}</p>
-        <textarea readOnly value={parentText} rows={6} className={textareaStyle} aria-label={t('aiSettings.parentTextTitle', 'Text for parents')} />
+        <textarea readOnly value={parentText} rows={6} className={textareaStyle} aria-label={t('aiSettings.parentTextTitle', 'Notice to families about AI use')} />
         <button type="button" onClick={() => void copyParentText()} className={`${secondary} mt-2`} data-testid="ai-copy-parent-text">
           {t('aiSettings.copy', 'Copy')}
         </button>

@@ -9,8 +9,8 @@ import RecommendedSetupCard, { type SetupProgress } from '@/components/Recommend
 import type { HomeSummary } from '@/utils/homeSummary';
 import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonCard, HomeStatsTiles, HomeIcon, HOME_CARD, HOME_FOCUS } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
-import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
-import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '@/components/GuidedTour/firstRunTour';
+import HomeBasic from '@/components/HomeBasic';
+import type { AppLayout } from '@/types/settings';
 import { isAndroid } from '@/utils/platform';
 import {
   HiOutlineArrowTopRightOnSquare,
@@ -227,6 +227,20 @@ interface StartScreenProps {
   onSetHomeView?: (view: 'simple' | 'dashboard') => void;
   /** Recent-strip deep-link: open a specific saved game by id. */
   onOpenGameById?: (id: string) => void;
+  /**
+   * Which layout Home renders (Onboarding v3): 'basic' (Perusnäkymä, no tab
+   * bar), 'full' (the tabbed Home), or 'loading' while the account's setting is
+   * not known yet - then the body stays empty rather than flash either one.
+   */
+  appLayout?: AppLayout | 'loading';
+  /** "Vaihda koko näkymään" at the bottom of the basic Home. */
+  onSwitchToFullLayout?: () => void;
+  /** "Ketkä ovat paikalla?" for a game ('start' opens the game afterwards). */
+  onOpenAttendance?: (gameId: string, mode: 'save' | 'start') => void;
+  /** "Näytä peluutus" for a one-game plan: the compact plan screen. */
+  onShowPlan?: (planId: string, gameId: string) => void;
+  /** "Näytä peluutus" for a game of a multi-game plan: the planner on that game. */
+  onOpenPlannerAt?: (planId: string, planGameId: string) => void;
 }
 
 const StartScreen: React.FC<StartScreenProps> = ({
@@ -267,6 +281,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
   homeStatsSummary,
   onSetHomeView,
   onOpenGameById,
+  appLayout = 'full',
+  onSwitchToFullLayout,
+  onOpenAttendance,
+  onShowPlan,
+  onOpenPlannerAt,
 }) => {
   const { t } = useTranslation();
   // Dashboard is the default view, but it only renders once there are games to
@@ -303,10 +322,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
         ? 'team'
         : 'game';
   const { user, mode } = useAuth();
-  // Optional: present only when the app mounts the tour provider. Used for the
-  // gear-sheet "restart the guide" entry - the safety net for an accidental
-  // skip (skipping otherwise marks the tour done forever) and a refresher.
-  const guidedTour = useGuidedTourOptional();
+  const isBasic = appLayout === 'basic';
+  const layoutKnown = appLayout !== 'loading';
   // The app language (shared with every other language control; hydration-safe).
   const [language, changeLanguage] = useAppLanguage();
   // Which Home panel the body shows (restructure 1.3b): the tabs became REAL
@@ -453,7 +470,25 @@ const StartScreen: React.FC<StartScreenProps> = ({
           min-h-0 lets the flex child actually shrink to enable it. */}
       {/* Content fades out under the top bar instead of being cut by a hard edge. */}
       <main className="relative z-10 flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-5 [mask-image:linear-gradient(to_bottom,transparent_0,black_14px)]">
-        <div className={`mx-auto w-full max-w-md ${STACK}`}>
+        <div className={`mx-auto w-full max-w-md ${STACK} ${isBasic ? 'min-h-full' : ''}`}>
+          {!layoutKnown ? null : isBasic ? (
+            /* Perusnäkymä (Onboarding v3): its own body, no tab bar. */
+            <HomeBasic
+              summary={homeSummary}
+              onOpenGame={(id) => onOpenGameById?.(id)}
+              onResumeGame={onResumeGame}
+              onNewGame={onNewGame ?? onGetStarted}
+              onOpenAttendance={onOpenAttendance}
+              onShowPlan={onShowPlan}
+              onOpenPlannerAt={onOpenPlannerAt}
+              onManageTeams={onManageTeams}
+              onLoadGame={onLoadGame}
+              onViewStats={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
+              onSwitchToFull={onSwitchToFullLayout}
+              locale={language}
+              t={t}
+            />
+          ) : (<>
 
           {/* Tagline - the simple launcher only (the dashboard leads with its
               card; the onboarding composition needs the room). */}
@@ -461,34 +496,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <p className="px-1 pt-4 pb-1 font-display text-[clamp(28px,8.5vw,34px)] font-bold leading-none tracking-[0.005em] text-ink">
               {t('startScreen.tagline', 'Plan · Track · Discover')}
             </p>
-          )}
-
-          {/* Welcome strip (Onboarding v2): a quiet one-liner that names the
-              next step and carries the OPT-IN tour link. Lives only in the
-              pre-first-game phase; it disappears once a game exists. */}
-          {composeOnboarding && (
-            <div
-              data-testid="welcome-strip"
-              className="rounded-[22px] bg-action/10 px-4 pt-3.5 pb-1.5 text-[15px] leading-snug text-ink ring-1 ring-inset ring-action/30"
-            >
-              {heroStep === 'players'
-                ? t('startScreen.welcomeStripStart', 'Welcome! Start by adding your players.')
-                : heroStep === 'team'
-                  ? t('startScreen.welcomeStripTeam', 'Good start! Next, create your team.')
-                  : t('startScreen.welcomeStripReady', 'All set! Your team and players are ready for the first game.')}
-              {guidedTour ? (
-                <button
-                  type="button"
-                  data-testid="welcome-strip-tour"
-                  onClick={() => guidedTour.startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps)}
-                  className="-ml-1 flex min-h-11 items-center rounded-lg px-1 text-[13px] font-semibold text-action hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-                >
-                  {t('startScreen.welcomeStripTour', 'Want the getting-started guide?')}
-                </button>
-              ) : (
-                <div className="h-2" aria-hidden="true" />
-              )}
-            </div>
           )}
 
           {activeTab === 'team' ? (
@@ -715,6 +722,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onAdjustTravel={onAdjustTravel}
                   onNewGame={onNewGame}
                   onSetStartingPoint={onOpenSettings}
+                  onMarkAbsences={onOpenAttendance ? (id) => onOpenAttendance(id, 'save') : undefined}
                   locale={language}
                   t={t}
                 />
@@ -804,11 +812,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
               )}
             </>
           )}
+          </>)}
         </div>
       </main>
 
       {/* === HOME TABS (two-level restructure): a bottom tab bar. Pelit is the
-          front page; the other tabs switch the panel above. === */}
+          front page; the other tabs switch the panel above. The full layout
+          only - the basic layout has no tabs. === */}
+      {layoutKnown && !isBasic && (
       <div className="s1-tabbar relative z-10 flex-shrink-0 px-2 pt-0.5 pb-[max(6px,env(safe-area-inset-bottom))]">
         <div
           className="mx-auto grid max-w-md grid-cols-4"
@@ -835,6 +846,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           })}
         </div>
       </div>
+      )}
 
       {/* ⚙ sheet (restructure PR 1.4): every device/account-scope item in one
           bucket. Entries open the EXISTING modals/links (strangler). */}
@@ -856,7 +868,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <div className={HOME_CARD + ' flex flex-col'}>
               {/* Home view toggle - keeps the sheet open so the switch is
                   visibly reactive; the Home body updates behind it. */}
-              {onSetHomeView && (
+              {/* No effect in the basic layout, which has no dashboard. */}
+              {onSetHomeView && !isBasic && (
                 <button
                   type="button"
                   onClick={() => onSetHomeView(homeView === 'dashboard' ? 'simple' : 'dashboard')}
@@ -927,21 +940,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <button type="button" onClick={() => { setShowGearSheet(false); onOpenGuide(); }} className={SHEET_ROW}>
                   <span className={SHEET_ROW_RULE}>
                     <span className={ROW_LABEL}>{t('startScreen.gearGuide', 'How it works')}</span>
-                    {ROW_CHEVRON}
-                  </span>
-                </button>
-              )}
-              {/* Restart the first-run coached tour on demand: the recovery for
-                  an accidental skip and a refresher for returning coaches. */}
-              {guidedTour && (
-                <button
-                  type="button"
-                  data-testid="gear-restart-tour"
-                  onClick={() => { setShowGearSheet(false); guidedTour.startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps); }}
-                  className={SHEET_ROW}
-                >
-                  <span className={SHEET_ROW_RULE}>
-                    <span className={ROW_LABEL}>{t('startScreen.gearRestartTour', 'Getting started guide')}</span>
                     {ROW_CHEVRON}
                   </span>
                 </button>

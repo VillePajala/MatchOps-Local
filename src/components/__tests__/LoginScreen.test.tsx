@@ -106,12 +106,68 @@ describe('LoginScreen', () => {
       expect(screen.getByRole('button', { name: 'Sign In' })).toBeInTheDocument();
     });
 
-    it('opens directly in Sign Up when initialMode is signUp (new-device default; a device that has signed in before opens on signIn)', () => {
+    /**
+     * Onboarding v3 two-step sign-up: a new device first sees what the app is
+     * for, then the form. The four points and headline are agreed copy.
+     * @critical
+     */
+    it('opens on the welcome step when initialMode is signUp (new-device default)', () => {
       render(<LoginScreen initialMode="signUp" />);
 
-      expect(screen.getByRole('heading', { name: 'Create Account' })).toBeInTheDocument();
+      expect(screen.getByTestId('login-intro')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Plan, rotate, record.' })).toBeInTheDocument();
+      for (const point of [
+        'Your game plan always with you',
+        'Match clock',
+        'Log match events',
+        'Statistics build up automatically',
+      ]) {
+        expect(screen.getByText(point)).toBeInTheDocument();
+      }
+      // No form yet.
+      expect(screen.queryByPlaceholderText('Email')).not.toBeInTheDocument();
+    });
+
+    it('"Create a free account" on the welcome step opens the sign-up form, with back to the welcome step', () => {
+      render(<LoginScreen initialMode="signUp" />);
+
+      fireEvent.click(screen.getByTestId('login-intro-create'));
+      expect(screen.getByRole('heading', { name: 'Create a free account' })).toBeInTheDocument();
+      expect(screen.getByTestId('auth-account-why')).toHaveTextContent(
+        'With an account your data stays safe, even if you change phones.',
+      );
       // Returning users still get a one-tap path back to sign in.
       expect(screen.getByText('Sign in')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+      expect(screen.getByTestId('login-intro')).toBeInTheDocument();
+    });
+
+    it('"Sign in" on the welcome step opens the sign-in form', () => {
+      render(<LoginScreen initialMode="signUp" />);
+
+      fireEvent.click(screen.getByTestId('login-intro-signin'));
+      expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument();
+    });
+
+    it('skips the welcome step when a sign-up is waiting for its code (reload on the code screen)', () => {
+      sessionStorage.setItem('matchops.pendingSignUp', JSON.stringify({ email: 'a@b.fi', at: Date.now() }));
+      render(<LoginScreen initialMode="signUp" />);
+
+      expect(screen.queryByTestId('login-intro')).not.toBeInTheDocument();
+    });
+
+    it('never shows the welcome step when registration is not allowed', () => {
+      render(<LoginScreen initialMode="signUp" allowRegistration={false} />);
+
+      expect(screen.queryByTestId('login-intro')).not.toBeInTheDocument();
+    });
+
+    it('has no cloud-sync wording on the sign-up form', () => {
+      render(<LoginScreen initialMode="signUp" />);
+      fireEvent.click(screen.getByTestId('login-intro-create'));
+
+      expect(screen.queryByText(/cloud sync/i)).not.toBeInTheDocument();
     });
 
     it('should call signIn with email and password', async () => {
@@ -177,8 +233,33 @@ describe('LoginScreen', () => {
 
       fireEvent.click(screen.getByText('Sign up'));
 
-      expect(screen.getByRole('heading', { name: 'Create Account' })).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Confirm Password')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Create a free account' })).toBeInTheDocument();
+    });
+
+    /**
+     * Onboarding v3 (D26): sign-up has ONE password field with show/hide - no
+     * confirm field.
+     * @critical
+     */
+    it('has one password field and no confirm field', () => {
+      render(<LoginScreen />);
+      fireEvent.click(screen.getByText('Sign up'));
+
+      expect(screen.getAllByPlaceholderText(/password/i)).toHaveLength(1);
+      expect(screen.queryByPlaceholderText('Confirm Password')).not.toBeInTheDocument();
+    });
+
+    it('the eye shows and hides the password', () => {
+      render(<LoginScreen />);
+      fireEvent.click(screen.getByText('Sign up'));
+      const field = screen.getByPlaceholderText('Password');
+      expect(field).toHaveAttribute('type', 'password');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
+      expect(field).toHaveAttribute('type', 'text');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Hide password' }));
+      expect(field).toHaveAttribute('type', 'password');
     });
 
     it('should call signUp with email and password when terms accepted', async () => {
@@ -191,12 +272,9 @@ describe('LoginScreen', () => {
       fireEvent.change(screen.getByPlaceholderText('Password'), {
         target: { value: 'Password123!@#' },
       });
-      fireEvent.change(screen.getByPlaceholderText('Confirm Password'), {
-        target: { value: 'Password123!@#' },
-      });
       // Accept terms and privacy policy
       fireEvent.click(screen.getByRole('checkbox'));
-      fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Create a free account' }));
 
       await waitFor(() => {
         expect(mockSignUp).toHaveBeenCalledWith('new@example.com', 'Password123!@#');
@@ -213,39 +291,11 @@ describe('LoginScreen', () => {
       fireEvent.change(screen.getByPlaceholderText('Password'), {
         target: { value: 'Password123!@#' },
       });
-      fireEvent.change(screen.getByPlaceholderText('Confirm Password'), {
-        target: { value: 'Password123!@#' },
-      });
       // Don't accept terms
-      fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Create a free account' }));
 
       await waitFor(() => {
         expect(screen.getByText('You must accept the Terms of Service and Privacy Policy')).toBeInTheDocument();
-      });
-
-      // Should not call signUp
-      expect(mockSignUp).not.toHaveBeenCalled();
-    });
-
-    it('should show error when passwords do not match', async () => {
-      render(<LoginScreen />);
-      fireEvent.click(screen.getByText('Sign up'));
-
-      fireEvent.change(screen.getByPlaceholderText('Email'), {
-        target: { value: 'new@example.com' },
-      });
-      fireEvent.change(screen.getByPlaceholderText('Password'), {
-        target: { value: 'Password123!@#' },
-      });
-      fireEvent.change(screen.getByPlaceholderText('Confirm Password'), {
-        target: { value: 'DifferentPassword' },
-      });
-      // Accept terms
-      fireEvent.click(screen.getByRole('checkbox'));
-      fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
-
-      await waitFor(() => {
-        expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
       });
 
       // Should not call signUp
@@ -264,12 +314,9 @@ describe('LoginScreen', () => {
       fireEvent.change(screen.getByPlaceholderText('Password'), {
         target: { value: 'Password123!@#' },
       });
-      fireEvent.change(screen.getByPlaceholderText('Confirm Password'), {
-        target: { value: 'Password123!@#' },
-      });
       // Accept terms
       fireEvent.click(screen.getByRole('checkbox'));
-      fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Create a free account' }));
 
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: 'Enter Verification Code' })).toBeInTheDocument();
@@ -290,9 +337,8 @@ describe('LoginScreen', () => {
       fireEvent.click(screen.getByText('Sign up'));
       fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'new@example.com' } });
       fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'Password123!@#' } });
-      fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'Password123!@#' } });
       fireEvent.click(screen.getByRole('checkbox'));
-      fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Create a free account' }));
       await waitFor(() => expect(screen.getByRole('heading', { name: 'Enter Verification Code' })).toBeInTheDocument());
     };
 
@@ -512,7 +558,7 @@ describe('LoginScreen', () => {
 
       // Verify we're still in sign in mode (there's no sign up button to click)
       expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument();
-      expect(screen.queryByRole('heading', { name: 'Create Account' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Create a free account' })).not.toBeInTheDocument();
     });
 
     it('should default to allowRegistration=true', () => {

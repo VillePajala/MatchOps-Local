@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
-import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 import { useFirstGameExists, useHomeShowing, useSetupWizardActive } from '@/components/setupWizardActive';
 import logger from '@/utils/logger';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
@@ -21,13 +20,8 @@ import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 export default function MarketingConsentPrompt() {
   const { t } = useTranslation();
   const { showMarketingPrompt, setMarketingConsent, dismissMarketingPrompt } = useAuth();
-  // Defer to an active first-run guided tour: the prompt used to appear first
-  // and BLOCK the tour, leaving a dead window where a brand-new coach could
-  // wander off unguided. Now the tour runs immediately and this prompt waits
-  // until it finishes (or is skipped). Optional - no provider means no tour.
-  const tourActive = useGuidedTourOptional()?.isActive ?? false;
-  // Same deferral for the first-sign-in setup wizard (Onboarding v2): the
-  // prompt must never pop over the wizard's two steps.
+  // Defer to the first-sign-in setup wizard (Onboarding v2): the prompt must
+  // never pop over the wizard's steps.
   const wizardActive = useSetupWizardActive();
   // Re-gate (Onboarding v2 PR 22): never mid-onboarding - the prompt waits
   // until the FIRST GAME exists. Existing users with games see no change.
@@ -43,7 +37,7 @@ export default function MarketingConsentPrompt() {
   // Delay rendering by 5 seconds after showMarketingPrompt becomes true.
   // This avoids the prompt appearing over auth/start screens during post-login transitions.
   useEffect(() => {
-    if (showMarketingPrompt && !tourActive && !wizardActive && hasFirstGame && homeShowing) {
+    if (showMarketingPrompt && !wizardActive && hasFirstGame && homeShowing) {
       timerRef.current = setTimeout(() => {
         setIsReady(true);
       }, 5000);
@@ -60,7 +54,7 @@ export default function MarketingConsentPrompt() {
         timerRef.current = null;
       }
     };
-  }, [showMarketingPrompt, tourActive, wizardActive, hasFirstGame, homeShowing]);
+  }, [showMarketingPrompt, wizardActive, hasFirstGame, homeShowing]);
 
   if (!showMarketingPrompt || !isReady) return null;
 

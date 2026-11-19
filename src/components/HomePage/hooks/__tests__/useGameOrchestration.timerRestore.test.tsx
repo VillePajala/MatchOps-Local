@@ -22,11 +22,15 @@ const BOOTSTRAPPING_TIMEOUT_MS = 5000;
 const mockSaveGame = jest.fn().mockResolvedValue({});
 const mockGetSavedGames = jest.fn();
 const mockGetLatestGameId = jest.fn().mockResolvedValue(null);
+// The autosave re-reads the game before writing it (a deleted game is never
+// resurrected). null = "gone", so autosaves stay off unless a test opts in.
+const mockGetGame = jest.fn().mockResolvedValue(null);
 
 jest.mock('@/utils/savedGames', () => ({
   saveGame: (...args: unknown[]) => mockSaveGame(...args),
   getSavedGames: () => mockGetSavedGames(),
   getLatestGameId: () => mockGetLatestGameId(),
+  getGame: (...args: unknown[]) => mockGetGame(...args),
   deleteGame: jest.fn().mockResolvedValue(true),
   createGame: jest.fn().mockResolvedValue({ gameId: 'new-game', gameData: {} }),
   removeGameEvent: jest.fn().mockResolvedValue({}),
@@ -493,6 +497,7 @@ describe('timer lifecycle scenarios (review 4.21 bench)', () => {
     jest.clearAllMocks();
     window.localStorage.clear();
     mockLoadTimerStateForGame.mockResolvedValue(null);
+    mockGetGame.mockResolvedValue(null);
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
     });
@@ -541,6 +546,53 @@ describe('timer lifecycle scenarios (review 4.21 bench)', () => {
       GAME_A, expect.objectContaining({ gameStatus: 'periodEnd', timeElapsedInSeconds: 900 }), undefined,
     ), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
     await waitFor(() => expect(window.localStorage.getItem('matchops_timer_anchor')).toBeNull());
+    view.unmount();
+  });
+
+  /**
+   * Onboarding v3: a game marked "Not played yet" becomes played the first time
+   * its clock starts - in the live state (the Game Settings switch) and in the
+   * save that the start triggers (the normal local + cloud path).
+   * @critical
+   */
+  it('first clock start flips a not-played game to played and saves it', async () => {
+    const unplayed = createInProgressGame({
+      isPlayed: false, gameStatus: 'notStarted', currentPeriod: 1, timeElapsedInSeconds: 0, homeScore: 0,
+    });
+    seed({ [GAME_A]: unplayed }, GAME_A);
+    mockGetGame.mockResolvedValue(unplayed);
+    const view = await mount();
+    await waitFor(() => expect(view.result.current.modalManagerProps.data.isPlayed).toBe(false), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    mockSaveGame.mockClear();
+
+    act(() => {
+      view.result.current.gameContainerProps.fieldProps.timerInteractions.startPauseTimer();
+    });
+
+    await waitFor(() => expect(session(view).isTimerRunning).toBe(true));
+    expect(view.result.current.modalManagerProps.data.isPlayed).toBe(true);
+    // The start's immediate autosave carries the flip.
+    await waitFor(() => expect(mockSaveGame).toHaveBeenCalledWith(
+      GAME_A, expect.objectContaining({ isPlayed: true }), undefined,
+    ), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    // Never written as not played once the clock has started.
+    expect(mockSaveGame.mock.calls.every(([, game]) => (game as AppState).isPlayed === true)).toBe(true);
+    view.unmount();
+  });
+
+  it('resuming a game already in progress does not overrule "Not played yet"', async () => {
+    seed({
+      [GAME_A]: createInProgressGame({ isPlayed: false, gameStatus: 'inProgress', currentPeriod: 1, timeElapsedInSeconds: 300 }),
+    }, GAME_A);
+    const view = await mount();
+    await waitFor(() => expect(view.result.current.modalManagerProps.data.isPlayed).toBe(false), { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+
+    act(() => {
+      view.result.current.gameContainerProps.fieldProps.timerInteractions.startPauseTimer();
+    });
+
+    await waitFor(() => expect(session(view).isTimerRunning).toBe(true));
+    expect(view.result.current.modalManagerProps.data.isPlayed).toBe(false);
     view.unmount();
   });
 

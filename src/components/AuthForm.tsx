@@ -13,6 +13,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
+import { HiOutlineEye, HiOutlineEyeSlash } from 'react-icons/hi2';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isNetworkErrorMessage, normalizeEmail, translateAuthError } from '@/utils/authHelpers';
 import { AuthError, NetworkError } from '@/interfaces/DataStoreErrors';
@@ -83,6 +84,13 @@ const readPendingSignUp = (): string | null => {
   }
   return record.email;
 };
+
+/**
+ * Whether a sign-up is waiting for its emailed code (the code screen will open
+ * on mount). LoginScreen asks this so a reload on the code screen skips the
+ * welcome step and lands straight back on the code (review 7.2).
+ */
+export const hasPendingSignUp = (): boolean => readPendingSignUp() !== null;
 import * as Sentry from '@sentry/nextjs';
 
 export type AuthMode = 'signIn' | 'signUp' | 'resetPassword';
@@ -117,7 +125,9 @@ export default function AuthForm({
   // and after submission), never persisted, and React state is not more
   // accessible to XSS than a ref — both live in the same JS heap.
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // One password field with show/hide (Onboarding v3, D26): sign-up has no confirm
+  // field - the eye lets the coach check what they typed instead.
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -172,12 +182,6 @@ export default function AuthForm({
           setIsLoading(false);
           return;
         }
-        // Validate passwords match
-        if (password !== confirmPassword) {
-          setError(t('auth.passwordMismatch', 'Passwords do not match'));
-          setIsLoading(false);
-          return;
-        }
         // Password strength is validated in SupabaseAuthService
         const result = await signUp(normalizedEmail, password);
         if (result.error) {
@@ -191,12 +195,10 @@ export default function AuthForm({
             setSuccess(t('auth.emailMayExist', 'If this email is not already registered, check your inbox for confirmation. If you already have an account, please sign in instead.'));
             setMode('signIn');
             setPassword('');
-            setConfirmPassword('');
           } else {
             // New user — transition to OTP verification screen
             openCodeScreen(normalizedEmail, true);
             setPassword('');
-            setConfirmPassword('');
           }
         } else {
           // Success - user signed up and logged in (auto-confirmed)
@@ -257,7 +259,7 @@ export default function AuthForm({
     } finally {
       setIsLoading(false);
     }
-  }, [email, password, confirmPassword, mode, hasAcceptedTerms, signIn, signUp, resetPassword, onSuccess, t, openCodeScreen]);
+  }, [email, password, mode, hasAcceptedTerms, signIn, signUp, resetPassword, onSuccess, t, openCodeScreen]);
 
   const handleVerifyOtp = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -466,7 +468,7 @@ export default function AuthForm({
     setPendingResetEmail('');
     // Keep email but clear passwords and consent
     setPassword('');
-    setConfirmPassword('');
+    setShowPassword(false);
     setHasAcceptedTerms(false);
   }, [allowRegistration]);
 
@@ -725,15 +727,21 @@ export default function AuthForm({
       {/* Title */}
       <h2 id={titleId} className={`${titleStyle} text-center mb-1`}>
         {mode === 'signIn' && t('auth.signIn', 'Sign In')}
-        {mode === 'signUp' && t('auth.createAccount', 'Create Account')}
+        {mode === 'signUp' && t('auth.createAccount', 'Create a free account')}
         {mode === 'resetPassword' && t('auth.resetPassword', 'Reset Password')}
       </h2>
 
-      <p className="font-ui text-ink-3 text-center mb-4 text-sm">
-        {mode === 'signIn' && t('auth.signInSubtitle', 'Sign in to sync your data across devices')}
-        {mode === 'signUp' && t('auth.signUpSubtitle', 'Create an account to enable cloud sync')}
-        {mode === 'resetPassword' && t('auth.resetSubtitle', 'Enter your email to receive a reset code')}
-      </p>
+      {/* Sign-up has no subtitle: the welcome step before the form already
+          said what the app is for, and the note under the button says why an
+          account (Onboarding v3). */}
+      {mode === 'signUp' ? (
+        <div className="mb-3" />
+      ) : (
+        <p className="font-ui text-ink-3 text-center mb-4 text-sm">
+          {mode === 'signIn' && t('auth.signInSubtitle', 'Sign in to sync your data across devices')}
+          {mode === 'resetPassword' && t('auth.resetSubtitle', 'Enter your email to receive a reset code')}
+        </p>
+      )}
 
       {/* Error/Success Messages */}
       {error && (
@@ -767,30 +775,34 @@ export default function AuthForm({
         />
 
         {mode !== 'resetPassword' && (
-          <input
-            type="password"
-            placeholder={t('auth.password', 'Password')}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputStyle}
-            required
-            autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
-            disabled={isLoading}
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder={t('auth.password', 'Password')}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`${inputStyle} pr-12`}
+              required
+              autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? t('auth.hidePassword', 'Hide password') : t('auth.showPassword', 'Show password')}
+              aria-pressed={showPassword}
+              disabled={isLoading}
+              className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-ink-3 hover:text-ink rounded-r-[14px] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+            >
+              {showPassword
+                ? <HiOutlineEyeSlash className="w-5 h-5" aria-hidden="true" />
+                : <HiOutlineEye className="w-5 h-5" aria-hidden="true" />}
+            </button>
+          </div>
         )}
 
         {mode === 'signUp' && (
           <>
-            <input
-              type="password"
-              placeholder={t('auth.confirmPassword', 'Confirm Password')}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className={inputStyle}
-              required
-              autoComplete="new-password"
-              disabled={isLoading}
-            />
             <p className={fieldHintStyle}>
               {t('auth.passwordRequirements', 'Password must be at least 8 characters.')}
             </p>
@@ -843,11 +855,16 @@ export default function AuthForm({
           ) : (
             <>
               {mode === 'signIn' && t('auth.signIn', 'Sign In')}
-              {mode === 'signUp' && t('auth.createAccount', 'Create Account')}
+              {mode === 'signUp' && t('auth.createAccount', 'Create a free account')}
               {mode === 'resetPassword' && t('auth.sendResetEmail', 'Send Reset Email')}
             </>
           )}
         </button>
+        {mode === 'signUp' && (
+          <p className="font-ui text-ink-3 text-center text-[13px] leading-snug pt-1" data-testid="auth-account-why">
+            {t('auth.accountWhy', 'With an account your data stays safe, even if you change phones.')}
+          </p>
+        )}
       </form>
 
       {/* Mode switching links */}

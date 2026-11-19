@@ -17,6 +17,9 @@
 import React from 'react';
 import StartScreen from '@/components/StartScreen';
 import { useModalContext } from '@/contexts/ModalProvider';
+import { useAppLayout, useSetAppLayout } from '@/hooks/useAppLayout';
+import { useToast } from '@/contexts/ToastProvider';
+import { useTranslation } from 'react-i18next';
 
 type StartScreenProps = React.ComponentProps<typeof StartScreen>;
 
@@ -38,7 +41,12 @@ type LiftedHandlerProps =
   | 'onOpenAccount'
   | 'onOpenRules'
   | 'onOpenGuide'
-  | 'onOpenSettings';
+  | 'onOpenSettings'
+  | 'appLayout'
+  | 'onSwitchToFullLayout'
+  | 'onOpenAttendance'
+  | 'onShowPlan'
+  | 'onOpenPlannerAt';
 
 export type StartScreenLiftedBridgeProps = Omit<StartScreenProps, LiftedHandlerProps> & {
   /** Called after a setup-relevant modal (roster/teams/competitions/new game)
@@ -75,7 +83,18 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
     isSettingsModalOpen,
     isExternalGamesOpen,
     isClubStatsOpen,
+    setPlannerTarget,
+    attendanceRequest,
+    setAttendanceRequest,
+    planQuickViewTarget,
+    setPlanQuickViewTarget,
+    isPlaytimePlannerOpen,
   } = useModalContext();
+  const { t } = useTranslation();
+  const { showToast } = useToast();
+  // The account's layout (Onboarding v3); undefined while settings load.
+  const layout = useAppLayout();
+  const setAppLayout = useSetAppLayout();
 
   // The page's Home flags (hasPlayers -> isFirstTimeUser, the setup tracker) and
   // its summary are snapshotted in checkAppState, which re-runs only on mount
@@ -98,9 +117,13 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
   //
   // AND TEAM STATISTICS (review 7.18): its "Check team names" renames opponents in
   // games, and Home's recent-results strip and last-opened card kept the old spelling.
+  //
+  // AND THE ATTENDANCE SHEET, THE PLAN SCREEN AND THE PLANNER (Onboarding v3):
+  // each can change the next game's squad or plan, which the basic card shows.
   const anyHomeAffectingModalOpen = isRosterModalOpen || isNewGameSetupModalOpen ||
     isSeasonTournamentModalOpen || isTeamManagerOpen || isPersonnelManagerOpen ||
-    isLoadGameModalOpen || isSettingsModalOpen || isExternalGamesOpen || isClubStatsOpen;
+    isLoadGameModalOpen || isSettingsModalOpen || isExternalGamesOpen || isClubStatsOpen ||
+    !!attendanceRequest || !!planQuickViewTarget || isPlaytimePlannerOpen;
   const prevOpen = React.useRef(anyHomeAffectingModalOpen);
   React.useEffect(() => {
     if (prevOpen.current && !anyHomeAffectingModalOpen) onSetupModalsClosed?.();
@@ -142,6 +165,25 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
       onOpenBackup={() => openSettingsToTab('data')}
       onOpenAccount={() => openSettingsToTab('account')}
       onOpenSettings={() => setIsSettingsModalOpen(true)}
+      appLayout={layout ?? 'loading'}
+      onSwitchToFullLayout={() => {
+        void setAppLayout('full').then((ok) => {
+          if (!ok) showToast(t('settingsModal.saveSettingError', 'Failed to save setting. Please try again.'), 'error');
+        });
+      }}
+      onOpenAttendance={(gameId, mode) =>
+        setAttendanceRequest({
+          gameId,
+          mode,
+          // "Aloita": the game opens on the pitch once the sheet is saved.
+          onStart: mode === 'start' ? () => props.onOpenGameById?.(gameId) : undefined,
+        })
+      }
+      onShowPlan={(planId, gameId) => setPlanQuickViewTarget({ planId, gameId })}
+      onOpenPlannerAt={(planId, planGameId) => {
+        setPlannerTarget({ planId, planGameId });
+        setIsPlaytimePlannerOpen(true);
+      }}
     />
   );
 }

@@ -422,6 +422,87 @@ describe('PlaytimePlannerModal', () => {
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
+    /**
+     * Onboarding v3: opened as a layer over one plan (the compact plan
+     * screen's "Tarkempi muokkaus"), Escape/back closes straight back to the
+     * caller - and the caller hears about the plan it was showing.
+     */
+    it('as a single-plan layer, closes from the plan and reports the open plan', async () => {
+      const onClose = jest.fn();
+      const onActivePlanChange = jest.fn();
+      mockGetPlans.mockResolvedValue({ existing: existingPlan });
+      render(
+        <PlaytimePlannerModal
+          isOpen
+          onClose={onClose}
+          initialTarget={{ planId: 'existing', planGameId: existingPlan.games[0].id }}
+          singlePlanLayer
+          onActivePlanChange={onActivePlanChange}
+        />,
+      );
+      await screen.findByLabelText('Game name');
+      expect(onActivePlanChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'existing' }));
+
+      await act(async () => {
+        fireEvent.keyDown(document, { key: 'Escape' });
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    /**
+     * Onboarding v3: on phones the X is hidden (hardware back is the norm), but
+     * the layer a new coach was sent into from the plan screen must still have a
+     * visible way back.
+     * @critical
+     */
+    it('as a single-plan layer with the X hidden, shows a Back that returns to the caller', async () => {
+      const original = window.matchMedia;
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: () => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }),
+      });
+      try {
+        const onClose = jest.fn();
+        mockGetPlans.mockResolvedValue({ existing: existingPlan });
+        render(
+          <PlaytimePlannerModal
+            isOpen
+            onClose={onClose}
+            initialTarget={{ planId: 'existing', planGameId: existingPlan.games[0].id }}
+            singlePlanLayer
+          />,
+        );
+        await screen.findByLabelText('Game name');
+        expect(screen.getByTestId('planner-layer-back')).toHaveTextContent('Back');
+
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planner-layer-back'));
+        });
+        expect(onClose).toHaveBeenCalledTimes(1);
+      } finally {
+        Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: original });
+      }
+    });
+
+    it('without the layer, a hidden X adds no Back (hardware back steps out as before)', async () => {
+      const original = window.matchMedia;
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: () => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }),
+      });
+      try {
+        mockGetPlans.mockResolvedValue({ existing: existingPlan });
+        render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+        await enterPlan();
+        await screen.findByLabelText('Game name');
+        expect(screen.queryByTestId('planner-layer-back')).not.toBeInTheDocument();
+      } finally {
+        Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: original });
+      }
+    });
+
     it('only blurs a focused input - never navigates mid-edit', async () => {
       const onClose = jest.fn();
       mockGetPlans.mockResolvedValue({ existing: existingPlan });

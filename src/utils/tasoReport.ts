@@ -101,7 +101,7 @@ export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTransl
     ].filter(Boolean);
     return `${num} ${p.name.trim()}${marks.length ? ` (${marks.join(', ')})` : ''}`;
   });
-  const lineup = [t('taso.lineupTitle', 'Squad for Taso'), ...lineupLines].join('\n');
+  const lineup = [t('taso.lineupTitle', 'Squad'), ...lineupLines].join('\n');
 
   const events = game.gameEvents.slice().sort((a, b) => a.time - b.time);
   const goals = events.filter((e) => e.type === 'goal' || e.type === 'opponentGoal');
@@ -151,7 +151,7 @@ export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTransl
   });
 
   const report = [
-    t('taso.reportTitle', 'Match report for Taso'),
+    t('taso.reportTitle', 'Match sheet'),
     header,
     ...(goalLines.length
       ? [`${t('taso.goals', 'Goals (minute, scorer, assist)')}:`, ...goalLines]

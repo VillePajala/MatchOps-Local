@@ -7,7 +7,7 @@ import type { AdjustmentScope } from '@/utils/adjustmentScope';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Combobox } from '@headlessui/react';
-import { HiChevronDown, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
+import { HiChevronDown, HiOutlineMagnifyingGlass, HiOutlineClipboardDocument } from 'react-icons/hi2';
 import { HiOutlineShare } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -54,6 +54,7 @@ import {
   inputBaseStyle,
   selectStyle,
   secondaryButtonStyle,
+  primaryButtonStyle,
   chipStyle,
   infoBoxStyle,
   segmentTrackStyle,
@@ -96,7 +97,6 @@ import { useDraftEstimate } from '@/hooks/useDraftEstimate';
 
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
-import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { appLocale } from '@/utils/localeFormat';
 
@@ -1072,12 +1072,29 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       </div>
     </div>
   );
+  // The finish screen (onboarding v3, D3a/C9) reads top to bottom: the result
+  // with a quick squad and goals check, the amber Match sheet, the match report
+  // with its quiet Share, then everything else. No step numbers: nothing here
+  // is a mandatory sequence, and every editor stays on the page.
   const spineSteps: Array<{ key: string; id?: string; content: React.ReactNode }> = [];
   if (activeTab === 'currentGame') {
     spineSteps.push({
       key: 'goals',
       content: (
         <>
+          <div className="flex min-h-11 items-center gap-2 px-1 font-ui text-[15px] text-ink-2" data-testid="spine-squad-line">
+            <span>{t('gameStatsModal.quickSquad', 'Squad: {{count}} players', { count: selectedPlayerIds.length })}</span>
+            {onOpenGameSettings && (
+              <button
+                type="button"
+                onClick={() => onOpenGameSettings('roster')}
+                data-testid="spine-squad-change"
+                className="ml-auto min-h-11 px-3 rounded-full font-semibold text-ink underline underline-offset-4 decoration-white/30 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              >
+                {t('gameStatsModal.quickSquadChange', 'Change')}
+              </button>
+            )}
+          </div>
           <GoalEventList
             goals={sortedGoals}
             availablePlayers={availablePlayers}
@@ -1100,68 +1117,21 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         </>
       ),
     });
+    // The match sheet: the official report text, ready to copy (was "for Taso").
     spineSteps.push({
-      key: 'notes',
-      id: 'game-notes-step',
+      key: 'taso',
       content: (
-        <>
-          {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
-            <DictationInbox
-              gameId={currentGameId}
-              availablePlayers={availablePlayers}
-              onAccept={onAddGameNote}
-              onCountChange={setVoiceClipCount}
-              latestClipId={dictation?.lastClip?.id ?? null}
-              language={i18n.language}
-            />
-          )}
-          <GameNotesList
-            notes={noteEvents}
-            availablePlayers={availablePlayers}
-            onDeleteNote={onDeleteGameEvent ? (id) => { void handleDeleteNote(id); } : undefined}
-          />
-          {/* Both children render nothing when there is nothing, which left a
-              numbered step with no content in it at all. A step of the
-              checklist must always say what it is about. */}
-          {onAddGameNote && currentGameId && currentGameId !== DEFAULT_GAME_ID && (
-            <GameNoteComposer
-              players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
-              stamp={draftStamp}
-              onAdd={onAddGameNote}
-              dictation={dictation}
-              vocabulary={dictationVocabulary}
-              language={i18n.language}
-            />
-          )}
-          {noteEvents.length === 0 && voiceClipCount === 0 && (
-            <div className={`${cardStyle} font-ui`} data-testid="game-notes-empty">
-              <h3 className="text-base font-semibold text-ink mb-1">{t('dictation.notesTitle', 'Notes')}</h3>
-              <p className={subtextStyle}>
-                {t('gameStatsModal.spineNotesEmpty', 'Nothing noted from this match yet. Write one above, or dictate it during the game with the microphone button.')}
-              </p>
-            </div>
-          )}
-        </>
+        <button
+          type="button"
+          onClick={() => setShowTaso(true)}
+          data-testid="spine-taso-helper"
+          className={`${primaryButtonStyle} w-full`}
+        >
+          <HiOutlineClipboardDocument className="w-5 h-5" aria-hidden="true" />
+          {t('taso.button', 'Match sheet')}
+        </button>
       ),
     });
-    if (onPlayerPositionsChange) {
-      spineSteps.push({
-        key: 'positions',
-        id: 'positions-editor',
-        content: (
-          <div data-testid="positions-editor" className={`${cardStyle} font-ui`}>
-            <h3 className="text-base font-semibold text-ink mb-1">{t('gameSettingsModal.lineupTitle', 'Positions played')}</h3>
-            <p className={`${subtextStyle} mb-4`}>{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
-            <PlayerPositionsEditor
-              players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
-              value={playerPositions ?? {}}
-              gameType={currentGameType}
-              onChange={onPlayerPositionsChange}
-            />
-          </div>
-        ),
-      });
-    }
     spineSteps.push({
       key: 'report',
       id: 'game-report-editor',
@@ -1242,9 +1212,103 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               />
             </div>
           )}
+          {/* Share: the facts of the match plus this report, as one text for
+              the team chat. Quiet on purpose - the amber action is the sheet. */}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowRecap(true)}
+              data-testid="spine-share-report"
+              className="inline-flex min-h-11 items-center gap-2 px-3 rounded-full font-ui text-[15px] font-semibold text-ink hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+            >
+              <HiOutlineShare className="w-[18px] h-[18px] text-ink-2" aria-hidden="true" />
+              {t('gameStatsModal.shareReport', 'Share match report')}
+            </button>
+          </div>
         </>
       ),
     });
+    // The rest of the record, as a checklist that scrolls to each editor below.
+    if (currentGameCompleteness?.applicable) {
+      spineSteps.push({
+        key: 'checklist',
+        content: (
+          <GameWrapUpCard
+            completeness={currentGameCompleteness}
+            onOpenSettings={onOpenGameSettings}
+            onOpenAssessments={onOpenAssessments}
+            voiceClipCount={voiceClipCount}
+            onOpenVoiceNotes={scrollToInbox}
+            onAddGoal={onAddGoal}
+            onOpenNotes={() => scrollToId('game-notes-step')}
+            onOpenReport={scrollToReport}
+            onOpenPositions={onPlayerPositionsChange ? scrollToPositions : undefined}
+          />
+        ),
+      });
+    }
+    spineSteps.push({
+      key: 'notes',
+      id: 'game-notes-step',
+      content: (
+        <>
+          {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
+            <DictationInbox
+              gameId={currentGameId}
+              availablePlayers={availablePlayers}
+              onAccept={onAddGameNote}
+              onCountChange={setVoiceClipCount}
+              latestClipId={dictation?.lastClip?.id ?? null}
+              language={i18n.language}
+            />
+          )}
+          <GameNotesList
+            notes={noteEvents}
+            availablePlayers={availablePlayers}
+            onDeleteNote={onDeleteGameEvent ? (id) => { void handleDeleteNote(id); } : undefined}
+          />
+          {/* Both children render nothing when there is nothing, which left a
+              section with no content in it at all. A section of the finish
+              screen must always say what it is about. */}
+          {onAddGameNote && currentGameId && currentGameId !== DEFAULT_GAME_ID && (
+            <GameNoteComposer
+              players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
+              stamp={draftStamp}
+              onAdd={onAddGameNote}
+              dictation={dictation}
+              vocabulary={dictationVocabulary}
+              language={i18n.language}
+            />
+          )}
+          {noteEvents.length === 0 && voiceClipCount === 0 && (
+            <div className={`${cardStyle} font-ui`} data-testid="game-notes-empty">
+              <h3 className="text-base font-semibold text-ink mb-1">{t('dictation.notesTitle', 'Notes')}</h3>
+              <p className={subtextStyle}>
+                {t('gameStatsModal.spineNotesEmpty', 'Nothing noted from this match yet. Write one above, or dictate it during the game with the microphone button.')}
+              </p>
+            </div>
+          )}
+        </>
+      ),
+    });
+    if (onPlayerPositionsChange) {
+      spineSteps.push({
+        key: 'positions',
+        id: 'positions-editor',
+        content: (
+          <div data-testid="positions-editor" className={`${cardStyle} font-ui`}>
+            <h3 className="text-base font-semibold text-ink mb-1">{t('gameSettingsModal.lineupTitle', 'Positions played')}</h3>
+            <p className={`${subtextStyle} mb-4`}>{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
+            <PlayerPositionsEditor
+              players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
+              value={playerPositions ?? {}}
+              gameType={currentGameType}
+              onChange={onPlayerPositionsChange}
+            />
+          </div>
+        ),
+      });
+    }
     if (assessmentsEnabled && onOpenAssessments && currentGameCompleteness?.applicable) {
       spineSteps.push({
         key: 'assessments',
@@ -1264,37 +1328,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         ),
       });
     }
-    spineSteps.push({
-      key: 'share',
-      content: (
-        <div className={`${cardStyle} font-ui space-y-3`}>
-          <h3 className="text-base font-semibold text-ink">{t('gameStatsModal.spineShareTitle', 'Share the match')}</h3>
-          {/* Taso helper: the same match in the order Taso's report wants it typed,
-              because Taso has no API a coach can write to. */}
-          <button
-            type="button"
-            onClick={() => setShowTaso(true)}
-            data-testid="spine-taso-helper"
-            className={`${secondaryButtonStyle} w-full`}
-          >
-            {t('taso.button', 'Match report for Taso')}
+    if (currentGameId && onExportOneExcel) {
+      spineSteps.push({
+        key: 'export',
+        content: (
+          <button type="button" onClick={() => onExportOneExcel(currentGameId)} data-testid="spine-export-excel" className={`${secondaryButtonStyle} w-full`}>
+            {t('common.exportExcel', 'Export Excel')}
           </button>
-          <button
-            type="button"
-            onClick={() => setShowRecap(true)}
-            className={`${secondaryButtonStyle} w-full`}
-          >
-            <HiOutlineShare className="w-[18px] h-[18px] text-action" aria-hidden="true" />
-            {t('recap.button', 'Generate match recap')}
-          </button>
-          {currentGameId && onExportOneExcel && (
-            <button type="button" onClick={() => onExportOneExcel(currentGameId)} data-testid="spine-export-excel" className={`${secondaryButtonStyle} w-full`}>
-              {t('common.exportExcel', 'Export Excel')}
-            </button>
-          )}
-        </div>
-      ),
-    });
+        ),
+      });
+    }
   }
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={getTabTitle()}>
@@ -1340,11 +1383,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto min-h-0" onScroll={headerCollapse.onScroll}>
-          <FirstVisitIntro
-            surface="stats"
-            className="mx-4 my-4 sm:mx-6"
-            text={t('firstVisit.stats', 'Game stats live here: this game, league, tournament and per-player views from the tabs.')}
-          />
           {/* HERE, not only in the competitions manager, because this is where
               the damage shows. One team written several ways is several
               opponents to every figure on this screen, and a coach looking at
@@ -1511,23 +1549,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     extraTimeScore={extraTimeScore}
                     shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
                   />
-                  {currentGameCompleteness?.applicable && (                    <GameWrapUpCard
-                      completeness={currentGameCompleteness}
-                      onOpenSettings={onOpenGameSettings}
-                      onOpenAssessments={onOpenAssessments}
-                      voiceClipCount={voiceClipCount}
-                      onOpenVoiceNotes={scrollToInbox}
-                      onAddGoal={onAddGoal}
-                      onOpenNotes={() => scrollToId('game-notes-step')}
-                      onOpenReport={scrollToReport}
-                      onOpenPositions={onPlayerPositionsChange ? scrollToPositions : undefined}
-                    />
-                  )}
-                  {spineSteps.map((step, i) => (
+                  {spineSteps.map((step) => (
                     <section key={step.key} id={step.id} data-testid={`spine-${step.key}`} className="space-y-3">
-                      <p className={`${sectionLabelStyle} px-1`}>
-                        {t('gameStatsModal.spineStep', 'Step {{n}} of {{total}}', { n: i + 1, total: spineSteps.length })}
-                      </p>
                       {step.content}
                     </section>
                   ))}
@@ -1745,8 +1768,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           isOpen={showTaso}
           onClose={() => setShowTaso(false)}
           recap={tasoText}
-          title={t('taso.title', 'For Taso')}
-          subtitle={t('taso.subtitle', 'The match data you need to type into Taso.')}
+          title={t('taso.title', 'Match sheet')}
+          subtitle={t('taso.subtitle', 'The match data, ready to copy.')}
         />
         {/* Rendered here as well as from the competitions manager: the tool is
             self-contained, and the point of the banner above is that a coach
