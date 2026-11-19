@@ -31,7 +31,7 @@
     "title": "Käyttöopas",
     "subtitle": "Kaikki mitä tarvitset MatchOpsin käyttöön",
     "structureIntro": "Valitse aloituspisteesi",
-    "structureExplanation": "Pikaopas vie tilin luonnista ensimmäiseen suunnitelmaan ja kertoo Perusnäkymän ja Koko näkymän erot. Koko näkymän työnkulku opastaa sarjojen, turnausten ja joukkueiden valmisteluun. Viiteoppaat kattavat yksittäiset ominaisuudet.",
+    "structureExplanation": "Pikaopas vie tilin luonnista ensimmäisiin askeliin. Suositeltu työnkulku opastaa sarjojen, turnausten ja joukkueiden valmisteluun. Viiteoppaat kattavat yksittäiset ominaisuudet.",
     "mainPaths": "Aloita tästä",
     "referenceGuides": "Viiteoppaat",
     "quickStart": "Uusi MatchOpsissa?",
@@ -42,11 +42,11 @@
   "sections": {
     "getting-started": {
       "title": "Pikaopas",
-      "description": "Ilmainen tili, joukkue, ensimmäinen suunnitelma sekä Perusnäkymä ja Koko näkymä"
+      "description": "Ilmainen tili, joukkue ja ensimmäiset askeleet"
     },
     "full-setup-path": {
-      "title": "Koko näkymä: suositeltu työnkulku",
-      "description": "Pelaajat, taustahenkilöt, sarjat, turnaukset ja joukkueet Koko näkymässä"
+      "title": "Suositeltu työnkulku",
+      "description": "Pelaajat, taustahenkilöt, sarjat, turnaukset ja joukkueet"
     },
     "roster-management": {
       "title": "Kokoonpanon hallinta",
@@ -82,7 +82,7 @@
     },
     "data-management": {
       "title": "Datan hallinta",
-      "description": "Tili, synkronointi, varmuuskopiot, asetukset ja näkymä"
+      "description": "Tili, synkronointi, varmuuskopiot ja asetukset"
     },
     "troubleshooting": {
       "title": "Vianetsintä",

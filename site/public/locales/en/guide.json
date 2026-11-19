@@ -31,7 +31,7 @@
     "title": "User Guide",
     "subtitle": "Everything you need to know about using MatchOps",
     "structureIntro": "Choose your starting point",
-    "structureExplanation": "The Quick Start takes you from creating an account to your first plan and explains the basic and full layouts. The full-layout setup guides you through leagues, tournaments and teams. The reference guides cover individual features.",
+    "structureExplanation": "The Quick Start takes you from creating an account through the first steps. The Recommended Setup guides you through leagues, tournaments and teams. The reference guides cover individual features.",
     "mainPaths": "Start Here",
     "referenceGuides": "Reference Guides",
     "quickStart": "New to MatchOps?",
@@ -42,11 +42,11 @@
   "sections": {
     "getting-started": {
       "title": "Quick Start",
-      "description": "Free account, your team, the first plan, and the basic and full layouts"
+      "description": "Free account, your team and the first steps"
     },
     "full-setup-path": {
-      "title": "Full Layout: Recommended Setup",
-      "description": "Players, staff, leagues, tournaments and teams in the full layout"
+      "title": "Recommended Setup",
+      "description": "Players, staff, leagues, tournaments and teams"
     },
     "roster-management": {
       "title": "Roster Management",
@@ -82,7 +82,7 @@
     },
     "data-management": {
       "title": "Data Management",
-      "description": "Account, sync, backups, settings and layout"
+      "description": "Account, sync, backups and settings"
     },
     "troubleshooting": {
       "title": "Troubleshooting",

@@ -234,7 +234,7 @@
   "info": {
     "whatIsThis": {
       "title": "Mikä on MatchOps?",
-      "description": "MatchOps on jalkapallo- ja futsalvalmentajan sovellus ottelupäivään. Ennen peliä suunnittelet kokoonpanon ja vaihdot etukäteen - Perusnäkymässä sovellus tekee suunnitelman valmiiksi, kun kerrot pelin päivän. Pelin aikana ottelukello, vaihdot ja maalit kulkevat mukana. Pelin jälkeen Pöytäkirja ja Otteluraportti ovat valmiina jaettaviksi, ja tilastot kertyvät automaattisesti pelaaja-, ottelu-, joukkue- ja kilpailutasolla. Uusi valmentaja aloittaa Perusnäkymästä, jossa on pelipäivän tärkeimmät; Koko näkymä tuo mukaan sarjat, turnaukset, usean pelin Ottelusuunnittelun ja muut lisätoiminnot.",
+      "description": "MatchOps on jalkapallo- ja futsalvalmentajan sovellus ottelupäivään. Ennen peliä teet Ottelusuunnittelussa suunnitelman - kuka aloittaa, kuka on maalissa ja milloin vaihdetaan - yhteen peliin tai koko turnauspäivään, ja pelipäivänä merkitset poissaolijat. Pelin aikana ottelukello, vaihdot ja maalit kulkevat mukana. Pelin jälkeen Pöytäkirja ja Otteluraportti ovat valmiina jaettaviksi, ja tilastot kertyvät automaattisesti pelaaja-, ottelu-, joukkue- ja kilpailutasolla. Uudet valmentajat aloittavat kevennetyssä näkymässä, josta pääsee koko sovellukseen yhdellä valinnalla.",
       "oneLine": "Ilmainen, turvallinen pilvisynkronointi kaikilla laitteillasi. Seuraa otteluita ja rakenna tilastot kentällä, myös ilman internetiä."
     },
     "whoIsThisFor": {
@@ -456,10 +456,10 @@
       "seasonTrends": "Kauden trendit"
     },
     "spotlights": {
-      "firstPlan": {
-        "eyebrow": "Milloin seuraava peli?",
-        "title": "Ensimmäinen suunnitelma valmiina",
-        "desc": "Uuden valmentajan Perusnäkymässä riittää, että kerrot pelin päivän ja halutessasi vastustajan, niin sovellus tekee valmiin suunnitelman: kuka aloittaa, kuka on maalissa ja milloin vaihdetaan. Vaihda kaksi pelaajaa napauttamalla, sekoita uudelleen tai avaa tarkempi muokkaus. Jaa-painike lähettää suunnitelman tekstinä joukkueen viestiketjuun. Ennen pelin alkua Ketkä ovat paikalla? -näkymässä merkitset poissaolijat, ja suunnitelma täydentyy ilman heitä."
+      "attendance": {
+        "eyebrow": "Ketkä ovat paikalla?",
+        "title": "Poissaolijat ennen pelin alkua",
+        "desc": "Seuraava ottelu -kortin Merkitse poissaolijat avaa listan, jossa kaikki pelaajat ovat valmiiksi valittuina: napauta poissaolevat, niin ylhäällä näkyy, montako on paikalla. Suunnitelma ja aloituskokoonpano täydentyvät paikalla olevilla, ja suunnitelmaan tekemäsi muutokset säilyvät. Poissaolija ei tule ottelun kokoonpanoon, joten peliä ei lasketa hänen pelaamakseen. Ennen aloitusta saman näkymän löydät myös ottelun valikosta."
       },
       "finish": {
         "eyebrow": "Viimeistele ottelu",
@@ -469,7 +469,7 @@
       "planner": {
         "eyebrow": "Ottelusuunnittelu",
         "title": "Suunnittele useampi peli kerralla",
-        "desc": "Turnauspäivälle tai pelisarjalle: suunnittele aloituskokoonpanot ja vaihdot useaan peliin kerralla. Jokaisen pelaajan suunnitellut peliminuutit ja pelipaikat näkyvät värikoodattuina, joten näet jakauman yhdellä silmäyksellä. Voit muokata suunnitelmaa kesken pelisarjan ja nähdä muutosten vaikutuksen kokonaisuuteen. Ottelusuunnittelu kuuluu Koko näkymään."
+        "desc": "Turnauspäivälle tai pelisarjalle: suunnittele aloituskokoonpanot ja vaihdot useaan peliin kerralla. Jokaisen pelaajan suunnitellut peliminuutit ja pelipaikat näkyvät värikoodattuina, joten näet jakauman yhdellä silmäyksellä. Voit muokata suunnitelmaa kesken pelisarjan ja nähdä muutosten vaikutuksen kokonaisuuteen. Yhden pelin suunnitelma tehdään samassa paikassa, ja uuden pelin voi esitäyttää suunnitelmasta."
       },
       "development": {
         "eyebrow": "Pelaajan kehitys",
@@ -479,7 +479,7 @@
       "dashboard": {
         "eyebrow": "Kausi yhdellä silmäyksellä",
         "title": "Hallintapaneeli",
-        "desc": "Koko näkymän etusivulla on neljä välilehteä, joiden välillä voi myös pyyhkäistä. Pelit näyttää seuraavan tai viimeisimmän ottelun, Seura kokoaa pelaajat, joukkueet ja taustahenkilöt Seurakorttiin, Kilpailut näyttää kauden tuloksen ja viiden viime pelin vireen sekä sarjat ja turnaukset, ja Tilastot voitot-tasapelit-häviöt, maalieron ja parhaat maalintekijät."
+        "desc": "Etusivulla on neljä välilehteä, joiden välillä voi myös pyyhkäistä. Pelit näyttää seuraavan tai viimeisimmän ottelun, Seura kokoaa pelaajat, joukkueet ja taustahenkilöt Seurakorttiin, Kilpailut näyttää kauden tuloksen ja viiden viime pelin vireen sekä sarjat ja turnaukset, ja Tilastot voitot-tasapelit-häviöt, maalieron ja parhaat maalintekijät."
       },
       "gameday": {
         "eyebrow": "Ottelupäivä",
@@ -557,12 +557,8 @@
       "series5of5": "5/5"
     },
     "featureCards": {
-      "attendance": "Ketkä ovat paikalla?",
-      "attendanceDesc": "Napauta ennen pelin alkua poissaolevat, niin suunnitelma ja aloituskokoonpano päivittyvät ilman heitä. Suunnitelmaan käsin tekemäsi muutokset säilyvät.",
       "quickGoal": "Maali meille",
       "quickGoalDesc": "Yksi napautus ottelukellosta, ja tulos päivittyy heti. Valitse sitten maalintekijä ja syöttäjä ottelun pelaajista - tai ohita ja täydennä myöhemmin.",
-      "layouts": "Perusnäkymä ja Koko näkymä",
-      "layoutsDesc": "Uusi valmentaja aloittaa Perusnäkymästä: etusivulla on seuraava peli suunnitelmineen, ja ottelu avautuu suoraan kentälle. Koko näkymä tuo mukaan välilehdet Pelit, Seura, Kilpailut ja Tilastot (vaihda pyyhkäisemällä), sarjat ja turnaukset, usean pelin Ottelusuunnittelun, taustahenkilöt ja muut lisätoiminnot. Näkymää voi vaihtaa asetuksista milloin tahansa.",
       "tacticalBoard": "Taktiikkataulu",
       "tacticalBoardDesc": "Piirrä pelikuvioita ja muodostelmia. Kommunikoi pelisuunnitelma ja havainnollista pelillisiä konsepteja visuaalisesti.",
       "formations": "Pikamuodostelmat",
@@ -608,9 +604,7 @@
       "voiceNotes": "Äänimuistiinpanot",
       "voiceNotesDesc": "Sanele muistiinpano ottelun aikana yhdellä painalluksella. Muistiinpanot odottavat postilaatikossa, kunnes kirjoitat ne auki ja liität oikealle pelaajalle tai otteluun.",
       "tasoReport": "Pöytäkirja",
-      "tasoReportDesc": "Ottelun tiedot valmiina kopioitavaksi ja liitettäväksi mihin tahansa järjestelmään: kokoonpano pelinumeroineen, maalivahti ja kapteeni, lopputulos, puoliaikatilanne ja maalit minuutteineen.",
-      "guidedSetup": "Ohjattu käyttöönotto",
-      "guidedSetupDesc": "Valitse laji, nimeä joukkue ja valitse ikäluokka - sovellus ehdottaa sille sopivaa pelimuotoa. Liitä pelaajalista leikepöydältä tai kirjoita nimet; etunimet riittävät. Lopuksi kerro, milloin seuraava peli on, niin ensimmäinen suunnitelma on valmis."
+      "tasoReportDesc": "Ottelun tiedot valmiina kopioitavaksi ja liitettäväksi mihin tahansa järjestelmään: kokoonpano pelinumeroineen, maalivahti ja kapteeni, lopputulos, puoliaikatilanne ja maalit minuutteineen."
     },
     "techCards": {
       "development": "KEHITYS",

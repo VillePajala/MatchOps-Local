@@ -234,7 +234,7 @@
   "info": {
     "whatIsThis": {
       "title": "What is MatchOps?",
-      "description": "MatchOps is a match-day app for football and futsal coaches. Before the game you plan the line-up and substitutions in advance - in the Basic view the app makes the plan for you when you give the game's date. During the game the match clock, substitutions and goals are right there with you. After the game the Match sheet and Match report are ready to share, and statistics build up automatically at player, match, team and competition level. A new coach starts in the Basic view with the match-day essentials; the Full view adds leagues, tournaments, the multi-game Match planner and other extras.",
+      "description": "MatchOps is a match-day app for football and futsal coaches. Before the game you make the plan in the Match planner - who starts, who is in goal and when the changes come - for one game or a whole tournament day, and on match day you mark who is away. During the game the match clock, substitutions and goals are right there with you. After the game the Match sheet and Match report are ready to share, and statistics build up automatically at player, match, team and competition level. New coaches start in a lighter view, and one choice takes them to the full app.",
       "oneLine": "Free with secure cloud sync across your devices. Track games and build statistics right at the field, even without internet."
     },
     "whoIsThisFor": {
@@ -456,10 +456,10 @@
       "seasonTrends": "Season Trends"
     },
     "spotlights": {
-      "firstPlan": {
-        "eyebrow": "When is the next game?",
-        "title": "Your first plan, ready",
-        "desc": "In a new coach's Basic view, entering the date and, if you like, the opponent is enough: the app makes a ready plan - who starts, who is in goal and when the changes come. Swap two players with a tap, shuffle again or open detailed editing. The Share button sends the plan as text to the team chat. Before kick-off, Who is here? lets you mark who is away, and the plan fills in without them."
+      "attendance": {
+        "eyebrow": "Who is here?",
+        "title": "Absences before kick-off",
+        "desc": "Mark who is away on the Next match card opens a list with every player already ticked: tap the players who are away, and the top shows how many are here. The plan and the starting line-up fill in with the players who are there, and the changes you made to the plan are kept. An absent player is not in the match squad, so the game does not count as played for them. Before kick-off you also find the same screen in the match menu."
       },
       "finish": {
         "eyebrow": "Finish this game",
@@ -469,7 +469,7 @@
       "planner": {
         "eyebrow": "Match planner",
         "title": "Plan several games at once",
-        "desc": "For a tournament day or a run of games: plan the starting line-ups and substitutions for several games at once. Each player's planned minutes and positions are colour-coded, so you see the spread at a glance. Adjust the plan mid-series and see how the changes affect the whole. The Match planner is part of the Full view."
+        "desc": "For a tournament day or a run of games: plan the starting line-ups and substitutions for several games at once. Each player's planned minutes and positions are colour-coded, so you see the spread at a glance. Adjust the plan mid-series and see how the changes affect the whole. A one-game plan is made in the same place, and a new game can be prefilled from a plan."
       },
       "development": {
         "eyebrow": "Player Development",
@@ -479,7 +479,7 @@
       "dashboard": {
         "eyebrow": "Your season at a glance",
         "title": "Dashboard",
-        "desc": "In the full view Home has four tabs, and you can swipe between them. Games shows the next or the latest match, Club gathers players, teams and staff on the club card, Competitions shows the season record and the form of the last five games plus leagues and tournaments, and Stats shows wins-draws-losses, goal difference and the top scorers."
+        "desc": "Home has four tabs, and you can swipe between them. Games shows the next or the latest match, Club gathers players, teams and staff on the club card, Competitions shows the season record and the form of the last five games plus leagues and tournaments, and Stats shows wins-draws-losses, goal difference and the top scorers."
       },
       "gameday": {
         "eyebrow": "Game day",
@@ -557,12 +557,8 @@
       "series5of5": "5/5"
     },
     "featureCards": {
-      "attendance": "Who is here?",
-      "attendanceDesc": "Before kick-off, tap the players who are away and the plan and starting line-up update without them. The changes you made to the plan by hand are kept.",
       "quickGoal": "Goal for us",
       "quickGoalDesc": "One tap on the match clock and the score updates at once. Then pick the scorer and assister from the match squad - or skip and fill in later.",
-      "layouts": "Basic view and Full view",
-      "layoutsDesc": "A new coach starts in the Basic view: Home shows the next game with its plan, and the match opens straight on the pitch. The Full view adds the Games, Club, Competitions and Stats tabs (swipe to switch), leagues and tournaments, the multi-game Match planner, coaching staff and the other extras. Switch views in Settings at any time.",
       "tacticalBoard": "Tactical Board",
       "tacticalBoardDesc": "Draw plays and formations. Communicate your game plan and illustrate tactical concepts visually.",
       "formations": "Quick Formations",
@@ -608,9 +604,7 @@
       "voiceNotes": "Voice notes",
       "voiceNotesDesc": "Dictate a note during the match with one press. Notes wait in an inbox until you write them up and attach them to the right player or to the match.",
       "tasoReport": "Match sheet",
-      "tasoReportDesc": "The match data ready to copy and paste into any system: the squad with shirt numbers, goalkeeper and captain, final score, half-time score and every goal with its minute.",
-      "guidedSetup": "Guided setup",
-      "guidedSetupDesc": "Pick the sport, name the team and choose the age group - the app suggests a matching match format. Paste the player list from the clipboard or type the names; first names are enough. Finally say when the next game is, and the first plan is ready."
+      "tasoReportDesc": "The match data ready to copy and paste into any system: the squad with shirt numbers, goalkeeper and captain, final score, half-time score and every goal with its minute."
     },
     "techCards": {
       "development": "DEVELOPMENT",

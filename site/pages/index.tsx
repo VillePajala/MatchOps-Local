@@ -49,13 +49,9 @@ const getScreenshots = (locale: string | undefined) => {
     voiceNotes: shot('voicenotes'),
     // Pöytäkirja sheet: lineup with numbers and positions, result, goals with minutes
     tasoReport: shot('poytakirja'),
-    // The wizard mid-use, with a name typed and the CTA live
-    guidedSetup: shot('wizard'),
-    firstPlan: shot('plan'), // the one-game plan screen after the wizard
     attendance: shot('attendance'), // Ketkä ovat paikalla?
     quickGoal: shot('quickgoal'), // Maali meille -> Kuka teki?
     finish: shot('finish'), // Viimeistele ottelu, top with Pöytäkirja
-    layouts: shot('homebasic'), // Perusnäkymä Home
   };
 };
 
@@ -414,8 +410,8 @@ export default function HomePage() {
         <div className="container-custom">
           <div className="max-w-6xl mx-auto space-y-16 md:space-y-24">
             {[
-              { key: 'firstPlan', screenshot: screenshots.firstPlan },
               { key: 'planner', screenshot: screenshots.planner },
+              { key: 'attendance', screenshot: screenshots.attendance },
               { key: 'finish', screenshot: screenshots.finish },
               { key: 'positionBalance', screenshot: screenshots.positionBalance },
               { key: 'nextMatch', screenshot: screenshots.nextMatch },
@@ -454,7 +450,6 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto space-y-16">
             {[
               { band: 'gameDay', cards: [
-                { key: 'attendance', screenshot: screenshots.attendance },
                 { key: 'quickGoal', screenshot: screenshots.quickGoal },
                 { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
                 { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
@@ -468,8 +463,6 @@ export default function HomePage() {
                 { key: 'positions', screenshot: screenshots.positions },
               ] },
               { band: 'club', cards: [
-                { key: 'guidedSetup', screenshot: screenshots.guidedSetup },
-                { key: 'layouts', screenshot: screenshots.layouts },
                 { key: 'roster', screenshot: screenshots.roster },
                 { key: 'teams', screenshot: screenshots.teams },
                 { key: 'personnel', screenshot: screenshots.personnel },
