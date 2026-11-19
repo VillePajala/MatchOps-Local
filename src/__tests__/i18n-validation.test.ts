@@ -746,7 +746,7 @@ describe('Translation File Validation', () => {
       // -2: fieldTools.selectedHint/cancelSelection (match view selection notice removed). 3531.
       // +6 startScreen.club* (Seura club card). 3615.
       // +7 startScreen tab heroes: openGame, dashTileRecord, dashTopScorers, dashGamesWord/dashGoalsWord _one/_other. 3622.
-      expect(enKeys.length).toBe(3622);
+      expect(enKeys.length).toBe(3623);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -958,7 +958,7 @@ describe('Translation File Validation', () => {
       // -2 (selection notice removed). 3531.
       // +6 (Seura club card). 3615.
       // +7 (Home tab heroes). 3622.
-      expect(fiKeys.length).toBe(3622);
+      expect(fiKeys.length).toBe(3623);
     });
   });
 });

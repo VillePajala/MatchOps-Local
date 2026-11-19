@@ -102,7 +102,7 @@ export function HomeIcon({ name, className = 'h-[22px] w-[22px]', strokeWidth = 
  * "2026-09-20" -> "20.9." - the form a Finnish coach writes on a whiteboard. A date
  * with a time part ("2026-09-20T...") uses its date part.
  */
-const formatDayMonth = (iso: string): string => {
+export const formatDayMonth = (iso: string): string => {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   if (!m) return '';
   return `${Number(m[3])}.${Number(m[2])}.`;
@@ -949,17 +949,46 @@ export function HomeCount({ n, className = '' }: { n: React.ReactNode; className
 }
 
 /**
- * Kilpailut tab's hero: the club season (the previous one while the current
- * has no game yet) - its label, the full record, and "N games · GF–GA". It
- * opens OVERALL stats: the record is the club season's, not one league's.
+ * The last results as small letter chips, NEWEST FIRST - the same order and
+ * the same badge colours as Pelit's results list, so the two read alike.
  */
-export function HomeSeasonHero({ vuosi, onOpen, t }: {
+function FormStrip({ form, t }: { form: GameResult[]; t: TFunction }) {
+  const label = t('startScreen.dashForm', 'Recent form');
+  return (
+    <span className="flex items-center gap-1" role="img" aria-label={`${label}: ${form.map((r) => badgeLetter(r, t)).join(' ')}`} data-testid="competitions-form">
+      {form.map((r, i) => (
+        <span
+          key={i}
+          aria-hidden="true"
+          data-result={r}
+          className={`grid h-7 min-w-7 place-items-center rounded-full px-1 font-display text-[15px] font-bold leading-none ${badgeClass[r]}`}
+        >
+          {badgeLetter(r, t)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** How many results Kilpailut's form strip shows. */
+const FORM_GAMES = 5;
+
+/**
+ * Kilpailut tab's hero: the club season (the previous one while the current
+ * has no game yet) - its label, the full record, "N games · GF–GA" and the
+ * last five results. It opens OVERALL stats: the record is the club season's,
+ * not one league's.
+ */
+export function HomeSeasonHero({ vuosi, recent, onOpen, t }: {
   vuosi: HomeSummary['vuosi'];
+  /** Played games, newest first (the summary's `recent`); the first five form the strip. */
+  recent?: HomeRecentGame[];
   onOpen?: () => void;
   t: TFunction;
 }) {
   const label = seasonLabelOf(vuosi);
   const played = !!vuosi && vuosi.gamesPlayed > 0;
+  const form = (recent ?? []).slice(0, FORM_GAMES).map((g) => g.result);
   return (
     <button
       type="button"
@@ -979,18 +1008,23 @@ export function HomeSeasonHero({ vuosi, onOpen, t }: {
         </span>
         {played && <SeasonRecord vuosi={vuosi} className="text-[44px]" t={t} />}
       </span>
-      {vuosi && (
-        <span className="mt-3.5 block border-t border-hairline pt-3 text-[13px] text-ink-2" data-testid="competitions-hero-line">
-          {played ? (
-            <>
-              <HomeCount n={vuosi.gamesPlayed} className="text-lg text-ink" />{' '}
-              {t('startScreen.dashGamesWord', 'games', { count: vuosi.gamesPlayed })}
-              <span className="mx-1 text-ink-3" aria-hidden="true">·</span>
-              <HomeCount n={`${vuosi.goalsFor}–${vuosi.goalsAgainst}`} className="text-lg text-ink" />
-            </>
-          ) : (
-            t('startScreen.dashStatsEmpty', 'No games played yet')
+      {(vuosi || form.length > 0) && (
+        <span className="mt-3.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-hairline pt-3">
+          {vuosi && (
+            <span className="text-[13px] text-ink-2" data-testid="competitions-hero-line">
+              {played ? (
+                <>
+                  <HomeCount n={vuosi.gamesPlayed} className="text-lg text-ink" />{' '}
+                  {t('startScreen.dashGamesWord', 'games', { count: vuosi.gamesPlayed })}
+                  <span className="mx-1 text-ink-3" aria-hidden="true">·</span>
+                  <HomeCount n={`${vuosi.goalsFor}–${vuosi.goalsAgainst}`} className="text-lg text-ink" />
+                </>
+              ) : (
+                t('startScreen.dashStatsEmpty', 'No games played yet')
+              )}
+            </span>
           )}
+          {form.length > 0 && <FormStrip form={form} t={t} />}
         </span>
       )}
     </button>
@@ -1104,7 +1138,7 @@ function StatTile({ figure, label, onClick, testId }: {
       data-testid={testId}
       className={`flex min-h-[92px] min-w-0 flex-col items-center justify-center gap-2 rounded-[18px] bg-white/[0.04] px-1.5 py-3 text-center ring-1 ring-inset ring-white/[0.07] transition-colors enabled:hover:bg-white/[0.07] enabled:active:bg-white/[0.09] ${HOME_FOCUS}`}
     >
-      <span className="block whitespace-nowrap font-display text-[clamp(26px,8.5vw,36px)] font-extrabold italic leading-none text-ink tabular-nums">
+      <span className="block whitespace-nowrap font-display text-[clamp(32px,11vw,44px)] font-extrabold italic leading-none text-ink tabular-nums">
         {figure}
       </span>
       {/* Sentence case and allowed to wrap: an uppercase caption was wider
@@ -1115,16 +1149,13 @@ function StatTile({ figure, label, onClick, testId }: {
 }
 
 /**
- * Tilastot tab's hero: the club season's three figures, each labelled and
- * each a way in - the record and goal difference open overall stats, the top
- * scorer opens that player's stats.
+ * Tilastot tab's hero: the club season's two figures, each labelled and each
+ * opening overall stats. The top scorer is not a tile (owner, 2026-11-19): it
+ * leads the scorers card right below.
  */
-export function HomeStatsHero({ vuosi, topScorer, onOpenOverall, onOpenPlayer, t }: {
+export function HomeStatsHero({ vuosi, onOpenOverall, t }: {
   vuosi: HomeSummary['vuosi'];
-  topScorer: HomeSummary['topScorer'];
   onOpenOverall?: () => void;
-  /** The player's id when known; without one, the player stats tab. */
-  onOpenPlayer?: (playerId?: string) => void;
   t: TFunction;
 }) {
   if (!vuosi) return null;
@@ -1147,7 +1178,7 @@ export function HomeStatsHero({ vuosi, topScorer, onOpenOverall, onOpenPlayer, t
           {t('startScreen.dashGamesWord', 'games', { count: vuosi.gamesPlayed })}
         </span>
       </span>
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
         <StatTile
           testId="stats-tile-record"
           figure={<SeasonRecord vuosi={vuosi} t={t} />}
@@ -1160,14 +1191,6 @@ export function HomeStatsHero({ vuosi, topScorer, onOpenOverall, onOpenPlayer, t
           label={t('startScreen.dashTileGoalDiff', 'Goal diff')}
           onClick={onOpenOverall}
         />
-        {topScorer && (
-          <StatTile
-            testId="stats-tile-scorer"
-            figure={topScorer.goals}
-            label={`${topScorer.name} · ${topScorer.goals} ${t('startScreen.dashGoalsWord', 'goals', { count: topScorer.goals })}`}
-            onClick={onOpenPlayer ? () => onOpenPlayer(topScorer.id) : undefined}
-          />
-        )}
       </div>
     </div>
   );
@@ -1179,8 +1202,8 @@ export function HomeTopScorersCard({ scorers, onOpenPlayer, t }: {
   onOpenPlayer?: (playerId?: string) => void;
   t: TFunction;
 }) {
-  // One scorer is already the hero's third tile; a list of one says nothing more.
-  if (!scorers || scorers.length < 2) return null;
+  // The scorers live only here (the hero has no scorer tile), so one is enough.
+  if (!scorers || scorers.length === 0) return null;
   return (
     <div className="s1-list p-0.5" data-testid="top-scorers">
       <h3 className={`${SECTION_LABEL} flex min-h-11 items-center px-4 text-ink-3`}>

@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonHero, HomeStatsHero, HomeTopScorersCard, HomeClubCard, HomeCount, HomeIcon, HOME_CARD, HOME_FOCUS } from '@/components/HomeDashboard';
-import CompetitionCard from '@/components/CompetitionCard';
+import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonHero, HomeStatsHero, HomeTopScorersCard, HomeClubCard, HomeIcon, HOME_CARD, HOME_FOCUS, formatDayMonth } from '@/components/HomeDashboard';
 import type { HomeCompetition } from '@/utils/homeSummary';
+import { useHorizontalSwipe } from '@/hooks/useHorizontalSwipe';
 import packageJson from '../../package.json';
 import { commonClubName } from '@/utils/homeTeamScope';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -74,6 +74,8 @@ const ROW_LABEL = 'flex-1 min-w-0 break-words text-left text-base font-semibold 
 /** Counts are numerals: Barlow Condensed italic, like every number on Home. */
 const ROW_COUNT = 'flex-shrink-0 pr-[2px] font-display text-lg font-bold italic leading-none tabular-nums text-ink-2';
 const ROW_CHEVRON = <HiOutlineChevronRight className="w-4 h-4 flex-shrink-0 text-ink-3" aria-hidden="true" />;
+/** A row whose tap adds the first one: a plus, not a chevron. */
+const ROW_ADD = <HomeIcon name="plus" className="h-[18px] w-[18px] flex-shrink-0 text-ink-3" strokeWidth={2} />;
 const ROW_EXTERNAL = <HiOutlineArrowTopRightOnSquare className="w-[18px] h-[18px] flex-shrink-0 text-ink-3" aria-hidden="true" />;
 
 /** The container that makes a run of rows one object instead of several. */
@@ -154,65 +156,18 @@ const StepBadge: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 /**
- * A Kilpailut section's heading - "SARJAT 3 ›" - which opens that manager:
- * the full list, archived ones and sorting live there.
+ * The subtitle under a Kilpailut row: the league or tournament it is about
+ * ("IPS Talviturnaus · 28.2." - a tournament's date is the point of it).
  */
-const SectionHeader: React.FC<{ label: string; count?: number; onClick?: () => void; testId?: string }> = ({ label, count, onClick, testId }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={!onClick}
-    data-testid={testId}
-    className={`-mb-1.5 flex min-h-11 w-full items-center gap-2 rounded-lg px-1 text-left transition-colors hover:text-ink disabled:opacity-40 ${HOME_FOCUS}`}
-  >
-    <span className="text-xs font-bold uppercase tracking-[0.16em] text-ink-3">{label}</span>
-    {count !== undefined && <>{' '}<HomeCount n={count} className="text-[17px] leading-none text-ink-2" /></>}
-    <span className="flex-1" aria-hidden="true" />
-    {ROW_CHEVRON}
-  </button>
-);
-
-/** A quiet "+ Lisää ..." row: an invitation, not a second primary action. */
-const AddRow: React.FC<{ label: string; onClick?: () => void; testId?: string }> = ({ label, onClick, testId }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={!onClick}
-    data-testid={testId}
-    className={`flex min-h-12 w-full items-center gap-3 rounded-[22px] border border-dashed border-white/20 px-4 py-2.5 text-left text-[15px] font-semibold text-ink-2 transition-colors hover:bg-white/[0.03] hover:text-ink disabled:opacity-40 ${HOME_FOCUS}`}
-  >
-    <HomeIcon name="plus" className="h-5 w-5 text-ink-3" strokeWidth={2} />
-    <span className="min-w-0 break-words">{label}</span>
-  </button>
-);
-
-/** How many league / tournament cards Kilpailut shows inline; the header opens the rest. */
-const COMPETITION_CARDS = 3;
-
-/** The active leagues or tournaments as the manager's own cards; each opens its sheet. */
-const CompetitionCards: React.FC<{
-  items: HomeCompetition[];
-  kind: 'season' | 'tournament';
-  onOpen?: (id: string) => void;
-  t: ReturnType<typeof useTranslation>['t'];
-}> = ({ items, kind, onOpen, t }) => (
-  <>
-    {items.slice(0, COMPETITION_CARDS).map((c) => (
-      <button
-        key={c.id}
-        type="button"
-        onClick={onOpen ? () => onOpen(c.id) : undefined}
-        disabled={!onOpen}
-        data-testid={`home-${kind}-card`}
-        className={`${HOME_CARD} block w-full pt-4 text-left font-ui transition-colors hover:bg-white/[0.03] ${HOME_FOCUS}`}
-      >
-        <CompetitionCard item={c} showDates={kind === 'tournament'} games={c.games} goals={c.goals} t={t} />
-      </button>
-    ))}
-  </>
-);
+const competitionSubtitle = (c: HomeCompetition | null | undefined, withDate: boolean): string | undefined => {
+  if (!c) return undefined;
+  const date = withDate && c.startDate ? formatDayMonth(c.startDate) : '';
+  return date ? `${c.name} · ${date}` : c.name;
+};
 
 type HomeTabId = 'games' | 'team' | 'seasons' | 'stats';
+/** The tab bar's order, which swiping follows. */
+const HOME_TAB_ORDER: HomeTabId[] = ['games', 'team', 'seasons', 'stats'];
 
 interface StartScreenProps {
   onLoadGame: () => void;
@@ -228,11 +183,9 @@ interface StartScreenProps {
   onViewStats: () => void;
   /** Stats panel rows mirror the aggregate tabs (W8): open club stats on one. */
   onViewStatsTab?: (tab: 'season' | 'tournament' | 'overall' | 'player') => void;
-  /** Tilastot's top-scorer tile and list: that player's stats. */
+  /** Tilastot's scorers list: that player's stats. */
   onViewPlayerStats?: (playerId: string) => void;
-  /** Kilpailut's league / tournament cards: that one's sheet. */
-  onOpenCompetition?: (kind: 'season' | 'tournament', id: string) => void;
-  /** Kilpailut's "Lisää sarja / turnaus" rows: the add sheet. */
+  /** Kilpailut's "Sarjat / Turnaukset" rows with none yet: the add sheet. */
   onAddCompetition?: (kind: 'season' | 'tournament') => void;
   /** Gear sheet: direct sign out (cloud mode only). */
   onSignOut?: () => void;
@@ -312,7 +265,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onViewStats,
   onViewStatsTab,
   onViewPlayerStats,
-  onOpenCompetition,
   onAddCompetition,
   onSignOut,
   onOpenSettings,
@@ -360,12 +312,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // Entity counts on the Club / Competitions rows - only once the enriched
   // summary has loaded, so a still-loading 0 never reads as "you have none".
   const counts = homeSummary?.countsReady ? homeSummary.counts : undefined;
-  // Kilpailut's cards: club-wide, like its season hero. Undefined until loaded.
+  // Kilpailut's rows: club-wide, like its season hero. Undefined until loaded.
   const competitions = homeSummary?.competitions;
   // Tilastot reads the team-scoped copy of the summary.
   const statsSummary = homeStatsSummary ?? homeSummary;
-  // Its record and goal-difference tiles open overall stats; the scorer tile
-  // and the scorers list open that player (the player tab when no id is known).
+  // Its record and goal-difference tiles open overall stats; the scorers list
+  // opens that player (the player tab when no id is known).
   const openOverall = onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats;
   const openPlayer = (playerId?: string) => {
     if (playerId && onViewPlayerStats) onViewPlayerStats(playerId);
@@ -412,6 +364,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // tabs - Games (front page) and Team (club entry rows) switch panels here;
   // Seasons/Stats stay one-tap openers for their single-purpose scopes.
   const [activeTab, setActiveTab] = useState<HomeTabId>('games');
+  // Which way the last SWIPE moved, for the content's slide-in (null after a
+  // tab tap: a tap needs no motion to explain it). Reduced motion: none.
+  const [slideDir, setSlideDir] = useState<'fwd' | 'back' | null>(null);
   // Gear sheet (restructure PR 1.4): the app/account bucket. Everything
   // device- or account-scoped lives here, off the front page.
   const [showGearSheet, setShowGearSheet] = useState(false);
@@ -468,6 +423,20 @@ const StartScreen: React.FC<StartScreenProps> = ({
     { id: 'seasons', label: t('startScreen.tabSeasons', 'Competitions') },
     { id: 'stats', label: t('startScreen.tabStats', 'Stats') },
   ];
+
+  // Swiping the tab content moves to the next / previous tab (full layout
+  // only; the ends do not wrap). See useHorizontalSwipe for what it ignores.
+  const stepTab = useCallback((step: 1 | -1) => {
+    const next = HOME_TAB_ORDER[HOME_TAB_ORDER.indexOf(activeTab) + step];
+    if (!next) return;
+    setSlideDir(step === 1 ? 'fwd' : 'back');
+    setActiveTab(next);
+  }, [activeTab]);
+  const swipe = useHorizontalSwipe({
+    enabled: layoutKnown && !isBasic,
+    onSwipeLeft: () => stepTab(1),
+    onSwipeRight: () => stepTab(-1),
+  });
 
   return (
     <div className="s1-canvas relative flex flex-col h-screen h-[100dvh] overflow-hidden font-ui text-ink antialiased">
@@ -529,8 +498,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
           the lower rows are never clipped; the tab bar below stays put.
           min-h-0 lets the flex child actually shrink to enable it. */}
       {/* Content fades out under the top bar instead of being cut by a hard edge. */}
-      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-5 [mask-image:linear-gradient(to_bottom,transparent_0,black_14px)]">
-        <div className={`mx-auto w-full max-w-md ${STACK} ${isBasic ? 'min-h-full' : ''}`}>
+      <main
+        className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-5 [mask-image:linear-gradient(to_bottom,transparent_0,black_14px)]"
+        data-testid="home-tab-content"
+        {...swipe}
+      >
+        {/* Keyed by tab so a swipe's slide-in replays on every change. */}
+        <div
+          key={isBasic ? 'basic' : activeTab}
+          className={`mx-auto w-full max-w-md ${STACK} ${isBasic ? 'min-h-full' : ''} ${
+            slideDir === 'fwd' ? 'planner-slide-fwd' : slideDir === 'back' ? 'planner-slide-back' : ''
+          }`}
+        >
           {!layoutKnown ? null : isBasic ? (
             /* Perusnäkymä (Onboarding v3): its own body, no tab bar. */
             <HomeBasic
@@ -614,13 +593,16 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </HomeGroup>
             </>
           ) : activeTab === 'seasons' ? (
-            /* Competitions panel (owner, 2026-11-19): the season hero, then the
-               active leagues and tournaments as the managers' own cards. Each
-               section heading opens its manager; a card opens its sheet. */
+            /* Competitions panel (owner, 2026-11-19): a SHORT overview, never a
+               second list - the season hero with its form strip, then one row
+               each for leagues and tournaments naming the one that matters
+               now. The rows open the managers; the page stays one screen tall
+               however many competitions there are. */
             <>
               {dashboardOn && homeSummary && (
                 <HomeSeasonHero
                   vuosi={homeSummary.vuosi}
+                  recent={homeSummary.recent}
                   onOpen={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
                   t={t}
                 />
@@ -628,51 +610,51 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
                 <p className="px-1 text-center text-sm text-ink-3">{t('startScreen.emptyCompetitions', 'Create a league or tournament to group your games.')}</p>
               )}
-              <SectionHeader
-                label={t('seasonTournamentModal.seasons', 'Leagues')}
-                count={counts?.seasons}
-                onClick={onManageSeasons}
-                testId="home-seasons-header"
-              />
-              {competitions && (
-                <>
-                  <CompetitionCards
-                    items={competitions.seasons}
-                    kind="season"
-                    onOpen={onOpenCompetition ? (id) => onOpenCompetition('season', id) : onManageSeasons && (() => onManageSeasons())}
-                    t={t}
+              <HomeGroup>
+                {/* With none yet, a row offers adding one instead of a dead 0. */}
+                {counts?.seasons === 0 ? (
+                  <HomeRow
+                    icon={HiOutlineCalendarDays}
+                    label={t('seasonTournamentModal.seasons', 'Leagues')}
+                    subtitle={t('seasonTournamentModal.addSeason', 'Add League')}
+                    onClick={onAddCompetition ? () => onAddCompetition('season') : onManageSeasons}
+                    disabled={!onAddCompetition && !onManageSeasons}
+                    trailing={ROW_ADD}
+                    testId="home-seasons-row"
                   />
-                  {/* A second league is the rarer act: its add lives in the manager. */}
-                  {competitions.seasons.length === 0 && (
-                    <AddRow
-                      label={t('seasonTournamentModal.addSeason', 'Add League')}
-                      onClick={onAddCompetition ? () => onAddCompetition('season') : onManageSeasons}
-                      testId="home-add-season"
-                    />
-                  )}
-                </>
-              )}
-              <SectionHeader
-                label={t('seasonTournamentModal.tournaments', 'Tournaments')}
-                count={counts?.tournaments}
-                onClick={onManageTournaments}
-                testId="home-tournaments-header"
-              />
-              {competitions && (
-                <>
-                  <CompetitionCards
-                    items={competitions.tournaments}
-                    kind="tournament"
-                    onOpen={onOpenCompetition ? (id) => onOpenCompetition('tournament', id) : onManageTournaments && (() => onManageTournaments())}
-                    t={t}
+                ) : (
+                  <HomeRow
+                    icon={HiOutlineCalendarDays}
+                    label={t('seasonTournamentModal.seasons', 'Leagues')}
+                    count={counts?.seasons}
+                    subtitle={competitionSubtitle(competitions?.featuredSeason, false)}
+                    onClick={onManageSeasons}
+                    disabled={!onManageSeasons}
+                    testId="home-seasons-row"
                   />
-                  <AddRow
-                    label={t('seasonTournamentModal.addTournament', 'Add Tournament')}
+                )}
+                {counts?.tournaments === 0 ? (
+                  <HomeRow
+                    icon={HiOutlineTrophy}
+                    label={t('seasonTournamentModal.tournaments', 'Tournaments')}
+                    subtitle={t('seasonTournamentModal.addTournament', 'Add Tournament')}
                     onClick={onAddCompetition ? () => onAddCompetition('tournament') : onManageTournaments}
-                    testId="home-add-tournament"
+                    disabled={!onAddCompetition && !onManageTournaments}
+                    trailing={ROW_ADD}
+                    testId="home-tournaments-row"
                   />
-                </>
-              )}
+                ) : (
+                  <HomeRow
+                    icon={HiOutlineTrophy}
+                    label={t('seasonTournamentModal.tournaments', 'Tournaments')}
+                    count={counts?.tournaments}
+                    subtitle={competitionSubtitle(competitions?.featuredTournament, true)}
+                    onClick={onManageTournaments}
+                    disabled={!onManageTournaments}
+                    testId="home-tournaments-row"
+                  />
+                )}
+              </HomeGroup>
             </>
           ) : activeTab === 'stats' ? (
             /* Stats panel (W8): one row per aggregate stats tab. Disabled until
@@ -690,9 +672,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   />
                   <HomeStatsHero
                     vuosi={statsSummary.vuosi}
-                    topScorer={statsSummary.topScorer}
                     onOpenOverall={openOverall}
-                    onOpenPlayer={openPlayer}
                     t={t}
                   />
                   <HomeTopScorersCard scorers={statsSummary.topScorers} onOpenPlayer={openPlayer} t={t} />
@@ -701,31 +681,27 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {!hasSavedGames && (
                 <p className="px-1 text-center text-sm text-ink-3">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
               )}
-              {/* The four stats scopes as a 2x2 grid of tiles (owner, 2026-11-19),
-                  each with the icon of the thing it aggregates. */}
-              <div className="grid grid-cols-2 gap-2.5" data-testid="home-stats-grid">
+              {/* The four stats views as ONE grouped list (owner, 2026-11-19),
+                  topping up a player's record as its last row - a stats task
+                  that works before the first recorded match too. */}
+              <HomeGroup>
                 {([
                   ['season', t('startScreen.statsSeason', 'League stats'), HiOutlineCalendarDays],
                   ['tournament', t('startScreen.statsTournament', 'Tournament stats'), HiOutlineTrophy],
                   ['overall', t('startScreen.statsOverall', 'Overall stats'), HiOutlineChartBar],
                   ['player', t('startScreen.statsPlayer', 'Player stats'), HiOutlineUserCircle],
                 ] as const).map(([tab, label, Icon]) => (
-                  <button
+                  <HomeRow
                     key={tab}
-                    type="button"
+                    icon={Icon}
+                    label={label}
                     onClick={onViewStatsTab ? () => onViewStatsTab(tab) : onViewStats}
                     disabled={!hasSavedGames}
-                    className={`${HOME_CARD} flex min-h-[92px] min-w-0 flex-col items-start justify-between gap-3 px-4 py-3.5 text-left transition-colors max-[359px]:px-3 ${hasSavedGames ? ROW_ON : ROW_OFF} ${HOME_FOCUS}`}
-                  >
-                    <Icon className="h-[22px] w-[22px] flex-shrink-0 text-ink-2" aria-hidden="true" />
-                    {/* One word ("Turnaustilastot") must fit a half-width tile at 320px. */}
-                    <span className="block max-w-full break-words text-[15px] font-semibold leading-snug text-ink max-[359px]:text-[13px]">{label}</span>
-                  </button>
+                    testId={`home-stats-${tab}`}
+                  />
                 ))}
-              </div>
-              {/* Topping up one player's record is a stats task; it works
-                  before the first recorded match too. */}
-              {externalGameRow && <HomeGroup>{externalGameRow}</HomeGroup>}
+                {externalGameRow}
+              </HomeGroup>
             </>
           ) : (
             /* The Pelit front page (two-level restructure PR 1.3). */
@@ -922,7 +898,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 role="tab"
                 aria-selected={on}
                 data-testid={testId}
-                onClick={() => setActiveTab(id)}
+                onClick={() => { setSlideDir(null); setActiveTab(id); }}
                 className={`relative flex min-h-[46px] items-center justify-center rounded-xl px-1 text-[13px] font-semibold tracking-[0.01em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action ${
                   on ? 'text-action' : 'text-ink-2 opacity-60 hover:opacity-100'
                 }`}

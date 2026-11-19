@@ -2972,6 +2972,7 @@ export type TranslationKey =
   | 'startScreen.createSeasonTournament'
   | 'startScreen.dashAllTeams'
   | 'startScreen.dashDeparture'
+  | 'startScreen.dashForm'
   | 'startScreen.dashGamesWord_one'
   | 'startScreen.dashGamesWord_other'
   | 'startScreen.dashGoalsWord_one'

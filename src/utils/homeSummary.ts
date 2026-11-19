@@ -222,8 +222,8 @@ export interface HomeTopScorer {
 }
 
 /**
- * One active league or tournament for the Kilpailut tab: the same facts the
- * manager's card shows (see CompetitionCard), with its matches and goals.
+ * One active league or tournament: the same facts the manager's card shows
+ * (see CompetitionCard), with its matches and goals.
  */
 export interface HomeCompetition extends CompetitionCardItem {
   id: string;
@@ -268,10 +268,18 @@ export interface HomeSummary {
   /** The season's three best scorers, most goals first (Tilastot's scorer card). */
   topScorers?: HomeTopScorer[];
   /**
-   * The active (not archived) leagues and tournaments, newest first - the
-   * Kilpailut tab's cards. Absent until the entity data has loaded.
+   * The active (not archived) leagues and tournaments, newest first - where
+   * the Kilpailut rows' featured league / tournament comes from. Absent until
+   * the entity data has loaded.
    */
-  competitions?: { seasons: HomeCompetition[]; tournaments: HomeCompetition[] };
+  competitions?: {
+    seasons: HomeCompetition[];
+    tournaments: HomeCompetition[];
+    /** The league Kilpailut names under its "Sarjat" row - see `featuredCompetition`. */
+    featuredSeason: HomeCompetition | null;
+    /** The tournament Kilpailut names under its "Turnaukset" row. */
+    featuredTournament: HomeCompetition | null;
+  };
   /** Every played game in scope (not capped like `recent`) - the basic Home's "Pelatut pelit · N". */
   playedCount?: number;
   /** Every game in scope, played or not - the basic Home's "Kaikki ottelut" row (R5). */
@@ -337,7 +345,7 @@ export interface HomeSummaryOptions {
   personnelCount?: number;
   seasonsCount?: number;
   tournamentsCount?: number;
-  /** Leagues and tournaments, for the Kilpailut tab's cards (archived ones are skipped). */
+  /** Leagues and tournaments, for the Kilpailut tab's rows (archived ones are skipped). */
   seasons?: Season[];
   tournaments?: Tournament[];
 }
@@ -689,10 +697,16 @@ export function buildHomeSummary(
     topScorer,
     topScorers,
     competitions: opts.seasons || opts.tournaments
-      ? {
-          seasons: activeCompetitions(opts.seasons ?? [], all, 'seasonId'),
-          tournaments: activeCompetitions(opts.tournaments ?? [], all, 'tournamentId'),
-        }
+      ? (() => {
+          const seasons = activeCompetitions(opts.seasons ?? [], all, 'seasonId');
+          const tournaments = activeCompetitions(opts.tournaments ?? [], all, 'tournamentId');
+          return {
+            seasons,
+            tournaments,
+            featuredSeason: featuredCompetition(seasons, 'season', opts.today),
+            featuredTournament: featuredCompetition(tournaments, 'tournament', opts.today),
+          };
+        })()
       : undefined,
     playedCount,
     gameCount,
@@ -740,6 +754,37 @@ function activeCompetitions(
         goals: linked.reduce((sum, g) => sum + (g.gameEvents?.filter((e) => e.type === 'goal').length ?? 0), 0),
       };
     });
+}
+
+/**
+ * The one league or tournament Kilpailut names in its row's subtitle.
+ *
+ * League: the one running today (started, not ended), else the latest one that
+ * has started, else the first listed. Tournament: the one on today, else the
+ * NEXT one ahead (nearest start date), else the most recent one, else the
+ * first listed - a coach looks at tournaments for what is coming up.
+ *
+ * `items` must be in `activeCompetitions` order (newest start date first,
+ * undated last). Null only when there is none.
+ */
+export function featuredCompetition(
+  items: HomeCompetition[],
+  kind: 'season' | 'tournament',
+  today: string,
+): HomeCompetition | null {
+  const day = (iso?: string) => (iso ? iso.slice(0, 10) : '');
+  const started = (c: HomeCompetition) => !!c.startDate && day(c.startDate) <= today;
+  // A tournament without an end date is a one-day event.
+  const running = (c: HomeCompetition) =>
+    started(c) && (c.endDate ? day(c.endDate) >= today : kind === 'season' || day(c.startDate) === today);
+  const current = items.find(running);
+  if (current) return current;
+  if (kind === 'tournament') {
+    // Newest first, so the LAST future one is the nearest.
+    const ahead = items.filter((c) => !!c.startDate && day(c.startDate) > today);
+    if (ahead.length > 0) return ahead[ahead.length - 1];
+  }
+  return items.find(started) ?? items[0] ?? null;
 }
 
 /** The same calendar day a year earlier (29 February clamps to the 28th). */

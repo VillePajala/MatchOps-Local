@@ -782,18 +782,14 @@ describe('Home dashboard view (opt-in)', () => {
    */
   it('offers the team choice on Stats only, and Stats reads the team-scoped summary', () => {
     const teams = [{ id: 'a', label: 'PePo Lila (Aluesarja)' }, { id: 'b', label: 'PePo Lila (Futsal)' }];
-    const scoped = { ...summary, vuosi: { ...summary.vuosi, gamesPlayed: 3, goalsFor: 4 }, topScorer: { name: 'Virta', goals: 2 } };
+    const scoped = { ...summary, vuosi: { ...summary.vuosi, gamesPlayed: 3, goalsFor: 4 }, topScorer: { name: 'Virta', goals: 2 }, topScorers: [{ name: 'Virta', goals: 2 }] };
     render(<StartScreen {...dashProps({ teamScopeOptions: teams, teamScope: 'a', homeStatsSummary: scoped })} />);
     expect(screen.queryByTestId('home-team-scope')).not.toBeInTheDocument();
-    // The scorer tile shows the goals as the figure and "<name> · N goals" as
-    // its label (a name set as the big number overflowed a third-width tile).
     expect(screen.queryByText(/Virta/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(screen.getByTestId('home-team-scope')).toBeInTheDocument();
-    const scorer = screen.getByTestId('stats-tile-scorer');
-    expect(within(scorer).getByText('Virta · 2 goals')).toBeInTheDocument();
-    expect(within(scorer).getByText('2')).toBeInTheDocument();
-    // The club-wide scorer must not leak into the team-scoped tiles.
+    expect(within(screen.getByTestId('top-scorers')).getByText('Virta')).toBeInTheDocument();
+    // The club-wide scorer must not leak into the team-scoped figures.
     expect(screen.queryByText(/Aho/)).not.toBeInTheDocument();
   });
 
@@ -874,8 +870,8 @@ describe('Home dashboard view (opt-in)', () => {
     expect(within(record).getByText('1')).toHaveClass('text-loss');
     // "8 games · 18–9" - played games and goals for and against.
     expect(screen.getByTestId('competitions-hero-line')).toHaveTextContent('8 games·18–9');
-    expect(screen.getByRole('button', { name: /Leagues\s*3/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Tournaments\s*2/ })).toBeInTheDocument();
+    expect(screen.getByTestId('home-seasons-row')).toHaveTextContent(/Leagues\s*3/);
+    expect(screen.getByTestId('home-tournaments-row')).toHaveTextContent(/Tournaments\s*2/);
     // The card shows the club-season (Vuosi) record, so it must open OVERALL
     // stats - NOT the 'season' tab (a user Kausi). Guards the #688 fix.
     (props.onViewStatsTab as jest.Mock).mockClear();
@@ -891,25 +887,27 @@ describe('Home dashboard view (opt-in)', () => {
     expect(screen.queryByText('Goal diff')).not.toBeInTheDocument();
   });
 
-  it('Tilastot tab shows the labelled overview tiles when on', () => {
+  /** Owner, 2026-11-19: two wide tiles - the scorer lives in the scorers list. */
+  it('Tilastot hero has two tiles, record and goal difference, and no scorer tile', () => {
     render(<StartScreen {...dashProps()} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     const hero = screen.getByTestId('stats-hero');
+    expect(within(hero).getAllByRole('button')).toHaveLength(2);
+    expect(hero.querySelector('.grid')).toHaveClass('grid-cols-2');
     expect(within(hero).getByText('W–D–L')).toBeInTheDocument();
     expect(within(screen.getByTestId('stats-tile-record')).getByTitle('Wins - draws - losses')).toHaveTextContent('5-2-1');
     expect(within(hero).getByText('Goal diff')).toBeInTheDocument();
     expect(within(screen.getByTestId('stats-tile-goal-diff')).getByText('+9')).toBeInTheDocument();
-    // Goals are the figure; the label says whose and what.
-    expect(within(screen.getByTestId('stats-tile-scorer')).getByText('6')).toBeInTheDocument();
-    expect(within(hero).getByText('Aho · 6 goals')).toBeInTheDocument();
+    expect(screen.queryByTestId('stats-tile-scorer')).not.toBeInTheDocument();
+    expect(within(hero).queryByText(/Aho/)).not.toBeInTheDocument();
   });
 
   /**
-   * Owner, 2026-11-19: every Tilastot tile is a way in - the record and goal
-   * difference open overall stats, the top scorer opens that player.
+   * Both tiles are a way in to overall stats; the scorers card opens that
+   * player - one scorer is enough for the card now there is no scorer tile.
    * @critical
    */
-  it('Tilastot tiles are tappable: record and goal diff open overall, the scorer opens that player', () => {
+  it('Tilastot tiles open overall stats; a single scorer still gets the scorers card', () => {
     const scorer = { id: 'p-aho', name: 'Aho', goals: 6 };
     const props = {
       ...dashProps({ homeSummary: { ...summary, topScorer: scorer, topScorers: [scorer] } }),
@@ -922,18 +920,25 @@ describe('Home dashboard view (opt-in)', () => {
     fireEvent.click(screen.getByTestId('stats-tile-goal-diff'));
     expect(props.onViewStatsTab).toHaveBeenLastCalledWith('overall');
     expect(props.onViewStatsTab).toHaveBeenCalledTimes(2);
-    fireEvent.click(screen.getByTestId('stats-tile-scorer'));
+    const list = screen.getByTestId('top-scorers');
+    const rows = within(list).getAllByRole('button');
+    expect(rows).toHaveLength(1);
+    fireEvent.click(rows[0]);
     expect(props.onViewPlayerStats).toHaveBeenCalledWith('p-aho');
-    // One scorer is already the third tile: no list of one.
-    expect(screen.queryByTestId('top-scorers')).not.toBeInTheDocument();
   });
 
-  it('Tilastot scorer tile falls back to the player stats tab without a player id', () => {
-    const props = dashProps();
+  it('Tilastot scorers card falls back to the player stats tab without a player id', () => {
+    const props = dashProps({ homeSummary: { ...summary, topScorers: [{ name: 'Aho', goals: 6 }] } });
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
-    fireEvent.click(screen.getByTestId('stats-tile-scorer'));
+    fireEvent.click(within(screen.getByTestId('top-scorers')).getByRole('button'));
     expect(props.onViewStatsTab).toHaveBeenCalledWith('player');
+  });
+
+  it('Tilastot has no scorers card when nobody has scored', () => {
+    render(<StartScreen {...dashProps({ homeSummary: { ...summary, topScorers: [] } })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.queryByTestId('top-scorers')).not.toBeInTheDocument();
   });
 
   it('Tilastot lists the top three scorers, each opening that player', () => {
@@ -959,71 +964,107 @@ describe('Home dashboard view (opt-in)', () => {
     expect(props.onViewPlayerStats).toHaveBeenCalledWith('p2');
   });
 
-  it('Tilastot stats scopes are a 2x2 grid of tiles; the add-to-stats row stays a row', () => {
+  /** Owner, 2026-11-19: three layers - hero, scorers, then ONE grouped list of links. */
+  it('Tilastot stats views are one grouped list, with the add-to-stats row last', () => {
     const props = { ...dashProps(), onAddExternalGame: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
-    const grid = screen.getByTestId('home-stats-grid');
-    expect(grid).toHaveClass('grid-cols-2');
-    expect(within(grid).getAllByRole('button').map((b) => b.textContent)).toEqual([
-      'League stats', 'Tournament stats', 'Overall stats', 'Player stats',
+    const first = screen.getByTestId('home-stats-season');
+    const group = first.parentElement as HTMLElement;
+    expect(within(group).getAllByRole('button').map((b) => b.textContent)).toEqual([
+      'League stats', 'Tournament stats', 'Overall stats', 'Player stats', 'Add to player stats',
     ]);
-    expect(grid).not.toContainElement(screen.getByTestId('home-add-external-game'));
-    fireEvent.click(within(grid).getByRole('button', { name: 'Tournament stats' }));
+    expect(screen.queryByTestId('home-stats-grid')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('home-stats-tournament'));
     expect(props.onViewStatsTab).toHaveBeenCalledWith('tournament');
+    fireEvent.click(screen.getByTestId('home-add-external-game'));
+    expect(props.onAddExternalGame).toHaveBeenCalledTimes(1);
+    // Layer order: hero, scorers (when any), links.
+    expect(screen.getByTestId('stats-hero').compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   const competitions = {
     seasons: [{ id: 's1', name: 'P12 Harrastesarja 2026', clubSeason: '25/26', gender: 'boys' as const, games: 7, goals: 13 }],
-    tournaments: [{ id: 't1', name: 'Kevätcup', series: [{ id: 'x', level: 'Elite' }], games: 3, goals: 5 }],
+    tournaments: [{ id: 't1', name: 'IPS Talviturnaus', startDate: '2027-02-28', series: [{ id: 'x', level: 'Elite' }], games: 3, goals: 5 }],
+  };
+  const withFeatured = {
+    ...competitions,
+    featuredSeason: competitions.seasons[0],
+    featuredTournament: competitions.tournaments[0],
   };
 
   /**
-   * Owner, 2026-11-19: the active leagues and tournaments show inline as the
-   * managers' own cards, and a card opens its sheet.
+   * Owner, 2026-11-19: Kilpailut is a SHORT overview - one row each for
+   * leagues and tournaments naming the one that matters now, never a second
+   * list of cards. Each row opens its manager.
    * @critical
    */
-  it('Kilpailut shows the active leagues and tournaments as cards that open their sheets', () => {
+  it('Kilpailut shows one row per kind with the featured one as subtitle; rows open the managers', () => {
+    const many = {
+      ...withFeatured,
+      seasons: Array.from({ length: 8 }, (_, i) => ({ ...competitions.seasons[0], id: `s${i}` })),
+    };
     const props = {
-      ...dashProps({ homeSummary: { ...summary, competitions } }),
-      onManageSeasons: jest.fn(), onManageTournaments: jest.fn(),
-      onOpenCompetition: jest.fn(), onAddCompetition: jest.fn(),
+      ...dashProps({ homeSummary: { ...summary, competitions: many } }),
+      onManageSeasons: jest.fn(), onManageTournaments: jest.fn(), onAddCompetition: jest.fn(),
     };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
-    const league = screen.getByTestId('home-season-card');
-    expect(league).toHaveTextContent('P12 Harrastesarja 2026');
-    expect(league).toHaveTextContent('25/26');
-    expect(league).toHaveTextContent('Boys');
-    expect(league).toHaveTextContent('7Games');
-    expect(league).toHaveTextContent('13Goals');
-    fireEvent.click(league);
-    expect(props.onOpenCompetition).toHaveBeenCalledWith('season', 's1');
-    fireEvent.click(screen.getByTestId('home-tournament-card'));
-    expect(props.onOpenCompetition).toHaveBeenCalledWith('tournament', 't1');
-    // A league exists, so its add lives in the manager; tournaments always offer one.
-    expect(screen.queryByTestId('home-add-season')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('home-add-tournament'));
-    expect(props.onAddCompetition).toHaveBeenCalledWith('tournament');
-    // The section headings still open the managers.
-    fireEvent.click(screen.getByTestId('home-seasons-header'));
+    const leagues = screen.getByTestId('home-seasons-row');
+    expect(leagues).toHaveTextContent('Leagues');
+    expect(leagues).toHaveTextContent('P12 Harrastesarja 2026');
+    expect(leagues).toHaveTextContent('3');
+    const tournaments = screen.getByTestId('home-tournaments-row');
+    expect(tournaments).toHaveTextContent('IPS Talviturnaus · 28.2.');
+    // Never a list: eight leagues still render as the one row.
+    expect(screen.getAllByText('P12 Harrastesarja 2026')).toHaveLength(1);
+    expect(screen.queryByTestId('home-season-card')).not.toBeInTheDocument();
+    fireEvent.click(leagues);
     expect(props.onManageSeasons).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByTestId('home-tournaments-header'));
+    fireEvent.click(tournaments);
     expect(props.onManageTournaments).toHaveBeenCalledTimes(1);
+    expect(props.onAddCompetition).not.toHaveBeenCalled();
   });
 
-  it('Kilpailut offers "Add League" when there is none, instead of a dead zero', () => {
+  it('Kilpailut rows offer adding when there is none, instead of a dead zero', () => {
+    const none = { ...summary, counts: { ...summary.counts, seasons: 0, tournaments: 0 }, competitions: { seasons: [], tournaments: [], featuredSeason: null, featuredTournament: null } };
     const props = {
-      ...dashProps({ homeSummary: { ...summary, competitions: { seasons: [], tournaments: [] } } }),
-      onAddCompetition: jest.fn(),
+      ...dashProps({ homeSummary: none }),
+      onManageSeasons: jest.fn(), onAddCompetition: jest.fn(),
     };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
-    expect(screen.queryByTestId('home-season-card')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Add League' }));
+    const leagues = screen.getByTestId('home-seasons-row');
+    expect(leagues).toHaveTextContent('Add League');
+    expect(leagues).not.toHaveTextContent('0');
+    fireEvent.click(leagues);
     expect(props.onAddCompetition).toHaveBeenCalledWith('season');
-    fireEvent.click(screen.getByRole('button', { name: 'Add Tournament' }));
+    expect(props.onManageSeasons).not.toHaveBeenCalled();
+    const tournaments = screen.getByTestId('home-tournaments-row');
+    expect(tournaments).toHaveTextContent('Add Tournament');
+    fireEvent.click(tournaments);
     expect(props.onAddCompetition).toHaveBeenLastCalledWith('tournament');
+  });
+
+  /** The last five results on the season hero, newest first like Pelit's list. */
+  it('Kilpailut hero shows the last five results, newest first, in result colours', () => {
+    const r = (id: string, result: 'W' | 'D' | 'L') => ({ id, opponent: id, ourScore: 1, theirScore: 0, result, date: '2024-07-10', isFriendly: false });
+    const recent = [r('a', 'L'), r('b', 'W'), r('c', 'D'), r('d', 'W'), r('e', 'W'), r('f', 'L')];
+    render(<StartScreen {...dashProps({ homeSummary: { ...summary, recent } })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
+    const form = screen.getByTestId('competitions-form');
+    const chips = Array.from(form.querySelectorAll('[data-result]'));
+    expect(chips.map((c) => c.getAttribute('data-result'))).toEqual(['L', 'W', 'D', 'W', 'W']);
+    expect(chips[0]).toHaveClass('text-loss');
+    expect(chips[1]).toHaveClass('text-win');
+    expect(chips[2]).toHaveClass('text-draw');
+    expect(form).toHaveAccessibleName('Recent form: L W T W W');
+  });
+
+  it('Kilpailut hero has no form strip before any result', () => {
+    render(<StartScreen {...dashProps({ homeSummary: { ...summary, recent: [] } })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
+    expect(screen.queryByTestId('competitions-form')).not.toBeInTheDocument();
   });
 
   it('the full season record is on Kilpailut and Tilastot only, not on Pelit', () => {
@@ -1033,6 +1074,47 @@ describe('Home dashboard view (opt-in)', () => {
     expect(screen.getByTitle('Wins - draws - losses')).toHaveTextContent('5-2-1');
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(screen.getByTitle('Wins - draws - losses')).toHaveTextContent('5-2-1');
+  });
+
+  /**
+   * Swiping the tab content moves between tabs (owner, 2026-11-19) - and the
+   * tab bar's selection follows, so it is the same state, not a second one.
+   * @critical
+   */
+  it('a horizontal swipe on the content switches tabs and aria-selected follows', () => {
+    render(<StartScreen {...dashProps()} />);
+    const content = screen.getByTestId('home-tab-content');
+    const swipe = (fromX: number, toX: number, dy = 0) => {
+      fireEvent.touchStart(content, { touches: [{ clientX: fromX, clientY: 300 }] });
+      fireEvent.touchMove(content, { touches: [{ clientX: (fromX + toX) / 2, clientY: 300 + dy / 2 }] });
+      fireEvent.touchEnd(content, { changedTouches: [{ clientX: toX, clientY: 300 + dy }] });
+    };
+    expect(screen.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'true');
+    swipe(300, 150);
+    expect(screen.getByRole('tab', { name: 'Club' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'false');
+    swipe(300, 150);
+    swipe(300, 150);
+    expect(screen.getByRole('tab', { name: 'Stats' })).toHaveAttribute('aria-selected', 'true');
+    // The last tab does not wrap round.
+    swipe(300, 150);
+    expect(screen.getByRole('tab', { name: 'Stats' })).toHaveAttribute('aria-selected', 'true');
+    swipe(150, 300);
+    expect(screen.getByRole('tab', { name: 'Competitions' })).toHaveAttribute('aria-selected', 'true');
+    // A vertical drag is a scroll, never a tab change.
+    swipe(200, 180, 200);
+    expect(screen.getByRole('tab', { name: 'Competitions' })).toHaveAttribute('aria-selected', 'true');
+    // Nor does a swipe from the screen edge (Android's back gesture).
+    swipe(10, 200);
+    expect(screen.getByRole('tab', { name: 'Competitions' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('a swipe starting on the tab bar does nothing', () => {
+    render(<StartScreen {...dashProps()} />);
+    const bar = screen.getByRole('tablist', { name: 'Home sections' });
+    fireEvent.touchStart(bar, { touches: [{ clientX: 300, clientY: 700 }] });
+    fireEvent.touchEnd(bar, { changedTouches: [{ clientX: 100, clientY: 700 }] });
+    expect(screen.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'true');
   });
 
   /**

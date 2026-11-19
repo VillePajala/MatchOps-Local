@@ -1,4 +1,4 @@
-import { buildHomeSummary } from './homeSummary';
+import { buildHomeSummary, featuredCompetition, type HomeCompetition } from './homeSummary';
 import { getClubSeasonForDate } from './clubSeason';
 import type { SavedGamesCollection, AppState } from '@/types';
 
@@ -398,5 +398,42 @@ describe('buildHomeSummary - top scorers and competitions', () => {
 
   it('leaves competitions unknown until the lists are supplied', () => {
     expect(buildHomeSummary({}, opts).competitions).toBeUndefined();
+  });
+});
+
+describe('featuredCompetition (Kilpailut row subtitles)', () => {
+  const c = (id: string, startDate?: string, endDate?: string): HomeCompetition =>
+    ({ id, name: id, startDate, endDate, games: 0, goals: 0 });
+  const today = '2026-11-19';
+
+  it('league: the one running today, else the latest started, else the first listed', () => {
+    // activeCompetitions order: newest start first, undated last.
+    expect(featuredCompetition([c('next', '2027-01-01'), c('now', '2026-08-01', '2027-05-31'), c('old', '2025-08-01', '2026-05-31')], 'season', today)?.id).toBe('now');
+    expect(featuredCompetition([c('next', '2027-01-01'), c('old', '2025-08-01', '2026-05-31')], 'season', today)?.id).toBe('old');
+    // No end date: a started league is still running.
+    expect(featuredCompetition([c('open', '2026-01-01'), c('older', '2025-01-01')], 'season', today)?.id).toBe('open');
+    expect(featuredCompetition([c('next', '2027-01-01'), c('undated')], 'season', today)?.id).toBe('next');
+    expect(featuredCompetition([], 'season', today)).toBeNull();
+  });
+
+  it('tournament: the one on today, else the NEAREST one ahead, else the most recent', () => {
+    const later = c('later', '2027-03-15');
+    const nearest = c('nearest', '2027-02-28');
+    const past = c('past', '2026-10-01');
+    expect(featuredCompetition([later, nearest, past], 'tournament', today)?.id).toBe('nearest');
+    expect(featuredCompetition([later, nearest, c('on', '2026-11-18', '2026-11-20'), past], 'tournament', today)?.id).toBe('on');
+    expect(featuredCompetition([later, nearest, c('oneDay', today), past], 'tournament', today)?.id).toBe('oneDay');
+    expect(featuredCompetition([past, c('older', '2026-01-01')], 'tournament', today)?.id).toBe('past');
+    expect(featuredCompetition([c('undated')], 'tournament', today)?.id).toBe('undated');
+  });
+
+  it('is part of the summary once the lists are supplied', () => {
+    const summary = buildHomeSummary({}, {
+      today,
+      seasons: [{ id: 's1', name: 'Sarja', startDate: '2026-08-01' }],
+      tournaments: [{ id: 't1', name: 'Cup', startDate: '2027-02-28' }],
+    });
+    expect(summary.competitions!.featuredSeason?.id).toBe('s1');
+    expect(summary.competitions!.featuredTournament?.id).toBe('t1');
   });
 });

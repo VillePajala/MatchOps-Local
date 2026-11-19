@@ -10,11 +10,10 @@ import { formatAppDate } from '@/utils/localeFormat';
  * The rich league / tournament card: name, context chips, then matches and
  * goals as the Home screen's italic numerals.
  *
- * ONE CARD, TWO PLACES: the Sarjat / Turnaukset manager lists it, and the Home
- * Kilpailut tab shows the active ones inline. The wrapper (a list row with an
- * actions menu there, a plain button here) belongs to the caller; this is the
- * content both share, so the two cannot drift apart. Spans only, so it is
- * valid inside a button.
+ * The Sarjat / Turnaukset manager lists it; Home's Kilpailut tab only names
+ * the featured one in a row (owner, 2026-11-19). The wrapper (a list row with
+ * an actions menu) belongs to the caller. Spans only, so it is valid inside a
+ * button.
  */
 export interface CompetitionCardItem {
   name: string;
