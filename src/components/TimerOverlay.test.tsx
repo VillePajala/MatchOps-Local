@@ -205,7 +205,13 @@ describe('TimerOverlay', () => {
   });
 
   describe('planned subs block (Playing-Time Planner)', () => {
-    const group = { timeSeconds: 1500, inNames: ['Eino', 'Niilo', 'Veeti'], outNames: ['Aapo', 'Elias', 'Leevi'] };
+    const group = {
+      timeSeconds: 1500,
+      inNames: ['Eino', 'Niilo', 'Veeti'],
+      outNames: ['Aapo', 'Elias', 'Leevi'],
+      inShortNames: ['Eino', 'Niilo', 'Veeti'],
+      outShortNames: ['Aapo', 'Elias', 'Leevi'],
+    };
 
     /**
      * Every change due at one moment reads as one block, with no button to
@@ -221,13 +227,63 @@ describe('TimerOverlay', () => {
       expect(within(block).queryByRole('button')).not.toBeInTheDocument();
     });
 
+    /**
+     * Compact block (owner, 2026-11-19): the short disc names on two arrow
+     * lines; screen readers still hear "On"/"Off" and the full names.
+     */
+    it('shows the short names on arrow lines and keeps the full names for screen readers', () => {
+      const named = {
+        timeSeconds: 1200,
+        inNames: ['Tomas Qvist', 'Muhammed Toor', 'Sauli Siintamo'],
+        outNames: ['Jasper Tuulmägi', 'Timo Petrov', 'Jimi Myyrä'],
+        inShortNames: ['Tomas', 'Muhammed', 'Sauli'],
+        outShortNames: ['Jasper', 'Timo', 'Jimi'],
+      };
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={named} />);
+      const on = screen.getByTestId('planned-sub-on');
+      const off = screen.getByTestId('planned-sub-off');
+      const visibleText = (el: HTMLElement) =>
+        Array.from(el.querySelectorAll('[aria-hidden="true"]')).map((n) => n.textContent).join(' ');
+      expect(visibleText(on)).toBe('↑ Tomas, Muhammed, Sauli');
+      expect(visibleText(off)).toBe('↓ Jasper, Timo, Jimi');
+      const srText = (el: HTMLElement) => el.querySelector('.sr-only')?.textContent;
+      expect(srText(on)).toBe('On: Tomas Qvist, Muhammed Toor, Sauli Siintamo');
+      expect(srText(off)).toBe('Off: Jasper Tuulmägi, Timo Petrov, Jimi Myyrä');
+    });
+
+    /**
+     * The goal buttons sit right under start/pause, above the plan and the
+     * secondary actions, so they are on the first screen and never end up
+     * behind the control capsule (owner, 2026-11-19).
+     * @critical
+     */
+    it('puts the goal buttons under start/pause, before the plan, sub-timer reset and dictation', () => {
+      const dictation = {
+        isSupported: true, available: true, permission: 'unknown' as const, needsIntro: false,
+        isRecording: false, clipCount: 0, lastClip: null,
+        start: jest.fn(), stop: jest.fn(), acknowledgeIntro: jest.fn(),
+      };
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={group} dictation={dictation} />);
+      const order = [
+        screen.getByTestId('tour-timer-startpause'),
+        screen.getByTestId('tour-log-goal'),
+        screen.getByRole('button', { name: /opponent \+1/i }),
+        screen.getByTestId('planned-sub-group'),
+        screen.getByRole('button', { name: /reset sub timer/i }),
+        screen.getByTestId('dictation-hold'),
+      ];
+      for (let i = 1; i < order.length; i++) {
+        expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      }
+    });
+
     it('says how many earlier groups were also due', () => {
       render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={group} plannedSubsEarlier={2} />);
       expect(screen.getByTestId('planned-sub-group')).toHaveTextContent(/\+2/);
     });
 
     it('omits the off line when every slot was empty', () => {
-      render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={{ ...group, outNames: [] }} />);
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={{ ...group, outNames: [], outShortNames: [] }} />);
       expect(screen.getByTestId('planned-sub-group')).not.toHaveTextContent('Aapo');
     });
 

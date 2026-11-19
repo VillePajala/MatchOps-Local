@@ -43,7 +43,7 @@ describe('usePlannedSubPrompts', () => {
     // Give the load effect a tick to resolve, then assert nothing is due (720 > 0).
     await act(async () => {});
     expect(result.current).toEqual({
-      current: { timeSeconds: 720, inNames: ['Niko'], outNames: ['Sam'], due: false },
+      current: { timeSeconds: 720, inNames: ['Niko'], outNames: ['Sam'], inShortNames: ['Niko'], outShortNames: ['Sam'], due: false },
       overdueEarlier: 0,
     });
   });
@@ -104,7 +104,9 @@ describe('usePlannedSubPrompts', () => {
     await act(async () => {});
     rerender({ t: 720 });
     await waitFor(() => expect(result.current.current).not.toBeNull());
-    expect(result.current.current).toEqual({ timeSeconds: 720, inNames: ['Niko'], outNames: ['Sam'], due: true });
+    expect(result.current.current).toEqual({
+      timeSeconds: 720, inNames: ['Niko'], outNames: ['Sam'], inShortNames: ['Niko'], outShortNames: ['Sam'], due: true,
+    });
   });
 
   it('re-reads the schedule when refreshKey changes (re-apply plan)', async () => {
@@ -154,7 +156,14 @@ describe('usePlannedSubPrompts', () => {
     );
     const { result } = renderHook(() => usePlannedSubPrompts('g1', 1500, players));
     await waitFor(() => expect(result.current.current).not.toBeNull());
-    expect(result.current.current).toEqual({ timeSeconds: 1500, inNames: ['Niko', 'Alex', 'Aapo'], outNames: ['Sam'], due: true });
+    expect(result.current.current).toEqual({
+      timeSeconds: 1500,
+      inNames: ['Niko', 'Alex', 'Aapo'],
+      outNames: ['Sam'],
+      inShortNames: ['Niko', 'Alex', 'Aapo'],
+      outShortNames: ['Sam'],
+      due: true,
+    });
     expect(result.current.overdueEarlier).toBe(0);
   });
 
@@ -205,7 +214,7 @@ describe('usePlannedSubPrompts', () => {
     ]);
     const { result } = renderHook(() => usePlannedSubPrompts('g1', 620, players));
     await waitFor(() => expect(result.current.current).not.toBeNull());
-    expect(result.current.current).toEqual({ timeSeconds: 600, inNames: ['Alex'], outNames: [], due: true });
+    expect(result.current.current).toEqual({ timeSeconds: 600, inNames: ['Alex'], outNames: [], inShortNames: ['Alex'], outShortNames: [], due: true });
   });
 
   it('loads nothing and shows nothing when there is no game', async () => {
@@ -220,5 +229,30 @@ describe('usePlannedSubPrompts', () => {
     const { result } = renderHook(() => usePlannedSubPrompts('g1', 9999, players));
     await act(async () => {});
     expect(result.current.current).toBeNull();
+  });
+
+  /**
+   * The timer shows the disc names (nickname, else first name), kept unique
+   * across the squad; the full names stay alongside for screen readers.
+   */
+  it('gives each group the short disc names, disambiguated across the squad', async () => {
+    const squad: Player[] = [
+      { id: 'tq', name: 'Tomas Qvist' },
+      { id: 'tv', name: 'Tomas Virta' },
+      { id: 'mt', name: 'Muhammed Toor', nickname: 'Mukke' },
+      { id: 'jt', name: 'Jasper Tuulmägi' },
+    ];
+    mockGetGameSubs.mockResolvedValue([
+      sub({ id: 'a', timeSeconds: 600, inPlayerId: 'tq', outPlayerId: 'jt' }),
+      sub({ id: 'b', timeSeconds: 600, inPlayerId: 'mt', outPlayerId: null }),
+    ]);
+    const { result } = renderHook(() => usePlannedSubPrompts('g1', 620, squad));
+    await waitFor(() => expect(result.current.current).not.toBeNull());
+    expect(result.current.current).toMatchObject({
+      inNames: ['Tomas Qvist', 'Muhammed Toor'],
+      inShortNames: ['Tomas Q.', 'Mukke'],
+      outNames: ['Jasper Tuulmägi'],
+      outShortNames: ['Jasper'],
+    });
   });
 });

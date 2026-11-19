@@ -24,6 +24,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import logger from '@/utils/logger';
+import { playerShortNames } from '@/utils/gamePlayerList';
 import type { Player } from '@/types';
 
 /** Every planned sub due at one moment of the match. */
@@ -33,6 +34,9 @@ export interface PlannedSubGroup {
   inNames: string[];
   /** Display names of the players coming off (empty slots contribute none). */
   outNames: string[];
+  /** The same players by their short (disc) names, in the same order - see playerShortNames. */
+  inShortNames: string[];
+  outShortNames: string[];
 }
 
 /** The group the timer shows, and whether its time has come. */
@@ -94,14 +98,20 @@ export function groupDueSubs(
 /** Groups subs by time (any time), resolving names; see groupDueSubs for the rules. */
 export function groupSubs(subs: PlannedGameSub[], players: Player[]): PlannedSubGroup[] {
   const nameById = new Map(players.map((p) => [p.id, p.name]));
+  const shortById = playerShortNames(players);
   const byTime = new Map<number, PlannedSubGroup>();
   for (const s of subs) {
     const inName = nameById.get(s.inPlayerId);
     if (!inName) continue;
-    const group = byTime.get(s.timeSeconds) ?? { timeSeconds: s.timeSeconds, inNames: [], outNames: [] };
+    const group = byTime.get(s.timeSeconds)
+      ?? { timeSeconds: s.timeSeconds, inNames: [], outNames: [], inShortNames: [], outShortNames: [] };
     group.inNames.push(inName);
+    group.inShortNames.push(shortById.get(s.inPlayerId) ?? inName);
     const outName = s.outPlayerId ? nameById.get(s.outPlayerId) : undefined;
-    if (outName) group.outNames.push(outName);
+    if (s.outPlayerId && outName) {
+      group.outNames.push(outName);
+      group.outShortNames.push(shortById.get(s.outPlayerId) ?? outName);
+    }
     byTime.set(s.timeSeconds, group);
   }
   return [...byTime.values()].sort((a, b) => a.timeSeconds - b.timeSeconds);

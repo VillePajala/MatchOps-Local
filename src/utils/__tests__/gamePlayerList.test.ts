@@ -4,7 +4,7 @@
  * picked for that game, and team pre-selection matched by name only.
  * @critical
  */
-import { mergeClubRosterIntoGamePlayers, teamMemberIds, activePlayers, playerIdsReferencedByGame, sortPlayersByLastName, playerListLabel } from '@/utils/gamePlayerList';
+import { mergeClubRosterIntoGamePlayers, teamMemberIds, activePlayers, playerIdsReferencedByGame, sortPlayersByLastName, playerListLabel, playerShortName, playerShortNames } from '@/utils/gamePlayerList';
 import type { Player } from '@/types';
 
 const p = (id: string, name: string, extra: Partial<Player> = {}): Player => ({ id, name, isGoalie: false, ...extra });
@@ -156,3 +156,34 @@ describe('one player order and name format', () => {
     expect(playerListLabel({ name: 'Aino Virta', nickname: '  ' })).toBe('Aino Virta');
   });
 });
+
+/** The disc name the timer's next-sub block uses (owner, 2026-11-19). */
+describe('playerShortName / playerShortNames', () => {
+  it('uses the nickname, else the first word of the name', () => {
+    expect(playerShortName({ name: 'Tomas Qvist', nickname: ' Tomppa ' })).toBe('Tomppa');
+    expect(playerShortName({ name: '  Tomas Qvist ' })).toBe('Tomas');
+    expect(playerShortName({ name: 'Aino', nickname: '' })).toBe('Aino');
+  });
+
+  it('keeps the short names unique: last-name initial, then the full name', () => {
+    const names = playerShortNames([
+      p('a', 'Tomas Qvist'),
+      p('b', 'tomas Virta'),
+      p('c', 'Sauli Siintamo'),
+      p('d', 'Elias Koski'),
+      p('e', 'Elias Kallio'),
+      p('f', 'Jimi'),
+      p('g', 'Jimi Myyrä', { nickname: 'Jimi' }),
+    ]);
+    expect(names.get('a')).toBe('Tomas Q.');
+    expect(names.get('b')).toBe('tomas V.');
+    expect(names.get('c')).toBe('Sauli');
+    // Same initial: the full names tell them apart.
+    expect(names.get('d')).toBe('Elias Koski');
+    expect(names.get('e')).toBe('Elias Kallio');
+    // A one-word name has no initial to add.
+    expect(names.get('f')).toBe('Jimi');
+    expect(names.get('g')).toBe('Jimi M.');
+  });
+});
+
