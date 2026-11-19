@@ -7,7 +7,8 @@ import { useAppLanguage } from '@/hooks/useAppLanguage';
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonCard, HomeStatsTiles, HomeIcon, HOME_CARD, HOME_FOCUS } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonCard, HomeStatsTiles, HomeClubCard, HomeIcon, HOME_CARD, HOME_FOCUS } from '@/components/HomeDashboard';
+import { commonClubName } from '@/utils/homeTeamScope';
 import { useAuth } from '@/contexts/AuthProvider';
 import HomeBasic from '@/components/HomeBasic';
 import type { AppLayout } from '@/types/settings';
@@ -17,7 +18,6 @@ import {
   HiOutlineChevronRight,
   HiOutlineUsers,
   HiOutlineUserGroup,
-  HiOutlineIdentification,
   HiOutlineClipboardDocumentList,
   HiOutlineBookOpen,
   HiOutlineAcademicCap,
@@ -40,7 +40,6 @@ import { TASO_URL } from '@/config/externalLinks';
  * Rows are LIST ITEMS inside a group, not cards:
  *   HomeGroup + HomeRow  - navigation. One solid surface, hairline dividers
  *                          that start after the icon.
- *   HomeTile             - a pair of equals, each its own object.
  *   cards (HomeDashboard) - information worth its own surface.
  *
  * One icon family (Heroicons outline), one size (22px), one colour (ink-2)
@@ -83,7 +82,9 @@ const HomeRow: React.FC<{
   trailing?: React.ReactNode;
   /** How many of the thing the row opens (shown before the chevron). Omit while unknown. */
   count?: number;
-}> = ({ icon: Icon, label, onClick, disabled, testId, trailing, count }) => (
+  /** One short line under the label saying what is behind the row. */
+  subtitle?: string;
+}> = ({ icon: Icon, label, onClick, disabled, testId, trailing, count, subtitle }) => (
   <button
     type="button"
     onClick={onClick}
@@ -93,7 +94,14 @@ const HomeRow: React.FC<{
   >
     <Icon className={ROW_ICON} aria-hidden="true" />
     <span className={ROW_RULE}>
-      <span className={ROW_LABEL}>{label}</span>
+      {subtitle ? (
+        <span className="min-w-0 flex-1 py-2">
+          <span className="block break-words text-base font-semibold leading-snug text-ink">{label}</span>
+          <span className="block break-words text-[13px] leading-tight text-ink-3">{subtitle}</span>
+        </span>
+      ) : (
+        <span className={ROW_LABEL}>{label}</span>
+      )}
       {count !== undefined && <span className={ROW_COUNT}>{count}</span>}
       {trailing ?? ROW_CHEVRON}
     </span>
@@ -116,35 +124,6 @@ const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; subtitle?: string; h
       {ROW_EXTERNAL}
     </span>
   </a>
-);
-
-/**
- * Half-width tile. Icon above the label, centred - deliberately a different
- * shape from a Row, so a pair of equals does not look like two truncated rows.
- */
-const HomeTile: React.FC<{
-  icon: RowIcon;
-  label: string;
-  onClick?: () => void;
-  disabled?: boolean;
-  testId?: string;
-  count?: number;
-}> = ({ icon: Icon, label, onClick, disabled, testId, count }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    data-testid={testId}
-    className={`${HOME_CARD} flex-1 flex min-h-[88px] flex-col items-center justify-center gap-2 px-2 py-3.5 text-center transition-colors ${HOME_FOCUS} ${
-      disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/[0.04]'
-    }`}
-  >
-    <Icon className={ROW_ICON} aria-hidden="true" />
-    <span className="text-base font-semibold leading-tight text-ink">
-      {label}
-      {count !== undefined && <span className="ml-1.5 tabular-nums text-ink-3">{count}</span>}
-    </span>
-  </button>
 );
 
 /** The amber primary pill (the one "press this" on a screen). */
@@ -300,6 +279,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // Entity counts on the Club / Competitions rows - only once the enriched
   // summary has loaded, so a still-loading 0 never reads as "you have none".
   const counts = homeSummary?.countsReady ? homeSummary.counts : undefined;
+  // Club card title: the app has no club-name field, so it shows a club name
+  // only when every team's name starts with the same one ("Kotkat P12",
+  // "Kotkat T11" -> "Kotkat"); otherwise the neutral "Seura".
+  const clubName = commonClubName((teamScopeOptions ?? []).map((o) => o.label));
   // "Täydennä pelaajan tilastoja" on the Tilastot tab, null without a handler.
   const externalGameRow = onAddExternalGame ? (
     <HomeRow
@@ -470,46 +453,34 @@ const StartScreen: React.FC<StartScreenProps> = ({
           )}
 
           {activeTab === 'team' ? (
-            /* Club panel (restructure 1.3b): every club-people item gets a
-               Home entry - the rows open the EXISTING modals (strangler). */
+            /* Club panel: the club card (owner's pick "A · Seurakortti",
+               2026-11-19) - its three counts open the players / teams /
+               personnel managers - then the coaching material. Every entry
+               opens the EXISTING modal (strangler). */
             <>
               {homeSummary?.countsReady && homeSummary.counts.players === 0 && (
                 <p className="px-1 text-center text-sm text-ink-3">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
               )}
-              {/* Two groups: the PEOPLE in the club, and the MATERIAL a coach
-                  consults. */}
-              <div className="flex gap-2.5">
-                <HomeTile
-                  icon={HiOutlineUsers}
-                  label={t('startScreen.rowPlayers', 'Players')}
-                  onClick={onManageRoster}
-                  disabled={!onManageRoster}
-                  count={counts?.players}
-                  testId="tour-players"
-                />
-                <HomeTile
-                  icon={HiOutlineUserGroup}
-                  label={t('startScreen.rowTeams', 'Teams')}
-                  onClick={onManageTeams}
-                  disabled={!onManageTeams}
-                  count={counts?.teams}
-                  testId="tour-teams"
-                />
-              </div>
-              <HomeGroup>
-                <HomeRow
-                  icon={HiOutlineIdentification}
-                  label={t('startScreen.rowPersonnel', 'Personnel')}
-                  onClick={onManagePersonnel}
-                  disabled={!onManagePersonnel}
-                  count={counts?.personnel}
-                />
-              </HomeGroup>
+              <HomeClubCard
+                title={clubName ?? t('startScreen.tabTeam', 'Club')}
+                showClubEyebrow={!!clubName}
+                counts={counts}
+                vuosi={homeSummary?.vuosi ?? null}
+                topScorer={homeSummary?.topScorer ?? null}
+                onPlayers={onManageRoster}
+                onTeams={onManageTeams}
+                onPersonnel={onManagePersonnel}
+                t={t}
+              />
 
+              <p className="px-1 pt-1.5 text-xs font-semibold uppercase tracking-[0.09em] text-ink-3">
+                {t('startScreen.clubSectionCoaching', 'Coaching')}
+              </p>
               <HomeGroup>
                 <HomeRow
                   icon={HiOutlineClipboardDocumentList}
                   label={t('startScreen.rowTraining', 'Warmup Plan')}
+                  subtitle={t('startScreen.clubTrainingSub', 'Your pre-game warm-up')}
                   onClick={onOpenTraining}
                   disabled={!onOpenTraining}
                 />
@@ -519,6 +490,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <HomeRow
                     icon={HiOutlineBookOpen}
                     label={t('startScreen.rowRules', 'Rules')}
+                    subtitle={t('startScreen.clubRulesSub', 'Game and league rules')}
                     onClick={onOpenRules}
                     testId="club-rules"
                   />
@@ -526,6 +498,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <HomeLinkRow
                   icon={HiOutlineAcademicCap}
                   label={t('controlBar.coachingMaterials', 'Coaching Materials')}
+                  subtitle={t('startScreen.clubMaterialsSub', 'Finnish FA coaching materials')}
                   href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
                 />
               </HomeGroup>

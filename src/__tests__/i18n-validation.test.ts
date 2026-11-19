@@ -744,7 +744,8 @@ describe('Translation File Validation', () => {
       // +9 / -1: the "cannot delete" reason and hints built from counts (review 8.8). 3506.
       // +16 extra time (review 11.1). 3522.
       // -2: fieldTools.selectedHint/cancelSelection (match view selection notice removed). 3531.
-      expect(enKeys.length).toBe(3609);
+      // +6 startScreen.club* (Seura club card). 3615.
+      expect(enKeys.length).toBe(3615);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -954,7 +955,8 @@ describe('Translation File Validation', () => {
       // +9 / -1 (review 8.8). 3506.
       // +16 (review 11.1). 3522.
       // -2 (selection notice removed). 3531.
-      expect(fiKeys.length).toBe(3609);
+      // +6 (Seura club card). 3615.
+      expect(fiKeys.length).toBe(3615);
     });
   });
 });

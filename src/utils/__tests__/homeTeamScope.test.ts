@@ -4,6 +4,7 @@ import {
   writeHomeTeamScope,
   resolveHomeTeamScope,
   mostRecentTeamId,
+  commonClubName,
 } from '../homeTeamScope';
 import type { Season, Team, Tournament } from '@/types';
 
@@ -120,5 +121,28 @@ describe('buildHomeTeamScopeOptions', () => {
     expect(buildHomeTeamScopeOptions(teams, seasons, tournaments, labels)).toEqual([
       { id: 'a', label: 'PePo Lila' },
     ]);
+  });
+});
+
+/**
+ * The Seura card's title: the app has no club-name field, so it only shows a
+ * name every team visibly shares - otherwise the caller falls back to "Seura".
+ */
+describe('commonClubName', () => {
+  it('returns the words every team starts with, up to the age group', () => {
+    expect(commonClubName(['Kotkat P12 Musta', 'Kotkat T11', 'Kotkat P10 (Futsal)'])).toBe('Kotkat');
+    expect(commonClubName(['FC Kontu P12', 'FC Kontu T10 Valkoinen'])).toBe('FC Kontu');
+  });
+
+  it('is null for a single team, or one name reused per competition', () => {
+    expect(commonClubName(['PePo Lila'])).toBeNull();
+    expect(commonClubName(['PePo Lila (Aluesarja U10 25/26)', 'PePo Lila (Futsal)'])).toBeNull();
+    expect(commonClubName([])).toBeNull();
+  });
+
+  it('is null when the teams share nothing, or the shared part is a whole team name', () => {
+    expect(commonClubName(['Kotkat P12', 'Ilves P12'])).toBeNull();
+    expect(commonClubName(['P12 Musta', 'P12 Valkoinen'])).toBeNull();
+    expect(commonClubName(['Lila', 'Lila Futsal'])).toBeNull();
   });
 });

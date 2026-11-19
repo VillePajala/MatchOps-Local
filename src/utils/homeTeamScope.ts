@@ -50,6 +50,39 @@ export function buildHomeTeamScopeOptions(
   }));
 }
 
+/**
+ * The club name the Seura card can honestly show, or null.
+ *
+ * The app has no club-name field. What it does have is team names, and junior
+ * clubs name their teams "<club> <age group> <colour>" ("Kotkat P12 Musta",
+ * "Kotkat T11"). When EVERY team starts with the same words, those words are
+ * the club as the coach typed it. Rules, so it never shows something that is
+ * not a club name:
+ *  - at least two different team names (one team's name is a team, not a club);
+ *  - the shared words stop before the first word with a digit (the age group);
+ *  - every team has something after them (two teams "Lila" and "Lila Futsal"
+ *    share "Lila", which is a team).
+ * Takes the pill labels; the "(competition)" suffix they carry is dropped.
+ */
+export function commonClubName(teamLabels: readonly string[]): string | null {
+  const names = Array.from(
+    new Set(teamLabels.map((l) => l.replace(/\s*\([^()]*\)\s*$/, '').trim()).filter(Boolean)),
+  );
+  if (names.length < 2) return null;
+  const split = names.map((n) => n.split(/\s+/));
+  const shared: string[] = [];
+  for (let i = 0; ; i++) {
+    const word = split[0][i];
+    if (word === undefined || /\d/.test(word)) break;
+    if (!split.every((w) => w[i] === word)) break;
+    shared.push(word);
+  }
+  if (shared.length === 0) return null;
+  if (!split.every((w) => w.length > shared.length)) return null;
+  const name = shared.join(' ');
+  return name.length >= 2 ? name : null;
+}
+
 export function readHomeTeamScope(): HomeTeamScope | null {
   try {
     // eslint-disable-next-line no-restricted-globals -- device-local view preference, never synced

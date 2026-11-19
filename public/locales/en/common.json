@@ -1414,7 +1414,13 @@
     "dashNoMatchesYet": "No matches yet.",
     "dashDeparture": "Departure",
     "dashPitch": "Pitch",
-    "addExternalGame": "Add to player stats"
+    "addExternalGame": "Add to player stats",
+    "clubCountPersonnel": "Staff",
+    "clubTopScorer": "Top scorer",
+    "clubSectionCoaching": "Coaching",
+    "clubTrainingSub": "Your pre-game warm-up",
+    "clubRulesSub": "Game and league rules",
+    "clubMaterialsSub": "Finnish FA coaching materials"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

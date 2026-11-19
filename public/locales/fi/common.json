@@ -1265,7 +1265,13 @@
     "dashNoMatchesYet": "Ei vielä otteluita.",
     "dashDeparture": "Lähtö",
     "dashPitch": "Kenttä",
-    "addExternalGame": "Täydennä pelaajan tilastoja"
+    "addExternalGame": "Täydennä pelaajan tilastoja",
+    "clubCountPersonnel": "Taustat",
+    "clubTopScorer": "Paras maalintekijä",
+    "clubSectionCoaching": "Valmennus",
+    "clubTrainingSub": "Lämmittely ennen peliä",
+    "clubRulesSub": "Laji- ja sarjasäännöt",
+    "clubMaterialsSub": "Palloliiton valmentajamateriaalit"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - muutoksia ei tallenneta ennen kuin luot uuden pelin",

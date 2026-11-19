@@ -4,6 +4,15 @@
     {
       "date": "2026-11-19",
       "en": [
+        "New club card on the Seura tab: players, teams and staff at a glance, plus the season record and top scorer."
+      ],
+      "fi": [
+        "Seura-välilehdellä on uusi seurakortti: pelaajat, joukkueet ja taustahenkilöt yhdellä silmäyksellä sekä kauden tulos ja paras maalintekijä."
+      ]
+    },
+    {
+      "date": "2026-11-19",
+      "en": [
         "Match view: the \"Suunnitellut vaihdot\" label now shows briefly when you switch it on and then fades, so it no longer covers the pitch."
       ],
       "fi": [
