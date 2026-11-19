@@ -479,17 +479,29 @@ export function ResumeCard({ resume, onResume, locale, t }: {
  * "Huomenna" and "Tänään" as it closes); the kick-off is the big number and
  * appears nowhere else on the card.
  */
+/** The next-match card's plan actions; passed only when the game has a plan. */
+export interface NextMatchPlanActions {
+  onShowPlan?: () => void;
+  onShare?: () => void;
+}
+
+/** A quiet outline pill for the next-match card's plan actions. */
+const PLAN_PILL = `s1-ghost flex h-12 flex-auto items-center justify-center whitespace-nowrap rounded-full px-4 text-[15px] font-semibold text-ink-2 transition-colors hover:text-ink ${HOME_FOCUS}`;
+
 function NextMatchCard({
   game,
   onOpen,
   onAdjustTravel,
   onSetStartingPoint,
   onMarkAbsences,
+  planActions,
   locale,
   t,
 }: {
   game: HomeUpcomingGame;
   onOpen?: (id: string) => void;
+  /** "Näytä suunnitelma" / "Jaa" - only for a game made from a plan. */
+  planActions?: NextMatchPlanActions;
   /** "Merkitse poissaolijat": the attendance sheet for this fixture (Onboarding v3). */
   onMarkAbsences?: (id: string) => void;
   /** Opens where the starting point is set; offered on a pinned fixture with no departure time. */
@@ -595,6 +607,23 @@ function NextMatchCard({
           >
             {t('basicHome.markAbsences', 'Mark who is away')}
           </button>
+        )}
+        {/* The game's plan, as in the basic layout: quiet pills, the amber stays
+            on "Avaa ottelu". They size to their words and wrap rather than
+            squeeze, so "Näytä suunnitelma" fits a 320px screen. */}
+        {planActions && (planActions.onShowPlan || planActions.onShare) && (
+          <div className="mt-2.5 flex flex-wrap gap-2.5">
+            {planActions.onShowPlan && (
+              <button type="button" onClick={planActions.onShowPlan} className={PLAN_PILL} data-testid="next-match-show-plan">
+                {t('basicHome.showPlan', 'Show rotation')}
+              </button>
+            )}
+            {planActions.onShare && (
+              <button type="button" onClick={planActions.onShare} className={PLAN_PILL} data-testid="next-match-share">
+                {t('basicHome.share', 'Share')}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -759,11 +788,14 @@ export function HomeDashboard({
   onNewGame,
   onSetStartingPoint,
   onMarkAbsences,
+  nextMatchPlan,
   afterHero,
   locale = 'fi',
   t,
 }: {
   summary: HomeSummary;
+  /** The next fixture's "Näytä suunnitelma" / "Jaa", when it has a plan. */
+  nextMatchPlan?: NextMatchPlanActions;
   /**
    * What sits directly under the hero, above the list: "Uusi ottelu" (owner,
    * 2026-11-19 - starting a match is the next thing a coach looks for).
@@ -805,7 +837,7 @@ export function HomeDashboard({
       {/* Always something here - see NoMatchCard for why the slot must not
           be allowed to empty. */}
       {summary.upcoming
-        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} onSetStartingPoint={onSetStartingPoint} onMarkAbsences={onMarkAbsences} locale={locale} t={t} />
+        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} onSetStartingPoint={onSetStartingPoint} onMarkAbsences={onMarkAbsences} planActions={nextMatchPlan} locale={locale} t={t} />
         : summary.resume
           ? <ResumeCard resume={summary.resume} onResume={onResume} locale={locale} t={t} />
           // Nothing booked and nothing open: the latest match played, with the

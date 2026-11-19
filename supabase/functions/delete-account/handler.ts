@@ -173,6 +173,10 @@ export function createHandler(deps: Deps): (req: Request) => Promise<Response> {
       }
 
       // Step 2: Delete the user from auth.users
+      // This also deletes the user's consent records (user_consents, incl.
+      // marketing): the FK is ON DELETE CASCADE since migration 063. Step 1
+      // keeps them on purpose - clear_all_user_data also serves "delete all
+      // cloud data", where the account and its acceptance record remain.
       // KNOWN EDGE CASE: If Step 1 succeeds but Step 2 fails, user data is deleted
       // but the auth account remains. This is acceptable — the user can retry deletion,
       // and the empty auth account poses no data or security risk.

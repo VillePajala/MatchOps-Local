@@ -29,11 +29,18 @@ const nextConfig = {
   outputFileTracingRoot: path.join(__dirname, '..'),
   async redirects() {
     return [
+      // The old Markdown docs (QUICK_START, USER_MANUAL) were removed; the
+      // online guide replaces them.
       {
         source: '/fi/docs/:path*',
-        destination: '/docs/:path*',
-        permanent: false,
+        destination: '/guide',
+        permanent: true,
         locale: false,
+      },
+      {
+        source: '/docs/:path*',
+        destination: '/guide',
+        permanent: true,
       },
       // The app and the Play Store listing reference /privacy-policy, but the
       // marketing-site privacy page lives at /privacy. Redirect so that URL

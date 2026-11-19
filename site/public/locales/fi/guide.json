@@ -31,7 +31,7 @@
     "title": "Käyttöopas",
     "subtitle": "Kaikki mitä tarvitset MatchOpsin käyttöön",
     "structureIntro": "Valitse aloituspisteesi",
-    "structureExplanation": "Pikaopas saa sinut alkuun heti. Suositeltu työnkulku opastaa datan valmisteluun kaikkien hyötyjen saamiseksi. Viiteoppaat kattavat yksittäiset ominaisuudet.",
+    "structureExplanation": "Pikaopas vie tilin luonnista ensimmäisiin askeliin. Suositeltu työnkulku opastaa sarjojen, turnausten ja joukkueiden valmisteluun. Viiteoppaat kattavat yksittäiset ominaisuudet.",
     "mainPaths": "Aloita tästä",
     "referenceGuides": "Viiteoppaat",
     "quickStart": "Uusi MatchOpsissa?",
@@ -42,39 +42,47 @@
   "sections": {
     "getting-started": {
       "title": "Pikaopas",
-      "description": "Asenna sovellus ja kokeile heti"
+      "description": "Ilmainen tili, joukkue ja ensimmäiset askeleet"
     },
     "full-setup-path": {
       "title": "Suositeltu työnkulku",
-      "description": "Täydellinen työnkulku MatchOpsin kaikkien ominaisuuksien hyödyntämiseksi"
-    },
-    "game-day-workflow": {
-      "title": "Ottelupäivän työnkulku",
-      "description": "Vaiheittainen ohje ottelupäivälle"
+      "description": "Pelaajat, taustahenkilöt, sarjat, turnaukset ja joukkueet"
     },
     "roster-management": {
       "title": "Kokoonpanon hallinta",
-      "description": "Lisää, muokkaa ja järjestele pelaajia"
+      "description": "Lisää, muokkaa ja arkistoi pelaajia; pelaaja-arviot"
     },
     "teams-organization": {
       "title": "Joukkueet ja organisointi",
-      "description": "Hallitse useita joukkueita ja kausia"
+      "description": "Joukkueet, sarjat, turnaukset ja taustahenkilöt"
+    },
+    "game-day-workflow": {
+      "title": "Ottelupäivä lyhyesti",
+      "description": "Ottelupäivän kulku yhdellä sivulla"
+    },
+    "before-the-game": {
+      "title": "Ennen peliä: suunnitelma ja Ketkä ovat paikalla?",
+      "description": "Pelin suunnitelma, jakaminen, poissaolijat ja usean pelin suunnittelu"
     },
     "during-the-game": {
       "title": "Pelin aikana",
-      "description": "Reaaliaikainen seuranta ja tapahtumien kirjaus"
+      "description": "Ottelunäkymä, kello, Maali meille ja seuraava vaihto"
     },
     "tactics-board": {
       "title": "Taktinen piirtotaulu",
-      "description": "Piirrä muodostelmia ja pelikuvioita"
+      "description": "Piirrä pelikuvioita ja erikoistilanteita"
     },
     "after-the-game": {
-      "title": "Pelin jälkeen",
-      "description": "Tarkastele tilastoja ja pelaajien suorituksia"
+      "title": "Viimeistele ottelu",
+      "description": "Tulos ja maalit, pöytäkirja, otteluraportti ja jakaminen"
+    },
+    "statistics": {
+      "title": "Tilastot",
+      "description": "Ottelu-, sarja-, turnaus- ja pelaajatilastot"
     },
     "data-management": {
       "title": "Datan hallinta",
-      "description": "Varmuuskopiointi, vienti ja palautus"
+      "description": "Tili, synkronointi, varmuuskopiot ja asetukset"
     },
     "troubleshooting": {
       "title": "Vianetsintä",
@@ -83,6 +91,10 @@
     "tips-best-practices": {
       "title": "Vinkit ja parhaat käytännöt",
       "description": "Hyödynnä MatchOps parhaiten"
+    },
+    "faq": {
+      "title": "Usein kysytyt kysymykset",
+      "description": "Vastauksia yleisimpiin kysymyksiin"
     }
   },
   "callout": {

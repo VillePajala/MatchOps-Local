@@ -46,6 +46,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { useAppLayout, useSetAppLayout } from '@/hooks/useAppLayout';
 import type { AppLayout } from '@/types/settings';
 import AiSettingsCard from '@/components/AiSettingsCard';
+import PrivacySettingsSection from '@/components/PrivacySettingsSection';
 import CloudSyncSection from './CloudSyncSection';
 import TransitionOverlay from './TransitionOverlay';
 import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
@@ -1082,6 +1083,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
             </section>
+
+            {/* Privacy: error-reporting switch + notice to families */}
+            <PrivacySettingsSection />
 
             {/* Danger Zone */}
             <section className="space-y-2">

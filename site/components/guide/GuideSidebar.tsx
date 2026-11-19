@@ -4,7 +4,6 @@ import { useRouter } from 'next/router';
 import { FaTimes, FaHome } from 'react-icons/fa';
 import {
   getGroupedSections,
-  guideGroups,
   type GuideSection,
   type GuideGroup,
 } from '@/lib/guide/guideConfig';

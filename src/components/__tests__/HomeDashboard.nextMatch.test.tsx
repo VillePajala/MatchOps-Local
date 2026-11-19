@@ -752,3 +752,27 @@ describe('the result colour on the top card', () => {
     expect(screen.getByText('3.10.')).toBeInTheDocument();
   });
 });
+
+/**
+ * The full layout's next-match card carries the game's plan like the basic
+ * card: "Show rotation" and "Share", only when the game has one.
+ */
+describe('next-match plan actions', () => {
+  it('shows no plan actions without a plan', () => {
+    render(<HomeDashboard summary={base({ upcoming: fixture() })} t={t} />);
+
+    expect(screen.queryByTestId('next-match-show-plan')).toBeNull();
+    expect(screen.queryByTestId('next-match-share')).toBeNull();
+  });
+
+  it('shows Show rotation and Share for a game with a plan, and wires them', async () => {
+    const onShowPlan = jest.fn();
+    const onShare = jest.fn();
+    render(<HomeDashboard summary={base({ upcoming: fixture() })} nextMatchPlan={{ onShowPlan, onShare }} t={t} />);
+
+    await userEvent.click(screen.getByTestId('next-match-show-plan'));
+    expect(onShowPlan).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByTestId('next-match-share'));
+    expect(onShare).toHaveBeenCalledTimes(1);
+  });
+});

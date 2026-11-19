@@ -1,178 +1,119 @@
 ---
 title: During the Game
-description: Real-time tracking and event logging during matches
-lastUpdated: "2026-11-17"
+description: Match view, clock, Goal for us, the next change and periods
+lastUpdated: "2026-11-19"
 ---
 
-Learn how to use MatchOps effectively during live matches to track events and manage your team.
+A match opens on the pitch. This guide covers the match view, the clock and recording goals.
 
-## The Game Interface
+## The match view
 
-When a game is active, you'll see:
+The view is stacked from top to bottom:
 
-- **Field View** - Your lineup positioned on the pitch
-- **Timer** - Current game time and period
-- **Score** - Live score display
-- **Player Bar** - Players at the top, ready for selection
+- **Score row** - teams and score
+- **Player bar** - the match players as discs
+- **Pitch** - the line-up on the pitch; bench players are shown as outlined discs
+- **Control bar** - five buttons, with the clock in the middle
 
-## Recording Events
+### Placing players
 
-### Goals
+- **Place a player:** tap the player in the player bar, then tap the spot on the pitch.
+- **Remove from the pitch:** double-tap a player on the pitch.
+- **Goalkeeper:** tap a player disc in the player bar to set the goalkeeper.
+- **Formation:** the formation button on the control bar opens **Formations**; **Auto** picks one by player count. A formation places all selected players at once.
 
-When a goal is scored:
+If the game was made from a plan, the starting line-up is already on the pitch.
+
+### The control bar
+
+Five buttons, left to right:
+
+1. **Tactics Board** - opens the field tools and tactics mode (see [Tactics Board](/guide/tactics-board))
+2. **Formations** - places the players in a preset formation
+3. **Clock** (middle) - opens the large clock
+4. **Reset Field** - resets the pitch
+5. **Menu** - the match actions
+
+### The match menu
+
+**This match**: **Quick Save**, **Match details**, **Who is here?** (before kick-off only), **Record Performance** (when player assessments are on), **Finish this game** (progress, e.g. 1/2), **Team stats**, **Match planner** and **This game's plan** (when the game was made from a plan).
+
+**Resources**: **Warmup Plan**, **Rules**, **Directions to the venue** (when the venue is known) and **Taso**.
+
+At the bottom, **Settings** and **Home**. The phone's back button also returns to Home.
+
+<Callout type="info">
+Everything saves automatically after each action. **Quick Save** is there if you want to save right now.
+</Callout>
+
+## The large clock
+
+Tap the clock on the control bar. The large clock shows the score, the time and the period at the top. Below them come the clock controls, the goal buttons **Goal for us** and **Opponent +1** right under **Start**, a compact **Next change** block (when the game has a plan) and **Reset sub timer**.
+
+- **Start** / **Pause** / **Resume** - clock control
+- **End period** / **End match** - moves the clock to the end of the period or the match if the game ends early
+- When a period ends, the clock stops. The next period starts with **Start Period 2**.
+
+<Callout type="info">
+The first time the clock starts, the game is marked as played. A game that has not started (clock at zero, no events) shows on Home as an upcoming game.
+</Callout>
+
+## Goals
+
+### Goal for us
 
 <Steps>
-<Step title="Open Timer Overlay">
-Tap the timer display in the control bar to open the Timer Overlay.
+<Step title="Goal for us">
+Tap **Goal for us** on the large clock. The goal is logged and the score moves at once ("Goal logged · 12:34 · 2-1").
 </Step>
 
-<Step title="Log the Goal">
-Use the **Log Goal** button for your team's goals, or **Opponent +1** for the opposition.
+<Step title="Who scored?">
+Pick the scorer. The name buttons include every player in the match squad, not only the starters. **Skip** leaves the goal without a scorer - it still counts for the team.
 </Step>
 
-<Step title="Record Details">
-For your team's goals, select:
-- Goalscorer (required - select from your roster)
-- Assist player (optional)
-- Game time (auto-filled from timer)
-</Step>
-
-<Step title="Confirm">
-Click **Log Goal** - the score updates and the event is logged.
+<Step title="Who assisted?">
+Pick the assister or tap **Skip**.
 </Step>
 </Steps>
 
-You can also **edit or delete** recorded goals later through the Goal Log modal or Game Settings.
+Goals can be corrected later in the goal log and in **Finish this game** (time, scorer, assister, delete).
 
-### Field View and Formation
+### Opponent goal
 
-The soccer field view is primarily for designing formations before the game and at halftime - not for real-time tracking during play. You can move player discs between positions, but this is for visual planning only and does not record substitutions or track individual playing time.
+Tap **Opponent +1** and confirm ("Add opponent goal?").
 
-### Fair Play Cards
+## Changes
 
-To award a Fair Play Card:
+### Next change
 
-1. Open the menu (☰) and select **Game Settings**
-2. Scroll to the Fair Play Card section
-3. Select the player being recognized from the dropdown
-4. The card is saved automatically
+When the game has a plan, the large clock shows a **Next change** block: the time (or **at the break** if the change is between periods), who goes on (green arrow ↑) and who comes off (red arrow ↓). If earlier changes were missed, the block shows "+1 earlier". The block stays visible without confirming and moves on to the next change as time passes.
 
-<Callout type="tip">
-The Fair Play Card recognizes outstanding sportsmanship, persistence, and positive attitude. One player per game can receive it.
-</Callout>
+Changes are made on the touchline; the block tells you what the plan has next. The pitch's plan view switches with a button in the order **Lineup only** → **Planned substitutions** → **Substitutions and minutes**.
 
-### Game Notes
+### Sub interval and Reset sub timer
 
-You can add notes to capture important moments during the game using the notes feature.
+On the large clock you can set the sub interval (**Sub Interval:**) in minutes. The clock shows the time since the last change ("Since sub") and changes colour as the change time approaches and when it is due.
 
-## Timer Management
-
-### Timer Overlay
-
-The Timer Overlay is your main view during games. Open it by tapping the timer display in the control bar.
-
-All game controls are in the Timer Overlay:
-
-- **Play/Pause** - Toggle the timer using the play button (▶/⏸)
-- **Goal Logging** - Use **Log Goal** or **Opponent +1** buttons to record goals
-- **Period Transitions** - When a period ends, the timer stops automatically. Press play to start the next period.
-
-### Substitution Interval Tracker
-
-The Timer Overlay includes a substitution interval reminder to help you rotate players at regular intervals:
-
-1. **Set Interval** - Configure how often you want to rotate players (e.g., every 5 minutes)
-2. **Visual Alerts** - The display changes color as substitution time approaches:
-   - Normal (white) - Plenty of time
-   - Warning (orange) - Substitution time approaching
-   - Due (red) - Time to make substitutions
-3. **Confirm Button** - Click "Substitution Made" when you complete a rotation
-4. **Reset** - The timer resets and begins tracking the next interval
+**Reset sub timer** restarts the change timer after you have made the changes.
 
 <Callout type="info">
-The interval tracker is a visual reminder only - it does not track which players are substituted or calculate individual playing times. You manage the actual substitutions on the field yourself.
+The change timer is a reminder. It does not record who was changed.
 </Callout>
 
-### Period Transitions
+## End of the game
 
-When a period ends (timer stops automatically):
+At full time the large clock shows **Finish this game**. If the game is level and goes to extra time or penalties, choose the link **Extra time or penalties**.
 
-1. Review period statistics
-2. Adjust your formation on the field view
-3. Press play to start the next period
+Continue in [Finish This Game](/guide/after-the-game).
 
-## Making Adjustments
+## Voice notes
 
-### Formation Changes
+Hold the microphone button on the large clock (**Hold to dictate**) and say one observation at a time. Recordings stay on your phone. After the match they are written out and attached to the right player or match.
 
-During the game, you can rearrange players on the field:
+## Fair Play Card
 
-**Option 1: Tap to Reposition**
-- Tap a player disc to select it, then tap the new position on the field. (On desktop, you can also drag discs directly.)
+Menu → **Match details** → **Fair Play Card**: pick a player or clear the choice. A match can have one recipient.
 
-**Option 2: Tap to Swap**
-- Tap a player to select them, then tap another player disc to swap positions
+## The screen stays on
 
-Changes happen instantly.
-
-### Field Tools Panel
-
-Access additional tools from the control bar. Available tools depend on the current mode:
-
-**Normal field view:**
-- **Tactics** - Toggle tactical mode on/off
-- **Place All** (⊞) - Auto-position players using formation presets (3v3 to 11v11)
-- **Clear** - Remove all drawings from the field
-- **Reset** - Return all players to bench
-
-**Tactical mode adds:**
-- **Undo/Redo** - Reverse or repeat tactical changes
-- **Add Home** - Place home team tactical discs
-- **Add Opponent** - Place opponent tactical discs
-
-<Callout type="info">
-All data in the app is saved automatically after each action, so manual saving is not typically needed. However, **Quick Save** is available from the menu (☰) under Game Management if you want to ensure all changes are saved.
-</Callout>
-
-### Tactics Mode
-
-For more detailed tactical adjustments, use the **Tactics Mode**:
-
-1. Click the **Tactics Mode** button
-2. Draw plays, formations, or instructions
-3. Place tactical discs (home/opponent/goalie)
-4. Position the ball on the field
-5. Show players during halftime discussions
-6. See [Tactics Board](/guide/tactics-board) for detailed instructions
-
-<Callout type="info">
-The Tactical Board has its own separate Undo/Redo history, so you can experiment without affecting your main field setup.
-</Callout>
-
-## Tips for Live Tracking
-
-<Callout type="tip">
-**Keep it simple during play** - Focus on goals. Add details after the game.
-</Callout>
-
-### Priority Order
-
-1. **Goals** - Always record immediately
-2. **Fair Play Cards** - Award when you notice good behavior
-3. **Notes** - Add during stoppages
-
-### Screen Lock Prevention
-
-MatchOps keeps your screen active during games. The wake lock feature:
-
-- Prevents screen timeout
-- Saves battery when paused
-- Works on most devices
-
-## Planned Substitutions
-
-When a match was created from the **Match planner**, the app reminds you of the substitutions you planned as their time comes up.
-
-## Voice Notes
-
-Hold the **Hold to dictate** button and speak - one observation per note. The recording stays on your phone. After the match, write the notes up and attach each one to the right player or to the match.
+MatchOps keeps the screen on while the clock is running.

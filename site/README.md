@@ -8,7 +8,7 @@ This Next.js site serves as:
 - **Marketing homepage** - Introducing the app and its unique value proposition
 - **Features showcase** - Detailed feature breakdown and benefits
 - **Download/installation guide** - Instructions for getting started
-- **Documentation** - Auto-generated from `../docs` during build
+- **Online guide** - User guide articles from `content/guide/{fi,en}`, served at `/guide`
 
 ## Tech Stack
 
@@ -34,13 +34,10 @@ npm run build
 npm start
 ```
 
-## Documentation Sync
+## Online Guide
 
-The `docs/` folder is automatically copied from the parent `../docs/` directory during the prebuild step. This ensures documentation is always up-to-date with the main project.
-
-**Build process:**
-1. `prebuild`: Copies `../docs` to `pages/docs` (excluding `/08-archived`)
-2. `build`: Next.js builds all pages including auto-generated doc pages
+The user guide lives in `content/guide/{fi,en}` and is served at `/guide`. The old
+Markdown docs (`/docs/*`) were removed; `next.config.mjs` redirects those URLs to `/guide`.
 
 ## Deployment
 
@@ -82,7 +79,9 @@ site/
 ├── styles/
 │   └── globals.css           # Global styles + Tailwind
 ├── public/
-│   ├── logos/                # App logos (copied from parent)
+│   ├── logos/                # App logos and badge (copied from the app's public/logos)
+│   ├── icons/                # Favicons and apple-touch icon (copied from the app)
+│   ├── OG.png                # Social share image (1200x630)
 │   └── favicon.ico           # Site favicon
 ├── package.json
 ├── next.config.mjs           # Next.js + MDX config
@@ -93,10 +92,8 @@ site/
 
 ## Key Features
 
-### Automatic Documentation
-- Markdown files from `../docs` become routes automatically
-- Example: `../docs/01-project/overview.md` → `/docs/01-project/overview`
-- MDX support with GitHub Flavored Markdown
+### Online Guide
+- Markdown articles in `content/guide/{fi,en}` rendered with MDX (GitHub Flavored Markdown)
 
 ### Responsive Design
 - Mobile-first approach
@@ -112,12 +109,11 @@ site/
 
 - **Main App**: https://matchops.app
 - **GitHub**: https://github.com/VillePajala/MatchOps-Local
-- **Documentation**: Served at `/docs`
+- **Guide**: Served at `/guide`
 
 ## Development Notes
 
 - **Port**: Development server runs on port 3001 (to avoid conflicts with main app on 3000)
-- **ESLint**: Docs folder JavaScript files are ignored in linting
 - **Auto-sync**: Documentation always mirrors parent `docs/` folder
 - **Build time**: ~5-10 seconds for full build (80 pages)
 

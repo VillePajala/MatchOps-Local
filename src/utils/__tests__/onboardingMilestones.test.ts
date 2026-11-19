@@ -152,3 +152,40 @@ describe('milestones', () => {
     expect(stored.onboardingMilestones?.firstPlanSeen).toBe(T2.toISOString());
   });
 });
+
+/**
+ * Settings -> Data "Error reporting and usage statistics" off: no milestone is
+ * ever written for that account (privacy 2026-11).
+ * @critical
+ */
+describe('error reporting and usage statistics switched off', () => {
+  beforeEach(() => {
+    stored = { currentGameId: null, diagnosticsEnabled: false };
+  });
+
+  it('recordMilestone writes nothing', async () => {
+    await recordMilestone('wizardDone', 'u1', T1);
+    await flushMilestoneWrites();
+    expect(stored.onboardingMilestones).toBeUndefined();
+  });
+
+  it('recordGameFinished writes nothing even for a tracked account', async () => {
+    stored = { ...stored, onboardingMilestones: { signedUp: T1.toISOString() } };
+    await recordGameFinished('u1', 2, T2);
+    await flushMilestoneWrites();
+    expect(stored.onboardingMilestones).toEqual({ signedUp: T1.toISOString() });
+  });
+
+  it('a new account still gets the basic layout but no sign-up timestamp', async () => {
+    await beginNewAccountOnboarding('u1', T1);
+    expect(stored.appLayout).toBe('basic');
+    expect(stored.onboardingMilestones).toBeUndefined();
+  });
+
+  it('switching it back on records milestones again', async () => {
+    stored = { ...stored, diagnosticsEnabled: true };
+    await recordMilestone('wizardDone', 'u1', T1);
+    await flushMilestoneWrites();
+    expect(stored.onboardingMilestones).toEqual({ wizardDone: T1.toISOString() });
+  });
+});

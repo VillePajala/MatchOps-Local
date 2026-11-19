@@ -30,6 +30,20 @@ export interface SignOutOptions {
   scope?: 'local' | 'global';
 }
 
+/** One row of the account's consent history (user_consents), for the data export. */
+export interface ConsentRecord {
+  /** 'terms_and_privacy' or 'marketing'. */
+  consentType: string;
+  /** Policy version, YYYY-MM. */
+  policyVersion: string;
+  /** 'granted' or 'withdrawn'. */
+  status: string;
+  /** ISO timestamp. */
+  consentedAt: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+}
+
 export interface AuthService {
   // ==========================================================================
   // LIFECYCLE
@@ -264,6 +278,16 @@ export interface AuthService {
    * - Returns the most recent consent record if user has consented
    */
   getLatestConsent(): Promise<{ policyVersion: string; consentedAt: string } | null>;
+
+  /**
+   * Every consent record of the authenticated user (terms/privacy acceptances
+   * and marketing grants/withdrawals), oldest first - for the data export
+   * (GDPR Art. 15/20).
+   *
+   * @returns [] in local mode (no consent records exist there)
+   * @throws AuthError if not authenticated or the read fails (cloud)
+   */
+  getConsentRecords(): Promise<ConsentRecord[]>;
 
   // ==========================================================================
   // MARKETING CONSENT

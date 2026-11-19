@@ -13,7 +13,6 @@ export default [
       "*.config.js",
       "*.config.mjs",
       "scripts/**",
-      "pages/docs/**", // Copied documentation - not source code
     ],
   },
   js.configs.recommended,

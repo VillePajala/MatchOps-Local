@@ -14,6 +14,7 @@ import packageJson from '../../package.json';
 import { commonClubName } from '@/utils/homeTeamScope';
 import { useAuth } from '@/contexts/AuthProvider';
 import HomeBasic from '@/components/HomeBasic';
+import { useNextGamePlan } from '@/hooks/useNextGamePlan';
 import type { AppLayout } from '@/types/settings';
 import { isAndroid } from '@/utils/platform';
 import {
@@ -360,6 +361,17 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const layoutKnown = appLayout !== 'loading';
   // The app language (shared with every other language control; hydration-safe).
   const [language, changeLanguage] = useAppLanguage();
+  // The full layout's next-match card: "Näytä suunnitelma" / "Jaa" when the
+  // game has a plan - the same lookup and actions as the basic card. Only in
+  // the full layout (HomeBasic runs its own) and only with the dashboard on.
+  const fullNextPlan = useNextGamePlan({
+    game: layoutKnown && !isBasic && dashboardOn ? homeSummary?.upcoming : undefined,
+    refreshKey: homeSummary,
+    onShowPlan,
+    onOpenPlannerAt,
+    locale: language,
+    t,
+  });
   // Which Home panel the body shows (restructure 1.3b): the tabs became REAL
   // tabs - Games (front page) and Team (club entry rows) switch panels here;
   // Seasons/Stats stay one-tap openers for their single-purpose scopes.
@@ -791,6 +803,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onNewGame={onNewGame}
                   onSetStartingPoint={onOpenSettings}
                   onMarkAbsences={onOpenAttendance ? (id) => onOpenAttendance(id, 'save') : undefined}
+                  nextMatchPlan={
+                    fullNextPlan.state === 'ready'
+                      ? { onShowPlan: fullNextPlan.showPlan, onShare: fullNextPlan.share }
+                      : undefined
+                  }
                   afterHero={newGameGhost}
                   locale={language}
                   t={t}

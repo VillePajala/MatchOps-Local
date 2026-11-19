@@ -1,178 +1,119 @@
 ---
 title: Pelin aikana
-description: Reaaliaikainen seuranta ja tapahtumien kirjaus otteluiden aikana
-lastUpdated: "2026-11-17"
+description: Ottelunäkymä, kello, Maali meille, seuraava vaihto ja jaksot
+lastUpdated: "2026-11-19"
 ---
 
-Opi käyttämään MatchOpsia tehokkaasti live-otteluiden aikana tapahtumien seuraamiseen ja joukkueen hallintaan.
+Ottelu avautuu kentälle. Tämä opas käy läpi ottelunäkymän, kellon ja maalien kirjaamisen.
 
-## Pelinäkymä
+## Ottelunäkymä
 
-Kun peli on käynnissä, näet:
+Näkymä on pinottu ylhäältä alas:
 
-- **Kenttänäkymä** - Kokoonpanosi aseteltuna kentälle
-- **Ajastin** - Nykyinen peliaika ja jakso
-- **Tulos** - Live-tulosnäyttö
-- **Pelaajapalkki** - Pelaajat näytön yläosassa valmiina valintaan
+- **Tulosrivi** - joukkueet ja tulos
+- **Pelaajapalkki** - ottelun pelaajat kiekkoina
+- **Kenttä** - kokoonpano kentällä; vaihtopenkin pelaajat näkyvät pelkällä reunalla piirrettyinä kiekkoina
+- **Ohjainpalkki** - viisi painiketta, kello keskellä
 
-## Tapahtumien kirjaaminen
+### Pelaajien sijoittaminen
 
-### Maalit
+- **Sijoita pelaaja:** napauta pelaajaa pelaajapalkissa ja sen jälkeen kohtaa kentällä.
+- **Poista kentältä:** kaksoisnapauta kentällä olevaa pelaajaa.
+- **Maalivahti:** napauta pelaajakiekkoa pelaajapalkissa asettaaksesi maalivahdin.
+- **Muodostelma:** ohjainpalkin muodostelmapainike avaa **Pelimuodostelmat**-valinnan; **Automaattinen** valitsee pelaajamäärän mukaan. Valittu muodostelma sijoittaa kaikki valitut pelaajat kerralla.
 
-Kun maali syntyy:
+Jos peli tehtiin suunnitelmasta, aloituskokoonpano on jo kentällä.
+
+### Ohjainpalkki
+
+Viisi painiketta vasemmalta oikealle:
+
+1. **Taktiikkataulu** - avaa kenttätyökalut ja taktiikkatilan (ks. [Taktinen piirtotaulu](/guide/tactics-board))
+2. **Pelimuodostelmat** - sijoittaa pelaajat valmiiseen muodostelmaan
+3. **Kello** (keskellä) - avaa ison kellon
+4. **Nollaa kenttä** - palauttaa kentän
+5. **Valikko** - ottelun toiminnot
+
+### Ottelun valikko
+
+**Tämä ottelu**: **Pikatallennus**, **Ottelun tiedot**, **Ketkä ovat paikalla?** (vain ennen aloitusta), **Kirjaa ottelusuoritukset** (kun pelaaja-arviot ovat päällä), **Viimeistele ottelu** (edistyminen, esim. 1/2), **Joukkueen tilastot**, **Ottelusuunnittelu** ja **Tämän ottelun suunnitelma** (kun peli on tehty suunnitelmasta).
+
+**Resurssit**: **Lämmittelysuunnitelma**, **Säännöt**, **Ajo-ohjeet paikalle** (kun pelipaikka on tiedossa) ja **Taso**.
+
+Alimpana **Asetukset** ja **Koti**. Puhelimen takaisin-painike vie myös kotinäkymään.
+
+<Callout type="info">
+Kaikki tallentuu automaattisesti jokaisen toiminnon jälkeen. **Pikatallennus** on varmistus, jos haluat tallentaa heti.
+</Callout>
+
+## Iso kello
+
+Napauta ohjainpalkin kelloa. Iso kello näyttää ylhäällä tuloksen, ajan ja jakson. Sen alla ovat järjestyksessä kellon ohjaus, maalipainikkeet **Maali meille** ja **Vastustaja +1** heti **Käynnistä**-painikkeen alla, tiivis **Seuraava vaihto** -lohko (kun pelillä on suunnitelma) ja **Nollaa vaihtoajastin**.
+
+- **Käynnistä** / **Tauko** / **Jatka** - kellon ohjaus
+- **Päätä jakso** / **Päätä ottelu** - siirtää kellon jakson tai ottelun loppuun, jos peli päättyy aiemmin
+- Jakson päättyessä kello pysähtyy. Seuraava jakso alkaa painikkeesta **Aloita jakso 2**.
+
+<Callout type="info">
+Kun kello käynnistetään ensimmäisen kerran, peli merkitään pelatuksi. Peli, jota ei ole aloitettu (kello nollassa, ei tapahtumia), näkyy etusivulla tulevana pelinä.
+</Callout>
+
+## Maalit
+
+### Maali meille
 
 <Steps>
-<Step title="Avaa ajastinnäkymä">
-Napauta ajastinnäyttöä ohjauspalkissa avataksesi ajastinnäkymän.
+<Step title="Maali meille">
+Paina isossa kellossa **Maali meille**. Maali kirjataan ja tulos muuttuu heti ("Maali kirjattu · 12:34 · 2-1").
 </Step>
 
-<Step title="Kirjaa maali">
-Käytä **Kirjaa maali** -painiketta omille maaleillesi tai **Vastustaja +1** vastustajan maaleille.
+<Step title="Kuka teki?">
+Valitse maalintekijä. Nimipainikkeissa ovat kaikki ottelun kokoonpanon pelaajat, ei vain kentällä aloittaneet. **Ohita** jättää maalin ilman tekijää - maali lasketaan joukkueelle.
 </Step>
 
-<Step title="Kirjaa yksityiskohdat">
-Omille maaleille valitse:
-- Maalintekijä (pakollinen - valitse pelaajalistastasi)
-- Syöttäjä (valinnainen)
-- Peliaika (täytetään automaattisesti ajastimesta)
-</Step>
-
-<Step title="Vahvista">
-Napauta **Kirjaa maali** - tulos päivittyy ja tapahtuma kirjataan.
+<Step title="Kuka syötti?">
+Valitse syöttäjä tai paina **Ohita**.
 </Step>
 </Steps>
 
-Voit myös **muokata tai poistaa** kirjattuja maaleja myöhemmin maalin kirjausikkunasta tai peliasetuksista.
+Maalin tietoja voi korjata myöhemmin maalilokissa ja **Viimeistele ottelu** -näkymässä (aika, tekijä, syöttäjä, poisto).
 
-### Kenttänäkymä ja muodostelma
+### Vastustajan maali
 
-Kenttänäkymä on ensisijaisesti muodostelmien suunnitteluun ennen peliä ja puoliajalla - ei reaaliaikaiseen seurantaan pelin aikana. Voit siirtää pelaajien kiekkoja paikkojen välillä, mutta tämä on vain visuaalista suunnittelua eikä kirjaa vaihtoja tai seuraa yksittäisten pelaajien peliaikoja.
+Paina **Vastustaja +1** ja vahvista ("Lisätäänkö vastustajan maali?").
 
-### Reilun pelin kortit
+## Vaihdot
 
-Reilun pelin kortin myöntäminen:
+### Seuraava vaihto
 
-1. Avaa valikko (☰) ja valitse **Otteluasetukset**
-2. Vieritä Fair Play -kortti -osioon
-3. Valitse palkittava pelaaja pudotusvalikosta
-4. Kortti tallentuu automaattisesti
+Kun pelillä on suunnitelma, iso kello näyttää lohkon **Seuraava vaihto**: aika (tai **tauolla**, jos vaihto on jaksojen välissä), kuka tulee kentälle (vihreä nuoli ↑) ja kuka lähtee pois (punainen nuoli ↓). Jos aiempia vaihtoja on jäänyt väliin, lohkossa näkyy "+1 aiemmin". Lohko pysyy näkyvissä ilman kuittausta ja siirtyy seuraavaan vaihtoon ajan kuluessa.
 
-<Callout type="tip">
-Reilun pelin kortti tunnustaa erinomaisen urheiluhengen, sinnikkyyden ja positiivisen asenteen. Yksi pelaaja per peli voi saada sen.
-</Callout>
+Vaihdot tehdään kentän laidalla; lohko kertoo, mitä suunnitelmassa on seuraavaksi. Kentän suunnitelmanäkymä vaihtuu painikkeella järjestyksessä **Vain kokoonpano** → **Suunnitellut vaihdot** → **Vaihdot ja minuutit**.
 
-### Pelimuistiinpanot
+### Vaihdon aikaväli ja Nollaa vaihtoajastin
 
-Voit lisätä muistiinpanoja tärkeiden hetkien tallentamiseksi pelin aikana muistiinpanotoiminnolla.
+Isossa kellossa voi asettaa vaihtovälin (**Vaihdon aikaväli**) minuutteina. Kello näyttää ajan viimeisestä vaihdosta ("Vaihdosta") ja vaihtaa väriä, kun vaihtoaika lähestyy ja kun se on käsillä.
 
-## Ajastimen hallinta
-
-### Ajastinnäkymä
-
-Ajastinnäkymä on päänäkymäsi pelin aikana. Avaa se napauttamalla ajastinnäyttöä ohjauspalkissa.
-
-Kaikki pelitoiminnot ovat ajastinnäkymässä:
-
-- **Toista/Tauko** - Vaihda ajastinta toistopainikkeella (▶/⏸)
-- **Maalin kirjaus** - Käytä **Kirjaa maali** tai **Vastustaja +1** -painikkeita maalien kirjaamiseen
-- **Jaksosiirtymät** - Jakson päättyessä ajastin pysähtyy automaattisesti. Paina toista aloittaaksesi seuraavan jakson.
-
-### Vaihtovälimuistuttaja
-
-Ajastinnäkymä sisältää vaihtovälimuistuttajan, joka auttaa kierrättämään pelaajia säännöllisin väliajoin:
-
-1. **Aseta väli** - Määritä kuinka usein haluat kierrättää pelaajia (esim. 5 minuutin välein)
-2. **Visuaaliset hälytykset** - Näyttö vaihtaa väriä vaihtoajan lähestyessä:
-   - Normaali (valkoinen) - Aikaa on hyvin
-   - Varoitus (oranssi) - Vaihtoaika lähestyy
-   - Aika (punainen) - Aika tehdä vaihdot
-3. **Vahvistuspainike** - Napauta "Vaihto tehty" kun kierrätys on valmis
-4. **Nollaus** - Ajastin nollautuu ja aloittaa seuraavan välin seurannan
+Painike **Nollaa vaihtoajastin** käynnistää vaihtoajastimen alusta, kun olet tehnyt vaihdot.
 
 <Callout type="info">
-Välimuistuttaja on vain visuaalinen muistutus - se ei seuraa keitä pelaajia vaihdetaan eikä laske yksittäisten pelaajien peliaikoja. Hallitset varsinaiset vaihdot kentällä itse.
+Vaihtoajastin on muistutus. Se ei kirjaa, keitä vaihdettiin.
 </Callout>
 
-### Jaksojen väliset siirtymät
+## Pelin päättyminen
 
-Kun jakso päättyy (ajastin pysähtyy automaattisesti):
+Täyden ajan jälkeen isossa kellossa on painike **Viimeistele ottelu**. Jos peli on tasan ja pelataan jatkoaika tai rangaistuslaukaukset, valitse linkki **Jatkoaika tai rangaistuslaukaukset**.
 
-1. Tarkastele jakson tilastoja
-2. Muokkaa muodostelmaa kenttänäkymässä
-3. Paina toista aloittaaksesi seuraavan jakson
-
-## Muutosten tekeminen
-
-### Muodostelmamuutokset
-
-Pelin aikana voit järjestellä pelaajia kentällä:
-
-**Vaihtoehto 1: Napauta uudelleensijoittamiseen**
-- Napauta pelaajan kiekkoa valitaksesi, sitten napauta uutta sijaintia kentällä. (Työpöydällä voit myös vetää kiekkoja suoraan.)
-
-**Vaihtoehto 2: Napauta vaihtaaksesi**
-- Napauta pelaajaa valitaksesi, sitten napauta toista pelaajan kiekkoa vaihtaaksesi paikkoja
-
-Muutokset näkyvät heti.
-
-### Kenttätyökalupaneeli
-
-Ohjauspalkista pääset lisätyökaluihin. Käytettävissä olevat työkalut riippuvat nykyisestä tilasta:
-
-**Normaali kenttänäkymä:**
-- **Taktiikka** - Vaihda taktiikkatila päälle/pois
-- **Aseta kaikki** (⊞) - Automaattinen sijoittelu muodostelmapohjilla (3v3 - 11v11)
-- **Tyhjennä** - Poista kaikki piirrokset kentältä
-- **Nollaa** - Palauta kaikki pelaajat vaihtopenkille
-
-**Taktiikkatila lisää:**
-- **Kumoa/Tee uudelleen** - Peru tai toista taktiset muutokset
-- **Lisää koti** - Sijoita kotijoukkueen taktisia kiekkoja
-- **Lisää vastustaja** - Sijoita vastustajan taktisia kiekkoja
-
-<Callout type="info">
-Kaikki data sovelluksessa tallentuu automaattisesti jokaisen toiminnon jälkeen, joten manuaalista tallennusta ei yleensä tarvita. **Pikatallennus** on kuitenkin saatavilla valikosta (☰) Pelin hallinta -osiosta, jos haluat varmistaa kaikkien muutosten tallentumisen.
-</Callout>
-
-### Taktiikkatila
-
-Yksityiskohtaisempiin taktisiin muutoksiin käytä **Taktiikkatilaa**:
-
-1. Napauta **Taktiikkatila**-painiketta
-2. Piirrä pelikuvioita, muodostelmia tai ohjeita
-3. Aseta taktisia kiekkoja (koti/vastustaja/maalivahti)
-4. Sijoita pallo kentälle
-5. Näytä pelaajille puoliaikakeskusteluissa
-6. Katso [Taktinen piirtotaulu](/guide/tactics-board) tarkempiin ohjeisiin
-
-<Callout type="info">
-Taktisella piirtotaululla on oma erillinen Kumoa/Tee uudelleen -historia, joten voit kokeilla vaikuttamatta pääkenttänäkymään.
-</Callout>
-
-## Vinkkejä live-seurantaan
-
-<Callout type="tip">
-**Pidä yksinkertaisena pelin aikana** - Keskity maaleihin. Lisää yksityiskohdat pelin jälkeen.
-</Callout>
-
-### Tärkeysjärjestys
-
-1. **Maalit** - Kirjaa aina heti
-2. **Reilun pelin kortit** - Myönnä kun huomaat hyvää käytöstä
-3. **Muistiinpanot** - Lisää pelitauoilla
-
-### Näytön lukituksen esto
-
-MatchOps pitää näyttösi aktiivisena pelien aikana. Wake lock -ominaisuus:
-
-- Estää näytön sammumisen
-- Säästää akkua tauolla
-- Toimii useimmilla laitteilla
-
-## Suunnitellut vaihdot
-
-Kun ottelu on luotu **Ottelusuunnittelusta**, sovellus muistuttaa suunnittelemistasi vaihdoista niiden ajan tullessa.
+Jatka oppaaseen [Viimeistele ottelu](/guide/after-the-game).
 
 ## Äänimuistiinpanot
 
-Paina **Pidä pohjassa ja puhu** -painiketta ja puhu - yksi havainto kerrallaan. Äänitys pysyy puhelimessasi. Ottelun jälkeen kirjoita muistiinpanot puhtaaksi ja liitä kukin oikealle pelaajalle tai ottelulle.
+Pidä ison kellon mikrofonipainiketta pohjassa (**Pidä pohjassa ja puhu**) ja sano yksi havainto kerrallaan. Tallenteet pysyvät puhelimessasi. Ottelun jälkeen ne kirjoitetaan auki ja liitetään oikealle pelaajalle tai ottelulle.
+
+## Fair Play -kortti
+
+Valikko → **Ottelun tiedot** → **Fair Play -kortti**: valitse pelaaja tai tyhjennä valinta. Ottelulla voi olla yksi saaja.
+
+## Näyttö pysyy päällä
+
+MatchOps pitää näytön päällä, kun kello käy.

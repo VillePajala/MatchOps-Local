@@ -11,106 +11,47 @@ import { FaArrowUp } from 'react-icons/fa';
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.matchops.local';
 
-// Language-aware screenshot paths (matches marketing-assets.tsx)
+// Language-aware screenshot paths (matches marketing-assets.tsx).
+// All captured 2026-11 from the redesigned app with the fictional demo club
+// (MatchOps_v3_<name>_<fi|en>.jpg, 1080x2340).
 const getScreenshots = (locale: string | undefined) => {
-  const isEnglish = locale === 'en';
+  const lang = locale === 'en' ? 'en' : 'fi';
+  const shot = (name: string) => `/screenshots/MatchOps_v3_${name}_${lang}.jpg`;
   return {
     // Main hero screenshots
-    soccerfield: '/screenshots/MatchOps_v2_soccerfield_en_fi.jpg',
-    timer: isEnglish
-      ? '/screenshots/MatchOps_v2_timer_en.jpg'
-      : '/screenshots/MatchOps_v2_timer_fi.jpg',
-    playerstats: isEnglish
-      ? '/screenshots/MatchOps_v2_playerstats_en.jpg'
-      : '/screenshots/MatchOps_v2_playerstats_fi.jpg',
+    soccerfield: shot('matchview'), // stacked match view
+    timer: shot('timer'),
+    playerstats: shot('playerstats'),
     // Feature card screenshots
-    tacticalBoard: '/screenshots/MatchOps_v2_tacticalboard_en_fi.jpg',
-    formations: isEnglish
-      ? '/screenshots/MatchOps_v2_formations_en.jpg'
-      : '/screenshots/MatchOps_v2_formations_fi.jpg',
-    roster: isEnglish
-      ? '/screenshots/MatchOps_v2_roster_en.jpg'
-      : '/screenshots/MatchOps_v2_roster_fi.jpg',
-    recap: isEnglish
-      ? '/screenshots/MatchOps_v2_recap_en.jpg'
-      : '/screenshots/MatchOps_v2_recap_fi.jpg',
-    positions: isEnglish
-      ? '/screenshots/MatchOps_v2_positions_en.jpg'
-      : '/screenshots/MatchOps_v2_positions_fi.jpg',
-    positionBalance: isEnglish
-      ? '/screenshots/MatchOps_v2_positionbalance_en.jpg'
-      : '/screenshots/MatchOps_v2_positionbalance_fi.jpg',
-    nextMatch: isEnglish
-      ? '/screenshots/MatchOps_v2_nextmatch_en.jpg'
-      : '/screenshots/MatchOps_v2_nextmatch_fi.jpg',
-    matchReport: isEnglish
-      ? '/screenshots/MatchOps_v2_matchreport_en.jpg'
-      : '/screenshots/MatchOps_v2_matchreport_fi.jpg',
-    overtime: isEnglish
-      ? '/screenshots/MatchOps_v2_overtime_en.jpg'
-      : '/screenshots/MatchOps_v2_overtime_fi.jpg',
-    seasons: isEnglish
-      ? '/screenshots/MatchOps_v2_seasons_en.jpg'
-      : '/screenshots/MatchOps_v2_seasons_fi.jpg',
-    tournaments: isEnglish
-      ? '/screenshots/MatchOps_v2_tournaments_en.jpg'
-      : '/screenshots/MatchOps_v2_tournaments_fi.jpg',
-    teams: isEnglish
-      ? '/screenshots/MatchOps_v2_teams_en.jpg'
-      : '/screenshots/MatchOps_v2_teams_fi.jpg',
-    archive: isEnglish
-      ? '/screenshots/MatchOps_v2_archive_en.jpg'
-      : '/screenshots/MatchOps_v2_archive_fi.jpg',
-    goalTimeline: isEnglish
-      ? '/screenshots/MatchOps_v2_goallog_en.jpg'
-      : '/screenshots/MatchOps_v2_goallog_fi.jpg',
-    excelExport: isEnglish
-      ? '/screenshots/MatchOps_v2_excelexport_en.jpg'
-      : '/screenshots/MatchOps_v2_excelexport_fi.jpg',
-    personnel: isEnglish
-      ? '/screenshots/MatchOps_v2_personnel_en.jpg'
-      : '/screenshots/MatchOps_v2_personnel_fi.jpg',
-    futsal: '/screenshots/MatchOps_v2_futsal_en_fi.jpg',
-    // Both retaken 2026-09-10. The previous pair showed "Jalkapallosäännöt
-    // 2025", "Futsalsäännöt 2025-2026" and "Kaikki Pelaa 2025" - the last of
-    // which Palloliitto has delisted entirely - in the links-only layout that
-    // search replaced.
-    officialRules: isEnglish
-      ? '/screenshots/MatchOps_v2_rules_en.jpg'
-      : '/screenshots/MatchOps_v2_rules_fi.jpg',
-    cloudSync: isEnglish
-      ? '/screenshots/MatchOps_v2_cloudsync_en.jpg'
-      : '/screenshots/MatchOps_v2_cloudsync_fi.jpg',
-    teamstats: isEnglish
-      ? '/screenshots/MatchOps_v2_teamstats_en.jpg'
-      : '/screenshots/MatchOps_v2_teamstats_fi.jpg',
-    planner: isEnglish
-      ? '/screenshots/MatchOps_v2_planner_en.jpg'
-      : '/screenshots/MatchOps_v2_planner_fi.jpg',
-    dashboard: isEnglish
-      ? '/screenshots/MatchOps_v2_dashboard_en.jpg'
-      : '/screenshots/MatchOps_v2_dashboard_fi.jpg',
-    friendlies: isEnglish
-      ? '/screenshots/MatchOps_v2_newgame_en.jpg'
-      : '/screenshots/MatchOps_v2_newgame_fi.jpg',
-    // The inbox, not the recording moment: a button mid-press is just a button,
-    // while clips waiting with their period and clock show what the feature
-    // actually gives a coach.
-    voiceNotes: isEnglish
-      ? '/screenshots/MatchOps_v2_voicenotes_en.jpg'
-      : '/screenshots/MatchOps_v2_voicenotes_fi.jpg',
-    // The squad and the goals together: the squad alone could be any roster
-    // and the goals alone could be any match log, but the two in Taso's order
-    // are unmistakably the thing a coach would otherwise be retyping.
-    tasoReport: isEnglish
-      ? '/screenshots/MatchOps_v2_tasoreport_en.jpg'
-      : '/screenshots/MatchOps_v2_tasoreport_fi.jpg',
-    // The wizard mid-use, with a name typed and the CTA live. The empty state
-    // renders Continue disabled, which on a card meant to say "you are set up
-    // in a minute" reads as a broken button.
-    guidedSetup: isEnglish
-      ? '/screenshots/MatchOps_v2_guidedsetup_en.jpg'
-      : '/screenshots/MatchOps_v2_guidedsetup_fi.jpg',
+    tacticalBoard: shot('tacticalboard'),
+    formations: shot('formations'),
+    roster: shot('roster'),
+    positions: shot('positions'),
+    positionBalance: shot('positionbalance'),
+    nextMatch: shot('nextmatch'),
+    // Otteluraportti with "Jaa otteluraportti" under it
+    matchReport: shot('matchreport'),
+    overtime: shot('overtime'),
+    seasons: shot('seasons'),
+    tournaments: shot('tournaments'),
+    teams: shot('teams'),
+    archive: shot('archive'),
+    goalTimeline: shot('goallog'),
+    excelExport: shot('excelexport'),
+    personnel: shot('personnel'),
+    futsal: shot('futsal'),
+    officialRules: shot('rules'),
+    cloudSync: shot('cloudsync'),
+    teamstats: shot('teamstats'),
+    planner: shot('planner'),
+    dashboard: shot('dashboard'), // Home, Tilastot tab
+    friendlies: shot('newgame'),
+    voiceNotes: shot('voicenotes'),
+    // Pöytäkirja sheet: lineup with numbers and positions, result, goals with minutes
+    tasoReport: shot('poytakirja'),
+    attendance: shot('attendance'), // Ketkä ovat paikalla?
+    quickGoal: shot('quickgoal'), // Maali meille -> Kuka teki?
+    finish: shot('finish'), // Viimeistele ottelu, top with Pöytäkirja
   };
 };
 
@@ -207,7 +148,7 @@ export default function HomePage() {
         <meta property="og:title" content={t('seo.home.title')} />
         <meta property="og:description" content={t('seo.home.description')} />
         <meta property="og:url" content={`https://www.match-ops.com${router.locale === 'en' ? '/en' : ''}`} />
-        <meta property="og:image" content="https://www.match-ops.com/screenshots/OG.png" />
+        <meta property="og:image" content="https://www.match-ops.com/OG.png" />
       </Head>
 
       {/* ===== HERO SECTION ===== */}
@@ -228,7 +169,7 @@ export default function HomePage() {
               <span className="text-primary">MatchOps</span>
             </h1>
             <p className="text-xl md:text-2xl lg:text-3xl text-white mb-8">
-              {t('marketing.taglines.power')}
+              {t('marketing.taglines.productLine')}
             </p>
             {/* ===== 5-PHONE SHOWCASE ===== */}
             {/* Mobile: swipeable carousel */}
@@ -402,13 +343,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== PLAN • TRACK • DEVELOP ===== */}
+      {/* ===== PLAN • ROTATE • RECORD ===== */}
       <section className="section section-divider bg-slate-800/50">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
-              {isEnglish ? 'Plan • Track • Discover' : 'Suunnittele • Kirjaa • Oivalla'}
+              {t('info.whatIsThis.title')}
             </h2>
+            <ul className="flex flex-wrap justify-center gap-2 mb-6">
+              {(['plan', 'clock', 'events', 'stats', 'free'] as const).map((point) => (
+                <li
+                  key={point}
+                  className="px-3 py-1.5 rounded-full text-sm font-medium bg-slate-800 text-slate-200"
+                >
+                  {t(`marketing.productPoints.${point}`)}
+                </li>
+              ))}
+            </ul>
             <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
               {t('info.whatIsThis.description')}
             </p>
@@ -419,10 +370,10 @@ export default function HomePage() {
                   <PhoneMockup screenshot={screenshots.soccerfield} size="2xl" />
                 </div>
                 <h3 className="text-xl font-bold text-primary mb-2">
-                  {isEnglish ? 'Plan' : 'Suunnittele'}
+                  {t('marketing.howItWorks.plan.title')}
                 </h3>
                 <p className="text-slate-300">
-                  {t('marketing.features.plan.desc')}
+                  {t('marketing.howItWorks.plan.desc')}
                 </p>
               </div>
               {/* TRACK */}
@@ -431,10 +382,10 @@ export default function HomePage() {
                   <PhoneMockup screenshot={screenshots.timer} size="2xl" />
                 </div>
                 <h3 className="text-xl font-bold text-primary mb-2">
-                  {isEnglish ? 'Track' : 'Kirjaa'}
+                  {t('marketing.howItWorks.play.title')}
                 </h3>
                 <p className="text-slate-300">
-                  {t('marketing.features.track.desc')}
+                  {t('marketing.howItWorks.play.desc')}
                 </p>
               </div>
               {/* DISCOVER / OIVALLA */}
@@ -443,10 +394,10 @@ export default function HomePage() {
                   <PhoneMockup screenshot={screenshots.teamstats} size="2xl" />
                 </div>
                 <h3 className="text-xl font-bold text-primary mb-2">
-                  {isEnglish ? 'Discover' : 'Oivalla'}
+                  {t('marketing.howItWorks.record.title')}
                 </h3>
                 <p className="text-slate-300">
-                  {t('marketing.features.assess.desc')}
+                  {t('marketing.howItWorks.record.desc')}
                 </p>
               </div>
             </div>
@@ -460,6 +411,8 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto space-y-16 md:space-y-24">
             {[
               { key: 'planner', screenshot: screenshots.planner },
+              { key: 'attendance', screenshot: screenshots.attendance },
+              { key: 'finish', screenshot: screenshots.finish },
               { key: 'positionBalance', screenshot: screenshots.positionBalance },
               { key: 'nextMatch', screenshot: screenshots.nextMatch },
             ].map((s, i) => (
@@ -480,9 +433,11 @@ export default function HomePage() {
                     {t(`marketing.spotlights.${s.key}.desc`)}
                   </p>
                 </div>
-                <div className="md:w-1/2 flex justify-center">
-                  <PhoneMockup screenshot={s.screenshot} size="3xl" zIndex={10} />
-                </div>
+                {s.screenshot && (
+                  <div className="md:w-1/2 flex justify-center">
+                    <PhoneMockup screenshot={s.screenshot} size="3xl" zIndex={10} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -495,20 +450,19 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto space-y-16">
             {[
               { band: 'gameDay', cards: [
+                { key: 'quickGoal', screenshot: screenshots.quickGoal },
                 { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
                 { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
                 { key: 'voiceNotes', screenshot: screenshots.voiceNotes },
                 { key: 'overtime', screenshot: screenshots.overtime },
                 { key: 'formations', screenshot: screenshots.formations },
-                { key: 'recap', screenshot: screenshots.recap },
               ] },
               { band: 'development', cards: [
-                { key: 'positions', screenshot: screenshots.positions },
-                { key: 'matchReport', screenshot: screenshots.matchReport },
                 { key: 'tasoReport', screenshot: screenshots.tasoReport },
+                { key: 'matchReport', screenshot: screenshots.matchReport },
+                { key: 'positions', screenshot: screenshots.positions },
               ] },
               { band: 'club', cards: [
-                { key: 'guidedSetup', screenshot: screenshots.guidedSetup },
                 { key: 'roster', screenshot: screenshots.roster },
                 { key: 'teams', screenshot: screenshots.teams },
                 { key: 'personnel', screenshot: screenshots.personnel },
@@ -568,8 +522,8 @@ export default function HomePage() {
             </h2>
             <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
               {isEnglish
-                ? 'Enterprise-grade quality with 4,400+ automated tests.'
-                : 'Yritystason laatu ja yli 4 400 automaattista testiä.'}
+                ? 'Enterprise-grade quality with 7,700+ automated tests.'
+                : 'Yritystason laatu ja yli 7 700 automaattista testiä.'}
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">

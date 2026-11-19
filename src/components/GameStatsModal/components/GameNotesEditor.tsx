@@ -95,6 +95,9 @@ export function GameNotesEditor({
             className={`${inputBaseStyle} h-64 min-h-[10rem] resize-y text-[15px]! leading-relaxed`}
             placeholder={t('gameStatsModal.notesPlaceholder', 'Add notes here...') ?? undefined}
           />
+          <p className="text-sm text-ink-3" data-testid="report-no-health-hint">
+            {t('privacyHints.noHealthData', 'Do not record health information.')}
+          </p>
           {/* Silent until it matters: a counter over a long report is noise,
               but running out of room without warning is a lost paragraph. */}
           {editGameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX * 0.9 && (

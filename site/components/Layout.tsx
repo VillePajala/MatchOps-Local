@@ -30,13 +30,13 @@ export default function Layout({ children }: LayoutProps) {
         <meta property="og:description" content="Soccer & futsal coaching toolkit. Tactical board, game timer, stats | Jalkapallo- ja futsalvalmentajan työkalu" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`https://www.match-ops.com${router.asPath}`} />
-        <meta property="og:image" content="https://www.match-ops.com/screenshots/OG.png" />
+        <meta property="og:image" content="https://www.match-ops.com/OG.png" />
         <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="628" />
+        <meta property="og:image:height" content="630" />
         <meta property="og:locale" content={router.locale === 'en' ? 'en_US' : 'fi_FI'} />
         <meta property="og:locale:alternate" content={router.locale === 'en' ? 'fi_FI' : 'en_US'} />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="https://www.match-ops.com/screenshots/OG.png" />
+        <meta name="twitter:image" content="https://www.match-ops.com/OG.png" />
         {(() => {
           const path = router.asPath || '/';
           const basePath = path.replace(/^\/(en|fi)(?=\/|$)/, '');
@@ -50,7 +50,10 @@ export default function Layout({ children }: LayoutProps) {
             </>
           );
         })()}
-        <link rel="icon" href="/favicon.png" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </Head>
       {/* Navigation */}
       <nav className="backdrop-blur-sm bg-slate-900/40 border-b border-slate-700/20 relative z-10">
@@ -59,11 +62,12 @@ export default function Layout({ children }: LayoutProps) {
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
               <Image
-                src="/logos/app-logo-yellow.png"
+                src="/logos/matchops-badge.svg"
                 alt="MatchOps Logo"
                 width={40}
                 height={40}
                 priority
+                unoptimized
               />
               <span className="text-xl font-bold text-white drop-shadow-lg">
                 MatchOps

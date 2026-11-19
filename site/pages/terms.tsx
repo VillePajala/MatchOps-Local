@@ -89,6 +89,28 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="mb-8">
+              <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.dataProcessing.title')}</h2>
+              <p className="text-slate-300 mb-3">{t('termsOfService.dataProcessing.intro')}</p>
+              <ul className="list-disc list-inside text-slate-300 space-y-1">
+                <li>{t('termsOfService.dataProcessing.items.roles')}</li>
+                <li>{t('termsOfService.dataProcessing.items.scope')}</li>
+                <li>{t('termsOfService.dataProcessing.items.instructions')}</li>
+                <li>{t('termsOfService.dataProcessing.items.confidentiality')}</li>
+                <li>{t('termsOfService.dataProcessing.items.security')}</li>
+                <li>{t('termsOfService.dataProcessing.items.subprocessors')}</li>
+                <li>{t('termsOfService.dataProcessing.items.assistance')}</li>
+                <li>{t('termsOfService.dataProcessing.items.deletion')}</li>
+                <li>{t('termsOfService.dataProcessing.items.compliance')}</li>
+              </ul>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.playerData.title')}</h2>
+              <p className="text-slate-300 mb-3">{t('termsOfService.playerData.informFamilies')}</p>
+              <p className="text-slate-300">{t('termsOfService.playerData.noSpecialCategories')}</p>
+            </section>
+
+            <section className="mb-8">
               <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.intellectualProperty.title')}</h2>
               <p className="text-slate-300">{t('termsOfService.intellectualProperty.content')}</p>
             </section>
@@ -148,6 +170,9 @@ export default function TermsOfServicePage() {
                   <strong>{t('termsOfService.thirdPartyServices.vercel')}</strong> - {t('termsOfService.thirdPartyServices.vercelDesc')}
                 </li>
                 <li>
+                  <strong>{t('termsOfService.thirdPartyServices.resend')}</strong> - {t('termsOfService.thirdPartyServices.resendDesc')}
+                </li>
+                <li>
                   <strong>{t('termsOfService.thirdPartyServices.photon')}</strong> - {t('termsOfService.thirdPartyServices.photonDesc')}
                 </li>
                 <li>
@@ -158,6 +183,13 @@ export default function TermsOfServicePage() {
                 </li>
               </ul>
               <p className="text-slate-300 mt-2">{t('termsOfService.thirdPartyServices.note')}</p>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.aiServices.title')}</h2>
+              <p className="text-slate-300 mb-3">{t('termsOfService.aiServices.content1')}</p>
+              <p className="text-slate-300 mb-3">{t('termsOfService.aiServices.content2')}</p>
+              <p className="text-slate-300">{t('termsOfService.aiServices.content3')}</p>
             </section>
 
             <section className="mb-8">

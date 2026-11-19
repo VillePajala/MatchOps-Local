@@ -13,11 +13,17 @@
  *
  * A milestone that cannot be written is not an error the coach sees:
  * milestones are measurement, never app data, and must never block anything.
+ *
+ * A coach who turned off Settings -> Data "Error reporting and usage
+ * statistics" (`AppSettings.diagnosticsEnabled === false`) gets no milestone
+ * written at all. Every write re-reads the account's settings, so the check
+ * follows the account, not a device cache.
  */
 
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import type { AppSettings, OnboardingMilestone, OnboardingMilestones } from '@/types/settings';
 import logger from '@/utils/logger';
+import { diagnosticsEnabledFromSettings } from '@/utils/diagnosticsPreference';
 
 export type { OnboardingMilestone } from '@/types/settings';
 
@@ -58,6 +64,7 @@ export function recordMilestone(
 ): Promise<void> {
   return enqueue(async () => {
     const settings = await getAppSettings(toStoreId(userId));
+    if (!diagnosticsEnabledFromSettings(settings)) return;
     const patch = milestonePatch(settings.onboardingMilestones, [milestone], at);
     if (patch) await updateAppSettings(patch, toStoreId(userId));
   });
@@ -99,7 +106,11 @@ export function beginNewAccountOnboarding(
   return enqueue(async () => {
     const settings = await getAppSettings(toStoreId(userId));
     const at = signedUpAt && !Number.isNaN(signedUpAt.getTime()) ? signedUpAt : new Date();
-    const milestones = milestonePatch(settings.onboardingMilestones, ['signedUp'], at);
+    // The layout is app behaviour and is always written; the sign-up
+    // timestamp is measurement and follows the coach's switch.
+    const milestones = diagnosticsEnabledFromSettings(settings)
+      ? milestonePatch(settings.onboardingMilestones, ['signedUp'], at)
+      : null;
     const patch: Partial<AppSettings> = {
       ...(settings.appLayout ? {} : { appLayout: 'basic' as const }),
       ...(milestones ?? {}),
@@ -123,6 +134,7 @@ export function recordGameFinished(
   if (finishedGames < 1) return Promise.resolve();
   return enqueue(async () => {
     const settings = await getAppSettings(toStoreId(userId));
+    if (!diagnosticsEnabledFromSettings(settings)) return;
     if (!settings.onboardingMilestones?.signedUp) return;
     const reached: OnboardingMilestone[] =
       finishedGames >= 2 ? ['firstGameFinished', 'secondGameFinished'] : ['firstGameFinished'];

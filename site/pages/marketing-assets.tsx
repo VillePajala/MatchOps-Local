@@ -81,56 +81,36 @@ function FloatingNav({ locale, onLocaleChange }: { locale: string; onLocaleChang
   );
 }
 
-// Language-aware screenshot paths
+// Language-aware screenshot paths (matches index.tsx): MatchOps_v3_<name>_<fi|en>.jpg,
+// captured 2026-11 from the redesigned app with the fictional demo club.
 const getScreenshots = (locale: string | undefined) => {
-  const isEnglish = locale === 'en';
+  const lang = locale === 'en' ? 'en' : 'fi';
+  const shot = (name: string) => `/screenshots/MatchOps_v3_${name}_${lang}.jpg`;
   return {
     // Main hero screenshots
-    soccerfield: '/screenshots/MatchOps_main_soccerfield_new_en_fi.jpg', // Language agnostic
-    timer: isEnglish
-      ? '/screenshots/MatchOps_main_timer_en.jpg'
-      : '/screenshots/MatchOps_Main_timer_full.jpg',
-    playerstats: isEnglish
-      ? '/screenshots/MatchOps_main_playerstatistics_en.jpg'
-      : '/screenshots/MatchOps_Main_playerstats_full.jpg',
+    soccerfield: shot('matchview'),
+    timer: shot('timer'),
+    playerstats: shot('playerstats'),
     // Feature card screenshots
-    tacticalBoard: '/screenshots/MatcOps_main_tacticaldrawingstate_fi_en.jpg', // Both languages
-    formations: isEnglish
-      ? '/screenshots/MatcOps_main_formationsmodal_en.jpg'
-      : '/screenshots/MatchOps_main_formationsmodal_fi.jpg',
-    roster: isEnglish
-      ? '/screenshots/MatcOps_main_masterrostermodal_en.jpg'
-      : '/screenshots/MatcOps_main_mainrostermodal_fi.jpg',
-    assessment: isEnglish
-      ? '/screenshots/MatchOps_main_development_fi.jpg'  // filename mislabeled: _fi.jpg has EN content
-      : '/screenshots/MatchOps_main_development_en.jpg',  // filename mislabeled: _en.jpg has FI content
-    trends: isEnglish
-      ? '/screenshots/MatchOps_main_playerstatprogression_en.jpg'
-      : '/screenshots/MatchOps_main_playerstatsprogression_fi.jpg',
-    seasons: isEnglish
-      ? '/screenshots/MatcOps_main_seasoncreationmodal_en.jpg'
-      : '/screenshots/MatchOps_main_seasoncreationmodal_fi.jpg',
-    tournaments: isEnglish
-      ? '/screenshots/MatcOps_main_tournamentcreationmodal_en.jpg'
-      : '/screenshots/MatchOps_main_tournamentcreationmodel_fi.jpg',
-    teams: isEnglish
-      ? '/screenshots/MatcOps_main_teamcreatiommodal_en.jpg'
-      : '/screenshots/MatchOps_main_teamcreatingmodal_fi.jpg',
-    archive: isEnglish
-      ? '/screenshots/MatcOps_main_savedgames_en.jpg'
-      : '/screenshots/MatchOps_main_savedgames_fi.jpg',
-    goalTimeline: isEnglish
-      ? '/screenshots/MatchOps_main_goallogs_en.jpg'
-      : '/screenshots/MatchOps_main_goallogs_fi.jpg',
-    excelExport: isEnglish
-      ? '/screenshots/MatcOps_main_excelexport_en.jpg'
-      : '/screenshots/MatchOps_main_excelexport_fi.jpg',
-    personnel: isEnglish
-      ? '/screenshots/MatcOps_main_personnel_en.jpg'
-      : '/screenshots/MatchOps_main_personnel_fi.jpg',
-    cloudSync: isEnglish
-      ? '/screenshots/MatchOps_main_cloudSync_en.jpg'
-      : '/screenshots/MatchOps_main_CloudSync_fi.jpg',
+    tacticalBoard: shot('tacticalboard'),
+    formations: shot('formations'),
+    roster: shot('roster'),
+    assessment: shot('development'),
+    trends: shot('trends'),
+    seasons: shot('seasons'),
+    tournaments: shot('tournaments'),
+    teams: shot('teams'),
+    archive: shot('archive'),
+    goalTimeline: shot('goallog'),
+    excelExport: shot('excelexport'),
+    personnel: shot('personnel'),
+    cloudSync: shot('cloudsync'),
+    // Play Store set (sign-up -> wizard -> plan -> match -> goal -> finish -> stats -> sync)
+    signup: shot('signup'),
+    wizard: shot('wizard'),
+    plan: shot('plan'),
+    quickGoal: shot('quickgoal'),
+    finish: shot('finish'),
   };
 };
 
@@ -183,56 +163,6 @@ function ThreePhonesBalanced({
         style={{ marginLeft: -overlap }}
         zIndex={1}
       />
-    </div>
-  );
-}
-
-// Placeholder phone for screenshots not yet taken
-function PlaceholderPhone({
-  text,
-  size = 'lg',
-  className = '',
-  style,
-  zIndex = 0,
-}: {
-  text: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-  className?: string;
-  style?: React.CSSProperties;
-  zIndex?: number;
-}) {
-  const sizes = {
-    xs: { width: 60, height: 120 },
-    sm: { width: 80, height: 160 },
-    md: { width: 100, height: 200 },
-    lg: { width: 130, height: 260 },
-    xl: { width: 160, height: 320 },
-    '2xl': { width: 200, height: 400 },
-  };
-
-  const { width, height } = sizes[size];
-  const borderRadius = size === 'xs' ? '1rem' : size === 'sm' ? '1.25rem' : '1.5rem';
-  const innerRadius = size === 'xs' ? '0.75rem' : size === 'sm' ? '1rem' : '1.25rem';
-  const fontSize = size === 'xs' || size === 'sm' ? '0.5rem' : size === 'md' ? '0.6rem' : '0.7rem';
-
-  return (
-    <div
-      className={`relative ${className}`}
-      style={{ width, height, zIndex, ...style }}
-    >
-      <div
-        className="absolute inset-0 bg-slate-800 shadow-2xl"
-        style={{ borderRadius, padding: '4px' }}
-      >
-        <div
-          className="w-full h-full bg-slate-700 flex items-center justify-center p-2"
-          style={{ borderRadius: innerRadius }}
-        >
-          <p className="text-gray-400 text-center leading-tight" style={{ fontSize }}>
-            {text}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
@@ -322,11 +252,12 @@ function AssetContainer({
 function Logo({ size = 60, className = '' }: { size?: number; className?: string }) {
   return (
     <Image
-      src="/logos/app-logo-yellow.png"
+      src="/logos/matchops-badge.svg"
       alt="MatchOps"
       width={size}
       height={size}
       className={className}
+      unoptimized
     />
   );
 }
@@ -2375,14 +2306,13 @@ export default function MarketingAssets() {
             <p className="text-gray-400 text-sm mb-6">Google Play displays these in a device frame automatically. Use the Download PNG button on each.</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
               {[
-                { key: 'soccerfield', label: isEnglish ? 'Lineup' : 'Kokoonpano' },
-                { key: 'timer', label: isEnglish ? 'Timer' : 'Ajastin' },
-                { key: 'playerstats', label: isEnglish ? 'Statistics' : 'Tilastot' },
-                { key: 'tacticalBoard', label: isEnglish ? 'Tactics' : 'Taktiikka' },
-                { key: 'goalTimeline', label: isEnglish ? 'Match Log' : 'Otteluloki' },
-                { key: 'assessment', label: isEnglish ? 'Development' : 'Kehitysseuranta' },
-                { key: 'trends', label: isEnglish ? 'Trends' : 'Trendit' },
-                { key: 'archive', label: isEnglish ? 'Archive' : 'Historia' },
+                { key: 'signup', label: isEnglish ? 'Sign up' : 'Rekisteröityminen' },
+                { key: 'wizard', label: isEnglish ? 'Guided setup' : 'Ohjattu käyttöönotto' },
+                { key: 'plan', label: isEnglish ? 'Match plan' : 'Suunnitelma' },
+                { key: 'soccerfield', label: isEnglish ? 'Match view' : 'Ottelunäkymä' },
+                { key: 'quickGoal', label: isEnglish ? 'Goal for us' : 'Maali meille' },
+                { key: 'finish', label: isEnglish ? 'Finish the game' : 'Viimeistele ottelu' },
+                { key: 'playerstats', label: isEnglish ? 'Player stats' : 'Pelaajatilastot' },
                 { key: 'cloudSync', label: isEnglish ? 'Cloud Sync' : 'Pilvisynkronointi' },
               ].map((item) => {
                 const src = screenshots[item.key as keyof typeof screenshots];
@@ -2395,7 +2325,6 @@ export default function MarketingAssets() {
                     scale={0.25}
                   >
                     <div className="w-full h-full">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={src} alt={item.label} crossOrigin="anonymous" className="w-full h-full object-cover" style={{ filter: 'contrast(1.075) saturate(1.025)' }} />
                     </div>
                   </AssetContainer>
@@ -2714,7 +2643,7 @@ export default function MarketingAssets() {
                     <SiteUrl size="sm" variant="yellow" />
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <span className="text-7xl font-bold text-primary font-rajdhani">4,700+</span>
+                    <span className="text-7xl font-bold text-primary font-rajdhani">7,700+</span>
                   </div>
                 </div>
               </AssetContainer>

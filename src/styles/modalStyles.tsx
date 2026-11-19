@@ -207,9 +207,11 @@ export const inlineSelectStyle =
 export const chipStyle =
   `inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-full font-ui text-sm font-medium text-ink-2 bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)] transition-colors hover:bg-white/[0.07] disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
 
-/** The chosen chip: raised navy with an amber ring. */
+/** The chosen chip: a SOLID amber fill (owner 2026-11-19: a ringed chip read as
+ *  "not selected"). Amber is the app's selection colour; the unselected chip
+ *  stays an outlined ghost pill, so the two states differ in fill, not hue alone. */
 export const chipSelectedStyle =
-  `inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-full font-ui text-sm font-semibold text-ink s1-seg-on shadow-[inset_0_0_0_1.5px_var(--color-action),0_2px_6px_-2px_rgb(2_6_23/0.75)] disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+  `inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-full font-ui text-sm font-semibold text-on-action bg-action shadow-[0_2px_6px_-2px_rgb(2_6_23/0.75)] hover:bg-action-hot disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
 
 // ============================================================================
 // Segmented control, checkbox and field messages (form system)

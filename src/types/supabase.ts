@@ -1088,6 +1088,7 @@ export type Database = {
           starting_point_lng: number | null
           starting_point_name: string | null
           known_venues: Json | null
+          diagnostics_enabled: boolean | null
           app_layout: string | null
           onboarding_milestones: Json | null
           club_season_start_date: string | null
@@ -1114,6 +1115,7 @@ export type Database = {
           starting_point_lng?: number | null
           starting_point_name?: string | null
           known_venues?: Json | null
+          diagnostics_enabled?: boolean | null
           app_layout?: string | null
           onboarding_milestones?: Json | null
           club_season_start_date?: string | null
@@ -1140,6 +1142,7 @@ export type Database = {
           starting_point_lng?: number | null
           starting_point_name?: string | null
           known_venues?: Json | null
+          diagnostics_enabled?: boolean | null
           app_layout?: string | null
           onboarding_milestones?: Json | null
           club_season_start_date?: string | null

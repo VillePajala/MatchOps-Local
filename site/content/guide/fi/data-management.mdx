@@ -1,319 +1,108 @@
 ---
 title: Datan hallinta
-description: Tallennustavat, synkronointi, vienti, palautus ja MatchOps-datan hallinta
-lastUpdated: "2026-06-23"
+description: Tili, synkronointi, varmuuskopiot, palautus ja asetukset
+lastUpdated: "2026-11-19"
 ---
 
-Datasi MatchOpsissa tallennetaan turvallisesti. Tämä opas kattaa miten datasi tallennetaan ja miten suojaat ja hallitset arvokasta otteludataasi.
+Tietosi tallentuvat ilmaiselle tilillesi ja samalla puhelimeesi. Sovellus toimii myös ilman verkkoyhteyttä, ja muutokset synkronoituvat taustalla, kun yhteys palaa.
 
-## Miten datasi tallennetaan
+## Miten tiedot tallennetaan
 
-MatchOps tallentaa datasi yksityiselle pilvitilillesi ja pitää kopion välimuistissa laitteellasi. Tämä tarkoittaa, että sovellus toimii täysin offline-tilassa ja synkronoituu taustalla aina kun olet verkossa.
+- **Tili** - ilmainen, sähköposti ja salasana
+- **Synkronointi** - samat tiedot kaikilla laitteilla, joilla kirjaudut
+- **Pilvessä tallessa** - tiedot säilyvät, vaikka vaihtaisit puhelinta
+- **Offline** - muutokset tallentuvat heti puhelimeen ja synkronoituvat myöhemmin
 
-- **Tili vaaditaan** - Rekisteröidy sähköpostilla ja salasanalla (ilmainen)
-- **Synkronoi laitteiden välillä** - Käytä dataa miltä tahansa laitteelta
-- **Varmuuskopioitu pilveen** - Datasi on turvassa vaikka menettäisit laitteesi
-- **Toimii offline-tilassa** - Muutokset tallentuvat laitteellesi ja synkronoituvat kun olet taas verkossa
+Tiedot tallennetaan Supabaseen EU-alueelle. Rivitason suojaus varmistaa, että vain sinä näet tietosi. Tietoja ei jaeta kolmansille osapuolille.
 
-<Callout type="info">
-Datasi on salattu siirron aikana ja levossa, ja suojattu niin että vain sinä pääset siihen käsiksi.
-</Callout>
-
-## Tilin hallinta
+## Tili
 
 ### Tilin luominen
 
-<Steps>
-<Step title="Avaa Tervetuloa-näyttö">
-Napauta Tervetuloa-näytöllä **Jatka pilveen**.
-</Step>
-
-<Step title="Valitse Rekisteröidy">
-Valitse rekisteröitymisvaihtoehto luodaksesi uuden tilin.
-</Step>
-
-<Step title="Syötä tietosi">
-Anna sähköpostiosoitteesi ja valitse salasana.
-</Step>
-
-<Step title="Vahvista sähköposti">
-Tarkista sähköpostisi ja napauta vahvistuslinkkiä.
-</Step>
-</Steps>
+1. Avaa sovellus ja valitse **Luo ilmainen tili**
+2. Anna sähköposti ja salasana (vähintään 8 merkkiä) ja hyväksy käyttöehdot ja tietosuojakäytäntö
+3. Syötä sähköpostiin tullut koodi kohtaan **Syötä vahvistuskoodi** ja napauta **Vahvista**
 
 ### Kirjautuminen
 
-Jos sinulla on jo tili:
+Valitse **Kirjaudu**, anna sähköposti ja salasana ja napauta **Kirjaudu sisään**.
 
-1. Valitse **Jatka pilveen** Tervetuloa-näytöllä
-2. Syötä sähköpostisi ja salasanasi
-3. Napauta **Kirjaudu sisään**
+### Unohtunut salasana
 
-### Salasanan nollaus
-
-Unohditko salasanasi?
-
-1. Napauta kirjautumisnäytöllä **Unohtuiko salasana**
-2. Syötä sähköpostiosoitteesi
-3. Tarkista sähköpostistasi nollauslinkki
-4. Seuraa linkkiä asettaaksesi uuden salasanan
+1. Napauta kirjautumisnäytöllä **Unohditko salasanasi?**
+2. Anna sähköpostiosoite ja napauta **Lähetä nollaussähköposti**
+3. Syötä sähköpostiin tullut koodi kohtaan **Syötä nollauskoodi**
+4. **Aseta uusi salasana**
 
 ### Uloskirjautuminen
 
-Kirjautuaksesi ulos pilvitililtäsi:
-
-1. Avaa valikko (☰) ja valitse **Asetukset**
-2. Etsi Tili-osio
-3. Napauta **Kirjaudu ulos**
+Ratas → **Kirjaudu ulos**, tai **Asetukset** → **Tili** → **Kirjaudu ulos**.
 
 <Callout type="warning">
-Varmista ennen uloskirjautumista, että kaikki data on synkronoitu. Tarkista, että synkronointi-ilmaisin ei näytä odottavia muutoksia.
+Varmista ennen uloskirjautumista, ettei synkronoinnin tila näytä odottavia muutoksia. Jos niitä on, sovellus varoittaa ennen uloskirjautumista.
 </Callout>
-
-## Olemassa olevan paikallisen datan siirto tilillesi
-
-Jos käytit MatchOpsia ilman tiliä ennen tilin luomista, voit ladata laitteellasi olevan datan tilillesi, jotta se synkronoituu laitteidesi välillä.
-
-<Steps>
-<Step title="Avaa Asetukset">
-Avaa valikko (☰) ja valitse **Asetukset**.
-</Step>
-
-<Step title="Etsi Pilvi-vaihtoehdot">
-Etsi pilvi/synkronointi-osio.
-</Step>
-
-<Step title="Aloita lataus">
-Valitse vaihtoehto siirtää datasi tilillesi.
-</Step>
-
-<Step title="Luo tili tai kirjaudu">
-Luo ilmainen tili tai kirjaudu olemassa olevaan.
-</Step>
-
-<Step title="Vahvista">
-Tarkista mitä ladataan ja vahvista.
-</Step>
-</Steps>
-
-Olemassa oleva datasi ladataan tilillesi ja pidetään synkronoituna siitä eteenpäin.
 
 ## Synkronoinnin tila
 
-### Synkronointi-ilmaisimet
+Synkronoinnin tila näkyy sovelluksessa:
 
-Näet synkronoinnin tilan ilmaisimet, jotka kertovat datasi tilasta:
+- **Synkronoitu** - kaikki tiedot pilvessä
+- **Synkronoidaan** - lähetys käynnissä
+- **Odottaa** - muutoksia odottaa synkronointia
+- **Offline** - ei yhteyttä; muutokset synkronoidaan, kun olet taas verkossa
+- **Virhe** - napauta yrittääksesi uudelleen
 
-- **Synkronoitu** - Kaikki muutokset tallennettu pilveen
-- **Synkronoidaan** - Lataus käynnissä
-- **Odottaa** - Muutokset odottavat synkronointia
-- **Offline** - Ei yhteyttä, muutokset tallennettu paikallisesti
+## Asetukset
 
-### Offline-käyttäytyminen
+Ratas → **Asetukset**. Välilehdet:
 
-Sovellus toimii täysin offline-tilassa sisäänkirjautumisen jälkeen:
-
-1. Muutokset tallentuvat laitteellesi välittömästi
-2. Kun yhdistät uudelleen, muutokset synkronoituvat automaattisesti
-3. Dataa ei menetä offline-jaksojen aikana
-
-<Callout type="tip">
-Voit käyttää sovellusta normaalisti ilman internetiä. Mene peliin, seuraa kaikkea, ja se synkronoituu kun olet taas verkossa.
-</Callout>
-
-### Synkronoinnin vianetsintä
-
-Jos synkronointi näyttää jumittuneen:
-
-1. Tarkista internetyhteytesi
-2. Odota hetki uudelleenyritystä
-3. Kokeile sulkea ja avata sovellus uudelleen
-4. Kirjaudu ulos ja takaisin sisään viimeisenä keinona
+- **Yleiset** - **Kieli**, **Näkymä** (ks. [Pikaopas](/guide/getting-started)), **Pelaaja-arviot**, **Oletusjoukkueen nimi**, **Äänimuistiinpanot ja tekoäly**, **Seurakauden alkamispäivä**
+- **Tiedot** - varmuuskopiointi, palautus ja Vaaravyöhyke
+- **Tili** - pilvitili ja uloskirjautuminen
+- **Tietoja** - sovelluksen versio ja **Tallennustila**
 
 ## Varmuuskopiointi
 
-### Miksi varmuuskopioida?
+Synkronoinnin lisäksi voit tallentaa varmuuskopion tiedostoon.
 
-Myös pilvisynkronoinnilla manuaaliset varmuuskopiot ovat arvokkaita:
+- Ratas → **Varmuuskopiointi ja palautus**, tai
+- **Asetukset** → **Tiedot** → **Varmuuskopiointi ja vienti** → **Varmuuskopioi kaikki tiedot**
 
-- **Lisäsuoja** - Vyö ja henkselit -lähestymistapa
-- **Ajankohtaiset tilannekuvat** - Palauta tiettyihin päivämääriin
-- **Siirrettävissä** - Jaa dataa muille
-- **Aina saatavilla** - Varmuuskopiotiedosto toimii tilanteessa kuin tilanteessa
+Varmuuskopio on JSON-tiedosto, jossa ovat pelaajat, ottelut, joukkueet, sarjat, turnaukset, taustahenkilöt ja asetukset. Tallenna se esimerkiksi pilvikansioon.
 
-### Varmuuskopion luominen
-
-<Steps>
-<Step title="Avaa Varmuuskopiointi">
-Avaa valikko (☰) ja valitse **Varmuuskopiointi**.
-</Step>
-
-<Step title="Valitse Vie kaikki">
-Valitse kaiken datan vienti.
-</Step>
-
-<Step title="Tallenna tiedosto">
-Tallenna varmuuskopiotiedosto turvalliseen paikkaan.
-</Step>
-</Steps>
-
-### Varmuuskopiotiedoston muoto
-
-Varmuuskopiot tallennetaan JSON-tiedostoina sisältäen:
-
-- Kaiken listatiedon
-- Täydellisen pelihistorian
-- Kausi/turnaus-tiedot
-- Sovelluksen asetukset
-
-### Varmuuskopioinnin parhaat käytännöt
-
-1. **Säännölliset varmuuskopiot** - Viikoittain tai tärkeiden pelien jälkeen
-2. **Useita sijainteja** - Tallenna pilvitallennukseen (Google Drive, iCloud, Dropbox)
-3. **Ennen päivityksiä** - Varmuuskopioi ennen sovellus- tai laitepäivityksiä
-4. **Ennen laitemuutoksia** - Välttämätöntä laitetta vaihdettaessa
-
-<Callout type="info">
-Datasi synkronoituu automaattisesti pilveen. Manuaaliset varmuuskopiot viennin kautta antavat lisäsuojaa ja joustavuutta.
-</Callout>
+Sovellus tekee myös **Automaattiset palautuspisteet**, jotka näkyvät samassa kohdassa.
 
 ## Palautus
 
-### Palautus varmuuskopiosta
-
-<Steps>
-<Step title="Avaa Varmuuskopiointi">
-Avaa valikko (☰) ja valitse **Varmuuskopiointi**.
-</Step>
-
-<Step title="Valitse Tuo">
-Valitse tuonti/palautus-vaihtoehto.
-</Step>
-
-<Step title="Valitse varmuuskopiotiedosto">
-Siirry tallennettuun varmuuskopiotiedostoon.
-</Step>
-
-<Step title="Vahvista täysi palautus">
-Sovellus näyttää yhteenvedon tuotavasta datasta. Palautus korvaa kaiken nykyisen datan varmuuskopion sisällöllä. Tarkista ja vahvista palautustoiminto.
-</Step>
-</Steps>
+1. **Asetukset** → **Tiedot** → **Palauta varmuuskopiosta** (tai ratas → **Varmuuskopiointi ja palautus**)
+2. Valitse varmuuskopiotiedosto
+3. Vahvista: palautus korvaa kaikki nykyiset tiedot
 
 <Callout type="warning">
-Palautus varmuuskopiosta korvaa kaiken nykyisen datan. Varmuuskopioi nykyinen data ensin tarvittaessa.
+Palautusta ei voi perua. Tee ensin varmuuskopio nykyisistä tiedoista.
 </Callout>
 
-### Siirto uuteen laitteeseen
+### Uusi puhelin
 
-Uuteen laitteeseen siirtyminen on automaattista:
+Asenna MatchOps ja kirjaudu samalla tilillä. Tiedot synkronoituvat automaattisesti.
 
-1. Asenna MatchOps uuteen laitteeseen
-2. Kirjaudu sisään tilillesi
-3. Datasi synkronoituu automaattisesti
+## Excel-vienti
 
-<Callout type="info">
-Jos käytät vanhaa kokoonpanoa ilman tiliä, voit sen sijaan luoda täydellisen varmuuskopion vanhalla laitteella, siirtää tiedoston (sähköposti, pilvi jne.), asentaa MatchOpsin uuteen laitteeseen ja palauttaa varmuuskopiosta.
-</Callout>
+- Ottelu: **Viimeistele ottelu** → **Vie Excel**
+- Koonnit: tilastonäkymän vientipainike
+- Pelaajan kehitys: pelaajan tilastot → **Vie kehitysraportti**
 
-## Vientivaihtoehdot
+## Tietojen poistaminen
 
-### Excel-vienti
-
-Vie dataa Exceliin:
-
-- Yksityiskohtaiseen analyysiin
-- Jakamiseen muille
-- Ulkoiseen raportointiin
-- Mukautettujen raporttien luomiseen
-
-### Mitä voidaan viedä
-
-- **Yksittäinen peli** - Yhden pelin täydellinen data
-- **Kauden data** - Kaikki kauden pelit
-- **Täysi tietokanta** - Kaikki JSON-muodossa
-- **Pelaajakohtaiset tilastot** - Kumulatiiviset tilastot
-
-## Tietosuoja
-
-### Miten datasi on suojattu
-
-Datasi tallennetaan turvallisesti ja pysyy yksityisenä:
-
-- Kopio on välimuistissa laitteellasi, joten sovellus toimii täysin offline-tilassa
-- Synkronoitu kopio tallennetaan Supabaseen (EU-alue)
-- Suojattu tilitunnuksillasi
-- Rivitason suojaus varmistaa, että vain sinä pääset dataasi
-- Ei jakamista kolmansille osapuolille
-- Voit poistaa tilisi ja kaiken datan milloin tahansa
-
-<Callout type="info">
-Huomio vanhoille käyttäjille: jos käytät MatchOpsia ilman tiliä, datasi pysyy vain laitteellasi eikä sitä siirretä mihinkään.
-</Callout>
-
-### Datan jakaminen
-
-Kun viet, sinä päätät kuka vastaanottaa. Huomioi:
-
-- Jaa vain tarpeellinen
-- Käytä turvallisia siirtotapoja
-- Poista viedyt tiedostot jakamisen jälkeen
-
-## Tallennustilan hallinta
-
-### Tallennustilan tarkistus
-
-Katso tallennustilan käyttösi Asetusmodaalissa (Tietoja-osiossa):
-
-- **Tallennustilan käyttö** - Näyttää käytetyn tilan suhteessa kiintiöön (esim. "45 Mt / 50 Mt")
-- Visuaalinen edistymispalkki näyttää käyttöprosentin
-
-### Sovelluksen asetukset
-
-Asetusmodaali tarjoaa:
-
-- **Kieli** - Vaihda englannin ja suomen välillä
-- **Oletusjoukkueen nimi** - Esitäytä joukkueesi nimi uusiin peleihin
-- **Kauden ajankohta** - Mukauta kauden alkamis- ja päättymispäivät (oletus: lokakuu-toukokuu)
-- **Tili** - Näytä tilitiedot ja kirjaudu ulos
-
-### Datan tyhjentäminen
-
-Jos sinun täytyy tyhjentää dataa:
-
-- **Poista yksittäisiä pelejä** - Avaa valikko (☰), valitse **Lataa peli...** ja käytä poistovaihtoehtoa pelin kohdalla
-- **Synkronoi uudelleen pilvestä** - Tyhjennä laitteella oleva kopio ja lataa uudelleen tililtäsi (Asetukset > Data ja yksityisyys > Vaaravyöhyke)
-- **Poista kaikki data** - Poista datasi pysyvästi kaikkialta, tältä laitteelta ja tililtäsi (Asetukset > Data ja yksityisyys > Vaaravyöhyke)
+- **Yksittäinen ottelu** - **Pelit** → **Tallennetut pelit** ja ottelun poistotoiminto.
+- **Synkronoi pilvestä uudelleen** - tyhjentää puhelimen kopion ja lataa tiedot uudelleen tililtä (Asetukset → **Tiedot** → Vaaravyöhyke)
+- **Poista kaikki tiedot** - poistaa tiedot pysyvästi sekä puhelimesta että pilvestä
+- **Poista tili** - poistaa tilin ja kaikki sen tiedot pysyvästi. **Vie varmuuskopio ensin**, jos haluat säilyttää tiedot.
 
 <Callout type="tip">
-Vie varmuuskopio ennen datan poistamista. Tallennustila on harvoin rajoittava tekijä, joten harkitse datan säilyttämistä poistamisen sijaan.
+Ota varmuuskopio ennen kuin poistat mitään.
 </Callout>
 
-## Data-ongelmien vianetsintä
+## Ongelmat
 
-### Data ei tallennu
-
-Jos data ei säily:
-
-1. Tarkista, että sovelluksella on tallennusoikeudet
-2. Tarkista laitteen vapaa tallennustila
-3. Kokeile sovelluksen uudelleenkäynnistystä
-4. Tyhjennä sovelluksen välimuisti ja kokeile uudelleen
-
-### Vioittunut data
-
-Jos data näyttää vioittuneelta:
-
-1. Kokeile sovelluksen päivitystä
-2. Palauta viimeisimmästä varmuuskopiosta
-3. Vie toimiva data ennen korjauksia
-
-### Pilvisynkronoinnin ongelmat
-
-Jos pilvidata ei synkronoidu:
-
-1. Tarkista internetyhteytesi
-2. Varmista, että olet kirjautunut sisään
-3. Odota automaattista uudelleenyritystä
-4. Kokeile kirjautua ulos ja takaisin sisään
-
-Katso [Vianetsintä](/guide/troubleshooting) lisäapua varten.
+Ks. [Vianetsintä](/guide/troubleshooting).

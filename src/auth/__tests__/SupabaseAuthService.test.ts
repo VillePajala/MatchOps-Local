@@ -1045,6 +1045,43 @@ describe('SupabaseAuthService', () => {
         await expect(authService.getLatestConsent()).rejects.toThrow(AuthError);
       });
     });
+
+    /** Data export (GDPR Art. 15/20): every consent row of the user, oldest first. */
+    describe('getConsentRecords', () => {
+      function mockConsentQuery(result: { data: unknown; error: { message: string } | null }) {
+        const order = jest.fn().mockResolvedValue(result);
+        const eq = jest.fn().mockReturnValue({ order });
+        const select = jest.fn().mockReturnValue({ eq });
+        const from = jest.fn().mockReturnValue({ select });
+        (mockSupabaseClient as unknown as { from: jest.Mock }).from = from;
+        return { from, select, eq, order };
+      }
+
+      it('maps every row of the signed-in user', async () => {
+        const q = mockConsentQuery({
+          data: [
+            { consent_type: 'terms_and_privacy', policy_version: '2026-09', status: 'granted', consented_at: '2026-09-01T10:00:00Z', ip_address: null, user_agent: 'UA' },
+            { consent_type: 'marketing', policy_version: '2026-11', status: 'withdrawn', consented_at: '2026-11-19T10:00:00Z', ip_address: null, user_agent: null },
+          ],
+          error: null,
+        });
+
+        const result = await authService.getConsentRecords();
+
+        expect(q.from).toHaveBeenCalledWith('user_consents');
+        expect(q.eq).toHaveBeenCalledWith('user_id', mockUser.id);
+        expect(q.order).toHaveBeenCalledWith('consented_at', { ascending: true });
+        expect(result).toEqual([
+          { consentType: 'terms_and_privacy', policyVersion: '2026-09', status: 'granted', consentedAt: '2026-09-01T10:00:00Z', ipAddress: null, userAgent: 'UA' },
+          { consentType: 'marketing', policyVersion: '2026-11', status: 'withdrawn', consentedAt: '2026-11-19T10:00:00Z', ipAddress: null, userAgent: null },
+        ]);
+      });
+
+      it('throws AuthError when the read fails', async () => {
+        mockConsentQuery({ data: null, error: { message: 'boom' } });
+        await expect(authService.getConsentRecords()).rejects.toThrow(AuthError);
+      });
+    });
   });
 
   // ==========================================================================

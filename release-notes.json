@@ -2,6 +2,21 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user. Two exceptions to the prompt: a PR that touches nothing in the app (docs, CI, tests, tooling - see scripts/vercel-ignore-build.mjs) does not deploy and needs no entry; a PR that changes the app but nothing a coach can see (deps, refactors) adds an entry with \"internal\": true, which ships without the update banner and applies on the next launch.",
   "releases": [
     {
+      "date": "2026-11-20",
+      "en": [
+        "Updated privacy policy and terms: please review and accept them once.",
+        "New in Settings → Data: switch off error reporting and usage statistics, and a ready-made notice you can send to players' families.",
+        "The next-match card shows and shares the game's plan when it has one.",
+        "Selected choices are now clearly filled in."
+      ],
+      "fi": [
+        "Tietosuojakäytäntö ja käyttöehdot päivittyivät: tarkista ja hyväksy ne kerran.",
+        "Uutta kohdassa Asetukset → Tiedot: voit kytkeä virheraportit ja käyttötilastot pois, ja valmis tiedote pelaajien perheille.",
+        "Seuraavan ottelun kortti näyttää ja jakaa ottelun suunnitelman, kun sellainen on.",
+        "Valitut vaihtoehdot näkyvät nyt selvästi täytettyinä."
+      ]
+    },
+    {
       "date": "2026-11-19",
       "en": ["Timer: the next substitution shows players coming on with a green arrow and players going off with a red one."],
       "fi": ["Ajastin: seuraavassa vaihdossa kentälle tulevat näkyvät vihreällä ja pois lähtevät punaisella nuolella."]

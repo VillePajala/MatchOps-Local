@@ -31,7 +31,7 @@
     "title": "User Guide",
     "subtitle": "Everything you need to know about using MatchOps",
     "structureIntro": "Choose your starting point",
-    "structureExplanation": "Quick Start gets you going immediately. Recommended Workflow shows the complete setup to get the full benefits. Reference guides cover specific features in detail.",
+    "structureExplanation": "The Quick Start takes you from creating an account through the first steps. The Recommended Setup guides you through leagues, tournaments and teams. The reference guides cover individual features.",
     "mainPaths": "Start Here",
     "referenceGuides": "Reference Guides",
     "quickStart": "New to MatchOps?",
@@ -42,39 +42,47 @@
   "sections": {
     "getting-started": {
       "title": "Quick Start",
-      "description": "Install the app and try it immediately"
+      "description": "Free account, your team and the first steps"
     },
     "full-setup-path": {
-      "title": "Recommended Workflow",
-      "description": "The complete workflow to get the full benefits of MatchOps"
-    },
-    "game-day-workflow": {
-      "title": "Game Day Workflow",
-      "description": "Step-by-step guide for match day"
+      "title": "Recommended Setup",
+      "description": "Players, staff, leagues, tournaments and teams"
     },
     "roster-management": {
       "title": "Roster Management",
-      "description": "Add, edit, and organize players"
+      "description": "Add, edit and archive players; player assessments"
     },
     "teams-organization": {
       "title": "Teams & Organization",
-      "description": "Manage multiple teams and seasons"
+      "description": "Teams, leagues, tournaments and staff"
+    },
+    "game-day-workflow": {
+      "title": "Match Day at a Glance",
+      "description": "The whole match day on one page"
+    },
+    "before-the-game": {
+      "title": "Before the Game: the Plan and Who Is Here?",
+      "description": "The game plan, sharing it, absences and planning several games"
     },
     "during-the-game": {
       "title": "During the Game",
-      "description": "Real-time tracking and event logging"
+      "description": "Match view, clock, Goal for us and the next change"
     },
     "tactics-board": {
       "title": "Tactics Board",
-      "description": "Draw formations and plays"
+      "description": "Draw plays and set pieces"
     },
     "after-the-game": {
-      "title": "After the Game",
-      "description": "Review stats and player performance"
+      "title": "Finish This Game",
+      "description": "Result and goals, match sheet, match report and sharing"
+    },
+    "statistics": {
+      "title": "Statistics",
+      "description": "Game, league, tournament and player statistics"
     },
     "data-management": {
       "title": "Data Management",
-      "description": "Backup, export, and restore data"
+      "description": "Account, sync, backups and settings"
     },
     "troubleshooting": {
       "title": "Troubleshooting",
@@ -83,6 +91,10 @@
     "tips-best-practices": {
       "title": "Tips & Best Practices",
       "description": "Get the most out of MatchOps"
+    },
+    "faq": {
+      "title": "FAQ",
+      "description": "Frequently asked questions"
     }
   },
   "callout": {

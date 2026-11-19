@@ -68,7 +68,7 @@ jest.mock('react-i18next', () => ({
         'privacyPolicy.dataWeCollect.consentTrackingIntro': 'We record consent:',
         'privacyPolicy.dataWeCollect.consentTrackingItems.timestamp': 'Timestamp',
         'privacyPolicy.dataWeCollect.consentTrackingItems.policyVersion': 'Policy version',
-        'privacyPolicy.dataWeCollect.consentTrackingItems.ipAddress': 'IP address',
+        'privacyPolicy.dataWeCollect.consentTrackingItems.consentType': 'What you accepted',
         'privacyPolicy.dataWeCollect.consentTrackingItems.userAgent': 'User agent',
         'privacyPolicy.dataWeCollect.consentTrackingNote': 'Required for GDPR compliance.',
         'privacyPolicy.dataWeCollect.personnelDataTitle': 'Personnel Data',
@@ -136,7 +136,7 @@ jest.mock('react-i18next', () => ({
         'privacyPolicy.dataSecurity.localNote': 'Your device security is primary protection.',
         'privacyPolicy.dataSecurity.cloudIntro': 'Cloud data is protected by:',
         'privacyPolicy.dataSecurity.cloudItems.tlsEncryption': 'TLS encryption',
-        'privacyPolicy.dataSecurity.cloudItems.atRestEncryption': 'Encryption at rest (Frankfurt)',
+        'privacyPolicy.dataSecurity.cloudItems.atRestEncryption': 'Encryption at rest (Stockholm, Sweden)',
         'privacyPolicy.dataSecurity.cloudItems.rowLevelSecurity': 'Row-level security',
         'privacyPolicy.dataSecurity.cloudItems.soc2': 'SOC 2 compliance',
         'privacyPolicy.dataSecurity.backupTitle': 'Backup File Security',
@@ -147,6 +147,10 @@ jest.mock('react-i18next', () => ({
         'privacyPolicy.contact.intro': 'Most requests handled in-app. For other questions or concerns:',
         'privacyPolicy.contact.email': 'Email',
         'privacyPolicy.footer': 'This policy applies to MatchOps.',
+        'privacyPolicy.marketing.title': 'Marketing Emails',
+        'privacyPolicy.marketing.content': 'Only if you opt in.',
+        'privacyPolicy.thirdPartyServices.resend': 'Resend',
+        'privacyPolicy.thirdPartyServices.resendLink': "Resend's Privacy Policy",
         'common.backButton': 'Back',
       };
       return translations[key] || key;
@@ -171,6 +175,7 @@ describe('PrivacyPolicyClient', () => {
       'Data We Collect',
       'Data We Do Not Collect',
       'Third-Party Services',
+      'Marketing Emails',
       'Voice Notes and Optional AI',
       'Your Rights',
       "Children's Privacy",
@@ -201,6 +206,10 @@ describe('PrivacyPolicyClient', () => {
     expect(supabaseLink).toHaveAttribute('href', 'https://supabase.com/privacy');
     expect(supabaseLink).toHaveAttribute('target', '_blank');
     expect(supabaseLink).toHaveAttribute('rel', 'noopener noreferrer');
+
+    const resendLink = screen.getByRole('link', { name: /resend's privacy policy/i });
+    expect(resendLink).toHaveAttribute('href', 'https://resend.com/legal/privacy-policy');
+    expect(resendLink).toHaveAttribute('rel', 'noopener noreferrer');
 
     const vercelLink = screen.getByRole('link', { name: /vercel's privacy policy/i });
     expect(vercelLink).toHaveAttribute('href', 'https://vercel.com/legal/privacy-policy');

@@ -2962,6 +2962,11 @@ export class SupabaseDataStore implements DataStore {
       // which the app reads as the full layout - every existing account.
       appLayout: parseAppLayout(row.app_layout),
       onboardingMilestones: sanitizeOnboardingMilestones(row.onboarding_milestones),
+      // NULL = never chosen = on (migration 063); left unset so the row reads
+      // exactly as it did before the column existed.
+      ...(typeof row.diagnostics_enabled === 'boolean'
+        ? { diagnosticsEnabled: row.diagnostics_enabled }
+        : {}),
       // NULL means "never set", which is not the same as false - but the app's
       // default is off, so they land in the same place.
       assessmentsEnabled: row.assessments_enabled ?? DEFAULT_APP_SETTINGS.assessmentsEnabled,
@@ -3012,6 +3017,11 @@ export class SupabaseDataStore implements DataStore {
       ...(settings.appLayout ? { app_layout: settings.appLayout } : {}),
       ...(settings.onboardingMilestones
         ? { onboarding_milestones: settings.onboardingMilestones as unknown as Json }
+        : {}),
+      // Same rule (migration 063): sent only once the coach has chosen, so an
+      // account that never touched the switch writes the row it wrote before.
+      ...(settings.diagnosticsEnabled !== undefined
+        ? { diagnostics_enabled: settings.diagnosticsEnabled }
         : {}),
       updated_at: new Date().toISOString(),
     };

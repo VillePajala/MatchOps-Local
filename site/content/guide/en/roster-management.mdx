@@ -1,117 +1,91 @@
 ---
 title: Roster Management
-description: Add, edit, and organize your team's player roster
-lastUpdated: "2026-06-23"
+description: Adding, editing and archiving players, and player assessments
+lastUpdated: "2026-11-19"
 ---
 
-Your roster is the foundation of MatchOps. This guide covers everything you need to know about managing your players.
+The player list is the foundation of MatchOps. The same players appear in plans, matches and statistics.
 
-## Adding Players
+## Opening the player list
 
-### Add a Single Player
+On Home's **Club** tab, **Players** opens **All Players**.
+
+## Adding players
 
 <Steps>
-<Step title="Open Roster Panel">
-Open the menu (☰) and select **All Players**.
+<Step title="Add Player">
+Tap **Add Player** in the list.
 </Step>
-
-<Step title="Click Add Player">
-Click the **Add Player** button in the roster panel.
+<Step title="Details">
+- **Player Name** (required)
+- **Nickname** - shown on the disc on the pitch if given
+- **Jersey Number** (optional, must be unique)
+- **Notes** (optional)
+- **Goalkeeper** - marks the player as a goalkeeper
 </Step>
-
-<Step title="Enter Details">
-Fill in the player information in the Add Player modal:
-- **Name** (required)
-- **Nickname** (optional) - displayed on field discs if provided
-- **Jersey Number** (optional)
-- **Notes** (optional) - for private notes about the player
-</Step>
-
 <Step title="Save">
-Click **Save** to add the player to your roster.
+The player is added to the list.
 </Step>
 </Steps>
 
-## Editing Players
+## Editing
 
-To edit an existing player:
+Tap a player in the list. **Player Details** opens, and you can change the name, nickname, number, notes and goalkeeper mark.
 
-1. Click on the player in your roster panel
-2. The Player Details modal opens with current details
-3. Modify the desired fields
-4. Click **Save** to confirm changes
+Jersey numbers must be unique. To swap two players' numbers, first give one of them a temporary number.
 
-### Changing Jersey Numbers
+## Row actions
 
-Jersey numbers must be unique within your roster. If you need to swap numbers between players:
+The player row's **Actions** menu:
 
-1. Edit the first player and set a temporary number
-2. Edit the second player to the first player's original number
-3. Edit the first player to the second player's original number
+- **Stats** - opens the player's statistics
+- **Add to stats** - adds a game the player played elsewhere (see [Statistics](/guide/statistics))
+- **Archive** - hides the player from the list and pickers; statistics are kept. **Show archived players** lists them, and **Restore** brings a player back.
+- **Delete** - removes the player from the club roster and every team. Played matches keep the player's statistics.
 
-## Player Assessment
+<Callout type="tip">
+When a player leaves mid-season, **Archive** is usually better than **Delete**.
+</Callout>
 
-MatchOps includes a comprehensive player assessment system for tracking development:
+## Search and sorting
 
-### Assessment Dimensions
+The search field (**Search players...**) finds by name. **Sort by**: **Last Name**, **Newest** or **Oldest**.
 
-To access player assessments, click the three-dot menu (⋮) on a player row and select **Stats**. You can rate players on 10 dimensions (each 1-10):
+## Player assessments
 
-- **Intensity** - Game engagement and work rate
-- **Courage** - Bravery and willingness to challenge
-- **Duels** - Performance in contested situations
-- **Technique** - Ball control and skill
-- **Creativity** - Ability to create chances and play-making
-- **Decisions** - Decision-making quality
-- **Awareness** - Game awareness and positioning
-- **Teamwork** - Cooperation and support for teammates
-- **Fair Play** - Discipline and conduct
-- **Impact** - Overall effect on game
+Player assessments are off by default. Turn them on: gear → **Settings** → **Player assessments**. In the same place you choose:
 
-Additionally, you can set an **Overall Score** (1-10) and add **Notes** for detailed observations. The assessment also tracks **Minutes Played** automatically.
+- **Assessment metrics**: **Balanced (10)**, **Light 6 (U7-U9)** or **Creative-attacking (14)**
+- **Assessment rating style**: **Words (5 levels)**, **Numbers 1-5** or **Numbers 1-10**
+
+Switching is safe - past ratings are kept.
+
+### Metrics (Balanced)
+
+- **Ball control** - first touch and keeping the ball under pressure
+- **Passing** - weight, timing and choice of pass
+- **Scanning** - looks around and gathers information before receiving
+- **Game understanding** - positioning and reading the game, both attacking and defending
+- **Decision-making** - makes the right choice for the moment
+- **Courage** - demands the ball, plays forward, dares to take risks
+- **Effort** - work rate, tracks back, keeps trying
+- **Enjoyment** - visible joy and engagement in playing
+- **Teamwork** - shares the ball and supports team-mates
+- **Fair play** - respect for the referee, opponents, own mistakes and defeat
+
+**Light 6** uses Ball control, Courage, Effort, Enjoyment, Teamwork and Fair play. **Creative-attacking** adds Creativity, Dribbling, Finishing and Off-ball movement to Balanced.
+
+### Assessing after a match
+
+- Match menu → **Record Performance**, or
+- **Finish this game** → **Player assessments** → **Open player assessments**
+
+For each player you can give per-metric ratings, an **Overall** rating and notes. The results show in the player's statistics: **Performance Ratings**, **Rating Trends**, **Strengths** and **Focus areas**, plus an exportable **Development report**.
 
 <Callout type="info">
-Player assessments are private and stored securely. They're useful for tracking individual development goals.
+Assessments and notes are yours alone. They are not shared with anyone.
 </Callout>
 
-## Organizing Your Roster
+## Several teams
 
-### Sorting Options
-
-Sort your roster by:
-- **Last Name** - Alphabetical by the last word of the player's name (default)
-- **Newest** - Most recently added players first
-- **Oldest** - Earliest added players first
-
-## Removing Players
-
-<Callout type="warning">
-Removing a player doesn't delete them from past games. Historical data is preserved.
-</Callout>
-
-To remove a player:
-
-1. Find the player in the roster panel
-2. Click the three-dot menu (⋮) on their row
-3. Select **Delete** from the dropdown
-4. Confirm the action
-
-## Multiple Teams
-
-If you coach multiple teams, use the Teams and Seasons system:
-
-- Create separate teams in the organization settings
-- Each team maintains its own roster
-- Switch between teams when creating games
-- See [Teams & Organization](/guide/teams-organization) for details
-
-## Data Backup
-
-Your roster data is stored securely. Your data syncs automatically across your devices and is backed up in the cloud.
-
-For extra protection, you can also create manual backups:
-1. Use the **Export** feature regularly
-2. Save backups to cloud storage or another device
-3. Export before device changes or updates
-
-See [Data Management](/guide/data-management) for detailed backup instructions.
+The same players can be shared across several teams (**Club** → **Teams**). See [Teams & Organization](/guide/teams-organization).

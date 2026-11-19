@@ -1,253 +1,95 @@
 ---
 title: Teams & Organization
-description: Manage multiple teams, seasons, and tournaments
-lastUpdated: "2026-11-17"
+description: Teams, leagues, tournaments, staff and friendly matches
+lastUpdated: "2026-11-19"
 ---
 
-MatchOps helps you organize your coaching activities across multiple teams, seasons, and tournaments. This guide covers how to set up and manage your organizational data.
-
-## Club Season Period
-
-The app automatically calculates a club season period (e.g., "24/25") that is displayed with competition names. This helps organize data by playing year.
-
-<Callout type="warning">
-Configure the club season period in **Settings** before creating competitions. This affects how seasons and tournaments are named and grouped.
+<Callout type="info">
+Leagues, tournaments, teams and staff are managed on Home's **Club** and **Competitions** tabs.
 </Callout>
 
-- The period is calculated from competition start dates
-- Default is October-May if not configured
-- Example: A season starting in November 2024 gets "24/25" added to its display name
+## Club season
 
-See [Recommended Workflow](/guide/full-setup-path) for the complete setup process.
+The app works out a club season (e.g. "24/25") for each league and tournament from its start date and shows it with the name.
+
+- Set the start date: gear → **Settings** → **General** → **Season Start Date**
+- The previous season ends automatically the day before
+- Do this before creating competitions so the grouping is right from the start
 
 ## Competitions
 
-Competitions are either **Seasons** (for league play) or **Tournaments** (for cups and events).
+The top of the **Competitions** tab shows the season record (wins-draws-losses, goals) and the form of the last five games. Below it, the **Leagues** and **Tournaments** rows open the two lists. Both have search, archiving and actions for each item (edit, archive, delete).
 
-### Seasons
+### Leagues
 
-A season represents a competitive period (e.g., "Spring 2025" or "Fall League 2024"). Seasons help you:
+A league groups league games and their statistics. League details:
 
-- Group related games together
-- Track standings and statistics over time
-- Compare performance across seasons
-
-#### Creating a Season
-
-<Steps>
-<Step title="Open Competitions">
-Open the menu (☰) and select **Competitions**.
-</Step>
-
-<Step title="Create New Season">
-Click **New Season** and enter the required information.
-</Step>
-
-<Step title="Configure">
-Set game format defaults and other options.
-</Step>
-</Steps>
-
-#### Season Details
-
-When creating or editing a season:
-
-- **Name** - Descriptive name (club season period is automatically added)
-- **Location** - Where games are typically played
-- **Age Group** - U7 through U21
-- **Game Type** - Soccer or Futsal
-- **Gender** - Boys or Girls
-- **League** - Use the 3-step dropdown: level (National, Regional, Local, Other), area (South, West, East, North), and series name
-- **Period Settings** - Number of periods (1 or 2) and duration
-- **Start/End Dates** - Season timeframe
-- **Notes** - Additional information
-
-#### Linking Games to Seasons
-
-When creating a new game, you can associate it with a season. This:
-
-- Adds the game to the season's record
-- Updates season statistics automatically
-- Includes it in season reports
+- **Name** and **Official league** (or another league's name)
+- **Season**, **Start Date** and **End Date**
+- **Location**, **Age Group**, sport (Football or Futsal) and **Gender**
+- **Periods** and **Minutes** - prefilled into the league's games
+- **Color**, **Badge** and **Notes**
 
 ### Tournaments
 
-Tournaments are for cups, festivals, or single-event competitions.
+A tournament has the same details as a league, plus:
 
-#### Creating a Tournament
+- **Competition levels** - when one tournament is played at several levels. A team and a game can be linked to a level, and statistics can be filtered by level.
+- **Player of Tournament** - the tournament's awarded player
 
-<Steps>
-<Step title="Open Competitions">
-Open the menu (☰) and select **Competitions**.
-</Step>
+### Linking a game to a competition
 
-<Step title="Create New Tournament">
-Click **New Tournament** and enter the details.
-</Step>
-
-<Step title="Add Series (Optional)">
-Add competition levels if the tournament has multiple tiers.
-</Step>
-</Steps>
-
-#### Tournament Details
-
-- **Name** - Tournament name (club season period is automatically added)
-- **Location** - Venue
-- **Dates** - Start and end dates
-- **Age Group** - U7 through U21
-- **Game Type** - Soccer or Futsal
-- **Gender** - Boys or Girls
-- **Period Settings** - Default game format
-- **Notes** - Additional information
-
-#### Tournament Series
-
-Large tournaments often have multiple competition levels. Add series to organize them:
-
-- **Elite** - Top competitive level
-- **Kilpa** - Competitive level
-- **Haaste** - Challenge level
-- **Harraste** - Recreational level
-
-Each series can have its own games and standings within the same tournament.
-
-<Callout type="tip">
-Use tournament series when your team plays in a multi-level cup where different teams compete at different levels.
-</Callout>
-
-#### Tournament Awards
-
-- **Player of Tournament** - Award recognition 🏆
-
-#### Linking Games to Tournaments
-
-When creating a game, you can link it to a tournament and optionally a specific series. Tournament games:
-
-- Are grouped separately from season games
-- Have their own statistics tracking
-- Can be assigned to a specific series level
+In the game form (**Create New Match**) or in **Match details**, pick a league or tournament. If you pick a team with a linked competition, it fills in automatically. Linked games show in league and tournament statistics.
 
 ## Teams
 
-Teams represent your squads. Create a team for each group you coach.
+**Club** → **Teams**. A team is a group of players you coach. The same player can belong to several teams.
 
-### Creating Teams
+### Creating a team
 
-1. Open the menu (☰) and select **Teams**
-2. Click **New Team**
-3. Enter the team name
-4. Link to a competition (optional but recommended)
+1. **Add Team**
+2. Enter the **Team Name** and pick the kit colour
+3. **Team Context**: league or tournament, level, age group and game type (all optional)
+4. **Roster** tab → **Edit Roster** → pick the players
 
-### Linking Teams to Competitions
+When you create a match and pick the team, its players and linked competition fill in automatically.
 
-When you link a team to a season or tournament:
+### Team actions
 
-- Competition details auto-fill when creating games
-- Statistics are tracked per competition
-- Easy filtering in reports
+From the team list: **Edit**, **Duplicate**, **Archive** and **Delete**. Deleting a team does not delete its games: they stay saved without a team and can be handled under **Manage games from deleted teams**.
 
-### Multiple Teams
+### Placements
 
-If you coach multiple teams (e.g., U12 and U14), each team can have:
+When editing a team, **Tournament & League Placements** lets you record the final placing (1st-10th) in each competition. The top three show medal badges.
 
-- Its own roster
-- Separate game history
-- Individual statistics
+### Naming
 
-<Callout type="tip">
-When creating a game, select the appropriate team to keep your data organized.
-</Callout>
+Keep team and competition names short and without a year: "PePo Lila", "Spring League", "Helsinki Cup". The club season is added to the display automatically ("Spring League 24/25").
 
-### Team Placements
+## Staff
 
-When editing a team, you can record final standings for competitions where the team has played:
+**Club** → **Personnel** → **Add Personnel**.
 
-1. Open **Teams** and edit a team
-2. Scroll to "Tournament & Season Placements"
-3. Select placement (1st-10th) for each competition
+- **Name** and **Role**: Head Coach, Assistant Coach, Goalkeeper Coach, Fitness Coach, Physiotherapist, Team Manager, Support Staff or Other
+- **Phone** and **Email** (optional)
+- **Certifications** and **Notes**
 
-Placements are displayed with badges:
-- 🥇 First place
-- 🥈 Second place
-- 🥉 Third place
+Staff are picked for a match in the game form or in **Match details**. They show in **Finish this game** and in the Excel export. Deleting a person also removes them from every match they were picked for.
 
-These badges appear both in the team list and in competition views.
+## Other Club tab items
 
-## Personnel
+The top of the Club tab is the club card: counts of players, teams and staff (tap a count to open the list), the season record and the top scorer. Below it:
 
-Track your coaching staff and team personnel.
+- **Warmup Plan** - the team's warm-up plan
+- **Rules** - the rules of the game and age-group formats
+- **Coaching Materials**
 
-### Adding Personnel
+The link to the Finnish FA's Taso service (lineups & results) is on the **Games** tab.
 
-1. Open the menu (☰) and select **Personnel Manager**
-2. Click **Add Personnel**
-3. Fill in the details
+## Friendly matches
 
-### Personnel Roles
+Mark a match as a **Friendly match** in the game form or later in **Match details**. Friendlies are kept out of competitive stats. In statistics, **Include friendly matches** brings them in.
 
-Choose from 8 role types:
+## Archiving
 
-- **Head Coach** - Primary coach
-- **Assistant Coach** - Supporting coach
-- **Goalkeeper Coach** - Specialized GK training
-- **Fitness Coach** - Physical conditioning
-- **Physio** - Medical/injury support
-- **Team Manager** - Administrative duties
-- **Support Staff** - General assistance
-- **Other** - Custom roles
-
-### Personnel Details
-
-For each person, you can record:
-
-- **Name** - Full name
-- **Contact** - Phone number and email
-- **Certifications** - Qualifications (e.g., "UEFA A License", "First Aid")
-- **Notes** - Additional information
-
-<Callout type="info">
-Personnel are assigned to individual games when creating or editing a game. They appear in game reports and Excel exports.
-</Callout>
-
-## Tips and Best Practices
-
-### Recommended Setup Order
-
-Follow this order for best results:
-
-1. Configure club season period in Settings
-2. Create seasons and tournaments
-3. Create teams and link to competitions
-4. Add personnel
-
-### Naming Conventions
-
-**Team names** should be simple - typically based on club colors or simple identifiers:
-- ✅ "PePo Lila"
-- ✅ "PePo Violetti"
-- ✅ "KuPS Hirvet"
-
-The app automatically shows context in parentheses when needed (e.g., "PePo Lila (Spring League 24/25)"), so you don't need to add age groups or years to team names.
-
-**Competition names** should be descriptive but without the club season period - it's added automatically:
-- ✅ "Spring League" → displays as "Spring League 24/25"
-- ✅ "Helsinki Cup" → displays as "Helsinki Cup 24/25"
-- ❌ "Spring League 24/25" (redundant - period is added automatically)
-
-### Archiving
-
-At the end of a season or tournament:
-
-1. Review final statistics
-2. Export any needed reports
-3. Archive the competition
-4. Historical data remains accessible
-
-### Regular Backups
-
-Protect your organizational data with regular backups. See [Data Management](/guide/data-management) for backup instructions.
-
-## Friendly Matches
-
-Mark a match as a **Friendly match** when creating it (or later in its settings). Friendlies are kept out of competitive statistics.
+When a league or tournament ends, archive it. Archived items are hidden from lists and pickers, but their games and statistics are kept. **Show archived** brings them back into view.
