@@ -2,6 +2,23 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user. Two exceptions to the prompt: a PR that touches nothing in the app (docs, CI, tests, tooling - see scripts/vercel-ignore-build.mjs) does not deploy and needs no entry; a PR that changes the app but nothing a coach can see (deps, refactors) adds an entry with \"internal\": true, which ships without the update banner and applies on the next launch.",
   "releases": [
     {
+      "date": "2026-11-19",
+      "en": [
+        "A new look across the whole app, and a clearer match view: the score and players sit above the pitch and nothing covers it.",
+        "Log a goal with one tap (\"Maali meille\") and pick the scorer from the squad.",
+        "Before kick-off, mark who is away (\"Ketkä ovat paikalla?\") - the plan adjusts.",
+        "Finishing a match: \"Pöytäkirja\" (now with positions) and your own match report, which you can share.",
+        "Fixed: the home screen kept the view you had chosen."
+      ],
+      "fi": [
+        "Koko sovellus sai uuden ilmeen, ja ottelunäkymä selkeytyi: tulos ja pelaajat ovat kentän yläpuolella eikä mikään peitä kenttää.",
+        "Kirjaa maali yhdellä napautuksella (\"Maali meille\") ja valitse maalintekijä kokoonpanosta.",
+        "Merkitse ennen peliä poissaolijat (\"Ketkä ovat paikalla?\") - suunnitelma mukautuu.",
+        "Ottelun viimeistely: \"Pöytäkirja\" (nyt pelipaikoilla) ja oma otteluraporttisi, jonka voit jakaa.",
+        "Korjattu: etusivu pysyy valitsemassasi näkymässä."
+      ]
+    },
+    {
       "date": "2026-11-18",
       "en": [
         "New look for the home screen: a clearer next-match card with the kick-off time up front, recent results as a list, and the tabs at the bottom of the screen."
