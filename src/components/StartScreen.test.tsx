@@ -232,7 +232,9 @@ describe('StartScreen', () => {
     expect(screen.getByText('Plan · Track · Discover')).toBeInTheDocument();
   });
 
-  it('shows the brand tagline for a returning coach (not a first-timer)', () => {
+  // With games, the dashboard replaces the launcher (compact view retired), so the
+  // tagline is for a returning coach who has no games yet.
+  it('shows the brand tagline for a returning coach (not a first-timer) without games', () => {
     render(
       <StartScreen
         onLoadGame={jest.fn()}
@@ -243,7 +245,7 @@ describe('StartScreen', () => {
         onViewStats={jest.fn()}
         onOpenSettings={jest.fn()}
         canResume={false}
-        hasSavedGames={true}
+        hasSavedGames={false}
         isFirstTimeUser={false}
       />
     );
@@ -730,9 +732,9 @@ describe('Home dashboard view (opt-in)', () => {
   const dashProps = (over = {}) => ({
     onLoadGame: jest.fn(), onResumeGame: jest.fn(), onGetStarted: jest.fn(),
     onViewStats: jest.fn(), onViewStatsTab: jest.fn(), onOpenSettings: jest.fn(),
-    onSetHomeView: jest.fn(), onOpenGameById: jest.fn(),
+    onOpenGameById: jest.fn(),
     canResume: true, hasSavedGames: true, isFirstTimeUser: false,
-    homeView: 'dashboard' as const, homeSummary: summary,
+    homeSummary: summary,
     ...over,
   });
 
@@ -746,11 +748,17 @@ describe('Home dashboard view (opt-in)', () => {
     expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
   });
 
-  it('falls back to the plain launcher when off', () => {
-    render(<StartScreen {...dashProps({ homeView: 'simple' as const })} />);
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
-    expect(screen.queryByText('FC Inter')).not.toBeInTheDocument();
-    expect(screen.queryByText('HJK')).not.toBeInTheDocument();
+  /**
+   * The compact launcher was retired (2026-11-19): with games, the full layout
+   * always shows the dashboard and the gear sheet has no view toggle.
+   * @critical
+   */
+  it('always shows the dashboard with games, and the gear has no compact-view toggle', () => {
+    render(<StartScreen {...dashProps()} />);
+    expect(screen.getByText('FC Inter')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const sheet = screen.getByRole('dialog', { name: 'App & account' });
+    expect(within(sheet).queryByRole('button', { name: /Compact home cards/ })).not.toBeInTheDocument();
   });
 
   it('never shows the dashboard for a first-time user, even if toggled on', () => {
@@ -788,15 +796,6 @@ describe('Home dashboard view (opt-in)', () => {
     expect(screen.getByText('2')).toBeInTheDocument();
     // The club-wide scorer must not leak into the team-scoped tiles.
     expect(screen.queryByText('Aho')).not.toBeInTheDocument();
-  });
-
-  it('gear sheet toggle flips the view via onSetHomeView', () => {
-    const props = dashProps();
-    render(<StartScreen {...props} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' })); // opens gear sheet
-    const sheet = screen.getByRole('dialog', { name: 'App & account' });
-    fireEvent.click(within(sheet).getByRole('button', { name: /Compact home cards/ }));
-    expect(props.onSetHomeView).toHaveBeenCalledWith('simple'); // was 'dashboard'
   });
 
   it('Club tab shows the counts on the rows when the dashboard is on', () => {
@@ -862,9 +861,11 @@ describe('Home guide + empty-state guidance', () => {
   });
 
   const emptySummary = (over = {}) => ({
-    resume: null, vuosi: null, recent: [],
+    // The full HomeSummary shape: since the compact launcher was retired the
+    // dashboard renders for any coach with games, so a partial fixture crashes.
+    resume: null, lastPlayed: null, vuosi: null, recent: [], upcoming: null, upcomingList: [],
     counts: { players: 0, teams: 0, personnel: 0, seasons: 0, tournaments: 0 },
-    countsReady: true, topScorer: null, ...over,
+    countsReady: true, topScorer: null, playedCount: 0, ...over,
   });
 
   it('Team tab shows the add-players hint when the roster is empty', () => {
@@ -927,7 +928,7 @@ describe('Home guide + empty-state guidance', () => {
     });
 
     it('basic: the basic Home, no tablist, no simplified-view switch in the gear', () => {
-      render(<StartScreen {...shellProps()} appLayout="basic" homeSummary={summary} homeView="dashboard" onSetHomeView={jest.fn()} />);
+      render(<StartScreen {...shellProps()} appLayout="basic" homeSummary={summary} />);
       expect(screen.getByTestId('home-basic')).toBeInTheDocument();
       expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
       expect(screen.getByTestId('all-features')).toBeInTheDocument();

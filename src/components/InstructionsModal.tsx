@@ -102,7 +102,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                     <li>{t('appGuide.homeBasicNewGame', 'New game: pick a date and an opponent and you get a ready plan.')}</li>
                     <li>{t('appGuide.homeBasicTeam', 'Team row: opens the player list where you edit names, numbers and the keeper, and add or remove players.')}</li>
                     <li>{t('appGuide.homeBasicAll', 'All features: shows what the Full view adds and switches to it. You can switch back in Settings.')}</li>
-                    <li>{t('appGuide.homeGearBasic', 'The gear icon (top-left): settings (including Basic/Full view), backups, your account and this guide.')}</li>
+                    <li>{t('appGuide.homeGearBasic', 'The gear icon (top-right): settings (including Basic/Full view), backups, your account and this guide.')}</li>
                 {/* The one behaviour in the app that changes what a coach
                     typed. Unexplained it looks like a bug, so it is explained
                     here rather than left to be discovered. */}
@@ -119,7 +119,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                 <li>{t('appGuide.homeTeamTab', 'Club: your players, teams, staff, the warmup plan, the rules for your age group and coaching materials.')}</li>
                 <li>{t('appGuide.homeCompetitionsTab', 'Competitions: set up leagues and tournaments to group your games.')}</li>
                 <li>{t('appGuide.homeStatsTab', 'Stats: league, tournament, overall and player statistics (available once you\'ve played a game).')}</li>
-                <li>{t('appGuide.homeGear', 'The gear icon (top-left): the compact/full home cards toggle, settings, backups, your account and this guide.')}</li>
+                <li>{t('appGuide.homeGear', 'The gear icon (top-right): settings, backups, your account and this guide.')}</li>
                 {/* The one behaviour in the app that changes what a coach
                     typed. Unexplained it looks like a bug, so it is explained
                     here rather than left to be discovered. */}

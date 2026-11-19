@@ -170,7 +170,6 @@ export default function Home() {
     homeSummaryInputsRef.current = next;
     publishHomeSummaries(next);
   }, [publishHomeSummaries]);
-  const [homeView, setHomeView] = useState<'simple' | 'dashboard'>('dashboard');
   const [lastGameType, setLastGameType] = useState<GameType | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   /**
@@ -278,19 +277,6 @@ export default function Home() {
       .catch((error) => logger.warn('[page] Voice clip rotation at start failed', { error }));
   }, [isAuthLoading, mode, userId, tabMayBoot]);
 
-  // Toggle the Home view (gear sheet). Optimistic: flip immediately, persist
-  // in the background so the switch feels instant.
-  const handleSetHomeView = useCallback(async (view: 'simple' | 'dashboard') => {
-    setHomeView(view);
-    try {
-      await updateAppSettings({ homeView: view }, userId);
-    } catch (err) {
-      // Roll back the optimistic flip so the UI never disagrees with what was
-      // actually persisted.
-      logger.warn('Failed to persist home view preference', { error: err });
-      setHomeView(view === 'dashboard' ? 'simple' : 'dashboard');
-    }
-  }, [userId]);
 
   // Play Store context: cloud mode is required, local-mode entry points are hidden.
   // Computed once on mount — both checks are environment-stable and never change at runtime.
@@ -542,8 +528,6 @@ export default function Home() {
         // layout (useAppLayout) is known on its first frame - no flash of the
         // other layout while the query would fetch the same row again.
         queryClient.setQueryData([...queryKeys.settings.detail(), userId], homeSettings);
-        // Dashboard is the default; only an explicit 'simple' preference opts out.
-        setHomeView(homeSettings.homeView === 'simple' ? 'simple' : 'dashboard');
         setAccountWizardSeen(hasSeenSetupWizard(homeSettings.onboardingMilestones));
         const firstArgs: Parameters<typeof buildHomeSummary> = [games, {
           today,
@@ -711,7 +695,6 @@ export default function Home() {
       // come from settings were read once at boot and carried forward here
       // unchanged. Every refresh now re-reads them, so a change made in
       // Settings is on the card the moment the modal closes.
-      setHomeView(settings.homeView === 'simple' ? 'simple' : 'dashboard');
       const prev = homeSummaryInputsRef.current;
       if (prev) {
         applyTeamScope(games, teamsList, seasonsList, tournamentsList, {
@@ -2219,13 +2202,11 @@ export default function Home() {
               onShowWelcome={hideLocalModeEntry ? undefined : () => setShowWelcome(true)}
               onSignOut={requestSignOut}
               isCloudAvailable={isCloudAvailable()}
-              homeView={homeView}
               homeSummary={homeSummary}
               homeStatsSummary={homeStatsSummary}
               teamScopeOptions={teamScopeOptions}
               teamScope={teamScope}
               onTeamScopeChange={handleTeamScopeChange}
-              onSetHomeView={handleSetHomeView}
               onOpenGameById={handleOpenGameById}
               onAdjustTravel={handleAdjustTravel}
               onSetupModalsClosed={refreshSetupSignals}
