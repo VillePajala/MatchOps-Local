@@ -234,7 +234,7 @@
   "info": {
     "whatIsThis": {
       "title": "What is MatchOps?",
-      "description": "MatchOps is a match-day app for football and futsal coaches. Before the game it makes a ready plan for the line-up and substitutions. During the game the match clock, substitutions and goals are right there with you. After the game the Match sheet and Match report are ready to share, and statistics build up automatically at player, match, team and competition level. A new coach starts in the Basic view with the match-day essentials; the Full view adds leagues, tournaments, the multi-game Match planner and other extras.",
+      "description": "MatchOps is a match-day app for football and futsal coaches. Before the game you plan the line-up and substitutions in advance - in the Basic view the app makes the plan for you when you give the game's date. During the game the match clock, substitutions and goals are right there with you. After the game the Match sheet and Match report are ready to share, and statistics build up automatically at player, match, team and competition level. A new coach starts in the Basic view with the match-day essentials; the Full view adds leagues, tournaments, the multi-game Match planner and other extras.",
       "oneLine": "Free with secure cloud sync across your devices. Track games and build statistics right at the field, even without internet."
     },
     "whoIsThisFor": {
@@ -346,7 +346,7 @@
     "howItWorks": {
       "plan": {
         "title": "Plan",
-        "desc": "Tell the app when the next game is and it makes a ready plan for it: the starting line-up, the goalkeeper and the substitutions. Before kick-off, mark who is here and share the plan with the team."
+        "desc": "Build the starting line-up, positions and substitutions in advance in the Match planner – for one game or a whole tournament day. Before the game you mark who is away, and the plan adapts."
       },
       "play": {
         "title": "Rotate",
@@ -458,8 +458,8 @@
     "spotlights": {
       "firstPlan": {
         "eyebrow": "When is the next game?",
-        "title": "A ready plan before the game",
-        "desc": "Enter the date and, if you like, the opponent, and the app makes a ready plan: who starts, who is in goal and when the changes come. Swap two players with a tap, shuffle again or open detailed editing. The Share button sends the plan as text to the team chat. Before kick-off, Who is here? lets you mark who is away, and the plan fills in without them."
+        "title": "Your first plan, ready",
+        "desc": "In a new coach's Basic view, entering the date and, if you like, the opponent is enough: the app makes a ready plan - who starts, who is in goal and when the changes come. Swap two players with a tap, shuffle again or open detailed editing. The Share button sends the plan as text to the team chat. Before kick-off, Who is here? lets you mark who is away, and the plan fills in without them."
       },
       "finish": {
         "eyebrow": "Finish this game",
