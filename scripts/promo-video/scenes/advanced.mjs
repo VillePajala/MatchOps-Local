@@ -16,11 +16,11 @@ const OUT = path.join(ROOT, 'out', 'advanced');
 
 export const CAPTIONS = {
   '1': 'Toista edellinen peli -nappi kopioi edellisen ottelun tiedot.',
-  '2': 'Liitä ottelu sarjaan tai turnaukseen tarkkaa tilastointia varten.',
-  '3': 'Valitse ikäluokka ja laji.',
-  '4': 'Kokoonpanon ja vaihtosuunnitelman voi tuoda halutessaan ottelusuunnittelutyökalusta.',
-  '5': 'Aseta peliaika ja puoliajan pituus. Asettamalla peli harjoitusotteluksi se ei näy kilpailutilastoissa.',
-  '6': 'Kenttänumero ja taustahenkilöt pöytäkirjaa varten.',
+  '2': { text: 'Liitä ottelu sarjaan tai turnaukseen tarkkaa tilastointia varten.', pos: 'top' },
+  '3': { text: 'Valitse ikäluokka ja laji.', pos: 'top' },
+  '4': { text: 'Kokoonpanon ja vaihtosuunnitelman voi tuoda halutessaan ottelusuunnittelutyökalusta.', pos: 'top' },
+  '5': { text: 'Aseta peliaika ja puoliajan pituus. Asettamalla peli harjoitusotteluksi se ei näy kilpailutilastoissa.', pos: 'top' },
+  '6': { text: 'Kenttänumero ja taustahenkilöt pöytäkirjaa varten.', pos: 'top' },
 };
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'captions.json'), JSON.stringify(CAPTIONS, null, 1));

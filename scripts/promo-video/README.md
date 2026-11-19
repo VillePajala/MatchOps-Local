@@ -57,7 +57,7 @@ Only a licensed track goes into a published render. A stock-site preview is for 
 
 1. Pick or add a seed state in `lib/seeds.mjs` (everything is a full IndexedDB payload; positions, events, clock, `isPlayed` are all just fields on the game).
 2. In a scene file, call `rec.scene(name, state, { inMatch, startCur }, async (h) => { ... })`. Use `h.tap(locator)`, `h.tapAt(x, y)` for canvas targets such as a pitch position, `h.glide`, `h.orbit`, `h.pickFromSelect('#scorerSelect', playerId)`, `h.scrollToHeading('Maaliloki')`, `h.scrollToId('positions-editor')`, `h.scrollPanelTop(sel)`, `h.hold(ms)`, and `h.mark(id)` where each captioned clip starts. Re-run `h.arm()` after any screen change.
-3. Put the caption for each id in the CAPTIONS map; an id without a caption becomes an uncaptioned transition clip.
+3. Put the caption for each id in the CAPTIONS map; an id without a caption becomes an uncaptioned transition clip. A caption may be `{ text, pos: 'top' }` to sit over the modal header instead of the bottom third; use it whenever the cursor works in the lower half (forms), so the band never hides the action.
 4. One recording per continuous clock: never let a clip boundary reset the timer (it reads as pause/play).
 
 ## Gotchas already paid for
@@ -70,6 +70,7 @@ Only a licensed track goes into a published render. A stock-site preview is for 
 - A scene with `cloud: true` seeds nothing and boots to the sign-up form; `npm run dev` points at staging, which auto-confirms accounts. Never point it at prod. `h.type(locator, text)` types at a human pace.
 - Swapping two pitch discs is a touch-only gesture (tap one, tap the other); the mouse path drags. Use `h.touchTap(x, y)`, which fires synthetic touch events, so the film shows what a phone does.
 - Modals have no X on phones (the back gesture closes them); the recorder unhides the header close button of every dialog ("Sulje", and "Valmis" on settings) and buffers history so a back-pop stays in the app.
+- Modal headers collapse on scroll a few pixels at a time; the cursor's scroll-into-view jitter made "Toista edellinen peli" flutter on film. The recorder pins that region open.
 - The address fields search a live geocoder (Photon): allow up to 15 s for the list and use real places; invented street names return other towns. Selecting a team prefills the home ground into the venue name, so clear it before typing a new one.
 - The app refuses a second tab (Web Locks); the recorder grants the lock in the init script.
 - Only the first `<video>`-sized output under ~15 MB can be attached to a share page; the encoder re-encodes the joined hero at crf 24.

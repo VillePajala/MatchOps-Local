@@ -18,6 +18,9 @@
  *    back-pop inside the app.
  *  - The pitch's planned-sub ghost rings animate and stall the screencast: seed the field
  *    without planned subs when the field itself is the subject.
+ *  - Modal headers collapse on scroll by a few pixels at a time, so a cursor that keeps scrolling
+ *    targets into view makes the header's extras (Toista edellinen peli) flutter. The recorder pins
+ *    that region open; a real thumb scroll does not jitter like that.
  */
 import { chromium } from 'playwright';
 import fs from 'node:fs';
@@ -25,6 +28,8 @@ import path from 'node:path';
 
 const STYLE = `nextjs-portal{display:none!important}
 [role=dialog] button[aria-label="Sulje"],[role=dialog] button[aria-label="Valmis"]{display:flex!important}
+[role=dialog] div.overflow-hidden.border-b{height:auto!important}
+[role=dialog] div.overflow-hidden.border-b>div{transform:none!important}
 #cur{position:fixed;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.5);background:rgba(255,255,255,.12);pointer-events:none;z-index:99998;transition:transform .65s cubic-bezier(.4,0,.2,1)}
 .tap{position:fixed;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none;z-index:99999;animation:tap .5s ease-out forwards}@keyframes tap{from{transform:scale(.5);opacity:.9}to{transform:scale(1.6);opacity:0}}`;
 
@@ -102,7 +107,7 @@ export async function openRecorder({ outDir, baseUrl = 'http://localhost:3000', 
     const text = async () => (await page.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
 
     await page.goto(baseUrl + '/', { waitUntil: 'networkidle' });
-    if (cloud) await page.getByRole('button', { name: 'Luo tili' }).first().waitFor({ timeout: 90000 });
+    if (cloud) await page.getByTestId('login-intro-create').waitFor({ timeout: 90000 });
     else if (inMatch) await page.getByRole('button', { name: 'Avaa ajastin' }).waitFor({ timeout: 90000 }); else await page.getByText(/Seuraava ottelu|Viimeksi avattu|Uusi ottelu/).first().waitFor({ timeout: 90000 });
     await page.evaluate(() => { for (let i = 0; i < 4; i++) history.pushState({}, '', '/'); });
     await arm(); await hold(300);
