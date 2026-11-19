@@ -161,6 +161,6 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
   clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
   // homeView intentionally omitted from defaults: an unset value reads as
-  // 'simple' everywhere, so the default costs nothing and adding it here would
-  // ripple through every exact-shape settings test.
+  // 'dashboard' everywhere (page.tsx and the cloud reader), so the default costs
+  // nothing and adding it here would ripple through every exact-shape settings test.
 };

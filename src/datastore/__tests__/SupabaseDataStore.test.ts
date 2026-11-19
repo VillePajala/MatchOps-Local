@@ -2911,8 +2911,27 @@ describe('SupabaseDataStore', () => {
 
         // Verify drawing mode is properly read from database
         expect(settings.isDrawingModeEnabled).toBe(true);
-        // A row with no home_view (legacy row) reads as the simple launcher.
-        expect(settings.homeView).toBe('simple');
+        // A row with no home_view (never chosen) reads as the dashboard, the
+        // app's default - it must not flip the coach to the compact Home (D22).
+        expect(settings.homeView).toBe('dashboard');
+      });
+
+      /**
+       * Unset home view must read as the app's default (dashboard), and an
+       * explicit choice must round-trip unchanged.
+       * @critical
+       */
+      it.each([
+        [null, 'dashboard'],
+        ['dashboard', 'dashboard'],
+        ['simple', 'simple'],
+      ])('reads home_view %p as %p', async (stored, expected) => {
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: { id: 'settings_hv', user_id: 'user_123', language: 'fi', home_view: stored },
+          error: null,
+        });
+        const settings = await dataStore.getSettings();
+        expect(settings.homeView).toBe(expected);
       });
 
       it('should default isDrawingModeEnabled to false when not set', async () => {
