@@ -2939,7 +2939,11 @@ export class SupabaseDataStore implements DataStore {
       clubSeasonStartDate: row.club_season_start_date ?? DEFAULT_APP_SETTINGS.clubSeasonStartDate,
       clubSeasonEndDate: row.club_season_end_date ?? DEFAULT_APP_SETTINGS.clubSeasonEndDate,
       isDrawingModeEnabled: row.is_drawing_mode_enabled ?? false,
-      homeView: row.home_view === 'dashboard' ? 'dashboard' : 'simple',
+      // NULL = never chosen. The app's own default for an unset view is the
+      // dashboard (page.tsx reads anything but 'simple' as 'dashboard'), so an
+      // unset row must not come back as 'simple': that flipped coaches who never
+      // touched the toggle to the compact Home and then saved it (D22).
+      homeView: row.home_view === 'simple' ? 'simple' : 'dashboard',
       // A starting point exists only if it was given a name; the coordinates
       // are optional because a half-typed one is still worth keeping.
       startingPoint: row.starting_point_name
