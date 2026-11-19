@@ -738,11 +738,12 @@ describe('Home dashboard view (opt-in)', () => {
     ...over,
   });
 
-  it('renders the resume card, Vuosi bar and recent strip when on', () => {
+  it('renders the resume card and recent strip; the season record is not on the Pelit list header', () => {
     render(<StartScreen {...dashProps()} />);
     expect(screen.getByText('FC Inter')).toBeInTheDocument();       // resume card
     expect(screen.getByText('2–1')).toBeInTheDocument();
-    expect(screen.getByText(/24\/25/)).toBeInTheDocument();          // Vuosi bar
+    // The season record moved to Kilpailut / Tilastot (owner 2026-11-19).
+    expect(screen.queryByText(/24\/25/)).not.toBeInTheDocument();
     expect(screen.getByText('HJK')).toBeInTheDocument();             // recent strip
     // The plain Continue button is replaced by the card.
     expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
@@ -766,13 +767,11 @@ describe('Home dashboard view (opt-in)', () => {
     expect(screen.queryByText('FC Inter')).not.toBeInTheDocument();
   });
 
-  it('recent card opens that game; Vuosi bar opens overall stats; resume resumes', () => {
+  it('recent card opens that game; resume resumes', () => {
     const props = dashProps();
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByText('HJK'));
     expect(props.onOpenGameById).toHaveBeenCalledWith('g2');
-    fireEvent.click(screen.getByText(/24\/25/));
-    expect(props.onViewStatsTab).toHaveBeenCalledWith('overall');
     fireEvent.click(screen.getByText('FC Inter'));
     expect(props.onResumeGame).toHaveBeenCalled();
   });

@@ -729,32 +729,6 @@ function RecentRow({ game, onOpen, accented, first, t }: {
   );
 }
 
-/**
- * The season's record, on the list header's right-hand side - the "see all"
- * link: it opens the club stats. Green-grey-red is the football convention
- * for W-D-L, so the colours label it without spending width on words.
- */
-function SeasonLink({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi']>; onOpen?: () => void; t: TFunction }) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={`ml-auto inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-lg pl-3 text-[13px] font-semibold text-ink ${HOME_FOCUS}`}
-      title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
-    >
-      {/* A link reads as ink with an underline: amber is reserved for the
-          primary action and for selection. */}
-      <span className="underline decoration-ink-3 underline-offset-[3px]">{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
-      <span className="text-ink-3" aria-hidden="true">·</span>
-      <span className="tabular-nums">
-        <span className="font-bold text-win">{vuosi.wins}</span>
-        <span className="text-ink-3">-{vuosi.ties}-</span>
-        <span className="font-bold text-loss">{vuosi.losses}</span>
-      </span>
-      <HomeIcon name="chev" className="h-4 w-4" strokeWidth={2} />
-    </button>
-  );
-}
 
 const SECTION_LABEL = 'text-xs font-bold uppercase tracking-[0.16em]';
 
@@ -766,7 +740,6 @@ const SECTION_LABEL = 'text-xs font-bold uppercase tracking-[0.16em]';
 export function HomeDashboard({
   summary,
   onResume,
-  onOpenVuosi,
   onOpenGame,
   onAdjustTravel,
   onNewGame,
@@ -824,10 +797,9 @@ export function HomeDashboard({
         <div>
           {/* THE TOGGLE IS THE LABEL, not a control above it: two words at the
               heading's own size cost no height. */}
-          {/* Wraps on narrow phones: "Tulevat · Viimeisimmät" plus the season
-              record does not fit one line at ~366px, so the record drops below,
-              right-aligned (ml-auto), instead of running off the screen. */}
-          <div className="-mb-0.5 flex flex-wrap items-center gap-x-2 px-1">
+          {/* The season record lives in Kilpailut / Tilastot (owner 2026-11-19),
+              so this header is just the toggle and always fits one line. */}
+          <div className="-mb-0.5 flex items-center gap-2 px-1">
             {hasBoth ? (
               <div className="flex items-center gap-1" role="tablist">
                 {(['upcoming', 'recent'] as const).map((which, i) => (
@@ -856,7 +828,6 @@ export function HomeDashboard({
                   : t('startScreen.dashRecent', 'Recent')}
               </h2>
             )}
-            {summary.vuosi && <SeasonLink vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
           </div>
           <div className="s1-list p-0.5">
             {showing === 'upcoming'
