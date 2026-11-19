@@ -36,9 +36,9 @@ const ThrottledProgress = React.memo(({ progress, t }: { progress: MigrationProg
 
   return (
     <>
-      <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
+      <div className="w-full bg-white/10 rounded-full h-2 mb-2">
         <div
-          className="bg-indigo-500 h-2 rounded-full transition-all duration-300"
+          className="bg-action h-2 rounded-full transition-all duration-300"
           style={{ width: `${throttledProgress.percentage}%` }}
           role="progressbar"
           aria-valuenow={Math.round(throttledProgress.percentage)}
@@ -48,7 +48,7 @@ const ThrottledProgress = React.memo(({ progress, t }: { progress: MigrationProg
         ></div>
       </div>
 
-      <div className="text-sm text-slate-400 space-y-1" aria-live="polite">
+      <div className="text-sm text-ink-3 space-y-1" aria-live="polite">
         <div>{percentageText}</div>
         {throttledProgress.estimatedTimeRemainingText && (
           <div>{t('migrationStatus.estimatedTime', 'Estimated time: {{time}}', { time: throttledProgress.estimatedTimeRemainingText })}</div>
@@ -85,7 +85,7 @@ function MigrationStatusComponent() {
     return (
       <div className={`${MODAL_BACKDROP_BLOCKING} ${Z_LAYER.screenOverlay}`}>
         <div
-          className="bg-slate-800 rounded-xl p-6 max-w-md mx-4 shadow-xl border border-slate-700"
+          className="s1-list font-ui p-6 max-w-md mx-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="migration-title"
@@ -93,20 +93,20 @@ function MigrationStatusComponent() {
         >
           <div className="text-center">
             <div
-              className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto mb-4"
+              className="animate-spin rounded-full h-8 w-8 border-b-2 border-action mx-auto mb-4"
               role="status"
               aria-label={t('migrationStatus.inProgress', 'Migration in progress')}
             ></div>
-            <h3 id="migration-title" className="text-lg font-semibold text-slate-100 mb-2">
+            <h3 id="migration-title" className="font-display text-2xl font-bold text-ink mb-2">
               {t('migrationStatus.upgradingStorage', 'Upgrading Storage')}
             </h3>
-            <p id="migration-description" className="text-slate-300 mb-4">
+            <p id="migration-description" className="text-ink-2 mb-4">
               {currentStep}
             </p>
 
             <ThrottledProgress progress={progress} t={t} />
 
-            <p className="text-sm text-slate-400 mt-4">
+            <p className="text-sm text-ink-3 mt-4">
               {t('migrationStatus.dontCloseApp', "Please don't close the app during this process.")}
             </p>
           </div>
@@ -126,12 +126,7 @@ function MigrationStatusComponent() {
     return (
       <div className="fixed top-4 right-4 z-50">
         <div
-          className={`
-            rounded-lg p-4 shadow-xl max-w-sm border
-            ${error
-              ? 'bg-amber-900/30 border-amber-700'
-              : 'bg-green-900/30 border-green-700'}
-          `}
+          className={`font-ui rounded-2xl p-4 max-w-sm bg-surface-2 shadow-[0_16px_32px_-8px_rgb(2_6_23/0.9),inset_0_0_0_1px_${error ? 'rgb(255_178_36/0.45)' : 'rgb(63_224_140/0.45)'}]`}
           role="alert"
           aria-live="assertive"
           aria-labelledby="notification-title"
@@ -140,27 +135,22 @@ function MigrationStatusComponent() {
           <div className="flex">
             <div className="flex-shrink-0">
               {error ? (
-                <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400" aria-hidden="true" />
+                <HiOutlineExclamationTriangle className="h-5 w-5 text-action" aria-hidden="true" />
               ) : (
-                <HiOutlineCheckCircle className="h-5 w-5 text-green-400" aria-hidden="true" />
+                <HiOutlineCheckCircle className="h-5 w-5 text-win" aria-hidden="true" />
               )}
             </div>
             <div className="ml-3 flex-1">
-              <h3 id="notification-title" className={`text-sm font-medium ${error ? 'text-amber-300' : 'text-green-300'}`}>
+              <h3 id="notification-title" className="text-[15px] font-semibold text-ink">
                 {notificationTitle}
               </h3>
-              <div id="notification-message" className={`mt-1 text-sm ${error ? 'text-amber-200' : 'text-green-200'}`}>
+              <div id="notification-message" className="mt-1 text-sm text-ink-2">
                 {notificationMessage}
               </div>
             </div>
-            <div className="ml-4 flex-shrink-0">
+            <div className="ml-2 -mr-2 -mt-2 flex-shrink-0">
               <button
-                className={`
-                  rounded-md p-1 transition-colors
-                  ${error
-                    ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-800/50'
-                    : 'text-green-400 hover:text-green-300 hover:bg-green-800/50'}
-                `}
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-ink-3 transition-colors hover:text-ink hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 onClick={memoizedDismissNotification}
                 aria-label={t('migrationStatus.dismissNotification', 'Dismiss notification', { type: notificationType })}
               >

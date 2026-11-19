@@ -21,7 +21,6 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import {
   getSavedGames,
-  deleteGame as utilDeleteGame,
   getLatestGameId,
 } from '@/utils/savedGames';
 import {
@@ -29,9 +28,7 @@ import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
 } from '@/utils/appSettings';
 import { clearTimerState } from '@/utils/timerStateManager';
-import { clearTimerAnchor, readTimerAnchor } from '@/utils/timerAnchor';
-import { deleteGameSubs } from '@/utils/playtimePlanner/gameSubs';
-import { deletePlanLink } from '@/utils/playtimePlanner/planLinks';
+import { readTimerAnchor } from '@/utils/timerAnchor';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
@@ -39,7 +36,7 @@ import { exportJson } from '@/utils/exportGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import type { SavedGamesCollection } from '@/types';
 import logger from '@/utils/logger';
-import { deleteClipsForGame } from '@/utils/audioClipStore';
+import { deleteGameWithCleanup } from '@/services/deleteGame';
 
 export interface UseLoadGameControllerArgs {
   /** Flush the LIVE match's pending autosave before the crossing persists a
@@ -153,22 +150,10 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flush
       setIsGameDeleting(true);
       setProcessingGameId(gameId);
       try {
-        const deletedGameId = await utilDeleteGame(gameId, userId);
+        // The game and what only exists because of it (anchor, planned subs,
+        // plan link, voice clips) - shared with basic Home's "Poista".
+        const deletedGameId = await deleteGameWithCleanup(gameId, userId);
         if (deletedGameId) {
-          clearTimerAnchor(gameId); // a deleted game's clock can never resume
-          // Planner bookkeeping: drop the game's planned-sub schedule and plan
-          // link so they don't accumulate as orphans (best-effort).
-          try {
-            await Promise.all([deleteGameSubs(gameId), deletePlanLink(gameId)]);
-          } catch (cleanupError) {
-            logger.warn('[useLoadGameController] Planner cleanup after game delete failed (non-fatal):', cleanupError);
-          }
-          // The match's voice recordings go with it (review 6.5): personal audio about
-          // named children, unreachable from any screen once the game is gone. Best
-          // effort; the 30-day rotation at app start is the backstop.
-          await deleteClipsForGame(gameId, userId).catch((clipError) =>
-            logger.warn('[useLoadGameController] Voice clip cleanup after game delete failed (non-fatal):', clipError));
-
           const updated: SavedGamesCollection = { ...savedGames };
           delete updated[gameId];
           queryClient.setQueryData<SavedGamesCollection>([...queryKeys.savedGames, userId], updated);

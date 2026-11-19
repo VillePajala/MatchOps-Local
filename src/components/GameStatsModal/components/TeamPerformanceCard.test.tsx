@@ -25,6 +25,7 @@ describe('TeamPerformanceCard record', () => {
       />,
     );
     expect(screen.getByText('4-2-1')).toBeInTheDocument();
-    expect(screen.getByText(/Record \(W-D-L\)/)).toBeInTheDocument();
+    // Hyphens are non-breaking (U+2011) so the label never wraps inside "(W-D-L)".
+    expect(screen.getByText(/Record \(W\u2011D\u2011L\)/)).toBeInTheDocument();
   });
 });

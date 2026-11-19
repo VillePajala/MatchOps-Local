@@ -24,6 +24,11 @@ interface GameWrapUpCardProps {
   /** Opens the notes step, for the notes-coverage row. */
   onOpenNotes?: () => void;
   onOpenVoiceNotes?: () => void;
+  /**
+   * Whether the "Competition & team" row is a task for this coach (see
+   * competitionRowRelevant). When false the row is not shown. Default true.
+   */
+  showCompetition?: boolean;
 }
 
 type RowStatus = CompletenessRowStatus;
@@ -34,9 +39,12 @@ type RowStatus = CompletenessRowStatus;
  * (where it applies) taps into Game Settings. Reads the shared completeness
  * model, so it never disagrees with the badges.
  */
-const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes, completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
+const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes, completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes, showCompetition = true }) => {
   const { t } = useTranslation();
-  const progress = completenessProgress(completeness, { voiceClipsPending: voiceClipCount });
+  // The counter is the D2 core only (squad + goal log), so it reaches its end
+  // exactly when the badge says "Complete" (review R7). The other rows are
+  // things the coach can do, shown but not counted.
+  const progress = completenessProgress(completeness);
 
   interface Row {
     key: string;
@@ -63,6 +71,7 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
   }
   // Always a row, done or not: the counter counts it, so the list must show
   // it. Hiding it when done left three rows under a "3/4" (owner, 2026-09-09).
+  // Squad and goals are the two counted rows (the D2 core).
   rows.push({
     key: 'roster',
     label: t('gameStatsModal.wrapUpRoster', 'Squad selected'),
@@ -112,30 +121,30 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
       onClick: onOpenAssessments,
     });
   }
-  rows.push({
-    key: 'competition',
-    label: t('gameStatsModal.wrapUpCompetition', 'Competition & team'),
-    status: completeness.competition && completeness.team ? 'done' : 'todo',
-    onClick: onOpenSettings && (() => onOpenSettings('competition')),
-  });
+  if (showCompetition) {
+    rows.push({
+      key: 'competition',
+      label: t('gameStatsModal.wrapUpCompetition', 'Competition & team'),
+      status: completeness.competition && completeness.team ? 'done' : 'todo',
+      onClick: onOpenSettings && (() => onOpenSettings('competition')),
+    });
+  }
 
-  // Clips waiting are unfinished work even when the record itself is complete.
-  const done = completeness.coreComplete && voiceClipCount === 0;
+  // The same rule as the counter: "Complete" exactly when the core is.
+  const done = completeness.coreComplete;
 
   return (
-    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+    <div className="s1-list p-4 font-ui">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h3 className="text-lg font-semibold text-slate-200">{t('gameStatsModal.wrapUpTitle', 'Checklist')}</h3>
-        <span
-          className="ml-auto text-sm font-semibold text-slate-300 tabular-nums"
-          data-testid="wrap-up-progress-count"
-        >
-          {progress.done}/{progress.total}
+        <h3 className="text-base font-semibold text-ink">{t('gameStatsModal.wrapUpTitle', 'Checklist')}</h3>
+        <span className="ml-auto text-sm font-semibold text-ink-2 tabular-nums">
+          <span data-testid="wrap-up-progress-count">{progress.done}/{progress.total}</span>
+          {' '}{t('gameStatsModal.wrapUpDoneWord', 'done')}
         </span>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-            done ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                 : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+            done ? 'bg-win/[0.12] text-win shadow-[inset_0_0_0_1px_rgb(63_224_140/0.35)]'
+                 : 'bg-action/[0.08] text-action shadow-[inset_0_0_0_1px_rgb(255_178_36/0.35)]'
           }`}
         >
           {done ? t('gameStatsModal.wrapUpComplete', 'Complete') : t('gameStatsModal.wrapUpPartial', 'Needs finishing')}
@@ -157,12 +166,12 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
           <Tag
             {...(onOpenNotes ? { type: 'button' as const, onClick: onOpenNotes } : {})}
             data-testid="wrap-up-notes-line"
-            className={`w-full mb-2 px-2 py-1.5 rounded-md text-left text-xs text-slate-400 ${
-              onOpenNotes ? 'hover:bg-slate-800/50 transition-colors' : ''
+            className={`w-full mb-1 px-2 min-h-11 rounded-xl text-left text-[13px] text-ink-3 ${
+              onOpenNotes ? 'hover:bg-white/[0.04] transition-colors' : ''
             }`}
           >
             {t('gameStatsModal.wrapUpNotes', 'Notes about players')}{' '}
-            <span className="text-slate-300 font-semibold tabular-nums">
+            <span className="text-ink-2 font-semibold tabular-nums">
               {completeness.notesCoverage.done}/{completeness.notesCoverage.total}
             </span>
           </Tag>
@@ -175,22 +184,21 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
             <li key={row.key}>
               <Tag
                 {...(row.onClick ? { type: 'button' as const, onClick: row.onClick } : {})}
-                className={`w-full flex items-center gap-3 px-2 py-2 rounded-md text-left ${
-                  row.onClick ? 'hover:bg-slate-800/50 transition-colors' : ''
+                className={`w-full min-h-11 flex items-center gap-3 px-2 py-2 rounded-xl text-left ${
+                  row.onClick ? 'hover:bg-white/[0.04] transition-colors' : ''
                 }`}
               >
-                {/* Amber means nothing recorded, and amber is exactly what the
-                    progress bar does not count - see countRowStatus. */}
+                {/* Amber means nothing recorded yet - see countRowStatus. */}
                 {row.status === 'done'
-                  ? <HiCheckCircle className="shrink-0 text-emerald-400 text-lg" data-testid={`wrap-up-status-${row.key}-done`} />
+                  ? <HiCheckCircle className="shrink-0 text-win text-xl" data-testid={`wrap-up-status-${row.key}-done`} />
                   : row.status === 'partial'
-                    ? <HiOutlineCheckCircle className="shrink-0 text-emerald-400 text-lg" data-testid={`wrap-up-status-${row.key}-partial`} />
-                    : <HiOutlineExclamationCircle className="shrink-0 text-amber-400 text-lg" data-testid={`wrap-up-status-${row.key}-todo`} />}
-                <span className="flex-1 text-sm text-slate-200">{row.label}</span>
+                    ? <HiOutlineCheckCircle className="shrink-0 text-win text-xl" data-testid={`wrap-up-status-${row.key}-partial`} />
+                    : <HiOutlineExclamationCircle className="shrink-0 text-action text-xl" data-testid={`wrap-up-status-${row.key}-todo`} />}
+                <span className="flex-1 text-[15px] text-ink">{row.label}</span>
                 {row.count && row.count.total > 0 && (
-                  <span className="text-xs font-medium text-slate-400">{row.count.done}/{row.count.total}</span>
+                  <span className="text-[13px] font-medium text-ink-3 tabular-nums">{row.count.done}/{row.count.total}</span>
                 )}
-                {row.onClick && <HiChevronRight className="shrink-0 text-slate-500" />}
+                {row.onClick && <HiChevronRight className="shrink-0 text-ink-3" />}
               </Tag>
             </li>
           );

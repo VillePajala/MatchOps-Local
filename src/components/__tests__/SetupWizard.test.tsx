@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import fs from 'fs';
 import path from 'path';
@@ -42,9 +43,42 @@ jest.mock('@/utils/masterRosterManager', () => ({
 
 const mockAddTeam = jest.fn();
 const mockSetTeamRoster = jest.fn();
+const mockUpdateTeam = jest.fn();
 jest.mock('@/utils/teams', () => ({
   addTeam: (...args: unknown[]) => mockAddTeam(...args),
   setTeamRoster: (...args: unknown[]) => mockSetTeamRoster(...args),
+  updateTeam: (...args: unknown[]) => mockUpdateTeam(...args),
+}));
+
+// The next-game step's creation is unit-tested in services/nextGamePair; here
+// the wizard's wiring to it is what matters.
+const mockCreateNextGamePair = jest.fn();
+jest.mock('@/services/nextGamePair', () => ({
+  createNextGamePair: (...args: unknown[]) => mockCreateNextGamePair(...args),
+}));
+const mockBuildAndPersistNewGame = jest.fn();
+jest.mock('@/components/HomePage/utils/newGameHandlers', () => ({
+  buildAndPersistNewGame: (...args: unknown[]) => mockBuildAndPersistNewGame(...args),
+}));
+jest.mock('@/utils/playtimePlanner/storage', () => ({ savePlan: jest.fn(), deletePlan: jest.fn() }));
+jest.mock('@/utils/savedGames', () => ({ saveGame: jest.fn() }));
+jest.mock('@/utils/appSettings', () => ({ saveCurrentGameIdSetting: jest.fn() }));
+// Milestones live in the settings storage (D17); here only that they are recorded.
+const mockRecordMilestone = jest.fn().mockResolvedValue(undefined);
+jest.mock('@/utils/onboardingMilestones', () => ({
+  recordMilestone: (...args: unknown[]) => mockRecordMilestone(...args),
+}));
+// The plan screen has its own tests (PlanQuickView.test.tsx).
+jest.mock('../PlanQuickView', () => ({
+  __esModule: true,
+  default: ({ planId, gameId, onDone }: { planId: string; gameId: string; onDone: () => void }) => (
+    <div data-testid="plan-quick-view-mock">
+      {planId}:{gameId}
+      <button type="button" onClick={onDone}>
+        plan-done
+      </button>
+    </div>
+  ),
 }));
 
 jest.mock('@/utils/logger', () => ({
@@ -71,6 +105,11 @@ const toStepTwo = (teamName = 'FC Test') => {
   fireEvent.click(screen.getByTestId('wizard-continue'));
 };
 
+/** After "Valmis" with players: the next-game step, not Home. */
+const expectNextGameStep = async () => {
+  expect(await screen.findByTestId('next-game-step')).toBeInTheDocument();
+};
+
 /** Type a player name and commit it with Enter. */
 const addPlayerRow = (name: string) => {
   const input = screen.getByTestId('wizard-player-input');
@@ -95,6 +134,13 @@ beforeEach(() => {
   mockAddTeam.mockResolvedValue({ id: 'team-1', name: 'FC Test', createdAt: '', updatedAt: '' });
   mockSetTeamRoster.mockResolvedValue(undefined);
   mockRemovePlayer.mockResolvedValue(true);
+  mockUpdateTeam.mockImplementation(async (id: string, updates: { name: string }) => ({
+    id,
+    name: updates.name,
+    createdAt: '',
+    updatedAt: '',
+  }));
+  mockCreateNextGamePair.mockResolvedValue({ gameId: 'game-1', planId: 'plan-1', planGameId: 'pg-1' });
 });
 
 describe('SetupWizard', () => {
@@ -102,7 +148,7 @@ describe('SetupWizard', () => {
    * @critical - The happy path IS the onboarding: name + players in, real
    * entities out (players -> team -> roster), one-time flag set.
    */
-  it('creates players, the team, and its roster on Valmis, then flags done and completes', async () => {
+  it('creates players, the team, and its roster on Valmis, flags done, then asks for the next game', async () => {
     const { onComplete } = renderWizard();
 
     toStepTwo('FC Honka P12');
@@ -110,7 +156,9 @@ describe('SetupWizard', () => {
     addPlayerRow('Eetu');
     fireEvent.click(screen.getByTestId('wizard-finish'));
 
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    await expectNextGameStep();
+    // Not Home yet: the coach is asked about the next game first.
+    expect(onComplete).not.toHaveBeenCalled();
     expect(mockAddPlayer).toHaveBeenCalledTimes(2);
     expect(mockAddPlayer).toHaveBeenCalledWith(
       { name: 'Aino', nickname: '', jerseyNumber: '', notes: '' },
@@ -125,19 +173,22 @@ describe('SetupWizard', () => {
       ],
       'user-1',
     );
+    // Done already: closing the app on the next step must not bring the wizard back.
     expect(localStorage.getItem(DONE_KEY)).toBe('1');
     expect(isSetupWizardDone('user-1')).toBe(true);
+    // No game is created behind the coach's back.
+    expect(mockCreateNextGamePair).not.toHaveBeenCalled();
   });
 
   it('derives the disc nickname from the first word of multi-word names', async () => {
-    const { onComplete } = renderWizard();
+    renderWizard();
 
     toStepTwo();
     addPlayerRow('Matti Meikalainen');
     addPlayerRow('Aino');
     fireEvent.click(screen.getByTestId('wizard-finish'));
 
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    await expectNextGameStep();
     expect(mockAddPlayer).toHaveBeenCalledWith(
       { name: 'Matti Meikalainen', nickname: 'Matti', jerseyNumber: '', notes: '' },
       'user-1',
@@ -154,14 +205,14 @@ describe('SetupWizard', () => {
    * typist must not lose the last row.
    */
   it('includes the pending (un-entered) draft name when finishing', async () => {
-    const { onComplete } = renderWizard();
+    renderWizard();
 
     toStepTwo();
     addPlayerRow('Aino');
     fireEvent.change(screen.getByTestId('wizard-player-input'), { target: { value: 'Sofia' } });
     fireEvent.click(screen.getByTestId('wizard-finish'));
 
-    await waitFor(() => expect(onComplete).toHaveBeenCalled());
+    await expectNextGameStep();
     expect(mockAddPlayer).toHaveBeenCalledTimes(2);
     expect(mockAddPlayer).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Sofia' }),
@@ -183,6 +234,8 @@ describe('SetupWizard', () => {
     expect(mockAddPlayer).not.toHaveBeenCalled();
     expect(mockSetTeamRoster).not.toHaveBeenCalled();
     expect(localStorage.getItem(DONE_KEY)).toBe('1');
+    // The ACCOUNT remembers the skip too (R9), not only this device.
+    expect(mockRecordMilestone).toHaveBeenCalledWith('wizardSkipped', 'user-1');
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
@@ -200,6 +253,9 @@ describe('SetupWizard', () => {
     expect(mockAddTeam).toHaveBeenCalledTimes(1);
     expect(mockAddPlayer).not.toHaveBeenCalled();
     expect(mockSetTeamRoster).not.toHaveBeenCalled();
+    // Nothing to plan without players: no next-game step, no game.
+    expect(screen.queryByTestId('next-game-step')).not.toBeInTheDocument();
+    expect(mockCreateNextGamePair).not.toHaveBeenCalled();
   });
 
   /**
@@ -222,7 +278,7 @@ describe('SetupWizard', () => {
 
     // Retry: the already-created player is NOT re-created.
     fireEvent.click(screen.getByTestId('wizard-finish'));
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    await expectNextGameStep();
     expect(mockAddPlayer).toHaveBeenCalledTimes(1);
     expect(mockAddTeam).toHaveBeenCalledTimes(2);
     expect(mockSetTeamRoster).toHaveBeenCalledWith(
@@ -256,7 +312,8 @@ describe('SetupWizard', () => {
     // The coach removes Aino and tries again.
     fireEvent.click(screen.getByLabelText('Remove Aino'));
     fireEvent.click(screen.getByTestId('wizard-finish'));
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    await expectNextGameStep();
+    expect(onComplete).not.toHaveBeenCalled();
 
     expect(mockRemovePlayer).toHaveBeenCalledWith('p-Aino', 'user-1');
     expect(mockAddPlayer.mock.calls.map((c) => (c[0] as { name: string }).name)).toEqual(['Aino', 'Eetu', 'Liisa', 'Liisa']);
@@ -286,7 +343,7 @@ describe('SetupWizard', () => {
     expect(onComplete).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('wizard-finish'));
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    await expectNextGameStep();
     expect(mockRemovePlayer).toHaveBeenCalledTimes(2);
     expect(mockSetTeamRoster).toHaveBeenCalledWith('team-1', [expect.objectContaining({ id: 'p-Eetu' })], 'user-1');
   });
@@ -323,9 +380,9 @@ describe('SetupWizard', () => {
       await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1)); // Aino created, Eetu failed
       first.unmount();
 
-      const { onComplete } = renderWizard();
+      renderWizard();
       fireEvent.click(screen.getByTestId('wizard-finish'));
-      await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+      await expectNextGameStep();
       expect(mockAddPlayer.mock.calls.map((c) => (c[0] as { name: string }).name)).toEqual(['Aino', 'Eetu', 'Eetu']);
       expect(mockSetTeamRoster).toHaveBeenCalledWith(
         'team-1',
@@ -368,7 +425,10 @@ describe('SetupWizard', () => {
     renderWizard();
     expect(screen.getByTestId('wizard-team-name')).toHaveAttribute('maxLength', '48');
     toStepTwo();
-    expect(screen.getByTestId('wizard-player-input')).toHaveAttribute('maxLength', '100');
+    // The field takes a whole pasted list; each NAME is capped at 100 when it
+    // becomes a row (see the paste tests).
+    fireEvent.change(screen.getByTestId('wizard-player-input'), { target: { value: 'x'.repeat(150) } });
+    expect((screen.getByTestId('wizard-player-input') as HTMLTextAreaElement).value).toHaveLength(100);
   });
 
   /**
@@ -390,10 +450,10 @@ describe('SetupWizard', () => {
 
   /**
    * @critical - Owner round 1: the visible "+ Add" button is Enter's
-   * discoverable twin, and Valmis announces what it will create so a
-   * premature tap self-identifies instead of silently finishing.
+   * discoverable twin. Onboarding v3: the last button is just "Valmis"
+   * (the count is shown above the rows).
    */
-  it('commits rows via the Add button and announces the count on Valmis', () => {
+  it('commits rows via the Add button; Valmis is just "Done"', () => {
     renderWizard();
     toStepTwo();
 
@@ -404,27 +464,24 @@ describe('SetupWizard', () => {
     expect(screen.getByText('Aino')).toBeInTheDocument();
     expect(input).toHaveValue('');
 
-    // Valmis self-announces (mocked t interpolates the fallback).
-    expect(screen.getByTestId('wizard-finish')).toHaveTextContent('Done (1 players)');
-    // Empty roster: plain label.
-    fireEvent.click(screen.getByLabelText('Remove Aino'));
-    expect(screen.getByTestId('wizard-finish')).toHaveTextContent('Done');
+    expect(screen.getByTestId('wizard-finish')).toHaveTextContent(/^Done$/);
+    expect(screen.getByTestId('wizard-player-count')).toHaveTextContent('1 players added');
   });
 
   /**
-   * @integration - Owner round 1: the input stays PINNED at the top and rows
-   * grow BELOW it newest-first, so old rows (not the input) scroll behind the
-   * phone keyboard.
+   * @integration - The input stays PINNED at the top and rows grow BELOW it in
+   * the order entered (Onboarding v3: a pasted list reads as pasted); the list
+   * scrolls itself to the newest row.
    */
-  it('renders committed rows below the input, newest first', () => {
+  it('renders committed rows below the input, in the order entered', () => {
     renderWizard();
     toStepTwo();
     addPlayerRow('Aino');
     addPlayerRow('Eetu');
 
     const rows = screen.getAllByTestId('wizard-player-row');
-    expect(rows[0]).toHaveTextContent('Eetu');
-    expect(rows[1]).toHaveTextContent('Aino');
+    expect(rows[0]).toHaveTextContent('Aino');
+    expect(rows[1]).toHaveTextContent('Eetu');
     // Input precedes the rows in the DOM.
     const input = screen.getByTestId('wizard-player-input');
     expect(input.compareDocumentPosition(rows[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -440,7 +497,7 @@ describe('SetupWizard', () => {
         fs.readFileSync(path.join(process.cwd(), 'public', 'locales', locale, 'common.json'), 'utf-8'),
       );
       const wizard = file.setupWizard;
-      for (const key of ['playersAdded_one', 'playersAdded_other', 'finishWithCount_one', 'finishWithCount_other']) {
+      for (const key of ['playersAdded_one', 'playersAdded_other', 'pastedCount_one', 'pastedCount_other']) {
         expect(wizard[key]).toEqual(expect.stringContaining('{{count}}'));
       }
     }
@@ -573,6 +630,271 @@ describe('getStoredSetupFormat (review #742)', () => {
       // 15 age groups (U7-U21) plus the "not set" entry that makes it optional.
       expect(options).toHaveLength(16);
       expect(options[0]).toHaveValue('');
+    });
+  });
+});
+/**
+ * Onboarding v3: sport + age group suggest the format, a pasted list becomes
+ * rows, and "Valmis" leads to "Milloin seuraava peli?" - the only place the
+ * first game (and its one-game plan) is created.
+ */
+describe('SetupWizard - Onboarding v3', () => {
+  const pickAge = (value: string) =>
+    fireEvent.change(screen.getByTestId('wizard-age-group'), { target: { value } });
+  const pressed = (testId: string) => screen.getByTestId(testId).getAttribute('aria-pressed');
+
+  describe('format suggestion', () => {
+    it('offers every format, 3v3 to 11v11', () => {
+      renderWizard();
+      for (const f of ['3v3', '4v4', '5v5', '8v8', '11v11']) {
+        expect(screen.getByTestId(`wizard-format-${f}`)).toBeInTheDocument();
+      }
+    });
+
+    it('suggests the format from the age group and the sport', () => {
+      renderWizard();
+      pickAge('U12');
+      expect(pressed('wizard-format-8v8')).toBe('true');
+      expect(screen.getByTestId('wizard-format-hint')).toHaveTextContent('Suggested for the age group: 8v8');
+
+      fireEvent.click(screen.getByTestId('wizard-sport-futsal'));
+      expect(pressed('wizard-format-5v5')).toBe('true');
+
+      pickAge('U9');
+      expect(pressed('wizard-format-4v4')).toBe('true');
+    });
+
+    it("keeps the coach's own pick when the age group changes afterwards", () => {
+      renderWizard();
+      fireEvent.click(screen.getByTestId('wizard-format-11v11'));
+      pickAge('U8');
+      expect(pressed('wizard-format-11v11')).toBe('true');
+    });
+
+    it('stores the chosen format and puts futsal on the team', async () => {
+      const { onComplete } = renderWizard();
+      fireEvent.click(screen.getByTestId('wizard-sport-futsal'));
+      pickAge('U9');
+      toStepTwo('FC Futsal');
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await waitFor(() => expect(onComplete).toHaveBeenCalled());
+      expect(mockAddTeam).toHaveBeenCalledWith({ name: 'FC Futsal', ageGroup: 'U9', gameType: 'futsal' }, 'user-1');
+      expect(getStoredSetupFormat('user-1')).toBe('4v4');
+    });
+  });
+
+  describe('pasting the squad', () => {
+    it('turns a pasted numbered list into rows, without the numbers', () => {
+      renderWizard();
+      toStepTwo();
+      fireEvent.paste(screen.getByTestId('wizard-player-input'), {
+        clipboardData: { getData: () => '1. Onni\n2. Toivo\n3. Aatos' },
+      });
+      const rows = screen.getAllByTestId('wizard-player-row');
+      expect(rows.map((r) => r.textContent?.replace('×', '').trim())).toEqual(['Onni', 'Toivo', 'Aatos']);
+      expect(mockShowToast).toHaveBeenCalledWith('3 players added', 'success');
+      expect(screen.getByTestId('wizard-player-input')).toHaveValue('');
+    });
+
+    it('leaves a single pasted name in the field', () => {
+      renderWizard();
+      toStepTwo();
+      fireEvent.paste(screen.getByTestId('wizard-player-input'), {
+        clipboardData: { getData: () => 'Onni' },
+      });
+      expect(screen.queryAllByTestId('wizard-player-row')).toHaveLength(0);
+    });
+
+    /** Some Android keyboards paste without a paste event: line breaks arrive in onChange. */
+    it('splits a list that arrives through onChange with line breaks', () => {
+      renderWizard();
+      toStepTwo();
+      fireEvent.change(screen.getByTestId('wizard-player-input'), { target: { value: '7 Onni\n8 Toivo\n' } });
+      expect(screen.getAllByTestId('wizard-player-row')).toHaveLength(2);
+      expect(screen.getByText('Onni')).toBeInTheDocument();
+      expect(screen.getByText('Toivo')).toBeInTheDocument();
+    });
+
+    it('creates the pasted players on Valmis', async () => {
+      renderWizard();
+      toStepTwo();
+      fireEvent.paste(screen.getByTestId('wizard-player-input'), {
+        clipboardData: { getData: () => 'Onni, Toivo' },
+      });
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await expectNextGameStep();
+      expect(mockAddPlayer.mock.calls.map((c) => (c[0] as { name: string }).name)).toEqual(['Onni', 'Toivo']);
+    });
+  });
+
+  describe('"Milloin seuraava peli?"', () => {
+    const toNextGame = async (teamName = 'MePa P12') => {
+      fireEvent.change(screen.getByTestId('wizard-team-name'), { target: { value: teamName } });
+      pickAge('U12');
+      fireEvent.click(screen.getByTestId('wizard-continue'));
+      addPlayerRow('Onni');
+      addPlayerRow('Toivo');
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await expectNextGameStep();
+    };
+    const firstDateChip = () =>
+      document.querySelector('[data-testid^="next-game-date-2"]') as HTMLButtonElement;
+
+    it('needs a date before it can make the plan', async () => {
+      renderWizard();
+      await toNextGame();
+      expect(screen.getByTestId('next-game-submit')).toBeDisabled();
+      fireEvent.click(firstDateChip());
+      expect(screen.getByTestId('next-game-submit')).toBeEnabled();
+    });
+
+    /** @critical - the first game is created HERE and only here, with its plan. */
+    it('creates the game and its plan from what the coach gave, then opens the plan', async () => {
+      const { onComplete } = renderWizard();
+      await toNextGame();
+      fireEvent.click(firstDateChip());
+      const date = firstDateChip().getAttribute('data-testid')!.replace('next-game-date-', '');
+      fireEvent.change(screen.getByTestId('next-game-opponent'), { target: { value: '  Rantakylän FC ' } });
+      fireEvent.click(screen.getByTestId('next-game-submit'));
+
+      expect(await screen.findByTestId('plan-quick-view-mock')).toHaveTextContent('plan-1:game-1');
+      expect(mockCreateNextGamePair).toHaveBeenCalledTimes(1);
+      const [, pairInput] = mockCreateNextGamePair.mock.calls[0];
+      expect(pairInput).toMatchObject({
+        team: { id: 'team-1', name: 'FC Test' },
+        fieldSize: '8v8',
+        gameType: 'soccer',
+        ageGroup: 'U12',
+        // U12 football: no published time -> the 2 x 15 default (D7).
+        numberOfPeriods: 2,
+        periodMinutes: 15,
+        gameDate: date,
+        opponentName: 'Rantakylän FC',
+      });
+      expect(pairInput.players.map((p: { name: string }) => p.name)).toEqual(['Onni', 'Toivo']);
+      expect(mockRecordMilestone).toHaveBeenCalledWith('wizardDone', 'user-1');
+      expect(mockRecordMilestone).toHaveBeenCalledWith('firstPlanSeen', 'user-1');
+      expect(onComplete).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByText('plan-done'));
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses a neutral opponent name when none is given', async () => {
+      renderWizard();
+      await toNextGame();
+      fireEvent.click(firstDateChip());
+      fireEvent.click(screen.getByTestId('next-game-submit'));
+      await screen.findByTestId('plan-quick-view-mock');
+      expect(mockCreateNextGamePair.mock.calls[0][1].opponentName).toBe('Opponent');
+    });
+
+    it('wires game creation through the normal new-game path', async () => {
+      mockCreateNextGamePair.mockImplementation(async (deps: { createGame: (r: unknown) => Promise<unknown> }) => {
+        await deps.createGame({ marker: 'request' });
+        return { gameId: 'game-1', planId: 'plan-1', planGameId: 'pg-1' };
+      });
+      renderWizard();
+      await toNextGame();
+      fireEvent.click(firstDateChip());
+      fireEvent.click(screen.getByTestId('next-game-submit'));
+      await screen.findByTestId('plan-quick-view-mock');
+      expect(mockBuildAndPersistNewGame).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'user-1', savedGames: {} }),
+        { marker: 'request' },
+      );
+    });
+
+    it('stays on the step with a message when creation fails', async () => {
+      mockCreateNextGamePair.mockRejectedValueOnce(new Error('offline'));
+      const { onComplete } = renderWizard();
+      await toNextGame();
+      fireEvent.click(firstDateChip());
+      fireEvent.click(screen.getByTestId('next-game-submit'));
+      await waitFor(() =>
+        expect(mockShowToast).toHaveBeenCalledWith('Could not create the game - please try again.', 'error'),
+      );
+      expect(screen.getByTestId('next-game-step')).toBeInTheDocument();
+      expect(onComplete).not.toHaveBeenCalled();
+    });
+
+    it('"Not now" goes Home without creating a game', async () => {
+      const { onComplete } = renderWizard();
+      await toNextGame();
+      fireEvent.click(screen.getByTestId('next-game-skip'));
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      expect(mockCreateNextGamePair).not.toHaveBeenCalled();
+    });
+
+    it('offers "Today" first (R13)', async () => {
+      renderWizard();
+      await toNextGame();
+      const chips = screen.getAllByRole('button', { pressed: false }).filter((b) =>
+        (b.getAttribute('data-testid') ?? '').startsWith('next-game-date-'),
+      );
+      expect(chips[0]).toHaveAttribute('data-testid', 'next-game-date-today');
+      expect(chips[0]).toHaveTextContent('Today');
+    });
+
+    /** @critical R3: an app kill on this step must not lose it */
+    it('keeps the open step and its answers on the device until it is left', async () => {
+      renderWizard();
+      await toNextGame();
+      const key = 'matchops_next_game_step_user-1';
+      expect(localStorage.getItem(key)).not.toBeNull();
+      fireEvent.click(firstDateChip());
+      fireEvent.change(screen.getByTestId('next-game-opponent'), { target: { value: 'Rantakylä' } });
+      const kept = JSON.parse(localStorage.getItem(key)!);
+      expect(kept.gameDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(kept.opponent).toBe('Rantakylä');
+      fireEvent.click(screen.getByTestId('next-game-submit'));
+      await screen.findByTestId('plan-quick-view-mock');
+      expect(localStorage.getItem(key)).toBeNull();
+    });
+
+    it('"Not now" forgets the open step', async () => {
+      renderWizard();
+      await toNextGame();
+      fireEvent.click(screen.getByTestId('next-game-skip'));
+      expect(localStorage.getItem('matchops_next_game_step_user-1')).toBeNull();
+    });
+  });
+
+  /** R10: Android/browser back steps back inside the wizard. */
+  describe('hardware back', () => {
+    let backSpy: jest.SpyInstance;
+    beforeEach(() => {
+      __resetModalHardwareBackForTests();
+      backSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+    });
+    afterEach(() => backSpy.mockRestore());
+    const pressBack = () =>
+      act(() => {
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      });
+
+    it('goes from the player list to the team step', async () => {
+      renderWizard();
+      toStepTwo();
+      expect(screen.getByTestId('wizard-player-input')).toBeInTheDocument();
+      pressBack();
+      await waitFor(() => expect(screen.getByTestId('wizard-team-name')).toBeInTheDocument());
+      expect(screen.getByTestId('wizard-team-name')).toHaveValue('FC Test');
+    });
+
+    it('goes from the next-game step back to the player list, and Valmis again creates nothing twice', async () => {
+      const { onComplete } = renderWizard();
+      toStepTwo();
+      addPlayerRow('Onni');
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await expectNextGameStep();
+      pressBack();
+      await waitFor(() => expect(screen.getAllByTestId('wizard-player-row')).toHaveLength(1));
+      expect(onComplete).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByTestId('wizard-finish'));
+      await expectNextGameStep();
+      expect(mockAddPlayer).toHaveBeenCalledTimes(1);
+      expect(mockAddTeam).toHaveBeenCalledTimes(1);
     });
   });
 });

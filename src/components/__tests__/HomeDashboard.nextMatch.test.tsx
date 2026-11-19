@@ -85,7 +85,7 @@ describe('the accent', () => {
     })} t={t} />);
 
     const marked = screen.getByRole('button', { name: /HJK/ });
-    expect(marked.className).toContain('amber');
+    expect(marked.className).toContain('bg-action');
   });
 
   /**
@@ -99,7 +99,7 @@ describe('the accent', () => {
     })} t={t} />);
 
     const cards = screen.getAllByRole('button', { name: /HJK/ });
-    expect(cards.every((c) => !c.className.includes('amber'))).toBe(true);
+    expect(cards.every((c) => !c.className.includes('bg-action'))).toBe(true);
   });
 
   it('never marks a match that is not the one you had open', () => {
@@ -109,7 +109,7 @@ describe('the accent', () => {
       recent: [recent('older', 'Ojk')],
     })} t={t} />);
 
-    expect(screen.getByRole('button', { name: /Ojk/ }).className).not.toContain('amber');
+    expect(screen.getByRole('button', { name: /Ojk/ }).className).not.toContain('bg-action');
   });
 });
 
@@ -213,7 +213,9 @@ describe('when to leave', () => {
   it('tells the coach when to set off', () => {
     render(<HomeDashboard summary={base({ upcoming: fixture({ travel: travel() }) })} t={t} />);
 
-    expect(screen.getByText(/Leave 15:45/)).toBeInTheDocument();
+    // S1: the departure is a stat-strip cell - caption over the time.
+    expect(screen.getByText('Departure')).toBeInTheDocument();
+    expect(screen.getByText('15:45')).toBeInTheDocument();
   });
 
   /**
@@ -244,7 +246,7 @@ describe('when to leave', () => {
   it('says nothing at all when it cannot be worked out', () => {
     render(<HomeDashboard summary={base({ upcoming: fixture({ travel: null }) })} t={t} />);
 
-    expect(screen.queryByText(/Leave /)).toBeNull();
+    expect(screen.queryByText('Departure')).toBeNull();
   });
 });
 
@@ -263,7 +265,7 @@ describe('adjusting the journey from the card', () => {
         t={t}
       />,
     );
-    await userEvent.click(screen.getByText(/Leave 15:45/));
+    await userEvent.click(screen.getByText('15:45'));
     return { onAdjustTravel };
   };
 
@@ -288,7 +290,7 @@ describe('adjusting the journey from the card', () => {
   it('shows which buffer is currently in force', async () => {
     await open();
 
-    expect(screen.getByRole('button', { name: '45 min' })).toHaveClass('bg-amber-500');
+    expect(screen.getByRole('button', { name: '45 min' })).toHaveClass('bg-action');
   });
 
   /** The measured drive is what turns the estimate into a real number. */
@@ -604,7 +606,7 @@ describe('the travel row', () => {
 
     const link = screen.getByRole('link', { name: /Directions to the venue/i });
     expect(link).toHaveAttribute('href', 'https://maps.example/x');
-    expect(screen.getByText(/Leave /)).toBeInTheDocument();
+    expect(screen.getByText('15:45')).toBeInTheDocument();
   });
 
   /** A setting nobody finds is a feature nobody has: offer it where the coach is looking. */
@@ -651,9 +653,9 @@ describe('the result colour on the top card', () => {
   });
 
   it.each([
-    ['a win', 5, 3, 'text-green-300'],
-    ['a loss', 1, 6, 'text-red-300'],
-    ['a draw', 2, 2, 'text-slate-200'],
+    ['a win', 5, 3, 's1-numeral-win'],
+    ['a loss', 1, 6, 's1-numeral-loss'],
+    ['a draw', 2, 2, 's1-numeral-draw'],
   ])('colours %s', (_what, ours, theirs, cls) => {
     render(<HomeDashboard summary={base({ resume: played(ours, theirs) })} t={t} />);
 
@@ -665,7 +667,7 @@ describe('the result colour on the top card', () => {
     render(<HomeDashboard summary={base({ resume: played(0, 0, false) })} t={t} />);
 
     const n = screen.getByText('0–0').className;
-    expect(n).not.toMatch(/text-(green|red)-300|text-slate-200/);
+    expect(n).not.toMatch(/s1-numeral-(win|loss|draw)/);
   });
 
   /**

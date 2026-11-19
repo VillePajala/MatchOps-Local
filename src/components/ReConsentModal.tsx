@@ -5,7 +5,15 @@ import { useTranslation } from 'react-i18next';
 import { translateAuthError } from '@/utils/authHelpers';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthProvider';
-import { primaryButtonStyle, DialogBackdrop, secondaryButtonStyle } from '@/styles/modalStyles';
+import {
+  primaryButtonStyle,
+  DialogBackdrop,
+  secondaryButtonStyle,
+  dialogTitleStyle,
+  linkStyle,
+  checkboxStyle,
+  fieldErrorStyle,
+} from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { POLICY_VERSION } from '@/config/constants';
 
@@ -67,58 +75,58 @@ export function ReConsentModal() {
 
   return (
     <DialogBackdrop className="z-[100]">
-      <div ref={modalRef} className="bg-slate-800 rounded-lg shadow-2xl max-w-md w-full border border-slate-600 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="reconsent-title">
+      <div ref={modalRef} className="s1-list font-ui mx-4 flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="reconsent-title">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-900/50 border-b border-white/10">
-          <h2 id="reconsent-title" className="text-xl font-bold text-amber-400">
+        <div className="flex-shrink-0 px-6 py-4 border-b border-hairline">
+          <h2 id="reconsent-title" className={dialogTitleStyle}>
             {t('reConsent.title', 'Updated Terms & Privacy Policy')}
           </h2>
         </div>
 
         {/* Content */}
-        <div className="px-6 py-4 space-y-4">
-          <p className="text-slate-300 text-sm">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          <p className="text-ink-2 text-sm">
             {t(
               'reConsent.description',
               'We have updated our Terms of Service and Privacy Policy. Please review and accept the new terms to continue using MatchOps.'
             )}
           </p>
 
-          <p className="text-slate-400 text-sm">
+          <p className="text-ink-3 text-sm">
             {t('reConsent.version', 'Policy Version')}: {POLICY_VERSION}
           </p>
 
           {/* Links to policies */}
-          <div className="flex gap-4 text-sm">
+          <div className="flex gap-2 text-sm">
             <Link
               href="/terms"
               target="_blank"
-              className="text-indigo-400 hover:text-indigo-300 underline"
+              className={`${linkStyle} inline-flex min-h-11 items-center`}
             >
               {t('reConsent.termsLink', 'Terms of Service')}
             </Link>
             <Link
               href="/privacy-policy"
               target="_blank"
-              className="text-indigo-400 hover:text-indigo-300 underline"
+              className={`${linkStyle} inline-flex min-h-11 items-center`}
             >
               {t('reConsent.privacyLink', 'Privacy Policy')}
             </Link>
           </div>
 
           {/* Consent checkbox */}
-          <div className="flex items-start gap-3 mt-4">
+          <div className="flex items-start gap-3 mt-4 min-h-11">
             <input
               type="checkbox"
               id="re-consent-checkbox"
               checked={hasAccepted}
               onChange={(e) => setHasAccepted(e.target.checked)}
               disabled={isSubmitting}
-              className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
+              className={`${checkboxStyle} mt-0.5 shrink-0 cursor-pointer`}
             />
             <label
               htmlFor="re-consent-checkbox"
-              className="text-slate-300 text-sm leading-relaxed hover:text-slate-200 transition-colors cursor-pointer"
+              className="text-ink-2 text-sm leading-relaxed cursor-pointer"
             >
               {t(
                 'reConsent.acceptCheckbox',
@@ -129,12 +137,12 @@ export function ReConsentModal() {
 
           {/* Error message */}
           {error && (
-            <p className="text-red-400 text-sm">{translateAuthError(error, t)}</p>
+            <p className={fieldErrorStyle}>{translateAuthError(error, t)}</p>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-900/30 border-t border-white/10 flex gap-3">
+        <div className="flex-shrink-0 px-6 py-4 border-t border-hairline flex gap-3">
           <button
             onClick={handleDecline}
             disabled={isSubmitting}

@@ -12,7 +12,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots } from '@/utils/playtimePlanner/lineup';
-import { subtextStyle } from '@/styles/modalStyles';
+import { subtextStyle, sectionLabelStyle, groupedListStyle, listRowStyle } from '@/styles/modalStyles';
 import type { PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 
 interface PlanSubsEditorProps {
@@ -56,13 +56,13 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onRemove
   }, [game.subs, starting, nameById]);
 
   return (
-    <div className="max-w-sm mx-auto space-y-3">
-      <h4 className="text-lg font-semibold text-slate-200">{t('playtimePlanner.subs.heading', 'Substitutions')}</h4>
+    <div className="max-w-sm mx-auto font-ui">
+      <h4 className={`${sectionLabelStyle} px-1 mb-2.5`}>{t('playtimePlanner.subs.heading', 'Substitutions')}</h4>
 
       {sortedSubs.length === 0 ? (
-        <p className={subtextStyle}>{t('playtimePlanner.subs.none', 'No substitutions yet.')}</p>
+        <p className={`${subtextStyle} px-1`}>{t('playtimePlanner.subs.none', 'No substitutions yet.')}</p>
       ) : (
-        <ul className="space-y-1">
+        <ul className={groupedListStyle}>
           {sortedSubs.map((sub) => {
             const inName = nameById.get(sub.inPlayerId ?? '') ?? '-';
             const pos = positionLabel.get(sub.slotId) ?? sub.slotId;
@@ -70,9 +70,9 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onRemove
             return (
               <li
                 key={sub.id}
-                className="flex items-center justify-between bg-slate-800/40 border border-slate-700/50 rounded-md px-3 py-1.5 text-sm text-slate-200"
+                className={`${listRowStyle} justify-between text-[15px] text-ink-2`}
               >
-                <span>
+                <span className="min-w-0 py-2">
                   {outName
                     ? t('playtimePlanner.subs.rowInOut', "{{minute}}' {{player}} in for {{out}} ({{position}})", {
                         minute: Math.round(sub.timeSeconds / 60),
@@ -89,7 +89,7 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onRemove
                 <button
                   type="button"
                   onClick={() => onRemove(sub.id)}
-                  className="text-sm text-red-400 hover:text-red-300 ml-2 py-2 px-2 -my-1.5 -mr-2"
+                  className="shrink-0 min-h-11 px-3 rounded-full font-ui text-sm font-semibold text-red-400 hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 >
                   {t('playtimePlanner.subs.remove', 'Remove')}
                 </button>

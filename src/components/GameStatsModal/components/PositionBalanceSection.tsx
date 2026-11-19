@@ -4,6 +4,7 @@ import type { Player } from '@/types';
 import type { TranslationKey } from '@/i18n-types';
 import { LINES, computePositionDiversity, type DiversityGame } from '@/utils/positionDiversity';
 import { POSITION_IDS, type PositionCategory } from '@/config/positions';
+import { segmentTrackStyle, segmentStyle, segmentSelectedStyle } from '@/styles/modalStyles';
 
 interface PositionBalanceSectionProps {
   /** The games in the current stats scope (each carries `playerPositions`). */
@@ -18,10 +19,7 @@ type Mode = 'lines' | 'positions';
 const LOW_COVERAGE = 0.5;
 
 // Full-width segmented toggle, matching the sport/gender toggles in the app.
-const toggleBtn = (active: boolean) =>
-  `flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-    active ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-  }`;
+const toggleBtn = (active: boolean) => (active ? segmentSelectedStyle : segmentStyle);
 
 /**
  * Position balance: a players x lines (or positions) table for the current
@@ -63,9 +61,9 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
 
   if (diversity.totalGames === 0 || rows.length === 0) {
     return (
-      <section className="bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner">
-        <h3 className="text-lg font-semibold text-slate-200 mb-2">{title}</h3>
-        <p className="text-sm text-slate-400">
+      <section className="s1-list p-4 font-ui">
+        <h3 className="text-base font-semibold text-ink mb-2">{title}</h3>
+        <p className="text-sm text-ink-3">
           {t('gameStatsModal.positionBalance.empty', 'No positions recorded yet for this selection.')}
         </p>
       </section>
@@ -90,9 +88,9 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
     mode === 'lines' ? row.byLine[key as PositionCategory] : row.byPosition[key] ?? 0;
 
   return (
-    <section className="bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <h3 className="text-lg font-semibold text-slate-200 mb-1">{title}</h3>
-      <p className="text-sm text-slate-400 mb-3">
+    <section className="s1-list p-4 font-ui">
+      <h3 className="text-base font-semibold text-ink mb-1">{title}</h3>
+      <p className="text-sm text-ink-3 mb-3">
         {t('gameStatsModal.positionBalance.gamesCovered', 'Positions recorded in {{recorded}}/{{scanned}} games', {
           recorded: diversity.totalGames,
           scanned: scopeGames,
@@ -100,7 +98,7 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
       </p>
 
       {/* Full-width edge-to-edge Lines / Positions toggle. */}
-      <div className="flex gap-2 mb-3" role="group" aria-label={title}>
+      <div className={`${segmentTrackStyle} mb-3`} role="group" aria-label={title}>
         <button type="button" onClick={() => setMode('lines')} className={toggleBtn(mode === 'lines')} aria-pressed={mode === 'lines'}>
           {t('gameStatsModal.positionBalance.byLines', 'Lines')}
         </button>
@@ -111,8 +109,8 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
 
       <div className={`overflow-x-auto ${lowCoverage ? 'opacity-60' : ''}`}>
         <table className="w-full text-sm">
-          <thead className="text-slate-300">
-            <tr className="border-b border-white/10">
+          <thead className="text-ink-2">
+            <tr className="border-b border-hairline">
               <th className="px-2 py-2 text-left font-medium">
                 {t('gameStatsModal.positionBalance.player', 'Player')}
               </th>
@@ -123,13 +121,13 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
               ))}
             </tr>
           </thead>
-          <tbody className="text-slate-100">
+          <tbody className="text-ink">
             {rows.map(row => (
-              <tr key={row.playerId} className="border-b border-white/10 hover:bg-slate-800/40">
+              <tr key={row.playerId} className="border-b border-hairline hover:bg-white/[0.03]">
                 <td className="px-2 py-2 font-medium">
                   {/* Narrow players are called out by an amber name (no fragile dot). */}
                   <span
-                    className={`block truncate ${row.narrow ? 'text-amber-400 font-semibold' : ''}`}
+                    className={`block truncate ${row.narrow ? 'text-action font-semibold' : ''}`}
                     title={row.narrow ? t('gameStatsModal.positionBalance.narrow', 'Narrow') : undefined}
                   >
                     {nameOf(row.playerId)}
@@ -140,7 +138,7 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
                   return (
                     <td
                       key={c.key}
-                      className={`px-0.5 py-2 text-center ${n > 0 ? 'text-amber-400 font-semibold' : 'text-slate-600'}`}
+                      className={`px-0.5 py-2 text-center tabular-nums ${n > 0 ? 'text-ink font-semibold' : 'text-ink-3/60'}`}
                     >
                       {n > 0 ? n : '–'}
                     </td>

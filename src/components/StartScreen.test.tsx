@@ -19,6 +19,9 @@ jest.mock('@/utils/appSettings', () => ({
   updateAppSettings: jest.fn().mockResolvedValue({}),
 }));
 
+jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast: jest.fn() }) }));
+jest.mock('@/utils/playtimePlanner/planLinks', () => ({ getPlanLink: jest.fn().mockResolvedValue(null) }));
+
 jest.mock('@/utils/fullBackup', () => ({
   __esModule: true,
   exportFullBackup: jest.fn().mockResolvedValue('{}'),
@@ -51,7 +54,6 @@ jest.mock('react-i18next', () => ({
 
 import i18n, { saveLanguagePreference } from '@/i18n';
 import StartScreen from './StartScreen';
-import GuidedTourProvider from '@/contexts/GuidedTourProvider';
 
 describe('StartScreen', () => {
   /** Phase 3 entry point: "Add to player stats" is the last row of the Stats tab, live even before the first match. */
@@ -372,29 +374,6 @@ describe('StartScreen', () => {
 
     const openGear = () => fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
-    it('shows a "Setup checklist (N/4)" gear entry that opens the checklist (not on the home tabs)', async () => {
-      render(
-        <StartScreen
-          {...baseHandlers()}
-          canResume={true}
-          hasSavedGames={true}
-          isFirstTimeUser={false}
-          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
-        />
-      );
-      // The card no longer sits on the home surface.
-      expect(screen.queryByText('Get the most out of MatchOps')).not.toBeInTheDocument();
-
-      openGear();
-      const sheet = screen.getByRole('dialog', { name: 'App & account' });
-      const entry = await within(sheet).findByRole('button', { name: /Setup checklist/ });
-      fireEvent.click(entry);
-
-      // The checklist opens in its own sheet.
-      expect(await screen.findByText('Get the most out of MatchOps')).toBeInTheDocument();
-      expect(screen.getByText('Build a team')).toBeInTheDocument();
-    });
-
     it('the home-surface getting-started banner is GONE (superseded by the composed start screen)', async () => {
       render(
         <StartScreen
@@ -423,25 +402,7 @@ describe('StartScreen', () => {
       expect(screen.queryByTestId('setup-banner')).not.toBeInTheDocument();
     });
 
-    it('gear sheet offers a restart-the-guide entry when the tour provider is present', () => {
-      render(
-        <GuidedTourProvider>
-          <StartScreen
-            {...baseHandlers()}
-            canResume={false}
-            hasSavedGames={false}
-            isFirstTimeUser={false}
-            setupProgress={{ players: true, competition: true, team: true, teamLinkedGame: true }}
-          />
-        </GuidedTourProvider>
-      );
-      openGear();
-      fireEvent.click(screen.getByTestId('gear-restart-tour'));
-      // The coached tour starts from its first step.
-      expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Welcome to MatchOps');
-    });
-
-    it('has no restart-the-guide entry without a tour provider', () => {
+    it('has no getting-started guide entry (first-use help removed, Onboarding v3 C11)', () => {
       render(
         <StartScreen
           {...baseHandlers()}
@@ -453,6 +414,22 @@ describe('StartScreen', () => {
       );
       openGear();
       expect(screen.queryByTestId('gear-restart-tour')).not.toBeInTheDocument();
+      expect(screen.queryByText('Getting started guide')).not.toBeInTheDocument();
+    });
+
+    it('has no setup checklist entry in the gear sheet (first-use help removed, R8)', async () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={true}
+          hasSavedGames={true}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
+        />
+      );
+      openGear();
+      const sheet = await screen.findByRole('dialog', { name: 'App & account' });
+      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
     });
 
     it('has no getting-started banner once setup is complete', async () => {
@@ -470,97 +447,6 @@ describe('StartScreen', () => {
       expect(screen.queryByTestId('setup-banner')).not.toBeInTheDocument();
     });
 
-    it('has no setup entry once all steps are complete', async () => {
-      render(
-        <StartScreen
-          {...baseHandlers()}
-          canResume={true}
-          hasSavedGames={true}
-          isFirstTimeUser={false}
-          setupProgress={{ players: true, competition: true, team: true, teamLinkedGame: true }}
-        />
-      );
-      openGear();
-      const sheet = await screen.findByRole('dialog', { name: 'App & account' });
-      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
-    });
-
-    it('has no setup entry for first-time users', () => {
-      render(
-        <StartScreen
-          {...baseHandlers()}
-          canResume={false}
-          hasSavedGames={false}
-          isFirstTimeUser={true}
-          setupProgress={{ players: false, competition: false, team: false, teamLinkedGame: false }}
-        />
-      );
-      openGear();
-      const sheet = screen.getByRole('dialog', { name: 'App & account' });
-      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
-    });
-
-    it('the checklist × dismisses the gear entry across renders', async () => {
-      const props = {
-        ...baseHandlers(),
-        canResume: true,
-        hasSavedGames: true,
-        isFirstTimeUser: false,
-        setupProgress: { players: false, competition: false, team: false, teamLinkedGame: false },
-      };
-      const { unmount } = render(<StartScreen {...props} />);
-      openGear();
-      let sheet = screen.getByRole('dialog', { name: 'App & account' });
-      fireEvent.click(await within(sheet).findByRole('button', { name: /Setup checklist/ }));
-      fireEvent.click(screen.getByRole('button', { name: 'Dismiss' })); // the card's ×
-
-      unmount();
-      render(<StartScreen {...props} />);
-      openGear();
-      sheet = screen.getByRole('dialog', { name: 'App & account' });
-      // Persisted dismissal keeps the gear entry hidden.
-      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
-    });
-
-    it('opening the setup sheet closes the gear sheet (not stacked)', async () => {
-      render(
-        <StartScreen
-          {...baseHandlers()}
-          canResume={true}
-          hasSavedGames={true}
-          isFirstTimeUser={false}
-          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
-        />
-      );
-      openGear();
-      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Setup checklist/ }));
-      // Gear sheet is gone; only the setup sheet remains.
-      expect(screen.queryByRole('dialog', { name: 'App & account' })).not.toBeInTheDocument();
-      expect(screen.getByRole('dialog', { name: 'Get the most out of MatchOps' })).toBeInTheDocument();
-    });
-
-    it('backdrop tap closes the setup sheet WITHOUT dismissing it (entry survives)', async () => {
-      render(
-        <StartScreen
-          {...baseHandlers()}
-          canResume={true}
-          hasSavedGames={true}
-          isFirstTimeUser={false}
-          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
-        />
-      );
-      openGear();
-      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Setup checklist/ }));
-      expect(screen.getByText('Get the most out of MatchOps')).toBeInTheDocument();
-
-      // Tap the backdrop (not the ×) - closes the sheet only.
-      fireEvent.click(screen.getByTestId('setup-sheet-backdrop'));
-      expect(screen.queryByText('Get the most out of MatchOps')).not.toBeInTheDocument();
-
-      // The gear entry is NOT dismissed - it reopens.
-      openGear();
-      expect(within(screen.getByRole('dialog', { name: 'App & account' })).getByRole('button', { name: /Setup checklist/ })).toBeInTheDocument();
-    });
   });
 });
 
@@ -606,7 +492,8 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
       const props = composeProps({ players: false, team: false });
       render(<StartScreen {...props} />);
 
-      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('Welcome! Start by adding your players.');
+      // No welcome strip any more (Onboarding v3, C11): the hero names the step.
+      expect(screen.queryByTestId('welcome-strip')).not.toBeInTheDocument();
       fireEvent.click(screen.getByTestId('hero-add-players'));
       expect(props.onManageRoster).toHaveBeenCalledTimes(1);
 
@@ -621,7 +508,6 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
       const props = composeProps({ players: true, team: false });
       render(<StartScreen {...props} />);
 
-      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('Good start! Next, create your team.');
       fireEvent.click(screen.getByTestId('hero-create-team'));
       expect(props.onManageTeams).toHaveBeenCalledTimes(1);
 
@@ -648,11 +534,10 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
      * @critical - Wizard graduates here: team + players exist, no games ->
      * the stock amber New Game hero takes over (no duplicate custom hero).
      */
-    it('team ready: the stock New Game hero leads and the strip says all set', () => {
+    it('team ready: the stock New Game hero leads', () => {
       const props = composeProps({ players: true, team: true });
       render(<StartScreen {...props} />);
 
-      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('All set!');
       expect(screen.queryByTestId('hero-add-players')).not.toBeInTheDocument();
       expect(screen.queryByTestId('hero-create-team')).not.toBeInTheDocument();
       // Exactly ONE tour-new-game element (the stock hero), no step duplicate.
@@ -666,17 +551,6 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
       render(<StartScreen {...props} />);
       expect(screen.queryByTestId('welcome-strip')).not.toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-steps')).not.toBeInTheDocument();
-    });
-
-    it('the welcome strip carries the opt-in tour link', () => {
-      const props = composeProps({ players: false, team: false });
-      render(
-        <GuidedTourProvider>
-          <StartScreen {...props} />
-        </GuidedTourProvider>
-      );
-      fireEvent.click(screen.getByTestId('welcome-strip-tour'));
-      expect(screen.getByTestId('guided-tour-overlay')).toBeInTheDocument();
     });
   });
 
@@ -795,7 +669,8 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
    */
   it('the Taso link sits on the games front page (game-day workflow tool)', () => {
     render(<StartScreen {...shellProps()} />);
-    const taso = screen.getByRole('link', { name: /Taso - lineups & results/ });
+    const taso = screen.getByRole('link', { name: /Taso/ });
+    expect(taso).toHaveTextContent('lineups & results');
     expect(taso).toHaveAttribute('href', 'https://taso.palloliitto.fi');
     expect(taso).toHaveAttribute('target', '_blank');
   });
@@ -920,29 +795,39 @@ describe('Home dashboard view (opt-in)', () => {
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' })); // opens gear sheet
     const sheet = screen.getByRole('dialog', { name: 'App & account' });
-    fireEvent.click(within(sheet).getByRole('button', { name: /Simplified view/ }));
+    fireEvent.click(within(sheet).getByRole('button', { name: /Compact home cards/ }));
     expect(props.onSetHomeView).toHaveBeenCalledWith('simple'); // was 'dashboard'
   });
 
-  it('Club tab shows the counts header when the dashboard is on', () => {
+  it('Club tab shows the counts on the rows when the dashboard is on', () => {
     const props = { ...dashProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn(), onOpenTraining: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
-    expect(screen.getByText(/18 players/)).toBeInTheDocument();
-    expect(screen.getByText(/3 teams/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Players\s*18/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Teams\s*3/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Personnel\s*\d+/ })).toBeInTheDocument();
   });
 
   it('Kilpailut tab shows the club-season card; it opens OVERALL stats (not a Kausi)', () => {
     const props = { ...dashProps(), onManageSeasons: jest.fn(), onManageTournaments: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
-    expect(screen.getByText('This season')).toBeInTheDocument();
-    expect(screen.getByText(/3 leagues · 2 tournaments/)).toBeInTheDocument();
+    expect(screen.getByText('24/25')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Leagues\s*3/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Tournaments\s*2/ })).toBeInTheDocument();
     // The card shows the club-season (Vuosi) record, so it must open OVERALL
     // stats - NOT the 'season' tab (a user Kausi). Guards the #688 fix.
     (props.onViewStatsTab as jest.Mock).mockClear();
-    fireEvent.click(screen.getByText('This season'));
+    fireEvent.click(screen.getByText('24/25'));
     expect(props.onViewStatsTab).toHaveBeenCalledWith('overall');
+  });
+
+  it('Tilastot tab shows one empty message, not zero tiles, before any game is played', () => {
+    const empty = { ...summary, vuosi: { ...summary.vuosi!, gamesPlayed: 0, wins: 0, ties: 0, losses: 0, goalDifference: 0 }, topScorer: null };
+    render(<StartScreen {...dashProps({ homeSummary: empty })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.getByTestId('home-stats-empty')).toBeInTheDocument();
+    expect(screen.queryByText('Goal diff')).not.toBeInTheDocument();
   });
 
   it('Tilastot tab shows the overview tiles when on', () => {
@@ -1010,5 +895,57 @@ describe('Home guide + empty-state guidance', () => {
     render(<StartScreen {...props({ hasSavedGames: false })} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(screen.getByText("Statistics appear once you've played games.")).toBeInTheDocument();
+  });
+
+  /**
+   * Onboarding v3 layouts: the basic layout is its own Home with no tab bar,
+   * and while the account's layout is not known yet neither layout renders.
+   * @critical
+   */
+  describe('layouts', () => {
+    const summary = {
+      resume: null,
+      lastPlayed: null,
+      vuosi: null,
+      recent: [],
+      upcoming: null,
+      upcomingList: [],
+      counts: { players: 9, teams: 1, personnel: 0, seasons: 0, tournaments: 0 },
+      countsReady: true,
+      topScorer: null,
+      playedCount: 0,
+    };
+    const shellProps = () => ({
+      onLoadGame: jest.fn(),
+      onResumeGame: jest.fn(),
+      onGetStarted: jest.fn(),
+      onViewStats: jest.fn(),
+      onOpenSettings: jest.fn(),
+      canResume: false,
+      hasSavedGames: true,
+      isFirstTimeUser: false,
+    });
+
+    it('basic: the basic Home, no tablist, no simplified-view switch in the gear', () => {
+      render(<StartScreen {...shellProps()} appLayout="basic" homeSummary={summary} homeView="dashboard" onSetHomeView={jest.fn()} />);
+      expect(screen.getByTestId('home-basic')).toBeInTheDocument();
+      expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+      expect(screen.getByTestId('all-features')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+      expect(screen.queryByText('Compact home cards')).not.toBeInTheDocument();
+    });
+
+    it('full (the default): the tabbed Home as before', () => {
+      render(<StartScreen {...shellProps()} homeSummary={summary} />);
+      expect(screen.queryByTestId('home-basic')).not.toBeInTheDocument();
+      expect(screen.getByRole('tablist')).toBeInTheDocument();
+    });
+
+    it('loading: neither layout renders (no flash of the wrong one)', () => {
+      render(<StartScreen {...shellProps()} appLayout="loading" homeSummary={summary} />);
+      expect(screen.queryByTestId('home-basic')).not.toBeInTheDocument();
+      expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+      expect(screen.queryByText('New Game')).not.toBeInTheDocument();
+    });
   });
 });

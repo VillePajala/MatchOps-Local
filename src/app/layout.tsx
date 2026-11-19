@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Rajdhani } from 'next/font/google';
+import { Rajdhani, Barlow_Condensed, Inter } from 'next/font/google';
 import "./globals.css";
 import ClientWrapper from "@/components/ClientWrapper";
 import QueryProvider from './QueryProvider';
@@ -7,17 +7,33 @@ import { AuthProvider } from '@/contexts/AuthProvider';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import ReConsentModal from '@/components/ReConsentModal';
 import MarketingConsentPrompt from '@/components/MarketingConsentPrompt';
-import GuidedTourProvider from '@/contexts/GuidedTourProvider';
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import InstallPrompt from "@/components/InstallPrompt";
 import I18nInitializer from "@/components/I18nInitializer";
 import { manifestConfig } from "@/config/manifest.config.js";
 
-// Configure Rajdhani font
+// Rajdhani: only the "MatchOps" wordmark uses it now (bold).
 const rajdhani = Rajdhani({
   subsets: ['latin'],
-  weight: ['400', '600'], // We'll use 600 for Semi-bold
+  weight: ['400', '600', '700'],
   variable: '--font-rajdhani',
+  display: 'swap',
+});
+
+// Barlow Condensed for big numerals and titles (font-display), Inter for all
+// UI text: Inter is the app-wide body font (globals.css) and the font-ui token.
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  style: ['normal', 'italic'],
+  variable: '--font-barlow-condensed',
+  display: 'swap',
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
   display: 'swap',
 });
 
@@ -81,20 +97,16 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/splash/apple-splash-750-1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         <link rel="apple-touch-startup-image" href="/splash/apple-splash-640-1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
       </head>
-      <body className={rajdhani.variable}>
+      <body className={`${rajdhani.variable} ${barlowCondensed.variable} ${inter.variable}`}>
         <I18nInitializer>
           <ServiceWorkerRegistration />
           <InstallPrompt />
           <QueryProvider>
             <AuthProvider>
               <SubscriptionProvider>
-                {/* App-level so the marketing prompt (below) can defer to an
-                    active first-run tour instead of racing it. */}
-                <GuidedTourProvider>
-                  <ClientWrapper>{children}</ClientWrapper>
-                  <ReConsentModal />
-                  <MarketingConsentPrompt />
-                </GuidedTourProvider>
+                <ClientWrapper>{children}</ClientWrapper>
+                <ReConsentModal />
+                <MarketingConsentPrompt />
               </SubscriptionProvider>
             </AuthProvider>
           </QueryProvider>

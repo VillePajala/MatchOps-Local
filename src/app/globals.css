@@ -1,5 +1,290 @@
 @import "tailwindcss";
 
+/*
+ * S1 "Syke Refined" design tokens (home redesign, phase 1 of 3).
+ *
+ * Named by ROLE, not by hue, so the later phases (game screen, modals) reuse
+ * them without inheriting a home-screen vocabulary. Each becomes a Tailwind
+ * utility: bg-carbon, bg-surface, text-ink-2, border-hairline, text-win, ...
+ *
+ *   carbon     - the page canvas (near-black)
+ *   surface    - raised controls: icon buttons, the language segment
+ *   surface-2  - the step above surface: selected segment, pressed rows
+ *   hairline   - dividers and 1px edges
+ *   ink/2/3    - text: primary, secondary, tertiary (labels, captions)
+ *   action     - amber: the one colour that means "press this"
+ *   action-hot - the orange end of the primary-button gradient
+ *   on-action  - text on an action fill
+ *   win/loss/draw - result colours (badges, scores)
+ */
+@theme {
+  --color-carbon: #0f172a;   /* = the body/edge navy (slate-900), so the app's edges and the home screen are one surface */
+  --color-surface: #162036;
+  --color-surface-2: #1e293b;   /* slate-800, as the popups */
+  --color-hairline: rgb(255 255 255 / 0.07);
+  --color-ink: #ffffff;
+  --color-ink-2: #cbd5e1;
+  --color-ink-3: #94a3b8;
+  --color-action: #ffb224;
+  --color-action-hot: #ff7a1a;
+  --color-on-action: #1c0f00;
+  --color-win: #3fe08c;
+  --color-loss: #ff6b6b;
+  --color-draw: #d5d9e0;
+}
+
+/* Fonts: `inline` so the utility resolves the next/font variable on the element
+   (the variables are set on <body>, not on :root where @theme would put them). */
+@theme inline {
+  --font-display: var(--font-barlow-condensed), var(--font-rajdhani), 'Arial Narrow', sans-serif;
+  --font-ui: var(--font-inter), system-ui, sans-serif;
+}
+
+/*
+ * S1 surfaces that are more than one utility can say: layered gradients,
+ * masked hairlines, the primary button's bevel. Built on the tokens above.
+ */
+@layer components {
+  /* The page: carbon with one soft light from above. */
+  .s1-canvas {
+    background:
+      radial-gradient(110% 38% at 50% -8%, color-mix(in srgb, var(--color-surface-2) 70%, transparent) 0%, transparent 72%),
+      var(--color-carbon);
+  }
+
+  /* The hero card: one focused glow top-right, a hatch texture under it and a
+     gradient hairline that fades down the edge. --s1-glow is an "r,g,b"
+     triplet so the win state can swap the light without restating the card. */
+  .s1-hero {
+    --s1-glow: 255, 146, 36;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 28px;
+    background:
+      radial-gradient(72% 56% at 96% -6%, rgba(var(--s1-glow), 0.30) 0%, rgba(var(--s1-glow), 0.10) 45%, rgba(var(--s1-glow), 0) 72%),
+      linear-gradient(168deg, #23304b 0%, #19233a 52%, #131c30 100%);
+    box-shadow: 0 28px 44px -24px rgb(2 6 23 / 0.9), 0 10px 18px -10px rgb(2 6 23 / 0.65);
+  }
+  .s1-hero::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    opacity: 0.45;
+    pointer-events: none;
+    background: repeating-linear-gradient(115deg, rgb(255 255 255 / 0.035) 0 1.5px, transparent 1.5px 12px);
+    -webkit-mask-image: radial-gradient(70% 60% at 100% 0%, #000 0%, transparent 100%);
+    mask-image: radial-gradient(70% 60% at 100% 0%, #000 0%, transparent 100%);
+  }
+  .s1-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.24) 0%, rgb(255 255 255 / 0.06) 28%, rgb(255 255 255 / 0.02) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  }
+  .s1-hero-win { --s1-glow: 63, 224, 140; }
+  .s1-hero-loss { --s1-glow: 255, 107, 107; }
+  .s1-hero-quiet { --s1-glow: 150, 156, 169; }
+
+  /* Lists and grouped rows: a solid surface with a top highlight. */
+  .s1-list {
+    border-radius: 22px;
+    background: linear-gradient(180deg, #18223a, #151e33);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 16px 26px -18px rgb(2 6 23 / 0.85);
+  }
+
+  /* Raised round controls: icon buttons, the language segment. */
+  .s1-raised {
+    background: var(--color-surface);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), inset 0 0 0 1px rgb(255 255 255 / 0.04);
+  }
+  .s1-seg-on {
+    background: linear-gradient(180deg, #2a3854, var(--color-surface-2));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 2px 6px -2px rgb(2 6 23 / 0.75);
+  }
+
+  /* The primary action: amber to orange, bevelled, a warm glow under it. */
+  .s1-primary {
+    color: var(--color-on-action);
+    background: linear-gradient(180deg, #ffc64f 0%, #ffab26 50%, #ff8f1a 100%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -1px 0 rgb(120 50 0 / 0.3), 0 1px 2px rgb(0 0 0 / 0.5), 0 12px 22px -10px rgb(255 130 20 / 0.75);
+  }
+  .s1-primary:hover:not(:disabled) { filter: brightness(1.06); }
+  /* Not yet available: one neutral grey-navy fill app-wide (never a dimmed amber). */
+  .s1-primary:disabled {
+    opacity: 1 !important;
+    filter: none;
+    color: var(--color-ink-3);
+    background: var(--color-surface-2);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  }
+
+  /* Secondary: an outline on near-nothing. */
+  .s1-ghost {
+    background: rgb(255 255 255 / 0.03);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+  }
+  .s1-ghost:hover:not(:disabled) { background: rgb(255 255 255 / 0.07); }
+
+  /* Round glass button beside the primary (directions). */
+  .s1-glass {
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.12), rgb(255 255 255 / 0.06));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), inset 0 0 0 1px rgb(255 255 255 / 0.05);
+  }
+
+  /* The big italic numerals: white kick-off, result-coloured score. */
+  .s1-numeral {
+    background: linear-gradient(180deg, #ffffff 38%, #d3d7de 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 0 rgb(0 0 0 / 0.35));
+  }
+  .s1-numeral-win {
+    background: linear-gradient(180deg, #a4ffcd 0%, var(--color-win) 52%, #22bd6e 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 8px 16px rgb(63 224 140 / 0.22));
+  }
+  .s1-numeral-loss {
+    background: linear-gradient(180deg, #ffc2c2 0%, var(--color-loss) 55%, #e04848 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 8px 16px rgb(255 107 107 / 0.2));
+  }
+  .s1-numeral-draw {
+    background: linear-gradient(180deg, #ffffff 0%, var(--color-draw) 60%, #aab0ba 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 0 rgb(0 0 0 / 0.35));
+  }
+
+  /* Result pills on the hero card. */
+  .s1-pill-win {
+    color: #04200f;
+    background: linear-gradient(180deg, #63efa6, #33d482);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), 0 6px 14px -6px rgb(63 224 140 / 0.6);
+  }
+  .s1-pill-loss {
+    color: #2a0505;
+    background: linear-gradient(180deg, #ff9a9a, #f25c5c);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), 0 6px 14px -6px rgb(255 107 107 / 0.55);
+  }
+  .s1-pill-draw {
+    color: var(--color-ink);
+    background: rgb(255 255 255 / 0.12);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16);
+  }
+
+  /* The live dot beside "Next match". */
+  .s1-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--color-action);
+    box-shadow: 0 0 0 3px rgb(255 178 36 / 0.2), 0 0 10px rgb(255 178 36 / 0.7);
+  }
+
+  /* Bottom tab bar. */
+  .s1-tabbar {
+    /* Ends on slate-800, the Android navigation bar's colour below it. */
+    background: linear-gradient(180deg, #172036, #1e293b);
+    box-shadow: 0 -1px 0 rgb(255 255 255 / 0.06);
+  }
+  .s1-tab-on::before {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    width: 24px;
+    height: 3px;
+    transform: translateX(-50%);
+    border-radius: 0 0 3px 3px;
+    background: var(--color-action);
+  }
+
+  /* A select drawn as the house text field with a chevron (popups'
+     selectStyle). The right padding comes from the field's own utilities.
+     The chevron is two 1.5px gradient strokes, not an SVG data URI: the CSP
+     (next.config.ts) allows no data: images, so a data-URI chevron never
+     painted. */
+  .s1-select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent calc(50% - 0.9px), var(--color-ink-3) calc(50% - 0.9px), var(--color-ink-3) calc(50% + 0.9px), transparent calc(50% + 0.9px)),
+      linear-gradient(-45deg, transparent calc(50% - 0.9px), var(--color-ink-3) calc(50% - 0.9px), var(--color-ink-3) calc(50% + 0.9px), transparent calc(50% + 0.9px));
+    background-repeat: no-repeat;
+    background-position: right 21px center, right 15px center;
+    background-size: 6px 6px, 6px 6px;
+  }
+
+  /* A checkbox as a 24px dark well that fills amber with a dark tick when
+     ticked (amber = selection). Styles the NATIVE input, so its role, label
+     and keyboard behaviour stay the browser's; replaces the blue default. */
+  .s1-check {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    background-color: var(--color-carbon);
+    box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.22);
+    transition: box-shadow 0.15s, filter 0.15s;
+  }
+  .s1-check:checked {
+    background: linear-gradient(180deg, #ffc64f, #ff8f1a);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6);
+  }
+  /* The tick: a rotated corner drawn with borders (no data-URI image - the
+     CSP allows none). Chromium and WebKit render ::after on an
+     appearance:none checkbox; elsewhere the amber fill alone shows the state. */
+  .s1-check::after {
+    content: "";
+    position: absolute;
+    left: 8.5px;
+    top: 4.5px;
+    width: 7px;
+    height: 12px;
+    border: solid var(--color-on-action);
+    border-width: 0 3px 3px 0;
+    border-radius: 1px;
+    transform: rotate(45deg);
+    opacity: 0;
+  }
+  .s1-check:checked::after {
+    opacity: 1;
+  }
+  .s1-check:focus-visible {
+    outline: 2px solid var(--color-action);
+    outline-offset: 2px;
+  }
+  .s1-check:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Bottom sheets (gear, setup). */
+  .s1-sheet {
+    background: linear-gradient(180deg, #1c2740, #141d31);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.09), 0 -20px 40px -12px rgb(2 6 23 / 0.8);
+  }
+}
+
 :root {
   /* slate-900 — the app is always dark-themed (StartScreen, login, modals all
      use slate-900). Matching the body background to the app means that if the
@@ -33,7 +318,10 @@ html, body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-rajdhani), sans-serif;
+  /* Inter is the app-wide UI font. Rajdhani is kept only for the "MatchOps"
+     wordmark (set explicitly where it appears); Barlow Condensed (font-display)
+     for big numerals and titles. */
+  font-family: var(--font-inter), system-ui, sans-serif;
 }
 
 /* The app root and the page inside it take the full height (review 10.9). Scoped to
@@ -142,6 +430,65 @@ body {
   .planner-slide-fwd, .planner-slide-back {
     animation: none !important;
   }
+}
+
+/* LoadingScreen (src/components/LoadingScreen.tsx): the splash continuation.
+   The ring draws itself in, then retracts from its tail, while turning; the
+   glow breathes on the same 2.4s beat. Exit: fade out, badge eases up a touch. */
+.loading-screen__glow {
+  position: absolute;
+  inset: 8%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgb(255 178 36 / 0.42) 0%, rgb(255 143 26 / 0.16) 48%, transparent 72%);
+  filter: blur(18px);
+  opacity: 0.55;
+  animation: loading-screen-glow 2.4s ease-in-out infinite;
+}
+.loading-screen__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+.loading-screen__track {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.06);
+  stroke-width: 1.6;
+}
+.loading-screen__arc {
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 2px rgb(255 160 30 / 0.7));
+  transform-origin: 50% 50%;
+  animation: loading-screen-arc 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+@keyframes loading-screen-arc {
+  0%   { stroke-dashoffset: 100;  transform: rotate(0deg); }
+  55%  { stroke-dashoffset: 0;    transform: rotate(160deg); }
+  100% { stroke-dashoffset: -100; transform: rotate(360deg); }
+}
+@keyframes loading-screen-glow {
+  0%, 100% { opacity: 0.4; transform: scale(0.96); }
+  50%      { opacity: 0.75; transform: scale(1.04); }
+}
+.loading-screen--exit {
+  animation: loading-screen-exit 0.26s ease-out forwards;
+}
+.loading-screen--exit .loading-screen__logo {
+  animation: loading-screen-exit-logo 0.26s ease-out forwards;
+}
+@keyframes loading-screen-exit { to { opacity: 0; } }
+@keyframes loading-screen-exit-logo { to { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) {
+  /* Static badge only: no ring, no breathing glow, a plain fade on exit. */
+  .loading-screen__ring { display: none; }
+  .loading-screen__glow { animation: none; }
+  .loading-screen--exit .loading-screen__logo { animation: none; }
 }
 
 /* Flash feedback for button clicks */

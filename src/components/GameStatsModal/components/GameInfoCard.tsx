@@ -7,6 +7,13 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineMapPin } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
+import { sectionLabelStyle } from '@/styles/modalStyles';
+import type { GameResult } from '@/utils/gameResult';
+
+/** A meta field's tracked label, its numeral value and its text value. */
+const metaKey = 'mb-0.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink-3';
+const metaNumeral = 'font-display text-2xl font-bold leading-[1.1] tabular-nums';
+const metaText = 'text-base font-semibold leading-snug break-words';
 
 interface GameInfoCardProps {
   homeTeamName: string;
@@ -31,6 +38,8 @@ interface GameInfoCardProps {
   shootoutScore?: { home: number; away: number };
   /** Goals in extra time (home-away), shown beside the final score (review 11.1). */
   extraTimeScore?: { home: number; away: number };
+  /** The result from the coach's side; colours the score and the card's light. */
+  result?: GameResult;
 }
 
 export function GameInfoCard({
@@ -51,96 +60,108 @@ export function GameInfoCard({
   captainName,
   shootoutScore,
   extraTimeScore,
+  result,
 }: GameInfoCardProps) {
   const { t } = useTranslation();
   const mapsUrl = mapsSearchUrl(gameLocation, locationLat, locationLng);
 
+  const resultCode = result ?? null;
+  const heroTint = resultCode === 'W' ? 's1-hero-win' : resultCode === 'L' ? 's1-hero-loss' : 's1-hero-quiet';
+  const numeral = resultCode === 'W' ? 's1-numeral-win' : resultCode === 'L' ? 's1-numeral-loss' : 's1-numeral';
+  const extraNote = (wentToOvertime || wentToPenalties || extraTimeScore)
+    ? `(${[
+        extraTimeScore
+          ? `${t('gameResult.extraTime', 'ET')} ${extraTimeScore.home}-${extraTimeScore.away}`
+          : wentToOvertime && t('gameResult.overtime', 'OT'),
+        wentToPenalties && (shootoutScore
+          ? `${shootoutScore.home}-${shootoutScore.away} ${t('gameResult.penalties', 'PKs')}`
+          : t('gameResult.penalties', 'PKs')),
+      ].filter(Boolean).join(', ')})`
+    : null;
+
   return (
-    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <h3 className="text-xl font-semibold text-slate-200 mb-4">
+    <div className="font-ui">
+      <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>
         {t('gameStatsModal.gameInfoTitle', 'Game Information')}
       </h3>
-      <div className="space-y-3">
-        <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-3 rounded-md transition-all">
-          <div className="flex justify-center items-center text-center">
-            <span className="font-semibold text-slate-100 flex-1 text-right">
-              {homeTeamName}
+      {/* The result as the home screen shows it: a hero card whose light and
+          numeral take the result's colour (green win, red loss, white draw). */}
+      <div className={`s1-hero ${heroTint} px-[18px] pt-[18px] pb-1.5 text-ink`}>
+        {/* Names and score ease down on a narrow phone, so a one-word club name
+            ("Kuusankoski") keeps its line instead of breaking mid-word. */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 pb-3.5">
+          <span className="min-w-0 break-words font-display text-[clamp(16px,5vw,20px)] font-bold leading-[1.05]">
+            {homeTeamName}
+          </span>
+          <span className="flex flex-col items-center">
+            <span className={`${numeral} whitespace-nowrap pl-0.5 pr-2 font-display text-[clamp(40px,14vw,54px)] font-extrabold italic leading-[0.95] tabular-nums`}>
+              {homeScore}–{awayScore}
             </span>
-            <span className="text-2xl text-amber-400 font-bold mx-4">
-              {homeScore} - {awayScore}
-              {(wentToOvertime || wentToPenalties || extraTimeScore) && (
-                <span className="text-sm text-slate-400 font-medium ml-2">
-                  ({[
-                    extraTimeScore
-                      ? `${t('gameResult.extraTime', 'ET')} ${extraTimeScore.home}-${extraTimeScore.away}`
-                      : wentToOvertime && t('gameResult.overtime', 'OT'),
-                    wentToPenalties && (shootoutScore
-                      ? `${shootoutScore.home}-${shootoutScore.away} ${t('gameResult.penalties', 'PKs')}`
-                      : t('gameResult.penalties', 'PKs')),
-                  ].filter(Boolean).join(', ')})
-                </span>
-              )}
-            </span>
-            <span className="font-semibold text-slate-100 flex-1 text-left">
-              {awayTeamName}
-            </span>
-          </div>
+            {extraNote && (
+              <span className="mt-1 text-[13px] font-medium text-ink-3 whitespace-nowrap">{extraNote}</span>
+            )}
+          </span>
+          <span className="min-w-0 break-words text-right font-display text-[clamp(16px,5vw,20px)] font-bold leading-[1.05]">
+            {awayTeamName}
+          </span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-3 text-sm">
-          <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
-            <label className="block text-xs text-slate-400">{t('common.date')}</label>
-            <span className="font-medium text-slate-200">{formattedDate}</span>
+        <dl className="grid grid-cols-2 border-t border-hairline">
+          <div className="py-2.5">
+            <dt className={metaKey}>{t('common.date')}</dt>
+            <dd className={metaNumeral}>{formattedDate}</dd>
           </div>
-          <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
-            <label className="block text-xs text-slate-400">{t('common.time')}</label>
-            <span className="font-medium text-slate-200">
+          <div className="py-2.5">
+            <dt className={metaKey}>{t('common.time')}</dt>
+            <dd className={gameTime ? metaNumeral : metaText}>
               {gameTime || t('common.notSet')}
-            </span>
+            </dd>
           </div>
-          <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
-            <label className="block text-xs text-slate-400">{t('common.location')}</label>
-            {/* The venue links to a map; the pitch never does. "TN 2" is what
-                stops a map finding the place, which is why it sits apart. */}
-            <span className="font-medium text-slate-200">
-              {mapsUrl ? (
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200 hover:underline"
-                  title={t('gameStatsModal.openInMaps', 'Open in Maps')}
-                >
-                  {gameLocation}
-                  <HiOutlineMapPin className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-                  <span className="sr-only">{t('gameStatsModal.openInMaps', 'Open in Maps')}</span>
-                </a>
-              ) : (
-                gameLocation || t('common.notSet')
-              )}
-              {fieldNumber ? (
-                <span className="text-slate-400"> · {fieldNumber}</span>
-              ) : null}
-            </span>
+          <div className="col-span-2 flex items-center gap-3 border-t border-hairline py-2.5">
+            <HiOutlineMapPin className="w-5 h-5 flex-none text-ink-3" aria-hidden="true" />
+            <div className="min-w-0">
+              <dt className={metaKey}>{t('common.location')}</dt>
+              {/* The venue links to a map; the pitch never does. "TN 2" is what
+                  stops a map finding the place, which is why it sits apart. */}
+              <dd className={metaText}>
+                {mapsUrl ? (
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded underline-offset-[3px] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                    title={t('gameStatsModal.openInMaps', 'Open in Maps')}
+                  >
+                    {gameLocation}
+                    <span className="sr-only">{t('gameStatsModal.openInMaps', 'Open in Maps')}</span>
+                  </a>
+                ) : (
+                  gameLocation || t('common.notSet')
+                )}
+                {fieldNumber ? (
+                  <span> · {fieldNumber}</span>
+                ) : null}
+              </dd>
+            </div>
           </div>
-          <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
-            <label className="block text-xs text-slate-400">
+          <div className="col-span-2 border-t border-hairline py-2.5">
+            <dt className={metaKey}>
               {t('newGameSetupModal.periodsLabel')}
-            </label>
-            <span className="font-medium text-slate-200">
+            </dt>
+            <dd className={metaNumeral}>
               {numPeriods} x {periodDurationMinutes} min
-            </span>
+            </dd>
           </div>
           {/* The armband, only when one was named. Spans the row so it never
               sits alone next to an empty half. */}
           {captainName && (
-            <div className="col-span-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
-              <label className="block text-xs text-slate-400">
+            <div className="col-span-2 border-t border-hairline py-2.5">
+              <dt className={metaKey}>
                 {t('gameSettingsModal.captainTitle', 'Captain')}
-              </label>
-              <span className="font-medium text-slate-200">{captainName}</span>
+              </dt>
+              <dd className={metaText}>{captainName}</dd>
             </div>
           )}
-        </div>
+        </dl>
       </div>
     </div>
   );

@@ -30,7 +30,27 @@ import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playt
 import { fairnessFill, fairnessText } from '@/utils/playtimePlanner/colors';
 import { findSimultaneityConflicts, conflictedSlotIds } from '@/utils/playtimePlanner/conflicts';
 import PlanFieldBackdrop from '@/components/PlanFieldBackdrop';
-import { subtextStyle, primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+import {
+  subtextStyle,
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  sectionLabelStyle,
+  chipStyle,
+  errorBoxStyle,
+} from '@/styles/modalStyles';
+
+/** Clear field: destructive, but undoable and always on screen - so a compact
+ *  red-text button at the side, not a standing pill (round 2, owner). */
+const resetButtonStyle =
+  'inline-flex items-center min-h-11 px-3 -mr-1 rounded-full font-ui text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+
+/** Clear / Remove sub on a selected placement: a red OUTLINE pill, so the amber
+ *  Sub action beside it stays the one primary (round 2, owner). */
+const selectionDangerStyle = `${secondaryButtonStyle} flex-1 text-red-400! shadow-[inset_0_0_0_1.5px_rgb(248_113_113/0.6)]! hover:bg-red-500/10!`;
+
+/** A fold-out section toggle (bench availability): the uppercase section label as a 44px button. */
+const foldToggleStyle =
+  'flex items-center gap-1.5 min-h-11 -my-1.5 px-1 rounded-lg font-ui text-xs font-semibold uppercase tracking-[0.14em] text-ink-3 hover:text-ink-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
 import { gameTotalSeconds, type PlanGame, type PlanPlayer, type PlanSub } from '@/utils/playtimePlanner/types';
 
 /** A player's cumulative planned minutes across the WHOLE plan + fair-share ratio. */
@@ -71,8 +91,6 @@ interface PlanFieldViewProps {
   onClearSlot?: (slotId: string) => void;
   /** Empty EVERY position (all starters + the whole sub schedule). */
   onClearAll?: () => void;
-  /** Empty every game's field in the WHOLE PLAN (asks for confirmation). */
-  onClearAllGames?: () => void;
   /** Remove one scheduled sub (per-stint delete from the field). */
   onRemoveSub?: (subId: string) => void;
   /** Move one scheduled sub to another (starter-empty) position. */
@@ -108,7 +126,6 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   onSwapPlayers,
   onClearSlot,
   onClearAll,
-  onClearAllGames,
   onRemoveSub,
   onMoveSub,
   onPromoteSub,
@@ -204,7 +221,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   );
 
   // The ramp only makes sense with minutes data; without it the classic
-  // indigo/amber discs render (read-only embeds stay untouched).
+  // navy/amber discs render (read-only embeds stay untouched).
   const rampMode = !!minutesByPlayer;
   const fillFor = (playerId: string | null): string | undefined => {
     if (!rampMode || !playerId) return undefined;
@@ -323,7 +340,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
       {/* Pitch - the REAL field: the live game's grass + markings painted by
           the shared canvas painters (PlanFieldBackdrop), discs as DOM on top. */}
       <div
-        className="relative w-full max-w-sm mx-auto rounded-lg overflow-hidden border border-green-900/60 shadow-inner"
+        className="relative w-full max-w-sm mx-auto rounded-[18px] overflow-hidden shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),0_16px_26px_-18px_rgb(2_6_23/0.85)]"
         style={{ aspectRatio: '3 / 4', background: '#427B44' }}
         onClick={handlePitchBackgroundClick}
       >
@@ -362,7 +379,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               : 'border-white/90 text-white'
             : slot.isGoalie
               ? 'bg-amber-500 text-slate-900 border-amber-300'
-              : 'bg-indigo-600 text-white border-indigo-300';
+              : 'bg-surface-2 text-white border-white/80';
 
           const slotSelected = selection?.type === 'slot' && selection.slotId === slot.slotId;
           const starterLabel = filled
@@ -417,7 +434,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   className={[
                     'flex overflow-hidden border-2 transition-colors shadow-md shadow-black/40',
                     slotSubs.length > 1 ? 'flex-col rounded-2xl' : 'rounded-full h-10',
-                    rampMode ? 'border-white/90' : 'border-indigo-300',
+                    'border-white/90',
                     conflictRing,
                   ].join(' ')}
                 >
@@ -433,7 +450,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                       slotSelected ? `${selectionRing} z-10` : '',
                     ].join(' ')}
                     style={{
-                      backgroundColor: filled ? fillFor(playerId) ?? '#4f46e5' : 'rgba(15,23,42,0.7)',
+                      backgroundColor: filled ? fillFor(playerId) ?? '#1e293b' : 'rgba(15,23,42,0.7)',
                       backgroundImage: filled
                         ? 'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.22), rgba(255,255,255,0) 60%)'
                         : undefined,
@@ -463,13 +480,13 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                           subSelected ? `${selectionRing} z-10` : '',
                         ].join(' ')}
                         style={{
-                          backgroundColor: fillFor(sub.inPlayerId) ?? '#4f46e5',
+                          backgroundColor: fillFor(sub.inPlayerId) ?? '#1e293b',
                           backgroundImage:
                             'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18), rgba(255,255,255,0) 60%)',
                           textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                         }}
                       >
-                        <span className="text-[8px] font-extrabold text-amber-200 leading-none tabular-nums bg-black/30 rounded px-0.5 py-px">
+                        <span className="text-xs font-extrabold text-amber-200 leading-none tabular-nums bg-black/30 rounded px-1 py-0.5">
                           {Math.round(sub.timeSeconds / 60)}&#39;
                         </span>
                         {shortName(inName)}
@@ -512,9 +529,15 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   {filled ? shortName(name ?? '') : slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : '+'}
                 </button>
               )}
+              {/* Minutes under the disc - the keeper's ABOVE it, clear of the
+                  goal line it stands on. Absolutely placed so the disc stays
+                  anchored to its slot point either way. */}
               {!hasSubs && filled && playerId && minutesByPlayer?.[playerId] && (
                 <span
-                  className="mt-0.5 text-[10px] font-semibold tabular-nums leading-tight"
+                  data-testid="plan-disc-minutes"
+                  className={`absolute left-1/2 -translate-x-1/2 text-xs font-semibold tabular-nums leading-tight whitespace-nowrap pointer-events-none ${
+                    slot.isGoalie ? 'bottom-full mb-0.5' : 'top-full mt-0.5'
+                  }`}
                   style={{
                     color: fairnessText(minutesByPlayer[playerId].ratio),
                     textShadow: '0 1px 2px rgba(0,0,0,0.6)',
@@ -530,12 +553,12 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
 
       {/* Assignment panel - no instruction copy: the actions row and the bench
           discs ARE the affordances. Solid full-width house buttons. */}
-      <div className="max-w-sm mx-auto space-y-3">
+      <div className="max-w-sm mx-auto space-y-3 font-ui">
         {conflicts.length > 0 && (
           <div
             role="status"
             data-testid="plan-conflict-banner"
-            className="rounded-md border border-red-500/60 bg-red-950/40 px-3 py-2 space-y-0.5"
+            className={`${errorBoxStyle} px-3.5! py-3! space-y-1`}
           >
             {conflicts.map((c) => {
               const posA = slots.findIndex((sl) => sl.slotId === c.slotIdA);
@@ -545,7 +568,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               return (
                 <p
                   key={`${c.playerId}-${c.slotIdA}-${c.slotIdB}-${c.overlapStartSeconds}`}
-                  className="text-xs text-red-200"
+                  className="text-[13px] leading-snug text-ink"
                 >
                   {t(
                     'playtimePlanner.conflicts.row',
@@ -583,13 +606,13 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               <button
                 type="button"
                 onClick={handleRemoveSelectedSub}
-                className={`${dangerButtonStyle} flex-1`}
+                className={selectionDangerStyle}
               >
                 {t('playtimePlanner.lineup.removeSubAction', 'Remove sub')}
               </button>
             )}
             {selection?.type === 'slot' && onClearSlot && (activeOccupant || selectedSlotSubs.length > 0) && (
-              <button type="button" onClick={handleClearSlot} className={`${dangerButtonStyle} flex-1`}>
+              <button type="button" onClick={handleClearSlot} className={selectionDangerStyle}>
                 {t('playtimePlanner.lineup.clearSlot', 'Clear')}
               </button>
             )}
@@ -611,9 +634,9 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               : t('playtimePlanner.lineup.benchEmpty', 'Everyone is on the field.')}
           </p>
         ) : (
-          <div className="rounded-lg bg-slate-900/40 border border-slate-700/50 border-t-2 border-t-slate-600/70 px-2 pt-1.5 pb-2">
+          <div className="s1-list px-2 pt-3 pb-3">
             {/* Sideline strip: the bench gets a visual home next to the pitch. */}
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+            <p className={`${sectionLabelStyle} px-2 mb-2.5`}>
               {t('playtimePlanner.lineup.benchLabel', 'Bench')}
             </p>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(3.5rem,1fr))] gap-y-2 justify-items-center">
@@ -636,13 +659,13 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   onClick={() => handleBenchClick(id)}
                   disabled={inert}
                   title={sitsOut ? t('playtimePlanner.lineup.notInGame', 'Not in this game') : undefined}
-                  className={`flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed ${dimClass(involved)}`}
+                  className={`flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:opacity-50 disabled:cursor-not-allowed ${dimClass(involved)}`}
                 >
                   <span
                     className={[
                       'w-11 h-11 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 transition-colors shadow-md shadow-black/40',
                       sitsOut ? 'border-red-500/80' : 'border-white/60',
-                      fair ? '' : 'bg-slate-700 hover:bg-slate-600',
+                      fair ? '' : 'bg-surface-2 hover:brightness-125',
                       anyHighlight && involved ? 'ring-2 ring-amber-300' : '',
                     ].join(' ')}
                     style={
@@ -660,7 +683,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   </span>
                   {fair && (
                     <span
-                      className="mt-0.5 text-[10px] font-semibold tabular-nums leading-tight"
+                      className="mt-0.5 text-xs font-semibold tabular-nums leading-tight"
                       style={{ color: fairnessText(fair.ratio) }}
                     >
                       {fair.minutes}&#39;
@@ -679,20 +702,13 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           </div>
         )}
 
-        {/* Field-reset tools live UNDER the bench (owner placement): empty
-            THIS game's field, or every game in the plan (confirmed upstream). */}
-        {((anyPlacement && onClearAll) || onClearAllGames) && (
-          <div className="flex gap-2">
-            {anyPlacement && onClearAll && (
-              <button type="button" onClick={handleClearAll} className={`${dangerButtonStyle} flex-1`}>
-                {t('playtimePlanner.lineup.clearAll', 'Clear field')}
-              </button>
-            )}
-            {onClearAllGames && (
-              <button type="button" onClick={onClearAllGames} className={`${dangerButtonStyle} flex-1`}>
-                {t('playtimePlanner.lineup.clearAllGames', 'Clear all games')}
-              </button>
-            )}
+        {/* Clear field lives UNDER the bench, at the side (owner placement).
+            Clearing every game is a plan-level action on the Settings tab. */}
+        {anyPlacement && onClearAll && (
+          <div className="flex justify-end">
+            <button type="button" onClick={handleClearAll} className={resetButtonStyle}>
+              {t('playtimePlanner.lineup.clearAll', 'Clear field')}
+            </button>
           </div>
         )}
 
@@ -705,20 +721,20 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               type="button"
               onClick={toggleAbsenceOpen}
               aria-expanded={showAbsence}
-              className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 py-1.5 -my-1"
+              className={foldToggleStyle}
             >
               <HiChevronDown
                 aria-hidden="true"
-                className={`w-3.5 h-3.5 transition-transform ${showAbsence ? '' : '-rotate-90'}`}
+                className={`w-4 h-4 transition-transform ${showAbsence ? '' : '-rotate-90'}`}
               />
               {t('playtimePlanner.lineup.absentHeading', 'Absent from this game')}
-              {absentSet.size > 0 && <span className="text-red-400 normal-case">({absentSet.size})</span>}
+              {absentSet.size > 0 && <span className="text-red-400 normal-case tracking-normal">({absentSet.size})</span>}
             </button>
             {showAbsence && (
               <div
                 role="group"
                 aria-label={t('playtimePlanner.lineup.absentHeading', 'Absent from this game')}
-                className="flex flex-wrap gap-1.5 mt-1"
+                className="flex flex-wrap gap-2 mt-1.5"
               >
                 {players.map((p) => {
                   const absent = absentSet.has(p.id);
@@ -728,10 +744,10 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                       type="button"
                       onClick={() => onToggleAbsent(p.id)}
                       aria-pressed={absent}
-                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                      className={`${chipStyle} ${
                         absent
-                          ? 'bg-red-900/40 border-red-600 text-red-200 line-through font-medium'
-                          : 'bg-transparent border-slate-600/60 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                          ? 'bg-red-500/10! shadow-[inset_0_0_0_1px_rgb(255_107_107/0.55)]! text-red-200! line-through'
+                          : ''
                       }`}
                     >
                       {p.name}

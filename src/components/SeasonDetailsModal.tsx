@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useId } from 'react';
-import { CollapsibleModalHeader, ModalStickyPrimary, ModalSwitch } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalStickyPrimary, ModalSwitch, modalContainerStyle, cardStyle, labelStyle, inputBaseStyle, selectStyle, textareaStyle, inputErrorStyle, fieldHintStyle, segmentTrackStyle, segmentStyle, segmentSelectedStyle, inlineSelectStyle, warningBoxStyle, errorBoxStyle, infoBoxStyle, linkStyle } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Season, GameType, Gender } from '@/types';
@@ -275,10 +275,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+      <div className={`${modalContainerStyle} h-full w-full relative`}>
 
         {/* Chrome slimming: X-header (Cancel) + sticky Save. */}
         <CollapsibleModalHeader
@@ -291,19 +288,19 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         />
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
-          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
-            <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6">
+          <div className={cardStyle}>
+            <div className="space-y-5">
               {/* Season Dates Not Configured Warning */}
               {settings && !settings.hasConfiguredSeasonDates && (
-                <div className="bg-amber-900/30 border border-amber-600/50 rounded-lg p-3">
+                <div className={warningBoxStyle}>
                   <div className="flex items-start gap-2">
-                    <HiExclamationTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <HiExclamationTriangle className="w-5 h-5 text-action flex-shrink-0 mt-0.5" aria-hidden="true" />
                     <div className="flex-1">
-                      <p className="text-amber-200 text-sm">
+                      <p className="font-ui text-ink text-sm font-medium">
                         {t('seasonDetailsModal.seasonDatesNotConfigured', 'Season dates not configured')}
                       </p>
-                      <p className="text-amber-300/70 text-sm mt-1">
+                      <p className="font-ui text-ink-2 text-sm mt-1">
                         {t('seasonDetailsModal.configureInSettings', 'Configure in Settings to calculate club seasons correctly.')}
                       </p>
                       {onOpenSettings && (
@@ -313,7 +310,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                             onClose();
                             onOpenSettings();
                           }}
-                          className="mt-2 text-xs text-amber-300 hover:text-amber-100 underline underline-offset-2 transition-colors"
+                          className={`${linkStyle} mt-2 inline-flex min-h-11 items-center text-sm`}
                         >
                           {t('common.openSettings', 'Open Settings')}
                         </button>
@@ -325,14 +322,14 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
               {/* Error Message */}
               {errorMessage && (
-                <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-md text-sm">
+                <div className={`${errorBoxStyle} font-ui text-sm text-ink`} role="alert">
                   {errorMessage}
                 </div>
               )}
 
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('seasonDetailsModal.nameLabel', 'Name')} *
                 </label>
                 <input
@@ -344,16 +341,14 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                     if (errorMessage) setErrorMessage(null);
                   }}
                   placeholder={t('seasonDetailsModal.namePlaceholder', 'Enter a name')}
-                  className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 ${
-                    errorMessage ? 'border-red-500' : 'border-slate-600'
-                  }`}
+                  className={`${inputBaseStyle} ${errorMessage ? inputErrorStyle : ''}`}
                   required
                 />
               </div>
 
               {/* Location */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('seasonDetailsModal.locationLabel', 'Location')}
                 </label>
                 <input
@@ -361,7 +356,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder={t('seasonDetailsModal.locationPlaceholder', 'Enter location')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className={inputBaseStyle}
                 />
               </div>
 
@@ -370,7 +365,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   "Ips" becoming two different opponents to every aggregation.
                   Optional: free text on the game form never goes away. */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('opponentList.sectionTitle', 'Teams in this league')}
                 </label>
                 <OpponentListEditor
@@ -383,16 +378,16 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
               {/* Age Group */}
               <div>
-                <label htmlFor="season-age-group" className="block text-sm font-medium text-slate-300 mb-1">
+                <label htmlFor="season-age-group" className={labelStyle}>
                   {t('seasonDetailsModal.ageGroupLabel', 'Age Group')}
                 </label>
                 <select
                   id="season-age-group"
                   value={ageGroup}
                   onChange={(e) => setAgeGroup(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                  className={selectStyle}
                 >
-                  <option value="">{t('common.selectAgeGroup', '-- Select Age Group --')}</option>
+                  <option value="">{t('common.selectAgeGroup', 'Select Age Group')}</option>
                   {AGE_GROUPS.map(group => (
                     <option key={group} value={group}>{group}</option>
                   ))}
@@ -401,29 +396,23 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
               {/* Sport Type (Soccer/Futsal) */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('common.gameTypeLabel', 'Sport Type')}
                 </label>
-                <div className="flex gap-2">
+                <div className={segmentTrackStyle}>
                   <button
                     type="button"
                     onClick={() => setGameType('soccer')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gameType === 'soccer'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gameType === 'soccer'}
+                    className={gameType === 'soccer' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.gameTypeSoccer', 'Soccer')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setGameType('futsal')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gameType === 'futsal'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gameType === 'futsal'}
+                    className={gameType === 'futsal' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.gameTypeFutsal', 'Futsal')}
                   </button>
@@ -432,40 +421,31 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
               {/* Gender (Boys/Girls) */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('common.genderLabel', 'Gender')}
                 </label>
-                <div className="flex gap-2">
+                <div className={segmentTrackStyle}>
                   <button
                     type="button"
                     onClick={() => setGender(undefined)}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === undefined
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gender === undefined}
+                    className={gender === undefined ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.genderNotSet', 'Not Set')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setGender('boys')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === 'boys'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gender === 'boys'}
+                    className={gender === 'boys' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.genderBoys', 'Boys')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setGender('girls')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === 'girls'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gender === 'girls'}
+                    className={gender === 'girls' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.genderGirls', 'Girls')}
                   </button>
@@ -474,7 +454,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
               {/* League Selection */}
               <div>
-                <label htmlFor="season-league" className="block text-sm font-medium text-slate-300 mb-1">
+                <label htmlFor="season-league" className={labelStyle}>
                   {t('seasonDetailsModal.leagueLabel', 'Official league')}
                 </label>
 
@@ -493,7 +473,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                         setLeagueId('');
                         setCustomLeagueName('');
                       }}
-                      className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
+                      className={`${inlineSelectStyle} w-full!`}
                     >
                       {LEAGUE_LEVEL_FILTERS.map(level => (
                         <option key={level.id} value={level.id}>
@@ -515,7 +495,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                         setLeagueId('');
                         setCustomLeagueName('');
                       }}
-                      className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
+                      className={`${inlineSelectStyle} w-full!`}
                     >
                       {LEAGUE_AREA_FILTERS.map(area => (
                         <option key={area.id} value={area.id}>
@@ -535,9 +515,9 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                     // Clear custom name when selecting a non-custom league
                     if (e.target.value !== CUSTOM_LEAGUE_ID) setCustomLeagueName('');
                   }}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                  className={selectStyle}
                 >
-                  <option value="">{t('seasonDetailsModal.selectLeague', '-- Select official league --')}</option>
+                  <option value="">{t('seasonDetailsModal.selectLeague', 'Select official league')}</option>
                   {filteredLeagues.map(league => (
                     <option key={league.id} value={league.id}>{league.name}</option>
                   ))}
@@ -545,7 +525,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
                 {/* Show count when filters active */}
                 {(areaFilter !== 'all' || levelFilter !== 'all') && (
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className={fieldHintStyle}>
                     {t('leagues.showingCount', '{{count}} leagues', { count: filteredLeagues.filter(l => !l.isCustom).length })}
                   </p>
                 )}
@@ -554,7 +534,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
               {/* Custom League Name - shown when "Muu" selected */}
               {leagueId === CUSTOM_LEAGUE_ID && (
                 <div>
-                  <label htmlFor="season-custom-league" className="block text-sm font-medium text-slate-300 mb-1">
+                  <label htmlFor="season-custom-league" className={labelStyle}>
                     {t('seasonDetailsModal.customLeagueLabel', 'Other league name')}
                   </label>
                   <input
@@ -563,55 +543,57 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                     value={customLeagueName}
                     onChange={(e) => setCustomLeagueName(e.target.value)}
                     placeholder={t('seasonDetailsModal.customLeaguePlaceholder', 'Enter the official league name')}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                    className={inputBaseStyle}
                   />
                 </div>
               )}
 
               {/* Start Date and End Date */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Side by side only from 400px: below that a half-width date field clips its own date. */}
+              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className={labelStyle}>
                     {t('seasonDetailsModal.startDateLabel', 'Start Date')}
                   </label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                    className={inputBaseStyle}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className={labelStyle}>
                     {t('seasonDetailsModal.endDateLabel', 'End Date')}
                   </label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                    className={inputBaseStyle}
                   />
                 </div>
               </div>
 
               {/* Club Season (auto-calculated) */}
               {calculatedClubSeason && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-md border border-slate-600/50">
-                  <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                  <span className="text-sm text-slate-300">
-                    {t('seasonDetailsModal.clubSeasonLabel', 'Season')}:
-                  </span>
-                  <span className="text-sm font-medium text-slate-100">{calculatedClubSeason}</span>
-                  <span className="text-xs text-slate-500 ml-auto">
+                <div className={`${infoBoxStyle} p-3.5! font-ui`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-ink-2">
+                      {t('seasonDetailsModal.clubSeasonLabel', 'Season')}:
+                    </span>
+                    <span className="text-[15px] font-semibold text-ink">{calculatedClubSeason}</span>
+                  </div>
+                  <p className="mt-1 text-[13px] leading-snug text-ink-3">
                     {t('seasonDetailsModal.clubSeasonHint', 'Auto-calculated from start date. Usually your club\'s operating season.')}
-                  </span>
+                  </p>
                 </div>
               )}
 
               {/* Period Count and Duration */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className={labelStyle}>
                     {t('seasonDetailsModal.periodCountLabel', 'Periods')}
                   </label>
                   <input
@@ -619,11 +601,11 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                     value={periodCount || ''}
                     onChange={(e) => setPeriodCount(parseIntOrUndefined(e.target.value))}
                     placeholder={t('seasonDetailsModal.periodCountPlaceholder', 'e.g., 2')}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                    className={inputBaseStyle}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className={labelStyle}>
                     {t('seasonDetailsModal.periodDurationLabel', 'Minutes')}
                   </label>
                   <input
@@ -631,14 +613,14 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                     value={periodDuration || ''}
                     onChange={(e) => setPeriodDuration(parseIntOrUndefined(e.target.value))}
                     placeholder={t('seasonDetailsModal.periodDurationPlaceholder', 'e.g., 20')}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                    className={inputBaseStyle}
                   />
                 </div>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('seasonDetailsModal.notesLabel', 'Notes')}
                 </label>
                 <textarea
@@ -646,7 +628,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={t('seasonDetailsModal.notesPlaceholder', 'Enter any notes')}
                   rows={3}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className={textareaStyle}
                 />
               </div>
 

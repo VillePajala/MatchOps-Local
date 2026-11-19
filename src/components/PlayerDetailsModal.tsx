@@ -2,7 +2,7 @@
 
 import { useHoldUnsavedInput } from '@/utils/unsavedInputSignal';
 import React, { useState, useId, useRef } from 'react';
-import { CollapsibleModalHeader, ModalStickyPrimary } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalStickyPrimary, modalContainerStyle, cardStyle, labelStyle, inputBaseStyle, textareaStyle, inputErrorStyle, fieldErrorStyle, fieldHintStyle } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
@@ -43,6 +43,8 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const [nickname, setNickname] = useState('');
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [notes, setNotes] = useState('');
+  // Edit only (review R4): the coach's regular keeper, as the roster has always stored it.
+  const [isGoalie, setIsGoalie] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   // Review 7.10: a duplicate number or a failed save used to close the form and
   // drop what was typed; the only message was off-screen under the roster list.
@@ -65,12 +67,14 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         setNickname('');
         setJerseyNumber('');
         setNotes('');
+        setIsGoalie(false);
       } else if (player) {
         // Load existing player data for edit mode
         setName(player.name || '');
         setNickname(player.nickname || '');
         setJerseyNumber(player.jerseyNumber || '');
         setNotes(player.notes || '');
+        setIsGoalie(!!player.isGoalie);
       }
     }
   }, [mode, player, isOpen]);
@@ -143,6 +147,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         if (trimmedNickname !== (player.nickname || '')) updates.nickname = trimmedNickname;
         if (jerseyNumber !== (player.jerseyNumber || '')) updates.jerseyNumber = jerseyNumber;
         if (notes !== (player.notes || '')) updates.notes = notes;
+        if (isGoalie !== !!player.isGoalie) updates.isGoalie = isGoalie;
 
         if (Object.keys(updates).length > 0) {
           await onUpdatePlayer(player.id, updates);
@@ -174,10 +179,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+      <div className={`${modalContainerStyle} h-full w-full relative`}>
 
         {/* Chrome slimming: X-header (Cancel) + sticky Save. */}
         <CollapsibleModalHeader
@@ -190,12 +192,12 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         />
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
-          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
-            <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6">
+          <div className={cardStyle}>
+            <div className="space-y-5">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('playerDetailsModal.nameLabel', 'Player Name')} *
                 </label>
                 <input
@@ -206,20 +208,20 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                     setNameError(null);
                   }}
                   placeholder={t('playerDetailsModal.namePlaceholder', 'Enter player name')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className={`${inputBaseStyle} ${nameError ? inputErrorStyle : ''}`}
                   required
                 />
                 {nameError && (
-                  <p className="mt-1 text-sm text-red-400">{nameError}</p>
+                  <p className={fieldErrorStyle}>{nameError}</p>
                 )}
                 {saveError && (
-                  <p className="mt-1 text-sm text-red-400" role="alert" data-testid="player-save-error">{saveError}</p>
+                  <p className={fieldErrorStyle} role="alert" data-testid="player-save-error">{saveError}</p>
                 )}
               </div>
 
               {/* Nickname */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('playerDetailsModal.nicknameLabel', 'Nickname')}
                 </label>
                 <input
@@ -227,16 +229,16 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
                   placeholder={t('playerDetailsModal.nicknamePlaceholder', 'Optional nickname')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className={inputBaseStyle}
                 />
-                <p className="mt-1 text-sm text-slate-400">
+                <p className={fieldHintStyle}>
                   {t('playerDetailsModal.nicknameHint', 'Shown on field if provided')}
                 </p>
               </div>
 
               {/* Jersey Number */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('playerDetailsModal.jerseyNumberLabel', 'Jersey Number')}
                 </label>
                 <input
@@ -247,17 +249,33 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                     setNumberError(null);
                   }}
                   placeholder={t('playerDetailsModal.jerseyNumberPlaceholder', 'e.g., 10')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className={inputBaseStyle}
                 />
               </div>
 
               {numberError && (
-                <p className="-mt-2 text-sm text-red-400" role="alert" data-testid="player-number-error">{numberError}</p>
+                <p className={`${fieldErrorStyle} -mt-3.5`} role="alert" data-testid="player-number-error">{numberError}</p>
+              )}
+
+              {/* Keeper (edit only, review R4) */}
+              {mode === 'edit' && (
+                <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+                  <span className={`${labelStyle} mb-0!`}>{t('playerDetailsModal.goalieLabel', 'Goalkeeper')}</span>
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-checked={isGoalie}
+                    checked={isGoalie}
+                    onChange={(e) => setIsGoalie(e.target.checked)}
+                    data-testid="player-goalie-toggle"
+                    className="h-6 w-6 flex-shrink-0 accent-action [color-scheme:dark]"
+                  />
+                </label>
               )}
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('playerDetailsModal.notesLabel', 'Notes')}
                 </label>
                 <textarea
@@ -265,7 +283,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={t('playerDetailsModal.notesPlaceholder', 'Optional notes about this player')}
                   rows={3}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className={textareaStyle}
                 />
               </div>
             </div>

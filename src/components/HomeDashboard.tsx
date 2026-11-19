@@ -1,43 +1,102 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MdDirectionsCar } from 'react-icons/md';
 import type { TFunction } from 'i18next';
 import type { HomeSummary, HomeResumeGame, HomeRecentGame, HomeUpcomingGame } from '@/utils/homeSummary';
+import type { GameResult } from '@/utils/gameResult';
 import { formatDriveTime } from '@/utils/travelPlan';
 
 /**
- * The Home card surface: recent games, the Pelaajat and Joukkueet tiles, the
- * stats tiles. One literal string rather than four copies, because a gradient
- * spelled out in four files drifts the moment one of them is touched. Written
- * out whole, not composed, since Tailwind scans for complete class names.
+ * HOME SCREEN, S1 "SYKE REFINED" (owner-approved redesign, phase 1 of 3).
  *
- * QUIET, AND IT FADES. These are repeated cards - the ramp runs across each
- * one separately, so whatever it does it does two or three times in a row.
- * The resume card's gradient at that repetition was far too loud.
+ * The visual system lives in two places: the role-named colour/font tokens in
+ * globals.css (`bg-carbon`, `text-ink-3`, `text-action`, `font-display`, ...)
+ * and the handful of multi-layer surfaces that one utility cannot express
+ * (`s1-hero`, `s1-list`, `s1-primary`, ...), also in globals.css. Nothing in
+ * this file hard-codes a hex value.
  *
- * Colour at the left, fading into the page's own slate at the right - the
- * direction the resume card already runs, so every card on Home is lit from
- * the same side. The season card was the last holdout, on a gradient that
- * differed from this one only in the slate end's alpha; it is on this surface
- * now, so Home has exactly one card surface and one hero.
- *
- * WHY 45 AND NOT LOWER. Composited over the slate-900 page, the left end sits
- * at rgb(30,33,81) against a rgb(15,23,42) background and the right end at
- * rgb(27,37,56), so the ramp itself is a blue shift of about 25 levels and
- * almost nothing in red and green. At /70 that shift was 47 and the row read
- * as stripes; below about /35 the card stops separating from the page at all,
- * which is the mistake a flat indigo-950/45 already made here once.
+ * Inter (`font-ui`) is the text face here; Barlow Condensed (`font-display`)
+ * is for numerals and names, as in the rest of the app.
  */
-export const HOME_CARD =
-  'bg-gradient-to-r from-indigo-900/45 to-slate-800/80 border-indigo-800/35 shadow-md hover:from-indigo-800/50 hover:to-slate-800';
 
-/** Result shown through the score colour only (no coloured card edge). */
-const scoreColour: Record<'W' | 'D' | 'L', string> = {
-  W: 'text-green-300',
-  D: 'text-slate-200',
-  L: 'text-red-300',
+/** Visible keyboard focus, the same everywhere on Home. */
+export const HOME_FOCUS =
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon';
+
+/**
+ * The Home card surface: the club tiles, the season card, the stats tiles.
+ * One literal so a surface spelled out in several files cannot drift.
+ */
+export const HOME_CARD = 's1-list';
+
+/* ------------------------------------------------------------------ icons */
+
+type HomeIconName =
+  | 'gear' | 'chev' | 'back' | 'arrow' | 'plus' | 'pin' | 'nav' | 'check'
+  | 'pitch' | 'shield' | 'trophy' | 'bars' | 'folder';
+
+const ICON_PATHS: Record<HomeIconName, React.ReactNode> = {
+  gear: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+    </>
+  ),
+  chev: <path d="M9 6l6 6-6 6" />,
+  back: <path d="M15 6l-6 6 6 6" />,
+  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  pin: (
+    <>
+      <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </>
+  ),
+  nav: <path d="M3 11l18-8-8 18-2-8-8-2z" />,
+  check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  pitch: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M12 5v14" />
+      <circle cx="12" cy="12" r="2.6" />
+    </>
+  ),
+  shield: <path d="M12 3l8 3v6c0 4.6-3.2 8-8 9-4.8-1-8-4.4-8-9V6l8-3z" />,
+  trophy: (
+    <>
+      <path d="M8 4h8v6a4 4 0 0 1-8 0V4z" />
+      <path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 14v4M8.5 20h7" />
+    </>
+  ),
+  bars: <path d="M5 20v-7M12 20V5M19 20v-10" />,
+  folder: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />,
 };
+
+/** The Home icon family: 24-unit grid, round caps, one stroke weight. Decorative. */
+export function HomeIcon({ name, className = 'h-[22px] w-[22px]', strokeWidth = 1.75, fill = 'none' }: {
+  name: HomeIconName;
+  className?: string;
+  strokeWidth?: number;
+  fill?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill={fill}
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`flex-none ${className}`}
+      aria-hidden="true"
+      focusable="false"
+    >
+      {ICON_PATHS[name]}
+    </svg>
+  );
+}
+
+/* ---------------------------------------------------------------- helpers */
 
 /**
  * "2026-09-20" -> "20.9." - the form a Finnish coach writes on a whiteboard. A date
@@ -49,170 +108,195 @@ const formatDayMonth = (iso: string): string => {
   return `${Number(m[3])}.${Number(m[2])}.`;
 };
 
-/**
- * "2026-09-20" -> "su 20.9." in Finnish, "Sun 20.9." in English. A coach thinks
- * in weekdays: "Sunday" places a match faster than "20.9." does, and the date
- * then only says which Sunday. The locale is the app's, passed down because
- * this component takes `t` and not the i18n instance.
- */
-const formatWeekdayDate = (iso: string, locale: string): string => {
+/** The weekday of an ISO date in the app language: 'short' -> "su"/"Sun", 'long' -> "sunnuntai". */
+const formatWeekday = (iso: string, locale: string, style: 'short' | 'long'): string => {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!m) return '';
-  const weekday = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
-    .toLocaleDateString(locale, { weekday: 'short' })
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    .toLocaleDateString(locale, { weekday: style })
     .replace(/\.$/, '');
-  return `${weekday} ${formatDayMonth(iso)}`;
 };
 
 /**
- * The top slot when there is neither a fixture nor a match to resume.
- *
- * THE SLOT IS NEVER EMPTY, which the owner asked for twice. The rule used to
- * be "a fixture, or failing that the last match you had open" - and both of
- * those can be gone at once: delete the only booked fixture while the match
- * you last opened was that same one, and the card simply vanished, leaving
- * Home opening on a gap where its most prominent element had been.
- *
- * ONLY WHEN THERE IS GENUINELY NOTHING. A fixture, the match you have open,
- * or failing both the latest one played will all take this slot first - so
- * reaching this card means the coach has no matches at all, and the only
- * useful thing to offer is the first one.
+ * "2026-09-20" -> "su 20.9." in Finnish, "Sun 20.9." in English. A coach thinks
+ * in weekdays: "Sunday" places a match faster than "20.9." does, and the date
+ * then only says which Sunday.
  */
-function NoMatchCard({ onNewGame, t }: { onNewGame?: () => void; t: TFunction }) {
+const formatWeekdayDate = (iso: string, locale: string): string => {
+  const weekday = formatWeekday(iso, locale, 'short');
+  return weekday ? `${weekday} ${formatDayMonth(iso)}` : '';
+};
+
+const resultOf = (ours: number, theirs: number): GameResult =>
+  ours > theirs ? 'W' : ours < theirs ? 'L' : 'D';
+
+/** Big score numeral, coloured by result. A match not yet played has none. */
+const numeralClass: Record<GameResult, string> = {
+  W: 's1-numeral-win',
+  D: 's1-numeral-draw',
+  L: 's1-numeral-loss',
+};
+
+/** Round result badge in the results list. */
+const badgeClass: Record<GameResult, string> = {
+  W: 'bg-win/15 text-win',
+  D: 'bg-white/10 text-draw',
+  L: 'bg-loss/15 text-loss',
+};
+
+/** V / T / TA in Finnish, W / L / T in English - the letters the app's exports already use. */
+const badgeLetter = (result: GameResult, t: TFunction): string =>
+  result === 'W'
+    ? t('export.winShort', 'W')
+    : result === 'L'
+      ? t('export.lossShort', 'L')
+      : t('export.tieShort', 'T');
+
+/* ------------------------------------------------------------ hero pieces */
+
+const HERO_LABEL = 'inline-flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.16em]';
+const HERO_BODY = `block w-full text-left rounded-2xl transition-opacity hover:opacity-90 ${HOME_FOCUS}`;
+const PRIMARY_BTN = `s1-primary flex h-14 w-full items-center justify-center gap-2.5 rounded-full px-5 text-base font-bold transition-[filter] ${HOME_FOCUS}`;
+
+/** Role and day: the top line of the hero card. */
+function HeroTop({ left, right }: { left: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-800/70 px-3.5 py-3.5 text-white shadow-md">
-      <div className="mb-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
-        {t('startScreen.dashNextMatch', 'Next match')}
-      </div>
-      <p className="text-sm text-slate-300">
-        {t('startScreen.dashNoMatchesYet', 'No matches yet.')}
-      </p>
-      <button
-        type="button"
-        onClick={onNewGame}
-        className="mt-2.5 w-full rounded-lg bg-indigo-600 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-indigo-500"
-      >
-        {t('startScreen.newGame', 'New Game')}
-      </button>
+    <div className="flex min-h-7 flex-wrap items-center justify-between gap-x-3 gap-y-2">
+      {left}
+      {right}
     </div>
   );
 }
 
-/**
- * ONE SKELETON FOR EVERY TOP CARD (owner, 2026-09-19). The fixture card and the
- * Jatka card take the same slot and mean the same thing - the match this screen
- * is about - and they had grown different shapes: one had an eyebrow and the
- * other did not; one spent a whole line on "Vieras"; one put the kick-off
- * beside the opponent while the other crammed date, time, venue and town into
- * a line that truncated the town.
- *
- * Both now read top to bottom in the order a coach asks the questions: which
- * match (the eyebrow: its role and its day), who and the one number (kick-off
- * on a fixture, the score on anything played), where (venue name over town,
- * the pitch as a chip), then the one thing to do (the departure time, or
- * Jatka). NOTHING ON THE CARD TRUNCATES: a long name wraps and the card grows,
- * because "Lappe…" told the coach less than no town at all. Home and away are
- * gone - the owner's call: it did not earn its row.
- */
-const CARD_HERO =
-  'flex flex-col rounded-xl bg-gradient-to-r from-indigo-700 via-indigo-900/85 to-slate-800/80 border border-indigo-500/60 text-white shadow-md overflow-hidden';
-const CARD_BODY = 'flex-1 min-w-0 text-left px-3.5 pt-2 pb-2 hover:bg-indigo-900/40 transition-all';
-const CARD_ACTION_ROW = 'border-t border-indigo-500/40 bg-indigo-950/30';
-
-/** Role and day: "Next match · Tomorrow", "Latest · su 14.9. 19:00". */
-function CardEyebrow({ children }: { children: React.ReactNode }) {
+/** Amber label with the live dot: "Next match", "Last opened". */
+function LiveLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-indigo-200">
+    <span className={`${HERO_LABEL} pl-[3px] text-action`}>
+      <i className="s1-live-dot" aria-hidden="true" />
       {children}
-    </div>
+    </span>
   );
 }
 
-/**
- * The card body (owner's pick A1, 2026-09-21): two columns. The text stack -
- * opponent, venue name, town - on the left; the one number alone on the right,
- * centred against the whole stack. The number had been beside the opponent
- * only, 2.25x its size and related to nothing vertically, with a chip or pill
- * floating under it: the card's weight was dragged into its top-right corner
- * and the right edge was ragged. Given a column of its own, the number has
- * something to justify its size, and the right rail is just number, then car.
- * The chip and the Jatka pill live in the travel row now.
- */
-function CardBody({ who, number, numberClass = '', venue, town }: {
-  who: string;
-  number?: string;
-  /** Colour for the number - the result's, on a played match. */
-  numberClass?: string;
-  venue?: string;
-  town?: string;
-}) {
-  // Only the first comma-separated part of the stored venue: newly picked
-  // locations store just the name, but games saved earlier kept the whole
-  // disambiguation string, and the town has its own line.
-  const name = venue?.split(',')[0]?.trim();
+/** Quiet chip on the hero's top line (the countdown). */
+function HeroChip({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[1fr_auto] items-center gap-x-3">
-      <div className="min-w-0">
-        <div className="break-words text-base font-extrabold leading-tight">{who}</div>
-        {(name || town) && (
-          <div className="mt-0.5 break-words leading-tight">
-            {name && <div className="text-[13px] font-semibold">{name}</div>}
-            {town && <div className="text-xs text-indigo-200">{town}</div>}
-          </div>
-        )}
-      </div>
-      {number && <span className={`text-[34px] font-black tabular-nums leading-none tracking-tight ${numberClass}`}>{number}</span>}
-    </div>
+    <span className="inline-flex h-7 shrink-0 items-center rounded-full bg-slate-950/50 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-ink ring-1 ring-inset ring-white/10">
+      {children}
+    </span>
   );
 }
 
-/**
- * The travel row: a text block on the left (departure line, address), what
- * rides beside it (the pitch chip, or the Jatka pill), and the car behind a
- * hairline at the end. The same row on both cards, so the eye learns one.
- */
-function TravelRow({ children, trailing, mapsUrl, t }: {
-  children?: React.ReactNode;
-  trailing?: React.ReactNode;
-  mapsUrl: string | null;
-  t: TFunction;
-}) {
-  return (
-    <div className={`${CARD_ACTION_ROW} flex min-h-[34px] items-stretch`}>
-      <div className="flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-3.5 pr-2.5">
-        <div className="flex min-w-0 flex-1 flex-col text-[11.5px] leading-snug">{children}</div>
-        {trailing}
-      </div>
-      {mapsUrl && <DirectionsCell href={mapsUrl} t={t} />}
-    </div>
-  );
+/** The day/time eyebrow on the right of the top line. */
+function HeroEyebrow({ children, nowrap }: { children: React.ReactNode; nowrap?: boolean }) {
+  return <span className={`min-w-0 text-right text-[13px] font-medium text-ink-2 ${nowrap ? 'whitespace-nowrap' : ''}`}>{children}</span>;
 }
 
-/** The pitch, as a chip that never gives way. */
-function PitchChip({ pitch }: { pitch: string }) {
+/** Win / Draw / Loss as a pill on a played match. */
+function ResultPill({ result, t }: { result: GameResult; t: TFunction }) {
+  const cls = result === 'W' ? 's1-pill-win' : result === 'L' ? 's1-pill-loss' : 's1-pill-draw';
+  const label = result === 'W'
+    ? t('recap.resultWin', 'Win')
+    : result === 'L'
+      ? t('recap.resultLoss', 'Loss')
+      : t('recap.resultDraw', 'Draw');
   return (
-    <span className="shrink-0 rounded-md border border-indigo-400/40 bg-indigo-500/20 px-1.5 py-1 text-[11px] font-bold tabular-nums">
-      {pitch}
+    <span className={`${HERO_LABEL} ${cls} h-7 shrink-0 gap-[5px] rounded-full pl-2 pr-3 tracking-[0.12em]`}>
+      {result === 'W' && <HomeIcon name="check" className="h-4 w-4" strokeWidth={3} />}
+      {label}
     </span>
   );
 }
 
 /**
- * Turn-by-turn directions: the last cell of the travel row, behind a hairline.
- *
- * IN THE ROW, NOT THE BODY (owner, 2026-09-20). It used to be a boxed button
- * floating under the kick-off - the one element on the card that belonged to
- * no row. Then a labelled pill in the row; the owner asked for less: a
- * vertical divider and the car alone. The divider is the same hairline as the
- * row's top edge, so the cell reads as part of the card's grid and the whole
- * right end of the row is one tap target. A SIBLING of the card button, never
- * a child: a link inside a button is invalid HTML.
- *
- * Only ever rendered for a PINNED venue - see mapsDirectionsUrl - and never on
- * a match already played: directions to a ground you came home from is a
- * button with no job.
+ * The kick-off as the one huge number, the day sitting on its baseline.
+ * The negative margins pull the italic's left overhang onto the card edge.
  */
-function DirectionsCell({ href, t }: { href: string; t: TFunction }) {
+function KickOff({ big, weekday, date }: { big: string; weekday?: string; date?: string }) {
+  return (
+    <span className="-ml-1.5 mt-2 block whitespace-nowrap leading-none">
+      <span className="s1-numeral -ml-1 inline-block pl-1 pr-2 font-display text-[clamp(64px,22vw,88px)] font-extrabold italic leading-[0.8] tracking-[-0.015em] tabular-nums">
+        {big}
+      </span>
+      {(weekday || date) && (
+        <span className="ml-1.5 inline-block font-display text-[26px] font-bold leading-none text-ink tabular-nums">
+          {weekday && (
+            <b className="mb-2 block font-ui text-xs font-semibold uppercase leading-none tracking-[0.16em] text-ink-3">
+              {weekday}
+            </b>
+          )}
+          {date}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** "vs Opponent" in the display face. The opponent is its own element. */
+function Opponent({ who, t, stacked = false, className = '' }: { who: string; t: TFunction; stacked?: boolean; className?: string }) {
+  return (
+    <span className={`block break-words font-display text-[30px] font-bold leading-[1.1] tracking-[0.005em] text-ink ${className}`}>
+      <small className={`font-ui text-xs font-semibold uppercase tracking-[0.14em] text-ink-3 ${stacked ? 'mb-1 block' : 'mr-2 align-[4px]'}`}>
+        {t('playerStats.vs', 'vs')}
+      </small>
+      <span>{who}</span>
+    </span>
+  );
+}
+
+/** One cell of the stat strip: caption over a display value. */
+function StatCell({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0 border-l border-hairline px-4 first:border-l-0 first:pl-0">
+      <span className="block text-xs font-semibold uppercase leading-4 tracking-[0.16em] text-ink-3">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+const STAT_VALUE = 'mt-0.5 block font-display text-[28px] font-bold leading-7 tabular-nums text-ink';
+
+/** The pitch, which never gives way. */
+function PitchCell({ pitch, t }: { pitch: string; t: TFunction }) {
+  return (
+    <StatCell label={t('startScreen.dashPitch', 'Pitch')}>
+      <b className={STAT_VALUE}>{pitch}</b>
+    </StatCell>
+  );
+}
+
+/** The stat strip: hairlines above and below, cells split by a hairline. */
+function StatStrip({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-4 grid auto-cols-fr grid-flow-col border-y border-hairline py-2.5">
+      {children}
+    </div>
+  );
+}
+
+/** Venue name over its street address (or town), behind a pin. */
+function AddressRow({ venue, sub }: { venue?: string; sub?: string }) {
+  if (!venue && !sub) return null;
+  return (
+    <div className="mt-3 flex items-center gap-3 text-[13px] leading-[1.3] text-ink-2">
+      <HomeIcon name="pin" className="h-5 w-5 text-ink-3" />
+      <div className="min-w-0 break-words">
+        {venue && <b className="block text-[15px] font-semibold text-ink">{venue}</b>}
+        {sub && <span className="block text-ink-3">{sub}</span>}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Turn-by-turn directions: the round button beside the primary action.
+ *
+ * Only ever rendered for a PINNED venue - see mapsDirectionsUrl - since a
+ * button that opens a search for a typed region promises navigation and
+ * delivers a guess. A SIBLING of the card's buttons, never a child: a link
+ * inside a button is invalid HTML.
+ */
+function DirectionsButton({ href, t }: { href: string; t: TFunction }) {
   return (
     <a
       href={href}
@@ -220,80 +304,155 @@ function DirectionsCell({ href, t }: { href: string; t: TFunction }) {
       rel="noopener noreferrer"
       aria-label={t('startScreen.driveToVenue', 'Directions to the venue')}
       title={t('startScreen.driveToVenue', 'Directions to the venue')}
-      className="ml-auto flex w-12 shrink-0 items-center justify-center self-stretch border-l border-indigo-500/40 text-white transition-colors hover:bg-indigo-900/60"
+      className={`s1-glass grid h-14 w-14 place-items-center rounded-full text-ink transition-opacity hover:opacity-90 ${HOME_FOCUS}`}
     >
-      <MdDirectionsCar className="h-5 w-5" aria-hidden="true" />
+      <HomeIcon name="nav" className="h-[22px] w-[22px] -translate-x-px translate-y-px" />
     </a>
   );
 }
 
+/** The action row: primary pill, and directions beside it when the venue is pinned. */
+function HeroActions({ primary, mapsUrl, t }: { primary: React.ReactNode; mapsUrl: string | null; t: TFunction }) {
+  return (
+    <div className={`mt-4 grid gap-3 ${mapsUrl ? 'grid-cols-[1fr_56px]' : 'grid-cols-1'}`}>
+      {primary}
+      {mapsUrl && <DirectionsButton href={mapsUrl} t={t} />}
+    </div>
+  );
+}
+
+/** Only the first comma-separated part of a stored venue: older games kept the whole disambiguation string. */
+const venueName = (venue?: string): string | undefined => venue?.split(',')[0]?.trim() || undefined;
+
+/* -------------------------------------------------------------- the cards */
+
 /**
- * The match you last opened - or, when none is open, the latest one played,
- * which is simply the last one you opened.
+ * The top slot when there is neither a fixture nor a match to resume.
  *
- * ONE STATE, NOT THREE (owner, 2026-09-21). This card used to say Kesken,
- * Pelaamatta or Viimeisin depending on the clock and the flag; the score
- * already says it ("0-0" with no clock is an unplayed match) and Jatka is the
- * action either way. The eyebrow names what the slot is - the match you last
- * opened - and its day.
+ * THE SLOT IS NEVER EMPTY, which the owner asked for twice: reaching this card
+ * means the coach has no matches at all, and the only useful thing to offer is
+ * the first one.
  */
-function ResumeCard({ resume, onResume, locale, t }: {
+function NoMatchCard({ onNewGame, t }: { onNewGame?: () => void; t: TFunction }) {
+  return (
+    <div className="s1-hero s1-hero-quiet p-5 text-ink">
+      <HeroTop left={<span className={`${HERO_LABEL} text-ink-3`}>{t('startScreen.dashNextMatch', 'Next match')}</span>} />
+      <p className="mt-2 text-[15px] text-ink-2">{t('startScreen.dashNoMatchesYet', 'No matches yet.')}</p>
+      <div className="mt-4">
+        <button type="button" onClick={onNewGame} className={PRIMARY_BTN}>
+          <HomeIcon name="plus" className="h-5 w-5" strokeWidth={2.4} />
+          {t('startScreen.newGame', 'New Game')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The match you last opened - or, when none is open, the latest one played.
+ *
+ * ONE SLOT, READ TOP TO BOTTOM in the order a coach asks: which match (the
+ * label and its day), who and the one number, where, then the one thing to
+ * do. The number is the kick-off on a match not yet started, the score on
+ * anything under way or played - coloured by the result once it is played,
+ * the same green / grey / red as the results list. NOTHING TRUNCATES: a long
+ * name wraps and the card grows. Home and away are not shown (owner's call).
+ */
+export function ResumeCard({ resume, onResume, locale, t }: {
   resume: HomeResumeGame;
   onResume?: () => void;
   locale: string;
   t: TFunction;
 }) {
+  const result = resume.isPlayed ? resultOf(resume.ourScore, resume.theirScore) : null;
+  // Not started: nothing on the clock or the scoreboard yet, and a kick-off to
+  // show. Then the kick-off is the number, as on a fixture.
+  const notStarted = !resume.isPlayed && !resume.timeElapsedSeconds
+    && resume.ourScore === 0 && resume.theirScore === 0 && !!resume.time;
   const when = [resume.date ? formatWeekdayDate(resume.date, locale) : null, resume.time]
     .filter(Boolean)
     .join(' ');
+  const who = resume.opponent || t('startScreen.dashResumeGame', 'Game');
+  const name = venueName(resume.venue);
+  const lastOpened = t('startScreen.dashLastOpened', 'Last opened');
+  const heroTint = result === 'W' ? 's1-hero-win' : result === 'L' ? 's1-hero-loss' : '';
 
   return (
-    <div className={CARD_HERO}>
-      <button type="button" onClick={onResume} className={`${CARD_BODY} w-full`}>
-        <CardEyebrow>{[t('startScreen.dashLastOpened', 'Last opened'), when].filter(Boolean).join(' · ')}</CardEyebrow>
-        {/* WHO WON (owner, 2026-09-21). The number is our score first, but
-            nothing on the card said so, and with home/away gone there was no
-            other cue. The strip below already colours a score by result -
-            green, grey, red - so the top card follows the same convention.
-            A match not yet played has no result, so its number stays white. */}
-        <CardBody
-          who={resume.opponent || t('startScreen.dashResumeGame', 'Game')}
-          number={`${resume.ourScore}–${resume.theirScore}`}
-          numberClass={
-            !resume.isPlayed
-              ? ''
-              : resume.ourScore > resume.theirScore
-                ? scoreColour.W
-                : resume.ourScore < resume.theirScore
-                  ? scoreColour.L
-                  : scoreColour.D
-          }
-          venue={resume.venue}
-          town={resume.venueTown}
+    <div className={`s1-hero ${heroTint} p-5 text-ink`}>
+      {result ? (
+        <HeroTop
+          left={<ResultPill result={result} t={t} />}
+          // Never broken mid-text: when it does not fit beside the pill, the
+          // whole line wraps under it (HeroTop wraps).
+          right={<HeroEyebrow nowrap>{[lastOpened, when].filter(Boolean).join(' · ')}</HeroEyebrow>}
         />
-      </button>
-      <TravelRow
+      ) : (
+        <HeroTop
+          left={<LiveLabel>{lastOpened}</LiveLabel>}
+          right={!notStarted && when ? <HeroEyebrow>{when}</HeroEyebrow> : undefined}
+        />
+      )}
+
+      {notStarted ? (
+        <>
+          <button type="button" onClick={onResume} className={HERO_BODY}>
+            <KickOff
+              big={resume.time!}
+              weekday={resume.date ? formatWeekday(resume.date, locale, 'long') : undefined}
+              date={resume.date ? formatDayMonth(resume.date) : undefined}
+            />
+            <Opponent who={who} t={t} className="mt-2" />
+          </button>
+          {resume.fieldNumber && (
+            <StatStrip>
+              <PitchCell pitch={resume.fieldNumber} t={t} />
+            </StatStrip>
+          )}
+          <AddressRow venue={name} sub={resume.venueAddress ?? resume.venueTown} />
+        </>
+      ) : (
+        /* The opponent gets the full width (a long club name must not wrap
+           into the score); the score sits opposite the venue lines below. */
+        <button type="button" onClick={onResume} className={`${HERO_BODY} mt-3`}>
+          {/* A short name sits beside the score (no dead space when the venue is
+              missing); only a long one takes its own row above it. */}
+          {who.length > 12 && <Opponent who={who} t={t} stacked className="text-[28px]" />}
+          <span className="mt-1 flex items-end justify-between gap-3">
+            <span className="block min-w-0 pb-1">
+              {who.length <= 12 && <Opponent who={who} t={t} stacked className="text-[28px]" />}
+              {(name || resume.venueTown || resume.fieldNumber) && (
+                <span className="mt-1 block break-words text-[13px] leading-[1.35] text-ink-2">
+                  {name && <span className="block">{name}</span>}
+                  {(resume.venueTown || resume.fieldNumber) && (
+                    <span className="block text-ink-3">
+                      {resume.venueTown && <span>{resume.venueTown}</span>}
+                      {resume.venueTown && resume.fieldNumber && ' · '}
+                      {resume.fieldNumber && <span>{resume.fieldNumber}</span>}
+                    </span>
+                  )}
+                </span>
+              )}
+            </span>
+            <span
+              className={`${result ? numeralClass[result] : 's1-numeral'} -mr-1.5 shrink-0 whitespace-nowrap pl-1 pr-2.5 font-display text-[clamp(64px,22vw,96px)] font-extrabold italic leading-[0.8] tracking-[-0.01em] tabular-nums`}
+            >
+              {`${resume.ourScore}–${resume.theirScore}`}
+            </span>
+          </span>
+        </button>
+      )}
+
+      <HeroActions
         mapsUrl={resume.mapsUrl}
         t={t}
-        trailing={
-          <>
-            {resume.fieldNumber && <PitchChip pitch={resume.fieldNumber} />}
-            {/* The one amber thing on this card, and the only thing to press.
-                Amber used to coat the whole card, which put it in direct
-                competition with the amber wordmark directly above it. Amber
-                means "press this" and nothing else. */}
-            <button
-              type="button"
-              onClick={onResume}
-              className="shrink-0 rounded-full bg-amber-500 px-3 py-1 text-xs font-extrabold text-slate-900 transition-colors hover:bg-amber-400"
-            >
-              {t('startScreen.resumeCard', 'Continue')} →
-            </button>
-          </>
+        primary={
+          // The arrow stays TEXT: the accessible name reads "Continue →", the
+          // card's action, distinct from the plain launcher's Continue button.
+          <button type="button" onClick={onResume} className={PRIMARY_BTN}>
+            {t('startScreen.resumeCard', 'Continue')} →
+          </button>
         }
-      >
-        {resume.venueAddress && <span className="text-indigo-300">{resume.venueAddress}</span>}
-      </TravelRow>
+      />
     </div>
   );
 }
@@ -302,33 +461,32 @@ function ResumeCard({ resume, onResume, locale, t }: {
  * The fixture ahead of you, and a way to drive to it.
  *
  * TAKES THE TOP SLOT FROM THE RESUME CARD, because it is the one with a
- * deadline: on a Wednesday the match you are thinking about is Saturday's, not
- * the one you finished last weekend. The resume card is not deleted - it takes
- * the slot back on any day no fixture is booked.
- *
- * The countdown leads because it is what a coach scans for. "3 pv" answers the
- * question faster than a date does, and turns into "Huomenna" and "Tänään" as
- * it closes. The kick-off is the big number and appears nowhere else on the
- * card.
+ * deadline. The countdown chip is what a coach scans for ("3 pv", then
+ * "Huomenna" and "Tänään" as it closes); the kick-off is the big number and
+ * appears nowhere else on the card.
  */
 function NextMatchCard({
   game,
   onOpen,
   onAdjustTravel,
   onSetStartingPoint,
+  onMarkAbsences,
+  locale,
   t,
 }: {
   game: HomeUpcomingGame;
   onOpen?: (id: string) => void;
+  /** "Merkitse poissaolijat": the attendance sheet for this fixture (Onboarding v3). */
+  onMarkAbsences?: (id: string) => void;
   /** Opens where the starting point is set; offered on a pinned fixture with no departure time. */
   onSetStartingPoint?: () => void;
   /** Sets this match's own arrival buffer and the drive time actually taken. */
   onAdjustTravel?: (id: string, next: { arrivalBufferMinutes?: number; travelMinutes?: number }) => void;
+  locale: string;
   t: TFunction;
 }) {
   const [adjusting, setAdjusting] = useState(false);
-  // "132 min" has to be divided in the head before it means anything, and the
-  // head is busy. The hour word is localised; the arithmetic is not.
+  // "132 min" has to be divided in the head before it means anything.
   const driveTime = game.travel
     ? formatDriveTime(game.travel.travelMinutes, t('common.hourShort', 'h'))
     : '';
@@ -338,91 +496,113 @@ function NextMatchCard({
       : game.daysAway === 1
         ? t('startScreen.dashTomorrow', 'Tomorrow')
         : t('startScreen.dashInDays', '{{count}} d', { count: game.daysAway });
+  const who = game.opponent || t('startScreen.dashResumeGame', 'Game');
+  const weekday = formatWeekday(game.date, locale, 'long');
+  const date = formatDayMonth(game.date);
+  const showDeparture = !!game.travel || !!game.mapsUrl;
 
   return (
-    // The wrapper positions; the card inside it clips. They cannot be the same
-    // element: rounded corners need overflow-hidden, and an overflowing panel
-    // is exactly what the adjustment sheet is.
+    // The wrapper positions; the card inside it clips (rounded corners need
+    // overflow-hidden, and the adjustment panel overflows by design).
     <div className="relative">
-    <div className={CARD_HERO}>
-      <button type="button" onClick={() => onOpen?.(game.id)} className={`${CARD_BODY} w-full`}>
-        <CardEyebrow>{t('startScreen.dashNextMatch', 'Next match')} · {countdown}</CardEyebrow>
-        <CardBody
-          who={game.opponent || t('startScreen.dashResumeGame', 'Game')}
-          number={game.time}
-          venue={game.venue}
-          town={game.venueTown}
+      <div className="s1-hero p-5 text-ink">
+        <HeroTop
+          left={<LiveLabel>{t('startScreen.dashNextMatch', 'Next match')}</LiveLabel>}
+          right={<HeroChip>{countdown}</HeroChip>}
         />
-      </button>
+        <button type="button" onClick={() => onOpen?.(game.id)} className={HERO_BODY}>
+          {/* No kick-off time booked: the date becomes the number. */}
+          <KickOff
+            big={game.time || date || '–'}
+            weekday={weekday || undefined}
+            date={game.time ? date : undefined}
+          />
+          <Opponent who={who} t={t} className="mt-2" />
+        </button>
 
-      {/* THE TRAVEL ROW: when to leave, the address, the pitch, the way there.
-          Departure is kick-off minus the time you must already BE there minus
-          the drive - never kick-off minus the drive, which reads as helpful and
-          is late. Tapping it opens both adjustments here rather than adding
-          fields to a match form the owner already finds long, and it is the
-          same tap that turns the estimate into a measured time.
+        {/* WHEN TO LEAVE, and the pitch. Departure is kick-off minus the time
+            you must already BE there minus the drive. Tapping it opens both
+            adjustments; a pinned venue with no departure time gets the offer
+            to set a starting point instead, where the coach is looking. */}
+        {(showDeparture || game.fieldNumber) && (
+          <StatStrip>
+            {showDeparture && (
+              <StatCell label={t('startScreen.dashDeparture', 'Departure')}>
+                {game.travel ? (
+                  <button
+                    type="button"
+                    onClick={() => setAdjusting((v) => !v)}
+                    aria-expanded={adjusting}
+                    className={`-mx-1 flex min-h-11 items-baseline gap-1.5 rounded-lg px-1 text-left ${HOME_FOCUS}`}
+                  >
+                    <b className={STAT_VALUE}>{game.travel.departure}</b>
+                    {/* Just the drive; the tilde is the whole hedge on a guess. */}
+                    <span className="text-[13px] font-medium text-ink-3">
+                      · {game.travel.isEstimate ? `~${driveTime}` : driveTime}
+                    </span>
+                    <span className="text-[13px] text-ink-3" aria-hidden="true">{adjusting ? '▾' : '▸'}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onSetStartingPoint}
+                    className={`-mx-1 mt-1 block min-h-11 rounded-lg px-1 text-left text-[13px] font-semibold leading-snug text-ink-2 ${HOME_FOCUS}`}
+                  >
+                    <span className="text-ink underline decoration-ink-3 underline-offset-2">
+                      {t('startScreen.setStartingPoint', 'Set a starting point')}
+                    </span>
+                    <span className="ml-1">{t('startScreen.setStartingPointWhy', 'to see when to leave')}</span>
+                  </button>
+                )}
+              </StatCell>
+            )}
+            {game.fieldNumber && <PitchCell pitch={game.fieldNumber} t={t} />}
+          </StatStrip>
+        )}
 
-          A pinned venue with no departure time still gets the line: it
-          becomes the offer to set a starting point, made where the coach is
-          already looking rather than in a settings screen nobody finds. */}
-      {(game.travel || game.mapsUrl || game.venueAddress || game.fieldNumber) && (
-        <TravelRow mapsUrl={game.mapsUrl} t={t} trailing={game.fieldNumber ? <PitchChip pitch={game.fieldNumber} /> : undefined}>
-          {game.travel ? (
-            <button
-              type="button"
-              onClick={() => setAdjusting((v) => !v)}
-              aria-expanded={adjusting}
-              className="flex items-baseline gap-1.5 text-left transition-colors hover:text-white"
-            >
-              <span className="font-semibold text-amber-200">
-                {t('startScreen.departAt', 'Leave {{time}}', { time: game.travel.departure })}
-              </span>
-              {/* Just the drive. The parentheses and the word "arvio" were
-                  honest and were also most of the line, and a number the coach
-                  can already see is derived does not need announcing twice. The
-                  tilde keeps the hedge at one character. */}
-              <span className="font-normal text-indigo-300">
-                · {game.travel.isEstimate ? `~${driveTime}` : driveTime}
-              </span>
-              <span className="text-indigo-300">{adjusting ? '▾' : '▸'}</span>
+        <AddressRow venue={venueName(game.venue)} sub={game.venueAddress ?? game.venueTown} />
+
+        <HeroActions
+          mapsUrl={game.mapsUrl}
+          t={t}
+          primary={
+            <button type="button" onClick={() => onOpen?.(game.id)} className={PRIMARY_BTN}>
+              {t('playtimePlanner.overview.openGame', 'Open the game')}
+              <HomeIcon name="arrow" className="h-5 w-5" strokeWidth={2.4} />
             </button>
-          ) : game.mapsUrl ? (
-            <button
-              type="button"
-              onClick={onSetStartingPoint}
-              className="text-left font-semibold text-indigo-200 transition-colors hover:text-white"
-            >
-              <span className="border-b border-amber-200/70 text-amber-200">
-                {t('startScreen.setStartingPoint', 'Set a starting point')}
-              </span>
-              <span className="ml-1">{t('startScreen.setStartingPointWhy', 'to see when to leave')}</span>
-            </button>
-          ) : null}
-          {game.venueAddress && <span className="text-indigo-300">{game.venueAddress}</span>}
-        </TravelRow>
-      )}
-    </div>
+          }
+        />
+        {onMarkAbsences && (
+          <button
+            type="button"
+            onClick={() => onMarkAbsences(game.id)}
+            data-testid="next-match-mark-absences"
+            className={`mt-2.5 flex h-12 w-full items-center justify-center rounded-full border border-dashed border-white/25 px-4 text-[15px] font-semibold text-ink-2 transition-colors hover:text-ink ${HOME_FOCUS}`}
+          >
+            {t('basicHome.markAbsences', 'Mark who is away')}
+          </button>
+        )}
+      </div>
 
-          {/* OVER the content below, not shoved into it. Expanding in the flow
-          pushed the season bar, the results strip and every button down the
-          page - the coach adjusts one number and the whole screen moves
-          under their thumb. Absolute, so only this panel moves. */}
+      {/* OVER the content below, not shoved into it: expanding in the flow
+          moved every row under the coach's thumb. Absolute, so only this
+          panel moves. */}
       {adjusting && game.travel && (
-        <div className="absolute left-0 right-0 top-full z-30 space-y-2.5 rounded-b-xl border-x border-b border-indigo-500/60 bg-indigo-950 px-3.5 pb-3 pt-2 shadow-xl">
+        <div className="s1-sheet absolute left-0 right-0 top-full z-30 mt-2 space-y-3 rounded-[22px] px-4 pb-4 pt-3">
           <div>
-            <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-indigo-300">
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">
               {t('startScreen.arriveBefore', 'At the ground before kick-off')}
             </div>
-            <div className="flex gap-1.5">
+            <div className="flex gap-2">
               {[30, 45, 60].map((minutes) => (
                 <button
                   key={minutes}
                   type="button"
                   onClick={() => onAdjustTravel?.(game.id, { arrivalBufferMinutes: minutes })}
-                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                  className={`min-h-11 rounded-full px-4 text-sm font-semibold transition-colors ${HOME_FOCUS} ${
                     game.travel?.arrivalBufferMinutes === minutes
-                      ? 'bg-amber-500 text-slate-900'
-                      : 'bg-indigo-900/70 text-indigo-100 hover:bg-indigo-800'
+                      ? 'bg-action text-on-action'
+                      : 'bg-surface-2 text-ink-2 hover:text-ink'
                   }`}
                 >
                   {minutes} min
@@ -432,12 +612,11 @@ function NextMatchCard({
           </div>
 
           <div>
-            <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-indigo-300">
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">
               {t('startScreen.actualDrive', 'How long the drive really takes')}
             </div>
-            {/* A measured time replaces a straight-line guess that knows
-                nothing about the lake you drive around - and, looked up by
-                venue, answers for every later match at the same place. */}
+            {/* A measured time replaces a straight-line guess, and - looked up
+                by venue - answers for every later match at the same place. */}
             <input
               type="number"
               min={0}
@@ -445,11 +624,9 @@ function NextMatchCard({
               inputMode="numeric"
               defaultValue={game.travel.travelMinutes}
               onBlur={(e) => {
-                // An EMPTIED field is not a zero-minute drive. Number('')
-                // is 0, which passed a >= 0 check and would have recorded
-                // "this venue takes no time to reach" for every later match
-                // there - a measured value is exactly the thing that
-                // overrides the estimate, so a blank must change nothing.
+                // An EMPTIED field is not a zero-minute drive: Number('') is 0,
+                // and a measured value overrides the estimate for every later
+                // match at this venue, so a blank must change nothing.
                 const raw = e.target.value.trim();
                 if (!raw) return;
                 const minutes = Number(raw);
@@ -458,9 +635,9 @@ function NextMatchCard({
                 }
               }}
               aria-label={t('startScreen.actualDrive', 'How long the drive really takes')}
-              className="w-24 rounded-md border border-indigo-500/50 bg-indigo-950/60 px-2 py-1 text-sm text-white"
+              className="h-11 w-24 rounded-xl border border-hairline bg-carbon px-3 text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             />
-            <span className="ml-1.5 text-xs text-indigo-300">min</span>
+            <span className="ml-2 text-sm text-ink-3">min</span>
           </div>
         </div>
       )}
@@ -468,92 +645,122 @@ function NextMatchCard({
   );
 }
 
+/* ------------------------------------------------------------ the list */
 
+/** How many rows the results / fixtures list shows; the rest live in Saved games. */
+const LIST_ROWS = 3;
 
-/** One fixture in the Tulevat strip: when it is, not how it went. */
-function UpcomingCard({ game, onOpen, t }: { game: HomeUpcomingGame; onOpen?: (id: string) => void; t: TFunction }) {
+const LIST_ROW = `relative flex min-h-14 w-full items-center gap-3 rounded-2xl py-1.5 pl-3 pr-4 text-left transition-colors hover:bg-white/[0.03] ${HOME_FOCUS}`;
+
+/** Hairline between rows, starting after the badge. */
+function RowRule() {
+  return <span className="pointer-events-none absolute left-14 right-4 top-0 h-px bg-hairline" aria-hidden="true" />;
+}
+
+/** One fixture in the list: when it is, not how it went. */
+function UpcomingRow({ game, onOpen, locale, first, t }: {
+  game: HomeUpcomingGame;
+  onOpen?: (id: string) => void;
+  locale: string;
+  first: boolean;
+  t: TFunction;
+}) {
   return (
-    <button
-      type="button"
-      onClick={() => onOpen?.(game.id)}
-      className="flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl border transition-all bg-gradient-to-r from-indigo-900/45 to-slate-800/80 border-indigo-800/35 hover:from-indigo-800/50 hover:to-slate-800"
-    >
-      <span className="block text-[11px] font-semibold text-white truncate">
-        {game.opponent || t('startScreen.dashResumeGame', 'Game')}
+    <button type="button" onClick={() => onOpen?.(game.id)} className={LIST_ROW}>
+      {!first && <RowRule />}
+      <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-white/[0.08] font-display text-[13px] font-bold uppercase text-ink-2">
+        {formatWeekday(game.date, locale, 'short')}
       </span>
-      <span className="block text-xs font-bold text-indigo-200">{game.time || '–'}</span>
-      <span className="block text-[9.5px] text-slate-500">{formatDayMonth(game.date)}</span>
-      {game.venueTown && (
-        <span className="block truncate text-[9.5px] text-slate-500">{game.venueTown}</span>
-      )}
+      <span className="min-w-0 flex-1">
+        <b className="block truncate text-[15px] font-semibold leading-5 text-ink">
+          {game.opponent || t('startScreen.dashResumeGame', 'Game')}
+        </b>
+        <span className="block truncate text-xs leading-4 text-ink-3">
+          <span>{formatDayMonth(game.date)}</span>
+          {game.venueTown && <> · <span>{game.venueTown}</span></>}
+        </span>
+      </span>
+      <span className="min-w-[46px] pr-[3px] text-right font-display text-[22px] font-bold italic leading-none text-ink-2 tabular-nums">
+        {game.time || '–'}
+      </span>
     </button>
   );
 }
 
 /**
- * The season's record, on the strip header's right-hand side.
- *
- * FOLDED INTO THE HEADER (owner, 2026-09-21). It was a bar of its own between
- * the top card and the strip - a row for a line the coach reads once a week -
- * on a tab that was pushing its own rows off the screen. The label, the W-D-L
- * and the chevron stay; the games count and goal difference live in Tilastot,
- * which this opens.
+ * One result in the list. `accented` marks the match the coach last had open -
+ * wayfinding, not status - and is suppressed by the caller when the card above
+ * already shows that match (the same sentence twice in one glance).
+ */
+function RecentRow({ game, onOpen, accented, first, t }: {
+  game: HomeRecentGame;
+  onOpen?: (id: string) => void;
+  accented?: boolean;
+  first: boolean;
+  t: TFunction;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen?.(game.id)}
+      className={`${LIST_ROW} ${accented ? 'bg-action/[0.07] ring-1 ring-inset ring-action/45' : ''}`}
+    >
+      {!first && !accented && <RowRule />}
+      <span className={`grid h-8 w-8 flex-none place-items-center rounded-full font-display text-[17px] font-bold leading-none ${badgeClass[game.result]}`}>
+        {badgeLetter(game.result, t)}
+      </span>
+      <span className="min-w-0 flex-1">
+        <b className="block truncate text-[15px] font-semibold leading-5 text-ink">{game.opponent || '—'}</b>
+        {/* Town only - see HomeRecentGame.venueTown for why not the venue. */}
+        <span className="block truncate text-xs leading-4 text-ink-3">
+          {game.date && <span>{formatDayMonth(game.date)}</span>}
+          {game.date && game.venueTown && ' · '}
+          {game.venueTown && <span>{game.venueTown}</span>}
+        </span>
+      </span>
+      <span
+        className={`min-w-[46px] pr-[3px] text-right font-display text-[28px] font-bold italic leading-none tabular-nums ${
+          game.result === 'D' ? 'text-ink-2' : 'text-ink'
+        }`}
+      >
+        {game.ourScore}–{game.theirScore}
+      </span>
+    </button>
+  );
+}
+
+/**
+ * The season's record, on the list header's right-hand side - the "see all"
+ * link: it opens the club stats. Green-grey-red is the football convention
+ * for W-D-L, so the colours label it without spending width on words.
  */
 function SeasonLink({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi']>; onOpen?: () => void; t: TFunction }) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="ml-auto flex items-center gap-1.5 whitespace-nowrap rounded-md px-1 py-0.5 -my-0.5 text-[13px] font-semibold text-slate-300 transition-colors hover:bg-slate-800/70 hover:text-white"
+      className={`ml-auto inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-lg pl-3 text-[13px] font-semibold text-ink ${HOME_FOCUS}`}
       title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
     >
-      <span className="text-indigo-200">{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
-      <span className="text-slate-600" aria-hidden="true">·</span>
-      {/* Green-grey-red is the football convention for W-D-L, so the colours
-          label these without spending width on words. */}
+      {/* A link reads as ink with an underline: amber is reserved for the
+          primary action and for selection. */}
+      <span className="underline decoration-ink-3 underline-offset-[3px]">{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
+      <span className="text-ink-3" aria-hidden="true">·</span>
       <span className="tabular-nums">
-        <span className="font-bold text-green-400">{vuosi.wins}</span>
-        <span className="text-slate-500">-{vuosi.ties}-</span>
-        <span className="font-bold text-red-400">{vuosi.losses}</span>
+        <span className="font-bold text-win">{vuosi.wins}</span>
+        <span className="text-ink-3">-{vuosi.ties}-</span>
+        <span className="font-bold text-loss">{vuosi.losses}</span>
       </span>
-      <span className="text-slate-500" aria-hidden="true">›</span>
+      <HomeIcon name="chev" className="h-4 w-4" strokeWidth={2} />
     </button>
   );
 }
 
-/**
- * `accented` marks the match the coach last had open - wayfinding, not status.
- *
- * Suppressed by the caller when the card ABOVE is already showing that same
- * match: the accent's whole job is "your last match is down here", and there is
- * nothing to point at when it is the first thing on the screen. Leaving it on
- * would be the app saying one sentence twice in a single glance.
- */
-function RecentCard({ game, onOpen, accented }: { game: HomeRecentGame; onOpen?: (id: string) => void; accented?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen?.(game.id)}
-      className={`flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl border transition-all ${
-        accented
-          ? 'bg-gradient-to-r from-amber-900/40 to-slate-800/85 border-amber-500/70 shadow-[0_0_16px_rgba(245,158,11,0.14)]'
-          : HOME_CARD
-      }`}
-    >
-      <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
-      <div className={`text-sm font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
-      <div className="text-xs text-slate-400 tabular-nums">{game.date ? formatDayMonth(game.date) : ''}</div>
-      {/* Town only - see HomeRecentGame.venueTown for why not the venue. */}
-      {game.venueTown && (
-        <div className="truncate text-[9.5px] text-slate-500">{game.venueTown}</div>
-      )}
-    </button>
-  );
-}
+const SECTION_LABEL = 'text-xs font-bold uppercase tracking-[0.16em]';
 
 /**
- * The opt-in Pelit-tab dashboard: an informative resume card, the current
- * club-season (Vuosi) record, and a swipeable recent-games strip. Purely
+ * The Pelit-tab dashboard: the hero card for the match this screen is about,
+ * then the latest results (or upcoming fixtures) as a list. Purely
  * presentational - all data is precomputed in `buildHomeSummary`.
  */
 export function HomeDashboard({
@@ -564,10 +771,13 @@ export function HomeDashboard({
   onAdjustTravel,
   onNewGame,
   onSetStartingPoint,
+  onMarkAbsences,
   locale = 'fi',
   t,
 }: {
   summary: HomeSummary;
+  /** The next fixture's "Merkitse poissaolijat" (Onboarding v3). */
+  onMarkAbsences?: (id: string) => void;
   onResume?: () => void;
   onOpenVuosi?: () => void;
   onOpenGame?: (id: string) => void;
@@ -581,17 +791,11 @@ export function HomeDashboard({
   t: TFunction;
 }) {
   /**
-   * Which strip the coach is looking at.
-   *
-   * ONLY THE COACH'S EXPLICIT CHOICE IS STORED - null until they tap the
-   * toggle. The default is derived from what exists right now, so booking the
-   * season's first fixture without leaving Home switches the strip to it.
-   * Storing the resolved default instead froze it at mount: a coach who opened
-   * Home with no fixtures stayed on Tulukset even after creating one.
-   *
-   * Fixtures win the default when any exist, because a coach who has booked
-   * matches is usually asking "what is next" rather than "how did we do". The
-   * toggle only renders when BOTH exist - one kind of match is not a choice.
+   * Which list the coach is looking at. ONLY THE COACH'S EXPLICIT CHOICE IS
+   * STORED - null until they tap the toggle - so the default stays derived
+   * from what exists right now: booking the season's first fixture without
+   * leaving Home switches the list to it. The toggle only renders when BOTH
+   * exist - one kind of match is not a choice.
    */
   const [chosenStrip, setStrip] = useState<'upcoming' | 'recent' | null>(null);
 
@@ -601,8 +805,6 @@ export function HomeDashboard({
       : chosenStrip ?? 'upcoming';
 
   // The accent has a job only while the top card is showing something ELSE.
-  // With the resume card up there, the match it would point at is already the
-  // first thing on the screen.
   const accentId = summary.upcoming ? summary.resume?.id : undefined;
 
   return (
@@ -610,39 +812,31 @@ export function HomeDashboard({
       {/* Always something here - see NoMatchCard for why the slot must not
           be allowed to empty. */}
       {summary.upcoming
-        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} onSetStartingPoint={onSetStartingPoint} t={t} />
+        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} onSetStartingPoint={onSetStartingPoint} onMarkAbsences={onMarkAbsences} locale={locale} t={t} />
         : summary.resume
           ? <ResumeCard resume={summary.resume} onResume={onResume} locale={locale} t={t} />
           // Nothing booked and nothing open: the latest match played, with the
-          // same Jatka action. A card that opens a real match beats a prompt
-          // that opens nothing - and after deleting the fixture you had open,
-          // the match before it is what a coach reaches for next.
+          // same Jatka action - a card that opens a real match beats a prompt.
           : summary.lastPlayed
             ? <ResumeCard resume={summary.lastPlayed} onResume={() => onOpenGame?.(summary.lastPlayed!.id)} locale={locale} t={t} />
             : <NoMatchCard onNewGame={onNewGame} t={t} />}
       {(summary.recent.length > 0 || summary.upcomingList.length > 0) && (
-        /* Label and strip are one block: the heading's margin is spacing
-           INSIDE it, not a gap between blocks, so the Home stack's own gap is
-           still the only thing separating this from what follows. */
         <div>
-          {/* THE TOGGLE IS THE LABEL, not a control above it. As a segmented
-              pill it stood ~10px taller than the heading it replaced and
-              pushed every row below it down the screen - on a tab the owner
-              had already said was full. Two words at the heading's own size
-              cost nothing, so the capability stops having to justify itself. */}
-          <div className="flex items-center gap-2 px-1 mb-1.5 text-[13px] font-semibold">
+          {/* THE TOGGLE IS THE LABEL, not a control above it: two words at the
+              heading's own size cost no height. */}
+          <div className="-mb-0.5 flex items-center gap-2 px-1">
             {hasBoth ? (
-              <div className="flex items-center gap-2" role="tablist">
+              <div className="flex items-center gap-1" role="tablist">
                 {(['upcoming', 'recent'] as const).map((which, i) => (
                   <React.Fragment key={which}>
-                    {i > 0 && <span className="text-slate-600" aria-hidden="true">·</span>}
+                    {i > 0 && <span className="text-ink-3" aria-hidden="true">·</span>}
                     <button
                       type="button"
                       role="tab"
                       aria-selected={showing === which}
                       onClick={() => setStrip(which)}
-                      className={`transition-colors ${
-                        showing === which ? 'text-slate-100' : 'text-slate-500 hover:text-slate-300'
+                      className={`${SECTION_LABEL} min-h-11 rounded-lg px-1 transition-colors ${HOME_FOCUS} ${
+                        showing === which ? 'text-ink' : 'text-ink-3 hover:text-ink-2'
                       }`}
                     >
                       {which === 'upcoming'
@@ -653,39 +847,29 @@ export function HomeDashboard({
                 ))}
               </div>
             ) : (
-              <div className="text-slate-300">
+              <h2 className={`${SECTION_LABEL} flex min-h-11 items-center text-ink-3`}>
                 {showing === 'upcoming'
                   ? t('startScreen.dashUpcoming', 'Upcoming')
                   : t('startScreen.dashRecent', 'Recent')}
-              </div>
+              </h2>
             )}
             {summary.vuosi && <SeasonLink vuosi={summary.vuosi} onOpen={onOpenVuosi} t={t} />}
           </div>
-          {/* The strip scrolls, and the card at the edge used to be cut clean
-              through its own border - which reads as a rendering fault, not as
-              an invitation to scroll. The gradient lets it dissolve instead.
-              pointer-events-none so it never eats a tap on the card beneath. */}
-          <div className="relative">
-            <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
-              {showing === 'upcoming'
-                ? summary.upcomingList.map((game) => (
-                    <UpcomingCard key={game.id} game={game} onOpen={onOpenGame} t={t} />
-                  ))
-                : summary.recent.map((game) => (
-                    <RecentCard
-                      key={game.id}
-                      game={game}
-                      onOpen={onOpenGame}
-                      accented={!!accentId && game.id === accentId}
-                    />
-                  ))}
-            </div>
-            {(showing === 'upcoming' ? summary.upcomingList.length : summary.recent.length) > 2 && (
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-slate-900 to-transparent"
-              />
-            )}
+          <div className="s1-list p-0.5">
+            {showing === 'upcoming'
+              ? summary.upcomingList.slice(0, LIST_ROWS).map((game, i) => (
+                  <UpcomingRow key={game.id} game={game} onOpen={onOpenGame} locale={locale} first={i === 0} t={t} />
+                ))
+              : summary.recent.slice(0, LIST_ROWS).map((game, i) => (
+                  <RecentRow
+                    key={game.id}
+                    game={game}
+                    onOpen={onOpenGame}
+                    accented={!!accentId && game.id === accentId}
+                    first={i === 0}
+                    t={t}
+                  />
+                ))}
           </div>
         </div>
       )}
@@ -697,9 +881,7 @@ export function HomeDashboard({
  * Which team the numbers below are about.
  *
  * Only shown when there is more than one team to choose between: a coach with
- * one team should not be asked a question with one answer. Hidden entirely
- * rather than shown disabled, because a control that cannot change anything is
- * noise on the busiest screen in the app.
+ * one team should not be asked a question with one answer.
  */
 export function HomeTeamScopeSelect({
   teams,
@@ -713,57 +895,35 @@ export function HomeTeamScopeSelect({
   t: TFunction;
 }) {
   if (teams.length < 2) return null;
-  // One row whatever the roster of teams looks like. Pills wrapped into a
-  // wall once real data (six same-named teams with context) hit them.
   return (
     <label
-      className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60 text-[13px] focus-within:ring-2 focus-within:ring-indigo-500"
+      className={`${HOME_CARD} relative flex min-h-14 w-full items-center gap-3 px-4 focus-within:ring-2 focus-within:ring-action`}
       data-testid="home-team-scope"
     >
-      <span className="font-extrabold text-indigo-200 whitespace-nowrap">{t('startScreen.dashTeamLabel', 'Team')}</span>
-      <span className="text-slate-600" aria-hidden="true">·</span>
+      <span className="whitespace-nowrap text-xs font-bold uppercase tracking-[0.16em] text-ink-3">
+        {t('startScreen.dashTeamLabel', 'Team')}
+      </span>
       <select
         value={scope}
         onChange={(e) => onChange(e.target.value)}
         aria-label={t('startScreen.dashTeamScope', 'Which team these numbers are about')}
-        className="flex-1 min-w-0 bg-transparent text-slate-200 truncate focus:outline-none"
+        className="min-h-11 min-w-0 flex-1 appearance-none truncate bg-transparent pr-7 text-base font-semibold text-ink focus:outline-none [&>option]:bg-surface"
       >
         <option value="all">{t('startScreen.dashAllTeams', 'All teams')}</option>
         {teams.map((team) => (
           <option key={team.id} value={team.id}>{team.label}</option>
         ))}
       </select>
+      <HomeIcon name="chev" className="pointer-events-none absolute right-4 h-4 w-4 rotate-90 text-ink-3" strokeWidth={2} />
     </label>
   );
 }
 
-/** Joukkue tab: a one-line roster/team/personnel count header. */
-export function HomeCountsBar({ counts, t }: { counts: HomeSummary['counts']; t: TFunction }) {
-  // Pluralised: the previous form concatenated a number with a fixed plural
-  // noun, so Finnish read "1 joukkuetta" - the partitive is only correct above
-  // one. i18next handles both languages from one key.
-  const parts = [
-    t('startScreen.dashPlayersCount', '{{count}} players', { count: counts.players }),
-    t('startScreen.dashTeamsCount', '{{count}} teams', { count: counts.teams }),
-    t('startScreen.dashPersonnelCount', '{{count}} staff', { count: counts.personnel }),
-  ];
-  return (
-    <div className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-[13px] text-slate-300">
-      {parts.map((p, i) => (
-        <React.Fragment key={p}>
-          {i > 0 && <span className="text-slate-600" aria-hidden="true">·</span>}
-          <span className="tabular-nums">{p}</span>
-        </React.Fragment>
-      ))}
-    </div>
-  );
-}
-
-/** Kilpailut tab: the current club-season context card (no single "active"
- *  season - shows the club season + how many Kaudet/Turnaukset exist). */
-export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
+/** Kilpailut tab: the club-season card - the season (the previous one while the
+ *  current has no game yet) and its record. The league / tournament counts live
+ *  on the rows below it. */
+export function HomeSeasonCard({ vuosi, onOpen, t }: {
   vuosi: HomeSummary['vuosi'];
-  counts: HomeSummary['counts'];
   onOpen?: () => void;
   t: TFunction;
 }) {
@@ -771,30 +931,26 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
     <button
       type="button"
       onClick={onOpen}
-      className={`w-full text-left p-3.5 rounded-xl border transition-all ${HOME_CARD}`}
+      className={`${HOME_CARD} flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-white/[0.03] ${HOME_FOCUS}`}
     >
-      <div className="text-xs font-semibold text-indigo-300/80">
-        {t('startScreen.dashClubSeason', 'This season')}
-      </div>
-      <div className="flex items-baseline justify-between gap-3 mt-0.5">
-        <span className="text-base font-extrabold text-white">
-          {vuosi ? vuosi.label : t('startScreen.tabSeasons', 'Competitions')}
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs font-bold uppercase tracking-[0.16em] text-ink-3">
+          {t('startScreen.dashSeason', 'Season')}
         </span>
-        {/* Was text-sm - SMALLER than the "This season" label beside it, which
-            is backwards whatever else one thinks about numerals. */}
-        {vuosi && (
-          <span className="text-xl font-black tabular-nums whitespace-nowrap leading-none">
-            <span className="text-green-400">{vuosi.wins}</span>
-            <span className="text-slate-400">-{vuosi.ties}-</span>
-            <span className="text-red-400">{vuosi.losses}</span>
+        <span className="mt-1 flex items-baseline justify-between gap-3">
+          <span className="font-display text-[30px] font-bold leading-none text-ink">
+            {vuosi ? vuosi.label : t('startScreen.tabSeasons', 'Competitions')}
           </span>
-        )}
-      </div>
-      <div className="text-xs text-indigo-200/70 mt-1 tabular-nums">
-        {t('startScreen.dashSeasonsCount', '{{count}} leagues', { count: counts.seasons })}
-        {' · '}
-        {t('startScreen.dashTournamentsCount', '{{count}} tournaments', { count: counts.tournaments })}
-      </div>
+          {vuosi && (
+            <span className="whitespace-nowrap font-display text-[34px] font-extrabold italic leading-none tabular-nums">
+              <span className="text-win">{vuosi.wins}</span>
+              <span className="text-ink-3">-{vuosi.ties}-</span>
+              <span className="text-loss">{vuosi.losses}</span>
+            </span>
+          )}
+        </span>
+      </span>
+      <HomeIcon name="chev" className="h-4 w-4 text-ink-3" strokeWidth={2} />
     </button>
   );
 }
@@ -806,45 +962,273 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
   t: TFunction;
 }) {
   if (!vuosi) return null;
-  // These tiles exist to be READ AT A GLANCE, and they were set at text-lg -
-  // smaller than the row labels underneath them, which inverted the emphasis
-  // on the one tab whose whole job is numbers.
-  // The shared Home card surface. The W-D-L and goal-difference greens and
-  // reds are semantic and stay as they are; they still carry on this ground.
-  // Not pressable, so no hover - the constant's hover classes are inert on a div.
-  //
-  // NUMBERS LEAD (owner, 2026-09-16). The figure was text-2xl over a text-xs
-  // label - barely a 2:1 ratio, so the tile read as a sentence rather than as
-  // a statistic. These three figures are the whole reason the Tilastot tab
-  // exists, so the number becomes the display element and the label drops to a
-  // caption. Rajdhani is a condensed face drawn for sport; this is the one
-  // place on Home that is purely numbers, and it was being set like body text.
+  // Nothing played yet: one clear message instead of a row of zero tiles.
+  if (vuosi.gamesPlayed === 0) {
+    return (
+      <div className={`${HOME_CARD} px-5 py-5 text-center`} data-testid="home-stats-empty">
+        <p className="text-base font-semibold text-ink">{t('startScreen.dashStatsEmpty', 'No games played yet')}</p>
+        <p className="mt-1 text-[13px] text-ink-3">{t('startScreen.dashStatsEmptyHint', 'The season record and top scorer appear here after the first game.')}</p>
+      </div>
+    );
+  }
+  // NUMBERS LEAD (owner, 2026-09-16): these three figures are the whole reason
+  // the Tilastot tab exists, so the number is the display element and the
+  // label drops to a caption. Not pressable, so no hover.
   const tile = (n: React.ReactNode, label: string) => (
-    <div className={`flex-1 text-center px-2 py-3 rounded-xl border ${HOME_CARD}`}>
-      <div className="text-4xl font-black text-white tabular-nums leading-none tracking-tight">{n}</div>
-      <div className="text-[0.65rem] font-semibold uppercase tracking-wider text-indigo-200/70 mt-2 truncate">
+    <div className={`${HOME_CARD} min-w-0 flex-1 px-1.5 py-4 text-center`}>
+      <div className="whitespace-nowrap font-display text-[clamp(26px,9vw,40px)] font-extrabold italic leading-none text-ink tabular-nums">{n}</div>
+      {/* Sentence case: in Inter an uppercase "MAALINTEKIJÄ" is wider than a
+          third-width tile on a 360px phone and broke mid-word. */}
+      <div className="mt-2 break-words text-xs font-semibold leading-tight text-ink-3">
         {label}
       </div>
     </div>
   );
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2.5">
       {tile(
-        <span><span className="text-green-400">{vuosi.wins}</span>-{vuosi.ties}-<span className="text-red-400">{vuosi.losses}</span></span>,
+        <span><span className="text-win">{vuosi.wins}</span>-{vuosi.ties}-<span className="text-loss">{vuosi.losses}</span></span>,
         t('startScreen.dashTileResults', 'Results'),
       )}
       {tile(
         `${vuosi.goalDifference >= 0 ? '+' : ''}${vuosi.goalDifference}`,
         t('startScreen.dashTileGoalDiff', 'Goal diff'),
       )}
-      {/* Goals big, name as the label. The name used to BE the number, set in
-          text-lg font-black, so anything longer than "Esko" overflowed a
-          third-width tile - and it broke the row's own rule that the big
-          figure is the figure and the small line names it. */}
-      {tile(
-        topScorer ? topScorer.goals : '–',
-        topScorer ? topScorer.name : t('startScreen.dashTileScorer', 'Top scorer'),
+      {/* Goals big, name as the label - a name set as the big number overflowed a third-width tile. */}
+      {topScorer && tile(topScorer.goals, topScorer.name)}
+    </div>
+  );
+}
+
+/* ------------------------------------------------- basic layout (Perusnäkymä) */
+
+/** The quiet outline pill under the basic card's primary action. */
+const GHOST_PILL = `s1-ghost flex h-12 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full px-2.5 text-[15px] font-semibold text-ink transition-colors ${HOME_FOCUS}`;
+
+/** What the basic card knows about the game's plan (looked up asynchronously). */
+export type BasicCardPlanState = 'loading' | 'none' | 'ready';
+
+/**
+ * The basic layout's next-game card (Onboarding v3, step 6): the same hero
+ * surface and top line as the full layout's next-match card, then the match,
+ * "Suunnitelma valmis · N pelaajaa", ONE primary action - "Aloita ottelu" on game
+ * day, "Merkitse poissaolijat" before it - and "Näytä suunnitelma" / "Jaa" for a
+ * game made from a plan. No travel row: the basic layout leaves it out.
+ */
+export function BasicNextGameCard({
+  game,
+  planState,
+  onOpen,
+  onPrimary,
+  onShowPlan,
+  onShare,
+  onMoveDate,
+  onDelete,
+  today,
+  locale,
+  t,
+}: {
+  game: HomeUpcomingGame;
+  planState: BasicCardPlanState;
+  /** Opens the game on the pitch (the card body). */
+  onOpen: () => void;
+  /** Game day: start (the attendance sheet, then the game); otherwise mark absences. */
+  onPrimary: () => void;
+  onShowPlan?: () => void;
+  onShare?: () => void;
+  /**
+   * A game whose day passed without it kicking off (`game.daysOverdue`, R2):
+   * "Siirrä päivää" saves a new date. Resolves false when the save failed.
+   */
+  onMoveDate?: (gameDate: string) => Promise<boolean>;
+  /** ...and "Poista" (the caller confirms first). */
+  onDelete?: () => void;
+  /** Today, YYYY-MM-DD - the date editor's starting value. */
+  today?: string;
+  locale: string;
+  t: TFunction;
+}) {
+  const overdue = game.daysOverdue !== undefined;
+  const [editingDate, setEditingDate] = useState(false);
+  const [dateDraft, setDateDraft] = useState('');
+  const [savingDate, setSavingDate] = useState(false);
+  const gameDay = !overdue && game.daysAway === 0;
+  const countdown = overdue
+    ? t('basicHome.overdueDays', '{{count}} d ago', { count: game.daysOverdue })
+    : gameDay
+      ? t('startScreen.dashToday', 'Today')
+      : game.daysAway === 1
+        ? t('startScreen.dashTomorrow', 'Tomorrow')
+        : t('startScreen.dashInDays', '{{count}} d', { count: game.daysAway });
+  const when = [formatWeekdayDate(game.date, locale), game.time].filter(Boolean).join(' ');
+  const opponent = game.opponent || t('startScreen.dashResumeGame', 'Game');
+  const title = game.teamName ? `${game.teamName} – ${opponent}` : opponent;
+  const players = t('basicHome.players', '{{count}} players', { count: game.squadCount ?? 0 });
+
+  return (
+    <div className="s1-hero p-5 text-ink" data-testid="basic-next-game">
+      <HeroTop
+        left={<LiveLabel>{[t('basicHome.nextGame', 'Next game'), when].filter(Boolean).join(' · ')}</LiveLabel>}
+        right={<HeroChip>{countdown}</HeroChip>}
+      />
+      <button type="button" onClick={onOpen} className={`${HERO_BODY} mt-3`}>
+        <span className="block break-words font-display text-[28px] font-bold leading-[1.1] tracking-[0.005em] text-ink">
+          {title}
+        </span>
+        <span className="mt-2 flex items-center gap-2 text-[15px] text-ink-2" data-testid="basic-plan-line">
+          {planState === 'ready' && <HomeIcon name="check" className="h-[18px] w-[18px] text-win" strokeWidth={2.4} />}
+          {planState === 'ready' ? `${t('basicHome.planReady', 'Rotation ready')} · ${players}` : players}
+        </span>
+      </button>
+      {overdue ? (
+        <>
+          <p className="mt-3 text-[15px] leading-snug text-ink-2" data-testid="basic-overdue-note">
+            {t('basicHome.overdueNote', 'This game was not started. Move it to a new date or remove it.')}
+          </p>
+          {editingDate ? (
+            <form
+              className="mt-4 flex flex-col gap-2.5"
+              data-testid="basic-move-date-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!dateDraft || savingDate || !onMoveDate) return;
+                setSavingDate(true);
+                void onMoveDate(dateDraft).then((ok) => {
+                  setSavingDate(false);
+                  if (ok) setEditingDate(false);
+                });
+              }}
+            >
+              <input
+                type="date"
+                required
+                value={dateDraft}
+                onChange={(e) => setDateDraft(e.target.value)}
+                aria-label={t('basicHome.newDate', 'New date')}
+                data-testid="basic-move-date-input"
+                className="h-12 w-full rounded-2xl bg-white/[0.06] px-4 text-base text-ink [color-scheme:dark] ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              />
+              <div className="flex gap-2.5">
+                <button type="button" onClick={() => setEditingDate(false)} className={GHOST_PILL}>
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={!dateDraft || savingDate}
+                  className={`s1-primary flex h-12 min-w-0 flex-1 items-center justify-center rounded-full px-2.5 text-[15px] font-bold disabled:opacity-50 ${HOME_FOCUS}`}
+                  data-testid="basic-move-date-save"
+                >
+                  {t('common.save', 'Save')}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDateDraft(today ?? game.date);
+                    setEditingDate(true);
+                  }}
+                  disabled={!onMoveDate}
+                  className={PRIMARY_BTN}
+                  data-testid="basic-move-date"
+                >
+                  {t('basicHome.moveDate', 'Move to another day')}
+                </button>
+              </div>
+              {onDelete && (
+                <div className="mt-2.5 flex gap-2.5">
+                  <button type="button" onClick={onDelete} className={GHOST_PILL} data-testid="basic-delete-game">
+                    {t('basicHome.deleteGame', 'Remove')}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      ) : (
+        <div className="mt-4">
+          <button type="button" onClick={onPrimary} className={PRIMARY_BTN} data-testid="basic-primary">
+            {gameDay ? t('basicHome.startMatch', 'Start the match') : t('basicHome.markAbsences', 'Mark who is away')}
+          </button>
+        </div>
       )}
+      {!overdue && planState === 'ready' && (onShowPlan || onShare) && (
+        <div className="mt-2.5 flex gap-2.5">
+          {onShowPlan && (
+            <button type="button" onClick={onShowPlan} className={GHOST_PILL} data-testid="basic-show-plan">
+              {t('basicHome.showPlan', 'Show rotation')}
+            </button>
+          )}
+          {onShare && (
+            <button type="button" onClick={onShare} className={GHOST_PILL} data-testid="basic-share">
+              {t('basicHome.share', 'Share')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The basic layout's card when no game is booked: the latest result, if there
+ * is one, and "Uusi ottelu". The body opens that game.
+ */
+export function BasicNoNextGameCard({
+  last,
+  onOpenLast,
+  onNewGame,
+  locale,
+  t,
+}: {
+  last: HomeResumeGame | null;
+  onOpenLast?: () => void;
+  onNewGame?: () => void;
+  locale: string;
+  t: TFunction;
+}) {
+  const result = last && last.isPlayed ? resultOf(last.ourScore, last.theirScore) : null;
+  return (
+    <div className="s1-hero s1-hero-quiet p-5 text-ink" data-testid="basic-no-next-game">
+      {last ? (
+        <>
+          <HeroTop
+            left={
+              <span className={`${HERO_LABEL} text-ink-3`}>
+                {[t('basicHome.lastGame', 'Last game'), last.date ? formatWeekdayDate(last.date, locale) : '']
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            }
+            right={result ? <ResultPill result={result} t={t} /> : undefined}
+          />
+          <button type="button" onClick={onOpenLast} className={`${HERO_BODY} mt-3 flex items-end justify-between gap-3`}>
+            <span className="min-w-0 break-words font-display text-[28px] font-bold leading-[1.1] text-ink">
+              {last.opponent || t('startScreen.dashResumeGame', 'Game')}
+            </span>
+            <span
+              className={`${result ? numeralClass[result] : 's1-numeral'} shrink-0 font-display text-[44px] font-extrabold italic leading-none tabular-nums`}
+            >
+              {`${last.ourScore}–${last.theirScore}`}
+            </span>
+          </button>
+          <p className="mt-3 text-[15px] text-ink-2">{t('basicHome.noNextGame', 'No next game yet')}</p>
+        </>
+      ) : (
+        <>
+          <HeroTop left={<span className={`${HERO_LABEL} text-ink-3`}>{t('basicHome.nextGame', 'Next game')}</span>} />
+          <p className="mt-2 text-[15px] text-ink-2">{t('startScreen.dashNoMatchesYet', 'No matches yet.')}</p>
+        </>
+      )}
+      <div className="mt-4">
+        <button type="button" onClick={onNewGame} className={PRIMARY_BTN} data-testid="basic-new-game">
+          <HomeIcon name="plus" className="h-5 w-5" strokeWidth={2.4} />
+          {t('basicHome.newGame', 'New game')}
+        </button>
+      </div>
     </div>
   );
 }

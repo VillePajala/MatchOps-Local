@@ -200,7 +200,9 @@ describe('buildHomeSummary — recent strip', () => {
 
   it('respects the recent limit', () => {
     const games: SavedGamesCollection = {};
-    for (let i = 1; i <= 8; i++) games['g' + i] = g({ gameDate: `2024-0${i % 9 || 1}-15` });
+    // Finished matches: a match dated today or later with nothing recorded is
+    // still ahead of the coach (R2), not part of the recent strip.
+    for (let i = 1; i <= 8; i++) games['g' + i] = g({ gameDate: `2024-0${i % 9 || 1}-15`, gameStatus: 'gameEnd' });
     const { recent } = buildHomeSummary(games, { ...opts, recentLimit: 6 });
     expect(recent).toHaveLength(6);
   });
@@ -280,5 +282,66 @@ describe('buildHomeSummary — player count', () => {
       ],
     });
     expect(counts.players).toBe(2);
+  });
+});
+
+describe('buildHomeSummary - record of a season with no games yet', () => {
+  // Autumn-to-spring club season starting 1 Aug: "26/27" opens on 2026-08-01.
+  const SPAN = { clubSeasonStartDate: '2000-08-01', clubSeasonEndDate: '2000-07-31' };
+  const spanOpts = { today: '2026-09-01', ...SPAN, hasConfiguredSeasonDates: true };
+  const lastSeason: SavedGamesCollection = {
+    w1: g({ gameDate: '2025-10-01', homeScore: 2, awayScore: 0 }),
+    w2: g({ gameDate: '2026-03-01', homeScore: 1, awayScore: 0 }),
+    d1: g({ gameDate: '2026-04-01', homeScore: 1, awayScore: 1 }),
+    l1: g({ gameDate: '2026-05-01', homeScore: 0, awayScore: 3 }),
+  };
+
+  it('shows the previous season, under its own label, while the current one has no game', () => {
+    const { vuosi } = buildHomeSummary(lastSeason, spanOpts);
+    expect(vuosi!.label).toBe('25/26');
+    expect(vuosi!.wins).toBe(2);
+    expect(vuosi!.ties).toBe(1);
+    expect(vuosi!.losses).toBe(1);
+  });
+
+  it('switches to the current season as soon as it has a played game', () => {
+    const games = { ...lastSeason, now: g({ gameDate: '2026-08-20', homeScore: 4, awayScore: 0 }) };
+    const { vuosi } = buildHomeSummary(games, spanOpts);
+    expect(vuosi!.label).toBe('26/27');
+    expect(vuosi!.gamesPlayed).toBe(1);
+  });
+
+  it('does not switch on an unplayed or friendly game only', () => {
+    const games = {
+      ...lastSeason,
+      fixture: g({ gameDate: '2026-08-20', isPlayed: false }),
+      friendly: g({ gameDate: '2026-08-22', isFriendly: true, homeScore: 5, awayScore: 0 }),
+    };
+    expect(buildHomeSummary(games, spanOpts).vuosi!.label).toBe('25/26');
+  });
+
+  it('keeps the current season (0-0-0) when the previous one has no games either', () => {
+    const { vuosi } = buildHomeSummary({ old: g({ gameDate: '2023-10-01' }) }, spanOpts);
+    expect(vuosi!.label).toBe('26/27');
+    expect(vuosi!.gamesPlayed).toBe(0);
+  });
+
+  it('works for calendar-year seasons too', () => {
+    const { vuosi } = buildHomeSummary(
+      { a: g({ gameDate: '2023-05-01', homeScore: 1, awayScore: 0 }) },
+      { today: '2024-01-10', ...CAL, hasConfiguredSeasonDates: true },
+    );
+    expect(vuosi!.label).toBe('2023');
+    expect(vuosi!.wins).toBe(1);
+  });
+
+  it('takes the top scorer from the season it shows', () => {
+    const roster = [{ id: 'p1', name: 'Aino' }] as never;
+    const games = {
+      a: g({ gameDate: '2026-03-01', homeScore: 1, awayScore: 0, gameEvents: [
+        { id: 'e1', type: 'goal', time: 5, scorerId: 'p1' },
+      ] } as Partial<AppState>),
+    };
+    expect(buildHomeSummary(games, { ...spanOpts, roster }).topScorer).toEqual({ name: 'Aino', goals: 1 });
   });
 });

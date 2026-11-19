@@ -176,6 +176,26 @@ describe('PlayerDetailsModal', () => {
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
+    it('marks a player as the keeper (review R4), edit mode only', async () => {
+      const onUpdatePlayer = jest.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      await act(async () => {
+        renderWithProviders({ onUpdatePlayer });
+      });
+      const toggle = screen.getByTestId('player-goalie-toggle');
+      expect(toggle).not.toBeChecked();
+      await user.click(toggle);
+      await user.click(screen.getByRole('button', { name: /Save/i }));
+      expect(onUpdatePlayer).toHaveBeenCalledWith('p1', { isGoalie: true });
+    });
+
+    it('has no keeper toggle when adding a player', async () => {
+      await act(async () => {
+        renderWithProviders({ mode: 'create', player: null, onAddPlayer: jest.fn() });
+      });
+      expect(screen.queryByTestId('player-goalie-toggle')).not.toBeInTheDocument();
+    });
+
     it('cancels via hardware back (Android, where the header X is hidden)', async () => {
       // Back must cancel THIS nested dialog, not fall through to the parent
       // roster manager and close it (discarding the add/edit).

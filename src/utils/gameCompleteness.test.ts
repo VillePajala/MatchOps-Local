@@ -1,7 +1,16 @@
-import { completenessProgress, computeGameCompleteness, countRowStatus, goalLogStatus, type CompletenessGame } from './gameCompleteness';
+import {
+  competitionRowRelevant,
+  completenessProgress,
+  computeGameCompleteness,
+  countRowStatus,
+  goalLogStatus,
+  type CompletenessGame,
+} from './gameCompleteness';
 
 const base: CompletenessGame = {
   isPlayed: true,
+  // Played: the match was run to full time (R2 - only a started game is judged).
+  gameStatus: 'gameEnd',
   gameNotes: '',
   selectedPlayerIds: ['p1', 'p2', 'p3', 'p4'],
   seasonId: '',
@@ -18,12 +27,13 @@ describe('computeGameCompleteness', () => {
     expect(c.overall).toBe('empty');
   });
 
-  it('core = report + roster; complete once the report is written', () => {
-    const empty = computeGameCompleteness(base);
-    expect(empty.roster).toBe(true); // squad selected
-    expect(empty.report).toBe(false);
-    expect(empty.coreComplete).toBe(false);
-    expect(empty.overall).toBe('empty');
+  it('core = squad + goal log matching the score; the report is not required', () => {
+    // A 0-0 with an empty log and a squad: consistent, so complete without a report.
+    const noReport = computeGameCompleteness({ ...base, homeScore: 0, awayScore: 0 });
+    expect(noReport.roster).toBe(true);
+    expect(noReport.report).toBe(false);
+    expect(noReport.coreComplete).toBe(true);
+    expect(noReport.overall).toBe('complete');
 
     const withReport = computeGameCompleteness({ ...base, gameNotes: '  Good game  ' });
     expect(withReport.report).toBe(true);
@@ -31,9 +41,9 @@ describe('computeGameCompleteness', () => {
     expect(withReport.overall).toBe('complete');
   });
 
-  it('does NOT depend on the timer/gameEnd - report alone completes a played game', () => {
-    // No gameStatus anywhere in the model; a played game with a report is complete.
-    const c = computeGameCompleteness({ ...base, gameNotes: 'report' });
+  it('does NOT need gameEnd - a recorded goal alone makes a game started and judged', () => {
+    const { gameStatus: _omit, ...unTimed } = base;
+    const c = computeGameCompleteness({ ...unTimed, gameEvents: [{ type: 'goal', scorerId: 'p1' }], homeScore: 1, awayScore: 0 });
     expect(c.overall).toBe('complete');
   });
 
@@ -47,16 +57,17 @@ describe('computeGameCompleteness', () => {
     expect(c.assessments).toEqual({ done: 3, total: 4 });
   });
 
-  it('recommended items make it partial but never block complete', () => {
-    // competition/team set but no report -> still not complete (report is core).
-    const c = computeGameCompleteness({ ...base, seasonId: 's1', teamId: 't1' });
+  it('recommended items make it partial but never complete it on their own', () => {
+    // Competition/team and a report, but the score says 2-0 and no goal is
+    // logged: not complete, only partial.
+    const c = computeGameCompleteness({ ...base, gameNotes: 'r', seasonId: 's1', teamId: 't1', homeScore: 2, awayScore: 0 });
     expect(c.competition).toBe(true);
     expect(c.team).toBe(true);
     expect(c.coreComplete).toBe(false);
     expect(c.overall).toBe('partial');
   });
 
-  it('enriched = complete + competition + team + some positions & assessments', () => {
+  it('enriched = complete + report + competition + team + some positions & assessments', () => {
     const notEnriched = computeGameCompleteness({ ...base, gameNotes: 'r' });
     expect(notEnriched.coreComplete).toBe(true);
     expect(notEnriched.enriched).toBe(false);
@@ -70,75 +81,175 @@ describe('computeGameCompleteness', () => {
       assessments: { p1: {} },
     });
     expect(enriched.enriched).toBe(true);
+
+    // Everything but the report: complete, yet not enriched.
+    const noReport = computeGameCompleteness({
+      ...base,
+      seasonId: 's1',
+      teamId: 't1',
+      playerPositions: { p1: ['gk'] },
+      assessments: { p1: {} },
+    });
+    expect(noReport.overall).toBe('complete');
+    expect(noReport.enriched).toBe(false);
   });
 });
 
-describe('completenessProgress', () => {
-  const base = {
-    isPlayed: true,
-    gameNotes: '',
-    selectedPlayerIds: ['p1', 'p2'],
-    seasonId: '',
-    tournamentId: '',
-    teamId: '',
-    playerPositions: {},
-    assessments: {},
-  };
-
-  it('counts the same items the checklist shows', () => {
-    // Roster only: a squad is picked, nothing else recorded yet.
-    // 2 of 7: the squad, and a 0-0 with an empty goal log is consistent.
-    expect(completenessProgress(computeGameCompleteness(base))).toEqual({ done: 2, total: 6 });
-  });
+describe('D2 "valmis" rule: squad + goal log matches the score', () => {
+  const goal = (scorerId?: string) => ({ type: 'goal', ...(scorerId ? { scorerId } : {}) });
+  const opp = { type: 'opponentGoal' };
 
   /**
-   * Some, not all: a coach who wrote about the three players they watched has
-   * finished that job for this match, and a bar that only filled at fourteen of
-   * fourteen would call every real match unfinished.
+   * @critical - scorers are optional (D2). A goal logged without a scorer
+   * (UNKNOWN_SCORER / skipped) still makes the log add up.
    */
-  it('counts positions and assessments as done once any are recorded', () => {
-    const partial = computeGameCompleteness({
+  it('is complete with goals logged but no scorers named', () => {
+    const c = computeGameCompleteness({ ...base, gameEvents: [goal(), goal(), opp], homeScore: 2, awayScore: 1 });
+    expect(c.goalsAttributed).toEqual({ done: 0, total: 2 });
+    expect(c.report).toBe(false);
+    expect(c.coreComplete).toBe(true);
+    expect(c.overall).toBe('complete');
+  });
+
+  /** @critical - fewer goals logged than the score is an unfinished record. */
+  it('is not complete when fewer goals are logged than the score', () => {
+    const c = computeGameCompleteness({ ...base, gameNotes: 'Report', gameEvents: [goal('p1')], homeScore: 2, awayScore: 1 });
+    expect(c.coreComplete).toBe(false);
+    expect(c.overall).toBe('partial');
+  });
+
+  /** @critical - more goals logged than the score is as wrong as fewer. */
+  it('is not complete when more goals are logged than the score', () => {
+    const c = computeGameCompleteness({ ...base, gameEvents: [goal('p1'), goal('p2')], homeScore: 1, awayScore: 0 });
+    expect(c.coreComplete).toBe(false);
+    expect(c.overall).toBe('partial');
+  });
+
+  /** @critical - no squad, no completeness, however consistent the log. */
+  it('is not complete without a squad', () => {
+    const c = computeGameCompleteness({ ...base, selectedPlayerIds: [], gameNotes: 'Report', homeScore: 0, awayScore: 0 });
+    expect(c.roster).toBe(false);
+    expect(c.coreComplete).toBe(false);
+    expect(c.overall).toBe('partial');
+  });
+
+  /** @critical - planned games are never judged, whatever they contain. */
+  it('does not apply to unplayed games', () => {
+    const c = computeGameCompleteness({ ...base, isPlayed: false, gameEvents: [goal('p1')], homeScore: 1, awayScore: 0 });
+    expect(c.applicable).toBe(false);
+    expect(c.overall).toBe('empty');
+    expect(completenessProgress(c)).toEqual({ done: 0, total: 0 });
+  });
+
+  it('treats a legacy game without isPlayed as played once it has started', () => {
+    const { isPlayed: _omit, ...legacy } = base;
+    const c = computeGameCompleteness({ ...legacy, homeScore: 0, awayScore: 0 });
+    expect(c.applicable).toBe(true);
+    expect(c.overall).toBe('complete');
+  });
+});
+
+describe('R2: a game that has not started is never judged', () => {
+  const notStarted: CompletenessGame = { ...base, gameStatus: 'notStarted', timeElapsedInSeconds: 0, gameEvents: [], homeScore: 0, awayScore: 0 };
+
+  /**
+   * @critical - "started = played": a fixture marked played (isPlayed true, the
+   * old default) but never kicked off must not read as a valmis 0-0.
+   */
+  it('is not applicable, not complete and has no counter, whatever isPlayed says', () => {
+    for (const isPlayed of [true, undefined]) {
+      const c = computeGameCompleteness({ ...notStarted, isPlayed });
+      expect(c.applicable).toBe(false);
+      expect(c.coreComplete).toBe(true); // the raw check still says "consistent"...
+      expect(c.overall).toBe('empty'); // ...but the game is not judged
+      expect(completenessProgress(c)).toEqual({ done: 0, total: 0 });
+    }
+  });
+
+  /** @critical - a game with no status at all (legacy) and no evidence is not started either. */
+  it('treats a legacy game with no clock and no events as not started', () => {
+    const { gameStatus: _omit, ...legacy } = notStarted;
+    expect(computeGameCompleteness(legacy).applicable).toBe(false);
+  });
+
+  it('a pre-match note does not start the game', () => {
+    const c = computeGameCompleteness({ ...notStarted, gameEvents: [{ type: 'note', entityId: 'p1' }] });
+    expect(c.applicable).toBe(false);
+  });
+
+  /** @critical - any of the three signals starts it. */
+  it('starts on clock time, a play event, a status past notStarted, or a score', () => {
+    expect(computeGameCompleteness({ ...notStarted, timeElapsedInSeconds: 1 }).applicable).toBe(true);
+    expect(computeGameCompleteness({ ...notStarted, gameEvents: [{ type: 'opponentGoal' }], awayScore: 1 }).applicable).toBe(true);
+    expect(computeGameCompleteness({ ...notStarted, gameStatus: 'inProgress' }).applicable).toBe(true);
+  });
+
+  it('a score with no goals logged is a started game whose record needs finishing', () => {
+    const c = computeGameCompleteness({ ...notStarted, homeScore: 1 });
+    expect(c.applicable).toBe(true);
+    expect(c.coreComplete).toBe(false);
+    expect(completenessProgress(c)).toEqual({ done: 1, total: 2 });
+  });
+});
+
+describe('competition & team item', () => {
+  /**
+   * @critical - the row is hidden in the basic layout and, in the full one,
+   * only a task once the coach has a season or tournament to link to. A hidden
+   * row must not count, or the bar could never reach the end.
+   */
+  it('is relevant only in the full layout with at least one season or tournament', () => {
+    expect(competitionRowRelevant('basic', 3)).toBe(false);
+    expect(competitionRowRelevant('full', 0)).toBe(false);
+    expect(competitionRowRelevant(undefined, 2)).toBe(false);
+    expect(competitionRowRelevant('full', 1)).toBe(true);
+  });
+});
+
+describe('completenessProgress: the D2 core only (R7)', () => {
+  /**
+   * @critical - the counter, the menu badge and the saved-games badge count
+   * exactly the core (squad + goal log), so "x/y" reaches its end exactly when
+   * the game is "valmis" and the two can never disagree.
+   */
+  it('reaches its end exactly when the game is complete', () => {
+    const cases: CompletenessGame[] = [
+      base,
+      { ...base, selectedPlayerIds: [] },
+      { ...base, gameEvents: [{ type: 'goal' }], homeScore: 2, awayScore: 0 },
+      { ...base, gameEvents: [{ type: 'goal' }, { type: 'goal' }], homeScore: 1, awayScore: 0 },
+      { ...base, gameEvents: [{ type: 'goal' }], homeScore: 1, awayScore: 0 },
+      { ...base, selectedPlayerIds: [], homeScore: 1, awayScore: 0 },
+    ];
+    for (const game of cases) {
+      const c = computeGameCompleteness(game);
+      const p = completenessProgress(c);
+      expect(p.total).toBe(2);
+      expect(p.done === p.total).toBe(c.coreComplete);
+    }
+  });
+
+  /** @critical - nothing outside the core moves the counter. */
+  it('ignores the report, competition, positions, assessments, scorers and notes', () => {
+    const bare = completenessProgress(computeGameCompleteness({ ...base, gameEvents: [{ type: 'goal' }], homeScore: 1, awayScore: 0 }));
+    const rich = completenessProgress(computeGameCompleteness({
       ...base,
-      gameNotes: 'Yleiskuva: hyva',
+      gameNotes: 'Report',
       seasonId: 's1',
       teamId: 't1',
       playerPositions: { p1: ['CM'] },
-      assessments: { p1: { overall: 7, sliders: {} } } as never,
-    });
-
-    expect(completenessProgress(partial)).toEqual({ done: 6, total: 6 });
-    // ...and the rows say the same thing in their own words: started, not done.
-    expect(countRowStatus(partial.positions)).toBe('partial');
-    expect(countRowStatus(partial.assessments)).toBe('partial');
+      assessments: { p1: {} },
+      gameEvents: [{ type: 'goal', scorerId: 'p1' }, { type: 'note', entityId: 'p1', source: 'dictation' }],
+      homeScore: 1,
+      awayScore: 0,
+    }));
+    expect(rich).toEqual(bare);
+    expect(bare).toEqual({ done: 2, total: 2 });
   });
 
-  /**
-   * @critical - the bar counting a row the list showed as outstanding is the
-   * bug this model exists to make impossible, and it has happened twice. Both
-   * surfaces now read countRowStatus, so this pins the rule itself.
-   */
-  it('leaves a row out of the count exactly when it has nothing recorded', () => {
-    const none = computeGameCompleteness({
-      ...base,
-      gameNotes: 'r',
-      seasonId: 's1',
-      teamId: 't1',
-    });
-    expect(countRowStatus(none.positions)).toBe('todo');
-    expect(countRowStatus(none.assessments)).toBe('todo');
-    expect(completenessProgress(none)).toEqual({ done: 4, total: 6 });
-
-    const all = computeGameCompleteness({
-      ...base,
-      gameNotes: 'r',
-      seasonId: 's1',
-      teamId: 't1',
-      playerPositions: { p1: ['CM'], p2: ['RB'], p3: ['LB'], p4: ['ST'] },
-      assessments: { p1: {}, p2: {}, p3: {}, p4: {} },
-    });
-    expect(countRowStatus(all.positions)).toBe('done');
-    expect(countRowStatus(all.assessments)).toBe('done');
-    expect(completenessProgress(all)).toEqual({ done: 6, total: 6 });
+  it('counts the squad and the goal log separately', () => {
+    expect(completenessProgress(computeGameCompleteness({ ...base, homeScore: 1, awayScore: 0 }))).toEqual({ done: 1, total: 2 });
+    expect(completenessProgress(computeGameCompleteness({ ...base, selectedPlayerIds: [] }))).toEqual({ done: 1, total: 2 });
   });
 
   it('reports an empty squad as nothing recorded rather than all done', () => {
@@ -146,18 +257,10 @@ describe('completenessProgress', () => {
     expect(countRowStatus({ done: 0, total: 0 })).toBe('todo');
   });
 
-  /**
-   * @critical - the checklist's "Competition & team" row needs BOTH, so counting
-   * only the competition let the badge say all-done while the list underneath
-   * still showed that row outstanding. The whole point of the shared model is
-   * that two surfaces cannot disagree.
-   */
-  it('agrees with the checklist row that needs both a competition and a team', () => {
-    const seasonOnly = computeGameCompleteness({ ...base, gameNotes: 'x', seasonId: 's1' });
-    expect(completenessProgress(seasonOnly).done).toBe(3);
-
-    const both = computeGameCompleteness({ ...base, gameNotes: 'x', seasonId: 's1', teamId: 't1' });
-    expect(completenessProgress(both).done).toBe(4);
+  it('marks a per-player row partial once any are recorded', () => {
+    const partial = computeGameCompleteness({ ...base, playerPositions: { p1: ['CM'] }, assessments: { p1: {} } });
+    expect(countRowStatus(partial.positions)).toBe('partial');
+    expect(countRowStatus(partial.assessments)).toBe('partial');
   });
 
   it('reports nothing for a game that was never played', () => {
@@ -181,16 +284,6 @@ describe('assessments setting', () => {
     expect(off.overall).toBe(on.overall);
   });
 
-  /**
-   * @critical - with the feature off, the bar counted a row that no longer
-   * existed and stopped at 4/5 forever while the pill next to it said Complete.
-   */
-  it('drops assessments from the progress count when the feature is off', () => {
-    const finished: CompletenessGame = { ...base, gameNotes: 'Report', selectedPlayerIds: ['a'],
-      seasonId: 's', teamId: 't', playerPositions: { a: ['CM'] }, assessments: {} };
-    expect(completenessProgress(computeGameCompleteness(finished))).toEqual({ done: 5, total: 6 });
-    expect(completenessProgress(computeGameCompleteness(finished, { assessmentsEnabled: false }))).toEqual({ done: 5, total: 5 });
-  });
 });
 
 describe('consistency checks', () => {
@@ -231,16 +324,6 @@ describe('consistency checks', () => {
     });
     expect(c.notesCoverage).toEqual({ done: 1, total: 3 });
   });
-
-  it('counts the new checks in the progress fraction, and skips the ones with nothing to check', () => {
-    // report, roster, competition+team, goal log, positions, assessments. No
-    // goals of ours, so no scorers item - and notes are never an item.
-    const empty = computeGameCompleteness({ ...base, homeScore: 0, awayScore: 0 });
-    expect(completenessProgress(empty).total).toBe(6);
-    // Our goal adds the scorers item.
-    const withGoals = computeGameCompleteness({ ...base, gameEvents: [ev('goal')], homeScore: 1, awayScore: 0 });
-    expect(completenessProgress(withGoals).total).toBe(7);
-  });
 });
 
 describe('notes coverage is shown, never scored', () => {
@@ -260,31 +343,11 @@ describe('notes coverage is shown, never scored', () => {
   });
 });
 
-describe('unhandled recordings', () => {
+describe('recordings', () => {
   const note = (source?: string) => ({ type: 'note', entityId: 'p1', source });
 
-  /**
-   * @critical - a clip is deleted after 30 days and the coach's words go with
-   * it, so audio nobody wrote out is real unfinished work.
-   */
-  it('counts pending clips only for a game that has audio, and turns done at zero', () => {
-    const plain = computeGameCompleteness(base);
-    // Never recorded: no item at all, so no free tick either.
-    expect(completenessProgress(plain, { voiceClipsPending: 0 })).toEqual(completenessProgress(plain));
-    // Clips waiting: one more item, not done.
-    const waiting = completenessProgress(plain, { voiceClipsPending: 2 });
-    expect(waiting.total).toBe(completenessProgress(plain).total + 1);
-    expect(waiting.done).toBe(completenessProgress(plain).done);
-    // Written out: the item stays, and is done.
-    const handled = computeGameCompleteness({ ...base, gameEvents: [note('dictation')] });
-    const after = completenessProgress(handled, { voiceClipsPending: 0 });
-    expect(after.total).toBe(completenessProgress(handled).total + 1);
-    expect(after.done).toBe(completenessProgress(handled).done + 1);
-  });
-
-  it('does not treat a typed note as proof of audio', () => {
-    const typed = computeGameCompleteness({ ...base, gameEvents: [note('manual')] });
-    expect(typed.dictatedNotes).toBe(0);
-    expect(completenessProgress(typed, { voiceClipsPending: 0 })).toEqual(completenessProgress(typed));
+  it('counts dictated notes, and does not treat a typed note as proof of audio', () => {
+    expect(computeGameCompleteness({ ...base, gameEvents: [note('dictation')] }).dictatedNotes).toBe(1);
+    expect(computeGameCompleteness({ ...base, gameEvents: [note('manual')] }).dictatedNotes).toBe(0);
   });
 });

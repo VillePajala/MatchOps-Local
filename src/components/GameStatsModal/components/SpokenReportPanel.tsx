@@ -42,6 +42,7 @@ import {
 } from '@/utils/transcription';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { useToast } from '@/contexts/ToastProvider';
+import { dangerButtonStyle, inputBaseStyle, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import WorkingIndicator from '@/components/WorkingIndicator';
 
@@ -66,13 +67,13 @@ export interface SpokenReportPanelProps {
   language: string;
 }
 
-const CARD = 'bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner';
+const CARD = 's1-list p-4 font-ui';
 const PRIMARY =
-  'w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors';
+  `${primaryButtonStyle} w-full`;
 const RECORDING =
-  'w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-red-400 transition-colors';
+  `${dangerButtonStyle} w-full`;
 const SECONDARY =
-  'w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-slate-500 transition-colors';
+  `${secondaryButtonStyle} w-full`;
 
 const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
   dictation,
@@ -303,10 +304,10 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
 
   return (
     <div className={CARD} data-testid="spoken-report-panel">
-      <h4 className="text-sm font-semibold text-slate-200 mb-1">
+      <h4 className="text-sm font-semibold text-ink mb-1">
         {t('spokenReport.title', 'Say the report out loud')}
       </h4>
-      <p className="text-sm text-slate-400 mb-3">
+      <p className="text-sm text-ink-3 mb-3">
         {ai.connected
           ? t(
               'spokenReport.intro',
@@ -320,7 +321,7 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
       {ai.connected && (
         // Writing out starts as soon as the recording stops, so the price is
         // stated before the coach records - not after they have been billed.
-        <p className="text-sm text-slate-400 mb-3" data-testid="spoken-report-cost">
+        <p className="text-sm text-ink-3 mb-3" data-testid="spoken-report-cost">
           {t('spokenReport.costHint', 'Writing it out costs about ${{usd}} a minute on your provider account, and starts when you stop recording.', {
             usd: OPENAI_TRANSCRIBE_USD_PER_MINUTE.toFixed(3),
           })}
@@ -328,7 +329,7 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
       )}
 
       {dictation.permission === 'denied' ? (
-        <p className="text-sm text-amber-300" data-testid="spoken-report-denied">
+        <p className="text-sm text-ink-2" data-testid="spoken-report-denied">
           {t('dictation.permissionDenied', "Microphone access was denied. Allow it in your phone's app settings to dictate notes.")}
         </p>
       ) : (
@@ -338,7 +339,9 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
           // Someone else's recording (the note composer is on this same page):
           // stay quiet rather than offer to stop it.
           disabled={dictation.isRecording && !startedHere}
-          className={`${dictation.isRecording && startedHere ? RECORDING : PRIMARY} disabled:opacity-50 disabled:cursor-not-allowed`}
+          // The record control is always on the finish screen, so it is a
+          // secondary action; the panel's commit (put it in the report) is the primary.
+          className={`${dictation.isRecording && startedHere ? RECORDING : SECONDARY} disabled:opacity-50 disabled:cursor-not-allowed`}
           data-testid="spoken-report-toggle"
         >
           {dictation.isRecording && startedHere ? (
@@ -357,7 +360,7 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
 
       {savedAsNote && (
         <div className="mt-3 space-y-2" data-testid="spoken-report-saved-note">
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-ink-2">
             {t(
               'spokenReport.savedWhere',
               'Saved as a note, not as report text. It is further up this page under Notes, and the AI draft will use it as your own account.',
@@ -372,7 +375,7 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
       )}
 
       {storedOnly && !transcribing && (
-        <p className="mt-3 text-sm text-amber-300" data-testid="spoken-report-stored-only">
+        <p className="mt-3 text-sm text-ink-2" data-testid="spoken-report-stored-only">
           {t(
             'spokenReport.storedOnly',
             'Recorded and saved. It could not be written out, so it is waiting under Voice notes on this page.',
@@ -397,9 +400,9 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
             maxLength={VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX}
             aria-label={t('spokenReport.textLabel', 'What you said')}
             data-testid="spoken-report-text"
-            className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+            className={inputBaseStyle}
           />
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-ink-3">
             {t('spokenReport.editHint', 'Fix anything the transcription got wrong before you keep it.')}
           </p>
           <button

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useId } from 'react';
-import { CollapsibleModalHeader, ModalStickyPrimary, ModalSwitch } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalStickyPrimary, ModalSwitch, modalContainerStyle, cardStyle, labelStyle, inputBaseStyle, selectStyle, textareaStyle, inputErrorStyle, segmentTrackStyle, segmentStyle, segmentSelectedStyle, warningBoxStyle, errorBoxStyle, infoBoxStyle, linkStyle } from '@/styles/modalStyles';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Tournament, Player, TournamentSeries, GameType, Gender } from '@/types';
@@ -290,10 +290,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+      <div className={`${modalContainerStyle} h-full w-full relative`}>
 
         {/* Chrome slimming: X-header (Cancel) + sticky Save. */}
         <CollapsibleModalHeader
@@ -306,19 +303,19 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         />
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
-          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
-            <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6">
+          <div className={cardStyle}>
+            <div className="space-y-5">
               {/* Season Dates Not Configured Warning */}
               {settings && !settings.hasConfiguredSeasonDates && (
-                <div className="bg-amber-900/30 border border-amber-600/50 rounded-lg p-3">
+                <div className={warningBoxStyle}>
                   <div className="flex items-start gap-2">
-                    <HiExclamationTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <HiExclamationTriangle className="w-5 h-5 text-action flex-shrink-0 mt-0.5" aria-hidden="true" />
                     <div className="flex-1">
-                      <p className="text-amber-200 text-sm">
+                      <p className="font-ui text-ink text-sm font-medium">
                         {t('tournamentDetailsModal.seasonDatesNotConfigured', 'Season dates not configured')}
                       </p>
-                      <p className="text-amber-300/70 text-sm mt-1">
+                      <p className="font-ui text-ink-2 text-sm mt-1">
                         {t('tournamentDetailsModal.configureInSettings', 'Configure in Settings to calculate club seasons correctly.')}
                       </p>
                       {onOpenSettings && (
@@ -328,7 +325,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                             onClose();
                             onOpenSettings();
                           }}
-                          className="mt-2 text-xs text-amber-300 hover:text-amber-100 underline underline-offset-2 transition-colors"
+                          className={`${linkStyle} mt-2 inline-flex min-h-11 items-center text-sm`}
                         >
                           {t('common.openSettings', 'Open Settings')}
                         </button>
@@ -340,14 +337,14 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
 
               {/* Error Message */}
               {errorMessage && (
-                <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-md text-sm">
+                <div className={`${errorBoxStyle} font-ui text-sm text-ink`} role="alert">
                   {errorMessage}
                 </div>
               )}
 
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('tournamentDetailsModal.nameLabel', 'Tournament Name')} *
                 </label>
                 <input
@@ -359,16 +356,14 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     if (errorMessage) setErrorMessage(null);
                   }}
                   placeholder={t('tournamentDetailsModal.namePlaceholder', 'Enter tournament name')}
-                  className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 ${
-                    errorMessage ? 'border-red-500' : 'border-slate-600'
-                  }`}
+                  className={`${inputBaseStyle} ${errorMessage ? inputErrorStyle : ''}`}
                   required
                 />
               </div>
 
               {/* Location */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('tournamentDetailsModal.locationLabel', 'Location')}
                 </label>
                 <input
@@ -376,21 +371,21 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder={t('tournamentDetailsModal.locationPlaceholder', 'Enter location')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className={inputBaseStyle}
                 />
               </div>
 
               {/* Age Group */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('tournamentDetailsModal.ageGroupLabel', 'Age Group')}
                 </label>
                 <select
                   value={ageGroup}
                   onChange={(e) => setAgeGroup(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                  className={selectStyle}
                 >
-                  <option value="">{t('common.selectAgeGroup', '-- Select Age Group --')}</option>
+                  <option value="">{t('common.selectAgeGroup', 'Select Age Group')}</option>
                   {AGE_GROUPS.map(group => (
                     <option key={group} value={group}>{group}</option>
                   ))}
@@ -399,29 +394,23 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
 
               {/* Sport Type (Soccer/Futsal) */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('common.gameTypeLabel', 'Sport Type')}
                 </label>
-                <div className="flex gap-2">
+                <div className={segmentTrackStyle}>
                   <button
                     type="button"
                     onClick={() => setGameType('soccer')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gameType === 'soccer'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gameType === 'soccer'}
+                    className={gameType === 'soccer' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.gameTypeSoccer', 'Soccer')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setGameType('futsal')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gameType === 'futsal'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gameType === 'futsal'}
+                    className={gameType === 'futsal' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.gameTypeFutsal', 'Futsal')}
                   </button>
@@ -430,40 +419,31 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
 
               {/* Gender (Boys/Girls) */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('common.genderLabel', 'Gender')}
                 </label>
-                <div className="flex gap-2">
+                <div className={segmentTrackStyle}>
                   <button
                     type="button"
                     onClick={() => setGender(undefined)}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === undefined
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gender === undefined}
+                    className={gender === undefined ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.genderNotSet', 'Not Set')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setGender('boys')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === 'boys'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gender === 'boys'}
+                    className={gender === 'boys' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.genderBoys', 'Boys')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setGender('girls')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      gender === 'girls'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={gender === 'girls'}
+                    className={gender === 'girls' ? segmentSelectedStyle : segmentStyle}
                   >
                     {t('common.genderGirls', 'Girls')}
                   </button>
@@ -479,55 +459,57 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
               />
               {(gamesUsageFailed || teamsUsageFailed) && (
                 // Removal stays off (fail closed); say why rather than leave dead buttons.
-                <p className="text-xs text-slate-400 -mt-2" data-testid="series-usage-failed">
+                <p className="font-ui text-[13px] text-ink-3 -mt-2" data-testid="series-usage-failed">
                   {t('errors.failedToLoadData', 'Failed to load data. Some features may not be available.')}
                 </p>
               )}
 
               {/* Start Date and End Date */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Side by side only from 400px: below that a half-width date field clips its own date. */}
+              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className={labelStyle}>
                     {t('tournamentDetailsModal.startDateLabel', 'Start Date')}
                   </label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                    className={inputBaseStyle}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className={labelStyle}>
                     {t('tournamentDetailsModal.endDateLabel', 'End Date')}
                   </label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                    className={inputBaseStyle}
                   />
                 </div>
               </div>
 
               {/* Club Season (auto-calculated) */}
               {calculatedClubSeason && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-md border border-slate-600/50">
-                  <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                  <span className="text-sm text-slate-300">
-                    {t('tournamentDetailsModal.clubSeasonLabel', 'Season')}:
-                  </span>
-                  <span className="text-sm font-medium text-slate-100">{calculatedClubSeason}</span>
-                  <span className="text-xs text-slate-500 ml-auto">
+                <div className={`${infoBoxStyle} p-3.5! font-ui`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-ink-2">
+                      {t('tournamentDetailsModal.clubSeasonLabel', 'Season')}:
+                    </span>
+                    <span className="text-[15px] font-semibold text-ink">{calculatedClubSeason}</span>
+                  </div>
+                  <p className="mt-1 text-[13px] leading-snug text-ink-3">
                     {t('tournamentDetailsModal.clubSeasonHint', 'Auto-calculated from start date. Usually your club\'s operating season.')}
-                  </span>
+                  </p>
                 </div>
               )}
 
               {/* Period Count and Duration */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className={labelStyle}>
                     {t('tournamentDetailsModal.periodCountLabel', 'Periods')}
                   </label>
                   <input
@@ -535,11 +517,11 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     value={periodCount || ''}
                     onChange={(e) => setPeriodCount(parseIntOrUndefined(e.target.value))}
                     placeholder={t('tournamentDetailsModal.periodCountPlaceholder', 'e.g., 2')}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                    className={inputBaseStyle}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className={labelStyle}>
                     {t('tournamentDetailsModal.periodDurationLabel', 'Minutes')}
                   </label>
                   <input
@@ -547,23 +529,23 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     value={periodDuration || ''}
                     onChange={(e) => setPeriodDuration(parseIntOrUndefined(e.target.value))}
                     placeholder={t('tournamentDetailsModal.periodDurationPlaceholder', 'e.g., 20')}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                    className={inputBaseStyle}
                   />
                 </div>
               </div>
 
               {/* Player of Tournament Award */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('tournamentDetailsModal.awardedPlayerLabel', 'Player of Tournament')}
                 </label>
                 <select
                   value={awardedPlayerId || ''}
                   onChange={(e) => setAwardedPlayerId(e.target.value || undefined)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
-                  aria-label={t('tournaments.selectAwardWinner', '-- Select Player of Tournament --')}
+                  className={selectStyle}
+                  aria-label={t('tournaments.selectAwardWinner', 'Select Player of Tournament')}
                 >
-                  <option value="">{t('tournaments.selectAwardWinner', '-- Select Player of Tournament --')}</option>
+                  <option value="">{t('tournaments.selectAwardWinner', 'Select Player of Tournament')}</option>
                   {masterRoster.map(player => (
                     <option key={player.id} value={player.id}>{player.name}</option>
                   ))}
@@ -572,7 +554,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className={labelStyle}>
                   {t('tournamentDetailsModal.notesLabel', 'Notes')}
                 </label>
                 <textarea
@@ -580,7 +562,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={t('tournamentDetailsModal.notesPlaceholder', 'Enter any notes')}
                   rows={3}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className={textareaStyle}
                 />
               </div>
 

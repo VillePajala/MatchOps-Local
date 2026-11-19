@@ -43,6 +43,8 @@ const PERSISTED: Array<[setting: string, column: string]> = [
   ['assessmentRatingStyle', 'assessment_rating_style'],
   ['assessmentTemplate', 'assessment_template'],
   ['knownVenues', 'known_venues'],
+  ['appLayout', 'app_layout'],
+  ['onboardingMilestones', 'onboarding_milestones'],
 ];
 
 describe('every setting survives the round trip to the cloud', () => {
@@ -108,5 +110,34 @@ describe('the venue book, which lives in one JSONB column', () => {
   /** A JSONB column holds whatever was last written; every entry is checked. */
   it('is read back through the sanitizer, never cast', () => {
     expect(fromDb).toContain('knownVenues: sanitizeKnownVenues(row.known_venues)');
+  });
+});
+
+describe('the layout and the onboarding milestones (Onboarding v3, migration 062)', () => {
+  const migration = fs.readFileSync(
+    path.join(process.cwd(), 'supabase/migrations/062_user_settings_layout_milestones.sql'),
+    'utf8',
+  );
+
+  it('adds both columns nullable, with no backfill (nobody\'s layout changes)', () => {
+    expect(migration).toContain('ADD COLUMN IF NOT EXISTS app_layout text');
+    expect(migration).toContain('ADD COLUMN IF NOT EXISTS onboarding_milestones jsonb');
+    expect(migration).not.toMatch(/NOT NULL/);
+    expect(migration).not.toMatch(/UPDATE user_settings/i);
+  });
+
+  /** Checked, never cast: an unknown value must land on the full layout. */
+  it('is read back through the parsers', () => {
+    expect(fromDb).toContain('appLayout: parseAppLayout(row.app_layout)');
+    expect(fromDb).toContain('onboardingMilestones: sanitizeOnboardingMilestones(row.onboarding_milestones)');
+  });
+
+  /**
+   * Written only once set: an account with neither value sends the row it sent
+   * before 062, so its settings keep saving on a database 062 has not reached.
+   */
+  it('is written only when set', () => {
+    expect(toDb).toContain('...(settings.appLayout ? { app_layout: settings.appLayout } : {})');
+    expect(toDb).toContain('...(settings.onboardingMilestones');
   });
 });

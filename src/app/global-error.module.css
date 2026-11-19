@@ -1,3 +1,5 @@
+/* Standalone: global-error renders outside the app layout, so it carries its
+   own navy styling (the app's tokens are not available here). */
 .errorContainer {
   display: flex;
   flex-direction: column;
@@ -5,57 +7,68 @@
   justify-content: center;
   min-height: 100vh;
   padding: 20px;
-  font-family: system-ui, sans-serif;
-  background-color: #f8fafc;
-  color: #334155;
+  font-family: Inter, system-ui, sans-serif;
+  background-color: #0f172a;
+  color: #cbd5e1;
 }
 
 .errorCard {
-  background-color: white;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  background-color: #162036;
+  padding: 32px;
+  border-radius: 24px;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
   text-align: center;
   max-width: 500px;
 }
 
 .errorTitle {
   font-size: 24px;
-  font-weight: bold;
+  font-weight: 700;
   margin-bottom: 16px;
-  color: #dc2626;
+  color: #ffffff;
 }
 
 .errorMessage {
   margin-bottom: 24px;
   line-height: 1.6;
+  color: #cbd5e1;
 }
 
 .buttonGroup {
   display: flex;
   gap: 12px;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .button {
+  min-height: 48px;
   padding: 12px 24px;
   border: none;
-  border-radius: 6px;
+  border-radius: 9999px;
   font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: filter 0.2s;
 }
 
 .button:hover {
-  opacity: 0.9;
+  filter: brightness(1.08);
+}
+
+.button:focus-visible {
+  outline: 2px solid #ffb224;
+  outline-offset: 3px;
 }
 
 .buttonPrimary {
-  background-color: #3b82f6;
-  color: white;
+  background: linear-gradient(180deg, #ffc34d, #ffb224);
+  color: #1c0f00;
+  font-weight: 700;
 }
 
 .buttonSecondary {
-  background-color: #6b7280;
-  color: white;
+  background-color: rgb(255 255 255 / 0.06);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  color: #ffffff;
 }

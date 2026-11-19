@@ -28,6 +28,14 @@ import { StatsTab } from '../types';
 import { ClubSeasonFilter } from './ClubSeasonFilter';
 import type { TranslationKey } from '@/i18n-types';
 import type { StatsFiltersHandlers, StatsFiltersState } from '../hooks/useStatsFilters';
+import {
+  selectStyle,
+  labelStyle,
+  cardStyle,
+  checkboxStyle,
+  primaryButtonStyle,
+  secondaryButtonStyle,
+} from '@/styles/modalStyles';
 
 interface StatsFilterPanelProps {
   activeTab: StatsTab;
@@ -46,9 +54,8 @@ interface StatsFilterPanelProps {
   children?: React.ReactNode;
 }
 
-const SELECT =
-  'w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
-const LABEL = 'block text-xs font-medium text-slate-400 mb-1';
+const SELECT = selectStyle;
+const LABEL = labelStyle;
 
 export function StatsFilterPanel({
   activeTab,
@@ -212,7 +219,7 @@ export function StatsFilterPanel({
     setDraft((d) => ({ ...d, [key]: value }));
 
   return (
-    <div className="mt-0.5 mb-3 mx-1">
+    <div className="mt-0.5 mb-5 font-ui">
       {children}
       <button
         type="button"
@@ -225,28 +232,27 @@ export function StatsFilterPanel({
         }}
         aria-expanded={open}
         data-testid="stats-filter-bar"
-        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
-          summary.length > 0
-            ? 'bg-indigo-600/15 border-indigo-500/40 text-indigo-200'
-            : 'bg-slate-800/60 border-slate-700/60 text-slate-300'
-        } ${children ? 'mt-2' : ''}`}
+        // Active filters are a selection, so the pill takes the amber ring.
+        className={`w-full min-h-12 flex items-center gap-3 px-4 rounded-full text-[15px] font-semibold text-ink s1-ghost transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action ${
+          summary.length > 0 ? 'shadow-[inset_0_0_0_1.5px_var(--color-action)]!' : ''
+        } ${children ? 'mt-3' : ''}`}
       >
-        <HiAdjustmentsHorizontal className="w-4 h-4 shrink-0" aria-hidden="true" />
-        <span className="font-medium">{t('gameStatsModal.filters', 'Filters')}</span>
+        <HiAdjustmentsHorizontal className="w-5 h-5 shrink-0 text-ink-2" aria-hidden="true" />
+        <span className="shrink-0">{t('gameStatsModal.filters', 'Filters')}</span>
         {summary.length > 0 && (
-          <span className="truncate text-xs opacity-90" data-testid="stats-filter-summary">
+          <span className="truncate text-[13px] font-medium text-ink-2" data-testid="stats-filter-summary">
             · {summary.join(', ')}
           </span>
         )}
         <HiChevronDown
-          className={`w-4 h-4 ml-auto shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`w-[18px] h-[18px] ml-auto shrink-0 text-ink-3 transition-transform ${open ? 'rotate-180' : ''}`}
           aria-hidden="true"
         />
       </button>
 
       {open && (
         <div
-          className="mt-2 p-3 rounded-lg bg-slate-800/70 border border-slate-700 space-y-3"
+          className={`${cardStyle} mt-2.5 space-y-3.5`}
           data-testid="stats-filter-panel"
         >
           {showSeason && (
@@ -342,10 +348,10 @@ export function StatsFilterPanel({
           {showFriendlies && (
             /* Lived in the modal header before. A filter that sits apart from
                the other filters is one the coach does not find. */
-            <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
+            <label className="flex items-center gap-3 min-h-11 text-[15px] text-ink cursor-pointer">
               <input
                 type="checkbox"
-                className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-indigo-600 focus:ring-indigo-500"
+                className={checkboxStyle}
                 checked={draft.includeFriendlies}
                 onChange={(e) => set('includeFriendlies', e.target.checked)}
                 data-testid="stats-filter-friendlies"
@@ -356,11 +362,11 @@ export function StatsFilterPanel({
 
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={clear} data-testid="stats-filter-clear"
-              className="flex-1 px-3 py-2 rounded-md text-sm font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors">
+              className={`${secondaryButtonStyle} flex-1`}>
               {t('gameStatsModal.filtersClear', 'Clear')}
             </button>
             <button type="button" onClick={apply} data-testid="stats-filter-apply"
-              className="flex-1 px-3 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition-colors">
+              className={`${primaryButtonStyle} flex-1`}>
               {t('gameStatsModal.filtersApply', 'Apply')}
             </button>
           </div>

@@ -181,7 +181,7 @@ describe('LoadGameModal', () => {
     (games['game_1659223456_def'] as unknown as { isPlayed: boolean }).isPlayed = true;
     await renderModal({ savedGames: games });
     await screen.findByText('Lions');
-    fireEvent.click(screen.getByRole('button', { name: /loadGameModal.showUnplayedOnly|unplayed/i }));
+    fireEvent.click(screen.getByRole('switch', { name: /loadGameModal.showUnplayedOnly|unplayed/i }));
     expect(await screen.findByText('loadGameModal.noGamesMatchFilter')).toBeInTheDocument();
     expect(screen.queryByText('loadGameModal.noGamesSaved')).not.toBeInTheDocument();
   });
@@ -218,7 +218,7 @@ describe('LoadGameModal', () => {
   it('remembers the unplayed filter and the sort between visits', async () => {
     const first = await renderModal();
     await screen.findByText('Lions');
-    fireEvent.click(screen.getByRole('button', { name: /loadGameModal.showUnplayedOnly|unplayed/i }));
+    fireEvent.click(screen.getByRole('switch', { name: /loadGameModal.showUnplayedOnly|unplayed/i }));
     fireEvent.change(screen.getByTestId('load-game-sort'), { target: { value: 'opponent' } });
     first.unmount();
 
@@ -239,7 +239,7 @@ describe('LoadGameModal', () => {
     await renderModal();
     await screen.findByText('Lions');
 
-    const toggle = screen.getByRole('button', { name: 'loadGameModal.showUnplayedOnly' });
+    const toggle = screen.getByRole('switch', { name: 'loadGameModal.showUnplayedOnly' });
     fireEvent.click(toggle);
 
     expect(screen.queryByText('Lions')).not.toBeInTheDocument();
@@ -338,8 +338,8 @@ describe('LoadGameModal', () => {
     await renderModal({ currentGameId: 'game_1659123456_abc' });
     const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
 
-    // Check for the indigo ring indicator (current game styling)
-    expect(gameCard).toHaveClass('ring-1', 'ring-indigo-400/60', 'bg-indigo-900/20');
+    // The open game carries a faint amber wash from the left
+    expect(gameCard).toHaveClass('bg-gradient-to-r', 'from-action/[0.09]');
   });
 
   describe('orphaned tournamentSeriesId handling', () => {
@@ -485,10 +485,98 @@ describe('LoadGameModal', () => {
       const gameCard = await screen.findByTestId('game-item-game_with_league');
 
       // Season name badge should display
-      expect(within(gameCard).getByText('Spring Season')).toBeInTheDocument();
+      expect(within(gameCard).getByText(/Spring Season/)).toBeInTheDocument();
 
       // League badge should display with full league name
-      expect(within(gameCard).getByText('Valtakunnallinen SM-sarja')).toBeInTheDocument();
+      expect(within(gameCard).getByText(/Valtakunnallinen SM-sarja/)).toBeInTheDocument();
+    });
+
+    /** @edge-case Competition is one grey line; the duration is not repeated on the date line. */
+    it('shows the competition as one line and leaves the period length off the date line', async () => {
+      const games: SavedGamesCollection = {
+        'game_one_line': {
+          teamName: 'Line Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-03-15',
+          gameTime: '10:00',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+          gender: 'boys',
+          homeOrAway: 'home',
+          seasonId: 'season_one_line',
+          tournamentId: '',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+      await renderModal({ savedGames: games, seasons: [{ id: 'season_one_line', name: 'P12 Harrastesarja 2026' }] });
+      const gameCard = await screen.findByTestId('game-item-game_one_line');
+      const line = within(gameCard).getByTestId('game-competition-game_one_line');
+      expect(line).toHaveTextContent(/^P12 Harrastesarja 2026 · /);
+      expect(gameCard.textContent).not.toContain('2×25');
+    });
+
+    /** @edge-case Date and competition share ONE truncated line; the unfinished chip is grey, not amber. */
+    it('puts date and competition on one ellipsised line and draws "needs finishing" as a neutral badge', async () => {
+      const games: SavedGamesCollection = {
+        'game_one_line': {
+          teamName: 'Line Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-03-15',
+          gameTime: '10:00',
+          homeOrAway: 'home',
+          seasonId: 'season_one_line',
+          tournamentId: '',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          // A score with no goals logged: unfinished under the D2 rule.
+          homeScore: 1,
+          awayScore: 0,
+          gameEvents: [],
+          assessments: {},
+        } as unknown as AppState,
+      };
+      await renderModal({ savedGames: games, seasons: [{ id: 'season_one_line', name: 'P12 Harrastesarja 2026' }] });
+      const gameCard = await screen.findByTestId('game-item-game_one_line');
+      const details = within(gameCard).getByTestId('game-competition-game_one_line').parentElement as HTMLElement;
+      expect(details).toHaveClass('truncate');
+      expect(details).toHaveTextContent(/ · P12 Harrastesarja 2026/);
+      // Played: date · competition, no kick-off time.
+      expect(details).not.toHaveTextContent('10:00');
+      const badge = within(gameCard).getByTitle(/needsFinishing/i);
+      expect(badge).toHaveClass('bg-white/[0.06]');
+      expect(badge.className).not.toContain('text-action');
+    });
+
+    /**
+     * @critical - D2: squad + a goal log matching the score is "valmis"; the
+     * written report and scorers are not required.
+     */
+    it('shows no "needs finishing" badge for a game with goals logged but no report or scorers', async () => {
+      const games: SavedGamesCollection = {
+        'game_valmis': {
+          teamName: 'Valmis Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-03-15',
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: '',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          homeScore: 1,
+          awayScore: 1,
+          gameEvents: [
+            { id: 'g1', type: 'goal', time: 60 },
+            { id: 'g2', type: 'opponentGoal', time: 120 },
+          ],
+          gameNotes: '',
+          assessments: {},
+        } as unknown as AppState,
+      };
+      await renderModal({ savedGames: games });
+      const gameCard = await screen.findByTestId('game-item-game_valmis');
+      expect(within(gameCard).queryByTitle(/needsFinishing/i)).not.toBeInTheDocument();
     });
 
     it('does not display league badge when season has no leagueId', async () => {
@@ -560,10 +648,10 @@ describe('LoadGameModal', () => {
       const gameCard = await screen.findByTestId('game-item-game_with_series');
 
       // Tournament name badge should display
-      expect(within(gameCard).getByText('Championship Cup')).toBeInTheDocument();
+      expect(within(gameCard).getByText(/Championship Cup/)).toBeInTheDocument();
 
       // Series level badge should display (translation key pattern: common.levelElite)
-      expect(within(gameCard).getByText('common.levelElite')).toBeInTheDocument();
+      expect(within(gameCard).getByText(/common\.levelElite/)).toBeInTheDocument();
     });
 
     it('does not display series badge when tournament game has no tournamentSeriesId', async () => {
@@ -677,7 +765,7 @@ describe('LoadGameModal', () => {
         const gameCard = await screen.findByTestId(`game-item-game_${level.toLowerCase()}`);
 
         // Verify translation key format: common.level${Level}
-        expect(within(gameCard).getByText(`common.level${level}`)).toBeInTheDocument();
+        expect(within(gameCard).getByText(new RegExp(`common\\.level${level}`))).toBeInTheDocument();
 
         unmount();
       }
@@ -689,9 +777,33 @@ describe('LoadGameModal', () => {
    * @integration
    */
   describe('game time display', () => {
-    it('displays game time next to date when gameTime is set', async () => {
+    it('displays the kick-off time next to the date for a game still to play', async () => {
       const games: SavedGamesCollection = {
         'game_with_time': {
+          teamName: 'Evening Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-08-15',
+          gameTime: '18:30',
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: '',
+          isPlayed: false,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({ savedGames: games });
+
+      const gameCard = await screen.findByTestId('game-item-game_with_time');
+      // Should display the time alongside the date
+      expect(gameCard.textContent).toContain('18:30');
+    });
+
+    /** @edge-case a played game's one details line is date · competition; the time is left off. */
+    it('leaves the time off a played game so the competition fits the one line', async () => {
+      const games: SavedGamesCollection = {
+        'game_played_time': {
           teamName: 'Evening Team',
           opponentName: 'Opponent',
           gameDate: '2024-08-15',
@@ -707,9 +819,8 @@ describe('LoadGameModal', () => {
 
       await renderModal({ savedGames: games });
 
-      const gameCard = await screen.findByTestId('game-item-game_with_time');
-      // Should display the time alongside the date
-      expect(gameCard.textContent).toContain('18:30');
+      const gameCard = await screen.findByTestId('game-item-game_played_time');
+      expect(gameCard.textContent).not.toContain('18:30');
     });
 
     it('displays only date when gameTime is not set', async () => {

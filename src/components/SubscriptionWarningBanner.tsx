@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import { useSubscriptionOptional } from '@/contexts/SubscriptionContext';
 import { isAndroid } from '@/utils/platform';
+import { primaryButtonStyle } from '@/styles/modalStyles';
 
 interface SubscriptionWarningBannerProps {
   /** Callback when user clicks renew button */
@@ -54,23 +55,19 @@ export function SubscriptionWarningBanner({ onRenew }: SubscriptionWarningBanner
 
   return (
     <div
-      className={`px-4 py-3 ${
-        isExpired
-          ? 'bg-red-900/50 border-b border-red-800'
-          : 'bg-amber-900/50 border-b border-amber-800'
-      }`}
+      className="px-4 py-3 font-ui bg-surface-2 border-b border-hairline"
       role="alert"
     >
       <div className="flex items-center justify-between gap-4 max-w-4xl mx-auto">
         <div className="flex items-center gap-3">
           {/* Warning icon */}
           <HiOutlineExclamationTriangle
-            className={`w-5 h-5 flex-shrink-0 ${isExpired ? 'text-red-400' : 'text-amber-400'}`}
+            className={`w-5 h-5 flex-shrink-0 ${isExpired ? 'text-loss' : 'text-action'}`}
             aria-hidden="true"
           />
 
           {/* Message */}
-          <p className="text-sm text-white">
+          <p className="text-sm text-ink">
             {isExpired ? (
               t('subscription.expiredWarning', 'Your subscription has expired. Renew to restore cloud access.')
             ) : (
@@ -86,16 +83,12 @@ export function SubscriptionWarningBanner({ onRenew }: SubscriptionWarningBanner
         {canRenew && onRenew ? (
           <button
             onClick={onRenew}
-            className={`px-4 py-2.5 text-sm font-medium rounded-md flex-shrink-0 transition-colors ${
-              isExpired
-                ? 'bg-red-600 hover:bg-red-500 text-white'
-                : 'bg-amber-600 hover:bg-amber-500 text-white'
-            }`}
+            className={`${primaryButtonStyle} flex-shrink-0`}
           >
             {t('subscription.renewNow', 'Renew Now')}
           </button>
         ) : !canRenew ? (
-          <span className="text-sm text-slate-300">
+          <span className="text-sm text-ink-2">
             {t('subscription.renewOnAndroid', 'Renew via Android app')}
           </span>
         ) : null}

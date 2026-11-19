@@ -3,12 +3,24 @@
 import { useRememberedListSetting, isBoolean } from '@/hooks/useRememberedListSetting';
 import { matchesSearch } from '@/utils/listSearch';
 import React, { useState } from 'react';
-import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
+import {
+    CollapsibleModalHeader,
+    useCollapsingHeader,
+    modalContainerStyle,
+    primaryButtonStyle,
+    searchInputStyle,
+    sectionLabelStyle,
+    groupedListStyle,
+    subtextStyle,
+    popoverMenuStyle,
+    popoverItemStyle,
+    iconButtonEditStyle,
+} from '@/styles/modalStyles';
 import OpponentNameSweepModal from '@/components/OpponentNameSweepModal';
 import { useOpponentVariantGroups } from '@/hooks/useOpponentVariantGroups';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { Season, Tournament, Player } from '@/types';
-import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical, HiOutlineArchiveBox } from 'react-icons/hi2';
+import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical, HiOutlineArchiveBox, HiOutlineMagnifyingGlass, HiOutlinePlus, HiOutlineBarsArrowDown } from 'react-icons/hi2';
 import { UseMutationResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import SeasonDetailsModal from './SeasonDetailsModal';
@@ -21,11 +33,12 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { CLUB_SEASON_OFF_SEASON } from '@/utils/entityDisplayNames';
 import type { EntityReferences } from '@/interfaces/DataStore';
 import logger from '@/utils/logger';
-import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { ENTITY_DOT } from '@/config/palette';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import { formatAppDate } from '@/utils/localeFormat';
+
+/** `actionsMenuId` of the list header's ⋮ menu (row menus use item ids). */
+const LIST_MENU_ID = '__competitions-list-menu__';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
@@ -281,96 +294,102 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                 return a.name.localeCompare(b.name, 'fi', { sensitivity: 'base' });
             });
 
+        const chipClass = "inline-flex items-center h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold tracking-[0.04em] text-ink-2 whitespace-nowrap";
+
         return (
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
-                <div className="space-y-3">
-                    {filtered.length === 0 && searchText.trim() !== '' && (
-                        // Only the search hides them (review 7.L4) - not "none yet".
-                        <p className="text-sm text-slate-400 py-2" data-testid="competition-no-search-results">
-                            {t('seasonTournamentModal.noSearchResults', 'Nothing matches "{{search}}".', { search: searchText.trim() })}
+            <>
+                {filtered.length === 0 && searchText.trim() !== '' && (
+                    // Only the search hides them (review 7.L4) - not "none yet".
+                    <p className="font-ui text-sm text-ink-3 px-1 py-2" data-testid="competition-no-search-results">
+                        {t('seasonTournamentModal.noSearchResults', 'Nothing matches "{{search}}".', { search: searchText.trim() })}
+                    </p>
+                )}
+                {filtered.length === 0 && searchText.trim() === '' && archivedCount > 0 && !showArchived && (
+                    // Not "none yet": they exist, archived (review 7.L7).
+                    <p className="font-ui text-sm text-ink-3 px-1 py-2">{t('common.allArchived', 'Everything here is archived.')}</p>
+                )}
+                {filtered.length === 0 && searchText.trim() === '' && !(archivedCount > 0 && !showArchived) && (
+                    type === 'tournament' ? (
+                        // The same centred empty card as the staff list.
+                        <div className={`${groupedListStyle} text-center py-8 px-4 ${subtextStyle}`} data-testid="tournaments-empty">
+                            {t('seasonTournamentModal.noTournamentsNudge', 'No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats.')}
+                        </div>
+                    ) : (
+                        <p className="font-ui text-sm text-ink-3 px-1 py-2">
+                            {t('seasonTournamentModal.noSeasonsNudge', 'No leagues yet. Create one, then link your teams and games to it to track league-level stats.')}
                         </p>
-                    )}
-                    {filtered.length === 0 && searchText.trim() === '' && archivedCount > 0 && !showArchived && (
-                        // Not "none yet": they exist, archived (review 7.L7).
-                        <p className="text-sm text-slate-400 py-2">{t('common.allArchived', 'Everything here is archived.')}</p>
-                    )}
-                    {filtered.length === 0 && searchText.trim() === '' && !(archivedCount > 0 && !showArchived) && (
-                        <p className="text-sm text-slate-400 py-2">
-                            {type === 'season'
-                                ? t('seasonTournamentModal.noSeasonsNudge', 'No leagues yet. Create one, then link your teams and games to it to track league-level stats.')
-                                : t('seasonTournamentModal.noTournamentsNudge', 'No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats.')}
-                        </p>
-                    )}
+                    )
+                )}
+                {/* Not overflow-hidden: that clipped a row's action menu when the
+                    list is short. The rows round their own hover corners instead. */}
+                {filtered.length > 0 && (
+                <div className="s1-list divide-y divide-hairline">
                     {filtered.map((item) => (
                         <div
                             key={item.id}
-                            className={`p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer transition-all ${item.archived ? 'opacity-60' : ''}`}
+                            className={`pt-4 font-ui cursor-pointer transition-colors hover:bg-white/[0.03] first:rounded-t-[22px] last:rounded-b-[22px] ${item.archived ? 'opacity-60' : ''}`}
                             onClick={() => type === 'season' ? handleSeasonClick(item.id) : handleTournamentClick(item.id)}
                         >
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-slate-100 font-medium">{item.name}</p>
+                            <div className="flex items-start gap-2 pl-[18px] pr-2">
+                                <div className="flex-1 min-w-0 pt-1.5">
+                                    <p className="font-display text-[26px] font-bold leading-[1.1] text-ink break-words">{item.name}</p>
+                                    {type==='tournament' && ((item as Tournament).startDate || (item as Tournament).endDate) && (
+                                        <p className="mt-1 text-sm text-ink-3">{(item as Tournament).startDate ? formatAppDate((item as Tournament).startDate!) : ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' – ' : ''}{(item as Tournament).endDate ? formatAppDate((item as Tournament).endDate!) : ''}</p>
+                                    )}
+                                    {/* Context chips: plain text (green/red mean results only) */}
+                                    <div className="flex flex-wrap gap-2 mt-2">
                                         {item.archived && (
-                                            <span className="text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600">
+                                            <span className={chipClass}>
                                                 {t('seasonTournamentModal.archivedBadge', 'Archived')}
                                             </span>
                                         )}
-                                    </div>
-                                    {type==='tournament' && ((item as Tournament).startDate || (item as Tournament).endDate) && (
-                                        <p className="text-sm text-slate-400">{(item as Tournament).startDate ? formatAppDate((item as Tournament).startDate!) : ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' – ' : ''}{(item as Tournament).endDate ? formatAppDate((item as Tournament).endDate!) : ''}</p>
-                                    )}
-                                    <p className="text-sm text-slate-400">{t('seasonTournamentModal.statsGames')}: {stats[item.id]?.games || 0} | {t('seasonTournamentModal.statsGoals')}: {stats[item.id]?.goals || 0}</p>
-                                    {/* Context badges */}
-                                    <div className="flex flex-wrap gap-1.5 mt-2">
-                                        {/* Club Season - Green dot */}
                                         {item.clubSeason && item.clubSeason !== CLUB_SEASON_OFF_SEASON && (
-                                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
-                                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.clubSeason}`} aria-hidden="true"></span>
+                                            <span className={chipClass}>
                                                 <span className="sr-only">{t('seasonDetailsModal.clubSeasonLabel', 'Season')}: </span>
                                                 {item.clubSeason}
                                             </span>
                                         )}
-                                        {/* Futsal - Orange dot */}
                                         {item.gameType === 'futsal' && (
-                                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
-                                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gameType}`} aria-hidden="true"></span>
+                                            <span className={chipClass}>
                                                 <span className="sr-only">{t('common.gameTypeLabel', 'Sport Type')}: </span>
                                                 {t('common.futsal', 'Futsal')}
                                             </span>
                                         )}
-                                        {/* Gender - Pink dot */}
                                         {item.gender && (
-                                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
-                                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gender}`} aria-hidden="true"></span>
+                                            <span className={chipClass}>
                                                 <span className="sr-only">{t('common.genderLabel', 'Gender')}: </span>
                                                 {item.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
                                             </span>
                                         )}
-                                        {/* Tournament Series - Amber dots */}
                                         {type === 'tournament' && (item as Tournament).series?.map(series => (
-                                            <span key={series.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
-                                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.series}`} aria-hidden="true"></span>
+                                            <span key={series.id} className={chipClass}>
                                                 <span className="sr-only">{t('common.seriesLabel', 'Level')}: </span>
                                                 {t(`common.level${series.level}`, series.level)}
                                             </span>
                                         ))}
                                     </div>
                                 </div>
-                                <div className="relative" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>
+                                <div className="relative flex-shrink-0" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>
                                     <button
                                         onClick={(e) => handleActionsMenuToggle(e, item.id)}
-                                        className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
+                                        className={iconButtonEditStyle}
                                         aria-label={t('seasonTournamentModal.itemActions', 'Actions for {{name}}', { name: item.name })}
                                     >
-                                        <HiOutlineEllipsisVertical className="w-4 h-4" />
+                                        <HiOutlineEllipsisVertical className="w-5 h-5" />
                                     </button>
 
                                     {actionsMenuId === item.id && (
-                                        <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[item.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                                        <div className={`${popoverMenuStyle} ${menuPositions[item.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                                            <button
+                                                onClick={() => handleEditClick(item, type)}
+                                                className={popoverItemStyle}
+                                            >
+                                                <HiOutlinePencil className="w-4 h-4" />
+                                                {t('common.edit', 'Edit')}
+                                            </button>
                                             <button
                                                 onClick={() => handleToggleArchive(item, type)}
-                                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+                                                className={popoverItemStyle}
                                             >
                                                 <HiOutlineArchiveBox className="w-4 h-4" />
                                                 {item.archived
@@ -378,15 +397,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                                     : t('seasonTournamentModal.archive', 'Archive')}
                                             </button>
                                             <button
-                                                onClick={() => handleEditClick(item, type)}
-                                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
-                                            >
-                                                <HiOutlinePencil className="w-4 h-4" />
-                                                {t('common.edit', 'Edit')}
-                                            </button>
-                                            <button
                                                 onClick={() => handleDeleteClick(item, type)}
-                                                className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 transition-colors"
+                                                className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
                                             >
                                                 <HiOutlineTrash className="w-4 h-4" />
                                                 {t('common.delete', 'Delete')}
@@ -395,20 +407,28 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                     )}
                                 </div>
                             </div>
+                            {/* Matches / goals as the home screen's italic numerals */}
+                            <div className="mt-4 flex border-t border-hairline">
+                                <div className="flex-1 flex items-baseline gap-2.5 px-[18px] pt-3 pb-3.5">
+                                    <span className="s1-numeral pr-[3px] font-display text-[34px] font-bold italic leading-none">{stats[item.id]?.games || 0}</span>
+                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">{t('seasonTournamentModal.statsGames')}</span>
+                                </div>
+                                <div className="flex-1 flex items-baseline gap-2.5 px-[18px] pt-3 pb-3.5 border-l border-hairline">
+                                    <span className="s1-numeral pr-[3px] font-display text-[34px] font-bold italic leading-none">{stats[item.id]?.goals || 0}</span>
+                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">{t('seasonTournamentModal.statsGoals')}</span>
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>
-            </div>
+                )}
+            </>
         );
     };
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={managerTitle}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-
+      <div className={`${modalContainerStyle} h-full w-full relative`}>
         {/* Chrome slimming: X-header; the (single) Add button collapses on scroll. */}
         <CollapsibleModalHeader
           title={managerTitle}
@@ -416,58 +436,92 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
           closeLabel={t('common.doneButton', 'Done')}
           collapse={headerCollapse}
         >
-          <div className="px-6 pt-3 pb-4">
+          <div className="px-4 pt-2 pb-4">
             <button
               onClick={kind === 'season' ? handleAddSeason : handleAddTournament}
-              className="w-full px-4 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
+              className={`${primaryButtonStyle} w-full min-h-[52px] text-base`}
             >
+              <HiOutlinePlus className="w-5 h-5" aria-hidden="true" />
               {kind === 'season'
                 ? t('seasonTournamentModal.addSeason', 'Add League')
                 : t('seasonTournamentModal.addTournament', 'Add Tournament')}
-            </button>
-            {/* One team written several ways is several opponents to every
-                aggregation. Cleanup lives next to the lists it cleans. */}
-            <button
-              type="button"
-              onClick={() => setShowNameSweep(true)}
-              data-testid="open-opponent-sweep"
-              className={`w-full mt-2 px-4 py-2 rounded-sm text-sm font-medium border transition-colors flex items-center justify-center gap-2 ${
-                nameConflicts > 0
-                  ? 'bg-amber-500/15 text-amber-200 border-amber-400/40 hover:bg-amber-500/25'
-                  : 'bg-slate-700 text-slate-100 border-slate-600/60 hover:bg-slate-600'
-              }`}
-            >
-              {t('opponentSweep.openLabel', 'Check team names')}
-              {nameConflicts > 0 && (
-                <span
-                  data-testid="opponent-sweep-badge"
-                  className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-900 text-xs font-bold"
-                >
-                  {nameConflicts}
-                </span>
-              )}
             </button>
           </div>
         </CollapsibleModalHeader>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6" onScroll={headerCollapse.onScroll}>
-            <FirstVisitIntro
-              surface="seasons"
-              className="mb-4"
-              text={t('firstVisit.seasons', 'Group games into a league or tournament to get standings and per-competition stats.')}
-            />
-            {/* Search Field and Show Archived Toggle */}
-            <div className="mb-4 flex flex-col sm:flex-row gap-3">
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6" onScroll={headerCollapse.onScroll}>
+            {/* The list header with its own ⋮ menu (as the planner's list has).
+                One team written several ways is several opponents to every
+                aggregation, so the cleanup lives next to the lists it cleans;
+                the count rides on the ⋮ button so the tool stays discoverable. */}
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <h3 className={`${sectionLabelStyle} px-1`}>
+                {kind === 'season'
+                  ? t('seasonTournamentModal.seasons', 'Leagues')
+                  : t('seasonTournamentModal.tournaments', 'Tournaments')}
+              </h3>
+              <div
+                className="relative shrink-0 -mr-1"
+                ref={actionsMenuId === LIST_MENU_ID ? actionsMenuRef : null}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActionsMenuId(actionsMenuId === LIST_MENU_ID ? null : LIST_MENU_ID)}
+                  aria-label={nameConflicts > 0
+                    ? `${t('common.moreOptions', 'More options')} (${nameConflicts})`
+                    : t('common.moreOptions', 'More options')}
+                  aria-expanded={actionsMenuId === LIST_MENU_ID}
+                  data-testid="competitions-list-menu"
+                  className={`${iconButtonEditStyle} relative`}
+                >
+                  <HiOutlineEllipsisVertical className="w-5 h-5" />
+                  {nameConflicts > 0 && (
+                    <span
+                      data-testid="opponent-sweep-badge"
+                      aria-hidden="true"
+                      className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-ink text-carbon font-ui text-xs font-bold leading-[18px] text-center"
+                    >
+                      {nameConflicts}
+                    </span>
+                  )}
+                </button>
+                {actionsMenuId === LIST_MENU_ID && (
+                  <div className={`${popoverMenuStyle} top-full mt-1`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsMenuId(null);
+                        setShowNameSweep(true);
+                      }}
+                      data-testid="open-opponent-sweep"
+                      className={`${popoverItemStyle} whitespace-nowrap`}
+                    >
+                      <HiOutlineBarsArrowDown className="w-4 h-4" aria-hidden="true" />
+                      {t('opponentSweep.openLabel', 'Check team names')}
+                      {nameConflicts > 0 && (
+                        <span className="ml-auto pl-2 tabular-nums text-ink-3">{nameConflicts}</span>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Search field - hidden while there is nothing to search (a tournaments list with no tournaments) */}
+            {!(kind === 'tournament' && tournaments.length === 0) && (
+            <div className="mb-3 relative">
+              <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
               <input
                 type="text"
                 placeholder={t('seasonTournamentModal.searchPlaceholder')}
+                aria-label={t('seasonTournamentModal.searchPlaceholder')}
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
                 autoComplete="off"
-                className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className={searchInputStyle}
               />
             </div>
+            )}
 
             {renderList(kind)}
             {archivedCount > 0 && (
@@ -477,7 +531,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                 onClick={() => setShowArchived((v) => !v)}
                 aria-pressed={showArchived}
                 data-testid="competitions-toggle-archived"
-                className="w-full mt-3 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+                className="w-full mt-3 min-h-11 font-ui text-sm font-medium text-ink-3 hover:text-ink transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action rounded-full"
               >
                 {showArchived
                   ? t('common.hideArchived', 'Hide archived')

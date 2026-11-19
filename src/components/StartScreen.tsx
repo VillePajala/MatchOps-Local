@@ -1,19 +1,20 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
-import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
+import { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeTeamScopeSelect, HomeCountsBar, HomeSeasonCard, HomeStatsTiles, HOME_CARD } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonCard, HomeStatsTiles, HomeIcon, HOME_CARD, HOME_FOCUS } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
-import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
-import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '@/components/GuidedTour/firstRunTour';
+import HomeBasic from '@/components/HomeBasic';
+import type { AppLayout } from '@/types/settings';
 import { isAndroid } from '@/utils/platform';
 import {
   HiOutlineArrowTopRightOnSquare,
+  HiOutlineChevronRight,
   HiOutlineUsers,
   HiOutlineUserGroup,
   HiOutlineIdentification,
@@ -25,7 +26,6 @@ import {
   HiOutlineChartBar,
   HiOutlineUserCircle,
   HiOutlineRectangleStack,
-  HiOutlinePlusCircle,
   HiOutlineFolderOpen,
   HiOutlineGlobeAlt,
   HiOutlineClipboard,
@@ -33,49 +33,40 @@ import {
 import { TASO_URL } from '@/config/externalLinks';
 
 /**
- * Rows are LIST ITEMS inside a group, not cards.
+ * HOME, S1 "SYKE REFINED" (owner-approved, phase 1 of 3). Colours and fonts
+ * come from the role-named tokens in globals.css; the multi-layer surfaces
+ * (s1-list, s1-primary, s1-ghost, s1-sheet, s1-tabbar) live there too.
  *
- * Every element on every tab used to be the same slate fill, the same border
- * and the same rounded-xl. Border, fill, radius and shadow each say "separate
- * object", and spending all four on everything flattens the hierarchy instead
- * of building it - six navigation rows became six competing objects, and the
- * two cards that genuinely ARE objects (the resume card, the season card) had
- * to shout over them.
+ * Rows are LIST ITEMS inside a group, not cards:
+ *   HomeGroup + HomeRow  - navigation. One solid surface, hairline dividers
+ *                          that start after the icon.
+ *   HomeTile             - a pair of equals, each its own object.
+ *   cards (HomeDashboard) - information worth its own surface.
  *
- * So the vocabulary now means something:
- *   HomeGroup + HomeRow  - navigation. One container, hairline dividers.
- *   HomeTile             - a pair of equals, still its own object.
- *   cards (elsewhere)    - information worth its own surface.
+ * One icon family (Heroicons outline), one size (22px), one colour (ink-2)
+ * for every row; a real chevron for in-app destinations, the corner arrow for
+ * external ones. Rows are at least 56px tall with 16px labels.
  */
-/**
- * ONE GAP, BOTH AXES. The tile pair and the action pair sit `gap-2.5` apart
- * horizontally, so the stack between blocks uses the same 2.5 vertically -
- * a different vertical rhythm from the horizontal one reads as a mistake even
- * when nobody can name which number is wrong. No breakpoint bump for the same
- * reason: a taller screen would open the vertical gaps and leave the
- * horizontal ones at 2.5, breaking the unity exactly where there is most room
- * to notice it. Gaps INSIDE a block (HomeGroup's dividers, the tab strip)
- * are a different thing and keep their own values.
- *
- * Both are written out as whole class names, not composed from a shared '2.5',
- * because Tailwind scans source for complete literals and would emit neither.
- */
-const STACK = 'space-y-2.5';  // vertical
-const ROW_GAP = 'gap-2.5';    // horizontal
+
+/** Vertical rhythm between blocks (the mock's 14px). */
+const STACK = 'flex flex-col gap-3.5';
 
 const ROW_BASE =
-  'w-full flex items-center gap-3 px-3.5 py-3 [@media(min-height:700px)]:py-3.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500';
-const ROW_ON = 'hover:bg-slate-700/50';
+  'group/row relative w-full flex items-stretch gap-3.5 pl-4 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action first:rounded-t-[22px] last:rounded-b-[22px]';
+const ROW_ON = 'hover:bg-white/[0.04] active:bg-white/[0.06]';
 const ROW_OFF = 'opacity-40 cursor-not-allowed';
+/** The row's text area carries the divider, so it starts after the icon. */
+const ROW_RULE = 'flex min-h-14 flex-1 min-w-0 items-center gap-3 pr-4 border-t border-hairline group-first/row:border-transparent';
+const ROW_ICON = 'w-[22px] h-[22px] flex-shrink-0 self-center text-ink-2';
+// Labels wrap rather than truncate: "Taso - kokoonpanot ja tulokset" lost its last word at 16px.
+const ROW_LABEL = 'flex-1 min-w-0 break-words text-left text-base font-semibold leading-snug text-ink';
+const ROW_COUNT = 'flex-shrink-0 text-base font-semibold tabular-nums text-ink-3';
+const ROW_CHEVRON = <HiOutlineChevronRight className="w-4 h-4 flex-shrink-0 text-ink-3" aria-hidden="true" />;
+const ROW_EXTERNAL = <HiOutlineArrowTopRightOnSquare className="w-[18px] h-[18px] flex-shrink-0 text-ink-3" aria-hidden="true" />;
 
-/**
- * Section heading. Bound to the group BELOW it - more space above than below,
- * so it reads as a heading for what follows rather than as a separator
- * floating equidistant between two groups.
- */
 /** The container that makes a run of rows one object instead of several. */
 const HomeGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="rounded-xl bg-slate-800/70 border border-slate-700/50 overflow-hidden divide-y divide-white/10">
+  <div className={`${HOME_CARD} flex flex-col`}>
     {children}
   </div>
 );
@@ -90,7 +81,9 @@ const HomeRow: React.FC<{
   testId?: string;
   /** Trailing element: a chevron by default, or a custom node (a step badge). */
   trailing?: React.ReactNode;
-}> = ({ icon: Icon, label, onClick, disabled, testId, trailing }) => (
+  /** How many of the thing the row opens (shown before the chevron). Omit while unknown. */
+  count?: number;
+}> = ({ icon: Icon, label, onClick, disabled, testId, trailing, count }) => (
   <button
     type="button"
     onClick={onClick}
@@ -98,30 +91,36 @@ const HomeRow: React.FC<{
     data-testid={testId}
     className={`${ROW_BASE} ${disabled ? ROW_OFF : ROW_ON}`}
   >
-    <Icon className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
-    <span className="text-sm font-semibold text-white text-left flex-1 min-w-0 truncate">{label}</span>
-    {trailing ?? <span className="text-slate-500 flex-shrink-0" aria-hidden="true">&rsaquo;</span>}
+    <Icon className={ROW_ICON} aria-hidden="true" />
+    <span className={ROW_RULE}>
+      <span className={ROW_LABEL}>{label}</span>
+      {count !== undefined && <span className={ROW_COUNT}>{count}</span>}
+      {trailing ?? ROW_CHEVRON}
+    </span>
   </button>
 );
 
 /** Same row, for a destination outside the app. The corner icon is honest. */
-const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; href: string }> = ({ icon: Icon, label, href }) => (
+const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; subtitle?: string; href: string }> = ({ icon: Icon, label, subtitle, href }) => (
   <a href={href} target="_blank" rel="noopener noreferrer" className={`${ROW_BASE} ${ROW_ON}`}>
-    <Icon className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
-    <span className="text-sm font-semibold text-white flex-1 min-w-0 truncate">{label}</span>
-    <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500 flex-shrink-0" aria-hidden="true" />
+    <Icon className={ROW_ICON} aria-hidden="true" />
+    <span className={ROW_RULE}>
+      {subtitle ? (
+        <span className="min-w-0 flex-1 py-2">
+          <span className="block break-words text-base font-semibold leading-snug text-ink">{label}</span>
+          <span className="block break-words text-[13px] leading-tight text-ink-3">{subtitle}</span>
+        </span>
+      ) : (
+        <span className={ROW_LABEL}>{label}</span>
+      )}
+      {ROW_EXTERNAL}
+    </span>
   </a>
 );
 
 /**
  * Half-width tile. Icon above the label, centred - deliberately a different
  * shape from a Row, so a pair of equals does not look like two truncated rows.
- * Keeps its own border, because a pair genuinely is two objects.
- *
- * Wears HOME_CARD, the shared Home card surface, so the club tab has the
- * colour the other tabs had without inventing a second surface for here.
- * Disabled stays slate - a tile you cannot press has no business wearing the
- * live colour.
  */
 const HomeTile: React.FC<{
   icon: RowIcon;
@@ -129,22 +128,40 @@ const HomeTile: React.FC<{
   onClick?: () => void;
   disabled?: boolean;
   testId?: string;
-}> = ({ icon: Icon, label, onClick, disabled, testId }) => (
+  count?: number;
+}> = ({ icon: Icon, label, onClick, disabled, testId, count }) => (
   <button
     type="button"
     onClick={onClick}
     disabled={disabled}
     data-testid={testId}
-    className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3 [@media(min-height:700px)]:py-3.5 rounded-xl border text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
-      disabled
-        ? 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-        : HOME_CARD
+    className={`${HOME_CARD} flex-1 flex min-h-[88px] flex-col items-center justify-center gap-2 px-2 py-3.5 text-center transition-colors ${HOME_FOCUS} ${
+      disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/[0.04]'
     }`}
   >
-    <Icon className="w-5 h-5 text-indigo-300" aria-hidden="true" />
-    <span className="text-sm font-semibold text-white leading-tight">{label}</span>
+    <Icon className={ROW_ICON} aria-hidden="true" />
+    <span className="text-base font-semibold leading-tight text-ink">
+      {label}
+      {count !== undefined && <span className="ml-1.5 tabular-nums text-ink-3">{count}</span>}
+    </span>
   </button>
 );
+
+/** The amber primary pill (the one "press this" on a screen). */
+const PRIMARY_BTN = `s1-primary w-full flex h-14 items-center justify-center gap-2.5 rounded-full px-5 text-base font-bold transition-[filter] disabled:opacity-50 disabled:cursor-not-allowed ${HOME_FOCUS}`;
+/** The outline secondary pill. */
+const GHOST_BTN = `s1-ghost flex h-12 items-center justify-center gap-2 rounded-full px-4 text-[15px] font-semibold text-ink transition-colors ${HOME_FOCUS}`;
+
+/** A row in a bottom sheet: same group/row grammar as the Home tabs. */
+const SHEET_ROW = `${ROW_BASE} ${ROW_ON} pl-4`;
+const SHEET_ROW_RULE = ROW_RULE;
+
+/** Step badge on an onboarding row. */
+const StepBadge: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <span className="flex-shrink-0 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold text-ink-2">{children}</span>
+);
+
+type HomeTabId = 'games' | 'team' | 'seasons' | 'stats';
 
 interface StartScreenProps {
   onLoadGame: () => void;
@@ -210,6 +227,26 @@ interface StartScreenProps {
   onSetHomeView?: (view: 'simple' | 'dashboard') => void;
   /** Recent-strip deep-link: open a specific saved game by id. */
   onOpenGameById?: (id: string) => void;
+  /**
+   * Which layout Home renders (Onboarding v3): 'basic' (Perusnäkymä, no tab
+   * bar), 'full' (the tabbed Home), or 'loading' while the account's setting is
+   * not known yet - then the body stays empty rather than flash either one.
+   */
+  appLayout?: AppLayout | 'loading';
+  /** "Vaihda koko näkymään" at the bottom of the basic Home. */
+  onSwitchToFullLayout?: () => void;
+  /** "Ketkä ovat paikalla?" for a game ('start' opens the game afterwards). */
+  onOpenAttendance?: (gameId: string, mode: 'save' | 'start') => void;
+  /** "Näytä suunnitelma" for a one-game plan: the compact plan screen. */
+  onShowPlan?: (planId: string, gameId: string) => void;
+  /** "Näytä suunnitelma" for a game of a multi-game plan: the planner on that game. */
+  onOpenPlannerAt?: (planId: string, planGameId: string) => void;
+  /** Basic Home: "Siirrä päivää" on a game that never started (R2). */
+  onMoveGameDate?: (gameId: string, gameDate: string) => Promise<boolean>;
+  /** Basic Home: "Poista" on a game that never started (R2). */
+  onDeleteGame?: (gameId: string) => Promise<boolean>;
+  /** Basic Home: "Lisää pelaajat" with no players yet (R12). */
+  onAddPlayers?: (names: string[]) => Promise<number>;
 }
 
 const StartScreen: React.FC<StartScreenProps> = ({
@@ -250,11 +287,22 @@ const StartScreen: React.FC<StartScreenProps> = ({
   homeStatsSummary,
   onSetHomeView,
   onOpenGameById,
+  appLayout = 'full',
+  onSwitchToFullLayout,
+  onOpenAttendance,
+  onShowPlan,
+  onOpenPlannerAt,
+  onMoveGameDate,
+  onDeleteGame,
+  onAddPlayers,
 }) => {
   const { t } = useTranslation();
   // Dashboard is the default view, but it only renders once there are games to
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
   const dashboardOn = homeView === 'dashboard' && !isFirstTimeUser && hasSavedGames;
+  // Entity counts on the Club / Competitions rows - only once the enriched
+  // summary has loaded, so a still-loading 0 never reads as "you have none".
+  const counts = homeSummary?.countsReady ? homeSummary.counts : undefined;
   // "Täydennä pelaajan tilastoja" on the Tilastot tab, null without a handler.
   const externalGameRow = onAddExternalGame ? (
     <HomeRow
@@ -283,60 +331,19 @@ const StartScreen: React.FC<StartScreenProps> = ({
         ? 'team'
         : 'game';
   const { user, mode } = useAuth();
-  // Optional: present only when the app mounts the tour provider. Used for the
-  // gear-sheet "restart the guide" entry - the safety net for an accidental
-  // skip (skipping otherwise marks the tour done forever) and a refresher.
-  const guidedTour = useGuidedTourOptional();
+  const isBasic = appLayout === 'basic';
+  const layoutKnown = appLayout !== 'loading';
   // The app language (shared with every other language control; hydration-safe).
   const [language, changeLanguage] = useAppLanguage();
   // Which Home panel the body shows (restructure 1.3b): the tabs became REAL
   // tabs - Games (front page) and Team (club entry rows) switch panels here;
   // Seasons/Stats stay one-tap openers for their single-purpose scopes.
-  const [activeTab, setActiveTab] = useState<'games' | 'team' | 'seasons' | 'stats'>('games');
+  const [activeTab, setActiveTab] = useState<HomeTabId>('games');
   // Gear sheet (restructure PR 1.4): the app/account bucket. Everything
   // device- or account-scoped lives here, off the front page.
   const [showGearSheet, setShowGearSheet] = useState(false);
 
-  // Recommended-setup card dismissal. Read post-hydration (SSR-safe): both server and
-  // first client render show nothing until setupHydrated flips true.
-  const [setupDismissed, setSetupDismissed] = useState(false);
-  const [setupHydrated, setSetupHydrated] = useState(false);
-  const setupDismissKey = `matchops_recommended_setup_dismissed_${user?.id ?? 'local'}`;
-
   const isCloudMode = mode === 'cloud' && user;
-
-  useEffect(() => {
-    try {
-      // Setting state here is the point: a post-hydration read of a client-only value
-      // (the server cannot know it), once per key.
-      // eslint-disable-next-line no-restricted-globals, react-hooks/set-state-in-effect -- one-time UI dismissal flag, not app data
-      setSetupDismissed(localStorage.getItem(setupDismissKey) === '1');
-    } catch {
-      // localStorage unavailable — treat as not dismissed
-    }
-    setSetupHydrated(true);
-  }, [setupDismissKey]);
-
-  const handleDismissSetup = () => {
-    setSetupDismissed(true);
-    try {
-      // eslint-disable-next-line no-restricted-globals -- one-time UI dismissal flag, not app data
-      localStorage.setItem(setupDismissKey, '1');
-    } catch {
-      // localStorage unavailable — dismissal won't persist, acceptable
-    }
-  };
-
-  const setupComplete = !!setupProgress &&
-    setupProgress.players && setupProgress.competition && setupProgress.team && setupProgress.teamLinkedGame;
-  // The setup tracker moved OFF the (space-tight) home tabs into an on-demand
-  // gear-sheet entry - the contextual empty-states already nudge setup inline
-  // where there's room. This entry shows its progress and opens the checklist.
-  const showSetupEntry = !isFirstTimeUser && setupHydrated && !setupDismissed && !!setupProgress && !setupComplete;
-  const setupDoneCount = setupProgress
-    ? [setupProgress.players, setupProgress.competition, setupProgress.team, setupProgress.teamLinkedGame].filter(Boolean).length
-    : 0;
-  const [showSetupSheet, setShowSetupSheet] = useState(false);
 
   /**
    * Switching the language is an ACTION, not a state sync.
@@ -356,566 +363,470 @@ const StartScreen: React.FC<StartScreenProps> = ({
    */
   const handleChangeLanguage = changeLanguage;
 
+  // Onboarding step rows (pre-first-game composition): which pending steps
+  // stay visible as rows below the hero step.
+  const showPlayersStep = heroStep !== 'players' && !setupProgress?.players;
+  const showTeamStep = heroStep !== 'team' && !setupProgress?.team;
+  const showGameStep = heroStep !== 'game';
+
+  const tabs: Array<{ id: HomeTabId; label: string; testId?: string }> = [
+    { id: 'games', label: t('startScreen.tabGames', 'Games'), testId: 'tour-tab-games' },
+    { id: 'team', label: t('startScreen.tabTeam', 'Club'), testId: 'tour-tab-club' },
+    // 3.1b (owner feedback 2026-07-17): Kaudet & Tilastot are REAL tabs - same
+    // panel-switching behavior as the first two. A tab that popped a modal
+    // directly broke the tab contract.
+    { id: 'seasons', label: t('startScreen.tabSeasons', 'Competitions') },
+    { id: 'stats', label: t('startScreen.tabStats', 'Stats') },
+  ];
+
   return (
-    <div className="relative flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-hidden">
-      {/* === AMBIENT BACKGROUND GLOWS === */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Blue glow - top right */}
-        <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
-        {/* Blue glow - bottom left */}
-        <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
-      </div>
+    <div className="s1-canvas relative flex flex-col h-screen h-[100dvh] overflow-hidden font-ui text-ink antialiased">
 
-      {/* === MAIN CONTENT === */}
-      {/* Scrolls when content exceeds the viewport (e.g. the dashboard's extra
-          cards) so the lower action rows are never clipped; the bg glows above
-          stay fixed. min-h-0 lets the flex child actually shrink to enable it. */}
-      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto flex flex-col px-6 pt-4 pb-4 [@media(min-height:700px)]:pt-5 [@media(min-height:700px)]:pb-6 pb-safe">
-
-        {/* === TOP: gear (upper-left) + language switcher (upper-right) ===
-            Split to opposite corners (owner feedback: the gear looked cramped
-            next to the language pill); frees the hero for a slightly larger logo. */}
-        <div className="flex justify-between items-center mb-4">
-          {/* Upper-left: Settings gear, plus the Welcome back-link (local mode). */}
-          <div className="flex items-center gap-2">
+      {/* === TOP BAR: wordmark left; language + gear right. The Welcome
+          back-link (local mode) sits before the wordmark as a back chevron. === */}
+      <header className="relative z-10 flex flex-shrink-0 items-center justify-between gap-2 pl-5 pr-4 pb-3 pt-[max(16px,env(safe-area-inset-top))]">
+        <div className="flex min-w-0 items-center gap-2">
+          {!isCloudMode && onShowWelcome && (
             <button
               type="button"
-              onClick={() => setShowGearSheet(true)}
-              aria-label={t('startScreen.appSettings', 'Settings')}
-              className="p-1.5 rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm text-slate-300 hover:text-white hover:bg-slate-700/70 transition-colors"
+              onClick={onShowWelcome}
+              aria-label={t('startScreen.welcomeScreen', 'Welcome')}
+              title={t('startScreen.welcomeScreen', 'Welcome')}
+              className={`s1-raised -ml-1 grid h-11 w-11 flex-shrink-0 place-items-center rounded-full text-ink-2 transition-colors hover:text-ink ${HOME_FOCUS}`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+              <HomeIcon name="back" className="h-5 w-5" strokeWidth={2} />
             </button>
-            {!isCloudMode && onShowWelcome && (
-              <button
-                type="button"
-                onClick={onShowWelcome}
-                className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-sm"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                {t('startScreen.welcomeScreen', 'Welcome')}
-              </button>
-            )}
-          </div>
-
-          {/* Upper-right: language switcher (alone now). */}
-          <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
-            <button
-              onClick={() => handleChangeLanguage('en')}
-              className={`px-3 py-1.5 text-xs font-bold transition-all ${
-                language === 'en'
-                  ? 'bg-amber-500 text-slate-900'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-              }`}
-            >
-              EN
-            </button>
-            <button
-              onClick={() => handleChangeLanguage('fi')}
-              className={`px-3 py-1.5 text-xs font-bold transition-all ${
-                language === 'fi'
-                  ? 'bg-amber-500 text-slate-900'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-              }`}
-            >
-              FI
-            </button>
-          </div>
+          )}
+          <h1 className="truncate font-[family-name:var(--font-rajdhani)] text-[28px] font-bold leading-none tracking-[0.01em] text-action">
+            MatchOps
+          </h1>
         </div>
 
-        {/* === HERO: App Name (top-anchored - the Home shell of the two-level
-            restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1 [@media(min-height:600px)]:pt-[1.5vh]' : 'pt-3 [@media(min-height:600px)]:pt-[5vh]'}`}>
-          <div className={`text-center ${dashboardOn ? 'mb-1' : 'mb-4'}`}>
-            {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
-                so the reclaimed hero space becomes the dashboard (the hero stays
-                full-size on first-run / empty state). */}
-            <div className={`relative inline-block ${dashboardOn ? 'mb-2 [@media(min-height:700px)]:mb-2.5' : 'mb-1.5'}`}>
-              {/* Owner, 2026-09-20: the hero sat ~75px below the header and the
-                  Taso row fell off the screen. Top padding 4vh -> 1.5vh, the
-                  wordmark a step smaller on tall screens, its margin trimmed:
-                  about 50px reclaimed without changing the layout. The bigger
-                  rework (compact header bar) is mocked and waiting. */}
-              {/* Fluid logo: clamp(min, vw, max) scales the wordmark with the
-                  screen width (bigger phones -> bigger logo) instead of a fixed
-                  px size, bounded so it never gets silly on very small/large
-                  screens. Dashboard mode is a touch larger now that the tighter
-                  cards freed room. */}
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.4rem,11.5vw,3.3rem)] [@media(min-height:700px)]:text-[clamp(2.8rem,12vw,3.9rem)]' : 'text-[clamp(2rem,9.5vw,2.9rem)] [@media(min-height:700px)]:text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
-                <span className="text-amber-400">MatchOps</span>
-              </h1>
-            </div>
-
-            {/* Tagline - shown in the simple launcher (the dashboard packs its
-                own summary under the logo, so a tagline there would crowd it). */}
-            {/* Compose mode uses the compact wordmark and skips the tagline so
-                the welcome strip + hero + step rows fit above the fold (owner
-                round 2: the strip pushed content off-screen). */}
-            {!dashboardOn && !composeOnboarding && (
-              <p className="text-base text-slate-400 -mt-1">
-                {t('startScreen.tagline', 'Plan · Track · Discover')}
-              </p>
-            )}
-          </div>
-
-          {/* Welcome strip (Onboarding v2): a quiet one-liner that names the
-              next step and carries the OPT-IN tour link. Lives only in the
-              pre-first-game phase; it disappears naturally once a game exists.
-              It supersedes the old "Getting started" home banner (the gear
-              entry still covers post-game setup like seasons). */}
-          {composeOnboarding && (
-            <div className="max-w-sm mx-auto w-full mb-3">
-              <div
-                data-testid="welcome-strip"
-                className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-slate-100"
+        <div className="flex flex-shrink-0 items-center gap-2">
+          {/* Compact in width, but each button is the full 44px tall touch
+              target; the lifted pill inside it is only the visual. */}
+          <div className="s1-raised flex h-11 rounded-full px-0.5 text-[13px] font-bold tracking-[0.06em]">
+            {(['en', 'fi'] as const).map((lng) => (
+              <button
+                key={lng}
+                type="button"
+                onClick={() => handleChangeLanguage(lng)}
+                aria-pressed={language === lng}
+                className="group grid h-11 min-w-10 place-items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
               >
-                {heroStep === 'players'
-                  ? t('startScreen.welcomeStripStart', 'Welcome! Start by adding your players.')
-                  : heroStep === 'team'
-                    ? t('startScreen.welcomeStripTeam', 'Good start! Next, create your team.')
-                    : t('startScreen.welcomeStripReady', 'All set! Your team and players are ready for the first game.')}
-                {guidedTour && (
-                  <button
-                    type="button"
-                    data-testid="welcome-strip-tour"
-                    onClick={() => guidedTour.startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps)}
-                    className="block mt-1 text-xs text-amber-400 hover:text-amber-300 hover:underline focus:outline-none focus:ring-2 focus:ring-amber-500 rounded"
-                  >
-                    {t('startScreen.welcomeStripTour', 'Want the getting-started guide?')}
-                  </button>
-                )}
-              </div>
-            </div>
+                <span
+                  className={`grid h-9 min-w-9 place-items-center rounded-full px-1.5 transition-colors ${
+                    language === lng ? 's1-seg-on text-ink' : 'text-ink-3 group-hover:text-ink-2'
+                  }`}
+                >
+                  {lng.toUpperCase()}
+                </span>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowGearSheet(true)}
+            aria-label={t('startScreen.appSettings', 'Settings')}
+            className={`s1-raised grid h-11 w-11 place-items-center rounded-full text-ink-2 transition-colors hover:text-ink ${HOME_FOCUS}`}
+          >
+            <HomeIcon name="gear" className="h-5 w-5" strokeWidth={1.6} />
+          </button>
+        </div>
+      </header>
+
+      {/* === MAIN CONTENT === Scrolls when content exceeds the viewport, so
+          the lower rows are never clipped; the tab bar below stays put.
+          min-h-0 lets the flex child actually shrink to enable it. */}
+      {/* Content fades out under the top bar instead of being cut by a hard edge. */}
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-5 [mask-image:linear-gradient(to_bottom,transparent_0,black_14px)]">
+        <div className={`mx-auto w-full max-w-md ${STACK} ${isBasic ? 'min-h-full' : ''}`}>
+          {!layoutKnown ? null : isBasic ? (
+            /* Perusnäkymä (Onboarding v3): its own body, no tab bar. */
+            <HomeBasic
+              summary={homeSummary}
+              onOpenGame={(id) => onOpenGameById?.(id)}
+              onResumeGame={onResumeGame}
+              onNewGame={onNewGame ?? onGetStarted}
+              onOpenAttendance={onOpenAttendance}
+              onShowPlan={onShowPlan}
+              onOpenPlannerAt={onOpenPlannerAt}
+              // The team row is the player list in the basic layout (R4).
+              onOpenPlayers={onManageRoster ?? onManageTeams}
+              onLoadGame={onLoadGame}
+              onMoveGameDate={onMoveGameDate}
+              onDeleteGame={onDeleteGame}
+              onAddPlayers={onAddPlayers}
+              onViewStats={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
+              onSwitchToFull={onSwitchToFullLayout}
+              locale={language}
+              t={t}
+            />
+          ) : (<>
+
+          {/* Tagline - the simple launcher only (the dashboard leads with its
+              card; the onboarding composition needs the room). */}
+          {activeTab === 'games' && !dashboardOn && !composeOnboarding && (
+            <p className="px-1 pt-4 pb-1 font-display text-[clamp(28px,8.5vw,34px)] font-bold leading-none tracking-[0.005em] text-ink">
+              {t('startScreen.tagline', 'Plan · Track · Discover')}
+            </p>
           )}
 
-          {/* === HOME TABS (two-level restructure PR 1.2, strangler stage):
-              Pelit is this page; the other tabs OPEN THE EXISTING MODALS
-              unchanged. Phase 2 dissolves the modals into real tab content.
-              Shown to everyone now - a brand-new coach learns the real Home
-              from the start (no separate first-run mode). === */}
-          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-2 [@media(min-height:700px)]:mb-3' : 'mb-3 [@media(min-height:700px)]:mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
-              <div className="flex gap-1.5 rounded-xl bg-slate-800/70 border border-slate-700/60 backdrop-blur-sm p-1.5">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'games'}
-                  data-testid="tour-tab-games"
-                  onClick={() => setActiveTab('games')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    activeTab === 'games'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
-                  }`}
-                >
-                  {t('startScreen.tabGames', 'Games')}
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'team'}
-                  data-testid="tour-tab-club"
-                  onClick={() => setActiveTab('team')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    activeTab === 'team'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
-                  }`}
-                >
-                  {t('startScreen.tabTeam', 'Club')}
-                </button>
-                {/* 3.1b (owner feedback 2026-07-17): Kaudet & Tilastot are
-                    REAL tabs now - same panel-switching behavior as the
-                    first two; their panels hold the entry rows. A tab that
-                    popped a modal directly broke the tab contract. */}
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'seasons'}
-                  onClick={() => setActiveTab('seasons')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    activeTab === 'seasons'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
-                  }`}
-                >
-                  {t('startScreen.tabSeasons', 'Competitions')}
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'stats'}
-                  onClick={() => setActiveTab('stats')}
-                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    activeTab === 'stats'
-                      ? 'bg-indigo-600 text-white shadow-inner'
-                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
-                  }`}
-                >
-                  {t('startScreen.tabStats', 'Stats')}
-                </button>
+          {activeTab === 'team' ? (
+            /* Club panel (restructure 1.3b): every club-people item gets a
+               Home entry - the rows open the EXISTING modals (strangler). */
+            <>
+              {homeSummary?.countsReady && homeSummary.counts.players === 0 && (
+                <p className="px-1 text-center text-sm text-ink-3">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
+              )}
+              {/* Two groups: the PEOPLE in the club, and the MATERIAL a coach
+                  consults. */}
+              <div className="flex gap-2.5">
+                <HomeTile
+                  icon={HiOutlineUsers}
+                  label={t('startScreen.rowPlayers', 'Players')}
+                  onClick={onManageRoster}
+                  disabled={!onManageRoster}
+                  count={counts?.players}
+                  testId="tour-players"
+                />
+                <HomeTile
+                  icon={HiOutlineUserGroup}
+                  label={t('startScreen.rowTeams', 'Teams')}
+                  onClick={onManageTeams}
+                  disabled={!onManageTeams}
+                  count={counts?.teams}
+                  testId="tour-teams"
+                />
               </div>
-          </div>
+              <HomeGroup>
+                <HomeRow
+                  icon={HiOutlineIdentification}
+                  label={t('startScreen.rowPersonnel', 'Personnel')}
+                  onClick={onManagePersonnel}
+                  disabled={!onManagePersonnel}
+                  count={counts?.personnel}
+                />
+              </HomeGroup>
 
-          {/* === ACTION BUTTONS === */}
-          <div className={`max-w-sm mx-auto w-full ${STACK}`}>
-            {activeTab === 'team' ? (
-              /* Team panel (restructure 1.3b): every club-people item gets a
-                 Home entry - the rows open the EXISTING modals (strangler). */
-              <>
-                {dashboardOn && homeSummary && (
-                  <HomeCountsBar counts={homeSummary.counts} t={t} />
-                )}
-                {homeSummary?.countsReady && homeSummary.counts.players === 0 && (
-                  <p className="text-sm text-slate-400 px-1 text-center">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
-                )}
-                {/* Two groups, because the Club tab holds two different
-                    kinds of thing: the PEOPLE in the club, and the MATERIAL a
-                    coach consults. Before this they were five identical rows
-                    with no indication that the boundary existed. */}
-                <div className={`flex ${ROW_GAP}`}>
-                  <HomeTile
-                    icon={HiOutlineUsers}
-                    label={t('startScreen.rowPlayers', 'Players')}
-                    onClick={onManageRoster}
-                    disabled={!onManageRoster}
-                    testId="tour-players"
+              <HomeGroup>
+                <HomeRow
+                  icon={HiOutlineClipboardDocumentList}
+                  label={t('startScreen.rowTraining', 'Warmup Plan')}
+                  onClick={onOpenTraining}
+                  disabled={!onOpenTraining}
+                />
+                {/* Rules belongs with the coaching material: reference a coach
+                    consults, not app configuration. */}
+                {onOpenRules && (
+                  <HomeRow
+                    icon={HiOutlineBookOpen}
+                    label={t('startScreen.rowRules', 'Rules')}
+                    onClick={onOpenRules}
+                    testId="club-rules"
                   />
-                  <HomeTile
-                    icon={HiOutlineUserGroup}
-                    label={t('startScreen.rowTeams', 'Teams')}
-                    onClick={onManageTeams}
-                    disabled={!onManageTeams}
-                    testId="tour-teams"
+                )}
+                <HomeLinkRow
+                  icon={HiOutlineAcademicCap}
+                  label={t('controlBar.coachingMaterials', 'Coaching Materials')}
+                  href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
+                />
+              </HomeGroup>
+            </>
+          ) : activeTab === 'seasons' ? (
+            /* Competitions panel: separate Kaudet and Turnaukset entries,
+               each opening the manager scoped to that kind. */
+            <>
+              {dashboardOn && homeSummary && (
+                <HomeSeasonCard
+                  vuosi={homeSummary.vuosi}
+                  onOpen={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
+                  t={t}
+                />
+              )}
+              {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
+                <p className="px-1 text-center text-sm text-ink-3">{t('startScreen.emptyCompetitions', 'Create a league or tournament to group your games.')}</p>
+              )}
+              <HomeGroup>
+                <HomeRow
+                  icon={HiOutlineCalendarDays}
+                  label={t('seasonTournamentModal.seasons', 'Leagues')}
+                  onClick={onManageSeasons}
+                  disabled={!onManageSeasons}
+                  count={counts?.seasons}
+                />
+                <HomeRow
+                  icon={HiOutlineTrophy}
+                  label={t('seasonTournamentModal.tournaments', 'Tournaments')}
+                  onClick={onManageTournaments}
+                  disabled={!onManageTournaments}
+                  count={counts?.tournaments}
+                />
+              </HomeGroup>
+            </>
+          ) : activeTab === 'stats' ? (
+            /* Stats panel (W8): one row per aggregate stats tab. Disabled until
+               there is a game to aggregate - never silently dead-clickable. */
+            <>
+              {dashboardOn && (homeStatsSummary ?? homeSummary) && (
+                <>
+                  {/* The team choice narrows only these tiles. Pelit stays
+                      club-wide on purpose. */}
+                  <HomeTeamScopeSelect
+                    teams={teamScopeOptions ?? []}
+                    scope={teamScope ?? 'all'}
+                    onChange={onTeamScopeChange ?? (() => {})}
+                    t={t}
                   />
+                  <HomeStatsTiles
+                    vuosi={(homeStatsSummary ?? homeSummary)!.vuosi}
+                    topScorer={(homeStatsSummary ?? homeSummary)!.topScorer}
+                    t={t}
+                  />
+                </>
+              )}
+              {!hasSavedGames && (
+                <p className="px-1 text-center text-sm text-ink-3">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
+              )}
+              {/* Each scope gets the icon of the thing it aggregates. */}
+              <HomeGroup>
+                {([
+                  ['season', t('startScreen.statsSeason', 'League stats'), HiOutlineCalendarDays],
+                  ['tournament', t('startScreen.statsTournament', 'Tournament stats'), HiOutlineTrophy],
+                  ['overall', t('startScreen.statsOverall', 'Overall stats'), HiOutlineChartBar],
+                  ['player', t('startScreen.statsPlayer', 'Player stats'), HiOutlineUserCircle],
+                ] as const).map(([tab, label, icon]) => (
+                  <HomeRow
+                    key={tab}
+                    icon={icon}
+                    label={label}
+                    onClick={onViewStatsTab ? () => onViewStatsTab(tab) : onViewStats}
+                    disabled={!hasSavedGames}
+                  />
+                ))}
+                {/* Topping up one player's record is a stats task; it works
+                    before the first recorded match too. */}
+                {externalGameRow}
+              </HomeGroup>
+            </>
+          ) : (
+            /* The Pelit front page (two-level restructure PR 1.3). */
+            <>
+              {/* Onboarding v2 composition: the amber hero = next missing step
+                  (the game step reuses the New Game hero below); the remaining
+                  steps render as ordered rows. */}
+              {composeOnboarding && heroStep !== 'game' && (
+                <button
+                  type="button"
+                  onClick={heroStep === 'players' ? onManageRoster : onManageTeams}
+                  disabled={heroStep === 'players' ? !onManageRoster : !onManageTeams}
+                  data-testid={heroStep === 'players' ? 'hero-add-players' : 'hero-create-team'}
+                  className={PRIMARY_BTN}
+                >
+                  {heroStep === 'players'
+                    ? t('startScreen.heroAddPlayers', 'Add players')
+                    : t('startScreen.heroCreateTeam', 'Create your team')}
+                  <HomeIcon name="arrow" className="h-5 w-5" strokeWidth={2.4} />
+                </button>
+              )}
+              {composeOnboarding && (
+                <div className="flex flex-col gap-2.5" data-testid="onboarding-steps">
+                  {/* DONE steps collapse into one quiet line (owner round 4);
+                      pending steps keep their full rows below. */}
+                  {(setupProgress?.players || setupProgress?.team) && (
+                    <div
+                      data-testid="onboarding-done-summary"
+                      className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[13px] text-ink-3"
+                    >
+                      {setupProgress?.players && (
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-win" aria-hidden="true">✓</span>
+                          {t('startScreen.heroAddPlayers', 'Add players')}
+                        </span>
+                      )}
+                      {setupProgress?.team && (
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-win" aria-hidden="true">✓</span>
+                          {t('startScreen.heroCreateTeam', 'Create your team')}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {(showPlayersStep || showTeamStep || showGameStep) && (
+                    <HomeGroup>
+                      {showPlayersStep && (
+                        <HomeRow
+                          icon={HiOutlineUsers}
+                          label={t('startScreen.heroAddPlayers', 'Add players')}
+                          onClick={onManageRoster}
+                          disabled={!onManageRoster}
+                          trailing={<StepBadge>{t('startScreen.stepBadge', 'Step {{n}}', { n: 1 })}</StepBadge>}
+                        />
+                      )}
+                      {showTeamStep && (
+                        <HomeRow
+                          icon={HiOutlineUserGroup}
+                          label={t('startScreen.heroCreateTeam', 'Create your team')}
+                          onClick={onManageTeams}
+                          disabled={!onManageTeams}
+                          trailing={<StepBadge>{t('startScreen.stepBadge', 'Step {{n}}', { n: 2 })}</StepBadge>}
+                        />
+                      )}
+                      {showGameStep && (
+                        <HomeRow
+                          icon={HiOutlineClipboard}
+                          label={t('startScreen.newGame', 'New Game')}
+                          onClick={onNewGame ?? onGetStarted}
+                          testId="tour-new-game"
+                          trailing={<StepBadge>{t('startScreen.stepBadge', 'Step {{n}}', { n: 3 })}</StepBadge>}
+                        />
+                      )}
+                    </HomeGroup>
+                  )}
                 </div>
-                <HomeGroup>
-                  <HomeRow
-                    icon={HiOutlineIdentification}
-                    label={t('startScreen.rowPersonnel', 'Personnel')}
-                    onClick={onManagePersonnel}
-                    disabled={!onManagePersonnel}
-                  />
-                </HomeGroup>
+              )}
+              {dashboardOn && homeSummary ? (
+                /* The dashboard: the hero card for the match this screen is
+                   about + the latest results, in place of the plain Continue. */
+                <HomeDashboard
+                  summary={homeSummary}
+                  onResume={onResumeGame}
+                  onOpenVuosi={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
+                  onOpenGame={onOpenGameById}
+                  onAdjustTravel={onAdjustTravel}
+                  onNewGame={onNewGame}
+                  onSetStartingPoint={onOpenSettings}
+                  onMarkAbsences={onOpenAttendance ? (id) => onOpenAttendance(id, 'save') : undefined}
+                  locale={language}
+                  t={t}
+                />
+              ) : canResume ? (
+                <button type="button" onClick={onResumeGame} className={PRIMARY_BTN}>
+                  {t('startScreen.resumeCard', 'Continue')}
+                  <HomeIcon name="arrow" className="h-5 w-5" strokeWidth={2.4} />
+                </button>
+              ) : null}
+              {/* New Game is the hero when there's nothing to resume (the new
+                  coach adds players inside this flow); otherwise it steps back
+                  to the outline style - paired with Saved games in dashboard
+                  mode, stacked in the simple launcher. Saved games hides when
+                  there are none. */}
+              {(!composeOnboarding || heroStep === 'game') && (newGamePrimary ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={onNewGame ?? onGetStarted}
+                    data-testid="tour-new-game"
+                    className={PRIMARY_BTN}
+                  >
+                    <HomeIcon name="plus" className="h-5 w-5" strokeWidth={2.4} />
+                    {t('startScreen.newGame', 'New Game')}
+                  </button>
+                  {hasSavedGames && (
+                    <HomeGroup>
+                      <HomeRow
+                        icon={HiOutlineFolderOpen}
+                        label={t('startScreen.savedGames', 'Saved games')}
+                        onClick={onLoadGame}
+                      />
+                    </HomeGroup>
+                  )}
+                </>
+              ) : (
+                /* With a game to resume, the amber action above is the hero and
+                   these step back to the outline style. New Game still leads:
+                   starting a match is why the app exists. In the dashboard,
+                   Saved games joins the navigation rows below instead (a
+                   half-width pill truncated its label). */
+                <div className="flex flex-col gap-2.5">
+                  <button
+                    type="button"
+                    onClick={onNewGame ?? onGetStarted}
+                    data-testid="tour-new-game"
+                    className={`${GHOST_BTN} w-full`}
+                  >
+                    <HomeIcon name="plus" className="h-5 w-5 text-action" strokeWidth={2.2} />
+                    <span className="truncate">{t('startScreen.newGame', 'New Game')}</span>
+                  </button>
+                  {hasSavedGames && !dashboardOn && (
+                    <button type="button" onClick={onLoadGame} className={`${GHOST_BTN} w-full`}>
+                      <HomeIcon name="folder" className="h-5 w-5 text-ink-2" strokeWidth={1.9} />
+                      <span className="truncate">{t('startScreen.savedGames', 'Saved games')}</span>
+                    </button>
+                  )}
+                </div>
+              ))}
 
+              {/* Side entries are DEFERRED while composing (owner round 4);
+                  back automatically once a game exists. Taso is a game-day
+                  workflow tool - it earns a games-tab row. */}
+              {!composeOnboarding && (
                 <HomeGroup>
-                  <HomeRow
-                    icon={HiOutlineClipboardDocumentList}
-                    label={t('startScreen.rowTraining', 'Warmup Plan')}
-                    onClick={onOpenTraining}
-                    disabled={!onOpenTraining}
-                  />
-                {/* Rules belongs with the coaching material, by the same
-                    reasoning 3.1b applied there: reference a coach consults,
-                    not app configuration. It was the one such item still
-                    hiding under the gear. */}
-                  {onOpenRules && (
+                  {dashboardOn && hasSavedGames && (
                     <HomeRow
-                      icon={HiOutlineBookOpen}
-                      label={t('startScreen.rowRules', 'Rules')}
-                      onClick={onOpenRules}
-                      testId="club-rules"
+                      icon={HiOutlineFolderOpen}
+                      label={t('startScreen.savedGames', 'Saved games')}
+                      onClick={onLoadGame}
+                    />
+                  )}
+                  {onOpenPlanner && (
+                    <HomeRow
+                      icon={HiOutlineClipboard}
+                      label={t('controlBar.planner', 'Match planner')}
+                      onClick={onOpenPlanner}
                     />
                   )}
                   <HomeLinkRow
-                    icon={HiOutlineAcademicCap}
-                    label={t('controlBar.coachingMaterials', 'Coaching Materials')}
-                    href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
+                    icon={HiOutlineRectangleStack}
+                    label={t('startScreen.tasoLink', 'Taso')}
+                    subtitle={t('startScreen.tasoSubtitle', 'lineups & results')}
+                    href={TASO_URL}
                   />
                 </HomeGroup>
-              </>
-            ) : activeTab === 'seasons' ? (
-              /* Competitions panel: separate Kaudet and Turnaukset entries,
-                 each opening the manager scoped to that kind. */
-              <>
-                {dashboardOn && homeSummary && (
-                  <HomeSeasonCard
-                    vuosi={homeSummary.vuosi}
-                    counts={homeSummary.counts}
-                    onOpen={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
-                    t={t}
-                  />
-                )}
-                {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
-                  <p className="text-sm text-slate-400 px-1 text-center">{t('startScreen.emptyCompetitions', 'Create a league or tournament to group your games.')}</p>
-                )}
-                <HomeGroup>
-                  <HomeRow
-                    icon={HiOutlineCalendarDays}
-                    label={t('seasonTournamentModal.seasons', 'Leagues')}
-                    onClick={onManageSeasons}
-                    disabled={!onManageSeasons}
-                  />
-                  <HomeRow
-                    icon={HiOutlineTrophy}
-                    label={t('seasonTournamentModal.tournaments', 'Tournaments')}
-                    onClick={onManageTournaments}
-                    disabled={!onManageTournaments}
-                  />
-                </HomeGroup>
-              </>
-            ) : activeTab === 'stats' ? (
-              /* Stats panel (W8): one row per aggregate stats tab - the rows
-                 name exactly the surfaces that exist. Disabled until there
-                 is a game to aggregate - never silently dead-clickable. */
-              <>
-                {dashboardOn && (homeStatsSummary ?? homeSummary) && (
-                  <>
-                    {/* The team choice narrows only these tiles. Pelit stays
-                        club-wide on purpose. */}
-                    <HomeTeamScopeSelect
-                      teams={teamScopeOptions ?? []}
-                      scope={teamScope ?? 'all'}
-                      onChange={onTeamScopeChange ?? (() => {})}
-                      t={t}
-                    />
-                    <HomeStatsTiles
-                      vuosi={(homeStatsSummary ?? homeSummary)!.vuosi}
-                      topScorer={(homeStatsSummary ?? homeSummary)!.topScorer}
-                      t={t}
-                    />
-                  </>
-                )}
-                {!hasSavedGames && (
-                  <p className="text-sm text-slate-400 px-1 text-center">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
-                )}
-                {/* Each scope gets the icon of the thing it aggregates, so the
-                    four are told apart at a glance rather than by reading four
-                    labels that all end in the same word. */}
-                <HomeGroup>
-                  {([
-                    ['season', t('startScreen.statsSeason', 'League stats'), HiOutlineCalendarDays],
-                    ['tournament', t('startScreen.statsTournament', 'Tournament stats'), HiOutlineTrophy],
-                    ['overall', t('startScreen.statsOverall', 'Overall stats'), HiOutlineChartBar],
-                    ['player', t('startScreen.statsPlayer', 'Player stats'), HiOutlineUserCircle],
-                  ] as const).map(([tab, label, icon]) => (
-                    <HomeRow
-                      key={tab}
-                      icon={icon}
-                      label={label}
-                      onClick={onViewStatsTab ? () => onViewStatsTab(tab) : onViewStats}
-                      disabled={!hasSavedGames}
-                    />
-                  ))}
-                  {/* Topping up one player's record is a stats task, so it lives
-                      here and not among the team's matches; it works before the
-                      first recorded match too. */}
-                  {externalGameRow}
-                </HomeGroup>
-              </>
-            ) : (
-              /* Returning user: the Pelit front page (two-level restructure
-                 PR 1.3) - resume card, one pinned primary, and full-width
-                 entry rows. The Stats/Load grid buttons are gone: the tab bar
-                 and the rows below cover both. */
-              <>
-                {/* Onboarding v2 composition: amber hero = next missing step
-                    (the game step reuses the existing New Game hero below);
-                    the remaining steps render as ordered rows - done ones get
-                    a quiet check, pending ones a step badge. */}
-                {composeOnboarding && heroStep !== 'game' && (
-                  <button
-                    type="button"
-                    onClick={heroStep === 'players' ? onManageRoster : onManageTeams}
-                    disabled={heroStep === 'players' ? !onManageRoster : !onManageTeams}
-                    data-testid={heroStep === 'players' ? 'hero-add-players' : 'hero-create-team'}
-                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
-                  >
-                    {heroStep === 'players'
-                      ? t('startScreen.heroAddPlayers', 'Add players')
-                      : t('startScreen.heroCreateTeam', 'Create your team')}
-                  </button>
-                )}
-                {composeOnboarding && (
-                  <div className="space-y-2" data-testid="onboarding-steps">
-                    {/* DONE steps collapse into one quiet line (owner round 4:
-                        two full-height check rows pushed the page past the
-                        fold); pending steps keep their full rows below. */}
-                    {(setupProgress?.players || setupProgress?.team) && (
-                      <div
-                        data-testid="onboarding-done-summary"
-                        className="flex items-center gap-4 px-1 pt-0.5 text-sm text-slate-400"
-                      >
-                        {setupProgress?.players && (
-                          <span className="flex items-center gap-1.5">
-                            <span className="text-green-400" aria-hidden="true">✓</span>
-                            {t('startScreen.heroAddPlayers', 'Add players')}
-                          </span>
-                        )}
-                        {setupProgress?.team && (
-                          <span className="flex items-center gap-1.5">
-                            <span className="text-green-400" aria-hidden="true">✓</span>
-                            {t('startScreen.heroCreateTeam', 'Create your team')}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {heroStep !== 'players' && !setupProgress?.players && (
-                      <button
-                        type="button"
-                        onClick={onManageRoster}
-                        disabled={!onManageRoster}
-                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
-                      >
-                        <span className="text-sm font-semibold text-white">{t('startScreen.heroAddPlayers', 'Add players')}</span>
-                        <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
-                          {t('startScreen.stepBadge', 'Step {{n}}', { n: 1 })}
-                        </span>
-                      </button>
-                    )}
-                    {heroStep !== 'team' && !setupProgress?.team && (
-                      <button
-                        type="button"
-                        onClick={onManageTeams}
-                        disabled={!onManageTeams}
-                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
-                      >
-                        <span className="text-sm font-semibold text-white">{t('startScreen.heroCreateTeam', 'Create your team')}</span>
-                        <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
-                          {t('startScreen.stepBadge', 'Step {{n}}', { n: 2 })}
-                        </span>
-                      </button>
-                    )}
-                    {heroStep !== 'game' && (
-                      <button
-                        type="button"
-                        onClick={onNewGame ?? onGetStarted}
-                        data-testid="tour-new-game"
-                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
-                      >
-                        <span className="text-sm font-semibold text-white">{t('startScreen.newGame', 'New Game')}</span>
-                        <span className="text-xs font-semibold text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
-                          {t('startScreen.stepBadge', 'Step {{n}}', { n: 3 })}
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                )}
-                {dashboardOn && homeSummary ? (
-                  /* Opt-in dashboard: informative resume card + Vuosi record +
-                     recent strip, in place of the plain Continue button. */
-                  <>
-                  <HomeDashboard
-                    summary={homeSummary}
-                    onResume={onResumeGame}
-                    onOpenVuosi={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
-                    onOpenGame={onOpenGameById}
-                    onAdjustTravel={onAdjustTravel}
-                    onNewGame={onNewGame}
-                    onSetStartingPoint={onOpenSettings}
-                    locale={language}
-                    t={t}
-                  />
-                  </>
-                ) : canResume ? (
-                  <button
-                    type="button"
-                    onClick={onResumeGame}
-                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
-                  >
-                    {t('startScreen.resumeCard', 'Continue')}
-                  </button>
-                ) : null}
-                {/* New Game is the hero when there's nothing to resume (the new
-                    coach adds players inside this flow); otherwise a standard
-                    row - paired with Saved games in dashboard mode, stacked in
-                    the simple launcher. Saved games hides when there are none. */}
-                {(!composeOnboarding || heroStep === 'game') && (newGamePrimary ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={onNewGame ?? onGetStarted}
-                      data-testid="tour-new-game"
-                      className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
-                    >
-                      {t('startScreen.newGame', 'New Game')}
-                    </button>
-                    {hasSavedGames && (
-                      <HomeGroup>
-                        {hasSavedGames && (
-                          <HomeRow
-                            icon={HiOutlineFolderOpen}
-                            label={t('startScreen.savedGames', 'Saved games')}
-                            onClick={onLoadGame}
-                          />
-                        )}
-                      </HomeGroup>
-                    )}
-                  </>
-                ) : (
-                  /* With a game to resume, the amber card above is the hero and
-                     these two step back. New Game still outranks the archive:
-                     starting a match is why the app exists, browsing old ones
-                     is occasional, and equal weight said otherwise. */
-                  <div className={dashboardOn ? `flex ${ROW_GAP}` : STACK}>
-                    <button
-                      type="button"
-                      onClick={onNewGame ?? onGetStarted}
-                      data-testid="tour-new-game"
-                      className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${canResume
-                        ? 'focus:ring-indigo-500 bg-indigo-600 border-indigo-500 text-white hover:bg-indigo-500'
-                        : 'focus:ring-amber-500 bg-amber-500 border-amber-400/50 text-slate-900 hover:bg-amber-400'} ${dashboardOn ? 'flex-1' : 'w-full'}`}
-                    >
-                      <HiOutlinePlusCircle className={`w-5 h-5 flex-shrink-0 ${canResume ? 'text-indigo-100' : 'text-slate-900'}`} aria-hidden="true" />
-                      <span className="text-[13px] font-bold leading-tight">
-                        {t('startScreen.newGame', 'New Game')}
-                      </span>
-                    </button>
-                    {hasSavedGames && (
-                      <button
-                        type="button"
-                        onClick={onLoadGame}
-                        className={`flex items-center justify-center gap-2 p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${dashboardOn ? 'flex-1' : 'w-full'}`}
-                      >
-                        <HiOutlineFolderOpen className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
-                        <span className="text-[13px] font-semibold text-white leading-tight">
-                          {t('startScreen.savedGames', 'Saved games')}
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                ))}
+              )}
+            </>
+          )}
+          </>)}
+        </div>
+      </main>
 
-                {/* Side entries are DEFERRED while composing (owner round 4:
-                    they pushed the onboarding screen past the fold and are
-                    dead weight before the first game); back automatically
-                    once a game exists. */}
-                {/* Taso is a game-day workflow tool (submit the lineup before,
-                    report the result after) - it earns a games-tab row, not a
-                    burial under the gear. */}
-                {!composeOnboarding && (
-                  <HomeGroup>
-                    {onOpenPlanner && (
-                      <HomeRow
-                        icon={HiOutlineClipboard}
-                        label={t('controlBar.planner', 'Match planner')}
-                        onClick={onOpenPlanner}
-                      />
-                    )}
-                    <HomeLinkRow
-                      icon={HiOutlineRectangleStack}
-                      label={t('startScreen.tasoLink', 'Taso - lineups & results')}
-                      href={TASO_URL}
-                    />
-                  </HomeGroup>
-                )}
-              </>
-            )}
-          </div>
-
+      {/* === HOME TABS (two-level restructure): a bottom tab bar. Pelit is the
+          front page; the other tabs switch the panel above. The full layout
+          only - the basic layout has no tabs. === */}
+      {layoutKnown && !isBasic && (
+      <div className="s1-tabbar relative z-10 flex-shrink-0 px-2 pt-0.5 pb-[max(6px,env(safe-area-inset-bottom))]">
+        <div
+          className="mx-auto grid max-w-md grid-cols-4"
+          role="tablist"
+          aria-label={t('startScreen.homeTabs', 'Home sections')}
+        >
+          {tabs.map(({ id, label, testId }) => {
+            const on = activeTab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                data-testid={testId}
+                onClick={() => setActiveTab(id)}
+                className={`relative flex min-h-[46px] items-center justify-center rounded-xl px-1 text-[13px] font-semibold tracking-[0.01em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action ${
+                  on ? 's1-tab-on text-action' : 'text-ink-2 opacity-60 hover:opacity-100'
+                }`}
+              >
+                <span className="max-w-full truncate px-0.5">{label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
+      )}
 
       {/* ⚙ sheet (restructure PR 1.4): every device/account-scope item in one
-          bucket - settings, backup, cloud account, guide, rules, external
-          links. Entries open the EXISTING modals/links (strangler). */}
+          bucket. Entries open the EXISTING modals/links (strangler). */}
       {showGearSheet && (
         <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70"
           onClick={() => setShowGearSheet(false)}
           data-testid="gear-sheet-backdrop"
         >
@@ -923,40 +834,54 @@ const StartScreen: React.FC<StartScreenProps> = ({
             role="dialog"
             aria-modal="true"
             aria-label={t('startScreen.gearTitle', 'App & account')}
-            className="w-full max-w-sm bg-slate-800 border border-slate-600 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
+            className="s1-sheet w-full max-w-md max-h-[80vh] overflow-y-auto rounded-t-[28px] px-4 pt-3 pb-[max(24px,env(safe-area-inset-bottom))] font-ui text-ink antialiased"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
-            <h4 className="text-base font-semibold text-slate-100 mb-3">{t('startScreen.gearTitle', 'App & account')}</h4>
-            <div className="space-y-1.5">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" aria-hidden="true" />
+            <h4 className="mb-2.5 px-1 text-xs font-bold uppercase tracking-[0.16em] text-ink-3">{t('startScreen.gearTitle', 'App & account')}</h4>
+            <div className={HOME_CARD + ' flex flex-col'}>
               {/* Home view toggle - keeps the sheet open so the switch is
                   visibly reactive; the Home body updates behind it. */}
-              {onSetHomeView && (
+              {/* No effect in the basic layout, which has no dashboard. */}
+              {onSetHomeView && !isBasic && (
                 <button
                   type="button"
                   onClick={() => onSetHomeView(homeView === 'dashboard' ? 'simple' : 'dashboard')}
                   aria-pressed={homeView === 'simple'}
-                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
+                  className={SHEET_ROW}
                 >
-                  <span>{t('startScreen.gearSimplifiedView', 'Simplified view')}</span>
-                  <span className={`inline-flex items-center h-6 w-11 rounded-full p-0.5 transition-colors flex-shrink-0 ${homeView === 'simple' ? 'bg-indigo-500' : 'bg-slate-600'}`} aria-hidden="true">
-                    <span className={`h-5 w-5 rounded-full bg-white transition-transform ${homeView === 'simple' ? 'translate-x-5' : ''}`} />
+                  <span className={SHEET_ROW_RULE}>
+                    <span className={ROW_LABEL}>{t('startScreen.gearSimplifiedView', 'Compact home cards')}</span>
+                    <span className={`inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full p-0.5 transition-colors ${homeView === 'simple' ? 'bg-action' : 'bg-surface-2 ring-1 ring-inset ring-white/10'}`} aria-hidden="true">
+                      <span className={`h-6 w-6 rounded-full bg-ink shadow transition-transform ${homeView === 'simple' ? 'translate-x-5' : ''}`} />
+                    </span>
                   </span>
                 </button>
               )}
-              <button type="button" onClick={() => { setShowGearSheet(false); onOpenSettings(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
-                {t('startScreen.appSettings', 'Settings')}
+              <button type="button" onClick={() => { setShowGearSheet(false); onOpenSettings(); }} className={SHEET_ROW}>
+                <span className={SHEET_ROW_RULE}>
+                  <span className={ROW_LABEL}>{t('startScreen.appSettings', 'Settings')}</span>
+                  {ROW_CHEVRON}
+                </span>
               </button>
               {onOpenBackup && (
-                <button type="button" onClick={() => { setShowGearSheet(false); onOpenBackup(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
-                  {t('startScreen.gearBackup', 'Backup & Restore')}
+                <button type="button" onClick={() => { setShowGearSheet(false); onOpenBackup(); }} className={SHEET_ROW}>
+                  <span className={SHEET_ROW_RULE}>
+                    <span className={ROW_LABEL}>{t('startScreen.gearBackup', 'Backup & Restore')}</span>
+                    {ROW_CHEVRON}
+                  </span>
                 </button>
               )}
               {isCloudMode ? (
                 onOpenAccount && (
-                  <button type="button" onClick={() => { setShowGearSheet(false); onOpenAccount(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
-                    {t('startScreen.gearAccount', 'Cloud account')}
-                    <span className="block text-xs text-slate-500">{user.email}</span>
+                  <button type="button" onClick={() => { setShowGearSheet(false); onOpenAccount(); }} className={SHEET_ROW}>
+                    <span className={`${SHEET_ROW_RULE} py-2`}>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-base font-semibold text-ink">{t('startScreen.gearAccount', 'Cloud account')}</span>
+                        <span className="block truncate text-[13px] text-ink-3">{user.email}</span>
+                      </span>
+                      {ROW_CHEVRON}
+                    </span>
                   </button>
                 )
               ) : isCloudAvailable && (onEnableCloudSync || onSignInExistingSubscriber) ? (
@@ -966,84 +891,57 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     setShowGearSheet(false);
                     (isAndroid() ? onEnableCloudSync : onSignInExistingSubscriber ?? onEnableCloudSync)?.();
                   }}
-                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
+                  className={SHEET_ROW}
                 >
-                  {t('startScreen.enableCloudSync', 'Enable Cloud Sync →')}
+                  <span className={SHEET_ROW_RULE}>
+                    <span className={`${ROW_LABEL} text-action`}>{t('startScreen.enableCloudSync', 'Enable Cloud Sync')}</span>
+                    {ROW_CHEVRON}
+                  </span>
                 </button>
               ) : null}
-              {/* Rules moved to the Club tab (next to Coaching Materials).
-                  Deliberately NOT duplicated here: two entry points to one
-                  modal on one screen is noise, and the gear should keep
-                  shrinking toward genuine app settings. */}
-              {/* Setup tracker (moved off the home tabs) - on-demand, shows N/4. */}
-              {showSetupEntry && (
-                <button type="button" onClick={() => { setShowGearSheet(false); setShowSetupSheet(true); }} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
-                  <span>{t('startScreen.gearSetup', 'Setup checklist ({{done}}/4)', { done: setupDoneCount })}</span>
-                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                </button>
-              )}
+              {/* Rules lives on the Club tab - deliberately NOT duplicated here. */}
               {/* In-app "How it works" guide (rebuilt for the two-level UI). */}
               {onOpenGuide && (
-                <button type="button" onClick={() => { setShowGearSheet(false); onOpenGuide(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
-                  {t('startScreen.gearGuide', 'How it works')}
+                <button type="button" onClick={() => { setShowGearSheet(false); onOpenGuide(); }} className={SHEET_ROW}>
+                  <span className={SHEET_ROW_RULE}>
+                    <span className={ROW_LABEL}>{t('startScreen.gearGuide', 'How it works')}</span>
+                    {ROW_CHEVRON}
+                  </span>
                 </button>
               )}
-              {/* Restart the first-run coached tour on demand: the recovery for
-                  an accidental skip and a refresher for returning coaches. */}
-              {guidedTour && (
-                <button
-                  type="button"
-                  data-testid="gear-restart-tour"
-                  onClick={() => { setShowGearSheet(false); guidedTour.startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps); }}
-                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
-                >
-                  {t('startScreen.gearRestartTour', 'Getting started guide')}
-                </button>
-              )}
-              <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
-                {t('controlBar.userGuide', 'User Guide')}
-                <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500" aria-hidden="true" />
+              <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className={SHEET_ROW}>
+                <span className={SHEET_ROW_RULE}>
+                  <span className={ROW_LABEL}>{t('controlBar.userGuide', 'User Guide')}</span>
+                  {ROW_EXTERNAL}
+                </span>
               </a>
-              {/* Direct sign out (3.1b, owner decision 2026-07-17): account-
-                  scope action, so it lives in the gear - no longer buried
-                  behind Settings -> Account. Cloud mode only. */}
-              {isCloudMode && onSignOut && (
+            </div>
+            {/* Direct sign out (3.1b, owner decision 2026-07-17): account-scope
+                action, so it lives in the gear. Cloud mode only. Its own group:
+                it ends the session rather than opening something. */}
+            {isCloudMode && onSignOut && (
+              <div className={`${HOME_CARD} mt-3 flex flex-col`}>
                 <button
                   type="button"
                   onClick={() => { setShowGearSheet(false); onSignOut(); }}
-                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
+                  className={SHEET_ROW}
                 >
-                  {t('startScreen.gearSignOut', 'Sign out')}
+                  <span className={SHEET_ROW_RULE}>
+                    <span className={`${ROW_LABEL} text-loss`}>{t('startScreen.gearSignOut', 'Sign out')}</span>
+                  </span>
                 </button>
-              )}
-              <div className="pt-2 mt-1 border-t border-white/10 px-3 text-xs">
-                <a href="https://www.match-ops.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-amber-400 transition-colors">match-ops.com</a>
               </div>
+            )}
+            <div className="mt-2 px-1">
+              <a
+                href="https://www.match-ops.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center rounded-lg text-[13px] text-ink-3 transition-colors hover:text-action focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              >
+                match-ops.com
+              </a>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Setup tracker sheet (opened from the gear entry). Backdrop tap just
-          closes it; the card's × permanently dismisses (hides the gear entry). */}
-      {showSetupSheet && setupProgress && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60"
-          onClick={() => setShowSetupSheet(false)}
-          data-testid="setup-sheet-backdrop"
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('recommendedSetup.title', 'Get the most out of MatchOps')}
-            className="w-full max-w-sm bg-slate-800 border border-slate-600 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
-            <RecommendedSetupCard
-              progress={setupProgress}
-              onDismiss={() => { handleDismissSetup(); setShowSetupSheet(false); }}
-            />
           </div>
         </div>
       )}

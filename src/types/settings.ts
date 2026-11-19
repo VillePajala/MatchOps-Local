@@ -28,6 +28,40 @@ export type AssessmentRatingStyle = (typeof ASSESSMENT_RATING_STYLES)[number];
 export const ASSESSMENT_TEMPLATES = ['balanced', 'light6', 'creative'] as const;
 export type AssessmentTemplate = (typeof ASSESSMENT_TEMPLATES)[number];
 
+/**
+ * The two layouts (Onboarding v3, D21): 'basic' = Perusnäkymä (a short Home
+ * with the next game, no tab bar), 'full' = Koko näkymä (the whole app). There
+ * are no module switches - this one value is the whole choice.
+ */
+export const APP_LAYOUTS = ['basic', 'full'] as const;
+export type AppLayout = (typeof APP_LAYOUTS)[number];
+
+/**
+ * First-time onboarding milestones (D17), stored as ISO timestamps in the
+ * coach's own settings row. Measurement, plus one decision: `wizardDone` /
+ * `wizardSkipped` mean the setup wizard has been seen on this ACCOUNT (R9).
+ */
+export const ONBOARDING_MILESTONES = [
+  /** The account was created (the auth record's creation time). */
+  'signedUp',
+  /** The setup wizard's "Valmis" created the team and players. */
+  'wizardDone',
+  /**
+   * The coach skipped the setup wizard (review R9). With `wizardDone`, this is
+   * how the account - not just this device - remembers the wizard was seen, so
+   * it never opens again on a new phone.
+   */
+  'wizardSkipped',
+  /** The first plan screen opened. */
+  'firstPlanSeen',
+  /** The first game reached full time. */
+  'firstGameFinished',
+  /** A second game reached full time. */
+  'secondGameFinished',
+] as const;
+export type OnboardingMilestone = (typeof ONBOARDING_MILESTONES)[number];
+export type OnboardingMilestones = Partial<Record<OnboardingMilestone, string>>;
+
 /** A venue the coach has used, with its pin when one was ever set. */
 export interface KnownVenue {
   /** The most recent spelling the coach used. */
@@ -96,6 +130,15 @@ export interface AppSettings {
    * owner hit exactly that. Name-keyed, newest spelling wins; see venueBook.
    */
   knownVenues?: KnownVenue[];
+  /**
+   * Which layout this account uses. UNSET MEANS 'full': every account that
+   * existed before layouts keeps the app it knows. Only an account whose setup
+   * wizard ran is written 'basic'; after that only the coach changes it.
+   * Read it through `resolveAppLayout`, never directly.
+   */
+  appLayout?: AppLayout;
+  /** First-time onboarding milestones (see ONBOARDING_MILESTONES). */
+  onboardingMilestones?: OnboardingMilestones;
   /** ISO timestamp of last update - used for conflict resolution in cloud sync */
   updatedAt?: string;
   // Add other settings as needed

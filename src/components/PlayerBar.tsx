@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import PlayerDisk from './PlayerDisk'; // Import the PlayerDisk component
 import type { Player } from '@/types'; // Import the Player type from central types
 import type { GameEvent } from '@/types'; // Correctly import GameEvent type
@@ -15,6 +14,11 @@ interface PlayerBarProps {
   gameEvents: GameEvent[];
   onPlayerTapInBar?: (player: Player) => void;
   onToggleGoalie?: (playerId: string) => void;
+  /**
+   * Players on the pitch: drawn solid. Everyone else (the bench) is drawn
+   * hollow, in their usual place. Omitted: every disc is drawn solid.
+   */
+  onFieldPlayerIds?: ReadonlySet<string>;
 }
 
 // Placeholder data - this would eventually come from state/localStorage
@@ -32,18 +36,15 @@ interface PlayerBarProps {
 //   { id: 'p11', name: 'Player 11' },
 // ];
 
-const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragStartFromBar, selectedPlayerIdFromBar, onBarBackgroundClick, gameEvents, onPlayerTapInBar, onToggleGoalie }) => {
+const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragStartFromBar, selectedPlayerIdFromBar, onBarBackgroundClick, gameEvents, onPlayerTapInBar, onToggleGoalie, onFieldPlayerIds }) => {
   return (
+    // The player bar row of the match view's top panel. It sits on the
+    // panel's own surface, so it paints no background of its own. 50px
+    // discs at a 9px gap: on a phone the last visible disc is cut by the
+    // edge, which says "this row scrolls".
     <div
       data-testid="player-bar"
-      className="relative pl-2 pr-2 py-0.5 flex items-center space-x-1 flex-shrink-0 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-slate-800/50 shadow-lg border-b border-white/10 backdrop-blur-md"
-      style={{
-        background: `
-          linear-gradient(to bottom, rgba(56, 189, 248, 0.1), transparent, transparent),
-          linear-gradient(to bottom, rgba(79, 70, 229, 0.1), rgba(79, 70, 229, 0.1)),
-          linear-gradient(to bottom, rgb(30, 41, 59), rgba(15, 23, 42, 0.85))
-        `
-      }}
+      className="relative h-[72px] pl-2.5 pr-2.5 flex items-center gap-[9px] flex-shrink-0 overflow-x-auto overflow-y-hidden whitespace-nowrap scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
       onClick={(e) => {
         // Check if the click target is the div itself (the background)
         if (e.target === e.currentTarget && onBarBackgroundClick) {
@@ -51,31 +52,8 @@ const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragS
         }
       }}
     >
-      {/* App Logo */}
-      <div
-        className="relative flex items-center justify-center flex-shrink-0 z-10"
-        onClick={() => {
-          // Deselect player when clicking the logo
-          if (onBarBackgroundClick) {
-            onBarBackgroundClick();
-          }
-        }}
-      >
-        <Image
-          src="/logos/app-logo-yellow.png"
-          alt="MatchOps Local"
-          width={80}
-          height={27}
-          priority={true}
-          className="h-auto w-[70px] sm:w-[84px] drop-shadow-lg"
-        />
-      </div>
-
-      {/* Separator */}
-      <div className="relative border-l border-slate-600 h-16 self-center z-10"></div>
-
       {/* Player Disks */}
-      <div className="relative flex items-center space-x-1 z-10"> 
+      <div className="relative flex items-center gap-[9px] z-10">
         {players.map(player => (
           <PlayerDisk
             key={player.id}
@@ -89,6 +67,7 @@ const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragS
             gameEvents={gameEvents}
             onPlayerTapInBar={onPlayerTapInBar}
             onToggleGoalie={onToggleGoalie}
+            onBench={onFieldPlayerIds ? !onFieldPlayerIds.has(player.id) : false}
           />
         ))}
       </div>

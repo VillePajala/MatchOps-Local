@@ -96,6 +96,305 @@ const TAP_TO_DRAG_THRESHOLD = 10; // pixels
 const TAP_TO_DRAG_THRESHOLD_SQ = TAP_TO_DRAG_THRESHOLD * TAP_TO_DRAG_THRESHOLD;
 const FORMATION_SNAP_THRESHOLD_PX = 36; // pixels
 const FORMATION_SNAP_THRESHOLD_SQ = FORMATION_SNAP_THRESHOLD_PX * FORMATION_SNAP_THRESHOLD_PX;
+/** Free space kept between a disc and the canvas edge. */
+const DISC_EDGE_GAP = 4;
+/** A sideline chip's centre sits this far above the disc's bottom edge. */
+const SIDELINE_CHIP_RISE = 4;
+/** A rail disc's name sits this far above centre when a chip is under it. */
+const RAIL_NAME_LIFT = 3;
+
+/**
+ * Where a disc (player, sub slot, planned-sub marker) is DRAWN horizontally,
+ * and where a tap finds it - the hit-tests use this same function, so a tap
+ * lands exactly where the disc is painted.
+ *
+ * The stored relX is untouched. This only keeps the whole disc on the
+ * canvas: the sideline column is stored at relX 0.96, which on a 360-412px
+ * phone put the disc's centre 15-17px from the edge with a 24px radius - the
+ * screen edge sliced the slots and the subs waiting in them. Anything closer
+ * to an edge than one radius plus a small gap is drawn just inside it;
+ * everything else is drawn exactly at relX * width, as it always was.
+ * Exported for tests.
+ */
+export function discCenterX(relX: number, width: number, radius: number): number {
+  const x = relX * width;
+  const min = radius + DISC_EDGE_GAP;
+  const max = width - radius - DISC_EDGE_GAP;
+  if (!Number.isFinite(x) || max <= min) return x;
+  return Math.min(Math.max(x, min), max);
+}
+
+// ---------------------------------------------------------------------------
+// The planned-subs rail.
+//
+// The sub slots are STORED where generateSubSlots puts them (relX 0.96, relY
+// next to their formation row, so LB/RB pairs stack close together), and a
+// sub parked in a slot is stored at exactly those coordinates. That data is
+// untouched. What changes is where a slot - and whatever waits in it - is
+// DRAWN: an evenly spaced column down the right sideline, in the slots' own
+// top-to-bottom order (ST at the top ... RB at the bottom), so neighbouring
+// slots can never overlap.
+//
+// Everything that finds a slot on screen - drawing, the tap/selection hit
+// tests, the drop snap, placing a player from the bar - goes through
+// computeSubRail/subRailIndexFor, so a tap lands exactly where a slot or a
+// waiting sub is painted.
+// ---------------------------------------------------------------------------
+
+/** Radius of a rail slot and of the disc waiting in it: a 40px circle. */
+export const SUB_RAIL_RADIUS = 20;
+/** Free space between a rail slot's edge and the right touchline. */
+const SUB_RAIL_TOUCHLINE_GAP = 6;
+/** The touchline's inset from the canvas edge (fieldDrawing LINE_MARGIN). */
+const FIELD_LINE_MARGIN = 5;
+/**
+ * Highest first-slot centre when there is room: below the field tools
+ * (12-52px) and the plan-view label under them (60-~94px), which sit over
+ * the same right-hand strip (FieldContainer).
+ */
+const SUB_RAIL_TOP = 120;
+/** When the column needs the room it may start higher - but stays below the tool row. */
+const SUB_RAIL_TOP_MIN = 76;
+/** Widest spacing between slot centres; fewer slots sit as a centred group. */
+const SUB_RAIL_MAX_STEP = 68;
+/** Narrowest spacing: a 44px tap target each, so they never overlap. */
+const SUB_RAIL_MIN_STEP = 44;
+/** A tap within this distance of a rail slot's centre lands on it (44px target). */
+const SUB_RAIL_HIT_RADIUS = 22;
+
+/** Where a rail slot is drawn, in the canvas units the caller passed. */
+export interface RailSpot {
+  x: number;
+  y: number;
+  r: number;
+}
+
+/**
+ * Where each sub slot is drawn: one entry per slot, in the same order as
+ * `slots`. W and H are the canvas size in output pixels; `scale` is output
+ * pixels per CSS pixel (1 on screen, 2 for the image export), so the export
+ * shows exactly the screen's layout. Exported for tests.
+ */
+export function computeSubRail(slots: readonly SubSlot[] | undefined, W: number, H: number, scale = 1): RailSpot[] {
+  const n = slots?.length ?? 0;
+  if (!slots || n === 0 || !(W > 0) || !(H > 0) || !(scale > 0)) return [];
+  const cssW = W / scale;
+  const cssH = H / scale;
+  const r = SUB_RAIL_RADIUS;
+  const x = cssW - FIELD_LINE_MARGIN - SUB_RAIL_TOUCHLINE_GAP - r;
+  const bottom = cssH - FIELD_LINE_MARGIN - SUB_RAIL_TOUCHLINE_GAP - r;
+
+  // Fixed order: top to bottom as stored (generateSubSlots stacks a row's
+  // slots left to right, so LB comes before RB); ties keep their order.
+  const order = slots
+    .map((_, i) => i)
+    .sort((a, b) => slots[a].relY - slots[b].relY || a - b);
+
+  let top = Math.min(SUB_RAIL_TOP, bottom);
+  let step = n > 1 ? Math.min(SUB_RAIL_MAX_STEP, (bottom - top) / (n - 1)) : 0;
+  if (n > 1 && step < SUB_RAIL_MIN_STEP) {
+    // Not enough room below the preferred top: start higher (never above
+    // the tool row) and space evenly over what there is.
+    top = Math.min(Math.max(SUB_RAIL_TOP_MIN, bottom - SUB_RAIL_MIN_STEP * (n - 1)), bottom);
+    step = Math.max(0, (bottom - top) / (n - 1));
+  }
+  // A column shorter than the band sits in its middle.
+  const start = top + Math.max(0, (bottom - top) - step * (n - 1)) / 2;
+
+  const spots: RailSpot[] = new Array(n);
+  order.forEach((slotIndex, k) => {
+    spots[slotIndex] = { x: x * scale, y: (start + k * step) * scale, r: r * scale };
+  });
+  return spots;
+}
+
+/**
+ * The slot a stored position belongs to (index into `slots`), or -1. Only a
+ * sideline position can be in a slot - a player on the pitch near the right
+ * touchline is drawn where they stand. The nearest slot wins when two are
+ * within SUB_SLOT_OCCUPATION_THRESHOLD. Exported for tests.
+ */
+export function subRailIndexFor(relX: number, relY: number, slots: readonly SubSlot[] | undefined): number {
+  if (!slots || slots.length === 0 || !isSidelinePosition(relX)) return -1;
+  let best = -1;
+  let bestD = Infinity;
+  slots.forEach((slot, i) => {
+    const dx = Math.abs(relX - slot.relX);
+    const dy = Math.abs(relY - slot.relY);
+    if (dx < SUB_SLOT_OCCUPATION_THRESHOLD && dy < SUB_SLOT_OCCUPATION_THRESHOLD && dx + dy < bestD) {
+      best = i;
+      bestD = dx + dy;
+    }
+  });
+  return best;
+}
+
+/**
+ * How close (relY) a sub parked by hand has to be to a slot to be drawn in
+ * it. Wider than SUB_SLOT_OCCUPATION_THRESHOLD on purpose: a sub nudged a
+ * little off its slot used to sit half over the neighbouring slot, and on the
+ * rail it would sit over a different slot entirely. The planned-sub ghosts
+ * already treat such a disc as occupying the slot (ghostSubs uses half the
+ * slot spacing), so drawing it there matches them.
+ */
+const SUB_RAIL_CAPTURE = 0.07;
+
+/**
+ * Which sideline discs are drawn in which rail slot: player id -> slot index.
+ * Closest pairs first, one disc per slot; a disc that loses its slot to a
+ * closer one is drawn where it stands. Exported for tests.
+ */
+export function assignRailSlots(players: readonly Player[], slots: readonly SubSlot[] | undefined): Map<string, number> {
+  const assigned = new Map<string, number>();
+  if (!slots || slots.length === 0) return assigned;
+  const pairs: { id: string; i: number; d: number }[] = [];
+  players.forEach((p) => {
+    if (typeof p.relX !== 'number' || typeof p.relY !== 'number' || !isSidelinePosition(p.relX)) return;
+    slots.forEach((slot, i) => {
+      const dx = Math.abs((p.relX as number) - slot.relX);
+      const dy = Math.abs((p.relY as number) - slot.relY);
+      if (dx < SUB_SLOT_OCCUPATION_THRESHOLD && dy < SUB_RAIL_CAPTURE) pairs.push({ id: p.id, i, d: dx + dy });
+    });
+  });
+  pairs.sort((a, b) => a.d - b.d);
+  const taken = new Set<number>();
+  for (const pair of pairs) {
+    if (assigned.has(pair.id) || taken.has(pair.i)) continue;
+    assigned.set(pair.id, pair.i);
+    taken.add(pair.i);
+  }
+  return assigned;
+}
+
+/** Where a disc is drawn: on the rail, or where it stands. */
+interface DiscPlacement {
+  x: number;
+  y: number;
+  r: number;
+  /** Index of the rail slot it is drawn in, or -1. */
+  railIndex: number;
+}
+
+/**
+ * The rail laid out for one frame (or one hit test): where each slot is, which
+ * disc sits in which, and where any disc or stored point is drawn. Built by the
+ * live draw, the export and every hit test from the same inputs, so what is
+ * tapped is what is painted.
+ */
+interface RailScene {
+  rail: RailSpot[];
+  /** Slot indexes a disc is drawn in. */
+  filled: Set<number>;
+  player: (p: Player) => DiscPlacement;
+  coords: (relX: number, relY: number) => DiscPlacement;
+}
+
+function buildRailScene(
+  players: readonly Player[],
+  slots: readonly SubSlot[] | undefined,
+  W: number,
+  H: number,
+  scale: number,
+  fieldRadius: number,
+  /** A disc being dragged: drawn under the finger, never pulled onto the rail. */
+  excludeId: string | null = null,
+): RailScene {
+  const rail = computeSubRail(slots, W, H, scale);
+  const assigned = assignRailSlots(excludeId ? players.filter((p) => p.id !== excludeId) : players, slots);
+  const filled = new Set(assigned.values());
+  const at = (relX: number, relY: number, i: number): DiscPlacement =>
+    i >= 0 && rail[i]
+      ? { x: rail[i].x, y: rail[i].y, r: rail[i].r, railIndex: i }
+      : { x: discCenterX(relX, W, fieldRadius), y: relY * H, r: fieldRadius, railIndex: -1 };
+  const player = (p: Player): DiscPlacement => at(p.relX as number, p.relY as number, assigned.get(p.id) ?? -1);
+  const coords = (relX: number, relY: number): DiscPlacement => {
+    // A stored point a disc stands on is drawn where that disc is.
+    const owner = players.find((p) => p.relX === relX && p.relY === relY && assigned.has(p.id));
+    if (owner) return player(owner);
+    return at(relX, relY, subRailIndexFor(relX, relY, slots));
+  };
+  return { rail, filled, player, coords };
+}
+
+/**
+ * An empty rail slot: a dashed 1.5px ring (white ~55%) on a faint navy well,
+ * with the place it is for (11px) inside it.
+ */
+function paintEmptyRailSlot(
+  ctx: CanvasRenderingContext2D,
+  spot: RailSpot,
+  label: string | null,
+  scale: number,
+): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(spot.x, spot.y, spot.r, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.14)';
+  ctx.fill();
+  ctx.setLineDash([4 * scale, 3.5 * scale]);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+  ctx.lineWidth = 1.5 * scale;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  if (label) {
+    ctx.font = `700 ${11 * scale}px ${chipFontFamily()}`;
+    setCanvasLetterSpacing(ctx, `${0.04 * 11 * scale}px`);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.fillText(label, spot.x, spot.y + 0.5 * scale);
+  }
+  ctx.restore();
+}
+
+/** A position chip waiting to be painted after every disc. */
+interface PendingChip {
+  label: string;
+  x: number;
+  y: number;
+  size: number;
+}
+
+/**
+ * The position chip a player's disc carries, or null. A sub waiting in a rail
+ * slot carries that slot's place (11px, on the disc's lower half - the rail
+ * is tight); a player on the pitch at a formation point carries the place it
+ * stands in (12px, overlapping the disc's lower edge); the keeper carries
+ * none. Shared by the live field and the image export.
+ */
+function positionChipFor(
+  player: Player,
+  spot: DiscPlacement,
+  railSlot: SubSlot | undefined,
+  scale: number,
+  showPositionLabels: boolean,
+  formationSnapPoints: readonly Point[] | undefined,
+  translate: (key: string) => string,
+): PendingChip | null {
+  if (!showPositionLabels || typeof player.relX !== 'number' || typeof player.relY !== 'number') return null;
+  if (railSlot) {
+    return {
+      label: translate(`positions.${railSlot.positionLabel}`),
+      x: spot.x,
+      y: spot.y + spot.r - SIDELINE_CHIP_RISE * scale,
+      size: 11,
+    };
+  }
+  if (isSidelinePosition(player.relX) || player.relY >= 0.9) return null;
+  const relX = player.relX;
+  const relY = player.relY;
+  const isAtSnapPoint = formationSnapPoints?.some(point =>
+    Math.abs(relX - point.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
+    Math.abs(relY - point.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
+  );
+  if (!isAtSnapPoint) return null;
+  return {
+    label: translate(`positions.${getPositionLabel(relX, relY).label}`),
+    x: spot.x,
+    y: spot.y + spot.r + 1 * scale,
+    size: 12,
+  };
+}
 
 /**
  * Draw the planned-substitution markers.
@@ -112,36 +411,50 @@ const FORMATION_SNAP_THRESHOLD_SQ = FORMATION_SNAP_THRESHOLD_PX * FORMATION_SNAP
  * thread runs back to the player's real disc, because the same name appearing
  * twice on the field only means something once you can see the two are one
  * player.
+ *
+ * A ghost never overlaps a real disc. A sub parked by hand a little off its
+ * slot (the owner's Eino) used to sit half on top of the neighbouring ghost
+ * (Niilo): the ghost now slides along the rail, up to one radius, to the
+ * nearest spot clear of every real disc and every ghost already drawn. If
+ * there is no such spot the real disc is effectively standing on that slot,
+ * and the ghost is left out - the same rule as a disc sitting exactly on it.
  */
 function drawPlannedGhosts(
   ctx: CanvasRenderingContext2D,
   ghosts: readonly PlannedGhost[],
   W: number,
-  H: number,
-  radius: number,
+  place: (relX: number, relY: number) => { x: number; y: number; r: number },
+  discs: readonly { x: number; y: number; r: number }[] = [],
 ): void {
+  const placed: { x: number; y: number; r: number }[] = [];
   ctx.save();
   ghosts.forEach((ghost) => {
-    const gx = ghost.relX * W;
-    const gy = ghost.relY * H;
+    // A ghost stands in a sub slot, so it is drawn where the slot is (the rail).
+    const spot = place(ghost.relX, ghost.relY);
+    const radius = spot.r;
+    const gx = spot.x;
+    const gy = findClearGhostY(gx, spot.y, radius, [...discs, ...placed]);
+    if (gy === null) return;
+    placed.push({ x: gx, y: gy, r: radius });
 
     // The thread home, drawn first so the circle sits on top of its end.
     if (typeof ghost.fromRelX === 'number' && typeof ghost.fromRelY === 'number') {
-      const fx = ghost.fromRelX * W;
-      const fy = ghost.fromRelY * H;
+      const from = place(ghost.fromRelX, ghost.fromRelY);
+      const fx = from.x;
+      const fy = from.y;
       const dx = gx - fx;
       const dy = gy - fy;
       const len = Math.hypot(dx, dy);
       // Start and end on the circles' edges, not their centres, so the thread
       // never crosses either disc's face.
-      if (len > radius * 2) {
+      if (len > radius + from.r) {
         const ux = dx / len;
         const uy = dy / len;
         ctx.beginPath();
         ctx.setLineDash([3, 4]);
         ctx.lineWidth = 1.5;
         ctx.strokeStyle = 'rgba(226, 232, 240, 0.3)';
-        ctx.moveTo(fx + ux * radius, fy + uy * radius);
+        ctx.moveTo(fx + ux * from.r, fy + uy * from.r);
         ctx.lineTo(gx - ux * radius, gy - uy * radius);
         ctx.stroke();
         ctx.setLineDash([]);
@@ -162,7 +475,13 @@ function drawPlannedGhosts(
     // The name. The sideline column sits at relX 0.96, so on a narrow phone a
     // centred name runs off the canvas - clamp it back inside rather than let
     // it be sliced.
-    ctx.font = `600 11px Rajdhani, sans-serif`;
+    // 13px, shrinking (to 11px) to stay inside the circle.
+    let size = 13;
+    ctx.font = `700 ${size}px ${discFontFamily()}`;
+    while (size > 11 && ctx.measureText(ghost.name).width > radius * 2 - 4) {
+      size -= 1;
+      ctx.font = `700 ${size}px ${discFontFamily()}`;
+    }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const half = ctx.measureText(ghost.name).width / 2;
@@ -174,6 +493,39 @@ function drawPlannedGhosts(
     ctx.fillText(ghost.name, tx, gy);
   });
   ctx.restore();
+}
+
+/** Where each placed player's disc is drawn, for keeping ghosts off them. */
+function placedDiscs(
+  players: readonly Player[],
+  place: (p: Player) => { x: number; y: number; r: number },
+): { x: number; y: number; r: number }[] {
+  return players
+    .filter((p) => typeof p.relX === 'number' && typeof p.relY === 'number')
+    .map(place);
+}
+
+/** Breathing room kept between a ghost and any disc next to it. */
+const GHOST_CLEARANCE = 2;
+
+/**
+ * The y nearest `y0` (within one radius, 2px steps) where a ghost of `radius`
+ * centred at `x` overlaps none of `others`; null when there is none.
+ * Exported for tests.
+ */
+export function findClearGhostY(
+  x: number,
+  y0: number,
+  radius: number,
+  others: readonly { x: number; y: number; r: number }[],
+): number | null {
+  const clear = (y: number) =>
+    others.every((o) => Math.hypot(o.x - x, o.y - y) >= o.r + radius + GHOST_CLEARANCE);
+  for (let d = 0; d <= radius; d += 2) {
+    if (clear(y0 - d)) return y0 - d;
+    if (d > 0 && clear(y0 + d)) return y0 + d;
+  }
+  return null;
 }
 
 /** Rounded rectangle path, by hand - ctx.roundRect is not everywhere yet. */
@@ -195,8 +547,279 @@ function roundedRectPath(
   ctx.lineTo(x + rad, y + h);
   ctx.quadraticCurveTo(x, y + h, x, y + h - rad);
   ctx.lineTo(x, y + rad);
-  ctx.quadraticCurveTo(x, y, x, y + rad);
+  ctx.quadraticCurveTo(x, y, x + rad, y);
   ctx.closePath();
+}
+
+// ---------------------------------------------------------------------------
+// Disc and label styling (match view redesign, "full-screen pitch").
+//
+// Pure paint: these helpers draw at a centre and radius they are handed and
+// never touch hit-testing, snapping or coordinate maths. Both render paths
+// (the live field and the image export) call the same helpers, so the export
+// can never drift from the screen.
+// ---------------------------------------------------------------------------
+
+/** The navy of the app's chrome; names on light discs and label chips. */
+const DISC_NAVY = '#0f172a';
+/** Amber: selection only. */
+const DISC_ACTION = '#ffb224';
+/**
+ * The colour every disc used to default to. A player with no colour of their
+ * own - or this legacy default stored on them - gets the new default look; a
+ * colour the coach chose is still honoured.
+ */
+const LEGACY_DEFAULT_DISC_COLOR = '#7e22ce';
+
+export function hasCustomDiscColor(color?: string): boolean {
+  return !!color && color.trim().toLowerCase() !== LEGACY_DEFAULT_DISC_COLOR;
+}
+
+/**
+ * Canvas cannot read a CSS variable, and next/font gives its families hashed
+ * names, so the family is looked up from the variable on <body> once it is
+ * there. Until then the fallback is used and nothing is cached.
+ */
+const canvasFontCache = new Map<string, string>();
+function canvasFontFamily(cssVar: string, fallback: string): string {
+  const hit = canvasFontCache.get(cssVar);
+  if (hit) return hit;
+  let family = '';
+  if (typeof document !== 'undefined' && document.body && typeof getComputedStyle === 'function') {
+    try {
+      family = getComputedStyle(document.body).getPropertyValue(cssVar).trim();
+    } catch {
+      family = '';
+    }
+  }
+  if (!family) return fallback;
+  const resolved = `${family}, ${fallback}`;
+  canvasFontCache.set(cssVar, resolved);
+  return resolved;
+}
+/** Barlow Condensed: names on discs (the home screen's display face). */
+const discFontFamily = (): string =>
+  canvasFontFamily('--font-barlow-condensed', "'Barlow Condensed', 'Arial Narrow', sans-serif");
+/** Inter: position chips and small labels. */
+const chipFontFamily = (): string =>
+  canvasFontFamily('--font-inter', 'Inter, system-ui, sans-serif');
+
+/** Letter spacing where the canvas supports it (Chromium); a no-op elsewhere. */
+function setCanvasLetterSpacing(ctx: CanvasRenderingContext2D, value: string): void {
+  const spaced = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+  if (typeof spaced.letterSpacing === 'string') spaced.letterSpacing = value;
+}
+
+interface PlayerDiscStyle {
+  isGoalie?: boolean;
+  color?: string;
+  /** Waiting on the sideline: a touch quieter than the eleven. */
+  sideline?: boolean;
+  /**
+   * Waiting in a planned-subs rail slot, i.e. coming in: the smaller rail
+   * disc at ~82% white with a thin amber ring.
+   */
+  comingIn?: boolean;
+}
+
+/** Where the default white disc's gradient ends: a clean light grey. */
+const DISC_WHITE_END = '#e6e9ee';
+
+/**
+ * One player disc: white with a navy name by default, navy with a white ring
+ * for the keeper, or the coach's own colour with a white name. Returns the
+ * colour the name should be painted in.
+ */
+function paintPlayerDisc(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  scale: number,
+  { isGoalie, color, sideline, comingIn }: PlayerDiscStyle,
+): string {
+  const custom = !isGoalie && hasCustomDiscColor(color);
+  const restingWhite = comingIn && !isGoalie && !custom;
+
+  // Lift off the grass: a soft shadow under the disc only.
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+  ctx.shadowBlur = 8 * scale;
+  ctx.shadowOffsetY = 3 * scale;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  if (isGoalie) {
+    const g = ctx.createLinearGradient(x, y - r, x, y + r);
+    g.addColorStop(0, '#2a3854');
+    g.addColorStop(1, DISC_NAVY);
+    ctx.fillStyle = g;
+  } else if (custom) {
+    let base = tinycolor(color);
+    if (sideline) base = base.desaturate(SIDELINE_DESATURATION_PERCENT);
+    ctx.fillStyle = base.toString();
+  } else if (restingWhite) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+  } else {
+    const g = ctx.createLinearGradient(x, y - r, x, y + r);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(1, DISC_WHITE_END);
+    ctx.fillStyle = g;
+    if (sideline) ctx.globalAlpha = 0.84;
+  }
+  ctx.fill();
+  ctx.restore();
+
+  // Coming in: a thin amber ring just outside the disc.
+  if (comingIn) {
+    ctx.beginPath();
+    ctx.arc(x, y, r + 1.5 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = DISC_ACTION;
+    ctx.lineWidth = 1.5 * scale;
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  if (isGoalie) {
+    // The keeper is the inverse of the field discs: navy inside a white ring.
+    ctx.arc(x, y, r - 1 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2 * scale;
+  } else if (custom) {
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.lineWidth = 1.5 * scale;
+  } else {
+    // A hairline edge so a white disc still has an outline on a light stripe.
+    ctx.arc(x, y, r - 0.5 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.18)';
+    ctx.lineWidth = 1 * scale;
+  }
+  ctx.stroke();
+
+  return isGoalie || custom ? '#ffffff' : DISC_NAVY;
+}
+
+/**
+ * The name on a disc, with a little letter spacing (+0.02em). Short names (5
+ * letters or fewer) a size up; anything that would spill far past the disc
+ * shrinks (down to 11px) instead. `baseSize` is the size for a longer name.
+ */
+function paintDiscName(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  r: number,
+  scale: number,
+  fill: string,
+  baseSize = 15,
+): void {
+  if (!text) return;
+  ctx.save();
+  const family = discFontFamily();
+  let size = Array.from(text).length <= 5 ? baseSize + 1 : baseSize;
+  const setFont = () => {
+    ctx.font = `700 ${size * scale}px ${family}`;
+    setCanvasLetterSpacing(ctx, `${0.02 * size * scale}px`);
+  };
+  setFont();
+  const maxWidth = r * 2 - 6 * scale;
+  while (size > 11 && ctx.measureText(text).width > maxWidth) {
+    size -= 1;
+    setFont();
+  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = fill;
+  ctx.fillText(text, x, y + 0.5 * scale);
+  ctx.restore();
+}
+
+/**
+ * A position label as a full navy pill, readable on any grass stripe. Painted
+ * after every disc, overlapping the lower edge of its own, so no neighbouring
+ * disc can cover it. `anchor` says which point (x, y) is: the chip's centre,
+ * or its right edge. `fontSize` is 12 on the pitch, 11 on the subs rail.
+ */
+function paintPositionChip(
+  ctx: CanvasRenderingContext2D,
+  label: string,
+  x: number,
+  y: number,
+  scale: number,
+  anchor: 'center' | 'right' = 'center',
+  fontSize = 12,
+): void {
+  ctx.save();
+  ctx.font = `700 ${fontSize * scale}px ${chipFontFamily()}`;
+  setCanvasLetterSpacing(ctx, `${0.06 * fontSize * scale}px`);
+  const w = Math.max(28 * scale, ctx.measureText(label).width + 13 * scale);
+  const h = (fontSize + 6) * scale;
+  const cx = anchor === 'right' ? x - w / 2 : x;
+  roundedRectPath(ctx, cx - w / 2, y - h / 2, w, h, h / 2);
+  ctx.fillStyle = DISC_NAVY;
+  ctx.fill();
+  // A faint edge, so the pill still separates from a navy keeper disc.
+  ctx.lineWidth = 1 * scale;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, cx, y + 0.5 * scale);
+  ctx.restore();
+}
+
+/**
+ * A tactics-board disc: home white (like the field discs), keeper navy in a
+ * white ring, opponent red.
+ */
+function paintTacticalDisc(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  scale: number,
+  type: TacticalDisc['type'],
+): void {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 5 * scale;
+  ctx.shadowOffsetX = 1 * scale;
+  ctx.shadowOffsetY = 2 * scale;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  if (type === 'home') {
+    const g = ctx.createLinearGradient(x, y - r, x, y + r);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(1, DISC_WHITE_END);
+    ctx.fillStyle = g;
+  } else if (type === 'opponent') {
+    ctx.fillStyle = '#DC2626'; // Red
+  } else if (type === 'goalie') {
+    const g = ctx.createLinearGradient(x, y - r, x, y + r);
+    g.addColorStop(0, '#2a3854');
+    g.addColorStop(1, DISC_NAVY);
+    ctx.fillStyle = g;
+  }
+  ctx.fill();
+  ctx.restore();
+
+  ctx.beginPath();
+  if (type === 'home') {
+    ctx.arc(x, y, r - 0.5 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
+    ctx.lineWidth = 1 * scale;
+  } else if (type === 'goalie') {
+    ctx.arc(x, y, r - 1 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2 * scale;
+  } else {
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.lineWidth = 1.5 * scale;
+  }
+  ctx.stroke();
 }
 
 const CHAIN_ROW_H = 17;
@@ -257,7 +880,7 @@ function drawPlannedChains(
     // One gutter for every minute in this pill, wide enough for the longest,
     // so the names line up in a column instead of stepping in and out as the
     // minutes go from 5' to 30'.
-    ctx.font = `700 11px Rajdhani, sans-serif`;
+    ctx.font = `700 12px ${chipFontFamily()}`;
     let gutter = 0;
     chain.entries.forEach((e) => {
       gutter = Math.max(gutter, ctx.measureText(`${e.minute}'`).width);
@@ -265,15 +888,15 @@ function drawPlannedChains(
     gutter += 6;
 
     // Width is driven by the widest thing in the pill, so nothing is clipped.
-    ctx.font = `500 11px Rajdhani, sans-serif`;
+    ctx.font = `500 12px ${chipFontFamily()}`;
     let cellW = 0;
     chain.entries.forEach((e) => {
       cellW = Math.max(cellW, gutter + ctx.measureText(e.name).width);
     });
     cellW += 10;
-    ctx.font = `700 13px Rajdhani, sans-serif`;
+    ctx.font = `700 14px ${discFontFamily()}`;
     const nameW = ctx.measureText(chain.starterName ?? '-').width;
-    ctx.font = `700 11px Rajdhani, sans-serif`;
+    ctx.font = `700 12px ${chipFontFamily()}`;
     const tagW = ctx.measureText(chain.positionLabel).width;
     const headW = tagW + 6 + nameW;
     const pillW = Math.max(headW + CHAIN_PAD * 2, cols * cellW + CHAIN_PAD * 2);
@@ -309,10 +932,10 @@ function drawPlannedChains(
     // the coach knows the shape, they are looking for the person.
     const headY = y + CHAIN_PAD + CHAIN_ROW_H / 2;
     ctx.textAlign = 'left';
-    ctx.font = `700 11px Rajdhani, sans-serif`;
+    ctx.font = `700 12px ${chipFontFamily()}`;
     ctx.fillStyle = settled ? 'rgba(148, 163, 184, 0.65)' : 'rgba(148, 163, 184, 0.95)';
     ctx.fillText(chain.positionLabel, x + CHAIN_PAD, headY);
-    ctx.font = `700 13px Rajdhani, sans-serif`;
+    ctx.font = `700 14px ${discFontFamily()}`;
     ctx.fillStyle = chain.starterName
       ? settled
         ? 'rgba(255, 255, 255, 0.72)'
@@ -357,12 +980,12 @@ function drawPlannedChains(
 
       // The minute carries the colour: on the touchline you scan for WHEN.
       // Right-aligned in its gutter so 5' and 30' share an edge.
-      ctx.font = `700 11px Rajdhani, sans-serif`;
+      ctx.font = `700 12px ${chipFontFamily()}`;
       ctx.fillStyle = hue;
       ctx.textAlign = 'right';
       ctx.fillText(`${entry.minute}'`, ex + gutter - 6, ey);
       ctx.textAlign = 'left';
-      ctx.font = `500 11px Rajdhani, sans-serif`;
+      ctx.font = `500 12px ${chipFontFamily()}`;
       ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
       ctx.fillText(entry.name, ex + gutter, ey);
     });
@@ -390,6 +1013,12 @@ export function resolveSnapAction(
   currentRelPos: Point | null,
   rectWidth: number,
   rectHeight: number,
+  /**
+   * Where a snap point is DRAWN, in pixels. Sub-slot points are drawn on the
+   * planned-subs rail, away from their stored coordinates, and the drop must
+   * snap to what the coach sees. Default: the stored position.
+   */
+  toScreen?: (point: Point) => { x: number; y: number },
 ): SnapAction {
   if (!snapPoints || snapPoints.length === 0 || !currentRelPos) return { type: 'none' };
   if (!Number.isFinite(rectWidth) || !Number.isFinite(rectHeight) || rectWidth <= 0 || rectHeight <= 0) {
@@ -398,9 +1027,12 @@ export function resolveSnapAction(
 
   let bestPoint: Point | null = null;
   let bestDistSq = Infinity;
+  const dropX = currentRelPos.relX * rectWidth;
+  const dropY = currentRelPos.relY * rectHeight;
   for (const point of snapPoints) {
-    const dxPx = (currentRelPos.relX - point.relX) * rectWidth;
-    const dyPx = (currentRelPos.relY - point.relY) * rectHeight;
+    const at = toScreen ? toScreen(point) : { x: point.relX * rectWidth, y: point.relY * rectHeight };
+    const dxPx = dropX - at.x;
+    const dyPx = dropY - at.y;
     const distSq = dxPx * dxPx + dyPx * dyPx;
     if (distSq < bestDistSq) {
       bestDistSq = distSq;
@@ -427,11 +1059,8 @@ export const SUB_SLOT_OCCUPATION_THRESHOLD = 0.04; // relative coordinate tolera
 // Visual styling constants for formation positions and sub slots
 const FIELD_POSITION_ALPHA_EMPTY = 0.35;
 const FIELD_POSITION_ALPHA_OCCUPIED = 0.15;
-const SUB_SLOT_ALPHA_EMPTY = 0.45;
-const SUB_SLOT_ALPHA_OCCUPIED = 0.25;
-// Note: Sideline players use desaturation only (no alpha) for visual distinction
+// Sideline players: a custom colour is desaturated, the default white disc softened.
 const SIDELINE_DESATURATION_PERCENT = 60;
-const POSITION_LABEL_FONT_SIZE = 14;
 
 /**
  * Check if a position is occupied by any player
@@ -672,7 +1301,14 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     if (!canvas) return false;
     const rect = canvas.getBoundingClientRect();
 
-    const action = resolveSnapAction(formationSnapPoints, players, playerId, currentRelPos, rect.width, rect.height);
+    const rail = computeSubRail(subSlots, rect.width, rect.height);
+    const action = resolveSnapAction(
+      formationSnapPoints, players, playerId, currentRelPos, rect.width, rect.height,
+      (point) => {
+        const i = subRailIndexFor(point.relX, point.relY, subSlots);
+        return i >= 0 && rail[i] ? rail[i] : { x: point.relX * rect.width, y: point.relY * rect.height };
+      },
+    );
     if (action.type === 'none') return false;
 
     if (action.type === 'swap') {
@@ -694,7 +1330,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     onPlayerMove(playerId, action.point.relX, action.point.relY);
     lastPlayerDragRelPosRef.current = action.point;
     return false;
-  }, [formationSnapPoints, isTacticsBoardView, onPlayerMove, onPlayerMoveEnd, players]);
+  }, [formationSnapPoints, subSlots, isTacticsBoardView, onPlayerMove, onPlayerMoveEnd, players]);
 
   /**
    * Renders the field at high resolution for export.
@@ -814,153 +1450,56 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       });
     }
 
+    // The planned-subs rail, laid out exactly as on screen (scaled).
+    const scene = buildRailScene(players, subSlots, W, H, scale, playerRadius);
+
+    // Empty rail slots (an occupied one is covered by its disc).
+    if (!isTacticsBoardView && subSlots && subSlots.length > 0) {
+      subSlots.forEach((slot, i) => {
+        const spot = scene.rail[i];
+        if (!spot || scene.filled.has(i)) return;
+        paintEmptyRailSlot(ctx, spot, showPositionLabels ? t(`positions.${slot.positionLabel}`) : null, scale);
+      });
+    }
+
     // Planned-sub ghosts: drawn BEFORE the players so a real disc always wins
     // the pixels, and skipped entirely on the tactics board, which is about
     // shapes rather than the squad.
     if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
-      drawPlannedGhosts(ctx, plannedGhosts, W, H, FIELD_PLAYER_RADIUS);
+      drawPlannedGhosts(ctx, plannedGhosts, W, scene.coords, placedDiscs(players, scene.player));
     }
     if (!isTacticsBoardView && plannedChains && plannedChains.length > 0) {
       drawPlannedChains(ctx, plannedChains, W, H);
     }
 
-    // Draw players with polished enamel effect (only in non-tactical view)
+    // Draw players (only in non-tactical view) - same paint as the live field.
     if (!isTacticsBoardView) {
+      const chips: PendingChip[] = [];
       players.forEach(player => {
         if (typeof player.relX !== 'number' || typeof player.relY !== 'number') return;
-        const absX = player.relX * W;
-        const absY = player.relY * H;
+        const spot = scene.player(player);
+        const onRail = spot.railIndex >= 0;
 
-        // Check if sideline player for desaturation (no transparency - desaturation is enough)
+        // Sideline players read a touch quieter than the eleven.
         const isSidelinePlayer = isSidelinePosition(player.relX);
 
-        // Polished enamel disc effect (matches on-screen display)
-        let baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
+        const nameColor = paintPlayerDisc(ctx, spot.x, spot.y, spot.r, scale, {
+          isGoalie: player.isGoalie,
+          color: player.color,
+          sideline: isSidelinePlayer,
+          comingIn: onRail,
+        });
 
-        // Desaturate sideline players for visual distinction
-        if (isSidelinePlayer) {
-          baseColor = baseColor.desaturate(SIDELINE_DESATURATION_PERCENT);
-        }
+        const chip = positionChipFor(player, spot, onRail ? subSlots?.[spot.railIndex] : undefined, scale, showPositionLabels, formationSnapPoints, t);
+        if (chip) chips.push(chip);
 
-        // 1. Base Disc Color
-        ctx.beginPath();
-        ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-        ctx.fillStyle = baseColor.toString();
-        ctx.fill();
-
-        // 2. Create clipping mask for gradient effects
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-        ctx.clip();
-
-        // 3. Top-left Highlight (Sheen)
-        const highlightGradient = ctx.createRadialGradient(
-          absX - playerRadius * 0.3, absY - playerRadius * 0.3, 0,
-          absX - playerRadius * 0.3, absY - playerRadius * 0.3, playerRadius * 1.2
-        );
-        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
-        highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.fillStyle = highlightGradient;
-        ctx.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
-
-        // 4. Bottom-right Inner Shadow for depth
-        const shadowGradient = ctx.createRadialGradient(
-          absX + playerRadius * 0.4, absY + playerRadius * 0.4, 0,
-          absX + playerRadius * 0.4, absY + playerRadius * 0.4, playerRadius * 1.5
-        );
-        shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
-        shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = shadowGradient;
-        ctx.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
-
-        // 5. Restore and add white border
-        ctx.restore();
-        ctx.beginPath();
-        ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.lineWidth = 1.5 * scale;
-        ctx.stroke();
-
-        // Player name with engraved effect (matches on-screen display)
         if (showPlayerNames) {
-          const text = player.nickname || player.name || '';
-          ctx.font = `600 ${12 * scale}px Rajdhani, sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-
-          // 1. Dark shadow on top-left for "pressed-in" look
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-          ctx.fillText(text, absX - 0.5 * scale, absY - 0.5 * scale);
-
-          // 2. Light highlight on bottom-right
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-          ctx.fillText(text, absX + 0.5 * scale, absY + 0.5 * scale);
-
-          // 3. Main text fill
-          ctx.fillStyle = '#F0F0F0';
-          ctx.fillText(text, absX, absY);
+          // On the rail the chip sits on the disc's lower half: lift the name clear of it.
+          const nameY = onRail && chip ? spot.y - RAIL_NAME_LIFT * scale : spot.y;
+          paintDiscName(ctx, player.nickname || player.name || '', spot.x, nameY, spot.r, scale, nameColor, onRail ? 13 : 15);
         }
-
-        // Position label below disc (matches on-screen display)
-        const isGoalkeeper = player.relY >= 0.90;
-        const isAtSnapPoint = formationSnapPoints?.some(point =>
-          Math.abs(player.relX! - point.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
-          Math.abs(player.relY! - point.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
-        );
-
-        // For sideline players, find matching sub slot to get their target position label
-        const matchingSubSlot = isSidelinePlayer && subSlots?.find(slot =>
-          Math.abs(player.relX! - slot.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
-          Math.abs(player.relY! - slot.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
-        );
-
-        // Show position label for:
-        // - On-field players at formation snap points (except goalkeepers)
-        // - Sideline players at sub slots (show the target position like "CB", "LW")
-        const shouldShowPositionLabel = showPositionLabels && (matchingSubSlot || (isAtSnapPoint && !isGoalkeeper));
-
-        if (shouldShowPositionLabel) {
-          // Use sub slot's positionLabel for sideline players, otherwise compute from coordinates
-          const labelKey = matchingSubSlot
-            ? matchingSubSlot.positionLabel
-            : getPositionLabel(player.relX, player.relY).label;
-          const translatedLabel = t(`positions.${labelKey}`);
-
-          ctx.font = `700 ${POSITION_LABEL_FONT_SIZE * scale}px Rajdhani, sans-serif`;
-
-          // Sideline players: label to the LEFT (matches sub slot rendering)
-          // On-field players: label BELOW the disc
-          if (matchingSubSlot) {
-            const labelX = absX - playerRadius - 6 * scale;
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'middle';
-
-            // Black outline for visibility
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.lineWidth = 2 * scale;
-            ctx.strokeText(translatedLabel, labelX, absY);
-
-            // White fill
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.fillText(translatedLabel, labelX, absY);
-          } else {
-            const labelY = absY + playerRadius + 10 * scale;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-
-            // Black outline for visibility
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-            ctx.lineWidth = 2.5 * scale;
-            ctx.strokeText(translatedLabel, absX, labelY);
-
-            // White fill
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.fillText(translatedLabel, absX, labelY);
-          }
-        }
-
       });
+      chips.forEach((chip) => paintPositionChip(ctx, chip.label, chip.x, chip.y, scale, 'center', chip.size));
     }
 
     // Draw ball (only in tactics board view) with circular clipping to remove white background
@@ -1005,33 +1544,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         const absX = disc.relX * W;
         const absY = disc.relY * H;
 
-        // Draw shadow first
-        ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 5 * scale;
-        ctx.shadowOffsetX = 1 * scale;
-        ctx.shadowOffsetY = 2 * scale;
-
-        ctx.beginPath();
-        ctx.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
-
-        // Fill colors based on disc type (matches main draw)
-        if (disc.type === 'home') {
-          ctx.fillStyle = '#7E22CE'; // Purple
-        } else if (disc.type === 'opponent') {
-          ctx.fillStyle = '#DC2626'; // Red
-        } else if (disc.type === 'goalie') {
-          ctx.fillStyle = '#F97316'; // Orange
-        }
-        ctx.fill();
-        ctx.restore();
-
-        // Add white border
-        ctx.beginPath();
-        ctx.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.lineWidth = 1.5 * scale;
-        ctx.stroke();
+        paintTacticalDisc(ctx, absX, absY, tacticalDiscRadius, scale, disc.type);
       });
     }
 
@@ -1258,34 +1771,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           return;
         }
 
-        // Draw shadow first
-        context.save();
-        context.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        context.shadowBlur = 5;
-        context.shadowOffsetX = 1;
-        context.shadowOffsetY = 2;
-        
-        context.beginPath();
-        context.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
-
-        // Fill colors per specification
-        if (disc.type === 'home') {
-          context.fillStyle = '#7E22CE'; // Purple
-        } else if (disc.type === 'opponent') {
-          context.fillStyle = '#DC2626'; // Red
-        } else if (disc.type === 'goalie') {
-          context.fillStyle = '#F97316'; // Orange
-        }
-
-        context.fill();
-        context.restore();
-        
-        // Add border per specification
-        context.beginPath();
-        context.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
-        context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        context.lineWidth = 1.5;
-        context.stroke();
+        paintTacticalDisc(context, absX, absY, tacticalDiscRadius, 1, disc.type);
       });
     }
 
@@ -1330,7 +1816,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         // Skip GK position (at bottom) and sideline positions
         if (point.relY > 0.9 || isSidelinePosition(point.relX)) return;
 
-        const absX = point.relX * W;
+        const absX = discCenterX(point.relX, W, positionRadius);
         const absY = point.relY * H;
 
         // Check if position is occupied by a player
@@ -1349,198 +1835,85 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       });
     }
 
-    // --- Draw Sub Slots (before players so they appear behind) ---
+    // --- The planned-subs rail (see computeSubRail) ---
+    // A disc being dragged is drawn under the finger, never pulled onto the
+    // rail mid-drag; the drop snaps it into a slot if it lands on one.
+    const scene = buildRailScene(players, subSlots, W, H, 1, FIELD_PLAYER_RADIUS, draggingPlayerId);
+
+    // Empty rail slots, before the players. An occupied slot is not drawn -
+    // the disc waiting in it is the same size and covers it.
     if (subSlots && subSlots.length > 0 && !isTacticsBoardView) {
-      const slotRadius = FIELD_PLAYER_RADIUS;
-
-      subSlots.forEach(slot => {
-        const absX = slot.relX * W;
-        const absY = slot.relY * H;
-
-        // Check if slot is occupied by a player
-        const isOccupied = isPositionOccupied(players, slot.relX, slot.relY);
-
-        context.globalAlpha = isOccupied ? SUB_SLOT_ALPHA_OCCUPIED : SUB_SLOT_ALPHA_EMPTY;
-
-        // Dashed circle outline
-        context.beginPath();
-        context.setLineDash([4, 4]);
-        context.arc(absX, absY, slotRadius, 0, Math.PI * 2);
-        context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        context.lineWidth = 1.5;
-        context.stroke();
-        context.setLineDash([]);
-
-        // Position label to the left of slot (avoids overlap with stacked players)
-        if (showPositionLabels) {
-          const translatedSlotLabel = t(`positions.${slot.positionLabel}`);
-          context.font = `700 ${POSITION_LABEL_FONT_SIZE}px Rajdhani, sans-serif`;
-          context.textAlign = 'right';
-          context.textBaseline = 'middle';
-          const labelX = absX - slotRadius - 6;
-
-          // Black outline for visibility
-          context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-          context.lineWidth = 2;
-          context.strokeText(translatedSlotLabel, labelX, absY);
-
-          // White fill
-          context.fillStyle = 'rgba(255, 255, 255, 0.8)';
-          context.fillText(translatedSlotLabel, labelX, absY);
-        }
-
-        context.globalAlpha = 1.0;
+      subSlots.forEach((slot, i) => {
+        const spot = scene.rail[i];
+        if (!spot || scene.filled.has(i)) return;
+        paintEmptyRailSlot(context, spot, showPositionLabels ? t(`positions.${slot.positionLabel}`) : null, 1);
       });
     }
 
     // --- Draw Planned Ghosts ---
-    // Faint name markers on sideline slots a planned sub enters later but no
-    // disc is waiting at. Drawn AFTER the sub-slot circles (so the slot ring
-    // stays underneath) and BEFORE the players, so a real disc always wins.
+    // Faint name markers on rail slots a planned sub enters later but no
+    // disc is waiting at. Drawn AFTER the empty slots (so the slot ring stays
+    // underneath) and BEFORE the players, so a real disc always wins.
     if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
-      drawPlannedGhosts(context, plannedGhosts, W, H, FIELD_PLAYER_RADIUS);
+      drawPlannedGhosts(context, plannedGhosts, W, scene.coords, placedDiscs(players, scene.player));
     }
     if (!isTacticsBoardView && plannedChains && plannedChains.length > 0) {
       drawPlannedChains(context, plannedChains, W, H);
     }
 
     // --- Draw Players ---
-    const playerRadius = FIELD_PLAYER_RADIUS;
     if (!isTacticsBoardView) {
+    // Every chip is painted after every disc, so the next disc down cannot hide it.
+    const chips: PendingChip[] = [];
     players.forEach(player => {
       if (typeof player.relX !== 'number' || typeof player.relY !== 'number') {
         return;
       }
-      const absX = player.relX * W;
-      const absY = player.relY * H;
-      if (!Number.isFinite(absX) || !Number.isFinite(absY)) {
-        logger.warn("Skipping player due to non-finite calculated position", { player, absX, absY });
+      const spot = scene.player(player);
+      if (!Number.isFinite(spot.x) || !Number.isFinite(spot.y)) {
+        logger.warn("Skipping player due to non-finite calculated position", { player, absX: spot.x, absY: spot.y });
         return;
       }
+      const onRail = spot.railIndex >= 0;
 
-      // Check if sideline player for desaturation (no transparency - desaturation is enough)
+      // Sideline players read a touch quieter than the eleven.
       const isSidelinePlayer = isSidelinePosition(player.relX);
 
-      // --- Start Refined "Polished Enamel" Disc Redesign ---
-      let baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
+      const nameColor = paintPlayerDisc(context, spot.x, spot.y, spot.r, 1, {
+        isGoalie: player.isGoalie,
+        color: player.color,
+        sideline: isSidelinePlayer,
+        comingIn: onRail,
+      });
 
-      // Desaturate sideline players for visual distinction
-      if (isSidelinePlayer) {
-        baseColor = baseColor.desaturate(SIDELINE_DESATURATION_PERCENT);
-      }
-
-      // 1. Base Disc Color
-      context.beginPath();
-      context.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-      context.fillStyle = baseColor.toString();
-      context.fill();
-
-      // 2. Create a clipping mask for the subsequent effects
-      context.save();
-      context.beginPath();
-      context.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-      context.clip();
-
-      // 3. Top-left Highlight (Sheen)
-      const highlightGradient = context.createRadialGradient(
-        absX - playerRadius * 0.3, absY - playerRadius * 0.3, 0,
-        absX - playerRadius * 0.3, absY - playerRadius * 0.3, playerRadius * 1.2
-      );
-      highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
-      highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      context.fillStyle = highlightGradient;
-      context.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
-
-      // 4. Bottom-right Inner Shadow for depth
-      const shadowGradient = context.createRadialGradient(
-        absX + playerRadius * 0.4, absY + playerRadius * 0.4, 0,
-        absX + playerRadius * 0.4, absY + playerRadius * 0.4, playerRadius * 1.5
-      );
-      shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
-      shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      context.fillStyle = shadowGradient;
-      context.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
-
-      // 5. Restore from clipping mask and add border
-      context.restore();
-      context.beginPath();
-      context.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-      context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-      context.lineWidth = 1.5;
-      context.stroke();
-
-      // Draw selection ring for swap mode
+      // Selection ring for swap mode: amber means "selected".
       if (selectedPlayerForSwapId === player.id) {
         context.save();
         context.beginPath();
-        context.arc(absX, absY, playerRadius + 4, 0, Math.PI * 2);
-        context.shadowColor = 'rgba(250, 204, 21, 0.6)';
+        context.arc(spot.x, spot.y, spot.r + 4, 0, Math.PI * 2);
+        context.shadowColor = 'rgba(255, 178, 36, 0.6)';
         context.shadowBlur = 8;
-        context.strokeStyle = 'rgba(250, 204, 21, 0.95)';
+        context.strokeStyle = DISC_ACTION;
         context.lineWidth = 3;
         context.stroke();
         context.restore();
       }
 
-      // --- End Disc Redesign ---
-
-      // Draw player name with clean "engraved" effect
       if (showPlayerNames) {
-        // Reset alpha so names are fully visible
-        if (isSidelinePlayer) {
-          context.globalAlpha = 1.0;
-        }
-        context.font = '600 12px Rajdhani, sans-serif';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-
-        const text = player.nickname || player.name;
-
-        // 1. Dark shadow on top-left for the "pressed-in" look
-        context.fillStyle = 'rgba(0, 0, 0, 0.25)';
-        context.fillText(text, absX - 0.5, absY - 0.5);
-
-        // 2. Light highlight on bottom-right
-        context.fillStyle = 'rgba(255, 255, 255, 0.25)';
-        context.fillText(text, absX + 0.5, absY + 0.5);
-
-        // 3. Main text fill
-        context.fillStyle = '#F0F0F0';
-        context.fillText(text, absX, absY);
-
-        // 4. Position label below disc (only for on-field players at formation snap points, skip GK)
-        // Note: player.relX/relY are verified as numbers at the start of forEach (line 936-938)
-        const isGoalkeeper = player.relY >= 0.90;
-        const isAtSnapPoint = formationSnapPoints?.some(point =>
-          Math.abs(player.relX! - point.relX) < SUB_SLOT_OCCUPATION_THRESHOLD &&
-          Math.abs(player.relY! - point.relY) < SUB_SLOT_OCCUPATION_THRESHOLD
-        );
-
-        if (showPositionLabels && !isSidelinePlayer && isAtSnapPoint && !isGoalkeeper) {
-          const positionInfo = getPositionLabel(player.relX!, player.relY!);
-          const translatedLabel = t(`positions.${positionInfo.label}`);
-          const labelY = absY + playerRadius + 10;
-
-          context.font = `700 ${POSITION_LABEL_FONT_SIZE}px Rajdhani, sans-serif`;
-          context.textAlign = 'center';
-          context.textBaseline = 'top';
-
-          // Black outline for visibility
-          context.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-          context.lineWidth = 2.5;
-          context.strokeText(translatedLabel, absX, labelY);
-
-          // White fill
-          context.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          context.fillText(translatedLabel, absX, labelY);
-        }
+        const chip = positionChipFor(player, spot, onRail ? subSlots?.[spot.railIndex] : undefined, 1, showPositionLabels, formationSnapPoints, t);
+        if (chip) chips.push(chip);
+        // Rail discs are smaller: their names run a size smaller too (~14px),
+        // lifted clear of the chip on the disc's lower half.
+        const nameY = onRail && chip ? spot.y - RAIL_NAME_LIFT : spot.y;
+        paintDiscName(context, player.nickname || player.name, spot.x, nameY, spot.r, 1, nameColor, onRail ? 13 : 15);
       }
 
     });
+    chips.forEach((chip) => paintPositionChip(context, chip.label, chip.x, chip.y, 1, 'center', chip.size));
     }
 
     // --- End of draw ---
-  }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, subSlots, t, formationSnapPoints, plannedGhosts, plannedChains]);
+  }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, draggingPlayerId, subSlots, t, formationSnapPoints, plannedGhosts, plannedChains]);
 
   // Add the new ResizeObserver effect
   useEffect(() => {
@@ -1585,6 +1958,23 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   useEffect(() => {
     drawRef.current = draw;
   }, [draw]);
+
+  // Names and chips use the app's web fonts; a canvas paints with whatever is
+  // loaded at draw time, so repaint once the fonts have arrived.
+  useEffect(() => {
+    const fonts = typeof document !== 'undefined' ? document.fonts : undefined;
+    if (!fonts) return;
+    let cancelled = false;
+    const repaint = () => {
+      if (!cancelled) drawRef.current();
+    };
+    fonts.ready?.then(repaint).catch(() => {});
+    fonts.addEventListener?.('loadingdone', repaint);
+    return () => {
+      cancelled = true;
+      fonts.removeEventListener?.('loadingdone', repaint);
+    };
+  }, []);
 
   // A hide/show while this component was UNMOUNTED (start screen, modals)
   // never reaches the listeners below - the module cache can then hold
@@ -1744,18 +2134,20 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     const canvas = canvasRef.current;
     if (!canvas || player.relX === undefined || player.relY === undefined) return false;
     const rect = canvas.getBoundingClientRect();
-    // Calculate absolute player center based on canvas size and relative coordinates
-    const absPlayerX = player.relX * rect.width;
-    const absPlayerY = player.relY * rect.height;
+    // The player's centre where it is DRAWN: on the subs rail when waiting
+    // in a slot, otherwise where it stands (discCenterX keeps edge discs on
+    // the canvas). Rail discs take a 44px target.
+    const spot = buildRailScene(players, subSlots, rect.width, rect.height, 1, FIELD_PLAYER_RADIUS).player(player);
+    const hitRadius = spot.railIndex >= 0 ? SUB_RAIL_HIT_RADIUS : FIELD_PLAYER_RADIUS;
     // Calculate absolute event position relative to the canvas origin
     const absEventX = eventClientX - rect.left;
     const absEventY = eventClientY - rect.top;
     // Calculate distance squared
-    const dx = absEventX - absPlayerX;
-    const dy = absEventY - absPlayerY;
+    const dx = absEventX - spot.x;
+    const dy = absEventY - spot.y;
     // Compare distance squared to radius squared
-    return dx * dx + dy * dy <= FIELD_PLAYER_RADIUS * FIELD_PLAYER_RADIUS;
-  }, []); // No dependencies needed as FIELD_PLAYER_RADIUS is constant and rect is read inside
+    return dx * dx + dy * dy <= hitRadius * hitRadius;
+  }, [players, subSlots]);
 
   // Helper to check if a point (clientX, clientY) is within an opponent disk - Corrected Canvas Logic
   const isPointInOpponent = useCallback((eventClientX: number, eventClientY: number, opponent: Opponent): boolean => {
@@ -1804,6 +2196,39 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     return dx * dx + dy * dy <= ballRadius * ballRadius;
   }, [tacticalBallPosition]);
 
+  /** Index of the sub slot whose rail circle is under a canvas point (44px target), or -1. */
+  const subRailSlotAt = useCallback((absX: number, absY: number, width: number, height: number): number => {
+    if (!subSlots || subSlots.length === 0) return -1;
+    const rail = computeSubRail(subSlots, width, height);
+    let best = -1;
+    let bestDistSq = SUB_RAIL_HIT_RADIUS * SUB_RAIL_HIT_RADIUS;
+    for (let i = 0; i < subSlots.length; i++) {
+      const spot = rail[i];
+      if (!spot) continue;
+      const distSq = (absX - spot.x) ** 2 + (absY - spot.y) ** 2;
+      if (distSq <= bestDistSq) {
+        best = i;
+        bestDistSq = distSq;
+      }
+    }
+    return best;
+  }, [subSlots]);
+
+  /**
+   * Where a player picked from the bar lands for a tap at a canvas point. On
+   * a rail slot that is the slot itself - its stored coordinates, so the sub
+   * is recorded as waiting in it, as before the rail moved slots away from
+   * their stored spots. Anywhere else: exactly where the tap was.
+   */
+  const placementTarget = useCallback((clientX: number, clientY: number, fallback: Point): Point => {
+    const canvas = canvasRef.current;
+    if (!canvas) return fallback;
+    const rect = canvas.getBoundingClientRect();
+    const i = subRailSlotAt(clientX - rect.left, clientY - rect.top, rect.width, rect.height);
+    const slot = i >= 0 ? subSlots?.[i] : undefined;
+    return slot ? { relX: slot.relX, relY: slot.relY } : fallback;
+  }, [subRailSlotAt, subSlots]);
+
   // Helper to find an empty position (formation snap point or sub slot) at the given coordinates
   const findEmptyPositionAtPoint = useCallback((eventClientX: number, eventClientY: number): { relX: number; relY: number } | null => {
     const canvas = canvasRef.current;
@@ -1816,7 +2241,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // Check formation snap points first
     if (formationSnapPoints && formationSnapPoints.length > 0) {
       for (const point of formationSnapPoints) {
-        const absPointX = point.relX * rect.width;
+        const absPointX = discCenterX(point.relX, rect.width, FIELD_PLAYER_RADIUS);
         const absPointY = point.relY * rect.height;
         const dx = absEventX - absPointX;
         const dy = absEventY - absPointY;
@@ -1829,25 +2254,21 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       }
     }
 
-    // Check sub slots
-    if (subSlots && subSlots.length > 0) {
-      for (const slot of subSlots) {
-        const absSlotX = slot.relX * rect.width;
-        const absSlotY = slot.relY * rect.height;
-        const dx = absEventX - absSlotX;
-        const dy = absEventY - absSlotY;
-        if (dx * dx + dy * dy <= hitRadiusSq) {
-          // Check if this position is unoccupied
-          if (!isPositionOccupied(players, slot.relX, slot.relY)) {
-            return { relX: slot.relX, relY: slot.relY };
-          }
-        }
-      }
+    // Check sub slots - where the rail draws them. A slot with a disc drawn
+    // in it is not empty, even when that disc stands a little off it.
+    const slotIndex = subRailSlotAt(absEventX, absEventY, rect.width, rect.height);
+    const slot = slotIndex >= 0 ? subSlots?.[slotIndex] : undefined;
+    if (
+      slot &&
+      !isPositionOccupied(players, slot.relX, slot.relY) &&
+      !buildRailScene(players, subSlots, rect.width, rect.height, 1, FIELD_PLAYER_RADIUS).filled.has(slotIndex)
+    ) {
+      return { relX: slot.relX, relY: slot.relY };
     }
 
     return null;
   // canvasRef is intentionally omitted - refs are stable and don't trigger re-renders
-  }, [formationSnapPoints, subSlots, players]);
+  }, [formationSnapPoints, subSlots, subRailSlotAt, players]);
 
   // --- Mouse/Touch Handlers (Logic largely the same, but use CSS size for abs calcs) ---
     const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1887,7 +2308,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // *** Check if placing a tapped player ***
     if (draggingPlayerFromBarInfo) {
       logger.log("Field MouseDown: Placing player from bar tap:", draggingPlayerFromBarInfo.id);
-      onPlayerDrop(draggingPlayerFromBarInfo.id, relPos.relX, relPos.relY);
+      const target = placementTarget(e.clientX, e.clientY, relPos);
+      onPlayerDrop(draggingPlayerFromBarInfo.id, target.relX, target.relY);
       // IMPORTANT: Clear the selection state after placing
       // This needs to happen in the parent (page.tsx), 
       // so we might need a new callback prop like `onPlayerPlaceFromBar()` 
@@ -2052,7 +2474,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       if (draggingPlayerFromBarInfo) {
           logger.log("Field TouchStart: Placing player from bar tap:", draggingPlayerFromBarInfo.id);
           // Don't preventDefault here for placing, allow potential scroll if placement fails
-          onPlayerDropViaTouch(relPos.relX, relPos.relY);
+          const target = placementTarget(touch.clientX, touch.clientY, relPos);
+          onPlayerDropViaTouch(target.relX, target.relY);
           touchExceededTapThresholdRef.current = true;
           touchStartTargetRef.current = null;
           setActiveTouchId(null); 
@@ -2191,7 +2614,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       getRelativeEventPosition,
       isPointInBall, isTacticsBoardView, tacticalDiscs, onToggleTacticalDiscType, onTacticalDiscRemove, isPointInTacticalDisc,
       players, onPlayerRemove, isPointInPlayer, opponents, onOpponentRemove, isPointInOpponent,
-    draggingPlayerFromBarInfo, onPlayerDropViaTouch,
+    draggingPlayerFromBarInfo, onPlayerDropViaTouch, placementTarget,
     lastTapInfo, onDrawingStart, isDrawingEnabled, isDrawing, onDrawingEnd,
     findEmptyPositionAtPoint, selectedPlayerForSwapId
   ]);
@@ -2380,7 +2803,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     const relX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)); // Use rect.width
     const relY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)); // Use rect.height
 
-    onPlayerDrop(droppedPlayerId, relX, relY); // Pass relative coords
+    const target = placementTarget(e.clientX, e.clientY, { relX, relY });
+    onPlayerDrop(droppedPlayerId, target.relX, target.relY); // Pass relative coords
     if (canvasRef.current) canvasRef.current.style.cursor = 'default';
   };
 

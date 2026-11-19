@@ -374,6 +374,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   const modalManagerProps: ModalManagerProps = {
     state: {
       isGoalLogModalOpen,
+      quickGoalEventId: timerManagement.quickGoalEventId,
       isGameStatsModalOpen,
       isGameSettingsModalOpen,
       gameSettingsInitialSection,
@@ -403,6 +404,8 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     },
     handlers: {
       toggleGoalLogModal: timerManagement.handleToggleGoalLogModal,
+      closeQuickGoal: timerManagement.handleCloseQuickGoal,
+      nameQuickGoal: timerManagement.handleNameQuickGoal,
       addGoalEvent: timerManagement.handleAddGoalEvent,
       logOpponentGoal: timerManagement.handleLogOpponentGoal,
       recalculateScore: timerManagement.handleRecalculateScoreFromEvents,

@@ -185,23 +185,24 @@ describe('ConfirmationModal', () => {
       render(<ConfirmationModal {...defaultProps} />);
       const confirmButton = screen.getByRole('button', { name: /Confirm/i });
 
-      // primaryButtonStyle should be applied (check for indigo background)
-      expect(confirmButton.className).toContain('bg-indigo-600');
+      // primaryButtonStyle should be applied (the amber s1-primary pill)
+      expect(confirmButton.className).toContain('s1-primary');
     });
 
     it('applies danger button style when variant is danger', () => {
       render(<ConfirmationModal {...defaultProps} variant="danger" />);
       const confirmButton = screen.getByRole('button', { name: /Confirm/i });
 
-      // dangerButtonStyle should be applied (check for red background)
-      expect(confirmButton.className).toContain('bg-red-600');
+      // The final confirm of a destructive dialog is the one solid red button
+      // (dangerConfirmButtonStyle).
+      expect(confirmButton.className).toContain('bg-[#d13438]');
     });
 
     it('applies primary button style when variant is explicitly set to primary', () => {
       render(<ConfirmationModal {...defaultProps} variant="primary" />);
       const confirmButton = screen.getByRole('button', { name: /Confirm/i });
 
-      expect(confirmButton.className).toContain('bg-indigo-600');
+      expect(confirmButton.className).toContain('s1-primary');
     });
   });
 

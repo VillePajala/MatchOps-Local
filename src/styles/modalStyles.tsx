@@ -1,159 +1,336 @@
 /**
  * Shared Modal Design System
  *
- * Provides consistent styling across all management modals:
- * - RosterSettingsModal
- * - TeamManagerModal
- * - SeasonTournamentManagementModal
+ * The popup building blocks every modal composes: containers, the header with
+ * its close control, form fields, buttons, switches, dialogs and wizards.
  *
- * Visual Language:
- * - Dark slate backgrounds with subtle gradients
- * - Indigo accent color for primary actions
- * - Yellow for titles/highlights
- * - Gradient buttons with depth
- * - Consistent spacing and shadows
+ * Visual language: the S1 "Syke Refined" system (tokens and `.s1-*` surfaces
+ * in src/app/globals.css, first used by the home screen):
+ * - Navy everywhere: the carbon canvas, raised surfaces one step lighter.
+ * - Titles are WHITE Barlow Condensed (`font-display`); controls and
+ *   text use Inter (`font-ui`, also the app-wide body font).
+ * - Amber is reserved for the ONE primary action and for selection (`action`).
+ *   Green and red mean results (and red, destruction). No purple or indigo.
+ * - Pill buttons and touch targets of at least 44px; visible focus rings.
  */
 
 import React, { useCallback, useRef, useSyncExternalStore } from 'react';
 import { HiOutlineXMark } from 'react-icons/hi2';
 
+/**
+ * The house focus ring: amber, only for keyboard focus (`focus-visible`), so a
+ * tap does not leave a ring behind on a touch screen.
+ */
+const focusRing =
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon';
+
 // ============================================================================
 // Container & Layout Styles
 // ============================================================================
 
+/** The full-screen modal surface: carbon with one soft light from above. */
 export const modalContainerStyle =
-  "bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden";
+  "s1-canvas rounded-none flex flex-col border-0 overflow-hidden";
 
 /**
- * Background effect layers for modal
- * Use these divs inside the modal container for consistent visual effects
- */
-/**
- * One wash, not three.
+ * Background effect layers for a modal - now none.
  *
- * This used to layer a purple soft-light wash under a sky-400 gradient under a
- * 50px-blurred sky glow. The two sky layers were ambient haze relating to
- * nothing in the product - the templated "gradient wash as decoration" - and
- * they cost a compositor pass with a blur on exactly the cheap Android
- * hardware this app is meant to run well on.
- *
- * The purple wash stays and now earns its place: the interface is purple
- * because the player discs are, so a faint purple cast over a modal reads as
- * the product's own colour rather than generic atmosphere.
+ * This used to lay an indigo soft-light wash over the modal. The S1 system has
+ * no purple anywhere and puts the one light in the canvas itself
+ * (`modalContainerStyle`), so the layer is gone. The export stays so callers
+ * keep compiling; it renders nothing.
  */
-export const ModalBackgroundEffects: React.FC = () => (
-  <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-);
-
-// ============================================================================
-// Pitch markings
-// ============================================================================
-
+export const ModalBackgroundEffects: React.FC = () => null;
 
 // ============================================================================
 // Typography Styles
 // ============================================================================
 
+/**
+ * Popup title: white, Barlow Condensed, 30px - easing down to 22px on a narrow
+ * phone, so a long one-word Finnish title ("Ottelusuunnittelu") still fits
+ * beside the close button on a 320-360px phone instead of breaking mid-word.
+ */
+const titleBase = "font-display font-bold tracking-[0.01em] text-ink";
 export const titleStyle =
-  "text-3xl font-bold text-amber-400 tracking-wide drop-shadow-lg";
+  `${titleBase} text-[clamp(1.375rem,8vw,1.875rem)]`;
 
+/**
+ * The step-down size for a long popup title (see CollapsibleModalHeader): a
+ * long title shrinks one step instead of wrapping onto a second line.
+ */
+const titleLongSize = "text-[clamp(1.375rem,6.4vw,1.625rem)]";
+
+/** Titles longer than this many characters take `titleLongSize`. */
+const LONG_TITLE_CHARS = 16;
+
+/**
+ * The title classes for a given title text: `titleStyle`, or one size step
+ * down for a long title so it fits one line instead of wrapping. Use it for a
+ * header that renders its own title (e.g. an editable name field).
+ */
+export function titleStyleFor(title: React.ReactNode): string {
+  return typeof title === 'string' && title.length > LONG_TITLE_CHARS
+    ? `${titleBase} ${titleLongSize}`
+    : titleStyle;
+}
+
+/** A field's label (13px Inter, secondary ink). */
 export const labelStyle =
-  "text-sm font-medium text-slate-300 mb-1";
+  "block font-ui text-[13px] font-medium text-ink-2 mb-1.5";
 
-// 14px, not 12px. This is the longest continuous prose in the app - the
-// explanatory sentence under a setting - and it was set at the smallest
-// readable size in Rajdhani, a CONDENSED face whose narrow letters are hardest
-// to read exactly there. Size is the legibility win; the colour deliberately
-// stays slate-400, because labelStyle is already "text-sm ... text-slate-300"
-// and matching both would leave a field's label and its help text
-// indistinguishable.
+/**
+ * The explanatory line under a setting or field. 14px, tertiary ink - one step
+ * quieter than `labelStyle`, so a field's label and its help text stay
+ * distinguishable.
+ */
 export const subtextStyle =
-  "text-sm text-slate-400";
+  "font-ui text-sm leading-snug text-ink-3";
+
+/**
+ * Section label above a group of fields or a list: small, uppercase, tracked.
+ * The form system's heading level below the title.
+ */
+export const sectionLabelStyle =
+  "font-ui text-xs font-semibold uppercase tracking-[0.14em] text-ink-3";
 
 // ============================================================================
 // Card & Section Styles
 // ============================================================================
 
+/** A grouped surface (form section, list): solid navy, 22px radius. */
 export const cardStyle =
-  "bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner";
+  "s1-list p-4";
 
+/**
+ * A row INSIDE a card (`cardStyle` / `s1-list`): no border, fill or radius of
+ * its own - rows are separated by a hairline above each one (not above the
+ * first), like the home lists. A card never holds cards.
+ */
 export const itemRowStyle =
-  "bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/60 transition-colors";
+  "relative min-h-14 flex items-center gap-3 py-2 font-ui before:absolute before:top-0 before:inset-x-0 before:h-px before:bg-hairline first:before:hidden";
+
+/**
+ * One grouped list: a single `s1-list` surface whose rows are separated by
+ * inset hairlines (no card per row). Rows use `listRowStyle`.
+ */
+export const groupedListStyle =
+  "s1-list overflow-hidden";
+
+/**
+ * A 56px row of a grouped list with an inset divider above it (not above the
+ * first row). Add `cursor-pointer` / hover where the row is tappable.
+ */
+export const listRowStyle =
+  "relative min-h-14 flex items-center gap-3 pl-[18px] pr-2 font-ui before:absolute before:top-0 before:left-[18px] before:right-0 before:h-px before:bg-hairline first:before:hidden";
+
+/** The small actions popover opened by a row's "more" button. */
+export const popoverMenuStyle =
+  "absolute right-0 z-50 min-w-[190px] overflow-hidden rounded-2xl bg-surface-2 py-1 font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)]";
+
+/** One entry of `popoverMenuStyle` (44px target); add `text-red-400` for destructive. */
+export const popoverItemStyle =
+  "flex w-full min-h-11 items-center gap-2.5 px-4 text-left text-[15px] font-medium text-ink-2 transition-colors hover:bg-white/[0.06] focus:outline-none focus-visible:bg-white/[0.08]";
+
+/**
+ * A native checkbox drawn as a 50x30 switch (amber when on). Keeping the real
+ * `<input type="checkbox">` keeps `.checked`, label association, the keyboard
+ * and form semantics; `role="switch"` announces it as a switch.
+ */
+export const switchInputStyle =
+  `relative flex-none appearance-none w-[50px] h-[30px] rounded-full cursor-pointer bg-white/10 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] transition-colors checked:bg-action checked:shadow-none before:content-[''] before:absolute before:top-[3px] before:left-[3px] before:w-6 before:h-6 before:rounded-full before:bg-ink-2 before:shadow-[0_1px_3px_rgb(0_0_0/0.5)] before:transition-transform checked:before:translate-x-5 checked:before:bg-white disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+
+/**
+ * An inline text link: ink, underlined. Not amber - amber is reserved for the
+ * primary action and for selection.
+ */
+export const linkStyle =
+  "font-semibold text-ink underline decoration-ink-3 underline-offset-[3px] hover:decoration-ink rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
+
+/**
+ * A neutral status badge ("Experimental", "Preview", "Up next", a planner
+ * warning): quiet pill, secondary ink. Use this rather than an amber pill -
+ * amber is reserved for the primary action and for selection.
+ */
+export const neutralBadgeStyle =
+  "inline-flex items-center gap-1 min-h-[22px] px-2.5 rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] font-ui text-xs font-semibold text-ink-2 whitespace-nowrap";
+
+/** A small quiet grey pill (e.g. a connection state). */
+export const pillQuietStyle =
+  "inline-flex items-center h-[22px] px-2.5 rounded-full bg-white/[0.08] font-ui text-xs font-semibold text-ink-2 whitespace-nowrap";
 
 export const itemRowEditingStyle =
-  "bg-slate-700/75 border-indigo-500";
+  "bg-surface-2 border-action/60";
 
 // ============================================================================
 // Input Styles
 // ============================================================================
 
+/**
+ * Text field: a 52px dark inset well, 14px radius, 16px text (16px also stops
+ * iOS Safari zooming in on focus). Focus draws an amber ring.
+ */
 export const inputBaseStyle =
-  "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white placeholder-slate-400";
+  "block w-full min-h-[52px] rounded-[14px] border-0 bg-carbon px-3.5 py-3 font-ui text-base font-medium text-ink placeholder:font-normal placeholder:text-ink-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),inset_0_2px_4px_rgb(2_6_23/0.5)] transition-shadow focus:outline-none focus:shadow-[inset_0_0_0_1.5px_var(--color-action),0_0_0_4px_rgb(255_178_36/0.14)] disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const textareaStyle =
   `${inputBaseStyle} resize-none`;
 
+/** A select is the same field with a chevron (`.s1-select`) and dark native options. */
 export const selectStyle =
-  inputBaseStyle;
+  `${inputBaseStyle} s1-select pr-10 [color-scheme:dark] text-ellipsis has-[option[value='']:checked]:font-normal has-[option[value='']:checked]:text-ink-3`;
+
+/** A search field: the house input with room for a leading magnifier icon. */
+export const searchInputStyle =
+  `${inputBaseStyle} pl-11`;
+
+/**
+ * A compact (40px) field that sits at the right end of a settings row.
+ * Width is the caller's (`w-36`, ...).
+ */
+export const inlineFieldStyle =
+  `${inputBaseStyle} min-h-10! py-1.5! px-3! text-[15px]! rounded-xl!`;
+
+/** The compact field drawn as a select (chevron). */
+export const inlineSelectStyle =
+  `${inlineFieldStyle} s1-select pr-9! w-auto! shrink-0 [color-scheme:dark] has-[option[value='']:checked]:font-normal has-[option[value='']:checked]:text-ink-3`;
+
+// ============================================================================
+// Choice chips
+// ============================================================================
+
+/**
+ * Tap-to-pick chip (e.g. a suggested opponent name): a 36px ghost pill.
+ * Pair the selected state with a check icon so selection does not rely on
+ * colour alone.
+ */
+export const chipStyle =
+  `inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-full font-ui text-sm font-medium text-ink-2 bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)] transition-colors hover:bg-white/[0.07] disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+
+/** The chosen chip: raised navy with an amber ring. */
+export const chipSelectedStyle =
+  `inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-full font-ui text-sm font-semibold text-ink s1-seg-on shadow-[inset_0_0_0_1.5px_var(--color-action),0_2px_6px_-2px_rgb(2_6_23/0.75)] disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+
+// ============================================================================
+// Segmented control, checkbox and field messages (form system)
+// ============================================================================
+
+/**
+ * A one-of-few choice (Home/Away, Soccer/Futsal, stats tabs): a raised pill
+ * track holding equal segments. The chosen segment is lifted (`s1-seg-on`),
+ * like the EN/FI switch on home - a segment is a view/option, not an action,
+ * so it is not amber.
+ */
+export const segmentTrackStyle =
+  "flex gap-0.5 p-1 rounded-full s1-raised";
+
+/** One segment of `segmentTrackStyle`: 44px target, quiet until chosen. */
+export const segmentStyle =
+  `flex-1 min-w-0 min-h-11 px-2 rounded-full font-ui text-sm font-semibold text-ink-3 transition-colors hover:text-ink-2 disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+
+/** The chosen segment. */
+export const segmentSelectedStyle =
+  `flex-1 min-w-0 min-h-11 px-2 rounded-full font-ui text-sm font-semibold text-ink s1-seg-on disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+
+/** The native checkbox drawn as the house 24px amber check (`.s1-check`). */
+export const checkboxStyle =
+  "s1-check";
+
+/** The hint under a field (13px, tertiary ink). */
+export const fieldHintStyle =
+  "mt-1.5 font-ui text-[13px] leading-snug text-ink-3";
+
+/** A field's validation message (13px, red). */
+export const fieldErrorStyle =
+  "mt-1.5 font-ui text-[13px] leading-snug text-loss";
+
+/** Add to an input/select whose value is invalid: a red ring in place of the hairline. */
+export const inputErrorStyle =
+  "shadow-[inset_0_0_0_1.5px_var(--color-loss)]!";
 
 // ============================================================================
 // Button Styles
 // ============================================================================
 
-// Button padding: py-3 provides ~44px touch target (iOS guideline minimum)
-const _buttonBaseStyle =
-  "px-4 py-3 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
+// Pills with a 44px minimum height (touch target). `min-h` rather than a fixed
+// height so callers that add their own padding still get a full target.
+const buttonBaseStyle =
+  `inline-flex items-center justify-center gap-2 min-h-11 px-5 py-2.5 rounded-full font-ui text-[15px] font-semibold transition-[filter,background-color,color] disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
 
+/**
+ * The ONE primary action on a surface: the amber-to-orange pill.
+ *
+ * Its fill is a gradient (background-image), so a caller cannot recolour it
+ * with a `bg-*` colour utility - use `dangerButtonStyle` for a destructive
+ * confirm instead of overriding this one.
+ */
 export const primaryButtonStyle =
-  "px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30";
+  `${buttonBaseStyle} s1-primary`;
 
+/** Everything that is not the primary action: an outline on near-nothing. */
 export const secondaryButtonStyle =
-  "px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-600 text-white hover:bg-slate-500 border border-slate-400/30";
+  `${buttonBaseStyle} s1-ghost text-ink`;
 
+/**
+ * An in-page destructive action (delete, reset, clear): a red-tinted pill.
+ * Tinted, not solid - the solid red is kept for the one final confirm of a
+ * confirm dialog (`dangerConfirmButtonStyle`).
+ */
 export const dangerButtonStyle =
-  "px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-red-600 text-white hover:bg-red-500 border border-red-400/30";
+  `${buttonBaseStyle} bg-red-500/[0.12] text-red-300 shadow-[inset_0_0_0_1px_rgb(248_113_113/0.35)] hover:bg-red-500/20`;
 
+/**
+ * The final confirm button of a destructive confirm dialog: solid, toned red.
+ * Only there - every other destructive action uses `dangerButtonStyle`.
+ */
+export const dangerConfirmButtonStyle =
+  `${buttonBaseStyle} bg-[#d13438] text-white hover:bg-[#dc4246] shadow-[inset_0_1px_0_rgb(255_255_255/0.14)]`;
+
+/**
+ * Kept for compatibility. Green is reserved for results in the S1 system, so a
+ * "confirm" action is simply the primary action.
+ */
 export const successButtonStyle =
-  "px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-green-600 text-white hover:bg-green-500 border border-green-400/30";
+  primaryButtonStyle;
 
 // ============================================================================
 // Icon Button Styles
 // ============================================================================
 
 export const iconButtonBaseStyle =
-  "p-1.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+  `inline-flex items-center justify-center min-h-11 min-w-11 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
 
 export const iconButtonEditStyle =
-  `${iconButtonBaseStyle} text-slate-400 hover:text-indigo-400`;
+  `${iconButtonBaseStyle} text-ink-3 hover:text-ink hover:bg-white/[0.06]`;
 
 export const iconButtonDangerStyle =
-  `${iconButtonBaseStyle} text-slate-400 hover:text-red-500`;
+  `${iconButtonBaseStyle} text-ink-3 hover:text-red-400 hover:bg-red-500/10`;
 
 export const iconButtonSuccessStyle =
-  `${iconButtonBaseStyle} text-green-400 hover:bg-slate-600`;
+  `${iconButtonBaseStyle} text-action hover:bg-white/[0.06]`;
 
 export const iconButtonCancelStyle =
-  `${iconButtonBaseStyle} text-slate-400 hover:bg-slate-600`;
+  `${iconButtonBaseStyle} text-ink-3 hover:text-ink hover:bg-white/[0.06]`;
 
 // ============================================================================
 // Badge Styles
 // ============================================================================
 
 export const badgeArchivedStyle =
-  "inline-flex items-center px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded";
+  "inline-flex items-center h-[22px] px-2.5 rounded-full bg-white/[0.08] font-ui text-xs font-semibold text-ink-2";
 
 export const badgeAwardStyle =
-  "inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded";
+  "inline-flex items-center gap-1 h-[22px] px-2.5 rounded-full bg-action/[0.08] shadow-[inset_0_0_0_1px_rgb(255_178_36/0.45)] font-ui text-xs font-semibold text-action";
 
 // ============================================================================
 // Header/Footer Styles
 // ============================================================================
 
 export const headerStyle =
-  "flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-white/10 flex-shrink-0";
+  "flex justify-center items-center pt-10 pb-4 px-6 flex-shrink-0";
 
 export const footerStyle =
-  "px-6 py-3 bg-slate-800/50 border-t border-white/10 backdrop-blur-sm flex justify-end items-center gap-4 flex-shrink-0";
+  "px-4 py-3 border-t border-hairline flex justify-end items-center gap-3 flex-shrink-0";
 
 // ============================================================================
 // Helper Components
@@ -171,8 +348,7 @@ export const ModalContainer: React.FC<{
     className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`}
     {...(ariaLabel ? { role: 'dialog', 'aria-modal': true, 'aria-label': ariaLabel, tabIndex: -1 } : {})}
   >
-    <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
-      <ModalBackgroundEffects />
+    <div className={`${modalContainerStyle} relative h-full w-full`}>
       <div className="relative z-10 flex flex-col min-h-0 h-full">
         {children}
       </div>
@@ -276,8 +452,11 @@ export function useCollapsingHeader(): CollapsingHeaderController {
 // home-screen PWA (standalone Safari has no back gesture at all). It is
 // hidden on Android TWA (hardware back) and mobile Safari (browser back +
 // edge-swipe), where a visible X is redundant. See useModalCloseVisible.
+//
+// A 44px round raised button. No display utility here: callers add `flex` or
+// `hidden` from useModalCloseVisible.
 export const modalCloseButtonStyle =
-  "items-center justify-center p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0";
+  `items-center justify-center w-11 h-11 rounded-full s1-raised text-ink-2 hover:text-ink transition-colors flex-shrink-0 ${focusRing}`;
 
 function subscribeCloseVisibility(cb: () => void): () => void {
   const mq = typeof window !== 'undefined' && window.matchMedia
@@ -304,7 +483,7 @@ export function useModalCloseVisible(): boolean {
 // replaces the old Cancel+Save footer (Cancel is the header X / hardware
 // back). Utilities do NOT live here; they go inline by their content.
 export const modalStickyBarStyle =
-  "flex-shrink-0 px-4 py-2.5 border-t border-white/10 bg-slate-800/60 backdrop-blur-sm";
+  "flex-shrink-0 px-4 pt-3 pb-4 border-t border-hairline";
 
 export const ModalStickyPrimary: React.FC<{
   onClick: () => void;
@@ -315,14 +494,15 @@ export const ModalStickyPrimary: React.FC<{
   dataTestId?: string;
 }> = ({ onClick, disabled, children, className = '', dataTestId }) => (
   <div className={`${modalStickyBarStyle} ${className}`}>
-    {/* Sized to match the in-modal quick-fill buttons (py-2 / text-sm) - the
-        full-height version read as too heavy (owner feedback 2026-07-17). */}
+    {/* The amber pill at 48px: a full-width thumb target, kept below the
+        mocks' 56px because the full-height version read as too heavy (owner
+        feedback 2026-07-17). */}
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       data-testid={dataTestId}
-      className="w-full px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      className={`flex w-full items-center justify-center gap-2 min-h-12 px-5 rounded-full font-ui text-base font-bold s1-primary transition-[filter] disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`}
     >
       {children}
     </button>
@@ -330,8 +510,16 @@ export const ModalStickyPrimary: React.FC<{
 );
 
 /**
- * A settings switch: label on the left, a track with a thumb on the right,
- * amber when on. Replaces the full-width on/off BUTTON that used to carry
+ * A switch row inside a card: no fill, border or radius of its own (a card
+ * never holds cards). Consecutive rows are split by a hairline above each one
+ * except the first; group several switches in a wrapper with no gap.
+ */
+export const switchRowStyle =
+  `relative w-full min-h-14 flex items-center justify-between gap-3 py-2 text-left font-ui text-[15px] font-medium text-ink rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed before:absolute before:top-0 before:inset-x-0 before:h-px before:bg-hairline first:before:hidden ${focusRing}`;
+
+/**
+ * A settings switch: label on the left, a 50x30 track with a thumb on the
+ * right, amber when on (amber = selection). Replaces the full-width on/off BUTTON that used to carry
  * these settings (owner, 2026-09-30: a button that is indigo when on and
  * slate when off reads as "a button to press" in both states, so nobody could
  * tell Harjoitusottelu or Sisällytä kausitilastoihin on from off). The state
@@ -358,18 +546,18 @@ export const ModalSwitch: React.FC<{
     aria-describedby={hint ? hintId : undefined}
     onClick={onToggle}
     disabled={disabled}
-    className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-md text-left text-sm font-medium bg-slate-900/60 border border-slate-700 text-slate-200 transition-colors shadow-sm hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+    className={`${switchRowStyle} ${className}`}
   >
     <span className="min-w-0">
       <span className="block">{children}</span>
-      {hint && <span id={hintId} aria-hidden="true" className="block text-xs font-normal text-slate-400 mt-0.5">{hint}</span>}
+      {hint && <span id={hintId} aria-hidden="true" className="block text-[13px] font-normal leading-snug text-ink-3 mt-0.5">{hint}</span>}
     </span>
     <span
       aria-hidden="true"
-      className={`relative flex-none w-11 h-[26px] rounded-full transition-colors ${checked ? 'bg-amber-500' : 'bg-slate-600'}`}
+      className={`relative flex-none w-[50px] h-[30px] rounded-full transition-colors ${checked ? 'bg-action' : 'bg-white/10 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)]'}`}
     >
       <span
-        className={`absolute top-[3px] left-[3px] w-5 h-5 rounded-full transition-transform ${checked ? 'translate-x-[18px] bg-slate-900' : 'bg-slate-200'}`}
+        className={`absolute top-[3px] left-[3px] w-6 h-6 rounded-full shadow-[0_1px_3px_rgb(0_0_0/0.5)] transition-transform ${checked ? 'translate-x-5 bg-white' : 'bg-ink-2'}`}
       />
     </span>
   </button>
@@ -413,26 +601,30 @@ export const CollapsibleModalHeader: React.FC<{
   // a right-side action cluster is present. But on phones (X hidden) with no
   // actions, those 40px slots just steal width and wrap otherwise-one-line
   // titles - so collapse both to give the title the full row (owner feedback).
+  // Both slots are a real 44px (`w-11`) when reserved: the right one is an
+  // invisible spacer matching the X, so the title sits on the true centre line.
   const reserveSides = showClose || !!actions;
-  const sideSlot = reserveSides ? 'basis-10' : 'basis-0';
+  const sideSlot = reserveSides ? 'min-w-11' : 'w-0';
+  // A long title shrinks one step instead of wrapping (titleStyleFor;
+  // break-words stays as the last resort for a word that still cannot fit).
+
   return (
   <div className="flex-shrink-0">
-    <div className="flex items-center gap-2 pt-8 pb-3 px-4 backdrop-blur-sm bg-slate-900/20">
+    <div className="flex items-center gap-2 pt-8 pb-3 px-4">
       <div className={`flex items-center justify-start ${sideSlot} shrink-0`}>
         <button type="button" onClick={onClose} disabled={closeDisabled} aria-label={closeLabel} title={closeLabel} className={`${showClose ? 'flex' : 'hidden'} ${modalCloseButtonStyle} disabled:opacity-50 disabled:cursor-not-allowed`}>
-          <HiOutlineXMark className="w-6 h-6" />
+          <HiOutlineXMark className="w-5 h-5" />
         </button>
       </div>
       {/* No truncation: the full title must always show (owner feedback
-          2026-07-17). Original prominence (text-3xl from titleStyle),
-          centered, wrapping to a second line for long titles. `break-words`
-          so even a single long word (e.g. a Finnish compound) wraps instead
-          of overflowing/clipping. */}
-      <h2 id={titleId} className={`${titleStyle} flex-1 text-center text-balance break-words leading-tight min-w-0`}>{title}</h2>
+          2026-07-17). Centered; a long title takes one size step down rather
+          than wrapping. `break-words` so even a single long word (e.g. a
+          Finnish compound) wraps instead of overflowing/clipping. */}
+      <h2 id={titleId} className={`${titleStyleFor(title)} flex-1 text-center text-balance break-words leading-tight min-w-0`}>{title}</h2>
       <div className={`flex items-center justify-end gap-1.5 ${sideSlot} shrink-0`}>{actions}</div>
     </div>
     {children && (
-      <div ref={collapse?.outerRef} className="overflow-hidden border-b border-white/10">
+      <div ref={collapse?.outerRef} className="overflow-hidden border-b border-hairline">
         <div ref={collapse?.innerRef}>{children}</div>
       </div>
     )}
@@ -445,21 +637,32 @@ export const CollapsibleModalHeader: React.FC<{
 // ============================================================================
 
 /**
- * Standard backdrop for all dialog-style overlays.
- * Provides consistent visual treatment with dark background + ambient glows.
+ * Standard backdrop for all dialog-style overlays: the carbon canvas.
  */
 export const dialogBackdropStyle =
-  "fixed inset-0 bg-slate-900 flex items-center justify-center font-display";
+  "fixed inset-0 s1-canvas flex items-center justify-center";
 
 /**
- * Standard dialog container style for smaller modals (confirmation, etc.)
+ * Standard dialog container style for smaller modals (confirmation, etc.):
+ * a solid navy card with the list surface's 22px radius.
  */
 export const dialogContainerStyle =
-  "bg-slate-800 p-6 rounded-lg border border-slate-600 shadow-2xl max-w-md w-full mx-4";
+  "s1-list p-6 max-w-md w-full mx-4";
+
+/** Title of a centered dialog or wizard: white Barlow Condensed. */
+export const dialogTitleStyle =
+  "font-display text-2xl font-bold leading-tight text-ink";
+
+/** Body copy of a centered dialog. */
+export const dialogBodyStyle =
+  "font-ui text-[15px] leading-relaxed text-ink-2";
 
 /**
- * Dialog backdrop with ambient glow effects.
- * Use this component instead of raw dialogBackdropStyle for better visuals.
+ * Full-screen dialog backdrop on the carbon canvas.
+ *
+ * The two blurred sky-blue glows this used to carry are gone: blue is not in
+ * the S1 palette, and a blur costs a compositor pass on the cheap Android
+ * hardware this app is meant to run well on. The canvas carries its own light.
  */
 export const DialogBackdrop: React.FC<{
   children: React.ReactNode;
@@ -467,17 +670,9 @@ export const DialogBackdrop: React.FC<{
   onClick?: (e: React.MouseEvent) => void;
 }> = ({ children, className = '', onClick }) => (
   <div
-    className={`fixed inset-0 bg-slate-900 flex items-center justify-center font-display overflow-hidden ${className}`}
+    className={`${dialogBackdropStyle} overflow-hidden ${className}`}
     onClick={onClick}
   >
-    {/* Ambient glow effects - matches AuthModal/WelcomeScreen */}
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Blue glow - top right */}
-      <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
-      {/* Blue glow - bottom left */}
-      <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
-    </div>
-    {/* Content */}
     <div className="relative z-10 flex items-center justify-center w-full h-full p-4">
       {children}
     </div>
@@ -495,7 +690,7 @@ export const wizardBackdropStyle =
   "fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4";
 
 /**
- * Wizard backdrop with ambient glow effects.
+ * Wizard backdrop on the carbon canvas (see DialogBackdrop).
  * Use this component for all wizard-style modals (Migration, Import, etc.)
  */
 export const WizardBackdrop: React.FC<{
@@ -504,17 +699,9 @@ export const WizardBackdrop: React.FC<{
   onClick?: (e: React.MouseEvent) => void;
 }> = ({ children, className = '', onClick }) => (
   <div
-    className={`fixed inset-0 z-[80] bg-slate-900 flex items-center justify-center font-display overflow-hidden ${className}`}
+    className={`fixed inset-0 z-[80] s1-canvas flex items-center justify-center overflow-hidden ${className}`}
     onClick={onClick}
   >
-    {/* Ambient glow effects - matches AuthModal/WelcomeScreen */}
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Blue glow - top right */}
-      <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
-      {/* Blue glow - bottom left */}
-      <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
-    </div>
-    {/* Content */}
     <div className="relative z-10 flex items-center justify-center w-full h-full p-4">
       {children}
     </div>
@@ -522,57 +709,57 @@ export const WizardBackdrop: React.FC<{
 );
 
 export const wizardModalStyle =
-  "relative w-full max-w-md bg-slate-800 border border-slate-600 rounded-lg shadow-2xl max-h-[90vh] flex flex-col";
+  "relative w-full max-w-md s1-list max-h-[90vh] flex flex-col";
 
 export const wizardModalLargeStyle =
-  "relative w-full max-w-lg bg-slate-800 border border-slate-600 rounded-lg shadow-2xl max-h-[85vh] flex flex-col";
+  "relative w-full max-w-lg s1-list max-h-[85vh] flex flex-col";
 
 export const wizardHeaderStyle =
-  "flex items-center justify-between px-6 py-4 border-b border-white/10";
+  "flex items-center justify-between gap-3 px-5 py-3 border-b border-hairline";
 
 export const wizardTitleStyle =
-  "text-lg font-semibold text-slate-100";
+  dialogTitleStyle;
 
 export const wizardContentStyle =
-  "px-6 py-5 overflow-y-auto flex-1 min-h-0";
+  "px-5 py-5 overflow-y-auto flex-1 min-h-0";
 
 export const wizardFooterStyle =
-  "px-6 py-4 border-t border-white/10 flex gap-3 justify-end";
+  "px-5 py-4 border-t border-hairline flex gap-3 justify-end";
 
-// Data summary boxes
+// Data summary boxes: a dark inset well inside the wizard card.
 export const dataSummaryBoxStyle =
-  "bg-slate-900/50 rounded-lg p-4";
+  "bg-carbon/60 rounded-2xl p-4 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)]";
 
 export const dataSummaryTitleStyle =
-  "text-sm font-medium text-slate-300 mb-2 flex items-center gap-2";
+  "font-ui text-[13px] font-semibold text-ink-2 mb-2 flex items-center gap-2";
 
-// Status indicator dots
-export const localDataDotStyle = "w-2 h-2 rounded-full bg-amber-400";
+// Status indicator dots (data identity: this device vs the cloud)
+export const localDataDotStyle = "w-2 h-2 rounded-full bg-action";
 export const cloudDataDotStyle = "w-2 h-2 rounded-full bg-sky-400";
 
-// Alert boxes
+// Alert boxes: a tinted well with a matching hairline ring.
 export const warningBoxStyle =
-  "bg-amber-900/30 border border-amber-700 rounded-lg p-4";
+  "rounded-2xl p-4 bg-action/[0.08] shadow-[inset_0_0_0_1px_rgb(255_178_36/0.35)]";
 
 export const errorBoxStyle =
-  "bg-red-900/30 border border-red-700 rounded-lg p-4";
+  "rounded-2xl p-4 bg-loss/[0.08] shadow-[inset_0_0_0_1px_rgb(255_107_107/0.35)]";
 
 export const successBoxStyle =
-  "bg-green-900/30 border border-green-700 rounded-lg p-4";
+  "rounded-2xl p-4 bg-win/[0.08] shadow-[inset_0_0_0_1px_rgb(63_224_140/0.35)]";
 
 export const infoBoxStyle =
-  "bg-sky-900/30 border border-sky-700 rounded-lg p-4";
+  "rounded-2xl p-4 bg-white/[0.04] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)]";
 
 // Progress bar
 export const progressBarContainerStyle =
-  "h-3 bg-slate-700 rounded-full overflow-hidden";
+  "h-3 bg-white/10 rounded-full overflow-hidden";
 
 export const progressBarFillStyle =
   "h-full transition-all duration-300";
 
-// Close button (X)
+// Close button (X): the same 44px round raised button as the modal header's.
 export const wizardCloseButtonStyle =
-  "text-slate-400 hover:text-slate-200 transition-colors";
+  `inline-flex items-center justify-center w-11 h-11 flex-shrink-0 rounded-full s1-raised text-ink-2 hover:text-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
 
 
 // ---------------------------------------------------------------------------
@@ -599,10 +786,15 @@ export const wizardCloseButtonStyle =
  *
  * Written `bg-black/70` rather than the `bg-black bg-opacity-70` it replaces:
  * same output, but the opacity utility is Tailwind 3 syntax and this project
- * is on Tailwind 4.
+ * is on Tailwind 4. *
+ * No font class: the backdrops used to carry `font-display`, which did nothing
+ * until the S1 redesign defined it as Barlow Condensed - at which point it
+ * would have switched every modal's text to the display face. A modal's text
+ * inherits the app font; the shared pieces set `font-ui`/`font-display`
+ * themselves.
  */
 export const MODAL_BACKDROP =
-  'fixed inset-0 bg-black/70 flex items-center justify-center font-display';
+  'fixed inset-0 bg-black/70 flex items-center justify-center';
 
 /**
  * The backdrop for something that opens ON TOP of another surface and has to
@@ -618,7 +810,7 @@ export const MODAL_BACKDROP =
  * because these are short-lived and rarely more than one deep.
  */
 export const MODAL_BACKDROP_BLOCKING =
-  'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center font-display';
+  'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center';
 
 /**
  * What sits on top of what.
@@ -655,3 +847,29 @@ export const Z_LAYER = {
 } as const;
 
 export type ZLayer = keyof typeof Z_LAYER;
+
+// ============================================================================
+// Match view (stacked): the top panel, the pitch, then the control strip
+// ============================================================================
+
+/**
+ * The control capsule in its strip below the pitch: a solid raised navy pill
+ * on the app's carbon background. Solid, not glass - nothing sits behind it.
+ */
+export const matchCapsuleStyle =
+  "bg-surface-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.08),inset_0_0_0_1px_rgb(255_255_255/0.06),0_8px_24px_rgb(0_0_0/0.45)]";
+
+/** A round tool button sitting on the grass (field tools, sync status):
+ *  40px of light navy glass, with an invisible pad taking the touch target
+ *  to 44px. */
+export const matchFieldToolStyle =
+  `relative inline-flex items-center justify-center w-10 h-10 rounded-full text-white bg-[rgb(15_23_42/0.7)] backdrop-blur-[12px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_6px_12px_-8px_rgb(2_6_23/0.7)] transition-colors hover:bg-[rgb(15_23_42/0.82)] active:scale-95 before:absolute before:-inset-0.5 before:rounded-full before:content-[''] ${focusRing}`;
+
+/** The "on" state of a field tool: white disc, navy icon. */
+export const matchFieldToolOnStyle =
+  `relative inline-flex items-center justify-center w-10 h-10 rounded-full text-carbon bg-white shadow-[0_6px_12px_-8px_rgb(2_6_23/0.7)] active:scale-95 before:absolute before:-inset-0.5 before:rounded-full before:content-[''] ${focusRing}`;
+
+/** A 44px round button inside the control capsule (44, not 48, so five of
+ *  them plus the clock fit a 360px phone without the capsule scrolling). */
+export const matchCapsuleButtonStyle =
+  `inline-flex items-center justify-center w-11 h-11 shrink-0 rounded-full text-white bg-white/[0.07] transition-colors hover:bg-white/[0.12] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${focusRing}`;

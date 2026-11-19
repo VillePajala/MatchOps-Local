@@ -13,6 +13,7 @@ import { useExportMetadata } from '@/hooks/useExportMetadata';
 import { usePlannedSubPrompts } from '@/hooks/usePlannedSubPrompts';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
+import { useAppLayout } from '@/hooks/useAppLayout';
 import type {
   Player,
   Team,
@@ -26,11 +27,19 @@ import type {
 import type { SubSlot } from '@/utils/formations';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
-import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { HiOutlineSquares2X2, HiOutlineListBullet } from 'react-icons/hi2';
+import { HiOutlineListBullet } from 'react-icons/hi2';
 import { usePlannedGhosts } from '@/hooks/usePlannedGhosts';
 import { usePlannedChains } from '@/hooks/usePlannedChains';
 import { isExtraTimePeriod } from '@/utils/matchStructure';
+import {
+  matchFieldToolStyle,
+  matchFieldToolOnStyle,
+  primaryButtonStyle,
+  dialogContainerStyle,
+  dialogTitleStyle,
+  dialogBodyStyle,
+  iconButtonCancelStyle,
+} from '@/styles/modalStyles';
 
 
 /**
@@ -109,7 +118,11 @@ export interface FieldInteractions {
 
 export interface TimerInteractions {
   toggleLargeOverlay: () => void;
-  toggleGoalLogModal: () => void;
+  /**
+   * The timer's "Maali meille": logs our goal at once (the score moves) and
+   * opens the quick "Kuka teki?" sheet (D16). Not the goal-log form.
+   */
+  quickGoal: () => void;
   onOpenPlayerAssessmentModal: () => void;
   onFinishGame?: () => void;
   logOpponentGoal: (timeInSeconds: number) => void;
@@ -124,8 +137,6 @@ export interface TimerInteractions {
 }
 
 export interface FieldContainerProps {
-  /** Finishing progress for the current game, or null when it does not apply. */
-  finishProgress?: { done: number; total: number } | null;
   // Optional grouped state to reduce prop count (2.4.4)
   fieldVM: {
     playersOnField: AppState['playersOnField'];
@@ -201,11 +212,11 @@ export function FieldContainer({
   onWentToPenaltiesChange,
   interactions,
   timerInteractions,
-  finishProgress,
 }: FieldContainerProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const assessmentsEnabled = useAssessmentsEnabled();
+  const appLayout = useAppLayout();
   const [isShootoutModalOpen, setIsShootoutModalOpen] = useState(false);
   const fieldRef = useRef<SoccerFieldHandle>(null);
 
@@ -250,7 +261,7 @@ export function FieldContainer({
 
   const {
     toggleLargeOverlay,
-    toggleGoalLogModal,
+    quickGoal,
     onOpenPlayerAssessmentModal,
     onFinishGame,
     logOpponentGoal,
@@ -355,21 +366,10 @@ export function FieldContainer({
   const plannedSubsEarlier = inExtraTime ? 0 : plannedPrompts.overdueEarlier;
 
   return (
-    <div className="flex-grow relative bg-black overflow-hidden">
-      {/* First-visit orientation card (Onboarding v2 PR 21): overlays the top
-          of the pitch once, never blocks it. */}
-      <FirstVisitIntro
-        overlay
-        surface="match-field"
-        text={
-          <>
-            {t('firstVisit.matchFieldPlace', 'This is your field - the squad is already in formation. Change it from the formation menu')}{' '}
-            <HiOutlineSquares2X2 className="inline h-4 w-4 -mt-0.5" aria-hidden="true" />
-            {'. '}
-            {t('firstVisit.matchFieldClock', 'The game clock and goal logging open from the 00:00 button below.')}
-          </>
-        }
-      />
+    // The pitch's own box: the whole area between the match view's top panel
+    // and its control strip (see GameContainer), nothing overlapping it. The
+    // canvas fills it, so relative player coordinates map to this box exactly.
+    <div className="absolute inset-0 overflow-hidden">
       {/* DELIBERATE: the planned-sub nudge (inside TimerOverlay) is only
           visible while the large timer overlay is open - the same surface the
           existing interval sub-alerts use. On game day the overlay IS the
@@ -393,10 +393,12 @@ export function FieldContainer({
           gameType={gameSessionState.gameType}
           plannedSubGroup={plannedSubGroup}
           plannedSubsEarlier={plannedSubsEarlier}
-          onToggleGoalLogModal={toggleGoalLogModal}
+          onToggleGoalLogModal={quickGoal}
+          // Basic layout: no "Nollaa vaihtoajastin" (D13) - the plan's
+          // reminders are the basic coach's sub timing.
+          showSubTimerReset={appLayout !== 'basic'}
           onOpenPlayerAssessmentModal={assessmentsEnabled ? onOpenPlayerAssessmentModal : undefined}
           onFinishGame={onFinishGame}
-          finishProgress={finishProgress}
           onRecordOpponentGoal={() => logOpponentGoal(tmTime)}
           teamName={gameSessionState.teamName}
           opponentName={gameSessionState.opponentName}
@@ -437,7 +439,7 @@ export function FieldContainer({
 
       <ErrorBoundary
         fallback={
-          <div className="flex items-center justify-center h-full bg-red-900/20 border border-red-700 text-red-300">
+          <div className="flex items-center justify-center h-full s1-canvas font-ui text-ink-2">
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2">{t('errors.soccerFieldCrashed', 'Soccer Field Crashed')}</h3>
               <p className="text-sm">{t('errors.pleaseRefreshPage', 'Please refresh the page to continue.')}</p>
@@ -485,18 +487,31 @@ export function FieldContainer({
         />
       </ErrorBoundary>
 
-      {/* Sync status indicator - top left */}
-      <div className="absolute top-4 left-4 z-20">
+      {/* While a player picked from the bar waits for a spot, the touchline
+          lights amber: the whole pitch is the target. Paint only - the amber
+          ring on the picked disc names who is placed; there is no notice. */}
+      {fcDraggingFromBar && (
+        <div
+          className="absolute inset-[3px] rounded-[5px] ring-2 ring-action pointer-events-none z-[15]"
+          data-testid="placement-outline"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sync status indicator - top left corner of the pitch. The tools sit
+          in the grass above the penalty area, clear of the subs rail (which
+          starts below them, see SUB_RAIL_TOP in SoccerField). */}
+      <div className="absolute top-[12px] left-[14px] z-20">
         <SyncStatusIndicator variant="field" />
       </div>
 
       {/* Field action buttons - always visible */}
-      <div className="absolute top-4 right-4 z-20 flex gap-2">
+      <div className="absolute top-[12px] right-[14px] z-20 flex gap-2">
         {/* Rules button */}
         {onOpenRulesModal && (
           <button
             onClick={onOpenRulesModal}
-            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
+            className={matchFieldToolStyle}
             title={t('rulesDirectory.buttonTitle', 'View rules')}
             aria-label={t('rulesDirectory.buttonTitle', 'View rules')}
           >
@@ -513,7 +528,7 @@ export function FieldContainer({
                 handleExportField();
               }
             }}
-            className="p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
+            className={matchFieldToolStyle}
             title={t('export.buttonTitle', 'Export field as image')}
             aria-label={t('export.buttonTitle', 'Export field as image')}
           >
@@ -523,12 +538,12 @@ export function FieldContainer({
         {/* Position labels toggle */}
         <button
           onClick={() => onTogglePositionLabels(!(gameSessionState.showPositionLabels ?? true))}
-          className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
+          className={matchFieldToolStyle}
           title={t('field.togglePositionLabels', 'Toggle position labels')}
           aria-label={t('field.togglePositionLabels', 'Toggle position labels')}
           aria-pressed={gameSessionState.showPositionLabels ?? true}
         >
-          <HiOutlineMapPin className={`w-5 h-5 ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-slate-400'}`} />
+          <HiOutlineMapPin className={`w-5 h-5 ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-ink-3'}`} />
         </button>
         {/* Planned-sub markers. Hidden entirely when the game has none, rather
             than shown dead: a control that cannot change anything is noise on
@@ -537,15 +552,15 @@ export function FieldContainer({
           <button
             onClick={cyclePlanView}
             data-testid="toggle-planned-ghosts"
-            className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
+            className={planView === 'lineup' ? matchFieldToolStyle : matchFieldToolOnStyle}
             title={planViewLabel}
             aria-label={planViewLabel}
           >
             {showingChains ? (
-              <HiOutlineListBullet className="w-5 h-5 text-amber-400" />
+              <HiOutlineListBullet className="w-5 h-5" />
             ) : (
               <HiOutlineUserPlus
-                className={`w-5 h-5 ${planView === 'ghosts' ? 'text-white' : 'text-slate-400'}`}
+                className={`w-5 h-5 ${planView === 'ghosts' ? '' : 'text-ink-3'}`}
               />
             )}
           </button>
@@ -555,8 +570,8 @@ export function FieldContainer({
       {/* Which step of the plan cycle is showing. A three-way control needs to
           name its state - the icon alone only tells the person who built it. */}
       {(plannedGhosts.length > 0 || hasChainView) && planView !== 'lineup' && (
-        <div className="absolute top-16 right-4 z-20 pointer-events-none">
-          <span className="px-2 py-0.5 rounded-md bg-slate-900/75 text-xs font-medium text-slate-200 backdrop-blur-sm shadow">
+        <div className="absolute top-[60px] right-[14px] z-20 pointer-events-none">
+          <span className="inline-flex items-center px-3 py-[7px] rounded-full bg-[rgb(15_23_42/0.86)] font-ui text-[13px] font-semibold text-white shadow-[0_10px_18px_-10px_rgb(2_6_23/0.8)]">
             {planViewLabel}
           </span>
         </div>
@@ -569,11 +584,11 @@ export function FieldContainer({
         fcPlayersOnField.length === 0 &&
         fcDrawings.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-            <div className="relative bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+            <div className={`relative ${dialogContainerStyle} pt-10 pointer-events-auto font-ui`}>
               {/* Dismiss button */}
               <button
                 onClick={() => setIsSetupOverlayDismissed(true)}
-                className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                className={`absolute top-2 right-2 ${iconButtonCancelStyle}`}
                 aria-label={t('common.dismiss', 'Dismiss')}
               >
                 <HiOutlineXMark className="w-5 h-5" />
@@ -581,15 +596,15 @@ export function FieldContainer({
 
               <div className="text-center">
                 <div className="mb-4">
-                  <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
+                  <div className="w-16 h-16 mx-auto s1-raised rounded-full flex items-center justify-center mb-3">
                     <div className="text-3xl">⚽</div>
                   </div>
-                  <h3 className="text-2xl font-bold text-indigo-300 mb-2">
+                  <h3 className={`${dialogTitleStyle} mb-2`}>
                     {availablePlayers.length === 0
                       ? t('firstGame.titleNoPlayers', 'Ready to get started?')
                       : t('firstGame.title', 'Ready to create your first match!')}
                   </h3>
-                  <p className="text-slate-300 text-sm leading-relaxed mb-6">
+                  <p className={`${dialogBodyStyle} mb-6`}>
                     {availablePlayers.length === 0
                       ? t(
                           'firstGame.descNoPlayersSimple',
@@ -606,14 +621,14 @@ export function FieldContainer({
                 {availablePlayers.length === 0 ? (
                   <button
                     onClick={() => onOpenRosterModal?.()}
-                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    className={`${primaryButtonStyle} w-full min-h-[52px]`}
                   >
-                    {t('firstGame.setupRoster', 'Set Up Team Roster')}
+                    {t('firstGame.setupRoster', 'Add players')}
                   </button>
                 ) : (
                   <button
                     onClick={() => onOpenNewGameSetup?.()}
-                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    className={`${primaryButtonStyle} w-full min-h-[52px]`}
                   >
                     {t('firstGame.createGame', 'Create Match')}
                   </button>

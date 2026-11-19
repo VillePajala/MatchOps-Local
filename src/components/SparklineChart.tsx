@@ -35,7 +35,7 @@ interface DotProps {
 
 const CustomizedDot = ({ cx, cy }: DotProps) => {
   return (
-    <circle cx={cx} cy={cy} r={1.5} fill="#6366f1" />
+    <circle cx={cx} cy={cy} r={1.5} fill="#38bdf8" />
   );
 };
 

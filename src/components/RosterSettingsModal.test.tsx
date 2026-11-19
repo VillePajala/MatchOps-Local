@@ -268,7 +268,7 @@ describe('<RosterSettingsModal />', () => {
     // Click Remove in the confirmation modal (not the Delete buttons)
     const allButtons = screen.getAllByRole('button');
     const removeButton = allButtons.find(btn =>
-      btn.textContent === 'Remove' && btn.className.includes('bg-red-600')
+      btn.textContent === 'Remove' && btn.className.includes('bg-[#d13438]')
     );
     fireEvent.click(removeButton!);
 
@@ -412,7 +412,7 @@ describe('RosterSettingsModal - archived players', () => {
     renderWith(withArchived);
     fireEvent.click(screen.getByTestId('roster-toggle-archived'));
     // The list sorts by last name; open the menu on Left Club's own row.
-    const row = screen.getByText('Left Club').closest('.p-4') as HTMLElement;
+    const row = screen.getByText('Left Club').closest('.cursor-pointer') as HTMLElement;
     fireEvent.click(within(row).getByTitle('Actions'));
     fireEvent.click(screen.getByRole('button', { name: /Restore/ }));
     await waitFor(() => expect(mockOnUpdatePlayer).toHaveBeenCalledWith('p3', { archived: false }));

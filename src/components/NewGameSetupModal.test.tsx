@@ -236,9 +236,9 @@ describe('NewGameSetupModal', () => {
     });
     expect(mockOnStart).toHaveBeenCalledWith(
       expect.arrayContaining(['player1', 'player2']), 'New Team Name', 'Opponent Team',
-      // isPlayed=false: the game is dated TODAY, and a match today has not been
-      // played yet at the moment it is created. See matchPlayedDefault.
-      expect.any(String), '', '', undefined, undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, false, null,
+      // isPlayed=true: "Ei vielä pelattu" starts OFF for a game dated today
+      // (owner, Onboarding v3). See newGameIsPlayedDefault in matchPlayedDefault.
+      expect.any(String), '', '', undefined, undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, true, null,
       expect.arrayContaining([
         expect.objectContaining({ id: 'player1', name: 'John Doe' }),
         expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
@@ -280,7 +280,7 @@ describe('NewGameSetupModal', () => {
     await waitFor(() => {
       expect(mockOnStart).toHaveBeenCalledWith(
         expect.arrayContaining(['player1', 'player2']), 'Last Team', 'Opponent Team',
-        expect.any(String), '', '', undefined, undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, true, null,
+        expect.any(String), '', '', undefined, undefined, undefined, '', null, null, 2, 15, 'home', 1, '', '', null, false, null, // toggled ON: not played yet
         expect.arrayContaining([
           expect.objectContaining({ id: 'player1', name: 'John Doe' }),
           expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
@@ -1109,7 +1109,7 @@ describe('NewGameSetupModal', () => {
 
       // Find the Soccer button by text and verify it's selected (has active styling)
       const soccerButton = screen.getByRole('button', { name: /Soccer/i });
-      expect(soccerButton).toHaveClass('bg-indigo-600');
+      expect(soccerButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('should prefill game type from selected season', async () => {
@@ -1142,7 +1142,7 @@ describe('NewGameSetupModal', () => {
       // Verify Futsal is now selected
       await waitFor(() => {
         const futsalButton = screen.getByRole('button', { name: /Futsal/i });
-        expect(futsalButton).toHaveClass('bg-indigo-600');
+        expect(futsalButton).toHaveAttribute('aria-pressed', 'true');
       });
     });
 
@@ -1176,7 +1176,7 @@ describe('NewGameSetupModal', () => {
       // Verify Futsal is now selected
       await waitFor(() => {
         const futsalButton = screen.getByRole('button', { name: /Futsal/i });
-        expect(futsalButton).toHaveClass('bg-indigo-600');
+        expect(futsalButton).toHaveAttribute('aria-pressed', 'true');
       });
     });
 
@@ -1193,7 +1193,7 @@ describe('NewGameSetupModal', () => {
 
       // Initially Soccer should be selected
       const soccerButton = screen.getByRole('button', { name: /Soccer/i });
-      expect(soccerButton).toHaveClass('bg-indigo-600');
+      expect(soccerButton).toHaveAttribute('aria-pressed', 'true');
 
       // Click Futsal button
       const futsalButton = screen.getByRole('button', { name: /Futsal/i });
@@ -1203,8 +1203,8 @@ describe('NewGameSetupModal', () => {
 
       // Verify Futsal is now selected and Soccer is not
       await waitFor(() => {
-        expect(futsalButton).toHaveClass('bg-indigo-600');
-        expect(soccerButton).not.toHaveClass('bg-indigo-600');
+        expect(futsalButton).toHaveAttribute('aria-pressed', 'true');
+        expect(soccerButton).toHaveAttribute('aria-pressed', 'false');
       });
     });
 
@@ -1338,7 +1338,7 @@ describe('NewGameSetupModal', () => {
       // Verify Soccer remains selected (default)
       await waitFor(() => {
         const soccerButton = screen.getByRole('button', { name: /Soccer/i });
-        expect(soccerButton).toHaveClass('bg-indigo-600');
+        expect(soccerButton).toHaveAttribute('aria-pressed', 'true');
       });
     });
   });
@@ -2232,6 +2232,142 @@ describe('NewGameSetupModal', () => {
       await openWith({});
       await setFormation('5v5-2-2');
       expect(screen.queryByTestId('format-nudge')).not.toBeInTheDocument();
+    });
+  });
+
+  /**
+   * New-game defaults (Onboarding v3, D6/D26): the form opens on the coach's
+   * team with all its players and the previous game's settings - values only.
+   * @critical
+   */
+  describe('new-game defaults', () => {
+    const { getTeamRoster } = jest.requireMock('@/utils/teams') as { getTeamRoster: jest.Mock };
+    const oneTeam = [{ id: 'team1', name: 'MePa P11', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' }];
+    const roster = [
+      { id: 'player1', name: 'John Doe' },
+      { id: 'player2', name: 'Jane Smith' },
+    ];
+    const previousHomeGame = {
+      teamId: 'team1', opponentName: 'Old Foe', homeOrAway: 'home', numberOfPeriods: 2, periodDurationMinutes: 25,
+      gameLocation: 'Kimpisen kenttä', fieldNumber: 'TN 2', seasonId: 'season1', gameType: 'soccer',
+      selectedPlayerIds: ['player1'], createdAt: '2026-11-01T10:00:00.000Z',
+    };
+    const openDefaults = async (props: Record<string, unknown> = {}) => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} initialPlayerSelection={null} teams={oneTeam} {...props} />
+        </ToastProvider>,
+      );
+      await waitFor(() => expect(getLastHomeTeamName).toHaveBeenCalled());
+    };
+    const selectedCountText = () =>
+      screen.getAllByText(/selected/i).find((el) => /\d\s*\/\s*\d/.test(el.textContent ?? ''))?.textContent;
+
+    beforeEach(() => {
+      getTeamRoster.mockResolvedValue(roster);
+    });
+
+    it('opens on the only team with all its players ticked', async () => {
+      await openDefaults();
+      expect(document.querySelector('#teamSelectTop')).toHaveValue('team1');
+      expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toHaveValue('MePa P11');
+      await waitFor(() => expect(selectedCountText()).toMatch(/2\s*\/\s*2/));
+    });
+
+    it('does not raise the empty-roster prompt for a preselected team', async () => {
+      getTeamRoster.mockResolvedValue([]);
+      await openDefaults();
+      await waitFor(() => expect(getTeamRoster).toHaveBeenCalledWith('team1'));
+      expect(screen.queryByText('Empty Team Roster')).not.toBeInTheDocument();
+    });
+
+    it('a slow "last team name" read does not overwrite the preselected team', async () => {
+      let resolveName: (v: string) => void = () => {};
+      (getLastHomeTeamName as jest.Mock).mockReturnValue(new Promise<string>((r) => { resolveName = r; }));
+      await openDefaults();
+      await act(async () => { resolveName('Some Old Name'); });
+      expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toHaveValue('MePa P11');
+    });
+
+    it('keeps an edit made before the roster arrives', async () => {
+      let resolveRoster: (v: typeof roster) => void = () => {};
+      getTeamRoster.mockReturnValue(new Promise((r) => { resolveRoster = r; }));
+      await openDefaults();
+      // The coach ticks one player while the team roster is still loading.
+      await act(async () => {
+        fireEvent.click(screen.getByText('Jane Smith'));
+      });
+      await act(async () => { resolveRoster(roster); });
+      expect(selectedCountText()).toMatch(/1\s*\/\s*2/);
+    });
+
+    it('an explicit initial selection (in-match new game) wins over the team roster', async () => {
+      await openDefaults({ initialPlayerSelection: ['player2'] });
+      expect(document.querySelector('#teamSelectTop')).toHaveValue('team1');
+      expect(getTeamRoster).not.toHaveBeenCalled();
+      expect(selectedCountText()).toMatch(/1\s*\/\s*2/);
+    });
+
+    it('carries the previous game of the team, but not opponent or pitch', async () => {
+      await openDefaults({ savedGames: { g1: previousHomeGame } });
+      expect(document.querySelector('#periodDurationInput')).toHaveValue('25');
+      expect(document.querySelector('#seasonSelect')).toHaveValue('season1');
+      expect(screen.getByDisplayValue('Kimpisen kenttä')).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: /Opponent Name/i })).toHaveValue('');
+      expect(document.querySelector('#fieldNumberInput')).toHaveValue('');
+    });
+
+    it('drops a defaulted home venue when the side flips to away', async () => {
+      await openDefaults({ savedGames: { g1: previousHomeGame } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Away' }));
+      });
+      // No previous away game: the home ground is not offered for an away game.
+      expect(screen.queryByDisplayValue('Kimpisen kenttä')).not.toBeInTheDocument();
+    });
+
+    it('opens on no team when the last game had none', async () => {
+      await openDefaults({ savedGames: { g1: { ...previousHomeGame, teamId: '' } } });
+      expect(document.querySelector('#teamSelectTop')).toHaveValue('');
+      expect(getTeamRoster).not.toHaveBeenCalled();
+    });
+
+    it('shows "Automatic" rather than a 1-1 guess when there is nothing to go on', async () => {
+      await openDefaults({ teams: [], masterRoster: [] });
+      const select = document.querySelector('#formationSelect') as HTMLSelectElement;
+      expect(select).toHaveValue('');
+      expect(select.selectedOptions[0].textContent).toBe('Automatic');
+    });
+
+    it('opens an 8v8 team on 8v8 from its previous game, with the whole squad ticked', async () => {
+      const { buildAutoPlacement } = jest.requireActual('@/utils/formations');
+      const { getPresetById } = jest.requireActual('@/config/formationPresets');
+      const squad = Array.from({ length: 14 }, (_, i) => ({ id: `s${i}`, name: `Pelaaja ${i}` }));
+      getTeamRoster.mockResolvedValue(squad);
+      const snap = buildAutoPlacement(squad.slice(0, 10), getPresetById('8v8-2-1-2-1-1').positions).formationSnapPoints;
+      await openDefaults({
+        masterRoster: squad,
+        savedGames: { g1: { ...previousHomeGame, formationSnapPoints: snap } },
+      });
+      await waitFor(() => expect(selectedCountText()).toMatch(/14\s*\/\s*14/));
+      expect(document.querySelector('#formationSelect')).toHaveValue('8v8-2-1-2-1-1');
+    });
+
+    it('"Repeat last game" uses the selected team\'s last game', async () => {
+      const otherTeamsLater = { ...previousHomeGame, teamId: 'team2', opponentName: 'Other Team Foe', createdAt: '2026-11-05T10:00:00.000Z' };
+      await openDefaults({
+        teams: [...oneTeam, { id: 'team2', name: 'Other', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' }],
+        savedGames: { g1: previousHomeGame, g2: otherTeamsLater },
+      });
+      // The newest game is team2's, so the form opens on team2; switch to team1.
+      expect(document.querySelector('#teamSelectTop')).toHaveValue('team2');
+      await act(async () => {
+        fireEvent.change(document.querySelector('#teamSelectTop') as HTMLSelectElement, { target: { value: 'team1' } });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Repeat last game/i }));
+      });
+      expect(screen.getByRole('textbox', { name: /Opponent Name/i })).toHaveValue('Old Foe');
     });
   });
 });

@@ -2,10 +2,8 @@
 
 import { useDeviceHasSignedIn } from '@/utils/deviceSignInMemory';
 import ModalProvider from '@/contexts/ModalProvider';
-import GuidedTourController from '@/components/GuidedTour/GuidedTourController';
 import SetupWizard, { isSetupWizardDone } from '@/components/SetupWizard';
 import { setFirstGameExists, setHomeShowing, setOnboardingUserId } from '@/components/setupWizardActive';
-import GuidedTourRosterReporter from '@/components/GuidedTour/GuidedTourRosterReporter';
 import HomePage from '@/components/HomePage';
 import StartScreenLiftedBridge from '@/components/StartScreenLiftedBridge';
 import LoginScreen from '@/components/LoginScreen';
@@ -17,7 +15,8 @@ import BackupReminderBanner from '@/components/BackupReminderBanner';
 import ClubModalsHost from '@/components/ClubModalsHost';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
-import { LoadingScreen } from '@/components/LoadingScreen';
+import { LoadingScreen, LOADING_SCREEN_EXIT_MS } from '@/components/LoadingScreen';
+import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useLaunchPullGate } from '@/hooks/useLaunchPullGate';
 import { CLOUD_COPY_ADOPTED_EVENT, GAME_REPLACED_BY_CLOUD_EVENT } from '@/sync/syncEvents';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -48,6 +47,9 @@ import { getDataStore } from '@/datastore';
 import type { TranslationKey } from '@/i18n-types';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
+import { beginNewAccountOnboarding, hasSeenSetupWizard, recordGameFinished } from '@/utils/onboardingMilestones';
+import { resolveAppLayout } from '@/utils/appLayout';
+import { isSetupWizardEligible } from '@/utils/setupWizardGate';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
 import { getSavedGames, getLatestGameId, saveGame as utilSaveGame } from '@/utils/savedGames';
@@ -171,6 +173,29 @@ export default function Home() {
   const [homeView, setHomeView] = useState<'simple' | 'dashboard'>('dashboard');
   const [lastGameType, setLastGameType] = useState<GameType | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  /**
+   * Which (account, refresh) the Home flags were last read for. A cloud pull
+   * on a new device bumps refreshTrigger and ends the loading screen in the
+   * same render, while hasPlayers / hasSavedGames still hold the EMPTY local
+   * read from before the pull - one frame in which an existing account looks
+   * brand new. The setup wizard (which marks the account basic) must not open
+   * on that frame, so it waits until the flags are from the latest read.
+   */
+  const [stateCheckedFor, setStateCheckedFor] = useState<string | null>(null);
+  /**
+   * Which (account, refresh) the SETUP signals (teams, competitions) were read
+   * for (review R9). They come from a second, non-blocking read that can land
+   * after `stateCheckedFor`; until it has, `hasTeam` is still false for an
+   * account that has a team, and the wizard would open over it. Never set when
+   * that read failed - unknown is not empty.
+   */
+  const [setupSignalsCheckedFor, setSetupSignalsCheckedFor] = useState<string | null>(null);
+  /**
+   * The account has been through the setup wizard - finished or skipped - per
+   * its synced settings row (review R9). True until known: a settings read that
+   * fails must not open the wizard (and flip the layout) on an existing account.
+   */
+  const [accountWizardSeen, setAccountWizardSeen] = useState(true);
   const [isCheckingState, setIsCheckingState] = useState(true);
   const [showMigrationWizard, setShowMigrationWizard] = useState(false);
   // Welcome screen state (first-install onboarding)
@@ -427,7 +452,14 @@ export default function Home() {
   // its anchor (losing time), and a paused match lost its screen lock.
   const backgroundCheckRef = useRef(false);
 
-  const checkAppState = useCallback(async ({ inBackground = false }: { inBackground?: boolean } = {}) => {
+  /**
+   * Resolves once the fast part of the check is done (the loading gate can
+   * lift). `signals` is the slower setup read (teams, competitions, counts) -
+   * true when it succeeded - for the setup wizard's gate (review R9).
+   */
+  const checkAppState = useCallback(async (
+    { inBackground = false }: { inBackground?: boolean } = {},
+  ): Promise<{ signals: Promise<boolean> } | undefined> => {
     if (!inBackground) setIsCheckingState(true);
     // Consume the "first check" slot once per page load (boot / WebView recreation),
     // regardless of outcome, so later refreshTrigger re-runs can't auto-resume.
@@ -490,6 +522,12 @@ export default function Home() {
       // game - counting it enabled stats rows and flipped first-time mode
       // on a phantom.
       setHasSavedGames(Object.keys(games).filter(id => id !== 'unsaved_game').length > 0);
+      // Milestones (D17): first and second game at full time. A no-op for
+      // accounts that predate milestone tracking (see recordGameFinished).
+      void recordGameFinished(
+        userId,
+        Object.entries(games).filter(([id, g]) => id !== 'unsaved_game' && g?.gameStatus === 'gameEnd').length,
+      );
 
       // Home view preference + dashboard summary (opt-in dashboard).
       // The Pelit-tab summary (resume/vuosi/recent) derives from settings + the
@@ -500,10 +538,17 @@ export default function Home() {
       const today = todayIso();
       try {
         homeSettings = await getAppSettings(userId);
+        // Seed the shared settings query with what was just read, so Home's
+        // layout (useAppLayout) is known on its first frame - no flash of the
+        // other layout while the query would fetch the same row again.
+        queryClient.setQueryData([...queryKeys.settings.detail(), userId], homeSettings);
         // Dashboard is the default; only an explicit 'simple' preference opts out.
         setHomeView(homeSettings.homeView === 'simple' ? 'simple' : 'dashboard');
+        setAccountWizardSeen(hasSeenSetupWizard(homeSettings.onboardingMilestones));
         const firstArgs: Parameters<typeof buildHomeSummary> = [games, {
           today,
+          // Basic layout: the match itself says whether it was played (R2).
+          startedDecidesPlayed: resolveAppLayout(homeSettings) === 'basic',
           clubSeasonStartDate: homeSettings.clubSeasonStartDate,
           clubSeasonEndDate: homeSettings.clubSeasonEndDate,
           hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
@@ -519,6 +564,8 @@ export default function Home() {
         publishHomeSummaries(firstArgs);
       } catch (summaryErr) {
         logger.warn('Failed to build home summary', { error: summaryErr });
+        // Unknown whether the wizard was seen: never open it on a guess.
+        setAccountWizardSeen(true);
       }
 
       // Check if user has any players in roster
@@ -542,7 +589,7 @@ export default function Home() {
           (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
         )
       );
-      void Promise.all([
+      const signals = Promise.all([
         getSeasons(userId), getTournaments(userId), getTeams(userId), getAllPersonnel(userId),
         // External games for the Home top scorer (review 5.8); a failed read only
         // leaves the tile counting app games, never the other signals.
@@ -563,6 +610,7 @@ export default function Home() {
           if (homeSettings) {
             applyTeamScope(games, teamsList, seasonsList, tournamentsList, {
               today,
+              startedDecidesPlayed: resolveAppLayout(homeSettings) === 'basic',
               clubSeasonStartDate: homeSettings.clubSeasonStartDate,
               clubSeasonEndDate: homeSettings.clubSeasonEndDate,
               hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
@@ -577,8 +625,13 @@ export default function Home() {
               tournamentsCount: tournamentsList.length,
             })
           }
+          return true;
         })
-        .catch((setupErr) => logger.warn('Failed to compute recommended-setup signals', { error: setupErr }));
+        .catch((setupErr) => {
+          logger.warn('Failed to compute recommended-setup signals', { error: setupErr });
+          return false;
+        });
+      return { signals };
     } catch (error) {
       logger.warn('Failed to check initial game state', { error });
       // A background re-check (app resume) that fails - a transient IndexedDB error
@@ -594,17 +647,15 @@ export default function Home() {
     } finally {
       setIsCheckingState(false);
     }
-  }, [userId, setAction, applyTeamScope, publishHomeSummaries]);
+  }, [userId, setAction, applyTeamScope, publishHomeSummaries, queryClient]);
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
 
-  // Targeted refresh of the recommended-setup / guided-tour signals after a setup
-  // modal closes. Reads directly and sets state WITHOUT the full checkAppState
-  // round-trip (no loading-screen flash). NOT gated on isFirstTimeUser: the guided
-  // tour keeps advancing past the point where the account stops being empty (add
-  // players -> the account is no longer "first-time", but the tour still needs
-  // hasTeam / hasTeamLinkedGame to refresh so its later steps auto-advance), and
-  // the Start Screen recommended-setup card wants fresh signals too.
+  // Targeted refresh of the recommended-setup signals after a setup modal
+  // closes. Reads directly and sets state WITHOUT the full checkAppState
+  // round-trip (no loading-screen flash). NOT gated on isFirstTimeUser: the
+  // Start Screen wants fresh signals (hasTeam / hasTeamLinkedGame) even after
+  // the account stops being empty.
 
   const refreshSetupSignals = useCallback(async () => {
     try {
@@ -665,6 +716,8 @@ export default function Home() {
       if (prev) {
         applyTeamScope(games, teamsList, seasonsList, tournamentsList, {
           ...prev[1],
+          // The layout can have changed in Settings ("Kaikki toiminnot").
+          startedDecidesPlayed: resolveAppLayout(settings) === 'basic',
           clubSeasonStartDate: settings.clubSeasonStartDate,
           clubSeasonEndDate: settings.clubSeasonEndDate,
           hasConfiguredSeasonDates: settings.hasConfiguredSeasonDates,
@@ -984,7 +1037,16 @@ export default function Home() {
       checkAppStateTriggeredRef.current = true;
     }
 
-    void checkAppState({ inBackground });
+    const checkKey = `${userId ?? 'local'}:${refreshTrigger}`;
+    const run = checkAppState({ inBackground });
+    void run.finally(() => setStateCheckedFor(checkKey));
+    // The setup read lands later (review R9): the wizard waits for it too.
+    void run
+      .then((result) => result?.signals)
+      .then((ok) => {
+        if (ok) setSetupSignalsCheckedFor(checkKey);
+      })
+      .catch(() => undefined);
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId, tabMayBoot]);
 
   // Deep-review fix (stale Home): all Home flags (canResume, hasPlayers,
@@ -1876,17 +1938,77 @@ export default function Home() {
   const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut
     || launchPullGate.matchWaits;
 
+  // Splash hand-off: when loading ends, the SAME LoadingScreen instance stays
+  // mounted for LOADING_SCREEN_EXIT_MS as a non-interactive overlay that fades
+  // out over the screen that already rendered underneath (Home is not delayed).
+  // Set during render (previous-value pattern) so no frame paints without it.
+  const [prevShowLoadingScreen, setPrevShowLoadingScreen] = useState(showLoadingScreen);
+  const [loadingScreenExiting, setLoadingScreenExiting] = useState(false);
+  if (prevShowLoadingScreen !== showLoadingScreen) {
+    setPrevShowLoadingScreen(showLoadingScreen);
+    setLoadingScreenExiting(!showLoadingScreen);
+  }
+  useEffect(() => {
+    if (!loadingScreenExiting) return;
+    const id = window.setTimeout(() => setLoadingScreenExiting(false), LOADING_SCREEN_EXIT_MS);
+    return () => window.clearTimeout(id);
+  }, [loadingScreenExiting]);
+
   // Onboarding v2: first-sign-in setup wizard (CLOUD ONLY, owner decision).
   // Shows exactly once per account, on the same readiness terms the app screens
   // use, and only for a truly empty account (no roster, no games, no team).
   // Finishing or skipping sets the durable per-user flag; the session state
   // hides it immediately without waiting for the signal refresh.
-  const showSetupWizard =
+  const setupWizardScreenGates =
     !isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
     !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard &&
-    screen === 'start' && mode === 'cloud' &&
-    isFirstTimeUser && !hasTeam &&
-    setupWizardDismissedFor !== (userId ?? 'local') && !isSetupWizardDone(userId);
+    screen === 'start' && mode === 'cloud';
+  const setupWizardKey = userId ?? 'local';
+  // Review R9: only once EVERYTHING the account holds has been read for this
+  // (account, refresh) and all of it is empty, and the account itself has never
+  // seen the wizard - see isSetupWizardEligible. An existing account must never
+  // reach the wizard: opening it flips the layout to basic.
+  const setupWizardEligible =
+    setupWizardScreenGates &&
+    isSetupWizardEligible({
+      checkKey: `${userId ?? 'local'}:${refreshTrigger}`,
+      stateCheckedFor,
+      setupSignalsCheckedFor,
+      isFirstTimeUser,
+      hasTeam,
+      hasCompetition,
+      accountWizardSeen,
+      deviceWizardSeen: setupWizardDismissedFor === setupWizardKey || isSetupWizardDone(userId),
+    });
+  // Onboarding v3: once open, the wizard stays until IT says it is done. Its
+  // later steps (next game, plan) run after "Valmis" created the team and
+  // players, which ends "first-time user" the moment any signal refresh runs;
+  // without this latch a refresh would swap the plan screen for Home mid-flow.
+  // Set during render (previous-value pattern) so no frame shows Home.
+  const [setupWizardOpenFor, setSetupWizardOpenFor] = useState<string | null>(null);
+  if (setupWizardEligible && setupWizardOpenFor !== setupWizardKey) {
+    setSetupWizardOpenFor(setupWizardKey);
+  }
+  const showSetupWizard =
+    setupWizardScreenGates &&
+    (setupWizardEligible || setupWizardOpenFor === setupWizardKey) &&
+    setupWizardDismissedFor !== setupWizardKey;
+
+  // Onboarding v3: an account that reaches the wizard is NEW (the wizard only
+  // opens after the empty-account check succeeded), so it gets the basic
+  // layout and its sign-up time is recorded - once, when the wizard opens, so
+  // a coach who closes the app mid-wizard is still a basic-layout account.
+  // Existing accounts never get here and keep the full layout (OD4, D14).
+  const onboardingBegunForRef = useRef<string | null>(null);
+  const userCreatedAt = user?.createdAt;
+  useEffect(() => {
+    if (setupWizardOpenFor !== setupWizardKey) return;
+    if (onboardingBegunForRef.current === setupWizardKey) return;
+    onboardingBegunForRef.current = setupWizardKey;
+    void beginNewAccountOnboarding(userId, userCreatedAt ? new Date(userCreatedAt) : undefined).then(() =>
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.settings.detail(), userId] }),
+    );
+  }, [setupWizardOpenFor, setupWizardKey, userId, userCreatedAt, queryClient]);
 
   // Publish the first-game signal for the marketing-consent prompt's re-gate
   // (PR 22): the prompt waits until the coach has actually arrived.
@@ -1903,8 +2025,8 @@ export default function Home() {
     setHomeShowing(homeOnScreen);
   }, [homeOnScreen]);
 
-  // Publish the SETTLED user id for the first-visit banners: undefined while
-  // auth is resolving (banners stay hidden - no 'local'-key misfiling).
+  // Publish the SETTLED user id for the per-user wizard hints: undefined while
+  // auth is resolving (no 'local'-key misfiling).
   useEffect(() => {
     setOnboardingUserId(isAuthLoading ? undefined : (userId ?? null));
   }, [isAuthLoading, userId]);
@@ -1921,18 +2043,6 @@ export default function Home() {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider currentUserId={userId}>
-        {/* Guided-tour signal feed (headless). Onboarding v2: the tour no longer
-            auto-starts - first-run onboarding is the SetupWizard below, and the
-            tour is opt-in via gear -> "Aloitusopastus". This feed keeps the
-            opt-in tour's steps auto-advancing on real progress. */}
-        <GuidedTourController
-          hasPlayers={hasPlayers}
-          hasTeam={hasTeam}
-          hasTeamLinkedGame={hasTeamLinkedGame}
-          screen={screen}
-        />
-        {/* Live roster-size feed for the tour's add-players progress/goal. */}
-        <GuidedTourRosterReporter />
         {/* Club/app-scope modals render at PAGE level (two-level restructure
             L-waves): opening them from Home never mounts the match view.
             Gated behind the SAME readiness checks as the app screens below:
@@ -1957,23 +2067,19 @@ export default function Home() {
         <div className={isAuthGracePeriod && !isBlockedByOtherTab ? 'pt-10' : undefined}>
         {isBlockedByOtherTab ? (
           // Multi-tab block: another tab is already running the app
-          <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
-              <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
-            </div>
+          <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-hidden">
             <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 pb-safe">
-              <h1 className="text-5xl font-bold tracking-tight text-amber-400 mb-4">MatchOps</h1>
+              <h1 className="font-[family-name:var(--font-rajdhani)] text-6xl font-bold tracking-[0.01em] text-action mb-4">MatchOps</h1>
               <div className="max-w-sm text-center">
-                <h2 className="text-xl font-semibold text-white mb-2">
+                <h2 className="font-display text-3xl font-bold text-ink mb-2">
                   {t('page.alreadyOpen', 'Already Open')}
                 </h2>
-                <p className="text-slate-400 mb-6">
+                <p className="text-ink-2 mb-6">
                   {t('page.alreadyOpenDesc', 'MatchOps is already open in another tab. Please close this tab or the other one to continue.')}
                 </p>
                 <button
                   onClick={() => window.location.reload()}
-                  className="w-full h-12 px-4 py-2 rounded-md text-base font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-600 transition-all"
+                  className={`${primaryButtonStyle} w-full min-h-12`}
                 >
                   {t('page.tryAgain', 'Try Again')}
                 </button>
@@ -1981,8 +2087,10 @@ export default function Home() {
             </div>
           </div>
         ) : showLoadingScreen ? (
-          // Loading state while checking auth, data, or during sign-out
-          <LoadingScreen message={loadingMessage} />
+          // Loading state while checking auth, data, or during sign-out: the
+          // LoadingScreen itself renders below, outside this chain, so it can
+          // outlive the loading state for its fade-out.
+          null
         ) : showWelcome ? (
           // First install: show welcome screen for onboarding choice
           <ErrorBoundary>
@@ -1999,32 +2107,27 @@ export default function Home() {
           // Cloud mode: auth initialization timed out - show retry screen
           // This prevents users from being stuck in a login loop when PWA resumes from background
           <ErrorBoundary>
-            <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
-              {/* Ambient background */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
-                <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
-              </div>
+            <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-hidden">
               <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 pb-safe">
-                <h1 className="text-5xl font-bold tracking-tight text-amber-400 mb-4">MatchOps</h1>
+                <h1 className="font-[family-name:var(--font-rajdhani)] text-6xl font-bold tracking-[0.01em] text-action mb-4">MatchOps</h1>
                 <div className="max-w-sm text-center">
-                  <h2 className="text-xl font-semibold text-white mb-2">
+                  <h2 className="font-display text-3xl font-bold text-ink mb-2">
                     {t('page.connectionTimeout', 'Connection Timeout')}
                   </h2>
-                  <p className="text-slate-400 mb-6">
+                  <p className="text-ink-2 mb-6">
                     {t('page.connectionTimeoutDesc', 'Unable to connect to the server. This can happen after the app has been in the background for a while.')}
                   </p>
                   <div className="space-y-3">
                     <button
                       onClick={retryAuthInit}
-                      className="w-full h-12 px-4 py-2 rounded-md text-base font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-600 transition-all"
+                      className={`${primaryButtonStyle} w-full min-h-12`}
                     >
                       {t('page.tryAgain', 'Try Again')}
                     </button>
                     {!skipWelcomeScreen && (
                       <button
                         onClick={handleLoginUseLocalMode}
-                        className="w-full h-12 px-4 py-2 rounded-md text-base font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"
+                        className={`${secondaryButtonStyle} w-full min-h-12`}
                       >
                         {t('page.useLocalModeInstead', 'Use Local Mode Instead')}
                       </button>
@@ -2073,7 +2176,7 @@ export default function Home() {
                 data-testid="cloud-data-pending"
                 className="fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top,0px))] z-[25] flex justify-center px-4 pointer-events-none"
               >
-                <span className="pointer-events-auto rounded-xl border border-slate-700 bg-slate-800/95 backdrop-blur-sm shadow-xl px-3 py-2 text-sm text-slate-100 flex items-center gap-3">
+                <span className="pointer-events-auto rounded-2xl bg-surface-2 font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)] pl-4 pr-2 py-2 min-h-12 text-[15px] text-ink flex items-center gap-3">
                   {/* After a few failed tries, say so and offer a manual retry. */}
                   {pendingCloudPull.failures >= 3
                     ? t('page.couldNotCheckCloudData', 'Could not check cloud data. Your data will load automatically.')
@@ -2083,7 +2186,7 @@ export default function Home() {
                       type="button"
                       data-testid="cloud-data-retry"
                       onClick={pendingCloudPull.retryNow}
-                      className="shrink-0 rounded-md bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-500"
+                      className={`${primaryButtonStyle} shrink-0`}
                     >
                       {t('errors.tryAgain', 'Try Again')}
                     </button>
@@ -2145,6 +2248,16 @@ export default function Home() {
           </>
         )}
         </div>
+
+        {/* Launch / auth-transition screen (fixed, full viewport). Kept outside the
+            chain above so the same instance fades out over the next screen. */}
+        {!isBlockedByOtherTab && (showLoadingScreen || loadingScreenExiting) && (
+          <LoadingScreen
+            message={loadingMessage}
+            hideMessage={!isSigningOut && !isPostLoginLoading}
+            exiting={!showLoadingScreen}
+          />
+        )}
 
         {/* Auth grace period banner — offline with cached session (see component for z-index and height notes). */}
         {isAuthGracePeriod && <OfflineGraceBanner />}

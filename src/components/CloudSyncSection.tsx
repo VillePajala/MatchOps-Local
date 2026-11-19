@@ -20,7 +20,16 @@ import type { LocalDataCheckResult } from '@/services/migrationService';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { useSubscriptionOptional, clearSubscriptionCache } from '@/contexts/SubscriptionContext';
-import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import {
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  dangerButtonStyle,
+  groupedListStyle,
+  sectionLabelStyle,
+  subtextStyle,
+  warningBoxStyle,
+  errorBoxStyle,
+} from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { isPlayStoreContext } from '@/utils/platform';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
@@ -529,32 +538,34 @@ export default function CloudSyncSection({
     }
   };
 
-  const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
+  const labelStyle = 'font-ui text-sm font-medium text-ink-2 mb-1';
+  const smallButton = `${secondaryButtonStyle} min-h-10! px-4! text-sm!`;
 
   return (
-    <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <h3 className="text-lg font-semibold text-slate-200">
-        {t('cloudSync.title', 'Account & Sync')}
-      </h3>
+    <section className="space-y-2 font-ui">
+    <h3 className={`${sectionLabelStyle} px-1`}>
+      {t('cloudSync.title', 'Account & Sync')}
+    </h3>
+    <div className={`${groupedListStyle} p-4 space-y-3`}>
 
-      {/* Current Status */}
-      <div className="flex items-center gap-3 p-3 rounded-md bg-slate-800/50">
+      {/* Current Status: a plain row of the card, not a box inside it. */}
+      <div className="flex items-center gap-3 min-h-14">
         {currentMode === 'cloud' ? (
           <>
-            <HiOutlineCloud className="h-6 w-6 text-sky-400" />
+            <HiOutlineCloud className="h-6 w-6 text-ink-2" />
             <div>
               <p className={labelStyle}>{t('cloudSync.statusLabel', 'Current Mode')}</p>
-              <p className="text-sm text-sky-400 font-medium">
+              <p className="font-ui text-base text-ink font-semibold">
                 {t('cloudSync.cloudMode', 'Cloud Sync Enabled')}
               </p>
             </div>
           </>
         ) : (
           <>
-            <HiOutlineServer className="h-6 w-6 text-slate-400" />
+            <HiOutlineServer className="h-6 w-6 text-ink-3" />
             <div>
               <p className={labelStyle}>{t('cloudSync.statusLabel', 'Current Mode')}</p>
-              <p className="text-sm text-slate-300 font-medium">
+              <p className="font-ui text-base text-ink font-semibold">
                 {t('cloudSync.localMode', 'Local Storage')}
               </p>
             </div>
@@ -563,7 +574,7 @@ export default function CloudSyncSection({
       </div>
 
       {/* Mode Description */}
-      <p className="text-sm text-slate-400">
+      <p className={subtextStyle}>
         {currentMode === 'cloud'
           ? (subscriptionLoading || hasSubscription
             ? t('cloudSync.cloudDescription', 'Your data syncs to the cloud. Access from any device after signing in.')
@@ -574,17 +585,17 @@ export default function CloudSyncSection({
 
       {/* Sync Details - shown in cloud mode with active subscription */}
       {currentMode === 'cloud' && hasSubscription && (
-        <div className="p-3 rounded-md bg-slate-800/50 space-y-3">
+        <div className="pt-3 border-t border-hairline space-y-3">
           {/* Sync Status Row */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-300">{t('cloudSync.syncDetails.status', 'Sync Status')}</span>
+            <span className="font-ui text-sm text-ink-2">{t('cloudSync.syncDetails.status', 'Sync Status')}</span>
             <SyncStatusIndicator />
           </div>
 
           {/* Last Synced Row */}
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">{t('cloudSync.syncDetails.lastSynced', 'Last synced')}</span>
-            <span className="text-slate-300">
+            <span className="text-ink-3">{t('cloudSync.syncDetails.lastSynced', 'Last synced')}</span>
+            <span className="text-ink-2">
               {syncStatus.lastSyncedAt
                 ? formatRelativeTime(syncStatus.lastSyncedAt)
                 : t('cloudSync.cloudAccount.neverSynced', 'Never')}
@@ -594,8 +605,8 @@ export default function CloudSyncSection({
           {/* Pending Changes Row */}
           {syncStatus.pendingCount > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">{t('cloudSync.syncDetails.pendingChanges', 'Pending changes')}</span>
-              <span className="text-amber-400 font-medium">{syncStatus.pendingCount}</span>
+              <span className="text-ink-3">{t('cloudSync.syncDetails.pendingChanges', 'Pending changes')}</span>
+              <span className="text-action font-semibold">{syncStatus.pendingCount}</span>
             </div>
           )}
 
@@ -605,16 +616,16 @@ export default function CloudSyncSection({
             <button
               onClick={syncStatus.syncNow}
               disabled={!syncStatus.isOnline || syncStatus.pendingCount === 0 || syncStatus.isSyncing || syncStatus.isPaused}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-600 text-white hover:bg-slate-500 border border-slate-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`${smallButton} flex-1`}
             >
               {syncStatus.isSyncing ? (
                 <>
-                  <HiOutlineArrowPath className="h-3.5 w-3.5 animate-spin" />
+                  <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
                   {t('cloudSync.syncDetails.syncing', 'Syncing...')}
                 </>
               ) : (
                 <>
-                  <HiOutlineArrowPath className="h-3.5 w-3.5" />
+                  <HiOutlineArrowPath className="h-4 w-4" />
                   {t('cloudSync.syncDetails.syncNow', 'Sync Now')}
                 </>
               )}
@@ -624,11 +635,7 @@ export default function CloudSyncSection({
             <button
               onClick={syncStatus.isPaused ? syncStatus.resume : syncStatus.pause}
               disabled={syncStatus.isSyncing}
-              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                syncStatus.isPaused
-                  ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
-                  : 'bg-slate-600 text-white hover:bg-slate-500 border border-slate-500/30'
-              }`}
+              className={smallButton}
               title={syncStatus.isPaused
                 ? t('cloudSync.syncDetails.resumeTitle', 'Resume automatic sync')
                 : t('cloudSync.syncDetails.pauseTitle', 'Pause automatic sync')
@@ -636,12 +643,12 @@ export default function CloudSyncSection({
             >
               {syncStatus.isPaused ? (
                 <>
-                  <HiOutlinePlay className="h-3.5 w-3.5" />
+                  <HiOutlinePlay className="h-4 w-4" />
                   {t('cloudSync.syncDetails.resume', 'Resume')}
                 </>
               ) : (
                 <>
-                  <HiOutlinePause className="h-3.5 w-3.5" />
+                  <HiOutlinePause className="h-4 w-4" />
                   {t('cloudSync.syncDetails.pause', 'Pause')}
                 </>
               )}
@@ -650,8 +657,8 @@ export default function CloudSyncSection({
 
           {/* Paused Warning */}
           {syncStatus.isPaused && (
-            <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/30">
-              <p className="text-sm text-amber-300">
+            <div className={`${warningBoxStyle} p-3!`}>
+              <p className="font-ui text-sm text-ink-2">
                 {t('cloudSync.syncDetails.pausedWarning', 'Sync is paused. Changes are saved locally and will sync when you resume.')}
               </p>
             </div>
@@ -659,23 +666,23 @@ export default function CloudSyncSection({
 
           {/* Failed Operations Warning */}
           {syncStatus.failedCount > 0 && (
-            <div className="p-3 rounded-md bg-red-900/20 border border-red-700">
+            <div className={`${errorBoxStyle} p-3!`}>
               <div className="flex items-center gap-2 mb-2">
                 <HiOutlineExclamationTriangle className="h-4 w-4 text-red-400" />
-                <p className="text-sm text-red-300">
+                <p className="font-ui text-sm text-ink">
                   {t('cloudSync.syncDetails.failedCount', '{{count}} operations failed to sync.', { count: syncStatus.failedCount })}
                 </p>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={syncStatus.retryFailed}
-                  className="flex-1 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-600 text-white hover:bg-slate-500 border border-slate-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`${smallButton} flex-1`}
                 >
                   {t('cloudSync.syncDetails.retry', 'Retry')}
                 </button>
                 <button
                   onClick={syncStatus.clearFailed}
-                  className="flex-1 px-3 py-1.5 rounded-md text-xs font-medium bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`${dangerButtonStyle} min-h-10! px-4! text-sm! flex-1`}
                 >
                   {t('cloudSync.syncDetails.discard', 'Discard')}
                 </button>
@@ -685,10 +692,10 @@ export default function CloudSyncSection({
 
           {/* Cloud Not Connected Warning - pending items but cloud backend not ready */}
           {!syncStatus.cloudConnected && syncStatus.pendingCount > 0 && !syncStatus.isLoading && (
-            <div className="p-3 rounded-md bg-amber-900/20 border border-amber-700">
+            <div className={`${warningBoxStyle} p-3!`}>
               <div className="flex items-center gap-2">
-                <HiOutlineExclamationTriangle className="h-4 w-4 text-amber-400" />
-                <p className="text-sm text-amber-300">
+                <HiOutlineExclamationTriangle className="h-4 w-4 text-action" />
+                <p className="font-ui text-sm text-ink-2">
                   {t('cloudSync.syncDetails.cloudNotConnected', 'Cloud connection initializing... Changes will sync automatically when ready.')}
                 </p>
               </div>
@@ -700,18 +707,18 @@ export default function CloudSyncSection({
       {/* Subscription Warning - shown in cloud mode without active subscription */}
       {/* Only show when we've confirmed no subscription (not while loading) */}
       {currentMode === 'cloud' && !subscriptionLoading && !hasSubscription && (
-        <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
-          <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className={`${warningBoxStyle} flex items-start gap-2 p-3!`}>
+          <HiOutlineExclamationTriangle className="h-5 w-5 text-action flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm text-amber-300 font-medium">
+            <p className="font-ui text-sm text-ink font-semibold">
               {t('cloudSync.subscriptionRequired', 'Subscription Required')}
             </p>
-            <p className="text-sm text-amber-300/80 mt-1">
+            <p className={`${subtextStyle} mt-1`}>
               {t('cloudSync.subscriptionRequiredDescription', 'Your account is active but cloud sync is paused. Subscribe to sync your data across devices.')}
             </p>
             <button
               onClick={() => setShowUpgradeModal(true)}
-              className="mt-2 px-3 py-1.5 text-sm font-medium bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-md transition-colors"
+              className={`${primaryButtonStyle} mt-3 min-h-10! px-4! text-sm!`}
             >
               {t('cloudSync.subscribeButton', 'Subscribe Now')}
             </button>
@@ -725,7 +732,7 @@ export default function CloudSyncSection({
           <button
             onClick={requestSignOut}
             disabled={isSigningOut || isChangingMode}
-            className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
+            className={`${secondaryButtonStyle} w-full`}
           >
             {isSigningOut ? (
               <>
@@ -758,7 +765,7 @@ export default function CloudSyncSection({
             <button
               onClick={handleImportLocalData}
               disabled={isCheckingLocalData || isChangingMode}
-              className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-2 text-sm`}
+              className={`${secondaryButtonStyle} w-full`}
             >
               {isCheckingLocalData ? (
                 <>
@@ -780,7 +787,7 @@ export default function CloudSyncSection({
             <button
               onClick={handleStartOver}
               disabled={isSigningOut || isChangingMode}
-              className="w-full text-center text-slate-400 hover:text-white text-sm underline transition-colors disabled:opacity-50 pt-2"
+              className="w-full min-h-11 text-center font-ui text-ink-3 hover:text-ink text-sm underline underline-offset-[3px] transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-action rounded-full"
             >
               {t('cloudSync.startOver', 'Sign out and return to setup')}
             </button>
@@ -790,9 +797,9 @@ export default function CloudSyncSection({
 
       {/* Cloud Not Available Warning */}
       {!cloudAvailable && currentMode === 'local' && (
-        <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
-          <HiOutlineExclamationTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-300">
+        <div className={`${warningBoxStyle} flex items-start gap-2 p-3!`}>
+          <HiOutlineExclamationTriangle className="h-5 w-5 text-action flex-shrink-0 mt-0.5" />
+          <p className="font-ui text-sm text-ink-2">
             {t('cloudSync.notAvailable', 'Cloud sync is not available. This feature requires a premium subscription and server configuration.')}
           </p>
         </div>
@@ -804,7 +811,7 @@ export default function CloudSyncSection({
           <button
             onClick={handleEnableCloud}
             disabled={isChangingMode || !cloudAvailable}
-            className={`${primaryButtonStyle} flex items-center justify-center gap-2 w-full py-3`}
+            className={`${primaryButtonStyle} w-full`}
           >
             {isChangingMode ? (
               <HiOutlineArrowPath className="h-5 w-5 animate-spin" />
@@ -820,7 +827,7 @@ export default function CloudSyncSection({
           <button
             onClick={handleDisableCloud}
             disabled={isChangingMode}
-            className={`${secondaryButtonStyle} flex items-center justify-center gap-2 w-full py-3`}
+            className={`${secondaryButtonStyle} w-full`}
           >
             {isChangingMode ? (
               <HiOutlineArrowPath className="h-5 w-5 animate-spin" />
@@ -837,42 +844,42 @@ export default function CloudSyncSection({
 
       {/* Migration Note */}
       {currentMode === 'local' && cloudAvailable && (
-        <p className="text-sm text-slate-400">
+        <p className={subtextStyle}>
           {t('cloudSync.migrationNote', 'When you enable cloud sync, you can migrate your existing local data to the cloud.')}
         </p>
       )}
 
       {/* Switch to Local Mode note - explains the cloud data deletion option */}
       {currentMode === 'cloud' && (
-        <p className="text-sm text-slate-400">
+        <p className={subtextStyle}>
           {t('cloudSync.switchToLocalNote', 'When switching to local mode, you can choose to keep or delete your cloud data.')}
         </p>
       )}
 
       {/* Cloud Account Section - Shown in LOCAL mode when user has cloud account info */}
       {currentMode === 'local' && cloudAccountInfo && (
-        <div className="pt-4 mt-4 border-t border-white/10">
+        <div className="pt-4 mt-4 border-t border-hairline">
           <div className="flex items-center gap-2 mb-3">
-            <HiOutlineLockClosed className="h-5 w-5 text-slate-400" />
-            <h4 className="text-sm font-medium text-slate-300">
+            <HiOutlineLockClosed className="h-5 w-5 text-ink-3" />
+            <h4 className={sectionLabelStyle}>
               {t('cloudSync.cloudAccount.title', 'Cloud Account')}
             </h4>
           </div>
 
           {/* Account info - horizontal card style */}
-          <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md mb-2">
-            <HiOutlineUser className="h-5 w-5 text-slate-400 flex-shrink-0 mt-0.5" />
+          <div className="flex items-start gap-3 py-2 mb-2">
+            <HiOutlineUser className="h-5 w-5 text-ink-3 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-slate-200">
+              <p className="font-ui text-base font-medium text-ink">
                 {cloudAccountInfo?.email || t('cloudSync.cloudAccount.unknownEmail', 'Unknown')}
               </p>
-              <p className="text-sm text-slate-400">
+              <p className={subtextStyle}>
                 {t('cloudSync.cloudAccount.lastSynced', 'Last synced: {{date}}', {
                   date: formatDate(cloudAccountInfo?.lastSyncedAt),
                 })}
               </p>
               {cloudAccountInfo?.hasCloudData && (
-                <p className="text-sm text-amber-400 mt-1">
+                <p className="font-ui text-sm text-ink-2 mt-1">
                   {t('cloudSync.cloudAccount.hasCloudData', 'You have data stored in the cloud.')}
                 </p>
               )}
@@ -881,18 +888,19 @@ export default function CloudSyncSection({
 
           {/* Delete cloud data from local mode - horizontal card style */}
           {cloudAccountInfo?.hasCloudData && (
-            <div className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md border border-red-700/30">
+            <div className={`${errorBoxStyle} flex items-start gap-3 p-3!`}>
               <div className="flex-1">
-                <p className="text-sm font-medium text-slate-200">
+                <p className="font-ui text-base font-medium text-ink">
                   {t('cloudSync.cloudAccount.deleteCloudData', 'Delete All Cloud Data')}
                 </p>
-                <p className="text-sm text-slate-400">
+                <p className={subtextStyle}>
                   {t('cloudSync.cloudAccount.deleteNote', 'This will permanently delete all your data from our servers.')}
                 </p>
               </div>
               <button
                 onClick={handleDeleteCloudFromLocalMode}
-                className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/50 rounded text-sm font-medium transition-colors"
+                className="inline-flex items-center justify-center min-h-11 min-w-11 rounded-full s1-ghost text-red-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                aria-label={t('cloudSync.cloudAccount.deleteCloudData', 'Delete All Cloud Data')}
               >
                 <HiOutlineTrash className="h-5 w-5" />
               </button>
@@ -956,5 +964,6 @@ export default function CloudSyncSection({
 
       {transitionMessage && <TransitionOverlay message={transitionMessage} />}
     </div>
+    </section>
   );
 }

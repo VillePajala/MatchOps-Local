@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import GameWrapUpCard from '../GameWrapUpCard';
-import { computeGameCompleteness } from '@/utils/gameCompleteness';
+import { computeGameCompleteness as computeRaw } from '@/utils/gameCompleteness';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -9,6 +9,10 @@ jest.mock('react-i18next', () => ({
       (fallback ?? _key).replace(/\{\{(\w+)\}\}/g, (_m, name) => String(options?.[name] ?? '')),
   }),
 }));
+
+/** A finished (started) game - only a started game is judged (R2). */
+const computeGameCompleteness = (...[game, options]: Parameters<typeof computeRaw>) =>
+  computeRaw({ gameStatus: 'gameEnd', ...game }, options);
 
 const completeness = computeGameCompleteness({
   isPlayed: true,
@@ -30,7 +34,7 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     rerender(<GameWrapUpCard completeness={completeness} voiceClipCount={3} onOpenVoiceNotes={onOpenVoiceNotes} />);
     fireEvent.click(screen.getByText('3 voice notes to review'));
     expect(onOpenVoiceNotes).toHaveBeenCalledTimes(1);
-    // ...and it is a scored row now: unhandled audio is unfinished work.
+    // ...shown as outstanding work, though not part of the core count.
     expect(screen.getByTestId('wrap-up-status-voiceNotes-todo')).toBeInTheDocument();
   });
 
@@ -49,17 +53,15 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
 
     // The number and the bar come from the same model the list does, so they
     // cannot disagree with the rows underneath.
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent(/^\d\/6$/);
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent(/^\d\/2$/);
     expect(screen.getByTestId('wrap-up-progress-bar')).toBeInTheDocument();
   });
 
   /**
-   * @critical - the bar and the list have twice drifted apart (first the
-   * competition/team row, then these two). The rule is now one function, and
-   * this test states it end to end: a row the list shows in amber is a row the
-   * bar does not count, and every other row it does.
+   * @critical - R7: the counter is the D2 core only, so it agrees with
+   * "Complete" whatever the other rows say.
    */
-  it('never counts a row the list shows as outstanding, and always counts the rest', () => {
+  it('counts only squad and goal log, whatever the other rows say', () => {
     // One of two players positioned and assessed: genuinely partial, which is
     // the state that used to read "all done" on the bar and "todo" in the list.
     const partial = computeGameCompleteness({
@@ -82,11 +84,12 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     expect(screen.queryByTestId('wrap-up-status-positions-todo')).not.toBeInTheDocument();
     expect(screen.queryByTestId('wrap-up-status-assessments-todo')).not.toBeInTheDocument();
 
-    // And the count agrees: nothing is amber, so the bar is full.
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('6/6');
+    // Squad + a consistent 0-0 goal log: the core is done, so the counter is full.
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('2/2');
+    expect(screen.getByText('Complete')).toBeInTheDocument();
   });
 
-  it('shows an outstanding row in amber and leaves it out of the count', () => {
+  it('shows an outstanding row in amber without it touching the count', () => {
     // Nobody assessed: the row is amber, so the bar must not count it.
     const noAssessments = computeGameCompleteness({
       isPlayed: true,
@@ -103,17 +106,18 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     expect(screen.getByTestId('wrap-up-status-assessments-todo')).toBeInTheDocument();
     // All squad positioned -> the solid tick, not the partial one.
     expect(screen.getByTestId('wrap-up-status-positions-done')).toBeInTheDocument();
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('5/6');
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('2/2');
   });
 
-  it('does not call the game Complete while clips still wait', () => {
+  /** @critical - "Complete" and the counter follow the same rule, clips or not. */
+  it('keeps Complete and a full counter while clips wait - the clips row stays amber', () => {
     const complete = computeGameCompleteness({
       isPlayed: true, gameNotes: 'Good game', selectedPlayerIds: ['p1'], seasonId: '', tournamentId: '', teamId: '', playerPositions: {}, assessments: {},
     });
-    const { rerender } = render(<GameWrapUpCard completeness={complete} voiceClipCount={0} />);
+    render(<GameWrapUpCard completeness={complete} voiceClipCount={1} />);
     expect(screen.getByText('Complete')).toBeInTheDocument();
-    rerender(<GameWrapUpCard completeness={complete} voiceClipCount={1} />);
-    expect(screen.getByText('Needs finishing')).toBeInTheDocument();
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('2/2');
+    expect(screen.getByTestId('wrap-up-status-voiceNotes-todo')).toBeInTheDocument();
   });
 });
 
@@ -131,7 +135,7 @@ describe('assessments setting', () => {
 });
 
 describe('rows match the counter', () => {
-  /** Every item the counter counts is a row, done or not, or the list and the number disagree. */
+  /** Both counted items are rows, done or not, or the list and the number disagree. */
   it('shows the squad row as done rather than hiding it', () => {
     const c = computeGameCompleteness(
       { isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '', teamId: '', playerPositions: {}, assessments: {} },
@@ -141,7 +145,8 @@ describe('rows match the counter', () => {
     expect(screen.getByTestId('wrap-up-status-roster-done')).toBeInTheDocument();
     const rows = screen.getAllByRole('listitem');
     expect(rows).toHaveLength(5);
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('3/5');
+    expect(screen.getByTestId('wrap-up-status-goals-done')).toBeInTheDocument();
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('2/2');
   });
 });
 
@@ -171,16 +176,12 @@ describe('consistency rows', () => {
     expect(screen.queryByText('Goal scorers named')).not.toBeInTheDocument();
   });
 
-  /**
-   * @critical - a row the counter cannot count is the mismatch this card has
-   * produced twice. Voice clips are a banner precisely because the model does
-   * not know about them.
-   */
-  it('keeps the rows equal to the counter, with clips waiting', () => {
+  /** @critical - the counter's total is the two core rows, which are always listed. */
+  it('always lists the two counted rows', () => {
     render(<GameWrapUpCard completeness={game()} voiceClipCount={3} onOpenVoiceNotes={jest.fn()} />);
-    const rows = screen.getAllByRole('listitem');
-    const [, total] = (screen.getByTestId('wrap-up-progress-count').textContent ?? '').split('/');
-    expect(rows).toHaveLength(Number(total));
+    expect(screen.getByTestId('wrap-up-status-roster-done')).toBeInTheDocument();
+    expect(screen.getByTestId('wrap-up-status-goals-done')).toBeInTheDocument();
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('2/2');
   });
 });
 
@@ -237,5 +238,43 @@ describe('the recordings row turns green', () => {
     }, { assessmentsEnabled: false });
     render(<GameWrapUpCard completeness={noAudio} voiceClipCount={0} />);
     expect(screen.queryByTestId('wrap-up-status-voiceNotes-done')).not.toBeInTheDocument();
+  });
+});
+
+describe('D2 "valmis" and the competition row', () => {
+  const base = {
+    isPlayed: true, gameNotes: '', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '',
+    teamId: '', playerPositions: {}, assessments: {},
+  };
+
+  /**
+   * @critical - the report is a checklist item, not the bar for Complete (D2):
+   * squad + a goal log matching the score is.
+   */
+  it('calls a game Complete without a report once the goal log matches the score', () => {
+    const c = computeGameCompleteness({ ...base, gameEvents: [{ type: 'goal' }], homeScore: 1, awayScore: 0 });
+    render(<GameWrapUpCard completeness={c} />);
+    expect(screen.getByText('Complete')).toBeInTheDocument();
+    // The report row is still there to do.
+    expect(screen.getByTestId('wrap-up-status-report-todo')).toBeInTheDocument();
+  });
+
+  it('says Needs finishing while goals are missing from the log', () => {
+    const c = computeGameCompleteness({ ...base, gameNotes: 'Report', gameEvents: [{ type: 'goal' }], homeScore: 2, awayScore: 0 });
+    render(<GameWrapUpCard completeness={c} />);
+    expect(screen.getByText('Needs finishing')).toBeInTheDocument();
+  });
+
+  /** The competition row is hidden when not relevant (basic layout, or nothing to link to). */
+  it('hides the competition row when not relevant, the count unchanged', () => {
+    const c = computeGameCompleteness(base, { assessmentsEnabled: false });
+    const { rerender } = render(<GameWrapUpCard completeness={c} />);
+    expect(screen.getByText('Competition & team')).toBeInTheDocument();
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('2/2');
+
+    rerender(<GameWrapUpCard completeness={c} showCompetition={false} />);
+    expect(screen.queryByText('Competition & team')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(4);
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('2/2');
   });
 });

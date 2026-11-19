@@ -19,37 +19,30 @@ export function fairnessHue(ratio: number | null): number | null {
   return Math.round(((clamped - 0.4) / 1.1) * 130);
 }
 
-/** Disc/segment fill on the pitch: saturated, dark enough for white text. */
-export function fairnessFill(ratio: number | null): string {
+/**
+ * THE fairness colour (round 2, owner): one muted step of the ramp used by
+ * every planner surface - the discs on the pitch, the totals chips on the Games
+ * tab and the level stripe of the Balance tiles - so a player's colour means
+ * the same everywhere. Muted (low saturation, dark) so it sits calmly in the
+ * navy UI and still carries white text.
+ */
+export function fairnessColor(ratio: number | null): string {
   const hue = fairnessHue(ratio);
-  return hue === null ? '#334155' /* slate-700 */ : `hsl(${hue}, 62%, 34%)`;
+  return hue === null ? '#334155' /* slate-700 */ : `hsl(${hue}, 42%, 38%)`;
+}
+
+/** Disc/segment fill on the pitch: the shared muted colour. */
+export function fairnessFill(ratio: number | null): string {
+  return fairnessColor(ratio);
 }
 
 /** Small text tint (minutes under a disc / on a bench chip) on dark ground. */
 export function fairnessText(ratio: number | null): string {
   const hue = fairnessHue(ratio);
-  return hue === null ? '#94a3b8' /* slate-400 */ : `hsl(${hue}, 80%, 68%)`;
+  return hue === null ? '#94a3b8' /* slate-400 */ : `hsl(${hue}, 60%, 72%)`;
 }
 
-/** Strip/list cell background: slightly brighter than the pitch fill. */
+/** Strip/list cell background: the shared muted colour. */
 export function fairnessCell(ratio: number | null): string {
-  const hue = fairnessHue(ratio);
-  return hue === null ? '#334155' : `hsl(${hue}, 60%, 36%)`;
-}
-
-/**
- * Whole-chip solid colours for the minutes view, ported from the standalone's
- * `ratioColors`: the chip background IS the signal, with banded text contrast -
- * cream text on the dark red/green ends, near-black text on the bright yellow
- * middle (a mid-lightness yellow needs dark text to stay readable).
- */
-export function fairnessChipColors(ratio: number | null): { bg: string; fg: string } {
-  const hue = fairnessHue(ratio);
-  if (hue === null) return { bg: '#475569', fg: '#e2e8f0' };
-  // Cream text only survives on the deep-red end; from hue 20 the orange bg
-  // is too light for it (WCAG < 3:1 at the band edge), so dark text takes over.
-  if (hue < 20) return { bg: `hsl(${hue}, 72%, 46%)`, fg: '#fef2f2' };
-  if (hue < 35) return { bg: `hsl(${hue}, 72%, 50%)`, fg: '#1a1a1a' };
-  if (hue < 85) return { bg: `hsl(${hue}, 78%, 60%)`, fg: '#1a1a1a' };
-  return { bg: `hsl(${hue}, 55%, 40%)`, fg: '#ecfdf5' };
+  return fairnessColor(ratio);
 }

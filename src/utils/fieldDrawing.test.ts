@@ -1,10 +1,18 @@
-import { FUTSAL_FIELD_CONFIG, SOCCER_FIELD_CONFIG } from '@/config/fieldConfigs';
+import { FUTSAL_FIELD_CONFIG, SOCCER_FIELD_CONFIG, SOCCER_GRASS, PITCH_GRASS } from '@/config/fieldConfigs';
+import type { FieldConfig } from '@/types/fieldConfig';
 import {
   drawFutsalMarkings,
   drawSoccerMarkings,
   drawFieldMarkings,
   drawFieldBackground,
+  getFieldEdgeColors,
 } from '@/utils/fieldDrawing';
+
+/** The football pitch with a given grass, whatever PITCH_GRASS is set to. */
+const soccerWith = (grass: 'clean' | 'classic'): FieldConfig => ({
+  ...SOCCER_FIELD_CONFIG,
+  style: { ...SOCCER_FIELD_CONFIG.style, ...SOCCER_GRASS[grass] },
+});
 
 /**
  * Creates a mock CanvasRenderingContext2D for testing.
@@ -346,14 +354,35 @@ describe('fieldDrawing', () => {
       expect(fillRectCalls[0]).toEqual({ x: 0, y: 0, w: W, h: H });
     });
 
-    it('creates gradients for lighting effects', () => {
+    it('creates gradients for lighting effects (classic grass)', () => {
       const { ctx } = createMockContext();
 
-      drawFieldBackground(ctx, 300, 450, SOCCER_FIELD_CONFIG);
+      drawFieldBackground(ctx, 300, 450, soccerWith('classic'));
 
       // Should create linear and radial gradients for lighting
       expect(ctx.createLinearGradient).toHaveBeenCalled();
       expect(ctx.createRadialGradient).toHaveBeenCalled();
+    });
+
+    it('paints clean grass with no noise, no lighting, and faint horizontal bands', () => {
+      const { ctx, fillRectCalls } = createMockContext();
+      const config = soccerWith('clean');
+
+      drawFieldBackground(ctx, 300, 450, config);
+
+      expect(ctx.createPattern).not.toHaveBeenCalled();
+      expect(ctx.createRadialGradient).not.toHaveBeenCalled();
+      // One full-size base fill, then every other band (the edge bands stay plain).
+      expect(fillRectCalls[0]).toEqual({ x: 0, y: 0, w: 300, h: 450 });
+      const bandH = 450 / config.style.stripeCount;
+      const bands = fillRectCalls.slice(1);
+      expect(bands).toHaveLength(Math.floor(config.style.stripeCount / 2));
+      bands.forEach((band) => {
+        expect(band.w).toBe(300);
+        expect(band.h).toBeCloseTo(bandH);
+        expect(band.y).toBeGreaterThan(0);
+        expect(band.y + band.h).toBeLessThan(450);
+      });
     });
 
     it('skips grass texture for futsal courts', () => {
@@ -369,13 +398,74 @@ describe('fieldDrawing', () => {
       // Note: createPattern might still be called for gradients
     });
 
-    it('applies grass texture for soccer fields', () => {
+    it('applies grass texture for classic soccer grass', () => {
       const { ctx } = createMockContext();
 
-      drawFieldBackground(ctx, 300, 450, SOCCER_FIELD_CONFIG);
+      drawFieldBackground(ctx, 300, 450, soccerWith('classic'));
 
-      // Soccer has grass texture enabled
+      expect(soccerWith('classic').style.showGrassTexture).toBe(true);
+      expect(ctx.createPattern).toHaveBeenCalled();
+    });
+
+    it('uses the grass PITCH_GRASS selects (one-line revert)', () => {
+      expect(SOCCER_FIELD_CONFIG.style.grass).toBe(PITCH_GRASS);
+      expect(SOCCER_FIELD_CONFIG.style.fieldColor).toBe(SOCCER_GRASS[PITCH_GRASS].fieldColor);
+    });
+
+    it('draws the original pitch: classic grass with its original lines', () => {
+      expect(PITCH_GRASS).toBe('classic');
+      expect(SOCCER_FIELD_CONFIG.style.fieldColor).toBe('#427B44');
       expect(SOCCER_FIELD_CONFIG.style.showGrassTexture).toBe(true);
+      expect(SOCCER_FIELD_CONFIG.style.stripeCount).toBe(9);
+      expect(SOCCER_FIELD_CONFIG.style.lineColor).toBe('rgba(255, 255, 255, 0.6)');
+      expect(SOCCER_FIELD_CONFIG.style.lineWidth).toBe(2);
+    });
+
+    it('keeps the thin bright lines with the clean grass', () => {
+      expect(soccerWith('clean').style.lineColor).toBe('rgba(255, 255, 255, 0.78)');
+    });
+
+    it('strokes classic lines with the original shadow and goal fill, clean ones with the light shadow', () => {
+      const strokeShadow = (config: FieldConfig) => {
+        const { ctx } = createMockContext();
+        const seen: Array<{ shadow: string; stroke: string }> = [];
+        (ctx.stroke as jest.Mock).mockImplementation(() => {
+          seen.push({ shadow: String(ctx.shadowColor), stroke: String(ctx.strokeStyle) });
+        });
+        const fills: string[] = [];
+        (ctx.fillRect as jest.Mock).mockImplementation(() => {
+          fills.push(String(ctx.fillStyle));
+        });
+        drawSoccerMarkings(ctx, 300, 450, config, 1);
+        return { first: seen[0], fills };
+      };
+      const classic = strokeShadow(soccerWith('classic'));
+      expect(classic.first).toEqual({ shadow: 'rgba(0, 0, 0, 0.25)', stroke: 'rgba(255, 255, 255, 0.6)' });
+      expect(classic.fills).toContain('rgba(255, 255, 255, 0.9)');
+      const clean = strokeShadow(soccerWith('clean'));
+      expect(clean.first).toEqual({ shadow: 'rgba(0, 0, 0, 0.12)', stroke: 'rgba(255, 255, 255, 0.78)' });
+      expect(clean.fills).toContain('rgba(255, 255, 255, 0.93)');
+    });
+  });
+
+  describe('getFieldEdgeColors (no seam between pitch and surround)', () => {
+    it('is exactly the clean grass edge colour at both ends', () => {
+      const config = soccerWith('clean');
+      expect(getFieldEdgeColors(config)).toEqual({ top: config.style.fieldColor, bottom: config.style.fieldColor });
+    });
+
+    it('matches classic grass: lighter at the top, shaded at the bottom', () => {
+      const { top, bottom } = getFieldEdgeColors(soccerWith('classic'));
+      const lum = (hex: string) => parseInt(hex.slice(1, 3), 16) + parseInt(hex.slice(3, 5), 16) + parseInt(hex.slice(5, 7), 16);
+      expect(top).toMatch(/^#[0-9a-f]{6}$/);
+      expect(bottom).toMatch(/^#[0-9a-f]{6}$/);
+      expect(lum(top)).toBeGreaterThan(lum(bottom));
+    });
+
+    it('keeps the futsal court surround', () => {
+      const { top, bottom } = getFieldEdgeColors(FUTSAL_FIELD_CONFIG);
+      expect(top).toBe(bottom);
+      expect(top).toMatch(/^#[0-9a-f]{6}$/);
     });
   });
 });

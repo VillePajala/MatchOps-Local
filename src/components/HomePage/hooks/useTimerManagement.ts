@@ -52,6 +52,13 @@ export interface UseTimerManagementProps {
   setIsPlayerAssessmentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   /** Fired after a goal / opponent goal / substitution is logged (drives the undo toast) */
   onActionLogged?: (kind: 'goal' | 'opponentGoal' | 'substitution') => void;
+  /**
+   * Fired when the coach starts the match clock for the FIRST time (not started,
+   * clock at 0) - a game marked "Not played yet" becomes played (Onboarding v3).
+   * Called in the same event as the start, so both land in one render and the
+   * save the start triggers carries the new played state.
+   */
+  onFirstTimerStart?: () => void;
 }
 
 /**
@@ -80,7 +87,21 @@ export interface UseTimerManagementReturn {
   handleOpenGoalLogModal: () => void;
 
   // Goal event handlers
-  handleAddGoalEvent: (scorerId: string | undefined, assisterId?: string) => void;
+  /** Logs our goal; returns the new event's id, or null when the scorer is unknown to the roster. */
+  handleAddGoalEvent: (scorerId: string | undefined, assisterId?: string) => string | null;
+  /**
+   * Quick goal entry (D16): logs our goal at once with no scorer (the score
+   * moves) and opens the "Who scored?" sheet for that goal.
+   */
+  handleQuickGoal: () => void;
+  /** The goal the quick "Who scored?" sheet is naming, or null when it is closed. */
+  quickGoalEventId: string | null;
+  handleCloseQuickGoal: () => void;
+  /**
+   * Names the quick goal's scorer/assister. Joins the goal's undo step: one Undo
+   * removes the goal with its names, not just the name.
+   */
+  handleNameQuickGoal: (event: GameEvent) => void;
   handleLogOpponentGoal: (time: number) => void;
   /** Recalculate the score from the goal log (events are the source of truth) */
   handleRecalculateScoreFromEvents: () => void;
@@ -108,6 +129,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     setIsGameStatsModalOpen,
     setIsPlayerAssessmentModalOpen,
     onActionLogged,
+    onFirstTimerStart,
   } = props;
 
   // --- Core Timer State (from useGameTimer) ---
@@ -116,7 +138,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     isTimerRunning,
     subAlertLevel,
     lastSubConfirmationTimeSeconds,
-    startPause: handleStartPauseTimer,
+    startPause: startPauseTimer,
     reset: handleResetTimer,
     endPeriodNow: handleEndPeriodNow,
     startExtraTime: handleStartExtraTime,
@@ -140,6 +162,18 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
   useEffect(() => {
     elapsedRef.current = gameSessionState.timeElapsedInSeconds;
   }, [gameSessionState.timeElapsedInSeconds]);
+
+  // The first start of the clock (Onboarding v3): a game still "Not played yet"
+  // flips to played. Only from a clock that has never run - a resumed or
+  // restarted-after-a-break clock is not a first start, so a coach who marked a
+  // test run "Not played yet" is not overruled on the next resume.
+  const { gameStatus, isTimerRunning: clockRunning } = gameSessionState;
+  const handleStartPauseTimer = useCallback(() => {
+    if (gameStatus === 'notStarted' && !clockRunning && elapsedRef.current === 0) {
+      onFirstTimerStart?.();
+    }
+    startPauseTimer();
+  }, [gameStatus, clockRunning, onFirstTimerStart, startPauseTimer]);
 
   // --- Timer UI Handlers ---
   const handleToggleLargeTimerOverlay = useCallback(() => {
@@ -168,7 +202,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
    * @param scorerId - Player ID who scored
    * @param assisterId - Optional player ID who assisted
    */
-  const handleAddGoalEvent = useCallback((scorerId: string | undefined, assisterId?: string) => {
+  const handleAddGoalEvent = useCallback((scorerId: string | undefined, assisterId?: string): string | null => {
     // Prefer current game's availablePlayers; fall back to master roster if empty
     const playerPool = (availablePlayers && availablePlayers.length > 0)
       ? availablePlayers
@@ -181,7 +215,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
       const scorer = playerPool.find(p => p.id === scorerId);
       if (!scorer) {
         logger.error("Scorer not found!");
-        return;
+        return null;
       }
       resolvedScorerId = scorer.id;
     }
@@ -200,12 +234,29 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: newEvent });
     dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'goal', action: 'add' } });
     onActionLogged?.('goal');
+    return newEvent.id;
   }, [
     availablePlayers,
     masterRoster,
     dispatchGameSession,
     onActionLogged,
   ]);
+
+  // --- Quick goal entry (D16) ---
+  // The goal is logged first, with no scorer (the existing "Unknown" goal), so
+  // the score moves on the first tap; the sheet then names the scorer and the
+  // assister on that same event. Skipping leaves it a team goal.
+  const [quickGoalEventId, setQuickGoalEventId] = useState<string | null>(null);
+  const handleQuickGoal = useCallback(() => {
+    const id = handleAddGoalEvent(undefined);
+    if (id) setQuickGoalEventId(id);
+  }, [handleAddGoalEvent]);
+  const handleCloseQuickGoal = useCallback(() => {
+    setQuickGoalEventId(null);
+  }, []);
+  const handleNameQuickGoal = useCallback((event: GameEvent) => {
+    dispatchGameSession({ type: 'AMEND_GAME_EVENT', payload: event });
+  }, [dispatchGameSession]);
 
   /**
    * Log an opponent goal
@@ -243,7 +294,10 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
   // --- Timer Interactions Object ---
   const timerInteractions = useMemo<TimerInteractions>(() => ({
     toggleLargeOverlay: handleToggleLargeTimerOverlay,
-    toggleGoalLogModal: handleToggleGoalLogModal,
+    // The timer's "Goal for us" button: it logs the goal at once and asks who
+    // scored (D16). The full goal form (editing, deleting, score repair) stays
+    // one tap away: Finish this game -> Add goal.
+    quickGoal: handleQuickGoal,
     onOpenPlayerAssessmentModal: handleOpenPlayerAssessmentModal,
     onFinishGame: handleFinishGame,
     logOpponentGoal: handleLogOpponentGoal,
@@ -255,7 +309,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     startExtraTime: handleStartExtraTime,
   }), [
     handleToggleLargeTimerOverlay,
-    handleToggleGoalLogModal,
+    handleQuickGoal,
     handleOpenPlayerAssessmentModal,
     handleFinishGame,
     handleLogOpponentGoal,
@@ -290,6 +344,10 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
 
     // Goal event handlers
     handleAddGoalEvent,
+    handleQuickGoal,
+    quickGoalEventId,
+    handleCloseQuickGoal,
+    handleNameQuickGoal,
     handleLogOpponentGoal,
     handleRecalculateScoreFromEvents,
 

@@ -15,8 +15,20 @@
  * ModalProvider and cannot call useModalContext itself.
  */
 import React from 'react';
+import { createPortal } from 'react-dom';
 import StartScreen from '@/components/StartScreen';
+import { lazyModal } from '@/components/lazyModal';
+import { useBasicHomeActions } from '@/hooks/useBasicHomeActions';
+import { useOnboardingUserId } from '@/components/setupWizardActive';
+import { readNextGameStepDraft } from '@/utils/nextGameStepDraft';
+import { Z_LAYER } from '@/styles/modalStyles';
 import { useModalContext } from '@/contexts/ModalProvider';
+import { useAppLayout, useSetAppLayout } from '@/hooks/useAppLayout';
+import { useToast } from '@/contexts/ToastProvider';
+import { useTranslation } from 'react-i18next';
+
+/** "Milloin seuraava peli?" + the plan screen (basic Home's "Uusi ottelu", R1). */
+const NextGameFlow = lazyModal(() => import('@/components/NextGameFlow'));
 
 type StartScreenProps = React.ComponentProps<typeof StartScreen>;
 
@@ -38,7 +50,15 @@ type LiftedHandlerProps =
   | 'onOpenAccount'
   | 'onOpenRules'
   | 'onOpenGuide'
-  | 'onOpenSettings';
+  | 'onOpenSettings'
+  | 'appLayout'
+  | 'onSwitchToFullLayout'
+  | 'onOpenAttendance'
+  | 'onShowPlan'
+  | 'onOpenPlannerAt'
+  | 'onMoveGameDate'
+  | 'onDeleteGame'
+  | 'onAddPlayers';
 
 export type StartScreenLiftedBridgeProps = Omit<StartScreenProps, LiftedHandlerProps> & {
   /** Called after a setup-relevant modal (roster/teams/competitions/new game)
@@ -75,7 +95,37 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
     isSettingsModalOpen,
     isExternalGamesOpen,
     isClubStatsOpen,
+    setPlannerTarget,
+    attendanceRequest,
+    setAttendanceRequest,
+    planQuickViewTarget,
+    setPlanQuickViewTarget,
+    isPlaytimePlannerOpen,
   } = useModalContext();
+  const { t } = useTranslation();
+  const { showToast } = useToast();
+  // The account's layout (Onboarding v3); undefined while settings load.
+  const layout = useAppLayout();
+  const setAppLayout = useSetAppLayout();
+  const isBasic = layout === 'basic';
+  // The settled account id (undefined while auth resolves) - the key the
+  // next-game step's answers are kept under.
+  const accountId = useOnboardingUserId();
+
+  /**
+   * Basic Home's "Uusi ottelu" (R1): the short next-game step, not the full
+   * form. Open while its answers are kept on the device, so a reload or an
+   * app kill brings the coach back to it (R3).
+   */
+  const [nextGameFlowOpen, setNextGameFlowOpen] = React.useState(false);
+  const reopenCheckedForRef = React.useRef<string | null | undefined>(undefined);
+  React.useEffect(() => {
+    if (!isBasic || accountId === undefined || reopenCheckedForRef.current === accountId) return;
+    reopenCheckedForRef.current = accountId;
+    // Reading a device store after mount (it is client-only), once per account.
+    if (readNextGameStepDraft(accountId)) setNextGameFlowOpen(true);
+  }, [isBasic, accountId]);
+  const basicActions = useBasicHomeActions(onSetupModalsClosed);
 
   // The page's Home flags (hasPlayers -> isFirstTimeUser, the setup tracker) and
   // its summary are snapshotted in checkAppState, which re-runs only on mount
@@ -98,16 +148,29 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
   //
   // AND TEAM STATISTICS (review 7.18): its "Check team names" renames opponents in
   // games, and Home's recent-results strip and last-opened card kept the old spelling.
+  //
+  // AND THE ATTENDANCE SHEET, THE PLAN SCREEN AND THE PLANNER (Onboarding v3):
+  // each can change the next game's squad or plan, which the basic card shows.
   const anyHomeAffectingModalOpen = isRosterModalOpen || isNewGameSetupModalOpen ||
     isSeasonTournamentModalOpen || isTeamManagerOpen || isPersonnelManagerOpen ||
-    isLoadGameModalOpen || isSettingsModalOpen || isExternalGamesOpen || isClubStatsOpen;
+    isLoadGameModalOpen || isSettingsModalOpen || isExternalGamesOpen || isClubStatsOpen ||
+    !!attendanceRequest || !!planQuickViewTarget || isPlaytimePlannerOpen || nextGameFlowOpen;
   const prevOpen = React.useRef(anyHomeAffectingModalOpen);
   React.useEffect(() => {
     if (prevOpen.current && !anyHomeAffectingModalOpen) onSetupModalsClosed?.();
     prevOpen.current = anyHomeAffectingModalOpen;
   }, [anyHomeAffectingModalOpen, onSetupModalsClosed]);
 
+  const openFullNewGame = () => {
+    // From Home there is no live selection to carry over - null lets the
+    // modal default to the full roster. (Match-side openers prefill the
+    // current game's selection through the same shared state.)
+    setPlayerIdsForNewGame(null);
+    setIsNewGameSetupModalOpen(true);
+  };
+
   return (
+    <>
     <StartScreen
       {...props}
       onLoadGame={() => setIsLoadGameModalOpen(true)}
@@ -115,13 +178,8 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
         setExternalGamesPlayerId(null);
         setIsExternalGamesOpen(true);
       }}
-      onNewGame={() => {
-        // From Home there is no live selection to carry over - null lets the
-        // modal default to the full roster. (Match-side openers prefill the
-        // current game's selection through the same shared state.)
-        setPlayerIdsForNewGame(null);
-        setIsNewGameSetupModalOpen(true);
-      }}
+      // Basic: the short next-game step; full: the New Game form as before.
+      onNewGame={isBasic ? () => setNextGameFlowOpen(true) : openFullNewGame}
       onOpenPlanner={() => setIsPlaytimePlannerOpen(true)}
       onViewStats={() => openClubStatsToTab('season')}
       onViewStatsTab={(tab) => openClubStatsToTab(tab)}
@@ -142,6 +200,51 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
       onOpenBackup={() => openSettingsToTab('data')}
       onOpenAccount={() => openSettingsToTab('account')}
       onOpenSettings={() => setIsSettingsModalOpen(true)}
+      appLayout={layout ?? 'loading'}
+      onSwitchToFullLayout={() => {
+        void setAppLayout('full').then((ok) => {
+          if (!ok) showToast(t('settingsModal.saveSettingError', 'Failed to save setting. Please try again.'), 'error');
+          // Home's summary depends on the layout (R2): rebuild it.
+          else onSetupModalsClosed?.();
+        });
+      }}
+      onOpenAttendance={(gameId, mode) =>
+        setAttendanceRequest({
+          gameId,
+          mode,
+          // "Aloita": the game opens on the pitch once the sheet is saved.
+          onStart: mode === 'start' ? () => props.onOpenGameById?.(gameId) : undefined,
+        })
+      }
+      onShowPlan={(planId, gameId) => setPlanQuickViewTarget({ planId, gameId })}
+      onOpenPlannerAt={(planId, planGameId) => {
+        setPlannerTarget({ planId, planGameId });
+        setIsPlaytimePlannerOpen(true);
+      }}
+      onMoveGameDate={basicActions.moveGameDate}
+      onDeleteGame={basicActions.deleteGame}
+      onAddPlayers={async (names) => {
+        const created = await basicActions.addPlayers(names);
+        // All in: straight on to "Milloin seuraava peli?" (R12).
+        if (created === names.length) setNextGameFlowOpen(true);
+        return created;
+      }}
     />
+    {nextGameFlowOpen &&
+      typeof document !== 'undefined' &&
+      createPortal(
+        <div className={`fixed inset-0 ${Z_LAYER.modal}`} data-testid="next-game-flow-layer">
+          <NextGameFlow
+            userId={accountId ?? undefined}
+            onClose={() => setNextGameFlowOpen(false)}
+            onMoreSettings={() => {
+              setNextGameFlowOpen(false);
+              openFullNewGame();
+            }}
+          />
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }

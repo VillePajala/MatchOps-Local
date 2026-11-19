@@ -5,7 +5,7 @@
  *
  * First-install welcome screen with 2 primary paths + footer link:
  * - Start without an account (local mode) - data stays on device
- * - Use Cloud Sync - enables cloud mode, shows login screen after reload
+ * - Create a free account (cloud) - enables cloud mode, shows the sign-up after reload
  * - Have a backup file? (footer link) - restore from exported file
  *
  * Only shown once on first launch. After user makes a choice,
@@ -18,6 +18,11 @@
 
 import { useTranslation } from 'react-i18next';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
+import {
+  titleStyle,
+  cardStyle,
+  linkStyle,
+} from '@/styles/modalStyles';
 // Note: Do NOT import updateAppSettings here. WelcomeScreen is pre-login,
 // so there's no userId and calling updateAppSettings would cause DataStore conflicts.
 
@@ -51,80 +56,69 @@ export default function WelcomeScreen({
   const [language, setLanguage] = useAppLanguage();
 
   return (
-    <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-y-auto">
-      {/* === AMBIENT BACKGROUND GLOWS === */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Blue glow - top right */}
-        <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
-        {/* Blue glow - bottom left */}
-        <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
-      </div>
-
+    <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-y-auto">
       {/* === MAIN CONTENT === */}
-      <div className="relative z-10 flex-1 flex flex-col px-6 py-6 pb-safe">
+      <div className="relative z-10 flex-1 flex flex-col px-6 pt-3 pb-6 pb-safe">
 
         {/* === TOP: Language Switcher === */}
-        <div className="flex justify-end mb-2">
-          <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
-            <button
-              onClick={() => setLanguage('en')}
-              className={`px-4 py-2.5 text-sm font-bold transition-all ${
-                language === 'en'
-                  ? 'bg-amber-500 text-slate-900'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-              }`}
-            >
-              EN
-            </button>
-            <button
-              onClick={() => setLanguage('fi')}
-              className={`px-4 py-2.5 text-sm font-bold transition-all ${
-                language === 'fi'
-                  ? 'bg-amber-500 text-slate-900'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-              }`}
-            >
-              FI
-            </button>
+        <div className="flex justify-end mb-1">
+          {/* Compact in width, but each button is the full 44px tall touch
+              target; the lifted pill inside it is only the visual. */}
+          <div className="s1-raised flex h-11 rounded-full px-0.5 text-xs font-bold tracking-[0.06em]">
+            {(['en', 'fi'] as const).map((lng) => (
+              <button
+                key={lng}
+                type="button"
+                onClick={() => setLanguage(lng)}
+                aria-pressed={language === lng}
+                className="group grid h-11 min-w-10 place-items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              >
+                <span
+                  className={`grid h-9 min-w-9 place-items-center rounded-full px-1.5 transition-colors ${
+                    language === lng ? 's1-seg-on text-ink' : 'text-ink-3 group-hover:text-ink-2'
+                  }`}
+                >
+                  {lng.toUpperCase()}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 
         {/* === HERO: App Name === */}
         <div className="flex-1 flex flex-col justify-center">
-          <div className="text-center mb-6">
+          <div className="text-center mb-5">
             {/* App Name as Logo */}
-            <div className="relative inline-block mb-3">
-              <h1 className="relative text-5xl sm:text-6xl font-bold tracking-tight">
-                <span className="text-amber-400">MatchOps</span>
-              </h1>
-            </div>
+            <h1 className="mb-3 font-[family-name:var(--font-rajdhani)] font-bold leading-none tracking-[0.01em] text-action text-[clamp(2.5rem,11vw,3.25rem)]">
+              MatchOps
+            </h1>
 
             {/* Welcome message */}
-            <p className="text-xl text-white font-medium mb-2">
+            <p className={`${titleStyle} mb-2`}>
               {t('welcome.title', 'Welcome!')}
             </p>
             {/* Instruction */}
-            <p className="text-base text-slate-400">
+            <p className="text-base text-ink-3">
               {t('welcome.instruction', 'Choose how you want to get started')}
             </p>
           </div>
 
           {/* === OPTION BUTTONS === */}
-          <div className="max-w-sm mx-auto w-full space-y-3">
+          <div className="max-w-sm mx-auto w-full space-y-2.5">
             {/* Start without account (Local) — hidden in Play Store context */}
             {!hideLocalModeOptions && (
               <button
                 onClick={onStartLocal}
-                className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all text-left"
+                className={`${cardStyle} block w-full min-h-14 text-left transition-colors hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-action`}
                 aria-label={t('welcome.startLocalAria', 'Start without an account, free')}
               >
-                <div className="text-white font-semibold text-lg">
+                <div className="text-ink font-semibold text-lg">
                   {t('welcome.startLocal', 'Start without an account')}
                 </div>
-                <div className="text-green-400 text-xs font-medium uppercase tracking-wide mb-1">
+                <div className="text-win text-xs font-semibold uppercase tracking-wide mb-1">
                   {t('welcome.badgeFree', 'FREE')}
                 </div>
-                <div className="text-slate-400 text-sm">
+                <div className="text-ink-3 text-sm">
                   {t('welcome.startLocalDesc', 'Your data is saved on this device only.')}
                 </div>
               </button>
@@ -134,23 +128,21 @@ export default function WelcomeScreen({
             {isCloudAvailable && (
               <button
                 onClick={onUseCloudSync}
-                className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all text-left"
-                aria-label={t('welcome.useCloudSyncAria', 'Use cloud sync, access from any device')}
+                className={`${cardStyle} block w-full min-h-14 text-left transition-colors hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-action`}
+                aria-label={t('welcome.useCloudSyncAria', 'Create a free account')}
               >
-                <div className="text-white font-semibold text-lg">
-                  {t('welcome.useCloudSync', 'Use Cloud Sync')}
+                {/* "Free" is in the title itself (D9), so no FREE badge here. */}
+                <div className="text-ink font-semibold text-lg mb-1">
+                  {t('welcome.useCloudSync', 'Create a free account')}
                 </div>
-                <div className="text-green-400 text-xs font-medium uppercase tracking-wide mb-1">
-                  {t('welcome.badgeFree', 'FREE')}
-                </div>
-                <div className="text-slate-400 text-sm">
-                  {t('welcome.useCloudSyncDesc', 'Sync your data across all your devices.')}
+                <div className="text-ink-3 text-sm">
+                  {t('welcome.useCloudSyncDesc', 'With an account your data stays safe, even if you change phones.')}
                 </div>
               </button>
             )}
             {/* Settings note — only shown when there's actually a choice to change */}
             {!hideLocalModeOptions && (
-              <p className="text-slate-400 text-sm text-center pt-1">
+              <p className="text-ink-3 text-sm text-center pt-1">
                 {t('welcome.changeInSettings', 'You can change this later in Settings')}
               </p>
             )}
@@ -158,19 +150,17 @@ export default function WelcomeScreen({
 
           {/* Footer: Import backup — hidden in Play Store (available via Settings after auth) */}
           {!hideLocalModeOptions && (
-            <div className="text-center mt-6">
-              <p className="text-slate-500 text-sm">
-                <button
-                  onClick={onImportBackup}
-                  disabled={isImporting}
-                  className="text-slate-400 hover:text-white underline transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label={isImporting ? t('welcome.importingAria', 'Importing backup file') : t('welcome.importBackupAria', 'Import backup file')}
-                >
-                  {isImporting
-                    ? t('welcome.importing', 'Importing...')
-                    : t('welcome.haveBackup', 'Have a backup file?')}
-                </button>
-              </p>
+            <div className="text-center mt-3">
+              <button
+                onClick={onImportBackup}
+                disabled={isImporting}
+                className={`${linkStyle} inline-flex min-h-11 items-center text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                aria-label={isImporting ? t('welcome.importingAria', 'Importing backup file') : t('welcome.importBackupAria', 'Import backup file')}
+              >
+                {isImporting
+                  ? t('welcome.importing', 'Importing...')
+                  : t('welcome.haveBackup', 'Have a backup file?')}
+              </button>
             </div>
           )}
         </div>

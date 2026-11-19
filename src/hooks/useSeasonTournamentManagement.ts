@@ -36,6 +36,8 @@ export interface UseSeasonTournamentManagementReturn {
   allSeasons: Season[];
   allTournaments: Tournament[];
   masterRoster: Player[];
+  /** Seasons or tournaments still on their first load (an error is not loading). */
+  isCompetitionsLoading: boolean;
   addSeasonMutation: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
   addTournamentMutation: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
   updateSeasonMutation: UseMutationResult<Season | null, Error, Season, unknown>;
@@ -163,6 +165,7 @@ export function useSeasonTournamentManagement(managerOpen = false): UseSeasonTou
     allSeasons: allSeasonsQuery.data ?? NO_SEASONS,
     allTournaments: allTournamentsQuery.data ?? NO_TOURNAMENTS,
     masterRoster: masterRosterQuery.data ?? NO_PLAYERS,
+    isCompetitionsLoading: seasonsQuery.isLoading || tournamentsQuery.isLoading,
     addSeasonMutation,
     addTournamentMutation,
     updateSeasonMutation,

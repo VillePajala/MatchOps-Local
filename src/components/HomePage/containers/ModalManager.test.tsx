@@ -202,6 +202,45 @@ describe('ModalManager', () => {
   });
 
   /**
+   * Quick goal entry (D16): the sheet names the just-logged goal's scorer from
+   * the game's whole squad - through nameQuickGoal, which keeps the name in the
+   * goal's own undo step (not the goal form's separate-step update).
+   * @integration
+   */
+  it('renders the quick goal sheet for the logged goal with the whole squad', () => {
+    const props = createProps();
+    const updateGameEvent = jest.fn();
+    const nameQuickGoal = jest.fn();
+    const closeQuickGoal = jest.fn();
+    const goal = { id: 'g1', type: 'goal' as const, time: 60 };
+    props.state.quickGoalEventId = 'g1';
+    props.data.gameSessionState = { ...initialGameSessionStatePlaceholder, gameEvents: [goal] };
+    props.data.playersForCurrentGame = [
+      { id: 'p1', name: 'Onni' },
+      { id: 'p2', name: 'Toivo' },
+      { id: 'p3', name: 'Leo' },
+    ];
+    props.handlers.updateGameEvent = updateGameEvent;
+    props.handlers.nameQuickGoal = nameQuickGoal;
+    props.handlers.closeQuickGoal = closeQuickGoal;
+
+    renderWithProvider(<ModalManager {...props} />);
+
+    expect(screen.getByTestId('quick-goal-sheet')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Leo' })).toBeInTheDocument();
+    act(() => {
+      screen.getByRole('button', { name: 'Toivo' }).click();
+    });
+    expect(nameQuickGoal).toHaveBeenCalledWith({ ...goal, scorerId: 'p2' });
+    expect(updateGameEvent).not.toHaveBeenCalled();
+  });
+
+  it('renders no quick goal sheet when none is open', () => {
+    renderWithProvider(<ModalManager {...createProps()} />);
+    expect(screen.queryByTestId('quick-goal-sheet')).not.toBeInTheDocument();
+  });
+
+  /**
    * 3.1 hardware-back contract: with the page-level "back exits to Home"
    * entry at the BOTTOM of the stack, an open MATCH-scope modal must
    * consume the back press - back closes the modal, it never exits the

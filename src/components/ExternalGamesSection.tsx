@@ -13,7 +13,7 @@ import { getTeamDisplayName } from '@/utils/teams';
 import { preferredSpellings, settleSpelling, NO_ADOPTION, type SpellingAdoption } from '@/utils/opponentNames';
 import SuggestionChips from './SuggestionChips';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
-import { ModalSwitch } from '@/styles/modalStyles';
+import { ModalSwitch, labelStyle, inputBaseStyle, selectStyle, secondaryButtonStyle, primaryButtonStyle, segmentTrackStyle, segmentStyle, segmentSelectedStyle, cardStyle, subtextStyle, fieldHintStyle, popoverMenuStyle, popoverItemStyle, iconButtonEditStyle } from '@/styles/modalStyles';
 import { format } from 'date-fns';
 import { fi, enUS } from 'date-fns/locale';
 import { positionsForSport } from '@/config/positions';
@@ -150,12 +150,12 @@ const ExternalGameScopeFields: React.FC<{
     const kept = prunePositions(positions, next);
     if (kept !== positions) onPositions(kept);
   };
-  const choice = (on: boolean) => `flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${on ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+  const choice = (on: boolean) => (on ? segmentSelectedStyle : segmentStyle);
   return (
     <>
       <div className="lg:col-span-3">
-        <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.positionsLabel', 'Positions played')}</label>
-        <p className="text-xs text-slate-500 mb-2">{t('playerStats.externalPositionsHint', 'Where the player played in this game. Counted in the positions played.')}</p>
+        <label className={labelStyle}>{t('playerStats.positionsLabel', 'Positions played')}</label>
+        <p className={`${fieldHintStyle} mb-2 mt-0`}>{t('playerStats.externalPositionsHint', 'Where the player played in this game. Counted in the positions played.')}</p>
         <PlayerPositionsEditor
           players={[player]}
           value={{ [player.id]: positions }}
@@ -163,31 +163,31 @@ const ExternalGameScopeFields: React.FC<{
           onChange={(next) => onPositions(next[player.id] ?? [])}
         />
       </div>
-      <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.gameTypeLabel', 'Sport Type')}</label>
-          <div className="flex gap-2">
+          <label className={labelStyle}>{t('common.gameTypeLabel', 'Sport Type')}</label>
+          <div className={segmentTrackStyle}>
             <button type="button" data-testid={`${prefix}-sport-soccer`} aria-pressed={gameType === 'soccer'} onClick={() => changeSport(gameType === 'soccer' ? '' : 'soccer')} className={choice(gameType === 'soccer')}>{t('common.gameTypeSoccer', 'Soccer')}</button>
             <button type="button" data-testid={`${prefix}-sport-futsal`} aria-pressed={gameType === 'futsal'} onClick={() => changeSport(gameType === 'futsal' ? '' : 'futsal')} className={choice(gameType === 'futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</button>
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.genderLabel', 'Gender')}</label>
-          <div className="flex gap-2">
+          <label className={labelStyle}>{t('common.genderLabel', 'Gender')}</label>
+          <div className={segmentTrackStyle}>
             <button type="button" data-testid={`${prefix}-gender-boys`} aria-pressed={gender === 'boys'} onClick={() => onGender(gender === 'boys' ? '' : 'boys')} className={choice(gender === 'boys')}>{t('common.genderBoys', 'Boys')}</button>
             <button type="button" data-testid={`${prefix}-gender-girls`} aria-pressed={gender === 'girls'} onClick={() => onGender(gender === 'girls' ? '' : 'girls')} className={choice(gender === 'girls')}>{t('common.genderGirls', 'Girls')}</button>
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor={`${prefix}-age-group`}>{t('newGameSetupModal.ageGroupLabel', 'Age Group (Optional)')}</label>
-          <select id={`${prefix}-age-group`} value={ageGroup} onChange={e => onAgeGroup(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+          <label className={labelStyle} htmlFor={`${prefix}-age-group`}>{t('newGameSetupModal.ageGroupLabel', 'Age Group (Optional)')}</label>
+          <select id={`${prefix}-age-group`} value={ageGroup} onChange={e => onAgeGroup(e.target.value)} className={selectStyle}>
             <option value="">{t('common.none', 'None')}</option>
             {AGE_GROUPS.map((group) => (<option key={group} value={group}>{group}</option>))}
             {/* A stored label outside today's list (the list has changed before) still shows and survives a save. */}
             {ageGroup && !AGE_GROUPS.includes(ageGroup) && <option value={ageGroup}>{ageGroup}</option>}
           </select>
         </div>
-        <p className="sm:col-span-3 text-xs text-slate-500">{t('playerStats.externalScopeHint', 'Sport and gender place the game under the stats filters. If either is missing, the game stays out of a filtered view.')}</p>
+        <p className={`sm:col-span-3 ${fieldHintStyle}`}>{t('playerStats.externalScopeHint', 'Sport and gender place the game under the stats filters. If either is missing, the game stays out of a filtered view.')}</p>
       </div>
     </>
   );
@@ -422,28 +422,37 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
     <>
         {/* External Games Section - Collapsible */}
         <div className="mt-6 mb-4">
+          {/* Opened as its own screen (defaultOpen) there is nothing to collapse into:
+              the section is always open, so the add button is always in view. */}
+          {!defaultOpen && (
           <button
             type="button"
             onClick={() => setShowExternalGames(v => !v)}
-            className="text-left w-full bg-slate-800/60 px-4 py-3.5 rounded-lg flex justify-between items-center gap-3 hover:bg-slate-800/80 transition-colors"
+            className="text-left w-full min-h-14 s1-list px-[18px] py-3 font-ui flex justify-between items-center gap-3 hover:bg-white/[0.03] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             aria-expanded={showExternalGames}
           >
-            <span className="font-semibold text-slate-100">{t('playerStats.externalGames', 'Added stats')}</span>
-            <span className="shrink-0 text-base leading-none text-slate-400">{showExternalGames ? '−' : '+'}</span>
+            <span className="font-semibold text-ink">{t('playerStats.externalGames', 'Added stats')}</span>
+            <span className="shrink-0 text-xl leading-none text-ink-3">{showExternalGames ? '−' : '+'}</span>
           </button>
+          )}
           {showExternalGames && (
-            <div className="mt-3">
+            <div className={defaultOpen ? '' : 'mt-3'}>
               <button
                 type="button"
-                className="text-sm px-4 py-2.5 bg-slate-700 text-slate-200 rounded-md border border-slate-600 hover:bg-slate-600 transition-colors"
+                className={`${primaryButtonStyle} w-full`}
                 data-testid="add-external-game"
                 onClick={() => { if (!showAdjForm) { adjScope.reset(); resetAdjAdoption(); } setShowAdjForm(!showAdjForm); setEditingAdjId(null); }}
               >
                 {t('playerStats.addExternalStats', 'Add game')}
               </button>
+              {!hasAdjustments && !showAdjForm && (
+                <p className={`mt-3 text-center ${subtextStyle}`} data-testid="external-games-empty">
+                  {t('playerStats.noExternalGames', 'No added games yet.')}
+                </p>
+              )}
           {showAdjForm && (
             <form
-              className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-800/60 p-4 rounded-lg border border-slate-600"
+              className={`${cardStyle} mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`}
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!player) return;
@@ -517,7 +526,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
               {/* Who was this game for? Asked BEFORE the competition, because
                   the answer often fills the competition in. */}
               <div className="lg:col-span-3">
-                <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor="adj-team">
+                <label className={labelStyle} htmlFor="adj-team">
                   {t('playerStats.whichTeam', 'Which team was this game for?')}
                 </label>
                 <select
@@ -525,7 +534,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                   data-testid="adj-team-select"
                   value={adjTeamId}
                   onChange={e => applyAdjTeam(e.target.value)}
-                  className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  className={selectStyle}
                 >
                   {/* Default, and the common case: he played for somebody else. */}
                   <option value="">{t('playerStats.anotherTeam', 'Another team (not one of mine)')}</option>
@@ -540,7 +549,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                     </option>
                   ))}
                 </select>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className={fieldHintStyle}>
                   {adjTeamId
                     ? t('playerStats.whichTeamMineHint', 'Counts toward this team in team statistics.')
                     : t('playerStats.whichTeamOtherHint', 'Counts toward the player, but not toward any of your teams.')}
@@ -549,15 +558,15 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
 
               {/* Season / Tournament tabs — mutually exclusive, matching GameSettingsModal */}
               <div className="lg:col-span-3">
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
-                <div className="flex gap-1 mb-2">
-                  <button type="button" onClick={() => { setAdjSeasonId(''); setAdjTournamentId(''); setAdjIncludeInSeasonTournament(false); applyAdjScope(adjTeamId, '', ''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!adjSeasonId && !adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                <label className={labelStyle}>{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
+                <div className={`${segmentTrackStyle} mb-2`}>
+                  <button type="button" onClick={() => { setAdjSeasonId(''); setAdjTournamentId(''); setAdjIncludeInSeasonTournament(false); applyAdjScope(adjTeamId, '', ''); }} className={!adjSeasonId && !adjTournamentId ? segmentSelectedStyle : segmentStyle}>
                     {t('gameSettingsModal.eiMitaan', 'None')}
                   </button>
-                  <button type="button" onClick={() => { const nextSeasonId = seasons.length > 0 ? (adjSeasonId || seasons[0].id) : ''; setAdjTournamentId(''); setAdjSeasonId(nextSeasonId); if (nextSeasonId) setAdjIncludeInSeasonTournament(true); applyAdjScope(adjTeamId, nextSeasonId, ''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                  <button type="button" onClick={() => { const nextSeasonId = seasons.length > 0 ? (adjSeasonId || seasons[0].id) : ''; setAdjTournamentId(''); setAdjSeasonId(nextSeasonId); if (nextSeasonId) setAdjIncludeInSeasonTournament(true); applyAdjScope(adjTeamId, nextSeasonId, ''); }} className={adjSeasonId ? segmentSelectedStyle : segmentStyle}>
                     {t('gameSettingsModal.kausi', 'League')}
                   </button>
-                  <button type="button" onClick={() => { const nextTournamentId = tournaments.length > 0 ? (adjTournamentId || tournaments[0].id) : ''; setAdjSeasonId(''); setAdjTournamentId(nextTournamentId); if (nextTournamentId) setAdjIncludeInSeasonTournament(true); applyAdjScope(adjTeamId, '', nextTournamentId); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                  <button type="button" onClick={() => { const nextTournamentId = tournaments.length > 0 ? (adjTournamentId || tournaments[0].id) : ''; setAdjSeasonId(''); setAdjTournamentId(nextTournamentId); if (nextTournamentId) setAdjIncludeInSeasonTournament(true); applyAdjScope(adjTeamId, '', nextTournamentId); }} className={adjTournamentId ? segmentSelectedStyle : segmentStyle}>
                     {t('gameSettingsModal.turnaus', 'Tournament')}
                   </button>
                 </div>
@@ -566,7 +575,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                     data-testid="adj-season-select"
                     value={adjSeasonId}
                     onChange={(e) => { setAdjSeasonId(e.target.value); applyAdjScope(adjTeamId, e.target.value, ''); }}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                    className={selectStyle}
                   >
                     {seasons.map(s => (
                       <option key={s.id} value={s.id}>{getSeasonDisplayName(s)}</option>
@@ -591,7 +600,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                         }
                       }
                     }}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                    className={selectStyle}
                   >
                     {tournaments.map(t => (
                       <option key={t.id} value={t.id}>{getTournamentDisplayName(t)}</option>
@@ -600,61 +609,61 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                 )}
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.homeAway', 'Home/Away')}</label>
-                <select value={adjHomeAway} onChange={e => setAdjHomeAway(e.target.value as 'home' | 'away' | 'neutral')} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                <label className={labelStyle}>{t('playerStats.homeAway', 'Home/Away')}</label>
+                <select value={adjHomeAway} onChange={e => setAdjHomeAway(e.target.value as 'home' | 'away' | 'neutral')} className={selectStyle}>
                   <option value="home">{t('playerStats.home', 'Home')}</option>
                   <option value="away">{t('playerStats.away', 'Away')}</option>
                   <option value="neutral">{t('playerStats.neutral', 'Neutral')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.team', 'Team')} <span className="text-red-400">*</span></label>
-                <input type="text" data-testid="adj-external-team" value={adjExternalTeam} onChange={e => setAdjExternalTeam(e.target.value)} onBlur={() => settle(adjTeamAdoption, adjExternalTeam, teamPool, setAdjExternalTeam)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.externalTeam', 'Team name') as string} required />
+                <label className={labelStyle}>{t('playerStats.team', 'Team')} <span className="text-loss">*</span></label>
+                <input type="text" data-testid="adj-external-team" value={adjExternalTeam} onChange={e => setAdjExternalTeam(e.target.value)} onBlur={() => settle(adjTeamAdoption, adjExternalTeam, teamPool, setAdjExternalTeam)} className={inputBaseStyle} placeholder={t('playerStats.externalTeam', 'Team name') as string} required />
                 <SuggestionChips value={adjExternalTeam} options={teamPool} onPick={setAdjExternalTeam} testId="adj-team-options" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
-                <input type="text" data-testid="adj-opponent-input" value={adjOpponentName} onChange={e => setAdjOpponentName(e.target.value)} onBlur={() => settle(adjOpponentAdoption, adjOpponentName, opponentPool, setAdjOpponentName)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.opponentName', 'Opponent name') as string} required />
+                <label className={labelStyle}>{t('playerStats.opponent', 'Opponent')} <span className="text-loss">*</span></label>
+                <input type="text" data-testid="adj-opponent-input" value={adjOpponentName} onChange={e => setAdjOpponentName(e.target.value)} onBlur={() => settle(adjOpponentAdoption, adjOpponentName, opponentPool, setAdjOpponentName)} className={inputBaseStyle} placeholder={t('playerStats.opponentName', 'Opponent name') as string} required />
                 <SuggestionChips value={adjOpponentName} options={opponentPool} onPick={setAdjOpponentName} testId="adj-opponent-options" />
               </div>
               <div>
-                <label className="block text-xs text-slate-400 mb-1">{t('playerStats.score', 'Score')}</label>
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
+                <label className={labelStyle}>{t('playerStats.score', 'Score')}</label>
+                <div className="flex justify-between font-ui text-[13px] text-ink-3 mb-1">
                   <span>{leftScoreLabel}</span>
                   <span>{rightScoreLabel}</span>
                 </div>
                 <div className="flex items-center gap-2" aria-label={`${leftScoreLabel} - ${rightScoreLabel}`}>
-                  <input aria-label={`${leftScoreLabel} ${t('playerStats.goals', 'Goals')}`} type="number" inputMode="numeric" pattern="[0-9]*" value={getLeftScore()} onChange={e => setLeftScore(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
+                  <input aria-label={`${leftScoreLabel} ${t('playerStats.goals', 'Goals')}`} type="number" inputMode="numeric" pattern="[0-9]*" value={getLeftScore()} onChange={e => setLeftScore(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))} className={`${inputBaseStyle} w-20 text-center`} placeholder="0" min="0" />
                   <span className="mx-1 text-lg font-bold">-</span>
-                  <input aria-label={`${rightScoreLabel} ${t('playerStats.goals', 'Goals')}`} type="number" inputMode="numeric" pattern="[0-9]*" value={getRightScore()} onChange={e => setRightScore(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
+                  <input aria-label={`${rightScoreLabel} ${t('playerStats.goals', 'Goals')}`} type="number" inputMode="numeric" pattern="[0-9]*" value={getRightScore()} onChange={e => setRightScore(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))} className={`${inputBaseStyle} w-20 text-center`} placeholder="0" min="0" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gameDate', 'Game date')}</label>
-                <input type="date" value={adjGameDate} onChange={e => setAdjGameDate(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
+                <label className={labelStyle}>{t('playerStats.gameDate', 'Game date')}</label>
+                <input type="date" value={adjGameDate} onChange={e => setAdjGameDate(e.target.value)} className={inputBaseStyle} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games Played')}</label>
+                <label className={labelStyle}>{t('playerStats.gamesPlayed', 'Games Played')}</label>
                 <div className="flex items-center gap-2">
-                  <button type="button" aria-label={t('playerStats.decreaseGames', 'Decrease games')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                  <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjGames)} onChange={e => setAdjGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                  <button type="button" aria-label={t('playerStats.increaseGames', 'Increase games')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjGames(v => (Number(v) || 0) + 1)}>+</button>
+                  <button type="button" aria-label={t('playerStats.decreaseGames', 'Decrease games')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setAdjGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                  <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjGames)} onChange={e => setAdjGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className={`${inputBaseStyle} flex-1 min-w-0 text-center`} min="0" />
+                  <button type="button" aria-label={t('playerStats.increaseGames', 'Increase games')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setAdjGames(v => (Number(v) || 0) + 1)}>+</button>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.goals', 'Goals')}</label>
+                <label className={labelStyle}>{t('playerStats.goals', 'Goals')}</label>
                 <div className="flex items-center gap-2">
-                  <button type="button" aria-label={t('playerStats.decreaseGoals', 'Decrease goals')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                  <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjGoals)} onChange={e => setAdjGoals(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                  <button type="button" aria-label={t('playerStats.increaseGoals', 'Increase goals')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjGoals(v => (Number(v) || 0) + 1)}>+</button>
+                  <button type="button" aria-label={t('playerStats.decreaseGoals', 'Decrease goals')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setAdjGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                  <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjGoals)} onChange={e => setAdjGoals(Math.max(0, parseInt(e.target.value || '0', 10)))} className={`${inputBaseStyle} flex-1 min-w-0 text-center`} min="0" />
+                  <button type="button" aria-label={t('playerStats.increaseGoals', 'Increase goals')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setAdjGoals(v => (Number(v) || 0) + 1)}>+</button>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.assists', 'Assists')}</label>
+                <label className={labelStyle}>{t('playerStats.assists', 'Assists')}</label>
                 <div className="flex items-center gap-2">
-                  <button type="button" aria-label={t('playerStats.decreaseAssists', 'Decrease assists')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                  <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjAssists)} onChange={e => setAdjAssists(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                  <button type="button" aria-label={t('playerStats.increaseAssists', 'Increase assists')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjAssists(v => (Number(v) || 0) + 1)}>+</button>
+                  <button type="button" aria-label={t('playerStats.decreaseAssists', 'Decrease assists')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setAdjAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                  <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjAssists)} onChange={e => setAdjAssists(Math.max(0, parseInt(e.target.value || '0', 10)))} className={`${inputBaseStyle} flex-1 min-w-0 text-center`} min="0" />
+                  <button type="button" aria-label={t('playerStats.increaseAssists', 'Increase assists')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setAdjAssists(v => (Number(v) || 0) + 1)}>+</button>
                 </div>
               </div>
               <div>
@@ -664,7 +673,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                 >
                   <span className="inline-flex items-center gap-2">
                     {t('playerStats.receivedFairPlayCard', 'Received Fair Play Card')}
-                    <span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span>
+                    <span className="inline-flex items-center rounded-full bg-win/[0.14] px-2 py-0.5 text-xs font-bold text-win">FP</span>
                   </span>
                 </ModalSwitch>
               </div>
@@ -688,24 +697,24 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                 >
                   {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                 </ModalSwitch>
-                <p className="text-sm text-slate-400 mt-1 ml-1">
+                <p className={fieldHintStyle}>
                   {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the game was played for the same team')}
                 </p>
               </div>
               <div className="lg:col-span-3">
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.note', 'Note')}</label>
-                <input type="text" value={adjNote} onChange={e => setAdjNote(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.noteOptional', 'Optional note about this game') as string} />
+                <label className={labelStyle}>{t('playerStats.note', 'Note')}</label>
+                <input type="text" value={adjNote} onChange={e => setAdjNote(e.target.value)} className={inputBaseStyle} placeholder={t('playerStats.noteOptional', 'Optional note about this game') as string} />
               </div>
               <div className="lg:col-span-3 flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowAdjForm(false)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium text-white">{t('common.cancel', 'Cancel')}</button>
-                <button type="submit" data-testid="save-external-game" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
+                <button type="button" onClick={() => setShowAdjForm(false)} className={secondaryButtonStyle}>{t('common.cancel', 'Cancel')}</button>
+                <button type="submit" data-testid="save-external-game" className={primaryButtonStyle}>{t('common.save', 'Save')}</button>
               </div>
             </form>
           )}
 
         {/* External stats list - inside collapsible section */}
         {hasAdjustments && (
-          <div className="mb-4 mt-4 text-xs leading-relaxed text-slate-400">
+          <div className={`mb-4 mt-4 ${subtextStyle}`}>
             {/* The old caption promised every game here was in the totals. Once
                 filters started excluding some, that stopped being true, and a
                 list that lies about its own numbers is the bug this whole
@@ -755,7 +764,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                     return (
                       <form
                         key={a.id}
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-800/60 p-4 rounded-lg border border-indigo-500"
+                        className={`${cardStyle} grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ring-1 ring-action/60`}
                         onSubmit={async (e) => {
                           e.preventDefault();
                           if (!player) return;
@@ -818,15 +827,15 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                       >
                         {/* Season / Tournament tabs — mutually exclusive, matching GameSettingsModal */}
                         <div className="lg:col-span-3">
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
-                          <div className="flex gap-1 mb-2">
-                            <button type="button" onClick={() => { setEditSeasonId(''); setEditTournamentId(''); setEditIncludeInSeasonTournament(false); applyEditScope(editTeamId, '', ''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${!editSeasonId && !editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                          <label className={labelStyle}>{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
+                          <div className={`${segmentTrackStyle} mb-2`}>
+                            <button type="button" onClick={() => { setEditSeasonId(''); setEditTournamentId(''); setEditIncludeInSeasonTournament(false); applyEditScope(editTeamId, '', ''); }} className={!editSeasonId && !editTournamentId ? segmentSelectedStyle : segmentStyle}>
                               {t('gameSettingsModal.eiMitaan', 'None')}
                             </button>
-                            <button type="button" onClick={() => { const nextSeasonId = editSeasonId || (seasons.length > 0 ? seasons[0].id : ''); setEditTournamentId(''); setEditSeasonId(nextSeasonId); if (nextSeasonId) setEditIncludeInSeasonTournament(true); applyEditScope(editTeamId, nextSeasonId, ''); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                            <button type="button" onClick={() => { const nextSeasonId = editSeasonId || (seasons.length > 0 ? seasons[0].id : ''); setEditTournamentId(''); setEditSeasonId(nextSeasonId); if (nextSeasonId) setEditIncludeInSeasonTournament(true); applyEditScope(editTeamId, nextSeasonId, ''); }} className={editSeasonId ? segmentSelectedStyle : segmentStyle}>
                               {t('gameSettingsModal.kausi', 'League')}
                             </button>
-                            <button type="button" onClick={() => { const nextTournamentId = editTournamentId || (tournaments.length > 0 ? tournaments[0].id : ''); setEditSeasonId(''); setEditTournamentId(nextTournamentId); if (nextTournamentId) setEditIncludeInSeasonTournament(true); applyEditScope(editTeamId, '', nextTournamentId); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                            <button type="button" onClick={() => { const nextTournamentId = editTournamentId || (tournaments.length > 0 ? tournaments[0].id : ''); setEditSeasonId(''); setEditTournamentId(nextTournamentId); if (nextTournamentId) setEditIncludeInSeasonTournament(true); applyEditScope(editTeamId, '', nextTournamentId); }} className={editTournamentId ? segmentSelectedStyle : segmentStyle}>
                               {t('gameSettingsModal.turnaus', 'Tournament')}
                             </button>
                           </div>
@@ -835,7 +844,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                               value={editSeasonId}
                               data-testid="edit-season-select"
                               onChange={(e) => { setEditSeasonId(e.target.value); applyEditScope(editTeamId, e.target.value, ''); }}
-                              className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                              className={selectStyle}
                             >
                               {seasons.map(s => (
                                 <option key={s.id} value={s.id}>{getSeasonDisplayName(s)}</option>
@@ -847,7 +856,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                               value={editTournamentId}
                               data-testid="edit-tournament-select"
                               onChange={(e) => { setEditTournamentId(e.target.value); applyEditScope(editTeamId, '', e.target.value); }}
-                              className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                              className={selectStyle}
                             >
                               {tournaments.map(t => (
                                 <option key={t.id} value={t.id}>{getTournamentDisplayName(t)}</option>
@@ -856,20 +865,20 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                           )}
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.homeAway', 'Home/Away')}</label>
-                          <select value={editHomeAway} onChange={e => setEditHomeAway(e.target.value as 'home' | 'away' | 'neutral')} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                          <label className={labelStyle}>{t('playerStats.homeAway', 'Home/Away')}</label>
+                          <select value={editHomeAway} onChange={e => setEditHomeAway(e.target.value as 'home' | 'away' | 'neutral')} className={selectStyle}>
                             <option value="home">{t('playerStats.home', 'Home')}</option>
                             <option value="away">{t('playerStats.away', 'Away')}</option>
                             <option value="neutral">{t('playerStats.neutral', 'Neutral')}</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.team', 'Team')} <span className="text-red-400">*</span></label>
-                          <input type="text" data-testid="edit-external-team" value={editExternalTeam} onChange={e => setEditExternalTeam(e.target.value)} onBlur={() => settle(editTeamAdoption, editExternalTeam, teamPool, setEditExternalTeam)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                          <label className={labelStyle}>{t('playerStats.team', 'Team')} <span className="text-loss">*</span></label>
+                          <input type="text" data-testid="edit-external-team" value={editExternalTeam} onChange={e => setEditExternalTeam(e.target.value)} onBlur={() => settle(editTeamAdoption, editExternalTeam, teamPool, setEditExternalTeam)} className={inputBaseStyle} required />
                           <SuggestionChips value={editExternalTeam} options={teamPool} onPick={setEditExternalTeam} testId="edit-team-options" />
                           {/* Editable too: existing entries predate this question
                               and all read as "another team" until corrected. */}
-                          <label className="block text-xs font-medium text-slate-400 mt-2 mb-1" htmlFor={`edit-team-${a.id}`}>
+                          <label className={`${labelStyle} mt-3`} htmlFor={`edit-team-${a.id}`}>
                             {t('playerStats.whichTeam', 'Which team was this game for?')}
                           </label>
                           <select
@@ -877,7 +886,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                             data-testid="edit-team-select"
                             value={editTeamId}
                             onChange={e => applyEditTeam(e.target.value)}
-                            className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                            className={selectStyle}
                           >
                             <option value="">{t('playerStats.anotherTeam', 'Another team (not one of mine)')}</option>
                             {/* Same as the add form above: a team's name does
@@ -889,20 +898,20 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                               </option>
                             ))}
                           </select>
-                          <p className="mt-1 text-xs text-slate-400">
+                          <p className={fieldHintStyle}>
                             {editTeamId
                               ? t('playerStats.whichTeamMineHint', 'Counts toward this team in team statistics.')
                               : t('playerStats.whichTeamOtherHint', 'Counts toward the player, but not toward any of your teams.')}
                           </p>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
-                          <input type="text" data-testid="edit-opponent-input" value={editOpponentName} onChange={e => setEditOpponentName(e.target.value)} onBlur={() => settle(editOpponentAdoption, editOpponentName, opponentPool, setEditOpponentName)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                          <label className={labelStyle}>{t('playerStats.opponent', 'Opponent')} <span className="text-loss">*</span></label>
+                          <input type="text" data-testid="edit-opponent-input" value={editOpponentName} onChange={e => setEditOpponentName(e.target.value)} onBlur={() => settle(editOpponentAdoption, editOpponentName, opponentPool, setEditOpponentName)} className={inputBaseStyle} required />
                           <SuggestionChips value={editOpponentName} options={opponentPool} onPick={setEditOpponentName} testId="edit-opponent-options" />
                         </div>
                         <div className="lg:col-span-2">
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.score', 'Score')}</label>
-                          <div className="flex justify-between text-xs text-slate-400 mb-1">
+                          <label className={labelStyle}>{t('playerStats.score', 'Score')}</label>
+                          <div className="flex justify-between font-ui text-[13px] text-ink-3 mb-1">
                             <span>{editHomeAway === 'away' ? (editOpponentName || t('playerStats.opponent', 'Opponent')) : (editExternalTeam || t('playerStats.team', 'Team'))}</span>
                             <span>{editHomeAway === 'away' ? (editExternalTeam || t('playerStats.team', 'Team')) : (editOpponentName || t('playerStats.opponent', 'Opponent'))}</span>
                           </div>
@@ -910,40 +919,40 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                             <input type="number" inputMode="numeric" pattern="[0-9]*" value={editHomeAway === 'away' ? editScoreAgainst : editScoreFor} onChange={e => {
                               const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
                               void (editHomeAway === 'away' ? setEditScoreAgainst(val) : setEditScoreFor(val));
-                            }} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
+                            }} className={`${inputBaseStyle} w-20 text-center`} placeholder="0" min="0" />
                             <span className="mx-1 text-lg font-bold">-</span>
                             <input type="number" inputMode="numeric" pattern="[0-9]*" value={editHomeAway === 'away' ? editScoreFor : editScoreAgainst} onChange={e => {
                               const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
                               void (editHomeAway === 'away' ? setEditScoreFor(val) : setEditScoreAgainst(val));
-                            }} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
+                            }} className={`${inputBaseStyle} w-20 text-center`} placeholder="0" min="0" />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gameDate', 'Game date')}</label>
-                          <input type="date" value={editGameDate} onChange={e => setEditGameDate(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
+                          <label className={labelStyle}>{t('playerStats.gameDate', 'Game date')}</label>
+                          <input type="date" value={editGameDate} onChange={e => setEditGameDate(e.target.value)} className={inputBaseStyle} />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games Played')}</label>
+                          <label className={labelStyle}>{t('playerStats.gamesPlayed', 'Games Played')}</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" aria-label={t('playerStats.decreaseGames', 'Decrease games')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                            <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGames)} onChange={e => setEditGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                            <button type="button" aria-label={t('playerStats.increaseGames', 'Increase games')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGames(v => (Number(v) || 0) + 1)}>+</button>
+                            <button type="button" aria-label={t('playerStats.decreaseGames', 'Decrease games')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setEditGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGames)} onChange={e => setEditGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className={`${inputBaseStyle} flex-1 min-w-0 text-center`} min="0" />
+                            <button type="button" aria-label={t('playerStats.increaseGames', 'Increase games')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setEditGames(v => (Number(v) || 0) + 1)}>+</button>
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.goals', 'Goals')}</label>
+                          <label className={labelStyle}>{t('playerStats.goals', 'Goals')}</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" aria-label={t('playerStats.decreaseGoals', 'Decrease goals')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                            <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGoals)} onChange={e => setEditGoals(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                            <button type="button" aria-label={t('playerStats.increaseGoals', 'Increase goals')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGoals(v => (Number(v) || 0) + 1)}>+</button>
+                            <button type="button" aria-label={t('playerStats.decreaseGoals', 'Decrease goals')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setEditGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGoals)} onChange={e => setEditGoals(Math.max(0, parseInt(e.target.value || '0', 10)))} className={`${inputBaseStyle} flex-1 min-w-0 text-center`} min="0" />
+                            <button type="button" aria-label={t('playerStats.increaseGoals', 'Increase goals')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setEditGoals(v => (Number(v) || 0) + 1)}>+</button>
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.assists', 'Assists')}</label>
+                          <label className={labelStyle}>{t('playerStats.assists', 'Assists')}</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" aria-label={t('playerStats.decreaseAssists', 'Decrease assists')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                            <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editAssists)} onChange={e => setEditAssists(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                            <button type="button" aria-label={t('playerStats.increaseAssists', 'Increase assists')} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditAssists(v => (Number(v) || 0) + 1)}>+</button>
+                            <button type="button" aria-label={t('playerStats.decreaseAssists', 'Decrease assists')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setEditAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editAssists)} onChange={e => setEditAssists(Math.max(0, parseInt(e.target.value || '0', 10)))} className={`${inputBaseStyle} flex-1 min-w-0 text-center`} min="0" />
+                            <button type="button" aria-label={t('playerStats.increaseAssists', 'Increase assists')} className={`${secondaryButtonStyle} min-w-12 px-0 text-xl`} onClick={() => setEditAssists(v => (Number(v) || 0) + 1)}>+</button>
                           </div>
                         </div>
                         <div>
@@ -953,7 +962,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                           >
                             <span className="inline-flex items-center gap-2">
                               {t('playerStats.receivedFairPlayCard', 'Received Fair Play Card')}
-                              <span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span>
+                              <span className="inline-flex items-center rounded-full bg-win/[0.14] px-2 py-0.5 text-xs font-bold text-win">FP</span>
                             </span>
                           </ModalSwitch>
                         </div>
@@ -977,17 +986,17 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                           >
                             {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                           </ModalSwitch>
-                          <p className="text-sm text-slate-400 mt-1 ml-1">
+                          <p className={fieldHintStyle}>
                             {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the game was played for the same team')}
                           </p>
                         </div>
                         <div className="lg:col-span-3">
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.note', 'Note')}</label>
-                          <input type="text" value={editNote} onChange={e => setEditNote(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.noteOptional', 'Optional note about this game') as string} />
+                          <label className={labelStyle}>{t('playerStats.note', 'Note')}</label>
+                          <input type="text" value={editNote} onChange={e => setEditNote(e.target.value)} className={inputBaseStyle} placeholder={t('playerStats.noteOptional', 'Optional note about this game') as string} />
                         </div>
                         <div className="lg:col-span-3 flex justify-end gap-3 pt-2">
-                          <button type="button" onClick={() => setEditingAdjId(null)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium text-white">{t('common.cancel', 'Cancel')}</button>
-                          <button type="submit" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
+                          <button type="button" onClick={() => setEditingAdjId(null)} className={secondaryButtonStyle}>{t('common.cancel', 'Cancel')}</button>
+                          <button type="submit" className={primaryButtonStyle}>{t('common.save', 'Save')}</button>
                         </div>
                       </form>
                     );
@@ -1008,15 +1017,15 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                     <div
                       key={a.id}
                       data-testid={counted ? 'external-game-counted' : 'external-game-uncounted'}
-                      className={`relative bg-gradient-to-br from-slate-600/50 to-slate-800/30 border border-slate-700/50 p-4 rounded-md transition-all shadow-inner ${counted ? '' : 'opacity-50'}`}
+                      className={`relative s1-list p-4 font-ui overflow-hidden ${counted ? '' : 'opacity-50'}`}
                     >
                       {!counted && (
-                        <p className="pl-2 mb-1 text-xs font-medium text-amber-300/90">
+                        <p className="pl-2 mb-1 text-[13px] font-medium text-ink-3">
                           {t('playerStats.adjustmentNotCounted', 'Not counted under the current filters')}
                         </p>
                       )}
                       {/* Result color strip */}
-                      <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(adjResult)}`}></span>
+                      <span className={`absolute inset-y-0 left-0 w-1 ${getResultClass(adjResult)}`}></span>
 
                       {/* Card layout with two rows */}
                       <div className="flex flex-col gap-2">
@@ -1024,12 +1033,12 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                         <div className="flex justify-between items-start">
                           {/* Left side: Match info */}
                           <div className="flex-1 pl-2">
-                            <p className="font-semibold text-slate-100 drop-shadow-lg">
+                            <p className="font-semibold text-ink">
                               {scoreDisplay ? scoreDisplay : <>{extName} {t('playerStats.vs', 'vs')} {oppName}</>}
                             </p>
                             {/* Note if present */}
                             {a.note && (
-                              <p className="text-sm text-slate-300 italic mt-1">&ldquo;{a.note}&rdquo;</p>
+                              <p className="text-sm text-ink-2 italic mt-1">&ldquo;{a.note}&rdquo;</p>
                             )}
                           </div>
 
@@ -1038,12 +1047,12 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                             {/* Stats */}
                             <div className="flex items-center">
                               <div className="text-center mx-2">
-                                <p className={`font-bold text-xl ${a.goalsDelta > 0 ? 'text-green-400' : 'text-slate-300'}`}>{a.goalsDelta}</p>
-                                <p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p>
+                                <p className={`font-display text-2xl font-bold italic ${a.goalsDelta > 0 ? 'text-win' : 'text-ink-2'}`}>{a.goalsDelta}</p>
+                                <p className="text-[13px] text-ink-3">{t('playerStats.goals', 'Goals')}</p>
                               </div>
                               <div className="text-center mx-2">
-                                <p className={`font-bold text-xl ${a.assistsDelta > 0 ? 'text-blue-400' : 'text-slate-300'}`}>{a.assistsDelta}</p>
-                                <p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p>
+                                <p className={`font-display text-2xl font-bold italic ${a.assistsDelta > 0 ? 'text-win' : 'text-ink-2'}`}>{a.assistsDelta}</p>
+                                <p className="text-[13px] text-ink-3">{t('playerStats.assists', 'Assists')}</p>
                               </div>
                             </div>
 
@@ -1051,24 +1060,24 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                             <div className="shrink-0 relative actions-menu-container">
                               <button
                                 type="button"
-                                className="p-1 hover:bg-slate-600 rounded transition-colors"
+                                className={iconButtonEditStyle}
                                 onClick={() => setShowActionsMenu(showActionsMenu === a.id ? null : a.id)}
                                 aria-label={t('common.actions', 'Actions')}
                                 aria-haspopup="menu"
                                 aria-expanded={showActionsMenu === a.id}
                               >
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-slate-400 hover:text-slate-200">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-ink-3">
                                   <circle cx="8" cy="2.5" r="1.5"/>
                                   <circle cx="8" cy="8" r="1.5"/>
                                   <circle cx="8" cy="13.5" r="1.5"/>
                                 </svg>
                               </button>
                               {showActionsMenu === a.id && (
-                                <div role="menu" className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[120px]">
+                                <div role="menu" className={`${popoverMenuStyle} top-full mt-1`}>
                                   <button
                                     type="button"
                                     role="menuitem"
-                                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-slate-200 first:rounded-t-lg"
+                                    className={popoverItemStyle}
                                     onClick={() => {
                                       setShowAdjForm(false); // Close add form when editing
                                       setEditingAdjId(a.id);
@@ -1102,7 +1111,7 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                                   <button
                                     type="button"
                                     role="menuitem"
-                                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-red-400 hover:text-red-300 last:rounded-b-lg"
+                                    className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
                                     onClick={() => {
                                       setShowDeleteConfirm(a.id);
                                       setShowActionsMenu(null);
@@ -1117,34 +1126,34 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                         </div>
 
                         {/* Bottom row: Date left, category labels right */}
-                        <div className="flex items-end justify-between gap-4 pl-2 text-xs">
+                        <div className="flex items-end justify-between gap-4 pl-2 text-[13px]">
                           {/* Left: Date */}
-                          <p className="text-slate-400">{dateText}</p>
+                          <p className="text-ink-3">{dateText}</p>
 
                           {/* Right: Category labels */}
                           <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-600/40 text-purple-200" title={t('playerStats.externalGame', 'Added game')}>
+                            <span className="inline-flex items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2" title={t('playerStats.externalGame', 'Added game')}>
                               <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`}></span>
                               {t('playerStats.external', 'ADDED')}
                             </span>
                             {(a.positions ?? []).length > 0 && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/20 text-amber-200" title={t('playerStats.positionsLabel', 'Positions played')}>
+                              <span className="inline-flex items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2" title={t('playerStats.positionsLabel', 'Positions played')}>
                                 {(a.positions ?? []).map(id => t(`playingPositions.${id}.abbrev` as TranslationKey, id.toUpperCase())).join(' · ')}
                               </span>
                             )}
                             {(a.gameType || a.ageGroup) && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
+                              <span className="inline-flex items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2">
                                 {[a.gameType ? t(a.gameType === 'futsal' ? 'common.gameTypeFutsal' : 'common.gameTypeSoccer', a.gameType) : null, a.ageGroup ?? null].filter(Boolean).join(' · ')}
                               </span>
                             )}
                             {seasonName && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200" title={seasonName}>
+                              <span className="inline-flex items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2" title={seasonName}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.season}`}></span>
                                 {seasonName}
                               </span>
                             )}
                             {tournamentName && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200" title={tournamentName}>
+                              <span className="inline-flex items-center gap-1.5 h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2" title={tournamentName}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.series}`}></span>
                                 {tournamentName}
                               </span>

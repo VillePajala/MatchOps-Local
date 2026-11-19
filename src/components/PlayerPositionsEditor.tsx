@@ -6,6 +6,7 @@ import { HiChevronDown } from 'react-icons/hi';
 import type { TranslationKey } from '@/i18n-types';
 import type { Player } from '@/types';
 import type { GameType } from '@/types/game';
+import { labelStyle, segmentTrackStyle, segmentStyle, segmentSelectedStyle } from '@/styles/modalStyles';
 import {
   orderPositionIds,
   inferFormat,
@@ -25,19 +26,23 @@ interface PlayerPositionsEditorProps {
   gameType?: GameType;
 }
 
-// Colour by pitch line, on the app's standard button base (solid slate-700 idle
+// Colour by pitch line, on the app's chip base (quiet outline idle
 // / filled colour selected) so the chips read as GameSettings buttons but still
 // carry a line identity via colour. `sel`/`idle` slot into the shared button
 // classes below; `pill` is the small collapsed-summary tag.
 const CAT_STYLE: Record<PositionCategory, { sel: string; idle: string; pill: string }> = {
-  gk:  { sel: 'bg-amber-600 text-white',   idle: 'bg-slate-700 text-amber-300 hover:bg-slate-600',   pill: 'bg-amber-600 text-white' },
-  def: { sel: 'bg-sky-600 text-white',     idle: 'bg-slate-700 text-sky-300 hover:bg-slate-600',     pill: 'bg-sky-600 text-white' },
-  mid: { sel: 'bg-emerald-600 text-white', idle: 'bg-slate-700 text-emerald-300 hover:bg-slate-600', pill: 'bg-emerald-600 text-white' },
-  att: { sel: 'bg-rose-600 text-white',    idle: 'bg-slate-700 text-rose-300 hover:bg-slate-600',    pill: 'bg-rose-600 text-white' },
+  // Muted tints, not bright fills: the line is an identity cue, not an action.
+  // The keeper is a neutral white tint - the same "inverse" identity the keeper
+  // disc has on the pitch - so it never reads as the app's amber (the one primary
+  // action) and brings back no purple.
+  gk:  { sel: 'bg-white/20 text-white',            idle: 'bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]',      pill: 'bg-white/15 text-slate-100' },
+  def: { sel: 'bg-sky-400/25 text-sky-100',        idle: 'bg-white/[0.04] text-sky-300/90 hover:bg-white/[0.08]',     pill: 'bg-sky-400/20 text-sky-200' },
+  mid: { sel: 'bg-teal-400/25 text-teal-100',      idle: 'bg-white/[0.04] text-teal-300/90 hover:bg-white/[0.08]',    pill: 'bg-teal-400/20 text-teal-200' },
+  att: { sel: 'bg-rose-400/25 text-rose-100',      idle: 'bg-white/[0.04] text-rose-300/90 hover:bg-white/[0.08]',    pill: 'bg-rose-400/20 text-rose-200' },
 };
 
 // Shared button chrome matching GameSettings segmented controls.
-const CHIP_BASE = 'px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800';
+const CHIP_BASE = 'min-h-9 px-3 rounded-full text-[13px] font-semibold transition-colors shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon';
 
 const catStyle = (id: string) => CAT_STYLE[(POSITION_CATEGORY[id] ?? 'mid') as PositionCategory];
 
@@ -84,27 +89,25 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
 
   if (players.length === 0) {
     return (
-      <p className="text-sm text-slate-400">
+      <p className="font-ui text-sm text-ink-3">
         {t('gameSettingsModal.lineupNoPlayers', 'Select players for this game to assign positions.')}
       </p>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 font-ui">
       {/* Format selector - scopes the palette; `All` is the manual override. */}
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('gameSettingsModal.lineupFormat', 'Format')}</label>
-        <div className="flex gap-2">
+        <label className={labelStyle}>{t('gameSettingsModal.lineupFormat', 'Format')}</label>
+        <div className={segmentTrackStyle}>
           {formatOptions.map(f => (
             <button
               key={f}
               type="button"
               aria-pressed={format === f}
               onClick={() => setFormat(f)}
-              className={`flex-1 px-2 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                format === f ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
+              className={format === f ? segmentSelectedStyle : segmentStyle}
             >
               {formatButtonLabel(f)}
             </button>
@@ -112,7 +115,9 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
         </div>
       </div>
 
-      <div className="space-y-2">
+      {/* One hairline grouped list: the rows sit on the surrounding card,
+          split by inset hairlines - no box per player. */}
+      <div data-testid="player-positions-list">
         {players.map(player => {
           const assigned = value[player.id] ?? [];
           const isOpen = expanded.has(player.id);
@@ -121,33 +126,33 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
           return (
             <div
               key={player.id}
-              className="rounded-md overflow-hidden transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
+              className="relative before:absolute before:top-0 before:left-0 before:right-0 before:h-px before:bg-hairline first:before:hidden"
             >
               <button
                 type="button"
                 onClick={() => toggleExpand(player.id)}
                 aria-expanded={isOpen}
-                className="w-full flex items-center justify-between gap-2 p-3 text-left"
+                className="w-full min-h-12 flex items-center justify-between gap-2 px-1 py-2 text-left rounded-[14px] transition-colors hover:bg-white/[0.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action"
               >
-                <span className="text-sm font-medium text-slate-100 truncate shrink-0">{name}</span>
+                <span className="text-[15px] font-medium text-ink truncate shrink-0">{name}</span>
                 <span className="flex items-center gap-2 min-w-0">
                   {assigned.length === 0 ? (
-                    <span className="text-xs text-slate-500">{t('gameSettingsModal.lineupAddPositions', 'Add positions')}</span>
+                    <span className="text-[13px] text-ink-3">{t('gameSettingsModal.lineupAddPositions', 'Add positions')}</span>
                   ) : (
                     <span className="flex flex-wrap gap-1 justify-end">
                       {orderPositionIds(assigned).map(id => (
-                        <span key={id} className={`px-1.5 py-0.5 rounded text-[11px] font-semibold ${catStyle(id).pill}`}>
+                        <span key={id} className={`px-1.5 py-0.5 rounded-md text-xs font-semibold ${catStyle(id).pill}`}>
                           {abbrev(id)}
                         </span>
                       ))}
                     </span>
                   )}
-                  <HiChevronDown className={`shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                  <HiChevronDown className={`shrink-0 text-ink-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </span>
               </button>
 
               {isOpen && (
-                <div className="px-3 pb-3 flex flex-wrap gap-1.5" role="group">
+                <div className="px-1 pb-3 flex flex-wrap gap-1.5" role="group">
                   {chipIds.map(id => {
                     const sel = assigned.includes(id);
                     const s = catStyle(id);

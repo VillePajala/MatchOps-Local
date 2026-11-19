@@ -851,7 +851,7 @@ describe('SoccerField Component - Interaction Testing', () => {
 
 // Import helper function and constant for direct testing
 import { isPositionOccupied, SUB_SLOT_OCCUPATION_THRESHOLD } from '../SoccerField';
-import { resolveSnapAction } from '../SoccerField';
+import { resolveSnapAction, discCenterX, findClearGhostY } from '../SoccerField';
 
 describe('isPositionOccupied Helper Function', () => {
   const createPlayer = (relX?: number, relY?: number): Player => ({
@@ -1438,5 +1438,288 @@ describe('resolveSnapAction (pure drop-decision core, review #739)', () => {
   it('does nothing without snap points or a position', () => {
     expect(resolveSnapAction([], [], 'me', { relX: 0.5, relY: 0.5 }, RECT_W, RECT_H)).toEqual({ type: 'none' });
     expect(resolveSnapAction([KEEPER], [], 'me', null, RECT_W, RECT_H)).toEqual({ type: 'none' });
+  });
+});
+
+/**
+ * The sideline column is stored at relX 0.96; on a 360-412px phone that put
+ * a 24px disc partly off the canvas. Drawing and hit-testing share
+ * discCenterX, so the disc stays whole and a tap still finds it.
+ * @edge-case
+ */
+describe('discCenterX (edge discs stay on the canvas)', () => {
+  it('draws a disc away from the edges exactly at relX * width', () => {
+    expect(discCenterX(0.5, 360, 24)).toBe(180);
+    expect(discCenterX(0.75, 412, 24)).toBe(309);
+  });
+
+  it('pulls a sideline disc (relX 0.96) fully inside the right edge', () => {
+    const x = discCenterX(0.96, 360, 24);
+    expect(x + 24).toBeLessThanOrEqual(360);
+    expect(x).toBe(360 - 24 - 4);
+  });
+
+  it('pulls a disc at the left edge fully inside', () => {
+    expect(discCenterX(0, 360, 24)).toBe(28);
+  });
+
+  it('leaves the position alone when the canvas is too narrow to hold the disc', () => {
+    expect(discCenterX(0.5, 40, 24)).toBe(20);
+  });
+});
+
+/**
+ * A planned-sub ghost must never overlap a real disc: a sub parked by hand
+ * a little off its sideline slot sat half on top of the neighbouring ghost.
+ * @edge-case
+ */
+describe('findClearGhostY (ghosts never overlap a disc)', () => {
+  const R = 24;
+  const clearOf = (y: number, o: { x: number; y: number; r: number }) =>
+    Math.hypot(o.x - 300, o.y - y) >= o.r + R + 2;
+
+  it('keeps the slot position when nothing is near', () => {
+    expect(findClearGhostY(300, 400, R, [{ x: 100, y: 400, r: R }])).toBe(400);
+  });
+
+  it('slides along the rail, away from a disc that overlaps the slot', () => {
+    const disc = { x: 300, y: 445, r: R };
+    const y = findClearGhostY(300, 410, R, [disc]);
+    expect(y).not.toBeNull();
+    expect(y as number).toBeLessThan(410);
+    expect(clearOf(y as number, disc)).toBe(true);
+  });
+
+  it('gives up (null) when no spot within one radius is clear', () => {
+    // Discs right above and below the slot: there is no room on the rail.
+    expect(findClearGhostY(300, 400, R, [{ x: 300, y: 380, r: R }, { x: 300, y: 420, r: R }])).toBeNull();
+  });
+});
+
+import { computeSubRail, subRailIndexFor, assignRailSlots, SUB_RAIL_RADIUS } from '../SoccerField';
+import type { SubSlot } from '@/utils/formations';
+
+/**
+ * The planned-subs rail: sub slots are STORED next to their formation rows
+ * (generateSubSlots) but DRAWN as an evenly spaced column down the right
+ * sideline. Drawing, tap hit-tests, drop snapping and placement from the bar
+ * all use the same layout, and the stored data never changes.
+ */
+describe('planned-subs rail geometry', () => {
+  // A 4-4-1-1 style slot set as generateSubSlots stores it (LM/RM and LB/RB
+  // stacked 0.07 apart), deliberately listed out of top-to-bottom order.
+  const SLOTS: SubSlot[] = [
+    { relX: 0.96, relY: 0.68, positionLabel: 'CDM' },
+    { relX: 0.96, relY: 0.24, positionLabel: 'ST' },
+    { relX: 0.96, relY: 0.38, positionLabel: 'CAM' },
+    { relX: 0.96, relY: 0.485, positionLabel: 'LM' },
+    { relX: 0.96, relY: 0.555, positionLabel: 'RM' },
+    { relX: 0.96, relY: 0.785, positionLabel: 'LB' },
+    { relX: 0.96, relY: 0.855, positionLabel: 'RB' },
+  ];
+  const byLabel = (spots: ReturnType<typeof computeSubRail>, label: string) =>
+    spots[SLOTS.findIndex((s) => s.positionLabel === label)];
+  const ORDER = ['ST', 'CAM', 'LM', 'RM', 'CDM', 'LB', 'RB'];
+
+  // The four test sizes: the owner's 366x800 phone, 360x780, 412x915, 320x700
+  // (canvas = viewport less the docked top panel and the control capsule).
+  const CANVASES: Array<[number, number]> = [[366, 632], [360, 612], [412, 747], [320, 532]];
+
+  it.each(CANVASES)('is one column in fixed order, evenly spaced, never overlapping (%ix%i)', (W, H) => {
+    const spots = computeSubRail(SLOTS, W, H);
+    expect(spots).toHaveLength(SLOTS.length);
+    const ordered = ORDER.map((label) => byLabel(spots, label));
+    // One column, clear of the right touchline (5px inset) by ~6px.
+    ordered.forEach((spot) => {
+      expect(spot.x).toBe(ordered[0].x);
+      expect(spot.r).toBe(SUB_RAIL_RADIUS);
+      expect(W - 5 - (spot.x + spot.r)).toBeCloseTo(6);
+    });
+    // Top to bottom ST ... RB, at one spacing, at least a 44px target apart.
+    const steps = ordered.slice(1).map((spot, i) => spot.y - ordered[i].y);
+    steps.forEach((step) => {
+      expect(step).toBeCloseTo(steps[0]);
+      expect(step).toBeGreaterThanOrEqual(44);
+    });
+    // Below the field-tool row, above the bottom touchline.
+    expect(ordered[0].y - SUB_RAIL_RADIUS).toBeGreaterThanOrEqual(68);
+    expect(ordered[ordered.length - 1].y + SUB_RAIL_RADIUS).toBeLessThanOrEqual(H - 5);
+  });
+
+  it('keeps ten slots apart even on a short 320px canvas', () => {
+    const ten: SubSlot[] = Array.from({ length: 10 }, (_, i) => ({ relX: 0.96, relY: 0.15 + i * 0.07, positionLabel: `P${i}` }));
+    const spots = computeSubRail(ten, 320, 520);
+    for (let i = 1; i < spots.length; i++) {
+      expect(spots[i].y - spots[i - 1].y).toBeGreaterThanOrEqual(2 * SUB_RAIL_RADIUS);
+    }
+  });
+
+  it('lays out the image export exactly like the screen, scaled', () => {
+    const screen = computeSubRail(SLOTS, 366, 632);
+    const exported = computeSubRail(SLOTS, 732, 1264, 2);
+    exported.forEach((spot, i) => {
+      expect(spot.x).toBeCloseTo(screen[i].x * 2);
+      expect(spot.y).toBeCloseTo(screen[i].y * 2);
+      expect(spot.r).toBe(screen[i].r * 2);
+    });
+  });
+
+  it('returns nothing for no slots or no canvas', () => {
+    expect(computeSubRail(undefined, 366, 632)).toEqual([]);
+    expect(computeSubRail([], 366, 632)).toEqual([]);
+    expect(computeSubRail(SLOTS, 0, 632)).toEqual([]);
+  });
+
+  it('finds the slot a stored sideline position belongs to, and never a pitch position', () => {
+    expect(subRailIndexFor(0.96, 0.555, SLOTS)).toBe(4);
+    expect(subRailIndexFor(0.96, 0.24, SLOTS)).toBe(1);
+    // A player on the pitch near the right touchline stays where they stand.
+    expect(subRailIndexFor(0.93, 0.555, SLOTS)).toBe(-1);
+    expect(subRailIndexFor(0.96, 0.555, undefined)).toBe(-1);
+  });
+
+  it('draws a sub nudged off its slot in that slot, one disc per slot, closest first', () => {
+    const p = (id: string, relX: number, relY: number) => createMockPlayer(id, { relX, relY });
+    const assigned = assignRailSlots(
+      [
+        p('exact', 0.96, 0.485),     // LM exactly
+        p('nudged', 0.96, 0.60),     // 0.045 below RM (the owner's Eino)
+        p('second', 0.96, 0.49),     // also near LM, but further than 'exact'
+        p('field', 0.5, 0.5),        // on the pitch
+      ],
+      SLOTS,
+    );
+    expect(assigned.get('exact')).toBe(3);
+    expect(assigned.get('nudged')).toBe(4);
+    expect(assigned.has('second')).toBe(false);
+    expect(assigned.has('field')).toBe(false);
+  });
+
+  it('snaps a drop onto the slot where the rail DRAWS it (not where it is stored)', () => {
+    const W = 366;
+    const H = 632;
+    const spots = computeSubRail(SLOTS, W, H);
+    const cam = byLabel(spots, 'CAM');
+    const toScreen = (point: Point) => {
+      const i = subRailIndexFor(point.relX, point.relY, SLOTS);
+      return i >= 0 ? spots[i] : { x: point.relX * W, y: point.relY * H };
+    };
+    const mover = createMockPlayer('me', { relX: 0.5, relY: 0.5 });
+    const drop = { relX: (cam.x + 3) / W, relY: (cam.y - 4) / H };
+    const action = resolveSnapAction(SLOTS.map(({ relX, relY }) => ({ relX, relY })), [mover], 'me', drop, W, H, toScreen);
+    expect(action).toEqual({ type: 'snap', point: { relX: 0.96, relY: 0.38 } });
+  });
+
+  describe('taps land where the rail is drawn', () => {
+    const W = 366;
+    const H = 632;
+    const origRect = HTMLCanvasElement.prototype.getBoundingClientRect;
+    beforeEach(() => {
+      HTMLCanvasElement.prototype.getBoundingClientRect = jest.fn(() => ({
+        left: 0, top: 0, right: W, bottom: H, width: W, height: H, x: 0, y: 0, toJSON: () => ({}),
+      })) as unknown as typeof HTMLCanvasElement.prototype.getBoundingClientRect;
+    });
+    afterEach(() => {
+      HTMLCanvasElement.prototype.getBoundingClientRect = origRect;
+    });
+
+    const baseProps = {
+      players: [] as Player[],
+      opponents: [],
+      drawings: [],
+      onPlayerMove: jest.fn(),
+      onPlayerMoveEnd: jest.fn(),
+      onPlayerRemove: jest.fn(),
+      onOpponentMove: jest.fn(),
+      onOpponentMoveEnd: jest.fn(),
+      onOpponentRemove: jest.fn(),
+      onPlayerDrop: jest.fn(),
+      showPlayerNames: true,
+      onDrawingStart: jest.fn(),
+      onDrawingAddPoint: jest.fn(),
+      onDrawingEnd: jest.fn(),
+      draggingPlayerFromBarInfo: null as Player | null,
+      onPlayerDropViaTouch: jest.fn(),
+      onPlayerDragCancelViaTouch: jest.fn(),
+      timeElapsedInSeconds: 0,
+      isTacticsBoardView: false,
+      tacticalDiscs: [],
+      onTacticalDiscMove: jest.fn(),
+      onTacticalDiscMoveEnd: jest.fn(),
+      onTacticalDiscRemove: jest.fn(),
+      onToggleTacticalDiscType: jest.fn(),
+      tacticalBallPosition: null,
+      onTacticalBallMove: jest.fn(),
+      onTacticalBallMoveEnd: jest.fn(),
+      isDrawingEnabled: false,
+      subSlots: SLOTS,
+    };
+    const tap = (x: number, y: number) => {
+      const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+      fireEvent.touchStart(canvas, { touches: [{ clientX: x, clientY: y, identifier: 0 }], changedTouches: [{ clientX: x, clientY: y, identifier: 0 }] });
+      fireEvent.touchEnd(canvas, { touches: [], changedTouches: [{ clientX: x, clientY: y, identifier: 0 }] });
+    };
+
+    beforeEach(() => jest.clearAllMocks());
+
+    /**
+     * Placing a bar player on a rail slot records them IN that slot (its
+     * stored coordinates), as a tap on the old slot position did.
+     * @critical
+     */
+    it('places a player picked from the bar into the slot under the tap', () => {
+      const onPlayerDropViaTouch = jest.fn();
+      render(
+        <SoccerField
+          {...baseProps}
+          draggingPlayerFromBarInfo={createMockPlayer('bench', { relX: undefined, relY: undefined })}
+          onPlayerDropViaTouch={onPlayerDropViaTouch}
+        />,
+      );
+      const rb = byLabel(computeSubRail(SLOTS, W, H), 'RB');
+      tap(rb.x + 5, rb.y + 5);
+      expect(onPlayerDropViaTouch).toHaveBeenCalledWith(0.96, 0.855);
+    });
+
+    it('places a player exactly where the tap was anywhere off the rail', () => {
+      const onPlayerDropViaTouch = jest.fn();
+      render(
+        <SoccerField
+          {...baseProps}
+          draggingPlayerFromBarInfo={createMockPlayer('bench', { relX: undefined, relY: undefined })}
+          onPlayerDropViaTouch={onPlayerDropViaTouch}
+        />,
+      );
+      tap(183, 316);
+      expect(onPlayerDropViaTouch).toHaveBeenCalledWith(183 / W, 316 / H);
+    });
+
+    /**
+     * Select a player, then tap an EMPTY rail slot: the player moves into
+     * that slot's stored coordinates.
+     * @critical
+     */
+    it('moves a selected player into the empty slot tapped on the rail', () => {
+      const onPlayerMove = jest.fn();
+      const players = [createMockPlayer('p1', { relX: 0.5, relY: 0.5 })];
+      render(<SoccerField {...baseProps} players={players} onPlayerMove={onPlayerMove} />);
+      tap(0.5 * W, 0.5 * H); // select
+      const lb = byLabel(computeSubRail(SLOTS, W, H), 'LB');
+      tap(lb.x, lb.y);
+      expect(onPlayerMove).toHaveBeenCalledWith('p1', 0.96, 0.785);
+    });
+
+    it('finds a sub waiting in a slot where the rail draws it, not where it is stored', () => {
+      const onPlayerMove = jest.fn();
+      const players = [
+        createMockPlayer('field', { relX: 0.5, relY: 0.5 }),
+        createMockPlayer('sub', { relX: 0.96, relY: 0.24 }), // ST slot
+      ];
+      render(<SoccerField {...baseProps} players={players} onPlayersSwap={onPlayerMove} />);
+      tap(0.5 * W, 0.5 * H); // select the field player
+      const st = byLabel(computeSubRail(SLOTS, W, H), 'ST');
+      tap(st.x, st.y); // tap the sub where it is drawn: a swap
+      expect(onPlayerMove).toHaveBeenCalledWith('field', 'sub');
+    });
   });
 });

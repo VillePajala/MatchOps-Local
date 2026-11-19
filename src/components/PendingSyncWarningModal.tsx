@@ -22,7 +22,6 @@ import {
 import {
   primaryButtonStyle,
   secondaryButtonStyle,
-  dangerButtonStyle,
   WizardBackdrop,
   wizardModalStyle,
   wizardHeaderStyle,
@@ -116,12 +115,12 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
         <div className={wizardContentStyle}>
           {/* Warning Icon */}
           <div className="text-center mb-4">
-            <HiOutlineExclamationTriangle className="h-12 w-12 text-amber-400 mx-auto" />
+            <HiOutlineExclamationTriangle className="h-12 w-12 text-action mx-auto" />
           </div>
 
           {/* Warning Message */}
           <div id="pending-sync-warning-description" className={`${warningBoxStyle} mb-6`}>
-            <p className="text-amber-200 mb-3">
+            <p className="text-ink-2 mb-3">
               {t(
                 'cloudSync.pendingSync.warning',
                 'You have {{count}} changes that haven\'t been synced to the cloud yet.',
@@ -130,7 +129,7 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
             </p>
 
             {/* Breakdown of pending vs failed */}
-            <ul className="text-sm text-amber-300 space-y-1 mb-3">
+            <ul className="text-sm text-ink-2 space-y-1 mb-3">
               {hasPending && (
                 <li className="flex items-center gap-2">
                   <HiOutlineCloudArrowUp className="h-4 w-4" />
@@ -139,13 +138,13 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
               )}
               {hasFailed && (
                 <li className="flex items-center gap-2">
-                  <HiOutlineExclamationTriangle className="h-4 w-4 text-red-400" />
+                  <HiOutlineExclamationTriangle className="h-4 w-4 text-loss" />
                   {t('cloudSync.pendingSync.failedCount', '{{count}} failed to sync', { count: failedCount })}
                 </li>
               )}
             </ul>
 
-            <p className="text-amber-200 font-medium">
+            <p className="text-ink-2 font-medium">
               {isSignOut
                 ? t('cloudSync.pendingSync.signOutConsequence', 'If you sign out now, they stay on this device and are sent the next time you sign in here.')
                 : t('cloudSync.pendingSync.consequence', 'Switching to local mode now will abandon these changes.')}
@@ -158,7 +157,7 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
             <button
               onClick={() => onAction('sync')}
               disabled={isSyncing || !isOnline}
-              className={`${primaryButtonStyle} w-full flex items-center justify-center gap-2 py-3`}
+              className={`${primaryButtonStyle} w-full`}
               aria-busy={isSyncing}
             >
               <span aria-live="polite" className="flex items-center justify-center gap-2">
@@ -178,7 +177,7 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
 
             {/* Offline notice */}
             {!isOnline && (
-              <p className="text-sm text-slate-400 text-center">
+              <p className="text-sm text-ink-3 text-center">
                 {t('cloudSync.pendingSync.offlineNotice', 'Cannot sync while offline')}
               </p>
             )}
@@ -188,7 +187,7 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
               <button
                 onClick={() => onAction('discard')}
                 disabled={isSyncing}
-                className={`${secondaryButtonStyle} w-full py-3`}
+                className={`${secondaryButtonStyle} w-full`}
               >
                 {t('cloudSync.pendingSync.signOutAnyway', 'Sign out anyway')}
               </button>
@@ -196,7 +195,7 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
               <button
                 onClick={() => onAction('discard')}
                 disabled={isSyncing}
-                className={`${dangerButtonStyle} w-full flex items-center justify-center gap-2 py-3 !bg-red-600/20 hover:!bg-red-600/30 !text-red-400`}
+                className={`${secondaryButtonStyle} w-full !text-loss`}
               >
                 <HiOutlineTrash className="h-5 w-5" />
                 {t('cloudSync.pendingSync.discardAndContinue', 'Discard & Continue')}
@@ -207,7 +206,7 @@ const PendingSyncWarningModal: React.FC<PendingSyncWarningModalProps> = ({
             <button
               onClick={() => onAction('cancel')}
               disabled={isSyncing}
-              className={`${secondaryButtonStyle} w-full py-3`}
+              className={`${secondaryButtonStyle} w-full`}
             >
               {t('common.cancel', 'Cancel')}
             </button>

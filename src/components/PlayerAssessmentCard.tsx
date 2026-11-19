@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { HiCheckCircle, HiXCircle } from 'react-icons/hi';
+import { HiOutlineChevronDown, HiCheck } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
 import type { TranslationKey } from '@/i18n-types';
@@ -10,6 +10,13 @@ import AssessmentLevelSelector from './AssessmentLevelSelector';
 import { validateAssessment } from '@/hooks/usePlayerAssessments';
 import { ASSESSMENT_DEFAULT, makeDefaultSliders, templateMetricIds } from '@/config/assessmentMetrics';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
+import { textareaStyle, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+
+/** Same metric values, whatever the key order. */
+const sameSliders = (a: Record<string, number>, b: Record<string, number>): boolean => {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k]);
+};
 
 interface PlayerAssessmentCardProps {
   player: Player;
@@ -31,11 +38,32 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
   const [sliders, setSliders] = useState<Record<string, number>>(assessment?.sliders ?? initialSliders);
   const [notes, setNotes] = useState(assessment?.notes ?? '');
   const prev = useRef({ overall, sliders, notes });
+  // Which ratings the coach has actually given (presentation only). A new
+  // assessment starts from defaults (overall 5, each metric ASSESSMENT_DEFAULT)
+  // and Save stores exactly those values, as before - this only decides whether
+  // a value is drawn as a chosen rating (amber) or as an untouched default
+  // (faint grey). An assessment that was already stored when it arrived counts
+  // as rated throughout; one that is being given now is rated key by key, also
+  // after the auto-save has stored it (that echo must not mark the defaults
+  // still on screen as given).
+  const [ratedAll, setRatedAll] = useState<boolean>(!!assessment);
+  const [touched, setTouched] = useState<ReadonlySet<string>>(() => new Set());
+  const isRated = (key: string) => ratedAll || touched.has(key);
 
   React.useLayoutEffect(() => {
     const newOverall = assessment?.overall ?? 5;
     const newSliders = assessment?.sliders ?? initialSliders;
     const newNotes = assessment?.notes ?? '';
+    // Our own save coming back (the values we last saved): keep the rated marks.
+    const isOwnSaveEcho =
+      !!assessment &&
+      newOverall === prev.current.overall &&
+      newNotes === prev.current.notes &&
+      sameSliders(newSliders, prev.current.sliders);
+    if (!isOwnSaveEcho) {
+      setRatedAll(!!assessment);
+      setTouched(new Set());
+    }
     setOverall(newOverall);
     setSliders(newSliders);
     setNotes(newNotes);
@@ -75,8 +103,17 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
     }
   }, []);
 
+  const markTouched = (key: string) =>
+    setTouched((prevTouched) => (prevTouched.has(key) ? prevTouched : new Set(prevTouched).add(key)));
+
   const handleSliderChange = (key: string, value: number) => {
+    markTouched(key);
     setSliders((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleOverallChange = (value: number) => {
+    markTouched('overall');
+    setOverall(value);
   };
 
   const handleSave = () => {
@@ -91,30 +128,38 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
   };
 
   return (
-    <div className="text-slate-100">
+    // One row of the modal's grouped list: a 56px header, with an inset divider
+    // above every row but the first; opens in place.
+    <div className="relative font-ui text-ink before:absolute before:top-0 before:left-[50px] before:right-0 before:h-px before:bg-hairline first:before:hidden">
       <button
         type="button"
-        className="flex items-center justify-between w-full py-2 px-1 hover:bg-slate-800/40 rounded transition-colors"
+        className="flex items-center gap-3.5 w-full min-h-14 px-4 text-left hover:bg-white/[0.03] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action"
         onClick={() => setExpanded(v => !v)}
         aria-expanded={expanded}
         title={expanded ? t('playerAssessmentModal.collapse', { name: player.name }) : t('playerAssessmentModal.expand', { name: player.name })}
       >
-        <span className="font-semibold">{player.name}</span>
+        {/* Not assessed yet: a dashed ring. Assessed: filled green with a check. */}
         {isSaved ? (
-          <HiCheckCircle className="text-indigo-400" />
+          <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-win/[0.18] text-win">
+            <HiCheck className="h-4 w-4" aria-hidden="true" />
+          </span>
         ) : (
-          <HiXCircle className="text-slate-500" />
+          <span className="h-6 w-6 flex-none rounded-full border-[1.5px] border-dashed border-ink-3/70" aria-hidden="true" />
         )}
+        <span className="flex-1 min-w-0 truncate font-semibold">{player.name}</span>
+        <HiOutlineChevronDown className={`h-[18px] w-[18px] flex-none text-ink-3 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
       {expanded && (
-        <div className="mt-3 pt-3 space-y-4">
-          <div className="flex items-center space-x-2">
-            <label className="text-sm text-slate-300 w-24 shrink-0">
-              {t('playerAssessmentModal.overallLabel', 'Overall')}
-            </label>
-            <OverallRatingSelector value={overall} onChange={setOverall} />
-          </div>
-          <div className="space-y-3">
+        <div className="px-4 pb-4 pt-1 space-y-4">
+          {/* Label above the scale: beside it, the label column left room
+              for only three numbers per row on a 360px phone. */}
+          <OverallRatingSelector
+            label={t('playerAssessmentModal.overallLabel', 'Overall')}
+            value={overall}
+            onChange={handleOverallChange}
+            untouched={!isRated('overall')}
+          />
+          <div className="space-y-4">
             {metricIds.map((id) => (
               <AssessmentLevelSelector
                 key={id}
@@ -123,6 +168,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
                 value={sliders[id] ?? ASSESSMENT_DEFAULT}
                 onChange={(v) => handleSliderChange(id, v)}
                 ratingStyle={ratingStyle}
+                untouched={!isRated(id)}
               />
             ))}
           </div>
@@ -131,17 +177,17 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               maxLength={280}
-              className="w-full bg-slate-700 border border-slate-600 rounded-md text-white p-2"
+              className={textareaStyle}
               placeholder={t('playerAssessmentModal.notesPlaceholder', 'Add notes...')}
               aria-label={t('playerAssessmentModal.notesPlaceholder', 'Add notes...')}
               rows={3}
             />
-            <div className="text-xs text-slate-400 text-right">{notes.length}/280</div>
+            <div className="mt-1 text-xs text-ink-3 text-right">{notes.length}/280</div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
             <button
               type="button"
-              className="px-4 py-2 rounded-sm text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 border border-indigo-400/30"
+              className={`${primaryButtonStyle} w-full`}
               onClick={handleSave}
               disabled={!isValid}
               aria-label={t('playerAssessmentModal.saveButton', 'Save')}
@@ -151,7 +197,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
             {assessment && onDelete && (
               <button
                 type="button"
-                className="px-3 py-2 rounded-sm text-sm font-medium transition-colors bg-red-600 hover:bg-red-500 text-white border border-red-400/30"
+                className={`${dangerButtonStyle} w-full`}
                 onClick={() => { deletedRef.current = true; onDelete(); }}
               >
                 {t('playerAssessmentModal.resetButton', 'Reset')}

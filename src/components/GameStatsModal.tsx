@@ -7,7 +7,7 @@ import type { AdjustmentScope } from '@/utils/adjustmentScope';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Combobox } from '@headlessui/react';
-import { HiOutlineChevronUpDown } from 'react-icons/hi2';
+import { HiChevronDown, HiOutlineMagnifyingGlass, HiOutlineClipboardDocument } from 'react-icons/hi2';
 import { HiOutlineShare } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -41,10 +41,28 @@ import { buildTasoReport } from '@/utils/tasoReport';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
 import { extraTimeGoals } from '@/utils/matchStructure';
-import { computeGameCompleteness } from '@/utils/gameCompleteness';
+import { competitionRowRelevant, computeGameCompleteness } from '@/utils/gameCompleteness';
+import { useAppLayout } from '@/hooks/useAppLayout';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { dictationVocabularyFor } from '@/utils/transcription';
-import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
+import {
+  CollapsibleModalHeader,
+  useCollapsingHeader,
+  modalContainerStyle,
+  cardStyle,
+  sectionLabelStyle,
+  subtextStyle,
+  inputBaseStyle,
+  selectStyle,
+  secondaryButtonStyle,
+  primaryButtonStyle,
+  chipStyle,
+  infoBoxStyle,
+  segmentTrackStyle,
+  segmentStyle,
+  segmentSelectedStyle,
+} from '@/styles/modalStyles';
+import { resolveGameResult } from '@/utils/gameResult';
 import { groupOpponentVariants } from '@/utils/opponentNames';
 import { computeHeadToHead } from '@/utils/headToHead';
 import HeadToHeadCard from '@/components/GameStatsModal/components/HeadToHeadCard';
@@ -80,9 +98,8 @@ import { useDraftEstimate } from '@/hooks/useDraftEstimate';
 
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
-import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
-import { appLocale, formatAppDecimal, formatAppPercent } from '@/utils/localeFormat';
+import { appLocale } from '@/utils/localeFormat';
 
 /** Stable no-op callback to avoid creating new function references on each render */
 const NOOP = () => {};
@@ -301,6 +318,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [showTaso, setShowTaso] = useState(false);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [sortColumn, setSortColumn] = useState<SortableColumn>('totalScore');
+  // Finish view: the player-stats table is folded away until asked for.
+  const [finishStatsOpen, setFinishStatsOpen] = useState(false);
+  // Basic layout (review R7): the extra records sit folded under "More records".
+  const [moreRecordsOpen, setMoreRecordsOpen] = useState(false);
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filterText, setFilterText] = useState<string>('');
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -555,6 +576,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     clubSeasonEndDate,
   });
 
+  // Nothing to aggregate on a league / tournament / overall tab: say so once,
+  // instead of a card of zero tiles over an empty table. A specific league or
+  // tournament that was picked keeps its own "no games found for this" message.
+  const scopeIsEmpty =
+    (activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') &&
+    processedGameIds.length === 0 &&
+    !Array.isArray(tournamentSeasonStats);
+
   const goalEditorHook = useGoalEditor({
     gameEvents,
     onUpdateGameEvent,
@@ -696,6 +725,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const scrollToId = useCallback((id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+  // A target inside the folded "More records" group opens it first, then
+  // scrolls once it has rendered.
+  const revealAndScroll = useCallback((id: string) => {
+    setMoreRecordsOpen(true);
+    requestAnimationFrame(() => scrollToId(id));
+  }, [scrollToId]);
   const scrollToInbox = useCallback(() => scrollToId('dictation-inbox'), [scrollToId]);
   const scrollToReport = useCallback(() => scrollToId('game-report-editor'), [scrollToId]);
   const scrollToPositions = useCallback(() => scrollToId('positions-editor'), [scrollToId]);
@@ -811,6 +846,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     return homeOrAway === 'home' ? { home: extra.us, away: extra.them } : { home: extra.them, away: extra.us };
   }, [numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, gameEvents, homeOrAway, homeScore, awayScore]);
 
+  // The pitch as last saved: the fallback position for a player with none
+  // recorded, in both the match sheet and the shared report.
+  const savedPlayersOnField = currentGameId ? savedGames?.[currentGameId]?.playersOnField : undefined;
+
   // Ready-to-paste text recap of the current game (score, our scorers/assisters,
   // the coach's match report).
   const recapText = useMemo(() => buildGameRecap(
@@ -826,6 +865,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       gameNotes,
       shootoutKicks,
       playerPositions,
+      playersOnField: savedPlayersOnField,
+      selectedPlayerIds,
       numberOfPeriods: numPeriods ?? 2,
       periodDurationMinutes: periodDurationMinutes ?? 0,
       extraTimePeriods,
@@ -833,7 +874,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     },
     availablePlayers,
     (key, fallback) => t(key, fallback) as string,
-  ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, playerPositions, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, availablePlayers, t]);
+  ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, playerPositions, savedPlayersOnField, selectedPlayerIds, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, availablePlayers, t]);
 
   /**
    * Who wore the armband. Captaincy is game metadata rather than live session
@@ -860,12 +901,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         periodDurationMinutes: periodDurationMinutes ?? 0,
         extraTimePeriods,
         extraTimeMinutes,
+        playerPositions,
+        playersOnField: savedPlayersOnField,
       },
       availablePlayers,
       (key, fallback) => t(key, fallback) as string,
     );
-    return `${r.lineup}\n\n${r.report}`;
-  }, [teamName, opponentName, homeOrAway, homeScore, awayScore, gameEvents, selectedPlayerIds, captainId, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, availablePlayers, t]);
+    return r.text;
+  }, [teamName, opponentName, homeOrAway, homeScore, awayScore, gameEvents, selectedPlayerIds, captainId, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, playerPositions, savedPlayersOnField, availablePlayers, t]);
 
   // Completeness for the current game: live-editable fields from props over the
   // saved snapshot (which carries competition/team/assessments).
@@ -874,6 +917,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     if (!saved) return null;
     return computeGameCompleteness({
       isPlayed: saved.isPlayed,
+      // Started-ness (R2) from the saved game; live goals below count too.
+      timeElapsedInSeconds: saved.timeElapsedInSeconds,
+      gameStatus: saved.gameStatus,
       gameNotes,
       selectedPlayerIds,
       seasonId: saved.seasonId,
@@ -886,6 +932,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       awayScore,
     }, { assessmentsEnabled });
   }, [currentGameId, savedGames, gameNotes, selectedPlayerIds, playerPositions, assessmentsEnabled, gameEvents, homeScore, awayScore]);
+
+  // "Competition & team" is a task only in the full layout and only once the
+  // coach has an active season or tournament to link to (Onboarding v3).
+  const appLayout = useAppLayout();
+  const showCompetitionRow = competitionRowRelevant(
+    appLayout,
+    seasons.filter((s) => !s.archived).length + tournaments.filter((tr) => !tr.archived).length,
+  );
 
   // --- Handlers ---
   const handleSaveNotes = useCallback(() => {
@@ -937,18 +991,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   };
 
   // Tab styling helpers
-  const getTabStyle = (tab: StatsTab) => {
-    const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors';
-    if (activeTab === tab) {
-      return `${baseStyle} bg-indigo-600 text-white`;
-    }
-    return `${baseStyle} bg-slate-700 text-slate-300 hover:bg-slate-600`;
-  };
+  // The tabs are a segmented control: the chosen view is the lifted segment.
+  const getTabStyle = (tab: StatsTab) => (activeTab === tab ? segmentSelectedStyle : segmentStyle);
 
-  const getPlayerTabStyle = () => {
-    const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors flex-1';
-    return `${baseStyle} ${activeTab === 'player' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
-  };
+  const getPlayerTabStyle = () => getTabStyle('player');
 
   // Tab title helper
   const getTabTitle = () => {
@@ -956,12 +1002,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       case 'season': return t('gameStatsModal.titleSeason', 'League Stats');
       case 'tournament': return t('gameStatsModal.titleTournament', 'Tournament Stats');
       case 'overall': return t('gameStatsModal.titleOverall', 'Overall Stats');
-      case 'player': {
-        const selectedTeamName = selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy'
-          ? teams.find(team => team.id === selectedTeamIdFilter)?.name
-          : null;
-        return `${selectedPlayer?.name || t('playerStats.selectPlayerLabel', 'Select Player')}${selectedTeamName ? ` - ${selectedTeamName}` : ''}`;
-      }
+      // The title names the view and stays put; the chosen player is named in the view itself.
+      case 'player': return t('startScreen.statsPlayer', 'Player stats');
       default: return t('gameStatsModal.titleCurrentGame', 'Finish this game');
     }
   };
@@ -1012,18 +1054,19 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // vocabulary follow kirjuri-ai-plan.md "Phase 1b". Every editor here is the
   // same component with the same handler it had before; only the frame moved.
   const playerStatsCard = (
-    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Stats')}</h3>
+    <div className="font-ui">
+      <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>{t('gameStatsModal.playerStatsTitle', 'Player Stats')}</h3>
+      <div className="s1-list overflow-hidden">
       {noGamesInContext ? (
-        <div className="text-center text-slate-400 py-8">
-          <div className="text-lg font-semibold mb-2">
+        <div className="text-center text-ink-3 px-4 py-8">
+          <div className="text-base font-semibold text-ink-2 mb-2">
             {t('gameStatsModal.noTeamGamesTitle', 'No games for the selected team in this context')}
           </div>
           <div className="text-sm">
             {t('gameStatsModal.noTeamGamesSubtitle', 'Choose another team or adjust filters to view player statistics.')}
           </div>
           {hasActiveFilters && (
-            <div className="mt-2 text-xs text-slate-500">
+            <div className="mt-2 text-[13px] text-ink-3">
               {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
             </div>
           )}
@@ -1031,17 +1074,15 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       ) : (
         <>
           {/* Search Input */}
-          <div className="relative mb-4">
+          <div className="relative px-3 pt-3.5 pb-2">
             <input
               type="text"
               value={filterText}
               onChange={handleFilterChange}
               placeholder={t('common.filterByName', 'Filter By Name')}
-              className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 [&:-webkit-autofill]:bg-slate-800 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#1e293b_inset]"
+              className={`${inputBaseStyle} min-h-11! py-2! pl-10! text-[15px]! [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#0f172a_inset]`}
             />
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <HiOutlineMagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-[26px] top-[calc(50%+3px)] -translate-y-1/2 w-[18px] h-[18px] text-ink-3" />
           </div>
           <div>
             <PlayerStatsTable
@@ -1056,14 +1097,35 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           </div>
         </>
       )}
+      </div>
     </div>
   );
-  const spineSteps: Array<{ key: string; id?: string; content: React.ReactNode }> = [];
+  // The finish screen (onboarding v3, D3a/C9) reads top to bottom: the result
+  // with a quick squad and goals check, the amber Match sheet, the match report
+  // with its quiet Share, then everything else. No step numbers: nothing here
+  // is a mandatory sequence, and every editor stays on the page. In the basic
+  // layout (review R7) "everything else" - the checklist, player notes, actual
+  // positions, assessments and Excel - is folded under one "More records".
+  const isBasicLayout = appLayout === 'basic';
+  const spineSteps: Array<{ key: string; id?: string; content: React.ReactNode; more?: boolean }> = [];
   if (activeTab === 'currentGame') {
     spineSteps.push({
       key: 'goals',
       content: (
         <>
+          <div className="flex min-h-11 items-center gap-2 px-1 font-ui text-[15px] text-ink-2" data-testid="spine-squad-line">
+            <span>{t('gameStatsModal.quickSquad', 'Squad: {{count}} players', { count: selectedPlayerIds.length })}</span>
+            {onOpenGameSettings && (
+              <button
+                type="button"
+                onClick={() => onOpenGameSettings('roster')}
+                data-testid="spine-squad-change"
+                className="ml-auto min-h-11 px-3 rounded-full font-semibold text-ink underline underline-offset-4 decoration-white/30 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              >
+                {t('gameStatsModal.quickSquadChange', 'Change')}
+              </button>
+            )}
+          </div>
           <GoalEventList
             goals={sortedGoals}
             availablePlayers={availablePlayers}
@@ -1081,77 +1143,26 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             onEditGoalTimeChange={goalEditorHook.setEditGoalTime}
             onEditGoalScorerChange={goalEditorHook.setEditGoalScorerId}
             onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
+            onAddGoal={onAddGoal}
           />
-          {onAddGoal && (
-            <button type="button" onClick={onAddGoal} data-testid="spine-add-goal" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors">
-              {t('gameStatsModal.spineAddGoal', 'Add a goal')}
-            </button>
-          )}
         </>
       ),
     });
+    // The match sheet: the official report text, ready to copy (was "for Taso").
     spineSteps.push({
-      key: 'notes',
-      id: 'game-notes-step',
+      key: 'taso',
       content: (
-        <>
-          {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
-            <DictationInbox
-              gameId={currentGameId}
-              availablePlayers={availablePlayers}
-              onAccept={onAddGameNote}
-              onCountChange={setVoiceClipCount}
-              latestClipId={dictation?.lastClip?.id ?? null}
-              language={i18n.language}
-            />
-          )}
-          <GameNotesList
-            notes={noteEvents}
-            availablePlayers={availablePlayers}
-            onDeleteNote={onDeleteGameEvent ? (id) => { void handleDeleteNote(id); } : undefined}
-          />
-          {/* Both children render nothing when there is nothing, which left a
-              numbered step with no content in it at all. A step of the
-              checklist must always say what it is about. */}
-          {onAddGameNote && currentGameId && currentGameId !== DEFAULT_GAME_ID && (
-            <GameNoteComposer
-              players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
-              stamp={draftStamp}
-              onAdd={onAddGameNote}
-              dictation={dictation}
-              vocabulary={dictationVocabulary}
-              language={i18n.language}
-            />
-          )}
-          {noteEvents.length === 0 && voiceClipCount === 0 && (
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner" data-testid="game-notes-empty">
-              <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('dictation.notesTitle', 'Notes')}</h3>
-              <p className="text-sm text-slate-400">
-                {t('gameStatsModal.spineNotesEmpty', 'Nothing noted from this match yet. Write one above, or dictate it during the game with the microphone button.')}
-              </p>
-            </div>
-          )}
-        </>
+        <button
+          type="button"
+          onClick={() => setShowTaso(true)}
+          data-testid="spine-taso-helper"
+          className={`${primaryButtonStyle} w-full`}
+        >
+          <HiOutlineClipboardDocument className="w-5 h-5" aria-hidden="true" />
+          {t('taso.button', 'Match sheet')}
+        </button>
       ),
     });
-    if (onPlayerPositionsChange) {
-      spineSteps.push({
-        key: 'positions',
-        id: 'positions-editor',
-        content: (
-          <div data-testid="positions-editor" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-            <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameSettingsModal.lineupTitle', 'Positions played')}</h3>
-            <p className="text-sm text-slate-400 mb-4">{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
-            <PlayerPositionsEditor
-              players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
-              value={playerPositions ?? {}}
-              gameType={currentGameType}
-              onChange={onPlayerPositionsChange}
-            />
-          </div>
-        ),
-      });
-    }
     spineSteps.push({
       key: 'report',
       id: 'game-report-editor',
@@ -1180,7 +1191,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               stamp={draftStamp}
               language={i18n.language}
               onSaveSummary={onAddGameNote}
-              onShowNotes={() => scrollToId('game-notes-step')}
+              onShowNotes={() => revealAndScroll('game-notes-step')}
               onInsertIntoReport={(spoken) => {
                 // Append to what is ON SCREEN, not to the last saved value: an
                 // open editor may hold a paragraph the coach has not saved.
@@ -1232,68 +1243,137 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               />
             </div>
           )}
+          {/* Share: the facts of the match plus this report, as one text for
+              the team chat. Quiet on purpose - the amber action is the sheet. */}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowRecap(true)}
+              data-testid="spine-share-report"
+              className="inline-flex min-h-11 items-center gap-2 px-3 rounded-full font-ui text-[15px] font-semibold text-ink hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+            >
+              <HiOutlineShare className="w-[18px] h-[18px] text-ink-2" aria-hidden="true" />
+              {t('gameStatsModal.shareReport', 'Share match report')}
+            </button>
+          </div>
         </>
       ),
     });
+    // The rest of the record, as a checklist that scrolls to each editor below.
+    if (currentGameCompleteness?.applicable) {
+      spineSteps.push({
+        key: 'checklist', more: true,
+        content: (
+          <GameWrapUpCard
+            completeness={currentGameCompleteness}
+            onOpenSettings={onOpenGameSettings}
+            onOpenAssessments={onOpenAssessments}
+            voiceClipCount={voiceClipCount}
+            onOpenVoiceNotes={scrollToInbox}
+            onAddGoal={onAddGoal}
+            onOpenNotes={() => scrollToId('game-notes-step')}
+            onOpenReport={scrollToReport}
+            onOpenPositions={onPlayerPositionsChange ? scrollToPositions : undefined}
+            showCompetition={showCompetitionRow}
+          />
+        ),
+      });
+    }
+    spineSteps.push({
+      key: 'notes', more: true,
+      id: 'game-notes-step',
+      content: (
+        <>
+          {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
+            <DictationInbox
+              gameId={currentGameId}
+              availablePlayers={availablePlayers}
+              onAccept={onAddGameNote}
+              onCountChange={setVoiceClipCount}
+              latestClipId={dictation?.lastClip?.id ?? null}
+              language={i18n.language}
+            />
+          )}
+          <GameNotesList
+            notes={noteEvents}
+            availablePlayers={availablePlayers}
+            onDeleteNote={onDeleteGameEvent ? (id) => { void handleDeleteNote(id); } : undefined}
+          />
+          {/* Both children render nothing when there is nothing, which left a
+              section with no content in it at all. A section of the finish
+              screen must always say what it is about. */}
+          {onAddGameNote && currentGameId && currentGameId !== DEFAULT_GAME_ID && (
+            <GameNoteComposer
+              players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
+              stamp={draftStamp}
+              onAdd={onAddGameNote}
+              dictation={dictation}
+              vocabulary={dictationVocabulary}
+              language={i18n.language}
+            />
+          )}
+          {noteEvents.length === 0 && voiceClipCount === 0 && (
+            <div className={`${cardStyle} font-ui`} data-testid="game-notes-empty">
+              <h3 className="text-base font-semibold text-ink mb-1">{t('dictation.notesTitle', 'Notes')}</h3>
+              <p className={subtextStyle}>
+                {t('gameStatsModal.spineNotesEmpty', 'Nothing noted from this match yet. Write one above, or dictate it during the game with the microphone button.')}
+              </p>
+            </div>
+          )}
+        </>
+      ),
+    });
+    if (onPlayerPositionsChange) {
+      spineSteps.push({
+        key: 'positions', more: true,
+        id: 'positions-editor',
+        content: (
+          <div data-testid="positions-editor" className={`${cardStyle} font-ui`}>
+            <h3 className="text-base font-semibold text-ink mb-1">{t('gameSettingsModal.lineupTitle', 'Positions played')}</h3>
+            <p className={`${subtextStyle} mb-4`}>{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
+            <PlayerPositionsEditor
+              players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
+              value={playerPositions ?? {}}
+              gameType={currentGameType}
+              onChange={onPlayerPositionsChange}
+            />
+          </div>
+        ),
+      });
+    }
     if (assessmentsEnabled && onOpenAssessments && currentGameCompleteness?.applicable) {
       spineSteps.push({
-        key: 'assessments',
+        key: 'assessments', more: true,
         content: (
-          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-            <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameStatsModal.wrapUpAssessments', 'Player assessments')}</h3>
-            <p className="text-sm text-slate-400 mb-4">
+          <div className={`${cardStyle} font-ui`}>
+            <h3 className="text-base font-semibold text-ink mb-1">{t('gameStatsModal.wrapUpAssessments', 'Player assessments')}</h3>
+            <p className={`${subtextStyle} mb-4`}>
               {t('loadGameModal.assessmentsProgress', '{{done}}/{{total}} assessments', {
                 done: currentGameCompleteness.assessments.done,
                 total: currentGameCompleteness.assessments.total,
               })}
             </p>
-            <button type="button" onClick={onOpenAssessments} data-testid="spine-open-assessments" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors">
+            <button type="button" onClick={onOpenAssessments} data-testid="spine-open-assessments" className={`${secondaryButtonStyle} w-full`}>
               {t('gameStatsModal.spineOpenAssessments', 'Open player assessments')}
             </button>
           </div>
         ),
       });
     }
-    spineSteps.push({
-      key: 'share',
-      content: (
-        <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-3">
-          <h3 className="text-xl font-semibold text-slate-200">{t('gameStatsModal.spineShareTitle', 'Share the match')}</h3>
-          {/* Taso helper: the same match in the order Taso's report wants it typed,
-              because Taso has no API a coach can write to. */}
-          <button
-            type="button"
-            onClick={() => setShowTaso(true)}
-            data-testid="spine-taso-helper"
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-100"
-          >
-            {t('taso.button', 'Match report for Taso')}
+    if (currentGameId && onExportOneExcel) {
+      spineSteps.push({
+        key: 'export', more: true,
+        content: (
+          <button type="button" onClick={() => onExportOneExcel(currentGameId)} data-testid="spine-export-excel" className={`${secondaryButtonStyle} w-full`}>
+            {t('common.exportExcel', 'Export Excel')}
           </button>
-          <button
-            type="button"
-            onClick={() => setShowRecap(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800"
-          >
-            <HiOutlineShare className="text-base" />
-            {t('recap.button', 'Generate match recap')}
-          </button>
-          {currentGameId && onExportOneExcel && (
-            <button type="button" onClick={() => onExportOneExcel(currentGameId)} data-testid="spine-export-excel" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-slate-500 transition-colors">
-              {t('common.exportExcel', 'Export Excel')}
-            </button>
-          )}
-        </div>
-      ),
-    });
+        ),
+      });
+    }
   }
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={getTabTitle()}>
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-        <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-indigo-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
+      <div className={`${modalContainerStyle} h-full w-full relative font-ui`}>
         {/* Chrome slimming: X-header (Done->X); the tab strip collapses on scroll. */}
         <CollapsibleModalHeader
           title={getTabTitle()}
@@ -1301,13 +1381,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           closeLabel={t('common.doneButton', 'Done')}
           collapse={headerCollapse}
         >
-          <div className="px-4 sm:px-6 py-4">
+          <div className="px-4 sm:px-6 pt-1 pb-3">
             <div className="flex items-center gap-2 flex-wrap flex-1">
               {/* A tab bar with one tab is chrome, not navigation: at match level
                   the aggregate tabs are hidden, which used to leave a single
                   full-width "Nykyinen" button that did nothing when pressed. */}
               {visibleTabCount > 1 && (
-                <div className="flex w-full gap-2" role="tablist">
+                <div className={`${segmentTrackStyle} w-full`} role="tablist">
               {!aggregateOnly && (
                 <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-selected={activeTab === 'currentGame'}>
                   {t('gameStatsModal.tabs.currentGame')}
@@ -1335,11 +1415,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto min-h-0" onScroll={headerCollapse.onScroll}>
-          <FirstVisitIntro
-            surface="stats"
-            className="mx-4 my-4 sm:mx-6"
-            text={t('firstVisit.stats', 'Game stats live here: this game, league, tournament and per-player views from the tabs.')}
-          />
           {/* HERE, not only in the competitions manager, because this is where
               the damage shows. One team written several ways is several
               opponents to every figure on this screen, and a coach looking at
@@ -1349,8 +1424,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               single match's figures are not aggregated, so nothing there is
               distorted by it. */}
           {nameConflicts > 0 && activeTab !== 'currentGame' && (
-            <div className="mx-4 sm:mx-6 mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5">
-              <p className="text-xs text-amber-200/90">
+            <div className={`mx-4 sm:mx-6 mt-3 ${infoBoxStyle}`}>
+              <p className="text-[13px] leading-snug text-ink-2">
                 {t(
                   'gameStatsModal.nameConflicts',
                   '{{count}} teams are written several ways, so they count as separate opponents here.',
@@ -1361,7 +1436,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 type="button"
                 onClick={() => setShowNameSweep(true)}
                 data-testid="stats-open-name-sweep"
-                className="mt-1.5 px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs font-bold transition-colors"
+                className={`${chipStyle} mt-2.5`}
               >
                 {t('gameStatsModal.nameConflictsAction', 'Check team names')}
               </button>
@@ -1391,24 +1466,28 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   }}
                 >
                   <div className="relative flex-1 min-w-0">
+                    {/* Drawn as the house select (filled well, one CSS down
+                        chevron from `.s1-select`); the button over the chevron
+                        opens the list. */}
                     <Combobox.Input
-                      className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className={selectStyle}
                       onChange={(e) => setPlayerQuery(e.target.value)}
                       displayValue={(p: Player | null) => (p ? p.name : '')}
                       placeholder={t('playerStats.selectPlayerLabel', 'Select Player')}
                     />
-                    <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                      <HiOutlineChevronUpDown className="w-5 h-5 text-slate-300" />
-                    </Combobox.Button>
+                    <Combobox.Button
+                      className="absolute inset-y-0 right-0 w-11 rounded-r-[14px] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action"
+                      aria-label={t('playerStats.selectPlayerLabel', 'Select Player')}
+                    />
                     {filteredPlayers.length > 0 && (
-                      <Combobox.Options className="absolute z-20 mt-1 w-full max-h-80 overflow-auto rounded-md border border-slate-700/50 bg-slate-800/90 backdrop-blur-sm py-1 text-sm shadow-xl focus:outline-none">
+                      <Combobox.Options className="absolute z-20 mt-1.5 w-full max-h-80 overflow-auto rounded-2xl bg-surface-2 py-1 text-[15px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)] focus:outline-none">
                         {filteredPlayers.map((p) => (
                           <Combobox.Option
                             key={p.id}
                             value={p}
                             className={({ active }) =>
-                              `p-2 rounded-md border border-slate-700/50 text-slate-100 cursor-pointer ${
-                                active ? 'bg-slate-800/60' : 'bg-slate-800/40 hover:bg-slate-800/60'
+                              `flex items-center min-h-11 px-4 text-ink-2 cursor-pointer ${
+                                active ? 'bg-white/[0.08] text-ink' : 'hover:bg-white/[0.05]'
                               }`
                             }
                           >
@@ -1487,6 +1566,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     awayTeamName={displayAwayTeamName}
                     homeScore={homeScore}
                     awayScore={awayScore}
+                    result={resolveGameResult({ homeScore, awayScore, homeOrAway, shootoutKicks })}
                     formattedDate={formatDisplayDate(gameDate)}
                     gameTime={gameTime}
                     gameLocation={gameLocation}
@@ -1501,28 +1581,67 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     extraTimeScore={extraTimeScore}
                     shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
                   />
-                  {currentGameCompleteness?.applicable && (                    <GameWrapUpCard
-                      completeness={currentGameCompleteness}
-                      onOpenSettings={onOpenGameSettings}
-                      onOpenAssessments={onOpenAssessments}
-                      voiceClipCount={voiceClipCount}
-                      onOpenVoiceNotes={scrollToInbox}
-                      onAddGoal={onAddGoal}
-                      onOpenNotes={() => scrollToId('game-notes-step')}
-                      onOpenReport={scrollToReport}
-                      onOpenPositions={onPlayerPositionsChange ? scrollToPositions : undefined}
-                    />
-                  )}
-                  {playerStatsCard}
-                  <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
-                  {spineSteps.map((step, i) => (
+                  {spineSteps.filter((step) => !(isBasicLayout && step.more)).map((step) => (
                     <section key={step.key} id={step.id} data-testid={`spine-${step.key}`} className="space-y-3">
-                      <p className="text-sm font-semibold uppercase tracking-wider text-indigo-300">
-                        {t('gameStatsModal.spineStep', 'Step {{n}} of {{total}}', { n: i + 1, total: spineSteps.length })}
-                      </p>
                       {step.content}
                     </section>
                   ))}
+                  {isBasicLayout && spineSteps.some((step) => step.more) && (
+                    <section data-testid="finish-more-records" className="space-y-6">
+                      <button
+                        type="button"
+                        onClick={() => setMoreRecordsOpen((v) => !v)}
+                        aria-expanded={moreRecordsOpen}
+                        data-testid="finish-more-records-toggle"
+                        className="s1-ghost flex min-h-12 w-full items-center gap-3 rounded-full px-4 text-[15px] font-semibold text-ink font-ui focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                      >
+                        <span className="flex-1 text-left">{t('gameStatsModal.moreRecords', 'More records')}</span>
+                        <HiChevronDown
+                          className={`h-[18px] w-[18px] shrink-0 text-ink-3 transition-transform ${moreRecordsOpen ? 'rotate-180' : ''}`}
+                          aria-hidden="true"
+                        />
+                      </button>
+                      {moreRecordsOpen && spineSteps.filter((step) => step.more).map((step) => (
+                        <section key={step.key} id={step.id} data-testid={`spine-${step.key}`} className="space-y-3">
+                          {step.content}
+                        </section>
+                      ))}
+                    </section>
+                  )}
+                  <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
+                  {/* The read-only table comes last and folded: the steps above
+                      are what the coach came to do. */}
+                  <section data-testid="finish-player-stats">
+                    <button
+                      type="button"
+                      onClick={() => setFinishStatsOpen((v) => !v)}
+                      aria-expanded={finishStatsOpen}
+                      data-testid="finish-player-stats-toggle"
+                      className="s1-ghost flex min-h-12 w-full items-center gap-3 rounded-full px-4 text-[15px] font-semibold text-ink font-ui focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                    >
+                      <span className="flex-1 text-left">{t('gameStatsModal.playerStatsTitle', 'Player Stats')}</span>
+                      <HiChevronDown
+                        className={`h-[18px] w-[18px] shrink-0 text-ink-3 transition-transform ${finishStatsOpen ? 'rotate-180' : ''}`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                    {finishStatsOpen && <div className="mt-3">{playerStatsCard}</div>}
+                  </section>
+                </div>
+              ) : scopeIsEmpty ? (
+                <div className="s1-list px-5 py-8 text-center font-ui" data-testid="stats-empty-scope">
+                  <p className="text-base font-semibold text-ink">
+                    {activeTab === 'tournament'
+                      ? t('gameStatsModal.emptyTournament', 'No tournament games yet')
+                      : activeTab === 'season'
+                        ? t('gameStatsModal.emptySeason', 'No league games yet')
+                        : t('gameStatsModal.emptyOverall', 'No games yet')}
+                  </p>
+                  <p className="mt-1.5 text-sm text-ink-3">
+                    {hasActiveFilters
+                      ? t('gameStatsModal.emptyHintFilters', 'Try changing the filters.')
+                      : t('gameStatsModal.emptyHint', 'Statistics appear here once games have been played.')}
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1583,7 +1702,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                               </div>
                             ))
                           ) : (
-                            <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400">
+                            <div className="s1-list p-8 text-center text-ink-3">
                               <div>
                                 {activeTab === 'season'
                                   ? t('gameStatsModal.noSeasonGames', 'No games found for this league.')
@@ -1591,7 +1710,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                                 }
                               </div>
                               {hasActiveFilters && (
-                                <div className="mt-2 text-sm text-slate-500">
+                                <div className="mt-2 text-sm text-ink-3">
                                   {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
                                 </div>
                               )}
@@ -1599,55 +1718,22 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                           )
                         ) : (
                           // "All Seasons/Tournaments" selected - show aggregate stats in a card
-                          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                            <h3 className="text-xl font-semibold text-slate-200 mb-4">
-                              {activeTab === 'season'
-                                ? t('gameStatsModal.filterAllSeasons', 'All Leagues')
-                                : t('gameStatsModal.filterAllTournaments', 'All Tournaments')
-                              }
-                            </h3>
-                            <div className="space-y-0 text-sm">
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-                                <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
-                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.totalGames}</span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-                                <span className="text-slate-300">{t('common.record', 'Record (W-D-L)')}</span>
-                                <span className="text-amber-400 font-bold">
-                                  {tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalTies}-{tournamentSeasonStats.totalLosses}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-                                <span className="text-slate-300">{t('common.winPercentage', 'Win Percentage')}</span>
-                                <span className="text-amber-400 font-bold">{formatAppPercent(tournamentSeasonStats.overallWinPercentage)}</span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-                                <span className="text-slate-300">{t('common.goalDifference', 'Goal Difference')}</span>
-                                <span
-                                  className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
-                                >
-                                  {tournamentSeasonStats.totalGoalDifference >= 0 ? '+' : ''}
-                                  {tournamentSeasonStats.totalGoalDifference}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-                                <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
-                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-                                <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
-                                <span className="text-amber-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-white/10">
-                                <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-                                <span className="text-amber-400 font-bold">{formatAppDecimal(tournamentSeasonStats.averageGoalsFor)}</span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2">
-                                <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-                                <span className="text-amber-400 font-bold">{formatAppDecimal(tournamentSeasonStats.averageGoalsAgainst)}</span>
-                              </div>
-                            </div>
-                          </div>
+                          <TeamPerformanceCard
+                            title={activeTab === 'season'
+                              ? t('gameStatsModal.filterAllSeasons', 'All Leagues')
+                              : t('gameStatsModal.filterAllTournaments', 'All Tournaments')}
+                            gamesPlayed={tournamentSeasonStats.totalGames}
+                            wins={tournamentSeasonStats.totalWins}
+                            ties={tournamentSeasonStats.totalTies}
+                            losses={tournamentSeasonStats.totalLosses}
+                            winPercentage={tournamentSeasonStats.overallWinPercentage}
+                            goalDifference={tournamentSeasonStats.totalGoalDifference}
+                            goalsFor={tournamentSeasonStats.totalGoalsFor}
+                            goalsAgainst={tournamentSeasonStats.totalGoalsAgainst}
+                            averageGoalsFor={tournamentSeasonStats.averageGoalsFor}
+                            averageGoalsAgainst={tournamentSeasonStats.averageGoalsAgainst}
+                            ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
+                          />
                         )}
                       </>
                     )}
@@ -1657,14 +1743,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               )}
 
               {/* Position balance - full-width, below the two-column stats grid */}
-              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && (
+              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && !scopeIsEmpty && (
                 <div className="mt-6">
                   <PositionBalanceSection games={scopedGames} players={playerPool} />
                 </div>
               )}
               {/* Same scope as the tables above it, so the denominator matches
                   what the coach is already looking at. */}
-              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && (
+              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && !scopeIsEmpty && (
                 <div className="mt-6">
                   <CoverageNudgeCard games={scopedGames} players={playerPool} />
                 </div>
@@ -1698,7 +1784,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       genderFilter: selectedGenderFilter,
                     });
                   }}
-                  className="px-4 py-2 rounded-md text-sm font-medium transition-colors border border-transparent bg-slate-700 hover:bg-slate-600 text-slate-200"
+                  className={`${secondaryButtonStyle} w-full`}
                 >
                   {t('common.exportExcel', 'Export Excel')}
                 </button>
@@ -1706,7 +1792,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               {activeTab !== 'player' && onExportAggregateExcel && !noGamesInContext && processedGameIds.length > 0 && (
                 <button
                   onClick={() => onExportAggregateExcel(processedGameIds, playerStats)}
-                  className="px-4 py-2 rounded-md text-sm font-medium transition-colors border border-transparent bg-slate-700 hover:bg-slate-600 text-slate-200"
+                  className={`${secondaryButtonStyle} w-full`}
                 >
                   {t('common.exportExcel', 'Export Excel')}
                 </button>
@@ -1736,8 +1822,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           isOpen={showTaso}
           onClose={() => setShowTaso(false)}
           recap={tasoText}
-          title={t('taso.title', 'For Taso')}
-          subtitle={t('taso.subtitle', 'The match data you need to type into Taso.')}
+          title={t('taso.title', 'Match sheet')}
+          subtitle={t('taso.subtitle', 'The match data, ready to copy.')}
         />
         {/* Rendered here as well as from the competitions manager: the tool is
             self-contained, and the point of the banner above is that a coach

@@ -134,8 +134,47 @@ describe('buildGameRecap', () => {
     expect(text).toContain('Lineup:\nRB: Emma\nCB: Emma\nST: Liam, Noah');
   });
 
-  it('omits the lineup block when no positions are assigned', () => {
+  it('omits the lineup block when no positions are assigned and no pitch is saved', () => {
     expect(buildGameRecap({ ...base, playerPositions: {} }, players, t)).not.toContain('Lineup');
     expect(buildGameRecap({ ...base }, players, t)).not.toContain('Lineup');
+  });
+
+  /**
+   * Review R13: with no actual positions recorded, the shared report still
+   * carries the line-up - the starting positions on the pitch, the same
+   * fallback the match sheet uses.
+   */
+  describe('starting-position fallback', () => {
+    const pitch = [
+      { id: 'p1', relX: 0.5, relY: 0.2 }, // ST
+      { id: 'p2', relX: 0.5, relY: 0.95 }, // GK
+      { id: 'p3', relX: 0.5, relY: 0.8 }, // CB
+    ];
+
+    it('lists the starting positions back to front when none were recorded', () => {
+      const text = buildGameRecap({ ...base, playerPositions: {}, playersOnField: pitch }, players, t);
+      expect(text).toContain('Lineup:\nGK: Emma\nCB: Noah\nST: Liam');
+    });
+
+    it('prefers recorded positions over the pitch', () => {
+      const text = buildGameRecap({ ...base, playerPositions: { p1: ['cb'] }, playersOnField: pitch }, players, t);
+      expect(text).toContain('Lineup:\nCB: Liam');
+      expect(text).not.toContain('GK: Emma');
+    });
+
+    it('leaves out sideline subs and players outside the squad', () => {
+      const text = buildGameRecap(
+        {
+          ...base,
+          playersOnField: [...pitch, { id: 'p4', relX: 0.99, relY: 0.5 }],
+          selectedPlayerIds: ['p1', 'p2'],
+        },
+        [...players, { id: 'p4', name: 'Sub Player' }],
+        t,
+      );
+      expect(text).toContain('Lineup:\nGK: Emma\nST: Liam');
+      expect(text).not.toContain('Noah');
+      expect(text).not.toContain('Sub');
+    });
   });
 });

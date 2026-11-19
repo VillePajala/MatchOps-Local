@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from 'react';
 import { AGE_GROUPS } from '@/config/gameOptions';
+import { FIELD_SIZES, type FieldSize } from '@/config/formationPresets';
 
 /**
  * Wizard-active store (module level, dependency-free).
@@ -75,6 +76,11 @@ const homeListeners = new Set<() => void>();
 export const setHomeShowing = (value: boolean): void => {
   if (homeShowing === value) return;
   homeShowing = value;
+  // Leaving Home ends the first visit after onboarding (see below).
+  if (!value && onboardingJustFinished) {
+    onboardingJustFinished = false;
+    onboardingListeners.forEach((l) => l());
+  }
   homeListeners.forEach((l) => l());
 };
 
@@ -92,14 +98,45 @@ export function useHomeShowing(): boolean {
   return useSyncExternalStore(subscribeHome, getHomeSnapshot, getHomeServerSnapshot);
 }
 
+// --- First Home visit after onboarding (review R13) ---------------------------
+// The coach who has just finished the wizard (team, players, first game and its
+// plan) lands on Home - and the marketing-consent prompt used to pop up there
+// five seconds later, over the very first look at their own Home. The flag is
+// raised when onboarding ends and cleared the first time Home leaves the screen
+// (opening a match, a reload starts a new visit too), so the prompt waits for a
+// later visit. In memory only: it is about this one visit.
+let onboardingJustFinished = false;
+const onboardingListeners = new Set<() => void>();
+
+/** Called when the setup wizard (or its next-game step) hands over to Home. */
+export const markOnboardingJustFinished = (): void => {
+  if (onboardingJustFinished) return;
+  onboardingJustFinished = true;
+  onboardingListeners.forEach((l) => l());
+};
+
+const subscribeOnboarding = (listener: () => void) => {
+  onboardingListeners.add(listener);
+  return () => {
+    onboardingListeners.delete(listener);
+  };
+};
+const getOnboardingSnapshot = () => onboardingJustFinished;
+const getOnboardingServerSnapshot = () => false;
+
+/** True during the first Home visit right after onboarding. */
+export function useOnboardingJustFinished(): boolean {
+  return useSyncExternalStore(subscribeOnboarding, getOnboardingSnapshot, getOnboardingServerSnapshot);
+}
+
 // --- Onboarding user id (review #728 round 2) --------------------------------
-// FirstVisitIntro must not depend on React contexts: host-modal test suites
-// partially mock AuthProvider/GuidedTourProvider and every context import
-// became a breakage vector (useAuth crash round 1, missing useAuthOptional in
-// partial mock factories round 2). page.tsx publishes the SETTLED user id here
-// instead: undefined = auth still resolving (banners render nothing, so a
-// dismissal can never be misfiled under the 'local' key), null = settled
-// local/no-account, string = signed-in user.
+// Leaf consumers (NewGameSetupModal's wizard hints) must not depend on React
+// contexts: host-modal test suites partially mock AuthProvider and every
+// context import became a breakage vector (useAuth crash round 1, missing
+// useAuthOptional in partial mock factories round 2). page.tsx publishes the
+// SETTLED user id here instead: undefined = auth still resolving (nothing is
+// read or written under a guessed key), null = settled local/no-account,
+// string = signed-in user.
 let onboardingUserId: string | null | undefined = undefined;
 const userListeners = new Set<() => void>();
 
@@ -122,37 +159,13 @@ export function useOnboardingUserId(): string | null | undefined {
   return useSyncExternalStore(subscribeUser, getUserSnapshot, getUserServerSnapshot);
 }
 
-// --- Guided-tour-active mirror ----------------------------------------------
-// Published by GuidedTourProvider so FirstVisitIntro can yield to an active
-// tour without importing the context (same partial-mock rationale as above).
-let guidedTourActive = false;
-const tourListeners = new Set<() => void>();
-
-export const setGuidedTourActive = (value: boolean): void => {
-  if (guidedTourActive === value) return;
-  guidedTourActive = value;
-  tourListeners.forEach((l) => l());
-};
-
-const subscribeTour = (listener: () => void) => {
-  tourListeners.add(listener);
-  return () => {
-    tourListeners.delete(listener);
-  };
-};
-const getTourSnapshot = () => guidedTourActive;
-const getTourServerSnapshot = () => false;
-
-export function useGuidedTourActive(): boolean {
-  return useSyncExternalStore(subscribeTour, getTourSnapshot, getTourServerSnapshot);
-}
-
 // --- Wizard format preference (review #742 issue 4) ---------------------------
 // Lives here, not in SetupWizard.tsx, for the same reason as everything else in
 // this module: consumers (NewGameSetupModal) must not pull the wizard's
 // data-layer imports just to read one localStorage hint.
 const FORMAT_PREFIX = 'matchops_setup_format_';
-export type SetupFormat = '5v5' | '8v8' | '11v11';
+/** Any field size the wizard offers (Onboarding v3: all five, 3v3-11v11). */
+export type SetupFormat = FieldSize;
 
 /** Written by the wizard when the coach answers Pelimuoto. */
 export function storeSetupFormat(userId: string | null | undefined, format: SetupFormat): void {
@@ -174,7 +187,7 @@ export function getStoredSetupFormat(userId: string | null | undefined): SetupFo
   try {
     // eslint-disable-next-line no-restricted-globals -- per-user UI default hint, not app data
     const value = localStorage.getItem(`${FORMAT_PREFIX}${userId ?? 'local'}`);
-    return value === '5v5' || value === '8v8' || value === '11v11' ? value : null;
+    return value && (FIELD_SIZES as string[]).includes(value) ? (value as SetupFormat) : null;
   } catch {
     return null;
   }

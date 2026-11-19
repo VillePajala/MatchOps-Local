@@ -68,12 +68,30 @@ describe('ShootoutModal', () => {
     render(
       <ShootoutModal isOpen={false} onClose={jest.fn()} availablePlayers={players} initialKicks={[]} homeOrAway="home" teamName="My Team" opponentName="Opponent" onSave={jest.fn()} />
     );
-    expect(screen.queryByText('Penalty Shootout')).not.toBeInTheDocument();
+    expect(screen.queryByText('Penalty shootout')).not.toBeInTheDocument();
   });
 
-  it('shows a short usage subtitle', () => {
+  it('has no subtitle under the title', () => {
     renderModal();
-    expect(screen.getByText(/log each shot as it happens/i)).toBeInTheDocument();
+    expect(screen.queryByText(/log each shot as it happens/i)).not.toBeInTheDocument();
+  });
+
+  /**
+   * Round 2 (10c): an away game reads home-first like the match scoreboard - the
+   * score, the names under it, the first-shot switch and the kick panels.
+   */
+  it('orders everything home-first when your team plays away', () => {
+    renderModal({ homeOrAway: 'away' });
+    expect(screen.getByText('Opponent · My Team')).toBeInTheDocument();
+    // The first-shot switch lists the home side (the opponent) first.
+    const firstShot = screen.getAllByRole('button', { pressed: true })[0];
+    expect(firstShot).toHaveTextContent('My Team');
+    const switchButtons = screen.getAllByRole('button').filter((b) => ['My Team', 'Opponent'].includes(b.textContent ?? ''));
+    expect(switchButtons.map((b) => b.textContent)).toEqual(['Opponent', 'My Team']);
+    // Index 0 = the home (opponent) panel: its goal counts on the left.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Scored' })[0]);
+    expect(screen.getByText('1 - 0')).toBeInTheDocument();
+    expect(screen.getByText('Shootout lost')).toBeInTheDocument();
   });
 
   /**

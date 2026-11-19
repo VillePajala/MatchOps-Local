@@ -20,14 +20,19 @@ import { getSafeTelHref, getSafeMailtoHref } from '@/utils/contactValidation';
 import ConfirmationModal from './ConfirmationModal';
 import PersonnelDetailsModal from './PersonnelDetailsModal';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { HiOutlineMagnifyingGlass, HiOutlinePlus } from 'react-icons/hi2';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import {
   CollapsibleModalHeader,
   useCollapsingHeader,
   modalContainerStyle,
-  cardStyle,
+  groupedListStyle,
   primaryButtonStyle,
-  iconButtonBaseStyle,
+  iconButtonEditStyle,
+  searchInputStyle,
+  popoverMenuStyle,
+  popoverItemStyle,
+  subtextStyle,
 } from '@/styles/modalStyles';
 
 interface PersonnelManagerModalProps {
@@ -217,12 +222,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
 
   return (
     <div className={`${MODAL_BACKDROP} ${Z_LAYER.modal}`} role="dialog" aria-modal="true" aria-label={t('personnelManager.title', 'Personnel Manager')}>
-      <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
-        {/* Background effects */}
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
-        <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
+      <div className={`${modalContainerStyle} relative h-full w-full flex flex-col`}>
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col min-h-0 h-full">
@@ -233,34 +233,39 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
             closeLabel={t('common.doneButton', 'Done')}
             collapse={headerCollapse}
           >
-            <div className="px-6 pt-3 pb-4">
+            <div className="px-4 pt-2 pb-4">
               <button
                 onClick={() => setCreatePersonnelModalOpen(true)}
-                className={`${primaryButtonStyle} w-full`}
+                className={`${primaryButtonStyle} w-full min-h-[52px] text-base`}
                 disabled={isUpdating}
               >
+                <HiOutlinePlus className="w-5 h-5" aria-hidden="true" />
                 {t('personnelManager.addPersonnel', 'Add Personnel')}
               </button>
             </div>
           </CollapsibleModalHeader>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6" onScroll={headerCollapse.onScroll}>
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6" onScroll={headerCollapse.onScroll}>
             {/* Search Input */}
-            <input
-              type="text"
-              placeholder={t('personnelManager.searchPlaceholder', 'Search personnel...')}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              autoComplete="off"
-              className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
+            <div className="relative">
+              <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
+              <input
+                type="text"
+                placeholder={t('personnelManager.searchPlaceholder', 'Search personnel...')}
+                aria-label={t('personnelManager.searchPlaceholder', 'Search personnel...')}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                autoComplete="off"
+                className={searchInputStyle}
+              />
+            </div>
 
             {/* Personnel List */}
-            <div className={`${cardStyle} mt-4 -mx-2 sm:-mx-4 md:-mx-6`}>
-              <div className="space-y-3">
+            <div className={`${groupedListStyle} mt-3`}>
+              <div className="divide-y divide-hairline">
                 {filteredPersonnel.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400">
+                  <div className={`text-center py-8 ${subtextStyle}`}>
                     {searchText
                       ? t('personnelManager.noResults', 'No personnel found')
                       : t('personnelManager.empty', 'No personnel yet. Add your first person above.')
@@ -270,7 +275,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                   filteredPersonnel.map((person) => (
                     <div
                       key={person.id}
-                      className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
+                      className="py-3.5 pl-[18px] pr-2 font-ui transition-colors hover:bg-white/[0.03]"
                     >
                       <div className="flex items-start justify-between">
                         <div
@@ -278,8 +283,8 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                           onClick={() => handleEditPersonnel(person.id)}
                           title={t('common.edit', 'Edit')}
                         >
-                          <h4 className="font-semibold text-slate-200 text-lg">{person.name}</h4>
-                          <p className="text-sm text-slate-400">
+                          <h4 className="font-display text-[26px] font-bold leading-[1.1] text-ink">{person.name}</h4>
+                          <p className="mt-1 text-sm text-ink-3">
                             {t(getRoleLabelKey(person.role), person.role)}
                           </p>
                           {(() => {
@@ -290,7 +295,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                                 // Prevent triggering parent card's onClick (which opens edit modal)
                                 onClick={(e) => e.stopPropagation()}
                                 aria-label={t('personnel.callPhone', { phone: person.phone })}
-                                className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
+                                className="flex items-center gap-2 min-h-8 text-sm text-ink-3 hover:text-ink-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action rounded"
                               >
                                 <HiOutlinePhone className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                                 <span>{person.phone}</span>
@@ -305,7 +310,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                                 // Prevent triggering parent card's onClick (which opens edit modal)
                                 onClick={(e) => e.stopPropagation()}
                                 aria-label={t('personnel.sendEmail', { email: person.email })}
-                                className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
+                                className="flex items-center gap-2 min-h-8 text-sm text-ink-3 hover:text-ink-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action rounded"
                               >
                                 <HiOutlineEnvelope className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                                 <span>{person.email}</span>
@@ -313,20 +318,20 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                             ) : null;
                           })()}
                         </div>
-                        <div className="relative ml-4" ref={openMenuId === person.id ? menuRef : null}>
+                        <div className="relative ml-2" ref={openMenuId === person.id ? menuRef : null}>
                           <button
                             onClick={(e) => handleActionsMenuToggle(e, person.id)}
-                            className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
+                            className={iconButtonEditStyle}
                             disabled={isUpdating}
                             aria-label={t('common.moreOptions', 'More options')}
                           >
                             <HiOutlineEllipsisVertical className="h-5 w-5" />
                           </button>
                           {openMenuId === person.id && (
-                            <div className={`absolute right-0 w-36 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10 ${menuPositions[person.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                            <div className={`${popoverMenuStyle} ${menuPositions[person.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                               <button
                                 onClick={() => handleEditPersonnel(person.id)}
-                                className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-700 rounded-t-lg flex items-center gap-2"
+                                className={popoverItemStyle}
                               >
                                 <HiOutlinePencil className="h-4 w-4" />
                                 {t('common.edit', 'Edit')}
@@ -336,7 +341,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                                   handleRemove(person.id, person.name);
                                   setOpenMenuId(null);
                                 }}
-                                className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-slate-700 rounded-b-lg flex items-center gap-2"
+                                className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
                               >
                                 <HiOutlineTrash className="h-4 w-4" />
                                 {t('common.delete', 'Delete')}

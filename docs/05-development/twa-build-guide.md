@@ -107,6 +107,57 @@ npx bubblewrap init --manifest https://app.match-ops.com/manifest.json
 npx bubblewrap build
 ```
 
+## Splash Screen and Icon Values (must match the web app)
+
+The app's own launch screen (`src/components/LoadingScreen.tsx`) continues the
+OS splash: same colour, same badge, same place. The TWA has its OWN splash and
+adaptive icon (baked into the AAB, not read from the live manifest), so set
+these exactly when generating or regenerating the package. Bubblewrap reads the
+first three from `manifest.json` on `init`; after that they live in
+`twa-manifest.json` - check them there, and in PWABuilder's Android options.
+
+| Setting | Value | Where (Bubblewrap `twa-manifest.json` / PWABuilder) |
+|---|---|---|
+| Splash background | `#0f172a` | `backgroundColor` / "Splash screen background color" |
+| Splash icon | `https://app.match-ops.com/icons/icon-512x512.png` (transparent badge) | `iconUrl` / "Icon URL" |
+| Adaptive (maskable) icon | `https://app.match-ops.com/icons/icon-maskable-512x512.png` - solid `#0f172a` fill, badge at 72% (the Android 12+ splash trims only its thin cream rim) | `maskableIconUrl` / "Maskable icon URL" |
+| Adaptive icon background | `#0f172a` (the maskable icon already carries it) | - |
+| Splash fade-out | `300` ms | `splashScreenFadeOutDuration` / "Splash fade out duration" |
+| Status bar / theme colour | `#1e293b` (unchanged: the app's status-bar decision) | `themeColor` / "Status bar color" |
+| Navigation bar colour | `#0f172a` | `navigationColor` / "Navigation bar color" |
+
+Every one of these surfaces must be the SAME `#0f172a` - the manifest
+`background_color`, the `--color-carbon` token and the maskable icon fill. A
+maskable icon with a transparent or differently coloured fill shows up as a
+navy square of the wrong shade around the badge on the Android 12+ splash.
+**Icon source of truth.** Every icon and launch image is generated from two
+vector masters by `node scripts/generate-splash-icons.mjs` - never edit the
+PNGs by hand; change a master (or the canvas colour) and rerun the script:
+
+- `public/logos/matchops-badge.svg` - the full badge ("Laurel Sprig": olive-gold
+  `#9c8117` ring, cream `#fbf5e4` rim/keyline/lettering/laurel, navy `#0c2540`
+  centre; arched MATCHOPS converted to outlines from Nunito Black, so no font is
+  needed). Used for every icon from 128 px up.
+- `public/logos/matchops-badge-small.svg` - the small cut (ring, ball, laurel
+  hint, no lettering). Used for the favicons (16/32/48 px) only.
+
+The script writes: `icons/icon-{192,512}.png` (transparent, badge at 84%),
+`icons/icon-maskable-{192,512}.png` (solid `#0f172a`, badge at 72% (the Android 12+ splash trims only its thin cream rim)),
+`icons/play-store-icon-512.png` (solid `#0f172a`, badge at 86%),
+`icons/apple-touch-icon.png`, `icons/favicon-{16,32}.png`, `favicon.png`,
+`favicon.ico`, `logos/app-logo{,-yellow}.png` (1024 px, transparent) and every
+`splash/apple-splash-W-H.png`.
+
+**Play Store / TWA icons to use** (the TWA bakes its icons into the AAB, so a
+new badge needs a new AAB):
+
+| Asset | File |
+|---|---|
+| Play Console high-res icon (512 x 512, 32-bit PNG) | `public/icons/play-store-icon-512.png` - full-bleed square on `#0f172a`, badge at 86%; Play applies its own rounded mask, so do NOT upload the transparent `icon-512x512.png` (its corners would show) or the maskable one (badge too small) |
+| TWA launcher (adaptive) icon | `icons/icon-maskable-512x512.png` via `maskableIconUrl` (table above) |
+| TWA splash icon / legacy launcher icon | `icons/icon-512x512.png` via `iconUrl` (table above) |
+| Feature graphic, screenshots | not generated - make them from the current app |
+
 ## Step 6: Test the APK/AAB
 
 ```bash
@@ -162,8 +213,13 @@ public/
   manifest.json          # PWA manifest
   sw.js                  # Service worker
   icons/
-    icon-192x192.png     # App icon
-    icon-512x512.png     # High-res icon
+    icon-192x192.png     # App icon (generated, see "Icon source of truth")
+    icon-512x512.png     # High-res icon (generated)
+    icon-maskable-512x512.png  # Adaptive icon (generated)
+    play-store-icon-512.png    # Play Console listing icon (generated)
+  logos/
+    matchops-badge.svg   # Badge master
+    matchops-badge-small.svg   # Small-size master (favicons)
 ```
 
 ## Security Notes

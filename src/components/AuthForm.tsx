@@ -13,11 +13,23 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
+import { HiOutlineEye, HiOutlineEyeSlash } from 'react-icons/hi2';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isNetworkErrorMessage, normalizeEmail, translateAuthError } from '@/utils/authHelpers';
 import { AuthError, NetworkError } from '@/interfaces/DataStoreErrors';
 import logger from '@/utils/logger';
 import { useHoldUnsavedInput } from '@/utils/unsavedInputSignal';
+import {
+  titleStyle,
+  inputBaseStyle,
+  primaryButtonStyle as sharedPrimaryButtonStyle,
+  linkStyle,
+  errorBoxStyle,
+  successBoxStyle,
+  checkboxStyle,
+  fieldHintStyle,
+  infoBoxStyle,
+} from '@/styles/modalStyles';
 
 /**
  * The sign-up awaiting its emailed code, kept for the tab (review 7.2). A coach
@@ -72,6 +84,13 @@ const readPendingSignUp = (): string | null => {
   }
   return record.email;
 };
+
+/**
+ * Whether a sign-up is waiting for its emailed code (the code screen will open
+ * on mount). LoginScreen asks this so a reload on the code screen skips the
+ * welcome step and lands straight back on the code (review 7.2).
+ */
+export const hasPendingSignUp = (): boolean => readPendingSignUp() !== null;
 import * as Sentry from '@sentry/nextjs';
 
 export type AuthMode = 'signIn' | 'signUp' | 'resetPassword';
@@ -106,7 +125,9 @@ export default function AuthForm({
   // and after submission), never persisted, and React state is not more
   // accessible to XSS than a ref — both live in the same JS heap.
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // One password field with show/hide (Onboarding v3, D26): sign-up has no confirm
+  // field - the eye lets the coach check what they typed instead.
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -161,12 +182,6 @@ export default function AuthForm({
           setIsLoading(false);
           return;
         }
-        // Validate passwords match
-        if (password !== confirmPassword) {
-          setError(t('auth.passwordMismatch', 'Passwords do not match'));
-          setIsLoading(false);
-          return;
-        }
         // Password strength is validated in SupabaseAuthService
         const result = await signUp(normalizedEmail, password);
         if (result.error) {
@@ -180,12 +195,10 @@ export default function AuthForm({
             setSuccess(t('auth.emailMayExist', 'If this email is not already registered, check your inbox for confirmation. If you already have an account, please sign in instead.'));
             setMode('signIn');
             setPassword('');
-            setConfirmPassword('');
           } else {
             // New user — transition to OTP verification screen
             openCodeScreen(normalizedEmail, true);
             setPassword('');
-            setConfirmPassword('');
           }
         } else {
           // Success - user signed up and logged in (auto-confirmed)
@@ -246,7 +259,7 @@ export default function AuthForm({
     } finally {
       setIsLoading(false);
     }
-  }, [email, password, confirmPassword, mode, hasAcceptedTerms, signIn, signUp, resetPassword, onSuccess, t, openCodeScreen]);
+  }, [email, password, mode, hasAcceptedTerms, signIn, signUp, resetPassword, onSuccess, t, openCodeScreen]);
 
   const handleVerifyOtp = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -455,7 +468,7 @@ export default function AuthForm({
     setPendingResetEmail('');
     // Keep email but clear passwords and consent
     setPassword('');
-    setConfirmPassword('');
+    setShowPassword(false);
     setHasAcceptedTerms(false);
   }, [allowRegistration]);
 
@@ -472,46 +485,39 @@ export default function AuthForm({
     setMode('signIn');
   }, [pendingEmail]);
 
-  // Shared style definitions
-  const primaryButtonStyle =
-    'w-full h-12 px-4 py-2 rounded-md text-base font-bold transition-all duration-200 ' +
-    'focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-900 ' +
-    'bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] ' +
-    'hover:from-indigo-600 hover:to-indigo-600 hover:shadow-lg active:scale-[0.98] active:shadow-inner ' +
-    'border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)] ' +
-    'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-indigo-500 disabled:hover:to-indigo-600 disabled:active:scale-100';
+  // Shared style definitions (the app's shared popup/form styles)
+  const primaryButtonStyle = `${sharedPrimaryButtonStyle} w-full min-h-12`;
 
-  const linkButtonStyle = 'text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors';
+  const linkButtonStyle =
+    'inline-flex min-h-11 items-center px-2 rounded-full font-ui text-sm font-semibold text-action hover:brightness-110 transition-[filter] focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
 
-  const inputStyle =
-    'w-full h-12 px-4 rounded-md bg-slate-800 border border-slate-700 text-white ' +
-    'placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent';
+  const inputStyle = inputBaseStyle;
 
   // --- Set New Password Screen (after reset OTP verified) ---
   if (pendingPasswordReset && showNewPasswordForm) {
     return (
       <>
-        <h2 id={titleId} className="text-2xl font-bold text-center mb-2">
+        <h2 id={titleId} className={`${titleStyle} text-center mb-1`}>
           {t('auth.newPasswordTitle', 'Set New Password')}
         </h2>
 
-        <p className="text-slate-400 text-center mb-6 text-sm">
+        <p className="font-ui text-ink-3 text-center mb-4 text-sm">
           {t('auth.newPasswordSubtitle', 'Enter your new password below.')}
         </p>
 
         {/* Error/Success Messages */}
         {error && (
-          <div className="mb-4 p-3 rounded-md bg-red-900/50 border border-red-500/50 text-red-200 text-sm">
+          <div className={`mb-4 ${errorBoxStyle} font-ui text-sm text-ink`}>
             <p>{translateAuthError(error, t)}</p>
             {isNetworkErrorMessage(error) && (
-              <p className="mt-1 text-red-300/80">
+              <p className="mt-1 text-ink-2">
                 {t('auth.networkErrorHint', 'Please check your internet connection and try again.')}
               </p>
             )}
           </div>
         )}
 
-        <form onSubmit={handleSetNewPassword} className="space-y-4">
+        <form onSubmit={handleSetNewPassword} className="space-y-3">
           <input
             type="password"
             placeholder={t('auth.newPasswordPlaceholder', 'New password')}
@@ -533,7 +539,7 @@ export default function AuthForm({
             autoComplete="new-password"
             disabled={isLoading}
           />
-          <p className="text-slate-400 text-sm">
+          <p className={fieldHintStyle}>
             {t('auth.passwordRequirements', 'Password must be at least 8 characters.')}
           </p>
 
@@ -552,7 +558,7 @@ export default function AuthForm({
           </button>
         </form>
 
-        <div className="mt-6 flex flex-col items-center gap-2">
+        <div className="mt-3 flex flex-col items-center gap-1">
           <button type="button" onClick={exitPasswordReset} className={linkButtonStyle}>
             {t('auth.backToSignIn', 'Back to sign in')}
           </button>
@@ -565,32 +571,32 @@ export default function AuthForm({
   if (pendingPasswordReset) {
     return (
       <>
-        <h2 id={titleId} className="text-2xl font-bold text-center mb-2">
+        <h2 id={titleId} className={`${titleStyle} text-center mb-1`}>
           {t('auth.resetOtpTitle', 'Enter Reset Code')}
         </h2>
 
-        <p className="text-slate-400 text-center mb-6 text-sm">
+        <p className="font-ui text-ink-3 text-center mb-4 text-sm">
           {t('auth.resetOtpSubtitle', 'We sent a reset code to {{email}}. Enter it below to reset your password.', { email: pendingResetEmail })}
         </p>
 
         {/* Error/Success Messages */}
         {error && (
-          <div className="mb-4 p-3 rounded-md bg-red-900/50 border border-red-500/50 text-red-200 text-sm">
+          <div className={`mb-4 ${errorBoxStyle} font-ui text-sm text-ink`}>
             <p>{translateAuthError(error, t)}</p>
             {isNetworkErrorMessage(error) && (
-              <p className="mt-1 text-red-300/80">
+              <p className="mt-1 text-ink-2">
                 {t('auth.networkErrorHint', 'Please check your internet connection and try again.')}
               </p>
             )}
           </div>
         )}
         {success && (
-          <div className="mb-4 p-3 rounded-md bg-green-900/50 border border-green-500/50 text-green-200 text-sm">
+          <div className={`mb-4 ${successBoxStyle} font-ui text-sm text-ink`}>
             {success}
           </div>
         )}
 
-        <form onSubmit={handleVerifyResetOtp} className="space-y-4">
+        <form onSubmit={handleVerifyResetOtp} className="space-y-3">
           <input
             type="text"
             inputMode="numeric"
@@ -621,7 +627,7 @@ export default function AuthForm({
           </button>
         </form>
 
-        <div className="mt-6 flex flex-col items-center gap-2">
+        <div className="mt-3 flex flex-col items-center gap-1">
           <button
             type="button"
             onClick={handleResendResetCode}
@@ -642,32 +648,32 @@ export default function AuthForm({
   if (pendingVerification) {
     return (
       <>
-        <h2 id={titleId} className="text-2xl font-bold text-center mb-2">
+        <h2 id={titleId} className={`${titleStyle} text-center mb-1`}>
           {t('auth.otpTitle', 'Enter Verification Code')}
         </h2>
 
-        <p className="text-slate-400 text-center mb-6 text-sm">
+        <p className="font-ui text-ink-3 text-center mb-4 text-sm">
           {t('auth.otpSubtitle', 'We sent a verification code to {{email}}. Enter it below to verify your account.', { email: pendingEmail })}
         </p>
 
         {/* Error/Success Messages */}
         {error && (
-          <div className="mb-4 p-3 rounded-md bg-red-900/50 border border-red-500/50 text-red-200 text-sm">
+          <div className={`mb-4 ${errorBoxStyle} font-ui text-sm text-ink`}>
             <p>{translateAuthError(error, t)}</p>
             {isNetworkErrorMessage(error) && (
-              <p className="mt-1 text-red-300/80">
+              <p className="mt-1 text-ink-2">
                 {t('auth.networkErrorHint', 'Please check your internet connection and try again.')}
               </p>
             )}
           </div>
         )}
         {success && (
-          <div className="mb-4 p-3 rounded-md bg-green-900/50 border border-green-500/50 text-green-200 text-sm">
+          <div className={`mb-4 ${successBoxStyle} font-ui text-sm text-ink`}>
             {success}
           </div>
         )}
 
-        <form onSubmit={handleVerifyOtp} className="space-y-4">
+        <form onSubmit={handleVerifyOtp} className="space-y-3">
           <input
             type="text"
             inputMode="numeric"
@@ -698,7 +704,7 @@ export default function AuthForm({
           </button>
         </form>
 
-        <div className="mt-6 flex flex-col items-center gap-2">
+        <div className="mt-3 flex flex-col items-center gap-1">
           <button
             type="button"
             onClick={handleResendCode}
@@ -719,37 +725,43 @@ export default function AuthForm({
   return (
     <>
       {/* Title */}
-      <h2 id={titleId} className="text-2xl font-bold text-center mb-2">
+      <h2 id={titleId} className={`${titleStyle} text-center mb-1`}>
         {mode === 'signIn' && t('auth.signIn', 'Sign In')}
-        {mode === 'signUp' && t('auth.createAccount', 'Create Account')}
+        {mode === 'signUp' && t('auth.createAccount', 'Create a free account')}
         {mode === 'resetPassword' && t('auth.resetPassword', 'Reset Password')}
       </h2>
 
-      <p className="text-slate-400 text-center mb-6 text-sm">
-        {mode === 'signIn' && t('auth.signInSubtitle', 'Sign in to sync your data across devices')}
-        {mode === 'signUp' && t('auth.signUpSubtitle', 'Create an account to enable cloud sync')}
-        {mode === 'resetPassword' && t('auth.resetSubtitle', 'Enter your email to receive a reset code')}
-      </p>
+      {/* Sign-up has no subtitle: the welcome step before the form already
+          said what the app is for, and the note under the button says why an
+          account (Onboarding v3). */}
+      {mode === 'signUp' ? (
+        <div className="mb-3" />
+      ) : (
+        <p className="font-ui text-ink-3 text-center mb-4 text-sm">
+          {mode === 'signIn' && t('auth.signInSubtitle', 'Sign in to sync your data across devices')}
+          {mode === 'resetPassword' && t('auth.resetSubtitle', 'Enter your email to receive a reset code')}
+        </p>
+      )}
 
       {/* Error/Success Messages */}
       {error && (
-        <div className="mb-4 p-3 rounded-md bg-red-900/50 border border-red-500/50 text-red-200 text-sm">
+        <div className={`mb-4 ${errorBoxStyle} font-ui text-sm text-ink`}>
           <p>{translateAuthError(error, t)}</p>
           {isNetworkErrorMessage(error) && (
-            <p className="mt-1 text-red-300/80">
+            <p className="mt-1 text-ink-2">
               {t('auth.networkErrorHint', 'Please check your internet connection and try again.')}
             </p>
           )}
         </div>
       )}
       {success && (
-        <div className="mb-4 p-3 rounded-md bg-green-900/50 border border-green-500/50 text-green-200 text-sm">
+        <div className={`mb-4 ${successBoxStyle} font-ui text-sm text-ink`}>
           {success}
         </div>
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
         <input
           type="email"
           placeholder={t('auth.email', 'Email')}
@@ -763,50 +775,54 @@ export default function AuthForm({
         />
 
         {mode !== 'resetPassword' && (
-          <input
-            type="password"
-            placeholder={t('auth.password', 'Password')}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputStyle}
-            required
-            autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
-            disabled={isLoading}
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder={t('auth.password', 'Password')}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`${inputStyle} pr-12`}
+              required
+              autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? t('auth.hidePassword', 'Hide password') : t('auth.showPassword', 'Show password')}
+              aria-pressed={showPassword}
+              disabled={isLoading}
+              className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-ink-3 hover:text-ink rounded-r-[14px] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+            >
+              {showPassword
+                ? <HiOutlineEyeSlash className="w-5 h-5" aria-hidden="true" />
+                : <HiOutlineEye className="w-5 h-5" aria-hidden="true" />}
+            </button>
+          </div>
         )}
 
         {mode === 'signUp' && (
           <>
-            <input
-              type="password"
-              placeholder={t('auth.confirmPassword', 'Confirm Password')}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className={inputStyle}
-              required
-              autoComplete="new-password"
-              disabled={isLoading}
-            />
-            <p className="text-slate-400 text-sm">
+            <p className={fieldHintStyle}>
               {t('auth.passwordRequirements', 'Password must be at least 8 characters.')}
             </p>
 
             {/* GDPR Consent Checkbox */}
-            <label className="flex items-start gap-3 cursor-pointer group">
+            <label className="flex items-start gap-3 cursor-pointer min-h-11 font-ui">
               <input
                 type="checkbox"
                 checked={hasAcceptedTerms}
                 onChange={(e) => setHasAcceptedTerms(e.target.checked)}
                 disabled={isLoading}
-                className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
+                className={`${checkboxStyle} mt-0.5 shrink-0 cursor-pointer`}
               />
-              <span className="text-slate-400 text-xs leading-relaxed group-hover:text-slate-300 transition-colors">
+              <span className="text-ink-2 text-[13px] leading-relaxed">
                 {t('auth.termsConsent', 'I have read and agree to the')}{' '}
                 <Link
                   href="/terms"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300 underline"
+                  className={linkStyle}
                   onClick={(e) => e.stopPropagation()}
                 >
                   {t('auth.termsLink', 'Terms of Service')}
@@ -816,7 +832,7 @@ export default function AuthForm({
                   href="/privacy-policy"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300 underline"
+                  className={linkStyle}
                   onClick={(e) => e.stopPropagation()}
                 >
                   {t('auth.privacyLink', 'Privacy Policy')}
@@ -839,22 +855,27 @@ export default function AuthForm({
           ) : (
             <>
               {mode === 'signIn' && t('auth.signIn', 'Sign In')}
-              {mode === 'signUp' && t('auth.createAccount', 'Create Account')}
+              {mode === 'signUp' && t('auth.createAccount', 'Create a free account')}
               {mode === 'resetPassword' && t('auth.sendResetEmail', 'Send Reset Email')}
             </>
           )}
         </button>
+        {mode === 'signUp' && (
+          <p className="font-ui text-ink-3 text-center text-[13px] leading-snug pt-1" data-testid="auth-account-why">
+            {t('auth.accountWhy', 'With an account your data stays safe, even if you change phones.')}
+          </p>
+        )}
       </form>
 
       {/* Mode switching links */}
-      <div className="mt-6 flex flex-col items-center gap-2">
+      <div className="mt-3 flex flex-col items-center gap-1">
         {mode === 'signIn' && (
           <>
             <button type="button" onClick={() => switchMode('resetPassword')} className={linkButtonStyle}>
               {t('auth.forgotPassword', 'Forgot password?')}
             </button>
             {allowRegistration ? (
-              <div className="text-slate-500 text-sm">
+              <div className="font-ui text-ink-3 text-sm flex flex-wrap items-center justify-center">
                 {t('auth.noAccount', "Don't have an account?")}{' '}
                 <button type="button" onClick={() => switchMode('signUp')} className={linkButtonStyle}>
                   {t('auth.signUpLink', 'Sign up')}
@@ -862,15 +883,15 @@ export default function AuthForm({
               </div>
             ) : (
               // No registration - must subscribe via Android app
-              <div className="mt-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 text-center">
-                <p className="text-slate-400 text-sm">
+              <div className={`mt-4 ${infoBoxStyle} text-center`}>
+                <p className={fieldHintStyle}>
                   {t('auth.androidOnlyRegistration', "Don't have an account? Subscribe via the Android app.")}
                 </p>
                 <a
                   href="https://play.google.com/store/apps/details?id=com.matchops.local"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-amber-400 text-sm hover:text-amber-300 inline-flex items-center gap-1 mt-1"
+                  className={`${linkStyle} text-sm inline-flex min-h-11 items-center gap-1`}
                 >
                   {t('auth.getAndroidApp', 'Get on Google Play')}
                   <span aria-hidden="true">&rarr;</span>
@@ -880,7 +901,7 @@ export default function AuthForm({
           </>
         )}
         {mode === 'signUp' && allowRegistration && (
-          <div className="text-slate-500 text-sm">
+          <div className="font-ui text-ink-3 text-sm flex flex-wrap items-center justify-center">
             {t('auth.hasAccount', 'Already have an account?')}{' '}
             <button type="button" onClick={() => switchMode('signIn')} className={linkButtonStyle}>
               {t('auth.signInLink', 'Sign in')}

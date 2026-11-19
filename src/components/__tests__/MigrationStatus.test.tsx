@@ -239,9 +239,9 @@ describe('MigrationStatus', () => {
 
       render(<MigrationStatus />);
 
-      // Check for amber/warning colors in classes
+      // Warning ring is amber (255 178 36)
       const alert = screen.getByRole('alert');
-      expect(alert.className).toContain('amber');
+      expect(alert.className).toContain('rgb(255_178_36');
     });
 
     it('should use success styling for success notifications', () => {
@@ -253,9 +253,9 @@ describe('MigrationStatus', () => {
 
       render(<MigrationStatus />);
 
-      // Check for green/success colors in classes
+      // Success ring is green (63 224 140)
       const alert = screen.getByRole('alert');
-      expect(alert.className).toContain('green');
+      expect(alert.className).toContain('rgb(63_224_140');
     });
   });
 

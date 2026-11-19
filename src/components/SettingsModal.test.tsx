@@ -193,9 +193,8 @@ describe('<SettingsModal />', () => {
     // Language label is a <p> element, select has id="language-select"
     expect(screen.getByText('Language')).toBeInTheDocument();
     expect(document.getElementById('language-select')).toBeInTheDocument();
-    // Default Team Name label is a <p> element, input has id="team-name-input"
-    expect(screen.getByText('Default Team Name')).toBeInTheDocument();
-    expect(document.getElementById('team-name-input')).toBeInTheDocument();
+    // Default Team Name is a text input: its <label> sits above it and names it
+    expect(screen.getByLabelText('Default Team Name')).toBe(document.getElementById('team-name-input'));
   });
 
   test('displays storage unavailable message when navigator.storage is not supported', () => {
@@ -372,10 +371,10 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    // Backup button is in Data tab - button has icon only, text is in a sibling <p>
+    // Backup buttons are in the Data tab, each a labelled button (icon + text)
     navigateToTab('Data');
     const backupLabel = screen.getByText('Backup All Data');
-    const card = backupLabel.closest('.flex.items-start')!;
+    const card = backupLabel.closest('.flex.flex-col')!;
     // The card now has a Share button (onCreateBackup) and a Download button.
     const shareButton = within(card as HTMLElement).getByRole('button', { name: 'Share backup' });
     fireEvent.click(shareButton);
@@ -425,7 +424,7 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    // Input has id="team-name-input", no <label> association
+    // Input has id="team-name-input", named by its <label>
     const input = document.getElementById('team-name-input')!;
     expect(input).not.toHaveFocus();
   });

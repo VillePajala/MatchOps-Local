@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineXMark, HiOutlinePlus } from 'react-icons/hi2';
+import { inputBaseStyle, secondaryButtonStyle, fieldErrorStyle, chipStyle, subtextStyle } from '@/styles/modalStyles';
 import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
 
 interface OpponentListEditorProps {
@@ -70,8 +71,8 @@ const OpponentListEditor: React.FC<OpponentListEditorProps> = ({
   };
 
   return (
-    <div className="space-y-2">
-      {hint && <p className="text-sm text-slate-400">{hint}</p>}
+    <div className="space-y-3">
+      {hint && <p className={subtextStyle}>{hint}</p>}
 
       <div className="flex gap-2">
         <input
@@ -89,22 +90,22 @@ const OpponentListEditor: React.FC<OpponentListEditorProps> = ({
           data-testid="opponent-input"
           aria-label={t('opponentList.addLabel', 'Add a team')}
           placeholder={t('opponentList.placeholder', 'e.g. IPS Punainen')}
-          className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className={`${inputBaseStyle} flex-1 min-w-0`}
         />
         <button
           type="button"
           onClick={() => trimmed && !alreadyListed && commit(trimmed)}
           disabled={!trimmed || !!alreadyListed}
           data-testid="opponent-add"
-          className="px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+          className={`${secondaryButtonStyle} min-h-[52px] min-w-[52px] px-0 shrink-0`}
         >
-          <HiOutlinePlus className="w-4 h-4" aria-hidden="true" />
+          <HiOutlinePlus className="w-5 h-5" aria-hidden="true" />
           <span className="sr-only">{t('opponentList.addLabel', 'Add a team')}</span>
         </button>
       </div>
 
       {alreadyListed && (
-        <p className="text-sm text-amber-400" data-testid="opponent-duplicate">
+        <p className={fieldErrorStyle} data-testid="opponent-duplicate">
           {t('opponentList.alreadyListed', '{{name}} is already on the list.', { name: alreadyListed })}
         </p>
       )}
@@ -113,13 +114,13 @@ const OpponentListEditor: React.FC<OpponentListEditorProps> = ({
           Offered, never forced - a coach may genuinely want both spellings,
           and the app has no way to know which is official. */}
       {knownElsewhere && (
-        <div className="text-xs text-slate-300 flex flex-wrap items-center gap-2" data-testid="opponent-known-elsewhere">
+        <div className="font-ui text-sm text-ink-2 flex flex-wrap items-center gap-2" data-testid="opponent-known-elsewhere">
           <span>{t('opponentList.knownElsewhere', 'You already write this as {{name}}.', { name: knownElsewhere })}</span>
           <button
             type="button"
             onClick={() => commit(knownElsewhere)}
             data-testid="opponent-use-existing"
-            className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-semibold"
+            className={chipStyle}
           >
             {t('opponentList.useExisting', 'Use {{name}}', { name: knownElsewhere })}
           </button>
@@ -127,7 +128,7 @@ const OpponentListEditor: React.FC<OpponentListEditorProps> = ({
       )}
 
       {value.length === 0 ? (
-        <p className="text-sm text-slate-400" data-testid="opponent-empty">
+        <p className={subtextStyle} data-testid="opponent-empty">
           {t('opponentList.empty', 'No teams listed yet. You can always type an opponent by hand when creating a game.')}
         </p>
       ) : (
@@ -135,16 +136,16 @@ const OpponentListEditor: React.FC<OpponentListEditorProps> = ({
           {value.map((name) => (
             <li
               key={name}
-              className="flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-slate-700/80 border border-slate-600/60 text-sm text-slate-100"
+              className="flex items-center gap-1 pl-3.5 pr-1 min-h-11 rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] font-ui text-sm font-medium text-ink"
             >
               <span>{name}</span>
               <button
                 type="button"
                 onClick={() => remove(name)}
                 aria-label={t('opponentList.remove', 'Remove {{name}}', { name })}
-                className="p-0.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-600"
+                className="inline-flex items-center justify-center min-h-9 min-w-9 rounded-full text-ink-3 hover:text-ink hover:bg-white/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
               >
-                <HiOutlineXMark className="w-3.5 h-3.5" aria-hidden="true" />
+                <HiOutlineXMark className="w-4 h-4" aria-hidden="true" />
               </button>
             </li>
           ))}

@@ -6,8 +6,27 @@ import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
 import type { ShootoutKick } from '@/types/game';
 import { getShootoutTally, getShootoutWinner } from '@/utils/shootout';
-import { CollapsibleModalHeader, ModalStickyPrimary, useCollapsingHeader } from '@/styles/modalStyles';
-import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import {
+  CollapsibleModalHeader,
+  ModalStickyPrimary,
+  MODAL_BACKDROP,
+  Z_LAYER,
+  modalContainerStyle,
+  cardStyle,
+  sectionLabelStyle,
+  subtextStyle,
+  selectStyle,
+  labelStyle,
+  segmentTrackStyle,
+  segmentStyle,
+  segmentSelectedStyle,
+  secondaryButtonStyle,
+  neutralBadgeStyle,
+  groupedListStyle,
+  listRowStyle,
+  iconButtonDangerStyle,
+} from '@/styles/modalStyles';
+import { HiOutlineXMark } from 'react-icons/hi2';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 
@@ -55,7 +74,6 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
     () => sortPlayersByLastName(squadIds ? availablePlayers.filter((p) => squadIds.includes(p.id)) : availablePlayers),
     [availablePlayers, squadIds],
   );
-  const headerCollapse = useCollapsingHeader();
   const [kicks, setKicks] = useState<ShootoutKick[]>(initialKicks);
   const [scorerId, setScorerId] = useState<string>('');
   // Which side took the first kick (coin toss). Drives the alternation guide.
@@ -95,8 +113,11 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
 
   const tally = getShootoutTally(kicks);
   const winner = getShootoutWinner(kicks);
-  const yourScore = tally[yourSide];
-  const oppScore = tally[oppSide];
+  // Everything here reads in the match scoreboard's order, home first: the
+  // score, the names under it, the first-shot switch and the two kick panels.
+  const homeName = yourSide === 'home' ? teamName : opponentName;
+  const awayName = yourSide === 'home' ? opponentName : teamName;
+  const sidesInOrder: Array<'you' | 'opponent'> = yourSide === 'home' ? ['you', 'opponent'] : ['opponent', 'you'];
 
   // Whose kick is up next, by strict alternation from the starter. Once kicks
   // exist the starter is whoever actually kicked first. This is a guide only —
@@ -129,63 +150,141 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
     onClose();
   };
 
+  // "Scored" records a result, so it carries the result colour (green); "Missed"
+  // is the plain ghost pill. Both are the house 44px pills.
+  const scoredButtonClass = `${secondaryButtonStyle} flex-1 text-win! bg-win/[0.08]! shadow-[inset_0_0_0_1.5px_rgb(63_224_140/0.5)]!`;
+  const missedButtonClass = `${secondaryButtonStyle} flex-1`;
+  // The side that kicks next gets the amber ring (selection) and an "Up next" pill.
+  const entryCardClass = (up: boolean) =>
+    `${cardStyle} space-y-3 font-ui ${up ? 'shadow-[inset_0_0_0_1.5px_var(--color-action),0_16px_26px_-18px_rgb(2_6_23/0.85)]!' : ''}`;
+
   const playerName = (id?: string) =>
     (id && availablePlayers.find((p) => p.id === id)?.name) ||
     t('shootoutModal.yourPlayer', 'Your player');
+
+  // Your team's kick entry: shooter picker + result.
+  const yourPanel = (
+    <div key="you" className={entryCardClass(nextUp === 'you')}>
+      <label htmlFor="shootoutScorer" className={`${labelStyle} flex items-center justify-between gap-2 mb-2! text-[15px]! font-semibold! text-ink!`}>
+        <span className="min-w-0 truncate">{teamName}</span>
+        {nextUp === 'you' && (
+          <span className={neutralBadgeStyle}>{t('shootoutModal.upNext', 'Up next')}</span>
+        )}
+      </label>
+      <select
+        id="shootoutScorer"
+        value={scorerId}
+        onChange={(e) => setScorerId(e.target.value)}
+        className={selectStyle}
+      >
+        <option value="">{t('shootoutModal.unknownShooter', 'Shooter (optional)')}</option>
+        {shooterOptions.map((p) => (
+          <option key={p.id} value={p.id}>{playerListLabel(p)}</option>
+        ))}
+      </select>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => { addKick(yourSide, true, scorerId || undefined); setScorerId(''); }}
+          className={scoredButtonClass}
+        >
+          {t('shootoutModal.scored', 'Scored')}
+        </button>
+        <button
+          type="button"
+          onClick={() => { addKick(yourSide, false, scorerId || undefined); setScorerId(''); }}
+          className={missedButtonClass}
+        >
+          {t('shootoutModal.missed', 'Missed')}
+        </button>
+      </div>
+    </div>
+  );
+
+  // The opponent's kick entry (anonymous shooters).
+  const opponentPanel = (
+    <div key="opponent" className={entryCardClass(nextUp === 'opponent')}>
+      <span className="flex items-center justify-between gap-2 text-[15px] font-semibold text-ink">
+        <span className="min-w-0 truncate">{opponentName}</span>
+        {nextUp === 'opponent' && (
+          <span className={neutralBadgeStyle}>{t('shootoutModal.upNext', 'Up next')}</span>
+        )}
+      </span>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => addKick(oppSide, true)}
+          className={scoredButtonClass}
+        >
+          {t('shootoutModal.scored', 'Scored')}
+        </button>
+        <button
+          type="button"
+          onClick={() => addKick(oppSide, false)}
+          className={missedButtonClass}
+        >
+          {t('shootoutModal.missed', 'Missed')}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div
       className={`${MODAL_BACKDROP} ${Z_LAYER.modalNested}`}
       role="dialog"
       aria-modal="true"
-      aria-label={t('shootoutModal.title', 'Penalty Shootout')}
+      aria-label={t('shootoutModal.title', 'Penalty shootout')}
     >
-      <div className="bg-slate-800 shadow-xl flex flex-col border-0 overflow-hidden h-full w-full relative">
-        {/* Chrome slimming: full-screen X-header (the X closes and keeps the kicks, 4.35);
-            the instructions line collapses on scroll. */}
+      <div className={`${modalContainerStyle} h-full w-full relative`}>
+        {/* Full-screen X-header (the X closes and keeps the kicks, 4.35); a
+            one-line title and no subtitle, so the score sits high. */}
         <CollapsibleModalHeader
-          title={t('shootoutModal.title', 'Penalty Shootout')}
+          title={t('shootoutModal.title', 'Penalty shootout')}
           onClose={closeKeepingKicks}
           closeLabel={t('common.close', 'Close')}
-          collapse={headerCollapse}
-        >
-          <p className="text-sm text-slate-400 text-center px-6 pb-3">
-            {t('shootoutModal.instructions', 'Log each shot as it happens.')}
-          </p>
-        </CollapsibleModalHeader>
+        />
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pb-4 pt-4 space-y-5" onScroll={headerCollapse.onScroll}>
-          {/* Tally */}
-          <div className="bg-slate-900/70 rounded-lg p-4 text-center border border-slate-700">
-            <div className="text-4xl font-bold text-amber-400">
-              {yourScore} - {oppScore}
+        {/* space-y-4 and a compact tally keep the "Shots (n)" label above the
+            sticky Save bar at first fold on a ~366px phone. */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pb-4 pt-2 space-y-4 font-ui">
+          {/* Tally: the score as the home screen's italic numerals, result-coloured
+              once the shootout is decided (green/red mean results). */}
+          <div className={`${cardStyle} text-center`}>
+            <div
+              className={`font-display text-[56px] font-bold italic leading-none tabular-nums pr-[3px] ${
+                winner === null ? 's1-numeral' : winner === yourSide ? 's1-numeral-win' : 's1-numeral-loss'
+              }`}
+            >
+              {tally.home} - {tally.away}
             </div>
-            <div className="text-sm text-slate-400 mt-1">
-              {teamName} · {opponentName}
+            <div className="text-sm text-ink-3 mt-2">
+              {homeName} · {awayName}
             </div>
-            <div className="text-sm mt-2">
+            <div className="text-[15px] mt-2">
               {winner === null ? (
-                <span className="text-slate-400">{t('shootoutModal.tied', 'Tied — keep logging until decided')}</span>
+                <span className="text-ink-2">{t('shootoutModal.tied', 'Tied — keep logging until decided')}</span>
               ) : winner === yourSide ? (
-                <span className="text-green-400 font-semibold">{t('shootoutModal.youWin', 'Shootout won')}</span>
+                <span className="text-win font-semibold">{t('shootoutModal.youWin', 'Shootout won')}</span>
               ) : (
-                <span className="text-red-400 font-semibold">{t('shootoutModal.youLose', 'Shootout lost')}</span>
+                <span className="text-loss font-semibold">{t('shootoutModal.youLose', 'Shootout lost')}</span>
               )}
             </div>
           </div>
 
           {/* Who shoots first — sets the alternation guide (locked once kicks exist) */}
-          <div className="space-y-2">
-            <p className="text-sm text-slate-400 text-center">{t('shootoutModal.firstKick', 'First shot')}</p>
-            <div className="flex gap-2">
-              {(['you', 'opponent'] as const).map((side) => (
+          <div>
+            <p className={`${sectionLabelStyle} px-1 mb-2.5`}>{t('shootoutModal.firstKick', 'First shot')}</p>
+            <div className={segmentTrackStyle}>
+              {sidesInOrder.map((side) => (
                 <button
                   key={side}
                   type="button"
                   disabled={starterLocked}
                   onClick={() => setFirstKick(side)}
-                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${starter === side ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} ${starterLocked ? 'opacity-70 cursor-default' : ''}`}
+                  aria-pressed={starter === side}
+                  className={`${starter === side ? segmentSelectedStyle : segmentStyle} truncate ${starterLocked ? 'disabled:opacity-70 disabled:cursor-default' : ''}`}
                 >
                   {side === 'you' ? teamName : opponentName}
                 </button>
@@ -193,100 +292,40 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
             </div>
           </div>
 
-          {/* Your team kick entry */}
-          <div className={`bg-slate-900/50 rounded-lg p-3 border space-y-2 ${nextUp === 'you' ? 'border-indigo-400 ring-2 ring-indigo-400/40' : 'border-slate-700'}`}>
-            <label htmlFor="shootoutScorer" className="flex items-center justify-between text-sm font-medium text-slate-300">
-              <span>{teamName}</span>
-              {nextUp === 'you' && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">{t('shootoutModal.upNext', 'Up next')}</span>
-              )}
-            </label>
-            <select
-              id="shootoutScorer"
-              value={scorerId}
-              onChange={(e) => setScorerId(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">{t('shootoutModal.unknownShooter', 'Shooter (optional)')}</option>
-              {shooterOptions.map((p) => (
-                <option key={p.id} value={p.id}>{playerListLabel(p)}</option>
-              ))}
-            </select>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => { addKick(yourSide, true, scorerId || undefined); setScorerId(''); }}
-                className="flex-1 px-3 py-2 rounded-md bg-green-600/80 hover:bg-green-600 text-white text-sm font-semibold transition-colors"
-              >
-                {t('shootoutModal.scored', 'Scored')}
-              </button>
-              <button
-                type="button"
-                onClick={() => { addKick(yourSide, false, scorerId || undefined); setScorerId(''); }}
-                className="flex-1 px-3 py-2 rounded-md bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold transition-colors"
-              >
-                {t('shootoutModal.missed', 'Missed')}
-              </button>
-            </div>
-          </div>
-
-          {/* Opponent kick entry */}
-          <div className={`bg-slate-900/50 rounded-lg p-3 border space-y-2 ${nextUp === 'opponent' ? 'border-indigo-400 ring-2 ring-indigo-400/40' : 'border-slate-700'}`}>
-            <span className="flex items-center justify-between text-sm font-medium text-slate-300">
-              <span>{opponentName}</span>
-              {nextUp === 'opponent' && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">{t('shootoutModal.upNext', 'Up next')}</span>
-              )}
-            </span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => addKick(oppSide, true)}
-                className="flex-1 px-3 py-2 rounded-md bg-green-600/80 hover:bg-green-600 text-white text-sm font-semibold transition-colors"
-              >
-                {t('shootoutModal.scored', 'Scored')}
-              </button>
-              <button
-                type="button"
-                onClick={() => addKick(oppSide, false)}
-                className="flex-1 px-3 py-2 rounded-md bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold transition-colors"
-              >
-                {t('shootoutModal.missed', 'Missed')}
-              </button>
-            </div>
-          </div>
+          {/* The two kick panels, home first (scoreboard order). */}
+          {sidesInOrder.map((side) => (side === 'you' ? yourPanel : opponentPanel))}
 
           {/* Kick log — newest first, latest highlighted, so each tap visibly adds a row */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-300 mb-2">
+            <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>
               {t('shootoutModal.kickLog', 'Shots')}{kicks.length > 0 ? ` (${kicks.length})` : ''}
             </h3>
             {kicks.length === 0 ? (
-              <p className="text-sm text-slate-400">{t('shootoutModal.noKicks', 'No shots logged yet.')}</p>
+              <p className={`${subtextStyle} px-1`}>{t('shootoutModal.noKicks', 'No shots logged yet.')}</p>
             ) : (
-              <ul className="space-y-1">
+              <ul className={groupedListStyle}>
                 {[...kicks].reverse().map((kick) => {
                   const isNewest = kick.order === kicks.length - 1;
                   return (
                     <li
                       key={kick.id}
-                      className={`flex items-center justify-between text-sm rounded px-3 py-1.5 transition-colors ${isNewest ? 'bg-indigo-500/15 ring-1 ring-indigo-400/40' : 'bg-slate-900/40'}`}
+                      className={`${listRowStyle} justify-between text-[15px] ${isNewest ? 'bg-white/[0.05]' : ''}`}
                     >
-                      <span className={isNewest ? 'text-white' : 'text-slate-200'}>
-                        <span className="text-slate-400 mr-2">{kick.order + 1}.</span>
+                      <span className={`min-w-0 truncate ${isNewest ? 'text-ink font-semibold' : 'text-ink-2'}`}>
+                        <span className="text-ink-3 tabular-nums mr-2">{kick.order + 1}.</span>
                         {kick.team === yourSide ? playerName(kick.scorerId) : opponentName}
                       </span>
-                      <span className="flex items-center gap-3">
-                        <span className={kick.scored ? 'text-green-400' : 'text-slate-400'}>
+                      <span className="flex items-center gap-1 shrink-0">
+                        <span className={`text-sm font-semibold ${kick.scored ? 'text-win' : 'text-ink-3'}`}>
                           {kick.scored ? t('shootoutModal.scored', 'Scored') : t('shootoutModal.missed', 'Missed')}
                         </span>
                         <button
                           type="button"
                           onClick={() => removeKick(kick.id)}
                           aria-label={t('shootoutModal.removeKick', 'Remove shot')}
-                          className="text-slate-400 hover:text-red-400 text-lg leading-none"
+                          className={iconButtonDangerStyle}
                         >
-                          ×
+                          <HiOutlineXMark className="w-5 h-5" aria-hidden="true" />
                         </button>
                       </span>
                     </li>

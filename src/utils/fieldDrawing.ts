@@ -20,12 +20,21 @@ const FIELD_CONSTANTS = {
   SPOT_RADIUS: 3,
   /** Dash pattern for substitution zone lines (pixels before scaling) */
   SUBSTITUTION_DASH: 5,
-  /** Shadow settings for outdoor (soccer) fields */
+  /** Shadow settings for 'clean' soccer grass - barely there, so the
+   *  thin bright lines stay crisp rather than reading as thick and soft. */
   SOCCER_SHADOW: {
+    color: 'rgba(0, 0, 0, 0.12)',
+    blur: 1,
+    offsetY: 0.5,
+  },
+  /** Shadow settings for 'classic' (textured) soccer grass - the original look. */
+  CLASSIC_SOCCER_SHADOW: {
     color: 'rgba(0, 0, 0, 0.25)',
     blur: 2,
     offsetY: 1,
   },
+  /** Mowing bands on 'clean' grass: white at this alpha on every other band. */
+  CLEAN_STRIPE_ALPHA: 0.035,
   /** Shadow settings for indoor (futsal) courts - lighter for crisp markings */
   FUTSAL_SHADOW: {
     color: 'rgba(0, 0, 0, 0.14)',
@@ -68,6 +77,87 @@ function createNoisePattern(
 }
 
 /**
+ * 'Clean' grass: the edge colour at both goal lines brightening to
+ * `centerColor` at the halfway line, plus faint horizontal mowing bands. No
+ * noise, no vignette, no lighting - and deterministic, so the colour at the
+ * canvas edge is exactly `edgeColor` (getFieldEdgeColors relies on that).
+ *
+ * The band count should be odd: bands alternate plain / white starting with
+ * plain, so both edge bands stay plain and meet the surrounding grass with
+ * no seam.
+ */
+function drawCleanGrass(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  edgeColor: string,
+  centerColor: string,
+  bands: number
+): void {
+  const base = ctx.createLinearGradient(0, 0, 0, H);
+  base.addColorStop(0, edgeColor);
+  base.addColorStop(0.5, centerColor);
+  base.addColorStop(1, edgeColor);
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, W, H);
+
+  if (bands > 1) {
+    const bandH = H / bands;
+    ctx.fillStyle = `rgba(255, 255, 255, ${FIELD_CONSTANTS.CLEAN_STRIPE_ALPHA})`;
+    for (let i = 1; i < bands; i += 2) {
+      ctx.fillRect(0, i * bandH, W, bandH);
+    }
+  }
+}
+
+/** Mix two #rrggbb colours: `amount` (0-1) of `b` into `a`. */
+function mixHex(a: string, b: string, amount: number): string {
+  const parse = (hex: string) => {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
+  };
+  const ca = parse(a);
+  const cb = parse(b);
+  return (
+    '#' +
+    ca
+      .map((v, i) => Math.round(v + (cb[i] - v) * amount))
+      .map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0'))
+      .join('')
+  );
+}
+
+/**
+ * The colour the painted field has along its top and bottom edges, for the
+ * grass painted behind the canvas (the match view's pitch box), so a gap
+ * while the canvas resizes shows matching grass with no visible seam.
+ *
+ * 'clean' grass is exact (its edges are plain `fieldColor`). The textured
+ * 'classic' grass is matched as closely as its noise allows: the average of
+ * its texture, then its top highlight and bottom shade. Futsal keeps the
+ * values its court has always used.
+ */
+export function getFieldEdgeColors(config: FieldConfig): { top: string; bottom: string } {
+  const { style } = config;
+  if (style.grass === 'clean') {
+    return { top: style.fieldColor, bottom: style.fieldColor };
+  }
+  if (config.gameType === 'futsal') {
+    const edge = mixHex(style.fieldColor, '#000000', 0.14);
+    return { top: edge, bottom: edge };
+  }
+  // Classic grass: the noise layers average to mid grey at ~5%, the top edge
+  // gets 3% shade plus ~6% of the overhead highlight, the bottom 25% shade
+  // plus ~1% highlight.
+  const textured = style.showGrassTexture ? mixHex(style.fieldColor, '#808080', 0.05) : style.fieldColor;
+  return {
+    top: mixHex(mixHex(textured, '#000000', 0.03), '#ffffff', 0.06),
+    bottom: mixHex(mixHex(textured, '#000000', 0.25), '#ffffff', 0.0125),
+  };
+}
+
+/**
  * Draws the field background (base color and texture).
  */
 export function drawFieldBackground(
@@ -77,6 +167,11 @@ export function drawFieldBackground(
   config: FieldConfig
 ): void {
   const { style } = config;
+
+  if (style.grass === 'clean') {
+    drawCleanGrass(ctx, W, H, style.fieldColor, style.centerColor ?? style.fieldColor, style.stripeCount);
+    return;
+  }
 
   // 1. Base field color
   ctx.fillStyle = style.fieldColor;
@@ -188,9 +283,12 @@ function setupLineStyle(
   ctx.strokeStyle = config.style.lineColor;
   ctx.lineWidth = config.style.lineWidth * scale;
   // Futsal courts read better with crisper markings (less shadow), especially at small sizes.
+  // Classic soccer grass keeps its original, softer shadow.
   const shadow = config.gameType === 'futsal'
     ? FIELD_CONSTANTS.FUTSAL_SHADOW
-    : FIELD_CONSTANTS.SOCCER_SHADOW;
+    : config.style.grass === 'clean'
+      ? FIELD_CONSTANTS.SOCCER_SHADOW
+      : FIELD_CONSTANTS.CLASSIC_SOCCER_SHADOW;
   ctx.shadowColor = shadow.color;
   ctx.shadowBlur = shadow.blur * scale;
   ctx.shadowOffsetY = shadow.offsetY * scale;
@@ -318,7 +416,8 @@ function drawGoals(
   const goalWidth = W * config.goal.width;
   const goalHeight = config.goal.height;
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  // Brighter on 'clean' grass (thin bright lines); the original value otherwise.
+  ctx.fillStyle = config.style.grass === 'clean' ? 'rgba(255, 255, 255, 0.93)' : 'rgba(255, 255, 255, 0.9)';
 
   // Top goal
   ctx.fillRect((W - goalWidth) / 2, lineMargin, goalWidth, goalHeight);

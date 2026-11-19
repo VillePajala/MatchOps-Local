@@ -1,4 +1,4 @@
-import { fairnessHue, fairnessFill, fairnessText, fairnessCell, fairnessChipColors } from './colors';
+import { fairnessHue, fairnessFill, fairnessText, fairnessCell, fairnessColor } from './colors';
 
 describe('fairness colour ramp', () => {
   it('maps the clamped ratio range onto red→green hues (0..130), no blue ever', () => {
@@ -22,16 +22,16 @@ describe('fairness colour ramp', () => {
     expect(fairnessCell(null)).toBe('#334155');
   });
 
-  it('chip colours band the text contrast: cream on red/green ends, dark on yellow', () => {
-    expect(fairnessChipColors(0.4)).toEqual({ bg: 'hsl(0, 72%, 46%)', fg: '#fef2f2' }); // red end
-    expect(fairnessChipColors(0.95).fg).toBe('#1a1a1a'); // bright yellow middle
-    expect(fairnessChipColors(1.5)).toEqual({ bg: 'hsl(130, 55%, 40%)', fg: '#ecfdf5' }); // green end
-    expect(fairnessChipColors(null)).toEqual({ bg: '#475569', fg: '#e2e8f0' }); // no signal
+  it('uses ONE muted colour for the pitch, the totals chips and the balance stripe', () => {
+    for (const r of [0.4, 0.95, 1.5, null]) {
+      expect(fairnessFill(r)).toBe(fairnessColor(r));
+      expect(fairnessCell(r)).toBe(fairnessColor(r));
+    }
   });
 
   it('emits hsl() strings on the ramp', () => {
-    expect(fairnessFill(0.4)).toBe('hsl(0, 62%, 34%)');
-    expect(fairnessCell(1.5)).toBe('hsl(130, 60%, 36%)');
-    expect(fairnessText(1.0)).toMatch(/^hsl\(\d+, 80%, 68%\)$/);
+    expect(fairnessColor(0.4)).toBe('hsl(0, 42%, 38%)');
+    expect(fairnessColor(1.5)).toBe('hsl(130, 42%, 38%)');
+    expect(fairnessText(1.0)).toMatch(/^hsl\(\d+, 60%, 72%\)$/);
   });
 });

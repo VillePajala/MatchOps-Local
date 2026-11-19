@@ -1,7 +1,7 @@
 'use client';
 
 import { useHoldUnsavedInput } from '@/utils/unsavedInputSignal';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
 import { useQueryClient } from '@tanstack/react-query';
@@ -10,21 +10,59 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import { addPlayer, removePlayer } from '@/utils/masterRosterManager';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
-import { addTeam, setTeamRoster } from '@/utils/teams';
+import { addTeam, setTeamRoster, updateTeam } from '@/utils/teams';
 import { AGE_GROUPS } from '@/config/gameOptions';
-import { setSetupWizardActive, storeSetupFormat, storeSetupAgeGroup } from './setupWizardActive';
-import type { Player, Team, TeamPlayer } from '@/types';
+import { FIELD_SIZES, type FieldSize } from '@/config/formationPresets';
+import { suggestFormatForAgeGroup, suggestPeriodsForAgeGroup } from '@/config/formatsByAgeGroup';
+import {
+  markOnboardingJustFinished,
+  setSetupWizardActive,
+  storeSetupFormat,
+  storeSetupAgeGroup,
+} from './setupWizardActive';
+import { defaultNickname, splitPastedNames, PASTE_MAX_NAMES } from '@/utils/splitPastedNames';
+import { recordMilestone } from '@/utils/onboardingMilestones';
+import type { NextGameContext } from '@/services/nextGameContext';
+import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
+import NextGameFlow from './NextGameFlow';
+import type { GameType, Player, Team, TeamPlayer } from '@/types';
 import logger from '@/utils/logger';
+import {
+  titleStyle,
+  subtextStyle,
+  labelStyle,
+  inputBaseStyle,
+  textareaStyle,
+  selectStyle,
+  segmentTrackStyle,
+  segmentStyle,
+  segmentSelectedStyle,
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  fieldHintStyle,
+} from '@/styles/modalStyles';
 
 /**
- * SetupWizard - the Onboarding v2 first-sign-in flow (cloud/Play only).
+ * SetupWizard - the first-sign-in flow (cloud/Play only), Onboarding v3.
  *
- * Two steps, one time per account: (1) team name + format, (2) rapid roster
- * entry. Finishing creates REAL data through the existing utils (master roster
- * players, a team, its roster) - no demo data, nothing to undo. Skipping (a
- * deliberately QUIET text link) creates nothing; the start screen's empty-state
- * composition picks the coach up instead. Replaces the auto-started guided
- * tour, which is now opt-in (gear -> "Aloitusopastus").
+ * Steps, one time per account:
+ *   1. team name, sport, age group -> suggested format (every format selectable)
+ *   2. players (type one at a time, or paste a whole list)
+ *      "Valmis" creates REAL data through the existing utils (master roster
+ *      players, a team, its roster) - no demo data.
+ *   3. "Milloin seuraava peli?" - date + optional opponent. Only now are a game
+ *      and its one-game playing-time plan created (no placeholder game ever).
+ *   4. the plan, in the planner's compact mode (PlanQuickView).
+ *   Steps 3-4 are NextGameFlow, the same flow basic Home's "Uusi ottelu" opens.
+ * Skipping (a deliberately QUIET text link) creates nothing; Home's empty
+ * states pick the coach up instead. With no players there is nothing to plan,
+ * so "Valmis" goes straight to Home.
+ *
+ * Seen-ness is stored twice (review R9): the localStorage flag below is the
+ * fast per-device cache, and the `wizardDone` / `wizardSkipped` milestones in
+ * the synced settings row are the account's own record, which page.tsx checks
+ * before ever opening the wizard - so a new phone never shows it again.
+ * Hardware back steps back (R10): player list -> team, date step -> player list.
  */
 
 // --- Per-user one-time flag --------------------------------------------------
@@ -39,7 +77,7 @@ const DONE_PREFIX = 'matchops_setup_wizard_done_';
 export function isSetupWizardDone(userId: string | null | undefined): boolean {
   if (typeof window === 'undefined') return true;
   try {
-    // eslint-disable-next-line no-restricted-globals -- one-time onboarding flag, not app data (same pattern as the guided-tour flag)
+    // eslint-disable-next-line no-restricted-globals -- one-time onboarding flag, not app data
     return localStorage.getItem(`${DONE_PREFIX}${userId ?? 'local'}`) === '1';
   } catch {
     return true;
@@ -48,15 +86,15 @@ export function isSetupWizardDone(userId: string | null | undefined): boolean {
 
 function markSetupWizardDone(userId: string | null | undefined): void {
   try {
-    // eslint-disable-next-line no-restricted-globals -- one-time onboarding flag, not app data (same pattern as the guided-tour flag)
+    // eslint-disable-next-line no-restricted-globals -- one-time onboarding flag, not app data
     localStorage.setItem(`${DONE_PREFIX}${userId ?? 'local'}`, '1');
   } catch {
     // Not persistable - the session-level dismissal in page.tsx still hides it.
   }
 }
 
-type WizardFormat = '5v5' | '8v8' | '11v11';
-const FORMATS: WizardFormat[] = ['5v5', '8v8', '11v11'];
+const DEFAULT_FORMAT: FieldSize = '8v8';
+const isFieldSize = (v: unknown): v is FieldSize => (FIELD_SIZES as unknown[]).includes(v);
 
 /**
  * The wizard's input, kept for the tab (review 7.1b). Android may destroy a
@@ -71,7 +109,10 @@ const FORMATS: WizardFormat[] = ['5v5', '8v8', '11v11'];
 interface WizardDraft {
   step: 1 | 2;
   teamName: string;
-  format: WizardFormat;
+  sport: GameType;
+  format: FieldSize;
+  /** The coach picked the format themselves - a later age-group change keeps it. */
+  formatTouched: boolean;
   ageGroup: string;
   names: Array<{ id: number; name: string }>;
   draft: string;
@@ -92,7 +133,9 @@ function readWizardDraft(userId: string | null | undefined): WizardDraft | null 
     return {
       step: parsed.step === 2 ? 2 : 1,
       teamName: parsed.teamName,
-      format: FORMATS.includes(parsed.format as WizardFormat) ? (parsed.format as WizardFormat) : '8v8',
+      sport: parsed.sport === 'futsal' ? 'futsal' : 'soccer',
+      format: isFieldSize(parsed.format) ? parsed.format : DEFAULT_FORMAT,
+      formatTouched: parsed.formatTouched === true,
       ageGroup: typeof parsed.ageGroup === 'string' ? parsed.ageGroup : '',
       names: parsed.names.filter((r) => r && typeof r.id === 'number' && typeof r.name === 'string'),
       draft: typeof parsed.draft === 'string' ? parsed.draft : '',
@@ -121,10 +164,25 @@ function clearWizardDraft(userId: string | null | undefined): void {
   }
 }
 
+/** The quiet skip link, the same on every step. */
+const quietLinkStyle =
+  'inline-flex min-h-11 items-center justify-center px-3 font-ui text-sm text-ink-3 hover:text-ink-2 underline decoration-ink-3/60 underline-offset-[3px] rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+
+/** The format chips: a five-way segmented row (amber ring only on the selection). */
+const formatChipStyle = (selected: boolean) =>
+  `${selected ? segmentSelectedStyle : segmentStyle} px-0! text-[13px]!`;
 
 interface SetupWizardProps {
   /** Called after the wizard is done (finished or skipped) - hide it and refresh signals. */
   onComplete: () => void;
+}
+
+type Step = 1 | 2 | 'nextGame';
+
+/** What "Valmis" created - the next-game step builds the game from it. */
+interface CreatedSquad {
+  team: Team;
+  players: Player[];
 }
 
 const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
@@ -138,12 +196,14 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
 
   // A draft from before Android recreated the page, if there is one (review 7.1b).
   const [restored] = useState(() => readWizardDraft(userId));
-  const [step, setStep] = useState<1 | 2>(restored?.step ?? 1);
+  const [step, setStep] = useState<Step>(restored?.step ?? 1);
   const [teamName, setTeamName] = useState(restored?.teamName ?? '');
-  const [format, setFormat] = useState<WizardFormat>(restored?.format ?? '8v8');
+  const [sport, setSport] = useState<GameType>(restored?.sport ?? 'soccer');
+  const [format, setFormat] = useState<FieldSize>(restored?.format ?? DEFAULT_FORMAT);
+  const [formatTouched, setFormatTouched] = useState(restored?.formatTouched ?? false);
   /**
-   * Optional, like the format. Empty means the coach skipped it and gets
-   * today's behaviour - it must never become a gate on creating a team.
+   * Optional, like before. Empty means the coach skipped it: no suggestion, the
+   * format stays as chosen - it must never become a gate on creating a team.
    */
   const [ageGroup, setAgeGroup] = useState(restored?.ageGroup ?? '');
   // Each row has its own id (review 7.6): a retry after a partial failure must
@@ -153,6 +213,23 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const nextRowIdRef = useRef(restored?.nextRowId ?? 1);
   const [draft, setDraft] = useState(restored?.draft ?? '');
   const [isSaving, setIsSaving] = useState(false);
+  const [squad, setSquad] = useState<CreatedSquad | null>(null);
+
+  const suggestion = useMemo(() => suggestFormatForAgeGroup(ageGroup, sport), [ageGroup, sport]);
+
+  /**
+   * The age group (with the sport) suggests the format until the coach picks
+   * one themselves; after that their pick stays. Set in the handlers, not an
+   * effect, so the chips never flash the old value.
+   */
+  const applySuggestion = useCallback(
+    (nextAgeGroup: string, nextSport: GameType) => {
+      if (formatTouched) return;
+      const s = suggestFormatForAgeGroup(nextAgeGroup, nextSport);
+      if (s) setFormat(s.fieldSize);
+    },
+    [formatTouched],
+  );
 
   // Committed rows + a non-empty draft: what Valmis will actually create.
   const totalCount = names.length + (draft.trim() ? 1 : 0);
@@ -164,10 +241,13 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   // `over`: the finish path passes the rows it is creating, which state has not
   // caught up with yet (a pending draft just became a row).
   const saveDraftNow = useCallback((over?: Pick<WizardDraft, 'names' | 'draft'>) => {
+    if (step !== 1 && step !== 2) return;
     writeWizardDraft(userId, {
       step,
       teamName,
+      sport,
       format,
+      formatTouched,
       ageGroup,
       names: over?.names ?? names,
       draft: over?.draft ?? draft,
@@ -175,7 +255,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       created: Array.from(createdPlayersRef.current.entries()),
       createdTeam: createdTeamRef.current,
     });
-  }, [userId, step, teamName, format, ageGroup, names, draft]);
+  }, [userId, step, teamName, sport, format, formatTouched, ageGroup, names, draft]);
   const finishedRef = useRef(false);
 
   // The account id can settle after the first render (auth rehydrating in cloud
@@ -190,7 +270,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
     if (!late) return;
     setStep(late.step);
     setTeamName(late.teamName);
+    setSport(late.sport);
     setFormat(late.format);
+    setFormatTouched(late.formatTouched);
     setAgeGroup(late.ageGroup);
     setNames(late.names);
     setDraft(late.draft);
@@ -223,14 +305,32 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
     finishedRef.current = true;
     clearWizardDraft(userId);
     markSetupWizardDone(userId);
+    // The first Home visit after this is the coach's first look at their own
+    // Home: no marketing prompt on it (R13).
+    markOnboardingJustFinished();
     onComplete();
   }, [userId, onComplete]);
 
-  /** Quiet skip: creates NOTHING, on either step. "Valmis" is the only creator. */
+  /** Quiet skip: creates NOTHING on steps 1-2. "Valmis" is the only creator. */
   const handleSkip = useCallback(() => {
     if (savingRef.current) return;
+    // The account remembers the skip, not only this device (R9).
+    void recordMilestone('wizardSkipped', userId);
     finish();
-  }, [finish]);
+  }, [finish, userId]);
+
+  // Hardware back on the player list goes to the team step (R10). The date
+  // step registers its own back (NextGameFlow); the team step has none.
+  useModalHardwareBack(step === 2, () => setStep(1));
+
+  /** Append names as rows (capped at PASTE_MAX_NAMES rows); returns how many were added. */
+  const appendNames = useCallback((list: string[]): number => {
+    const take = list.slice(0, Math.max(0, PASTE_MAX_NAMES - names.length));
+    if (take.length === 0) return 0;
+    const rows = take.map((name) => ({ id: nextRowIdRef.current++, name }));
+    setNames((prev) => [...prev, ...rows]);
+    return rows.length;
+  }, [names.length]);
 
   const commitDraft = useCallback(() => {
     const trimmed = draft.trim();
@@ -239,6 +339,49 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
     setNames((prev) => [...prev, { id, name: trimmed }]);
     setDraft('');
   }, [draft]);
+
+  /**
+   * A pasted list becomes rows at once ("1. Onni\n2. Toivo" -> two rows,
+   * leading numbers stripped - D8). A single name stays in the field.
+   */
+  const addPastedText = useCallback(
+    (text: string): boolean => {
+      const list = splitPastedNames(text, { maxNameLength: VALIDATION_LIMITS.PLAYER_NAME_MAX });
+      if (list.length < 2) return false;
+      const added = appendNames(list);
+      showToast(t('setupWizard.pastedCount', '{{count}} players added', { count: added }), 'success');
+      return true;
+    },
+    [appendNames, showToast, t],
+  );
+
+  const handlePasteFromClipboard = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (addPastedText(text)) return;
+      const single = splitPastedNames(text, { maxNameLength: VALIDATION_LIMITS.PLAYER_NAME_MAX });
+      if (single.length === 1) {
+        appendNames(single);
+        return;
+      }
+      showToast(t('setupWizard.pasteEmpty', 'No names found on the clipboard.'), 'info');
+    } catch {
+      showToast(
+        t('setupWizard.pasteUnavailable', 'Could not read the clipboard. Long-press the name field and choose Paste.'),
+        'info',
+      );
+    }
+  }, [addPastedText, appendNames, showToast, t]);
+
+  // Keep the newest row in view as rows are added (typed or pasted).
+  const rowsRef = useRef<HTMLDivElement | null>(null);
+  const rowCountRef = useRef(names.length);
+  useEffect(() => {
+    const grew = names.length > rowCountRef.current;
+    rowCountRef.current = names.length;
+    const el = rowsRef.current;
+    if (grew && el) el.scrollTop = el.scrollHeight;
+  }, [names.length]);
 
   const removeName = useCallback((index: number) => {
     setNames((prev) => prev.filter((_, i) => i !== index));
@@ -280,13 +423,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       for (const row of rows) {
         if (created.has(row.id)) continue;
         const name = row.name;
-        // "Matti Meikalainen" -> disc shows "Matti": multi-word names get
-        // the first word as the nickname, the same outcome as a coach setting
-        // one in the roster (the disc renders nickname || name). Single words
-        // stay nickname-free so the roster list doesn't echo "Aino (Aino)".
-        const firstWord = name.trim().split(/\s+/)[0] ?? '';
+        // "Matti Meikalainen" -> disc shows "Matti" (defaultNickname).
         const player = await addPlayer(
-          { name, nickname: firstWord === name.trim() ? '' : firstWord, jerseyNumber: '', notes: '' },
+          { name, nickname: defaultNickname(name), jerseyNumber: '', notes: '' },
           userId ?? undefined,
         );
         if (!player) throw new Error(`player creation failed: ${name}`);
@@ -296,14 +435,21 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       // In the order on screen.
       const players = rows.map((r) => created.get(r.id)).filter((p): p is Player => !!p);
 
+      // ageGroup omitted rather than sent empty: the store validates it, and ""
+      // is not a valid age group, it is the absence of one. gameType likewise
+      // only for futsal - football is the app-wide default.
+      const teamFields = {
+        name: teamName.trim(),
+        ...(ageGroup ? { ageGroup } : {}),
+        ...(sport === 'futsal' ? { gameType: sport } : {}),
+      };
       if (!createdTeamRef.current) {
-        createdTeamRef.current = await addTeam(
-          // ageGroup omitted rather than sent empty: the store validates it,
-          // and "" is not a valid age group, it is the absence of one.
-          ageGroup ? { name: teamName.trim(), ageGroup } : { name: teamName.trim() },
-          userId ?? undefined,
-        );
+        createdTeamRef.current = await addTeam(teamFields, userId ?? undefined);
         saveDraftNow({ names: rows, draft: '' });
+      } else if (createdTeamRef.current.name !== teamFields.name) {
+        // A retry after the coach went back and renamed the team.
+        const renamed = await updateTeam(createdTeamRef.current.id, { name: teamFields.name }, userId ?? undefined);
+        if (renamed) createdTeamRef.current = renamed;
       }
 
       if (players.length > 0) {
@@ -321,13 +467,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       // The format choice is a UI default hint for later steps (game size,
       // formations) - a per-user local preference, not entity data.
       storeSetupFormat(userId, format);
-      // The half that actually delivers. Writing the age group onto the TEAM
-      // alone changes nothing a coach can see - nothing reads teams.ageGroup:
-      // preferredRulesContext derives the Rules default from games, and
-      // NewGameSetupModal prefills only from a season or tournament. Stored
-      // per user the same way the format is, it becomes the default age group
-      // on the next new game, which is what makes the Rules screen and the
-      // formats table specific instead of generic.
+      // The age group becomes the default age group on the next new game,
+      // which is what makes the Rules screen and the formats table specific
+      // instead of generic (nothing reads teams.ageGroup for that).
       if (ageGroup) storeSetupAgeGroup(userId, ageGroup);
 
       await Promise.all([
@@ -340,7 +482,19 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
 
       savingRef.current = false;
       if (!mountedRef.current) return;
-      finish();
+      // The team and players exist now: this account has done the wizard, even
+      // if the app is closed on the next step.
+      recordMilestone('wizardDone', userId);
+      markSetupWizardDone(userId);
+      if (players.length === 0) {
+        finish();
+        return;
+      }
+      finishedRef.current = true;
+      clearWizardDraft(userId);
+      setSquad({ team: createdTeamRef.current, players });
+      setIsSaving(false);
+      setStep('nextGame');
     } catch (error) {
       logger.error('[SetupWizard] finish failed:', error);
       savingRef.current = false;
@@ -348,96 +502,115 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       showToast(t('setupWizard.error', 'Saving failed - please try again.'), 'error');
       setIsSaving(false);
     }
-  }, [draft, names, teamName, format, ageGroup, userId, queryClient, showToast, t, finish, saveDraftNow]);
+  }, [draft, names, teamName, sport, format, ageGroup, userId, queryClient, showToast, t, finish, saveDraftNow]);
 
   const skipLabel = t('setupWizard.skip', "Skip, I'll do this later");
 
   /**
-   * The wizard is the FIRST screen a new coach sees, and it had no way to
-   * change language - so an English-speaking coach whose first sign-in landed
-   * here was stuck reading Finnish until they finished or skipped it. Every
-   * other entry point (start screen, login) offers the switch; this one, the
-   * one where it matters most, did not.
-   *
-   * SSR-safe initial value and a post-hydration adopt, like StartScreen: the
-   * server renders 'fi', so reading i18n.language here would diverge the
-   * toggle's conditional className and throw on removeChild
-   * (MATCHOPS-LOCAL-8K).
+   * The wizard is the FIRST screen a new coach sees, so it offers the language
+   * switch like every other entry point. SSR-safe initial value and a
+   * post-hydration adopt (useAppLanguage, MATCHOPS-LOCAL-8K); changed by the
+   * buttons only, never by an effect keyed on the value.
    */
-  const [language, setAppLanguage] = useAppLanguage();
-  // An ACTION, never an effect keyed on `language` - that shape is what fed
-  // the Home render loop, because it re-fires on every mount with the
-  // pre-adopt value still in its closure.
-  const changeLanguage = setAppLanguage;
+  const [language, changeLanguage] = useAppLanguage();
+
+  if (step === 'nextGame' && squad) {
+    const periods = suggestPeriodsForAgeGroup(ageGroup, sport);
+    const context: NextGameContext = {
+      team: { id: squad.team.id, name: squad.team.name },
+      players: squad.players,
+      fieldSize: format,
+      gameType: sport,
+      ageGroup,
+      numberOfPeriods: periods.numberOfPeriods,
+      periodMinutes: periods.periodMinutes,
+    };
+    return (
+      <div data-testid="setup-wizard">
+        <NextGameFlow
+          userId={userId ?? undefined}
+          context={context}
+          onClose={finish}
+          onBack={() => {
+            // Back to the player list (R10). What "Valmis" created stays known
+            // (the created-row map), so Valmis again creates nothing twice.
+            finishedRef.current = false;
+            setStep(2);
+          }}
+        />
+      </div>
+    );
+  }
+
+  const suggestionText =
+    suggestion && ageGroup
+      ? t('setupWizard.formatSuggestion', 'Suggested for the age group: {{format}}. You can pick any.', {
+          format: suggestion.alternatives.length > 0
+            ? [suggestion.fieldSize, ...suggestion.alternatives].join(' / ')
+            : suggestion.fieldSize,
+        })
+      : t('setupWizard.formatHintNoAge', 'Pick the age group for a suggestion, or choose yourself.');
 
   return (
     <div
       data-testid="setup-wizard"
-      className="relative flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-y-auto"
+      className="s1-canvas relative flex flex-col h-screen h-[100dvh] font-ui text-ink overflow-y-auto"
     >
-      {/* Same ambient glows as StartScreen - the background must not visibly
-          change at the wizard -> start screen hand-off (audit 1.15). */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+      {/* Upper-right, the same place and the same pill as the sign-in screens. */}
+      <div className="absolute top-3 right-4 z-20 s1-raised flex h-11 rounded-full px-0.5 text-xs font-bold tracking-[0.06em]">
+        {(['en', 'fi'] as const).map((lng) => (
+          <button
+            key={lng}
+            type="button"
+            onClick={() => changeLanguage(lng)}
+            data-testid={`wizard-lang-${lng}`}
+            aria-pressed={language === lng}
+            className="group grid h-11 min-w-10 place-items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+          >
+            <span
+              className={`grid h-9 min-w-9 place-items-center rounded-full px-1.5 transition-colors ${
+                language === lng ? 's1-seg-on text-ink' : 'text-ink-3 group-hover:text-ink-2'
+              }`}
+            >
+              {lng.toUpperCase()}
+            </span>
+          </button>
+        ))}
       </div>
 
-      {/* Upper-right, the same place and the same pill as the start screen, so
-          a coach who meets it here finds it where they left it afterwards. */}
-      <div className="absolute top-4 right-4 z-20 flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
-        <button
-          type="button"
-          onClick={() => changeLanguage('en')}
-          data-testid="wizard-lang-en"
-          className={`px-3 py-1.5 text-xs font-bold transition-all ${
-            language === 'en'
-              ? 'bg-amber-500 text-slate-900'
-              : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-          }`}
-        >
-          EN
-        </button>
-        <button
-          type="button"
-          onClick={() => changeLanguage('fi')}
-          data-testid="wizard-lang-fi"
-          className={`px-3 py-1.5 text-xs font-bold transition-all ${
-            language === 'fi'
-              ? 'bg-amber-500 text-slate-900'
-              : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-          }`}
-        >
-          FI
-        </button>
-      </div>
-      <div className="w-full max-w-sm mx-auto flex flex-col flex-1 px-6 py-8">
-        {/* Step 1 centers the WHOLE group (wordmark -> skip) like the landing
-            page: mt-auto here + mb-auto on the skip split the leftover space
-            in two (not the odd thirds of round 5, where the skip's own
-            mt-auto added a third gap). Autos collapse to 0 when the keyboard
-            shrinks the viewport, so the column degrades to a normal scroll. */}
-        <h1 className={`text-[clamp(2.3rem,10.5vw,3.5rem)] font-bold tracking-tight text-center ${step === 1 ? 'mt-auto' : 'mt-2'}`}>
-          <span className="text-amber-400">MatchOps</span>
-        </h1>
-
-        {/* Step dots */}
-        <div className="flex gap-1.5 justify-center mt-4 mb-6" aria-hidden="true">
-          <span className="w-6 h-1 rounded-full bg-amber-400" />
-          <span className={`w-6 h-1 rounded-full ${step === 2 ? 'bg-amber-400' : 'bg-slate-700'}`} />
-        </div>
+      <div
+        className={`relative z-10 w-full max-w-sm mx-auto flex flex-col flex-1 px-5 pt-5 pb-6 pb-safe ${
+          // Step 2: the column is bounded by the screen so the ROWS scroll and
+          // Valmis stays in view; step 1 grows and the page scrolls if needed.
+          step === 2 ? 'min-h-0' : ''
+        }`}
+      >
+        {step === 2 ? (
+          <button
+            type="button"
+            data-testid="wizard-back"
+            onClick={() => setStep(1)}
+            className="self-start -ml-1 inline-flex min-h-11 items-center gap-1 pr-3 text-sm text-ink-3 hover:text-ink transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action rounded-full"
+          >
+            &lsaquo; {t('setupWizard.back', 'Back')}
+          </button>
+        ) : (
+          <div className="min-h-11" aria-hidden="true" />
+        )}
+        <p className="mt-1 font-ui text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">
+          {t('setupWizard.stepOf', 'Step {{step}} / {{total}}', { step, total: 2 })}
+        </p>
 
         {step === 1 ? (
-          /* Landing language (owner round 8): the auth screen is the design
-             reference - centered headings, open h-12 fields directly on the
-             ambient background (no card chrome), full-width hero CTA. The
-             wizard must read as page 2 of the same flow, not a settings form. */
           <>
-            <h2 className="text-2xl font-bold text-center">
-              {t('setupWizard.teamTitle', 'Your team')}
-            </h2>
-            <p className="text-sm text-slate-400 text-center mt-2 mb-6">
+            <h1 className={`${titleStyle} mt-1`}>{t('setupWizard.teamTitle', 'Your team')}</h1>
+            <p className={`${subtextStyle} mt-1 mb-5`}>
               {t('setupWizard.teamHint', 'Name your team - you can fill in details later.')}
             </p>
+
+            <label htmlFor="setup-team-name" className={labelStyle}>
+              {t('setupWizard.teamNameLabel', 'Team name')}
+            </label>
             <input
               id="setup-team-name"
               data-testid="wizard-team-name"
@@ -446,50 +619,44 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               maxLength={VALIDATION_LIMITS.TEAM_NAME_MAX}
               onChange={(e) => setTeamName(e.target.value)}
               placeholder={t('setupWizard.teamNamePlaceholder', 'e.g. FC Honka P12') ?? undefined}
-              aria-label={t('setupWizard.teamNameLabel', 'Team name')}
-              className="w-full h-12 px-4 rounded-md bg-slate-800 border border-slate-700 text-base text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className={inputBaseStyle}
             />
 
-            <div className="text-sm font-medium text-slate-300 text-center mt-6 mb-2">
-              {t('setupWizard.formatLabel', 'Format')}
-            </div>
-            <div className="flex gap-2" role="group" aria-label={t('setupWizard.formatLabel', 'Format')}>
-              {FORMATS.map((f) => (
+            <p className={`${labelStyle} mt-5`} id="wizard-sport-label">
+              {t('setupWizard.sport', 'Sport')}
+            </p>
+            <div className={segmentTrackStyle} role="group" aria-labelledby="wizard-sport-label">
+              {(['soccer', 'futsal'] as const).map((s) => (
                 <button
-                  key={f}
+                  key={s}
                   type="button"
-                  data-testid={`wizard-format-${f}`}
-                  onClick={() => setFormat(f)}
-                  aria-pressed={format === f}
-                  className={`flex-1 h-11 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
-                    format === f
-                      ? 'bg-indigo-600 border border-indigo-400/30 text-white'
-                      : 'bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700'
-                  }`}
+                  data-testid={`wizard-sport-${s}`}
+                  aria-pressed={sport === s}
+                  onClick={() => {
+                    setSport(s);
+                    applySuggestion(ageGroup, s);
+                  }}
+                  className={sport === s ? segmentSelectedStyle : segmentStyle}
                 >
-                  {f}
+                  {s === 'soccer'
+                    ? t('setupWizard.sportFootball', 'Football')
+                    : t('setupWizard.sportFutsal', 'Futsal')}
                 </button>
               ))}
             </div>
 
-            {/* A SELECT, not a chip row. Fifteen values (U7-U21) do not fit one
-                row, and a scrolling row hides most of them behind a swipe -
-                which is exactly how the opponent chips buried their own form.
-                A select also matches how new-game setup asks the same
-                question, and its blank first option says "optional" more
-                plainly than an unpressed chip can. */}
-            <label
-              htmlFor="wizard-age-group"
-              className="block text-sm font-medium text-slate-300 text-center mt-6 mb-2"
-            >
+            <label htmlFor="wizard-age-group" className={`${labelStyle} mt-5`}>
               {t('setupWizard.ageGroupLabel', 'Age group (optional)')}
             </label>
             <select
               id="wizard-age-group"
               data-testid="wizard-age-group"
               value={ageGroup}
-              onChange={(e) => setAgeGroup(e.target.value)}
-              className="w-full h-12 px-4 rounded-md bg-slate-800 border border-slate-700 text-base text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              onChange={(e) => {
+                setAgeGroup(e.target.value);
+                applySuggestion(e.target.value, sport);
+              }}
+              className={selectStyle}
             >
               <option value="">{t('setupWizard.ageGroupNone', 'Not set')}</option>
               {AGE_GROUPS.map((g) => (
@@ -498,144 +665,163 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-slate-400 text-center mt-2">
-              {t(
-                'setupWizard.ageGroupHint',
-                'Used to show the rules and match format for your age group, and as the default for new games.',
-              )}
+
+            <p className={`${labelStyle} mt-5`} id="wizard-format-label">
+              {t('setupWizard.formatLabel', 'Format')}
+            </p>
+            <div className={segmentTrackStyle} role="group" aria-labelledby="wizard-format-label">
+              {FIELD_SIZES.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  data-testid={`wizard-format-${f}`}
+                  onClick={() => {
+                    setFormat(f);
+                    setFormatTouched(true);
+                  }}
+                  aria-pressed={format === f}
+                  className={formatChipStyle(format === f)}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+            <p className={fieldHintStyle} data-testid="wizard-format-hint">
+              {suggestionText}
             </p>
 
             <button
               type="button"
               data-testid="wizard-continue"
               onClick={() => {
-                // Owner round 4: close the keyboard before step 2 so the whole
-                // column (input, Add, Done, skip) is visible first.
+                // Close the keyboard before step 2 so the whole column is visible.
                 (document.activeElement as HTMLElement | null)?.blur?.();
                 setStep(2);
               }}
               disabled={!teamName.trim()}
-              className="mt-8 w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
+              className={`${primaryButtonStyle} mt-7 w-full min-h-12 text-base`}
             >
               {t('setupWizard.next', 'Continue')}
             </button>
           </>
         ) : (
-          /* Step 2 does not scroll the PAGE in portrait (owner round 3): the
-             card fills the remaining height, the ROWS scroll internally
-             (newest first, oldest slide away), and Valmis + the skip link stay
-             pinned. The page keeps overflow-y-auto as a FALLBACK only - on a
-             short/landscape viewport the fixed-height children exceed 100dvh
-             and the page must scroll rather than clip (review #732). */
+          /* Step 2 does not scroll the PAGE in portrait: the column fills the
+             remaining height, the ROWS scroll internally (newest first), and
+             Valmis + the skip link stay pinned. The page keeps overflow-y-auto
+             as a fallback for short/landscape viewports. */
           <>
-            {/* Quiet back link on its own row (owner round 2: the arrow glued
-                to the title read badly). No autofocus on step 1 for the same
-                round: the keyboard covered the format chips before the coach
-                ever saw them. */}
-            <button
-              type="button"
-              data-testid="wizard-back"
-              onClick={() => setStep(1)}
-              className="self-start -ml-1 mt-1 px-1 text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
-            >
-              &lsaquo; {t('setupWizard.back', 'Back')}
-            </button>
-            <h2 className="text-2xl font-bold text-center">
-              {t('setupWizard.playersTitle', 'Players')}
-            </h2>
-            <p className="text-sm text-slate-400 text-center mt-2">
-              {t('setupWizard.playersHint', 'One name per row - Enter adds the next.')}
+            <h1 className={`${titleStyle} mt-1`}>{t('setupWizard.playersTitle', 'Players')}</h1>
+            <p className={`${subtextStyle} mt-1`}>
+              {t('setupWizard.playersHint', 'Paste a list of names or type one at a time.')}
             </p>
-          {/* No card chrome (round 8) - the same open background as the
-              landing; the column keeps its pinned-input / scrolling-rows /
-              pinned-Valmis structure. */}
-          <div className="flex-1 min-h-0 mt-5 flex flex-col">
-
-            {/* Input PINNED here (keyboard-safe, never moves as the list grows);
-                committed rows stack BELOW it newest-first, so it is the OLD rows
-                that scroll away behind the phone keyboard (owner round 1). The
-                visible "+ Add" button gives Enter's action a discoverable twin -
-                without it, coaches tapped the big Valmis after one name. */}
-            <div className="flex gap-2">
-              <input
-                data-testid="wizard-player-input"
-                type="text"
-                value={draft}
-                maxLength={VALIDATION_LIMITS.PLAYER_NAME_MAX}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    commitDraft();
-                  }
-                }}
-                placeholder={t('setupWizard.playerPlaceholder', 'Player name…') ?? undefined}
-                className="flex-1 min-w-0 h-12 px-4 rounded-md bg-slate-800 border border-slate-700 text-base text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
+            <div className="flex-1 min-h-0 mt-4 flex flex-col">
               <button
                 type="button"
-                data-testid="wizard-add-player"
-                onClick={commitDraft}
-                disabled={!draft.trim()}
-                className="h-12 rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 text-sm font-medium text-white transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+                data-testid="wizard-paste"
+                onClick={() => void handlePasteFromClipboard()}
+                className={`${secondaryButtonStyle} w-full`}
               >
-                {t('setupWizard.add', 'Add')}
+                {t('setupWizard.pasteButton', 'Paste from clipboard')}
+              </button>
+              {/* A one-row textarea, not an input: an input drops the line
+                  breaks of a pasted list, and some Android keyboards paste
+                  without a paste event - the line breaks are how the list is
+                  recognised in onChange too. Enter still adds the row. */}
+              <div className="flex gap-2 mt-3">
+                <textarea
+                  data-testid="wizard-player-input"
+                  rows={1}
+                  value={draft}
+                  maxLength={VALIDATION_LIMITS.PLAYER_NAME_MAX * PASTE_MAX_NAMES}
+                  aria-label={t('setupWizard.playerPlaceholder', 'Player name…')}
+                  onPaste={(e) => {
+                    const text = e.clipboardData?.getData('text') ?? '';
+                    if (addPastedText(text)) e.preventDefault();
+                  }}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (/[\r\n]/.test(value)) {
+                      // A pasted list without a paste event, or Enter on a
+                      // keyboard that inserts the line break itself.
+                      const list = splitPastedNames(value, { maxNameLength: VALIDATION_LIMITS.PLAYER_NAME_MAX });
+                      appendNames(list);
+                      setDraft('');
+                      return;
+                    }
+                    setDraft(value.slice(0, VALIDATION_LIMITS.PLAYER_NAME_MAX));
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      commitDraft();
+                    }
+                  }}
+                  placeholder={t('setupWizard.playerPlaceholder', 'Player name…') ?? undefined}
+                  className={`${textareaStyle} flex-1 min-w-0 overflow-hidden`}
+                />
+                <button
+                  type="button"
+                  data-testid="wizard-add-player"
+                  onClick={commitDraft}
+                  disabled={!draft.trim()}
+                  className={`${secondaryButtonStyle} min-h-[52px]`}
+                >
+                  {t('setupWizard.add', 'Add')}
+                </button>
+              </div>
+              <p className="text-right text-sm text-ink-3 mt-2" data-testid="wizard-player-count">
+                {t('setupWizard.playersAdded', '{{count}} players added', { count: totalCount })}
+              </p>
+              {/* Rows in the order entered (a pasted list reads as pasted);
+                  the list scrolls itself to the newest row. */}
+              <div
+                ref={rowsRef}
+                className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 mt-2 -mx-1 px-1"
+              >
+                {names.map(({ id, name }, originalIndex) => {
+                  return (
+                    <div
+                      key={id}
+                      data-testid="wizard-player-row"
+                      className="s1-list flex items-center justify-between rounded-xl pl-3.5 pr-1 min-h-11"
+                    >
+                      <span className="text-[15px]">{name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeName(originalIndex)}
+                        aria-label={`${t('setupWizard.removePlayer', 'Remove')} ${name}`}
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-3 hover:bg-white/[0.06] hover:text-ink transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className={`${fieldHintStyle} text-center`}>
+                {t('setupWizard.numbersLater', 'First names are enough. Numbers can be added later.')}
+              </p>
+
+              <button
+                type="button"
+                data-testid="wizard-finish"
+                onClick={() => void handleFinish()}
+                disabled={isSaving}
+                className={`${primaryButtonStyle} flex-none mt-3 w-full min-h-12 text-base`}
+              >
+                {isSaving ? t('setupWizard.saving', 'Saving…') : t('setupWizard.finish', 'Done')}
               </button>
             </div>
-            <p className="text-right text-sm text-slate-400 mt-2" data-testid="wizard-player-count">
-              {t('setupWizard.playersAdded', '{{count}} players added', { count: totalCount })}
-            </p>
-            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 mt-2 -mx-1 px-1">
-              {[...names].reverse().map(({ id, name }, i) => {
-                const originalIndex = names.length - 1 - i;
-                return (
-                  <div
-                    key={id}
-                    data-testid="wizard-player-row"
-                    className="flex items-center justify-between rounded-lg bg-slate-800/90 border border-slate-700/60 px-3.5 py-2"
-                  >
-                    <span className="text-sm">{name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeName(originalIndex)}
-                      aria-label={`${t('setupWizard.removePlayer', 'Remove')} ${name}`}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      ×
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Valmis announces what it will create, so a premature tap
-                self-identifies ("Done (1 player)") instead of silently
-                finishing a one-player roster. */}
-            <button
-              type="button"
-              data-testid="wizard-finish"
-              onClick={() => void handleFinish()}
-              disabled={isSaving}
-              className="flex-none mt-4 w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
-            >
-              {isSaving
-                ? t('setupWizard.saving', 'Saving…')
-                : totalCount > 0
-                  ? t('setupWizard.finishWithCount', 'Done ({{count}} players)', { count: totalCount })
-                  : t('setupWizard.finish', 'Done')}
-            </button>
-          </div>
           </>
         )}
 
         {/* Quiet skip (owner decision): a text link, not a button - present for
-            the coach who wants to look around first, invisible to the one who
-            is already on the happy path. Creates nothing. */}
+            the coach who wants to look around first. Creates nothing. */}
         <button
           type="button"
           data-testid="wizard-skip"
           onClick={handleSkip}
-          className={`flex-none ${step === 1 ? 'mt-8 mb-auto' : 'mt-auto pt-5'} pb-1 text-sm text-slate-500 hover:text-slate-300 underline decoration-slate-600 underline-offset-2 text-center w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded`}
+          className={`${quietLinkStyle} flex-none ${step === 1 ? 'mt-3' : 'mt-2'} w-full`}
         >
           {skipLabel}
         </button>

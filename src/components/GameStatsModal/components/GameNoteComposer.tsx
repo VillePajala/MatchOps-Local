@@ -40,6 +40,7 @@ import { estimateTranscriptionUsd, getTranscriptionEngine, TranscriptionError } 
 import { useToast } from '@/contexts/ToastProvider';
 import WorkingIndicator from '@/components/WorkingIndicator';
 import { matchPlayerInText } from '@/utils/playerNameMatch';
+import { dangerButtonStyle, labelStyle, secondaryButtonStyle, selectStyle, textareaStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 
 interface GameNoteComposerProps {
@@ -226,16 +227,16 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
   };
 
   return (
-    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner" data-testid="note-composer">
-      <h3 className="text-xl font-semibold text-slate-200 mb-3">{t('noteComposer.title', 'Add a note')}</h3>
-      <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor="note-composer-player">
+    <div className="s1-list p-4 font-ui" data-testid="note-composer">
+      <h3 className="text-base font-semibold text-ink mb-3">{t('noteComposer.title', 'Add a note')}</h3>
+      <label className={labelStyle} htmlFor="note-composer-player">
         {t('noteComposer.playerLabel', 'About')}
       </label>
       <select
         id="note-composer-player"
         value={entityId}
         onChange={(e) => setEntityId(e.target.value)}
-        className="w-full mb-3 bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className={`${selectStyle} mb-3`}
       >
         <option value="">{t('noteComposer.wholeMatch', 'The match')}</option>
         {/* The app's one player order and name format (review 7.L5/7.L8). */}
@@ -249,78 +250,82 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         rows={3}
         aria-label={t('noteComposer.title', 'Add a note')}
         placeholder={t('noteComposer.placeholder', 'What did you see? One observation is enough.')}
-        className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className={`${textareaStyle} text-[15px]!`}
       />
+      {/* One action row: add the note, and beside it the 44px microphone
+          (stop while this card records). */}
+      <div className="mt-2.5 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={!text.trim() || transcribing || busy}
+          data-testid="note-composer-save"
+          className={`${secondaryButtonStyle} flex-1 min-w-0`}
+        >
+          {t('noteComposer.save', 'Add')}
+        </button>
+        {canRecord && dictation && dictation.permission !== 'denied' && (
+          <button
+            type="button"
+            onClick={() => {
+              if (dictation.isRecording) {
+                dictation.stop();
+              } else {
+                setRecorded(false);
+                setStartedHere(true);
+                // Anything already stored is old news; only a clip written
+                // after this point belongs to the recording starting now.
+                claimedIdRef.current = dictation.lastClip?.id ?? null;
+                miningRef.current = true;
+                dictation.start();
+              }
+            }}
+            // Someone else's recording (the spoken report is on this same
+            // page): say so by going quiet rather than offering to stop it.
+            disabled={transcribing || busy || (dictation.isRecording && !startedHere)}
+            data-testid="note-composer-record"
+            aria-label={
+              dictation.isRecording && startedHere
+                ? t('noteComposer.recordStop', 'Stop dictating')
+                : t('noteComposer.record', 'Dictate a note')
+            }
+            title={
+              dictation.isRecording && startedHere
+                ? t('noteComposer.recordStop', 'Stop dictating')
+                : t('noteComposer.record', 'Dictate a note')
+            }
+            className={`${dictation.isRecording && startedHere ? dangerButtonStyle : secondaryButtonStyle} flex-none w-11 px-0!`}
+          >
+            {dictation.isRecording && startedHere ? (
+              <HiOutlineStop className="w-5 h-5" aria-hidden="true" />
+            ) : (
+              <HiOutlineMicrophone className="w-5 h-5 text-action" aria-hidden="true" />
+            )}
+          </button>
+        )}
+      </div>
       {canRecord && dictation && (
-        <div className="mt-2">
-          {dictation.permission === 'denied' ? (
-            <p className="text-sm text-amber-300">
-              {t('dictation.permissionDenied', "Microphone access was denied. Allow it in your phone's app settings to dictate notes.")}
-            </p>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  if (dictation.isRecording) {
-                    dictation.stop();
-                  } else {
-                    setRecorded(false);
-                    setStartedHere(true);
-                    // Anything already stored is old news; only a clip written
-                    // after this point belongs to the recording starting now.
-                    claimedIdRef.current = dictation.lastClip?.id ?? null;
-                    miningRef.current = true;
-                    dictation.start();
-                  }
-                }}
-                // Someone else's recording (the spoken report is on this same
-                // page): say so by going quiet rather than offering to stop it.
-                disabled={transcribing || busy || (dictation.isRecording && !startedHere)}
-                data-testid="note-composer-record"
-                className={`w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  dictation.isRecording && startedHere
-                    ? 'bg-red-600 hover:bg-red-500 text-white'
-                    : 'bg-slate-700 hover:bg-slate-600 text-slate-100'
-                }`}
-              >
-                {dictation.isRecording && startedHere ? (
-                  <>
-                    <HiOutlineStop className="text-base" />
-                    {t('noteComposer.recordStop', 'Stop dictating')}
-                  </>
-                ) : (
-                  <>
-                    <HiOutlineMicrophone className="text-base" />
-                    {t('noteComposer.record', 'Dictate a note')}
-                  </>
-                )}
-              </button>
-              {transcribing && (
-                <WorkingIndicator
-                  className="mt-2"
-                  label={t('noteComposer.transcribing', 'Writing out what you said.')}
-                  data-testid="note-composer-transcribing"
-                />
-              )}
-              {recorded && !dictation.isRecording && !transcribing && (
-                <p className="text-sm text-slate-400 mt-1" data-testid="note-composer-recorded">
-                  {t('noteComposer.recordedHint', 'Waiting in the voice notes above, where you write it out and choose the player.')}
-                </p>
-              )}
-            </>
-          )}
-        </div>
+        dictation.permission === 'denied' ? (
+          <p className="mt-2 text-sm text-ink-2">
+            {t('dictation.permissionDenied', "Microphone access was denied. Allow it in your phone's app settings to dictate notes.")}
+          </p>
+        ) : (
+          <>
+            {transcribing && (
+              <WorkingIndicator
+                className="mt-2"
+                label={t('noteComposer.transcribing', 'Writing out what you said.')}
+                data-testid="note-composer-transcribing"
+              />
+            )}
+            {recorded && !dictation.isRecording && !transcribing && (
+              <p className="text-sm text-ink-3 mt-2" data-testid="note-composer-recorded">
+                {t('noteComposer.recordedHint', 'Waiting in the voice notes above, where you write it out and choose the player.')}
+              </p>
+            )}
+          </>
+        )
       )}
-      <button
-        type="button"
-        onClick={() => void save()}
-        disabled={!text.trim() || transcribing || busy}
-        data-testid="note-composer-save"
-        className="mt-2 w-full px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {t('noteComposer.save', 'Add the note')}
-      </button>
     </div>
   );
 };

@@ -42,6 +42,7 @@ import { adjustScoreForRemovedEvent } from '@/datastore/gameEventScore';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import { sanitizeKnownVenues } from '@/utils/venueBook';
+import { parseAppLayout, sanitizeOnboardingMilestones } from '@/utils/appLayout';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import { isPlaytimePlan, PLAYTIME_PLAN_SCHEMA_VERSION } from '@/utils/playtimePlanner/types';
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
@@ -2953,6 +2954,10 @@ export class SupabaseDataStore implements DataStore {
       // Checked entry by entry, never cast: a JSONB column holds whatever was
       // last written to it.
       knownVenues: sanitizeKnownVenues(row.known_venues),
+      // Checked, not cast (see assessmentRatingStyle below). NULL stays unset,
+      // which the app reads as the full layout - every existing account.
+      appLayout: parseAppLayout(row.app_layout),
+      onboardingMilestones: sanitizeOnboardingMilestones(row.onboarding_milestones),
       // NULL means "never set", which is not the same as false - but the app's
       // default is off, so they land in the same place.
       assessmentsEnabled: row.assessments_enabled ?? DEFAULT_APP_SETTINGS.assessmentsEnabled,
@@ -2995,6 +3000,15 @@ export class SupabaseDataStore implements DataStore {
       assessments_enabled: settings.assessmentsEnabled ?? null,
       assessment_rating_style: settings.assessmentRatingStyle ?? null,
       assessment_template: settings.assessmentTemplate ?? null,
+      // Sent only once they have a value. An upsert leaves an omitted column as
+      // it is, so an account that never had a layout or a milestone writes the
+      // exact row it wrote before migration 062 - which keeps every existing
+      // coach's settings saving even on a database the migration has not
+      // reached yet. Neither value is ever cleared, so omitting loses nothing.
+      ...(settings.appLayout ? { app_layout: settings.appLayout } : {}),
+      ...(settings.onboardingMilestones
+        ? { onboarding_milestones: settings.onboardingMilestones as unknown as Json }
+        : {}),
       updated_at: new Date().toISOString(),
     };
   }

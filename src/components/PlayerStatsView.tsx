@@ -3,6 +3,7 @@
 import { playersForRedaction } from '@/utils/gamePacket';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { selectStyle, secondaryButtonStyle, neutralBadgeStyle } from '@/styles/modalStyles';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
 import type { TranslationKey } from '@/i18n-types';
@@ -30,11 +31,47 @@ import GameRecapModal from '@/components/GameRecapModal';
 import MetricAreaChart from './MetricAreaChart';
 import { computePositionDiversity } from '@/utils/positionDiversity';
 import { POSITION_IDS } from '@/config/positions';
-import ExternalGamesSection, { getResultClass } from './ExternalGamesSection';
+import ExternalGamesSection from './ExternalGamesSection';
 import logger from '@/utils/logger';
 import { getClubSeasonForDate, currentClubSeasonForPlayer } from '@/utils/clubSeason';
 import PlayerNotesSummaryCard from './PlayerNotesSummaryCard';
 import { formatAppDecimal } from '@/utils/localeFormat';
+
+/** The league / tournament summary: one 14px box, its competitions split by hairlines. */
+const COMPETITION_BOX = 'rounded-[14px] bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] overflow-hidden';
+const COMPETITION_ROW =
+  'relative px-3 py-2.5 before:absolute before:top-0 before:left-3 before:right-0 before:h-px before:bg-hairline first:before:hidden';
+/** Four equal number columns and a last one sized to "Fair play", so it never wraps. */
+const COMPETITION_GRID = 'grid grid-cols-[repeat(4,minmax(0,1fr))_auto] gap-x-2 text-center text-sm';
+const COMPETITION_LABEL = 'text-xs text-ink-3 whitespace-nowrap';
+
+/** Round result disc, as in the home screen's results list (V / T / H). */
+const RESULT_DISC_TONE: Record<'W' | 'L' | 'D' | 'N/A', string> = {
+  W: 'bg-win/15 text-win',
+  D: 'bg-white/10 text-draw',
+  L: 'bg-loss/15 text-loss',
+  'N/A': 'bg-white/[0.06] text-ink-3',
+};
+
+const ResultDisc: React.FC<{ result: 'W' | 'L' | 'D' | 'N/A' }> = ({ result }) => {
+  const { t } = useTranslation();
+  const letter =
+    result === 'W'
+      ? t('export.winShort', 'W')
+      : result === 'L'
+        ? t('export.lossShort', 'L')
+        : result === 'D'
+          ? t('export.tieShort', 'T')
+          : '–';
+  return (
+    <span
+      className={`grid h-8 w-8 flex-none place-items-center rounded-full font-display text-[17px] font-bold leading-none ${RESULT_DISC_TONE[result]}`}
+      data-testid="player-game-result"
+    >
+      {letter}
+    </span>
+  );
+};
 
 // Line badge colours mirror the position-category colours used in the positions editor.
 interface PlayerStatsViewProps {
@@ -114,8 +151,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     switch (direction) {
       case 'rising': return { arrow: '↑', className: 'text-green-400', title: t('assessmentTrend.rising', 'Rising') };
       case 'slipping': return { arrow: '↓', className: 'text-red-400', title: t('assessmentTrend.slipping', 'Slipping') };
-      case 'steady': return { arrow: '→', className: 'text-slate-400', title: t('assessmentTrend.steady', 'Steady') };
-      default: return { arrow: '·', className: 'text-slate-600', title: t('assessmentTrend.insufficient', 'Too early to tell') };
+      case 'steady': return { arrow: '→', className: 'text-ink-3', title: t('assessmentTrend.steady', 'Steady') };
+      default: return { arrow: '·', className: 'text-ink-3/60', title: t('assessmentTrend.insufficient', 'Too early to tell') };
     }
   }, [t]);
 
@@ -416,8 +453,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   if (!player || !playerStats) {
     return (
-        <div className="flex items-center justify-center h-full">
-            <p className="text-slate-400">{t('playerStats.selectPlayer', 'Select a player to view their stats.')}</p>
+        <div className="flex items-center justify-center px-4 py-12 text-center">
+            <p className="text-[15px] text-ink-3">{t('playerStats.selectPlayer', 'Search for a player to see their stats')}</p>
         </div>
     );
   }
@@ -431,13 +468,11 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   ];
 
   return (
-    <div className="p-4 sm:p-6 bg-slate-900/70 rounded-lg border border-slate-700 shadow-inner">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-amber-400">{player.name}</h2>
-          </div>
-        </div>
+    <div className="s1-list p-4 sm:p-6 font-ui">
+        {/* The name heading is visually hidden: the player picker right above
+            already shows the name (review round 2, 11b), but screen readers still
+            get a heading that says whose statistics follow. */}
+        <h2 className="sr-only">{player.name}</h2>
 
         {/* Filter Status Indicator */}
         {selectedClubSeason !== 'all' && unfilteredPlayerStats && unfilteredPlayerStats.totalGames > playerStats.totalGames && (
@@ -454,33 +489,35 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         )}
 
         {/* Summary Stats */}
-        <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-lg p-4 mb-3 shadow-inner transition-all">
-          {/* Primary Stats Row with Averages */}
-          <div className="grid grid-cols-4 gap-3 sm:gap-4 text-center">
+        <div className="mb-3">
+          {/* Primary Stats Row with Averages - straight on the card, no inner box */}
+          {/* min-w-0 cells and a wrap point after the slash: on a 360px phone
+              the per-game figures ran into each other. */}
+          <div className="grid grid-cols-4 gap-2 sm:gap-4 text-center [&>div]:min-w-0">
             <div>
-              <p className="text-3xl font-bold text-amber-400">{playerStats.totalGames}</p>
-              <p className="text-sm text-slate-300 font-medium">{t('playerStats.gamesPlayed', 'Games Played')}</p>
+              <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalGames}</p>
+              <p className="text-sm text-ink-2 font-medium">{t('playerStats.gamesPlayed', 'Games Played')}</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-amber-400">{playerStats.totalGoals}</p>
-              <p className="text-sm text-slate-300 font-medium">{t('playerStats.goals', 'Goals')}</p>
-              <p className="text-sm text-slate-400 mt-1">({formatAppDecimal(playerStats.avgGoalsPerGame)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalGoals}</p>
+              <p className="text-sm text-ink-2 font-medium">{t('playerStats.goals', 'Goals')}</p>
+              <p className="text-xs leading-tight text-ink-3 mt-1 whitespace-nowrap">{formatAppDecimal(playerStats.avgGoalsPerGame)}/{t('playerStats.perGameShort', 'game')}</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-amber-400">{playerStats.totalAssists}</p>
-              <p className="text-sm text-slate-300 font-medium">{t('playerStats.assists', 'Assists')}</p>
-              <p className="text-sm text-slate-400 mt-1">({formatAppDecimal(playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalAssists}</p>
+              <p className="text-sm text-ink-2 font-medium">{t('playerStats.assists', 'Assists')}</p>
+              <p className="text-xs leading-tight text-ink-3 mt-1 whitespace-nowrap">{formatAppDecimal(playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')}</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-amber-400">{playerStats.totalGoals + playerStats.totalAssists}</p>
-              <p className="text-sm text-slate-300 font-medium">{t('playerStats.points', 'Points')}</p>
-              <p className="text-sm text-slate-400 mt-1">({formatAppDecimal(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')})</p>
+              <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalGoals + playerStats.totalAssists}</p>
+              <p className="text-sm text-ink-2 font-medium">{t('playerStats.points', 'Points')}</p>
+              <p className="text-xs leading-tight text-ink-3 mt-1 whitespace-nowrap">{formatAppDecimal(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')}</p>
             </div>
           </div>
           {/* Wearing the armband, only when it happened. A zero here would
               read as a mark against the player rather than as a fact. */}
           {playerStats.totalCaptaincies > 0 && (
-            <p className="mt-3 text-sm text-slate-300 text-center" data-testid="player-captaincies">
+            <p className="mt-3 text-sm text-ink-2 text-center" data-testid="player-captaincies">
               {t('playerStats.captainGames', 'Captain in {{count}} games', {
                 count: playerStats.totalCaptaincies,
               })}
@@ -493,7 +530,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             type="button"
             onClick={() => setShowEvidence(true)}
             data-testid="player-evidence"
-            className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-100"
+            className={`${secondaryButtonStyle} mt-4 w-full`}
           >
             {t('evidence.button', 'Share player summary')}
           </button>
@@ -518,40 +555,40 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
         {/* Positions played - this player's spread over the current scope */}
         {positionSummary && (
-          <div className={`bg-gradient-to-br from-slate-600/50 to-slate-800/30 rounded-lg shadow-inner p-4 mb-3 ${positionSummary.totalGames / (playerStats.totalGames || 1) < 0.5 ? 'opacity-60' : ''}`}>
+          <div className={`border-t border-hairline pt-4 mt-4 mb-3 ${positionSummary.totalGames / (playerStats.totalGames || 1) < 0.5 ? 'opacity-60' : ''}`}>
             <div className="flex items-center justify-between gap-2 mb-1">
-              <h3 className="text-sm font-semibold text-slate-200">
+              <h3 className="text-sm font-semibold text-ink">
                 {t('playerStats.positionsPlayed.title', 'Positions played')}
               </h3>
               {positionSummary.narrow && (
-                <span className="shrink-0 text-xs font-medium text-amber-400">
+                <span className="shrink-0 text-xs font-medium text-ink-2">
                   {t('gameStatsModal.positionBalance.narrow', 'Narrow')}
                 </span>
               )}
             </div>
-            <p className="text-sm text-slate-400 mb-3">
+            <p className="text-sm text-ink-3 mb-3">
               {t('gameStatsModal.positionBalance.gamesCovered', 'Positions recorded in {{recorded}}/{{scanned}} games', {
                 recorded: positionSummary.totalGames,
                 scanned: playerStats.totalGames,
               })}
             </p>
-            {/* Positions played, back-to-front, in the app's muted-label + amber-count stat style. */}
+            {/* Positions played, back-to-front, in the app's muted-label + white-count stat style. */}
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {POSITION_IDS.filter(id => (positionSummary.byPosition[id] ?? 0) > 0).map(id => (
-                <span key={id} className="text-slate-300">
+                <span key={id} className="text-ink-2">
                   {t(`playingPositions.${id}.abbrev` as TranslationKey, id.toUpperCase())}{' '}
-                  <span className="text-amber-400 font-semibold">{positionSummary.byPosition[id]}</span>
+                  <span className="text-ink font-semibold">{positionSummary.byPosition[id]}</span>
                 </span>
               ))}
             </div>
             {positionSummary.narrow && (
-              <p className="text-sm text-amber-300/80 mt-3">
+              <p className="text-sm text-ink-3 mt-3">
                 {t('playerStats.positionsPlayed.narrowHint', 'Played only one line this season - a chance to broaden.')}
               </p>
             )}
             {externalPositionGames.length > 0 && (
-              <p className="text-xs text-slate-400 mt-2">
-                <span className="inline-block bg-purple-600/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded mr-1.5">{t('playerStats.external', 'ADDED')}</span>
+              <p className="text-xs text-ink-3 mt-2">
+                <span className={`${neutralBadgeStyle} mr-1.5`}>{t('playerStats.external', 'ADDED')}</span>
                 {t('playerStats.positionsPlayed.includesExternal', { count: externalPositionGames.length, defaultValue: 'Includes {{count}} added games with recorded positions.' })}
               </p>
             )}
@@ -571,14 +608,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
         {/* Game by Game Stats - Title and Chart */}
         <div className="mt-6">
-          <h3 className="text-lg font-semibold text-slate-100 mb-2">{t('playerStats.gameLog', 'Game Log')}</h3>
+          <h3 className="text-lg font-semibold text-ink mb-2">{t('playerStats.gameLog', 'Game Log')}</h3>
           <div className="mb-2">
-            <label htmlFor="metric-select" className="block text-sm font-medium text-slate-300 mb-1">{t('playerStats.metricSelect', 'Select Metric')}</label>
+            <label htmlFor="metric-select" className="block text-sm font-medium text-ink-2 mb-1">{t('playerStats.metricSelect', 'Select Metric')}</label>
             <select
               id="metric-select"
               value={selectedMetric}
               onChange={(e) => setSelectedMetric(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className={selectStyle}
             >
               {metricOptions.map(opt => (
                 <option key={opt.key} value={opt.key}>{opt.label}</option>
@@ -610,11 +647,11 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           <button
             type="button"
             onClick={() => setShowRatings(v => !v)}
-            className="text-left w-full bg-slate-800/60 p-3 rounded-lg flex justify-between items-center hover:bg-slate-800/80 transition-colors"
+            className="text-left w-full bg-white/[0.03] p-3 rounded-2xl flex justify-between items-center hover:bg-white/[0.06] min-h-12 transition-colors"
             aria-expanded={showRatings}
           >
-            <span className="font-semibold text-slate-100">{t('playerStats.performanceRatings', 'Performance Ratings')}</span>
-            <span className="text-sm text-slate-400">{showRatings ? '-' : '+'}</span>
+            <span className="font-semibold text-ink">{t('playerStats.performanceRatings', 'Performance Ratings')}</span>
+            <span className="text-sm text-ink-3">{showRatings ? '-' : '+'}</span>
           </button>
           {showRatings && (
             <div className="mt-2 space-y-4 text-sm">
@@ -631,8 +668,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         type="button"
                         onClick={() => setAssessmentSeason(value)}
                         aria-pressed={assessmentSeason === value}
-                        className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                          assessmentSeason === value ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon ${
+                          assessmentSeason === value ? 's1-seg-on text-ink shadow-[inset_0_0_0_1.5px_var(--color-action)]' : 's1-ghost text-ink-2'
                         }`}
                       >
                         {label}
@@ -652,8 +689,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       type="button"
                       onClick={() => setScope(value)}
                       aria-pressed={scope === value}
-                      className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                        scope === value ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon ${
+                        scope === value ? 's1-seg-on text-ink shadow-[inset_0_0_0_1.5px_var(--color-action)]' : 's1-ghost text-ink-2'
                       }`}
                     >
                       {label}
@@ -667,8 +704,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     onClick={() => setRecencyWeighted(v => !v)}
                     aria-pressed={recencyWeighted}
                     title={t('playerStats.recencyWeightedTooltip', 'Weight recent games more, to show current form rather than the lifetime average')}
-                    className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      recencyWeighted ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon ${
+                      recencyWeighted ? 's1-seg-on text-ink shadow-[inset_0_0_0_1.5px_var(--color-action)]' : 's1-ghost text-ink-2'
                     }`}
                   >
                     {t('playerStats.recencyWeighted', 'Current form')}
@@ -685,8 +722,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     }}
                     aria-pressed={useDemandCorrection}
                     title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
-                    className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                      useDemandCorrection ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    className={`flex-1 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon ${
+                      useDemandCorrection ? 's1-seg-on text-ink shadow-[inset_0_0_0_1.5px_var(--color-action)]' : 's1-ghost text-ink-2'
                     }`}
                   >
                     {t('playerStats.useDemandCorrection', 'By difficulty')}
@@ -708,14 +745,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               {(playerDevelopment.focusAreas.length > 0 || playerDevelopment.strengths.length > 0) && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-2">
                   {playerDevelopment.strengths.length > 0 && (
-                    <div className="bg-slate-900/70 border border-slate-700 rounded-lg shadow-inner p-3">
+                    <div className="bg-white/[0.03] rounded-2xl shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="w-1.5 h-3.5 rounded-full bg-emerald-400" />
                         <p className="text-sm font-semibold uppercase tracking-wide text-emerald-300">{t('playerStats.strengths', 'Strengths')}</p>
                       </div>
                       <ul className="space-y-1">
                         {playerDevelopment.strengths.map(m => (
-                          <li key={m} className="flex items-center justify-between gap-2 text-sm text-slate-200">
+                          <li key={m} className="flex items-center justify-between gap-2 text-sm text-ink">
                             <span>{t(`assessmentMetrics.${m}` as TranslationKey, m)}</span>
                             <span className={trendMeta(playerDevelopment.metrics[m].direction).className} title={trendMeta(playerDevelopment.metrics[m].direction).title}>{trendMeta(playerDevelopment.metrics[m].direction).arrow}</span>
                           </li>
@@ -724,14 +761,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     </div>
                   )}
                   {playerDevelopment.focusAreas.length > 0 && (
-                    <div className="bg-slate-900/70 border border-slate-700 rounded-lg shadow-inner p-3">
+                    <div className="bg-white/[0.03] rounded-2xl shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)] p-3">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="w-1.5 h-3.5 rounded-full bg-amber-400" />
-                        <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">{t('playerStats.focusAreas', 'Focus areas')}</p>
+                        <span className="w-1.5 h-3.5 rounded-full bg-action" />
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-2">{t('playerStats.focusAreas', 'Focus areas')}</p>
                       </div>
                       <ul className="space-y-1">
                         {playerDevelopment.focusAreas.map(m => (
-                          <li key={m} className="flex items-center justify-between gap-2 text-sm text-slate-200">
+                          <li key={m} className="flex items-center justify-between gap-2 text-sm text-ink">
                             <span>{t(`assessmentMetrics.${m}` as TranslationKey, m)}</span>
                             <span className={trendMeta(playerDevelopment.metrics[m].direction).className} title={trendMeta(playerDevelopment.metrics[m].direction).title}>{trendMeta(playerDevelopment.metrics[m].direction).arrow}</span>
                           </li>
@@ -746,7 +783,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <button
                     type="button"
                     onClick={handleExportReport}
-                    className="w-full px-3 py-2 rounded-md text-sm font-medium transition-colors bg-slate-700 text-slate-100 hover:bg-slate-600 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-400"
+                    className="w-full px-3 py-2 rounded-md text-sm font-medium transition-colors s1-ghost text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon focus:ring-action"
                   >
                     {t('playerStats.exportReport', 'Export development report')}
                   </button>
@@ -759,31 +796,31 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     const trend = trendMeta(d.direction);
                     return (
                       <div key={metric} className="flex items-center space-x-2 px-2">
-                        <span className="w-28 shrink-0 text-slate-100">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</span>
+                        <span className="w-28 shrink-0 text-ink">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</span>
                         <RatingBar value={d.level} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(d.level)} />
                         <span className={`w-4 text-center ${trend.className}`} title={trend.title} aria-label={trend.title}>{trend.arrow}</span>
                       </div>
                     );
                   })}
                 <div className="flex items-center space-x-2 px-2 mt-2">
-                  <span className="w-28 shrink-0 text-slate-100">{t('playerAssessmentModal.overallLabel', 'Overall')}</span>
+                  <span className="w-28 shrink-0 text-ink">{t('playerAssessmentModal.overallLabel', 'Overall')}</span>
                   <RatingBar value={playerDevelopment.overall.level} valueLabel={formatRatingBand(playerDevelopment.overall.level)} />
                   <span className={`w-4 text-center ${trendMeta(playerDevelopment.overall.direction).className}`} title={trendMeta(playerDevelopment.overall.direction).title} aria-label={trendMeta(playerDevelopment.overall.direction).title}>{trendMeta(playerDevelopment.overall.direction).arrow}</span>
                 </div>
                 <div className="flex items-center space-x-2 px-2">
-                  <span className="w-28 shrink-0 text-slate-100">{t('playerStats.avgRating', 'Avg Rating')}</span>
+                  <span className="w-28 shrink-0 text-ink">{t('playerStats.avgRating', 'Avg Rating')}</span>
                   <RatingBar value={playerDevelopment.finalScore} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(playerDevelopment.finalScore)} />
                   <span className="w-4" />
                 </div>
-                <div className="text-xs text-slate-400 text-right">
+                <div className="text-xs text-ink-3 text-right">
                   {playerDevelopment.count} {t('playerStats.ratedGames', 'rated games')}
                 </div>
               </div>
               {assessmentTrends && (
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(assessmentTrends).map(([metric, data]) => (
-                    <div key={metric} className="bg-slate-800/40 p-2 rounded">
-                      <p className="text-sm text-slate-300 mb-1">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</p>
+                    <div key={metric} className="bg-white/[0.03] p-2 rounded-xl">
+                      <p className="text-sm text-ink-2 mb-1">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</p>
                       <MetricTrendChart data={data} />
                     </div>
                   ))}
@@ -794,7 +831,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <h4 className="text-sm font-semibold mb-1">{t('playerStats.notes', 'Assessment Notes')}</h4>
                   <ul className="list-disc list-inside space-y-1">
                     {assessmentNotes.map(n => (
-                      <li key={n.date} className="text-xs text-slate-300">
+                      <li key={n.date} className="text-xs text-ink-2">
                         {formatDisplayDate(n.date)} - {n.notes}
                       </li>
                     ))}
@@ -803,7 +840,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               )}
               </>
               ) : (
-                <p className="px-2 text-sm text-slate-400">{t('playerStats.noAssessmentsForPeriod', 'No assessments for this period.')}</p>
+                <p className="px-2 text-sm text-ink-3">{t('playerStats.noAssessmentsForPeriod', 'No assessments for this period.')}</p>
               )}
             </div>
           )}
@@ -811,12 +848,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
       )}
 
         {playerNotes.length > 0 && (
-          <div data-testid="player-notes" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner mt-2">
-            <h3 className="text-lg font-semibold text-slate-200 mb-2">{t('playerStats.notesTitle', 'Notes')}</h3>
+          <div data-testid="player-notes" className="s1-list p-4 font-ui mt-2">
+            <h3 className="text-base font-semibold text-ink mb-2">{t('playerStats.notesTitle', 'Notes')}</h3>
             <ul className="space-y-2">
               {playerNotes.map((n) => (
-                <li key={n.id} className="text-sm text-slate-200">
-                  <span className="text-xs text-slate-400">
+                <li key={n.id} className="text-sm text-ink">
+                  <span className="text-xs text-ink-3">
                     {n.gameDate ? formatDisplayDate(n.gameDate) : ''}{n.opponentName ? ` - ${n.opponentName}` : ''}
                     {' - '}
                     {n.period ? `P${n.period} ` : ''}
@@ -845,18 +882,18 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         {/* Performance by Season/Tournament */}
         <div className="space-y-4 mt-2">
           {Object.keys(playerStats.performanceBySeason).length > 0 && (
-            <div className="bg-slate-800/60 p-3 rounded-lg">
-              <h4 className="text-md font-semibold text-slate-200 mb-2">{t('playerStats.seasonPerformance', 'League Performance')}</h4>
-              <div className="space-y-2">
+            <div className={COMPETITION_BOX}>
+              <h4 className="px-3 pt-3 pb-1 text-base font-semibold text-ink">{t('playerStats.seasonPerformance', 'League Performance')}</h4>
+              <div>
                 {Object.entries(playerStats.performanceBySeason).map(([id, stats]) => (
-                  <div key={id} className="p-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-md transition-all">
-                    <p className="font-semibold text-slate-100 mb-1">{stats.name}</p>
-                    <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                      <div><p className="font-bold text-amber-400">{stats.gamesPlayed}</p><p className="text-sm text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
-                      <div><p className="font-bold text-amber-400">{stats.goals}</p><p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
-                      <div><p className="font-bold text-amber-400">{stats.assists}</p><p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
-                      <div><p className="font-bold text-amber-400">{stats.points}</p><p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p></div>
-                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-sm text-slate-400"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
+                  <div key={id} className={COMPETITION_ROW}>
+                    <p className="font-semibold text-ink mb-1 break-words">{stats.name}</p>
+                    <div className={COMPETITION_GRID}>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.gamesPlayed}</p><p className={COMPETITION_LABEL}>{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.goals}</p><p className={COMPETITION_LABEL}>{t('playerStats.goals', 'Goals')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.assists}</p><p className={COMPETITION_LABEL}>{t('playerStats.assists', 'Assists')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.points}</p><p className={COMPETITION_LABEL}>{t('playerStats.points', 'Points')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.fairPlayCards || 0}</p><p className={COMPETITION_LABEL}>{t('playerStats.fairPlayLabel', 'Fair play')}</p></div>
                     </div>
                   </div>
                 ))}
@@ -864,25 +901,25 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             </div>
           )}
           {Object.keys(playerStats.performanceByTournament).length > 0 && (
-            <div className="bg-slate-800/60 p-3 rounded-lg">
-              <h4 className="text-md font-semibold text-slate-200 mb-2">{t('playerStats.tournamentPerformance', 'Tournament Performance')}</h4>
-              <div className="space-y-2">
+            <div className={COMPETITION_BOX}>
+              <h4 className="px-3 pt-3 pb-1 text-base font-semibold text-ink">{t('playerStats.tournamentPerformance', 'Tournament Performance')}</h4>
+              <div>
                 {Object.entries(playerStats.performanceByTournament).map(([id, stats]) => (
-                  <div key={id} className="p-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-md transition-all">
-                    <p className="font-semibold text-slate-100 mb-1 flex items-center gap-2">
+                  <div key={id} className={COMPETITION_ROW}>
+                    <p className="font-semibold text-ink mb-1 flex flex-wrap items-center gap-x-2">
                       {stats.name}
                       {stats.isTournamentWinner && (
-                        <span className="text-amber-400 flex items-center gap-1 text-sm">
+                        <span className="text-ink-2 flex items-center gap-1 text-sm">
                           🏆 {t('playerStats.fairPlayTrophy', 'Fair Play Trophy')}
                         </span>
                       )}
                     </p>
-                    <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                      <div><p className="font-bold text-amber-400">{stats.gamesPlayed}</p><p className="text-sm text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
-                      <div><p className="font-bold text-amber-400">{stats.goals}</p><p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
-                      <div><p className="font-bold text-amber-400">{stats.assists}</p><p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
-                      <div><p className="font-bold text-amber-400">{stats.points}</p><p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p></div>
-                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-sm text-slate-400"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
+                    <div className={COMPETITION_GRID}>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.gamesPlayed}</p><p className={COMPETITION_LABEL}>{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.goals}</p><p className={COMPETITION_LABEL}>{t('playerStats.goals', 'Goals')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.assists}</p><p className={COMPETITION_LABEL}>{t('playerStats.assists', 'Assists')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.points}</p><p className={COMPETITION_LABEL}>{t('playerStats.points', 'Points')}</p></div>
+                      <div><p className="font-bold text-ink tabular-nums">{stats.fairPlayCards || 0}</p><p className={COMPETITION_LABEL}>{t('playerStats.fairPlayLabel', 'Fair play')}</p></div>
                     </div>
                   </div>
                 ))}
@@ -891,9 +928,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           )}
         </div>
 
-        {/* Individual Game Log List */}
+        {/* Individual Game Log List: one hairline grouped list, each row led by
+            the same V/T/H disc as the home screen's results. */}
         <div className="flex-grow mt-4">
-          <div className="space-y-2">
+          <div>
             {playerStats.gameByGameStats.length > 0 ? (
               playerStats.gameByGameStats.map(game => {
                 // External games use a div instead of button (not clickable)
@@ -901,43 +939,45 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 return (
                   <GameWrapper
                     key={game.gameId}
-                    className={`relative w-full bg-gradient-to-br from-slate-600/50 to-slate-800/30 ${!game.isExternal ? 'hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer' : ''} border border-slate-700/50 p-4 rounded-md flex justify-between items-center text-left transition-all shadow-inner`}
+                    {...(game.isExternal ? {} : { type: 'button' as const })}
+                    className={`relative w-full min-h-14 flex items-center gap-3 py-2.5 pr-1 text-left rounded-[14px] transition-colors before:absolute before:top-0 before:left-11 before:right-0 before:h-px before:bg-hairline first:before:hidden ${!game.isExternal ? 'hover:bg-white/[0.03] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action' : ''}`}
                     onClick={game.isExternal ? undefined : () => onGameClick(game.gameId)}
+                    data-testid={`player-game-row-${game.gameId}`}
                   >
-                    <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(game.result)}`}></span>
-                    <div className="flex items-center pl-2">
-                      <div>
-                        <p className="font-semibold text-slate-100 drop-shadow-lg">
-                          {game.isExternal && game.externalTeamName && (
-                            <span className="text-slate-400">{game.externalTeamName} </span>
-                          )}
-                          {t('playerStats.vs', 'vs')} {game.opponentName}
-                          {game.isExternal && (
-                            <span className="ml-2 inline-block bg-purple-600/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.externalGame', 'Added game')}>{t('playerStats.external', 'ADDED')}</span>
-                          )}
-                          {game.receivedFairPlayCard && (
-                            <span className="ml-2 inline-block bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.fairPlayCard', 'Fair Play Card')}>FP</span>
-                          )}
-                          {game.gameType === 'futsal' && (
-                            <span className="ml-2 inline-block bg-orange-500/50 text-orange-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('common.gameTypeFutsal', 'Futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</span>
-                          )}
-                          {!game.isExternal && Boolean(savedGames[game.gameId]?.assessments?.[player.id]) && (
-                            <span className="ml-2 inline-block bg-indigo-600/60 text-indigo-100 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.assessed', 'Assessed')}>{t('playerStats.assessed', 'Assessed')}</span>
-                          )}
-                        </p>
-                        <p className="text-sm text-slate-400">{formatDisplayDate(game.date)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="text-center mx-2">
-                        <p className={`font-bold text-xl ${game.goals > 0 ? 'text-green-400' : 'text-slate-300'}`}>{game.goals}</p>
-                        <p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p>
-                      </div>
-                      <div className="text-center mx-2">
-                        <p className={`font-bold text-xl ${game.assists > 0 ? 'text-blue-400' : 'text-slate-300'}`}>{game.assists}</p>
-                        <p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p>
-                      </div>
-                    </div>
+                    <ResultDisc result={game.result} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold leading-5 text-ink">
+                        {game.isExternal && game.externalTeamName && (
+                          <span className="text-ink-3">{game.externalTeamName} </span>
+                        )}
+                        {t('playerStats.vs', 'vs')} {game.opponentName}
+                      </span>
+                      <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[13px] leading-5 text-ink-3">
+                        <span>{formatDisplayDate(game.date)}</span>
+                        {game.isExternal && (
+                          <span className={neutralBadgeStyle} title={t('playerStats.externalGame', 'Added game')}>{t('playerStats.external', 'ADDED')}</span>
+                        )}
+                        {game.receivedFairPlayCard && (
+                          <span className={neutralBadgeStyle} title={t('playerStats.fairPlayCard', 'Fair Play Card')}>FP</span>
+                        )}
+                        {game.gameType === 'futsal' && (
+                          <span className={neutralBadgeStyle} title={t('common.gameTypeFutsal', 'Futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</span>
+                        )}
+                        {!game.isExternal && Boolean(savedGames[game.gameId]?.assessments?.[player.id]) && (
+                          <span className={neutralBadgeStyle} title={t('playerStats.assessed', 'Assessed')}>{t('playerStats.assessed', 'Assessed')}</span>
+                        )}
+                      </span>
+                    </span>
+                    <span className="flex flex-none items-center">
+                      <span className="w-11 text-center">
+                        <span className={`block font-bold text-xl leading-6 tabular-nums ${game.goals > 0 ? 'text-ink' : 'text-ink-3'}`}>{game.goals}</span>
+                        <span className="block text-xs text-ink-3">{t('playerStats.goals', 'Goals')}</span>
+                      </span>
+                      <span className="w-11 text-center">
+                        <span className={`block font-bold text-xl leading-6 tabular-nums ${game.assists > 0 ? 'text-ink' : 'text-ink-3'}`}>{game.assists}</span>
+                        <span className="block text-xs text-ink-3">{t('playerStats.assists', 'Assists')}</span>
+                      </span>
+                    </span>
                   </GameWrapper>
                 );
               })
@@ -947,16 +987,16 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   // Player has games, but the filters hide them (club season, sport,
                   // gender - review 7.L4: the message used to blame the season only)
                   <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
-                    <p className="text-slate-300 mb-2">
+                    <p className="text-ink-2 mb-2">
                       {t('playerStats.noGamesForSeason', 'No games match the selected filters.')}
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-ink-3">
                       {t('playerStats.changeSeasonFilter', 'This player has {{count}} game(s) outside these filters. Widen the filters above to see them.', { count: unfilteredPlayerStats.totalGames })}
                     </p>
                   </div>
                 ) : (
                   // Player genuinely has no games
-                  <p className="text-slate-400">{t('playerStats.noGames', 'No game data available.')}</p>
+                  <p className="text-ink-3">{t('playerStats.noGames', 'No game data available.')}</p>
                 )}
               </div>
             )}

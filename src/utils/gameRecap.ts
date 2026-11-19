@@ -13,6 +13,7 @@ import type { Player } from '@/types';
 import { resolveGameResult } from '@/utils/gameResult';
 import { orderPositionIds, POSITION_ABBREV_FALLBACK } from '@/config/positions';
 import { extraTimeGoals } from './matchStructure';
+import { getPositionLabel, isSidelinePosition } from './positionLabels';
 
 /** Minimal shape needed to build a recap (a subset of AppState). */
 export interface RecapGame {
@@ -28,6 +29,14 @@ export interface RecapGame {
   shootoutKicks?: ShootoutKick[];
   /** Position id(s) each player was assigned, keyed by player id. */
   playerPositions?: Record<string, string[]>;
+  /**
+   * The pitch as saved (the starting line-up). The line-up falls back to it
+   * when no actual positions were recorded - the same source the match sheet
+   * (tasoReport.ts) falls back to.
+   */
+  playersOnField?: Array<Pick<Player, 'id' | 'relX' | 'relY'>>;
+  /** The game's squad; limits the starting-position fallback to it when given. */
+  selectedPlayerIds?: string[];
   /** Match structure, for the extra-time score (review 11.1). */
   numberOfPeriods?: number;
   periodDurationMinutes?: number;
@@ -96,6 +105,33 @@ const buildLineupLines = (
 };
 
 /**
+ * The line-up from the starting positions on the pitch, for a game where no
+ * actual positions were recorded: "ABBR: Nick1, Nick2" per position label the
+ * pitch itself shows (GK, CB, ST ...), back to front. Players parked on the
+ * sideline are substitutes, not a position, and are left out.
+ */
+const buildStartingLineupLines = (game: RecapGame, players: Player[], t: RecapTranslate): string[] => {
+  const squad = game.selectedPlayerIds ? new Set(game.selectedPlayerIds) : null;
+  const byLabel = new Map<string, { names: string[]; relY: number; relX: number }>();
+  for (const p of game.playersOnField ?? []) {
+    if (squad && !squad.has(p.id)) continue;
+    if (typeof p.relX !== 'number' || typeof p.relY !== 'number' || isSidelinePosition(p.relX)) continue;
+    const { label } = getPositionLabel(p.relX, p.relY);
+    const entry = byLabel.get(label) ?? { names: [], relY: p.relY, relX: p.relX };
+    entry.names.push(displayName(p.id, players, t));
+    // The deepest, leftmost disc of a label decides where its line sorts.
+    if (p.relY > entry.relY || (p.relY === entry.relY && p.relX < entry.relX)) {
+      entry.relY = p.relY;
+      entry.relX = p.relX;
+    }
+    byLabel.set(label, entry);
+  }
+  return [...byLabel.entries()]
+    .sort(([, a], [, b]) => b.relY - a.relY || a.relX - b.relX)
+    .map(([label, { names }]) => `${t(`positions.${label}`, label)}: ${names.slice().sort((a, b) => a.localeCompare(b)).join(', ')}`);
+};
+
+/**
  * Build the recap text for one game. Sections with no data (no goals, no
  * assists, empty notes, missing venue/age) are omitted.
  */
@@ -141,7 +177,10 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   const assisterLines = tallyLines(assisterIds, players, t);
   if (assisterLines.length) blocks.push([`${t('recap.assists', 'Assists')}:`, ...assisterLines].join('\n'));
 
-  const lineupLines = buildLineupLines(game.playerPositions, players, t);
+  // Actual positions when any were recorded; otherwise the starting line-up
+  // (review R13), so a coach who never filled positions still shares one.
+  const recordedLines = buildLineupLines(game.playerPositions, players, t);
+  const lineupLines = recordedLines.length ? recordedLines : buildStartingLineupLines(game, players, t);
   if (lineupLines.length) blocks.push([`${t('recap.lineup', 'Lineup')}:`, ...lineupLines].join('\n'));
 
   const notes = game.gameNotes?.trim();

@@ -190,6 +190,8 @@ export function useNewGameSetupController({ onGameCreated, flushLiveMatch }: Use
     savedGames,
     masterRoster,
     isRosterLoading: masterRosterQuery.isLoading,
+    /** True only while the FIRST load runs; an error is not loading (the form then opens without defaults). */
+    isSavedGamesLoading: savedGamesQuery.isLoading,
     newGameDemandFactor,
     setNewGameDemandFactor,
     handleStartNewGameWithSetup,

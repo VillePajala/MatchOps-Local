@@ -5,7 +5,7 @@ This directory contains all assets and text needed for the Google Play Store lis
 ## Required Assets
 
 ### App Icons
-- [x] 512x512 PNG (high-res icon) - `public/icons/icon-512x512.png`
+- [x] 512x512 PNG (high-res icon) - `public/icons/play-store-icon-512.png` (generated; see twa-build-guide.md "Icon source of truth")
 
 ### Feature Graphic
 - [ ] 1024x500 PNG - Required for store listing

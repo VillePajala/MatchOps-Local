@@ -19,12 +19,6 @@ import MarketingConsentPrompt from '../MarketingConsentPrompt';
 import { useAuth } from '@/contexts/AuthProvider';
 
 // Mock the auth context
-// Tour-deferral control: the prompt must wait while a first-run tour is active.
-let mockTourActive = false;
-jest.mock('@/contexts/GuidedTourProvider', () => ({
-  useGuidedTourOptional: () => ({ isActive: mockTourActive }),
-}));
-
 // Wizard-deferral control (Onboarding v2): the prompt must also wait while the
 // first-sign-in setup wizard is on screen.
 let mockWizardActive = false;
@@ -33,10 +27,13 @@ let mockWizardActive = false;
 let mockFirstGameExists = true;
 // Default TRUE (Home on screen) for the same reason; the 7.5 test flips it.
 let mockHomeShowing = true;
+// The first Home visit right after onboarding (review R13); default off.
+let mockJustOnboarded = false;
 jest.mock('@/components/setupWizardActive', () => ({
   useSetupWizardActive: () => mockWizardActive,
   useFirstGameExists: () => mockFirstGameExists,
   useHomeShowing: () => mockHomeShowing,
+  useOnboardingJustFinished: () => mockJustOnboarded,
 }));
 
 jest.mock('@/contexts/AuthProvider', () => ({
@@ -98,10 +95,10 @@ describe('MarketingConsentPrompt', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    mockTourActive = false;
     mockWizardActive = false;
     mockFirstGameExists = true;
     mockHomeShowing = true;
+    mockJustOnboarded = false;
     mockUseAuth.mockReturnValue(defaultMockAuth);
   });
 
@@ -133,32 +130,6 @@ describe('MarketingConsentPrompt', () => {
     });
 
     expect(container.firstChild).toBeNull();
-  });
-
-  it('defers to an ACTIVE first-run tour: hidden past the delay, appears once the tour ends', () => {
-    mockUseAuth.mockReturnValue({
-      ...defaultMockAuth,
-      showMarketingPrompt: true,
-    });
-    mockTourActive = true;
-    try {
-      const { rerender } = render(<MarketingConsentPrompt />);
-      act(() => {
-        jest.advanceTimersByTime(10000);
-      });
-      // Tour running: no prompt no matter how long we wait.
-      expect(screen.queryByText('Stay in the loop?')).not.toBeInTheDocument();
-
-      // Tour finished: the normal delayed appearance resumes.
-      mockTourActive = false;
-      rerender(<MarketingConsentPrompt />);
-      act(() => {
-        jest.advanceTimersByTime(5000);
-      });
-      expect(screen.getByText('Stay in the loop?')).toBeInTheDocument();
-    } finally {
-      mockTourActive = false;
-    }
   });
 
   it('waits for the FIRST GAME (Onboarding v2 re-gate): hidden until a game exists', () => {
@@ -210,6 +181,24 @@ describe('MarketingConsentPrompt', () => {
 
     // On Home for the full delay: it appears.
     mockHomeShowing = true;
+    rerender(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(screen.getByText('Stay in the loop?')).toBeInTheDocument();
+  });
+
+  it('never opens on the first Home visit right after onboarding (review R13)', () => {
+    mockUseAuth.mockReturnValue({ ...defaultMockAuth, showMarketingPrompt: true });
+    mockJustOnboarded = true;
+    const { rerender } = render(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+    expect(screen.queryByText('Stay in the loop?')).not.toBeInTheDocument();
+
+    // A later visit (the flag clears when Home leaves the screen): it may appear.
+    mockJustOnboarded = false;
     rerender(<MarketingConsentPrompt />);
     act(() => {
       jest.advanceTimersByTime(5000);

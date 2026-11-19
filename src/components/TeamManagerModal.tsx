@@ -3,7 +3,7 @@
 import { useRememberedListSetting, isBoolean } from '@/hooks/useRememberedListSetting';
 import { matchesSearch } from '@/utils/listSearch';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { secondaryButtonStyle, dangerButtonStyle, CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
+import { secondaryButtonStyle, dangerConfirmButtonStyle, primaryButtonStyle, CollapsibleModalHeader, useCollapsingHeader, modalContainerStyle, searchInputStyle, popoverMenuStyle, popoverItemStyle, iconButtonEditStyle, badgeArchivedStyle, neutralBadgeStyle, dialogContainerStyle, dialogTitleStyle, dialogBodyStyle, warningBoxStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -11,7 +11,9 @@ import {
   HiOutlineTrash,
   HiOutlineUsers, // Used in empty state
   HiOutlineEllipsisVertical,
-  HiOutlineArchiveBox
+  HiOutlineArchiveBox,
+  HiOutlineMagnifyingGlass,
+  HiOutlinePlus
 } from 'react-icons/hi2';
 import { Team, Player, Tournament, Season } from '@/types';
 import type { EntityReferences } from '@/interfaces/DataStore';
@@ -303,10 +305,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       aria-modal="true"
       aria-label={t('teamManager.title', 'Teams')}
     >
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+      <div className={`${modalContainerStyle} h-full w-full relative`}>
 
         {/* Chrome slimming: X-header (Done→X); Add Team collapses on scroll. */}
         <CollapsibleModalHeader
@@ -315,22 +314,24 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           closeLabel={t('common.doneButton', 'Done')}
           collapse={headerCollapse}
         >
-          <div className="px-6 pt-3 pb-4">
+          <div className="px-4 pt-2 pb-4">
             <button
               onClick={handleCreateTeam}
               data-testid="tour-add-team"
-              className="w-full py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
+              className={`${primaryButtonStyle} w-full min-h-[52px] text-base`}
               aria-label={t('teamManager.createNewTeam', 'Create new team')}
             >
+              <HiOutlinePlus className="w-5 h-5" aria-hidden="true" />
               {t('teamManager.addTeam', 'Add Team')}
             </button>
           </div>
         </CollapsibleModalHeader>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-6" onScroll={headerCollapse.onScroll}>
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6" onScroll={headerCollapse.onScroll}>
           {/* Search Field and Show Archived Toggle */}
-          <div className="mb-4 flex flex-col sm:flex-row gap-3">
+          <div className="mb-3 relative">
+            <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
             <input
               type="text"
               placeholder={t('teamManager.searchPlaceholder', 'Search teams...')}
@@ -338,7 +339,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               onChange={e => setSearchText(e.target.value)}
               autoComplete="off"
               aria-label={t('teamManager.searchAriaLabel', 'Search teams by name')}
-              className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className={searchInputStyle}
             />
           </div>
 
@@ -361,11 +362,11 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
             if (teams.length === 0) {
               return (
                 <div className="text-center py-8">
-                  <HiOutlineUsers className="w-12 h-12 mx-auto text-slate-400 mb-3" />
-                  <p className="text-slate-400 mb-2">
+                  <HiOutlineUsers className="w-12 h-12 mx-auto text-ink-3 mb-3" />
+                  <p className="font-ui text-ink-2 mb-2">
                     {t('teamManager.noTeams', 'No teams yet. Create your first team to get started.')}
                   </p>
-                  <p className="text-slate-500 text-sm max-w-md mx-auto">
+                  <p className="font-ui text-ink-3 text-sm max-w-md mx-auto">
                     {t('teamManager.noTeamsNudge', 'Teams let you reuse a roster and link games to a competition, so your stats add up by team and competition.')}
                   </p>
                 </div>
@@ -375,8 +376,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
             if (filteredTeams.length === 0) {
               return (
                 <div className="text-center py-8">
-                  <HiOutlineUsers className="w-12 h-12 mx-auto text-slate-400 mb-3" />
-                  <p className="text-slate-400 mb-4">
+                  <HiOutlineUsers className="w-12 h-12 mx-auto text-ink-3 mb-3" />
+                  <p className="font-ui text-ink-2 mb-4">
                     {searchText
                       ? t('teamManager.noSearchResults', 'No teams match your search for "{{search}}".', { search: searchText })
                       : t('common.allArchived', 'Everything here is archived.')
@@ -386,13 +387,15 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               );
             }
 
+            // Not overflow-hidden: that clipped a team's action menu when the
+            // list is short. The rows round their own hover corners instead.
             return (
-              <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-                <div className="space-y-3">
+              <div className="s1-list">
+                <div className="divide-y divide-hairline">
                   {filteredTeams.map((team) => (
                     <div
                       key={team.id}
-                      className={`p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 ${team.archived ? 'opacity-60' : ''}`}
+                      className={`px-[18px] py-4 font-ui transition-colors hover:bg-white/[0.03] first:rounded-t-[22px] last:rounded-b-[22px] ${team.archived ? 'opacity-60' : ''}`}
                     >
                       {/* Top row: Team name + archived badge + actions */}
                       <div className="flex items-start justify-between gap-2">
@@ -414,9 +417,9 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                 style={{ backgroundColor: team.color }}
                               />
                             )}
-                            <span className="text-slate-200 truncate" title={team.name}>{team.name}</span>
+                            <span className="font-display text-[26px] font-bold leading-[1.1] text-ink truncate" title={team.name}>{team.name}</span>
                             {team.archived && (
-                              <span className="text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600 shrink-0">
+                              <span className={`${badgeArchivedStyle} shrink-0`}>
                                 {t('teamManager.archivedBadge', 'Archived')}
                               </span>
                             )}
@@ -427,24 +430,24 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                           <div className="relative" ref={actionsMenuTeamId === team.id ? actionsMenuRef : null}>
                             <button
                               onClick={(e) => handleActionsMenuToggle(e, team.id)}
-                              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
+                              className={iconButtonEditStyle}
                               aria-label={t('teamManager.teamActions', 'Team actions')}
                             >
-                              <HiOutlineEllipsisVertical className="w-4 h-4" />
+                              <HiOutlineEllipsisVertical className="w-5 h-5" />
                             </button>
 
                             {actionsMenuTeamId === team.id && (
-                              <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[team.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                              <div className={`${popoverMenuStyle} ${menuPositions[team.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                                 <button
                                   onClick={() => handleEditTeam(team.id)}
-                                  className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
+                                  className={popoverItemStyle}
                                 >
                                   <HiOutlinePencil className="w-4 h-4" />
                                   {t('teamManager.edit', 'Edit')}
                                 </button>
                                 <button
                                   onClick={() => handleToggleArchive(team.id, team.archived || false)}
-                                  className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+                                  className={popoverItemStyle}
                                 >
                                   <HiOutlineArchiveBox className="w-4 h-4" />
                                   {team.archived
@@ -453,7 +456,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                 </button>
                                 <button
                                   onClick={() => handleDeleteTeam(team.id)}
-                                  className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
+                                  className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
                                 >
                                   <HiOutlineTrash className="w-4 h-4" />
                                   {t('teamManager.delete', 'Delete')}
@@ -464,84 +467,46 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Bottom row: Metadata left, context labels right */}
-                      <div className="flex items-end justify-between gap-4 mt-2 text-xs">
-                        {/* Left: Team metadata */}
-                        <div
-                          className="flex flex-col text-slate-400 cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => handleEditTeam(team.id)}
-                        >
-                          <span>
-                            {rosterCounts[team.id] === 1
-                              ? t('teamManager.onePlayer', '1 player')
-                              : t('teamManager.playersCount', '{{count}} players', { count: rosterCounts[team.id] || 0 })
-                            }
-                          </span>
-                          <span className="text-slate-400 text-xs">
-                            {t('teamManager.createdAt', 'Created {{date}}', {
-                              date: formatAppDate(team.createdAt)
-                            })}
-                          </span>
-                          {/* Placement Badges */}
-                          {(() => {
-                            const placements = getTeamPlacements(team.id);
-                            if (placements.length === 0) return null;
-                            return (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {placements.map((p, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-300 border border-amber-700/50 flex items-center gap-1"
-                                    title={p.name}
-                                  >
-                                    {p.emoji} {p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name}
-                                  </span>
-                                ))}
-                              </div>
-                            );
-                          })()}
-                        </div>
-
-                        {/* Right: Context labels - wrap upward from bottom right */}
-                        <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
+                      {/* Context chips under the name (same as the league card). */}
+                      <div className="flex flex-wrap gap-1.5 mt-2 cursor-pointer" onClick={() => handleEditTeam(team.id)}>
                           {/* Age group */}
                           {team.ageGroup && (
                             <span
-                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
+                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.ageGroupContext', 'Age group: {{ageGroup}}', { ageGroup: team.ageGroup })}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.clubSeason}`}></span>
+                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.clubSeason}`}></span>
                               {team.ageGroup}
                             </span>
                           )}
                           {/* Game type */}
                           {team.gameType === 'futsal' && (
                             <span
-                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
+                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.gameTypeContext', 'Game type: Futsal')}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.gameType}`}></span>
+                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.gameType}`}></span>
                               {t('common.gameTypeFutsal', 'Futsal')}
                             </span>
                           )}
                           {/* Season - shows full name with club season */}
                           {team.boundSeasonId && seasonMap[team.boundSeasonId] && (
                             <span
-                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
+                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.seasonContext', 'League: {{name}}', { name: getSeasonDisplayName(seasonMap[team.boundSeasonId]) })}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.season}`}></span>
-                              {getSeasonDisplayName(seasonMap[team.boundSeasonId])}
+                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.season}`}></span>
+                              <span className="break-words min-w-0">{getSeasonDisplayName(seasonMap[team.boundSeasonId])}</span>
                             </span>
                           )}
                           {/* Tournament - shows full name with club season */}
                           {team.boundTournamentId && tournamentMap[team.boundTournamentId] && (
                             <span
-                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
+                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                               aria-label={t('teamManager.tournamentContext', 'Tournament: {{name}}', { name: getTournamentDisplayName(tournamentMap[team.boundTournamentId]) })}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.tournament}`}></span>
-                              {getTournamentDisplayName(tournamentMap[team.boundTournamentId])}
+                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.tournament}`}></span>
+                              <span className="break-words min-w-0">{getTournamentDisplayName(tournamentMap[team.boundTournamentId])}</span>
                             </span>
                           )}
                           {/* Tournament Series */}
@@ -550,15 +515,49 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                             if (!series) return null;
                             return (
                               <span
-                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
+                                className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
                                 aria-label={t('teamManager.seriesContext', 'Level: {{level}}', { level: series.level })}
                               >
-                                <span className={`w-1.5 h-1.5 rounded-full ${ENTITY_DOT.series}`}></span>
+                                <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.series}`}></span>
                                 {t(`common.level${series.level}`, series.level)}
                               </span>
                             );
                           })()}
+                          {(() => {
+                            const placements = getTeamPlacements(team.id);
+                            if (placements.length === 0) return null;
+                            return (
+                              <>
+                                {placements.map((p, idx) => (
+                                  <span
+                                    key={idx}
+                                    className={`${neutralBadgeStyle} max-w-full whitespace-normal!`}
+                                    title={p.name}
+                                  >
+                                    {p.emoji} <span className="break-words min-w-0">{p.name}</span>
+                                  </span>
+                                ))}
+                              </>
+                            );
+                          })()}
+                      </div>
+
+                      {/* Footer as the league card's: the numeral and its label. */}
+                      <div
+                        className="-mx-[18px] -mb-4 mt-4 flex items-baseline justify-between gap-3 border-t border-hairline px-[18px] pt-3 pb-3.5 cursor-pointer"
+                        onClick={() => handleEditTeam(team.id)}
+                      >
+                        <div className="flex items-baseline gap-2.5">
+                          <span className="s1-numeral pr-[3px] font-display text-[34px] font-bold italic leading-none">{rosterCounts[team.id] || 0}</span>
+                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">
+                            {t('teamManager.playersLabel', 'players', { count: rosterCounts[team.id] || 0 })}
+                          </span>
                         </div>
+                        <span className="text-xs text-ink-3">
+                          {t('teamManager.createdAt', 'Created {{date}}', {
+                            date: formatAppDate(team.createdAt)
+                          })}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -574,7 +573,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               onClick={() => setShowArchived((v) => !v)}
               aria-pressed={showArchived}
               data-testid="teams-toggle-archived"
-              className="w-full mt-3 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+              className="w-full mt-3 min-h-11 font-ui text-sm font-medium text-ink-3 hover:text-ink transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action rounded-full"
             >
               {showArchived
                 ? t('common.hideArchived', 'Hide archived')
@@ -585,10 +584,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           {/* Utility action, inline at the bottom of the content (chrome
               slimming): games left behind by deleted teams. */}
           {onManageOrphanedGames && (
-            <div className="mt-6 pt-4 border-t border-white/10">
+            <div className="mt-6 pt-4 border-t border-hairline">
               <button
                 onClick={onManageOrphanedGames}
-                className="px-4 py-2 rounded-md font-medium text-amber-300 bg-amber-900/20 hover:bg-amber-900/30 border border-amber-600/30 transition-colors text-sm"
+                className={secondaryButtonStyle}
                 title={t('teamManager.manageOrphanedGames', 'Manage games from deleted teams')}
               >
                 {t('teamManager.orphanedGames', 'Orphaned Games')}
@@ -600,11 +599,11 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
         {/* Delete Confirmation Modal */}
         {deleteConfirmTeamId && (
           <div className={`${MODAL_BACKDROP_BLOCKING} ${Z_LAYER.modalNested}`}>
-            <div className="bg-slate-800 p-6 rounded-lg border border-slate-600 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold text-slate-100 mb-4">
+            <div className={dialogContainerStyle}>
+              <h3 className={`${dialogTitleStyle} mb-4`}>
                 {t('common.confirmDelete', 'Are you sure you want to delete this item?')}
               </h3>
-              <div className="text-slate-300 mb-6 space-y-3">
+              <div className={`${dialogBodyStyle} mb-6 space-y-3`}>
                 <p>
                   {t('teamManager.confirmDelete', 
                     'Delete team "{{name}}"?',
@@ -612,8 +611,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   )}
                 </p>
                 {deleteTeamGamesCount > 0 && (
-                  <div className="p-3 bg-amber-900/20 border border-amber-600/30 rounded-md">
-                    <p className="text-amber-300 text-sm font-medium">
+                  <div className={warningBoxStyle}>
+                    <p className="text-sm font-medium text-ink">
                       {t('teamManager.deleteImpactWarning', 
                         'This will orphan {{count}} game(s). Games will remain but won\'t be associated with this team.',
                         { count: deleteTeamGamesCount }
@@ -622,7 +621,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   </div>
                 )}
                 {deleteTeamGamesCount === 0 && (
-                  <p className="text-slate-400 text-sm">
+                  <p className="text-ink-3 text-sm">
                     {t('teamManager.noGamesImpact', 'No games are associated with this team.')}
                   </p>
                 )}
@@ -637,7 +636,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                 <button
                   onClick={handleConfirmDelete}
                   disabled={deleteTeamMutation.isPending}
-                  className={dangerButtonStyle}
+                  className={dangerConfirmButtonStyle}
                 >
                   {deleteTeamMutation.isPending ? t('common.deleting', 'Deleting...') : t('common.delete', 'Delete')}
                 </button>

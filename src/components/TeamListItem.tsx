@@ -60,7 +60,7 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
 
   if (isEditing) {
     return (
-      <div className="flex items-center justify-between p-3 bg-slate-700/75 border border-indigo-500 rounded-lg">
+      <div className="flex items-center justify-between p-3 bg-slate-700/75 border border-action rounded-lg">
         <div className="flex items-center gap-3 flex-1">
           <div
             className="w-4 h-4 rounded border-2 border-slate-400 flex-shrink-0"
@@ -71,7 +71,7 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
             value={editTeamName}
             onChange={(e) => onEditNameChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-slate-600 text-slate-200 px-2 py-1 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="flex-1 bg-slate-600 text-slate-200 px-2 py-1 rounded text-sm focus:outline-none focus:ring-1 focus:ring-action"
             placeholder={t('teamManager.teamNamePlaceholder', 'Team name')}
             autoFocus
           />
@@ -108,7 +108,7 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
       <div className="flex items-center gap-3">
         <div
           className="w-4 h-4 rounded border-2 border-slate-400 flex-shrink-0"
-          style={{ backgroundColor: team.color || '#6366F1' }}
+          style={{ backgroundColor: team.color || '#38BDF8' }}
         />
         <div>
           <h3 className="text-slate-200 font-medium">{team.name}</h3>
@@ -135,19 +135,19 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
         {showActionsMenu && (
           <div className={`absolute right-0 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-10 min-w-[180px] ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
             <button
-              onClick={onManageRosterClick}
-              className="w-full px-3 py-2 text-left text-slate-200 hover:bg-slate-600 flex items-center gap-2 transition-colors"
-            >
-              <HiOutlineUserGroup className="w-4 h-4" />
-              {t('teamManager.manageRoster', 'Manage Roster')}
-            </button>
-            
-            <button
               onClick={onEditClick}
               className="w-full px-3 py-2 text-left text-slate-200 hover:bg-slate-600 flex items-center gap-2 transition-colors"
             >
               <HiOutlinePencil className="w-4 h-4" />
               {t('teamManager.edit', 'Edit')}
+            </button>
+            
+            <button
+              onClick={onManageRosterClick}
+              className="w-full px-3 py-2 text-left text-slate-200 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+            >
+              <HiOutlineUserGroup className="w-4 h-4" />
+              {t('teamManager.manageRoster', 'Manage Roster')}
             </button>
             
             <button

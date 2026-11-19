@@ -134,7 +134,10 @@ describe('useTimerManagement', () => {
       const { result } = renderHook(() => useTimerManagement(defaultProps));
 
       // Verify timer controls are exposed
-      expect(result.current.handleStartPauseTimer).toBe(mockGameTimerReturn.startPause);
+      // handleStartPauseTimer wraps startPause (first-start played flip), so it
+      // delegates to it rather than being the same reference.
+      act(() => { result.current.handleStartPauseTimer(); });
+      expect(mockGameTimerReturn.startPause).toHaveBeenCalledTimes(1);
       expect(result.current.handleResetTimer).toBe(mockGameTimerReturn.reset);
       expect(result.current.handleSetSubInterval).toBe(mockGameTimerReturn.setSubInterval);
       // handleSubstitutionMade now wraps ackSubstitution (to also fire the undo toast),
@@ -335,6 +338,103 @@ describe('useTimerManagement', () => {
           scorerId: undefined,
         }),
       });
+    });
+  });
+
+  /**
+   * Quick goal entry (D16): one tap logs the goal and moves the score; the
+   * sheet then names that same goal's scorer.
+   * @critical
+   */
+  describe('Quick goal entry', () => {
+    it('logs an unattributed goal at once, moves the score and opens the sheet for it', () => {
+      const onActionLogged = jest.fn();
+      const { result } = renderHook(() => useTimerManagement({ ...defaultProps, onActionLogged }));
+
+      act(() => {
+        result.current.handleQuickGoal();
+      });
+
+      const added = mockDispatch.mock.calls
+        .map(([action]) => action)
+        .find((action): action is Extract<GameSessionAction, { type: 'ADD_GAME_EVENT' }> => action.type === 'ADD_GAME_EVENT');
+      expect(added?.payload).toEqual(expect.objectContaining({ type: 'goal', scorerId: undefined, assisterId: undefined }));
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'ADJUST_SCORE_FOR_EVENT',
+        payload: { eventType: 'goal', action: 'add' },
+      });
+      // The undo toast is offered exactly as for any logged goal.
+      expect(onActionLogged).toHaveBeenCalledWith('goal');
+      expect(result.current.quickGoalEventId).toBe(added?.payload.id);
+      expect(mockSetIsGoalLogModalOpen).not.toHaveBeenCalled();
+
+      act(() => {
+        result.current.handleCloseQuickGoal();
+      });
+      expect(result.current.quickGoalEventId).toBeNull();
+    });
+
+    it('names the scorer as an amend of the goal (joins its undo step), not a separate edit', () => {
+      const { result } = renderHook(() => useTimerManagement(defaultProps));
+      const named = { id: 'goal-1', type: 'goal' as const, time: 60, scorerId: 'player1' };
+
+      act(() => {
+        result.current.handleNameQuickGoal(named);
+      });
+
+      expect(mockDispatch).toHaveBeenCalledWith({ type: 'AMEND_GAME_EVENT', payload: named });
+      expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'UPDATE_GAME_EVENT' }));
+    });
+  });
+
+  /**
+   * "Not played yet" flips to played the first time the clock starts
+   * (Onboarding v3): the hook reports a FIRST start, and only a first start.
+   * @critical
+   */
+  describe('First timer start', () => {
+    const notStarted: GameSessionState = {
+      ...mockGameSessionState,
+      gameStatus: 'notStarted',
+      isTimerRunning: false,
+      timeElapsedInSeconds: 0,
+    };
+
+    it('reports the first start of a clock that has never run, then starts it', () => {
+      const onFirstTimerStart = jest.fn();
+      const { result } = renderHook(() =>
+        useTimerManagement({ ...defaultProps, gameSessionState: notStarted, onFirstTimerStart }),
+      );
+
+      act(() => {
+        result.current.timerInteractions.startPauseTimer();
+      });
+
+      expect(onFirstTimerStart).toHaveBeenCalledTimes(1);
+      expect(mockGameTimerReturn.startPause).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['pausing a running clock', { gameStatus: 'inProgress' as const, isTimerRunning: true, timeElapsedInSeconds: 120 }],
+      ['resuming a paused clock', { gameStatus: 'inProgress' as const, isTimerRunning: false, timeElapsedInSeconds: 120 }],
+      ['resuming a loaded in-progress game', { gameStatus: 'notStarted' as const, isTimerRunning: false, timeElapsedInSeconds: 95 }],
+      ['starting the second period', { gameStatus: 'periodEnd' as const, isTimerRunning: false, timeElapsedInSeconds: 600 }],
+    ])('does not report a first start when %s', (_label, clock) => {
+      const onFirstTimerStart = jest.fn();
+      const { result } = renderHook(() =>
+        useTimerManagement({
+          ...defaultProps,
+          gameSessionState: { ...mockGameSessionState, ...clock },
+          onFirstTimerStart,
+        }),
+      );
+
+      act(() => {
+        result.current.handleStartPauseTimer();
+      });
+
+      expect(onFirstTimerStart).not.toHaveBeenCalled();
+      expect(mockGameTimerReturn.startPause).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -729,7 +829,7 @@ describe('useTimerManagement', () => {
 
       // Verify all methods are present
       expect(timerInteractions).toHaveProperty('toggleLargeOverlay');
-      expect(timerInteractions).toHaveProperty('toggleGoalLogModal');
+      expect(timerInteractions).toHaveProperty('quickGoal');
       expect(timerInteractions).toHaveProperty('logOpponentGoal');
       expect(timerInteractions).toHaveProperty('substitutionMade');
       expect(timerInteractions).toHaveProperty('setSubInterval');
@@ -738,7 +838,7 @@ describe('useTimerManagement', () => {
 
       // Verify all methods are functions
       expect(typeof timerInteractions.toggleLargeOverlay).toBe('function');
-      expect(typeof timerInteractions.toggleGoalLogModal).toBe('function');
+      expect(typeof timerInteractions.quickGoal).toBe('function');
       expect(typeof timerInteractions.logOpponentGoal).toBe('function');
       expect(typeof timerInteractions.substitutionMade).toBe('function');
       expect(typeof timerInteractions.setSubInterval).toBe('function');
@@ -755,11 +855,13 @@ describe('useTimerManagement', () => {
       });
       expect(result.current.showLargeTimerOverlay).toBe(true);
 
-      // Test toggleGoalLogModal
+      // The timer's goal button slot logs a quick goal (D16) instead of
+      // opening the goal form.
       act(() => {
-        result.current.timerInteractions.toggleGoalLogModal();
+        result.current.timerInteractions.quickGoal();
       });
-      expect(mockSetIsGoalLogModalOpen).toHaveBeenCalled();
+      expect(mockSetIsGoalLogModalOpen).not.toHaveBeenCalled();
+      expect(result.current.quickGoalEventId).not.toBeNull();
 
       // Test logOpponentGoal
       act(() => {

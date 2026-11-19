@@ -151,4 +151,46 @@ describe('GameContainer', () => {
     expect(gameInfoBarCall.awayScore).toBe(8);
     expect(gameInfoBarCall.homeOrAway).toBe('home');
   });
+
+  /**
+   * Stacked match view: the panel above the pitch, the controls below it, the
+   * pitch in between - nothing overlays the pitch.
+   * @critical
+   */
+  it('stacks the top panel, the pitch and the control strip in that order', () => {
+    render(<GameContainer {...createGameContainerProps()} />);
+
+    const panel = screen.getByTestId('match-top-panel');
+    const pitch = screen.getByTestId('match-pitch-area');
+    const strip = screen.getByTestId('match-control-strip');
+
+    expect(panel).toContainElement(screen.getByTestId('game-info-bar'));
+    expect(panel).toContainElement(screen.getByTestId('player-bar'));
+    expect(pitch).toContainElement(screen.getByTestId('field-container'));
+    expect(strip).toContainElement(screen.getByTestId('control-bar'));
+
+    // Siblings in one flex column: none of them positioned over another.
+    const main = screen.getByTestId('home-page');
+    expect(main).toHaveClass('flex', 'flex-col');
+    expect(Array.from(main.children).slice(0, 3)).toEqual([panel, pitch, strip]);
+    expect(panel).toHaveClass('flex-none');
+    expect(pitch).toHaveClass('flex-1', 'min-h-0');
+    expect(strip).toHaveClass('flex-none');
+    for (const el of [panel, pitch, strip]) {
+      expect(el).not.toHaveClass('absolute');
+    }
+  });
+
+  it('passes the players on the pitch to the bar so the bench is drawn hollow', () => {
+    const props = createGameContainerProps();
+    const onPitch = [{ id: 'a', name: 'A', relX: 0.5, relY: 0.5 }, { id: 'b', name: 'B', relX: 0.4, relY: 0.4 }];
+    props.fieldProps = {
+      ...props.fieldProps,
+      fieldVM: { ...props.fieldProps.fieldVM, playersOnField: onPitch as (typeof props.fieldProps.fieldVM.playersOnField) },
+    };
+    render(<GameContainer {...props} />);
+
+    const ids: ReadonlySet<string> = PlayerBarMock.mock.calls[0][0].onFieldPlayerIds;
+    expect([...ids].sort()).toEqual(['a', 'b']);
+  });
 });

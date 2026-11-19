@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { countClips, onClipsChanged } from '@/utils/audioClipStore';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { completenessProgress, computeGameCompleteness } from '@/utils/gameCompleteness';
 import { todayIso } from '@/utils/todayIso';
@@ -122,11 +121,6 @@ export interface UseGameOrchestrationReturn {
   gameContainerProps: GameContainerProps;
   modalManagerProps: ModalManagerProps;
   isBootstrapping: boolean;
-  /** Guided-tour match signals (funnel Phase 2 PR3): the page-level tour reads
-   *  these to auto-advance the set-formation, start-timer and log-goal steps. */
-  isTimerRunning: boolean;
-  hasLoggedGoal: boolean;
-  hasAppliedFormation: boolean;
 }
 
 /**
@@ -323,20 +317,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     t,
     onAssignGoalieByPosition: handleAssignGoalieByPosition,
   });
-
-  // Guided-tour signal: has a formation template been applied in THIS match
-  // view? (Component remounts per match, so it naturally resets.) Wraps the
-  // field handler so the ControlBar keeps a single entry point.
-  const [formationApplyCount, setFormationApplyCount] = useState(0);
-  const placeAllPlayersHandler = fieldCoordination.handlePlaceAllPlayers;
-  const handlePlaceAllPlayersTracked = useCallback((presetId: string | null) => {
-    // Count only ACTUAL applies (review #722): the field handler no-ops on an
-    // empty selection, and a no-op tap must not advance the tour's
-    // set-formation step.
-    if (placeAllPlayersHandler(presetId)) {
-      setFormationApplyCount(c => c + 1);
-    }
-  }, [placeAllPlayersHandler]);
 
   // Extract stable setters for use in effects
   // React useState setters are guaranteed stable (same identity across renders)
@@ -605,6 +585,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
     setPlannerTarget,
+    setAttendanceRequest,
   } = useModalContext();
 
   /**
@@ -690,6 +671,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // handleManageTeamRosterFromNewGame LIFTED to ClubModalsHost (L.3b).
 
+  // "Not played yet" flips to played the first time the clock starts (Onboarding
+  // v3). Set in the same event as the start: the save the start triggers (the
+  // isTimerRunning flip is an immediate autosave) writes isPlayed from this state,
+  // through the normal local + cloud path.
+  const handleFirstTimerStart = useCallback(() => {
+    setIsPlayed(true);
+  }, []);
+
   // --- Timer Management Hook (Step 2.6.5) ---
   const timerManagement = useTimerManagement({
     gameSessionState,
@@ -701,6 +690,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsGameStatsModalOpen,
     setIsPlayerAssessmentModalOpen,
     onActionLogged: notifyUndoableAction,
+    onFirstTimerStart: handleFirstTimerStart,
   });
 
   const {
@@ -1772,33 +1762,21 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, [currentGameId, dispatchGameSession, showToast, t]);
 
   /**
-   * How much of the finishing work is left, for the surfaces that are not the
-   * checklist itself: the game-end button and the menu. Computed once, from the
-   * same model the checklist uses, so no two places can disagree.
+   * How much of the finishing work is left, for the menu badge. Computed from
+   * the same model the checklist uses, and like the checklist's counter it
+   * counts only the D2 core (squad + goal log, review R7), so it reaches its
+   * end exactly when the game is "valmis".
    */
-  // Voice clips awaiting review count in the checklist (review 5.12): the wrap-up
-  // card passes them, the menu badge did not, so the two disagreed by one for every
-  // game with dictation (4/6 vs 4/7). Re-read when the game changes and whenever the
-  // clip store reports a change (a clip saved, reviewed or deleted) - after the write
-  // has landed, which the recording signal (cleared before the last save) is not.
-  const [voiceClipsPending, setVoiceClipsPending] = useState(0);
-  const [clipsVersion, setClipsVersion] = useState(0);
-  useEffect(() => onClipsChanged(() => setClipsVersion((v) => v + 1)), []);
-  useEffect(() => {
-    setVoiceClipsPending(0); // never carry another game's count
-    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
-    let cancelled = false;
-    countClips(currentGameId, userId ?? undefined)
-      .then((n) => { if (!cancelled) setVoiceClipsPending(n); })
-      .catch((error) => logger.debug('[finish badge] clip count unavailable', error));
-    return () => { cancelled = true; };
-  }, [currentGameId, userId, clipsVersion]);
-
+  // Only whether the clock has run matters here; depending on the seconds
+  // themselves would rebuild the badge every tick.
+  const clockHasRun = gameSessionState.timeElapsedInSeconds > 0;
   const finishProgress = useMemo(() => {
     const saved = currentGameId ? savedGames?.[currentGameId] : undefined;
     if (!saved) return null;
     const completeness = computeGameCompleteness({
       isPlayed: saved.isPlayed,
+      timeElapsedInSeconds: clockHasRun ? 1 : 0,
+      gameStatus: gameSessionState.gameStatus,
       gameNotes: gameSessionState.gameNotes,
       selectedPlayerIds: gameSessionState.selectedPlayerIds,
       seasonId: saved.seasonId,
@@ -1811,11 +1789,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       awayScore: gameSessionState.awayScore,
     }, { assessmentsEnabled });
     if (!completeness.applicable) return null;
-    return completenessProgress(completeness, { voiceClipsPending });
+    return completenessProgress(completeness);
   }, [
-    voiceClipsPending,
     currentGameId,
     savedGames,
+    clockHasRun,
+    gameSessionState.gameStatus,
     gameSessionState.gameNotes,
     gameSessionState.selectedPlayerIds,
     gameSessionState.playerPositions,
@@ -2671,7 +2650,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   const fieldContainerProps: FieldContainerProps = {
     gameSessionState,
-    finishProgress,
     fieldVM,
     timerVM,
     currentGameId,
@@ -2698,8 +2676,25 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     dictation,
   };
 
+  // "Ketkä ovat paikalla?" from the match menu (Onboarding v3): before
+  // kick-off only - the same rule the re-apply itself enforces. The live
+  // game's pending autosave is written first, so the sheet reads (and the
+  // hand-edit check compares) the line-up that is on screen; after a save
+  // the sheet refreshes this game through the planner's live hooks.
+  const canOpenAttendance =
+    !!currentGameId &&
+    currentGameId !== DEFAULT_GAME_ID &&
+    gameSessionState.gameStatus === 'notStarted' &&
+    !hasPlayEvents(gameSessionState.gameEvents);
+  const handleOpenAttendance = useCallback(async () => {
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
+    await handleFlushLiveGame();
+    setAttendanceRequest({ gameId: currentGameId, mode: 'save' });
+  }, [currentGameId, handleFlushLiveGame, setAttendanceRequest]);
+
   const controlBarProps: ComponentProps<typeof ControlBar> = {
     onOpenThisGamePlan: thisGamePlanLink ? handleOpenThisGamePlan : undefined,
+    onOpenAttendance: canOpenAttendance ? () => void handleOpenAttendance() : undefined,
     timeElapsedInSeconds,
     isTimerRunning,
     onToggleLargeTimerOverlay: handleToggleLargeTimerOverlay,
@@ -2714,7 +2709,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onResetField: fieldCoordination.handleResetFieldClick,
     onClearDrawings: fieldCoordination.handleClearDrawingsForView,
     onAddOpponent: fieldCoordination.handleAddOpponent,
-    onPlaceAllPlayers: handlePlaceAllPlayersTracked,
+    onPlaceAllPlayers: fieldCoordination.handlePlaceAllPlayers,
     selectedPlayerCount: gameSessionState.selectedPlayerIds.length,
     isTacticsBoardView: fieldCoordination.isTacticsBoardView,
     onToggleTacticsBoard: fieldCoordination.handleToggleTacticsBoard,
@@ -2846,10 +2841,5 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameContainerProps,
     modalManagerProps,
     isBootstrapping,
-    isTimerRunning: gameSessionState.isTimerRunning,
-    hasLoggedGoal: (gameSessionState.gameEvents ?? []).some(
-      (e) => e.type === 'goal' || e.type === 'opponentGoal',
-    ),
-    hasAppliedFormation: formationApplyCount > 0,
   };
 }

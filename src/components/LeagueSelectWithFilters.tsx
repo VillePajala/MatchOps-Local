@@ -12,6 +12,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { selectStyle, inlineSelectStyle, fieldHintStyle } from '@/styles/modalStyles';
 import {
   FINNISH_YOUTH_LEAGUES,
   CUSTOM_LEAGUE_ID,
@@ -80,13 +81,15 @@ export default function LeagueSelectWithFilters({
   const hiddenSelected =
     value && value !== CUSTOM_LEAGUE_ID && !filteredLeagues.some((l) => l.id === value) ? getLeagueById(value) : undefined;
 
-  const filterClass =
-    'w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500';
+  // The two narrowing filters sit side by side as compact selects above the
+  // league dropdown - the same layout as the league details (SeasonDetailsModal),
+  // so one field group looks the same wherever it appears.
+  const filterClass = `${inlineSelectStyle} w-full!`;
 
   return (
     <>
       <div className="flex gap-2 mb-2">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <label htmlFor={`league-level-filter-${filterIdSuffix}`} className="sr-only">
             {t('leagues.filterByLevel', 'Filter by level')}
           </label>
@@ -103,7 +106,7 @@ export default function LeagueSelectWithFilters({
             ))}
           </select>
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <label htmlFor={`league-area-filter-${filterIdSuffix}`} className="sr-only">
             {t('leagues.filterByArea', 'Filter by area')}
           </label>
@@ -126,7 +129,7 @@ export default function LeagueSelectWithFilters({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
-        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+        className={selectStyle}
       >
         <option value="">{placeholder}</option>
         {hiddenSelected && <option value={hiddenSelected.id}>{hiddenSelected.name}</option>}
@@ -135,7 +138,7 @@ export default function LeagueSelectWithFilters({
         ))}
       </select>
       {(areaFilter !== 'all' || levelFilter !== 'all') && (
-        <p className="mt-1 text-sm text-slate-400">
+        <p className={fieldHintStyle}>
           {t('leagues.showingCount', '{{count}} leagues', { count: filteredLeagues.filter((l) => !l.isCustom).length })}
         </p>
       )}

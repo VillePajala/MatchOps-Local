@@ -167,6 +167,12 @@ const openPlanTab = async () => {
   });
 };
 
+const openPlanMenu = async () => {
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Plan actions' }));
+  });
+};
+
 const enterPlan = async (name: string | RegExp = /Saved Cup/) => {
   const pattern = typeof name === 'string' ? new RegExp(name) : name;
   // Each manager row has TWO buttons matching the plan name: the open button
@@ -233,7 +239,9 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() => expect(screen.getByLabelText('Game name')).toBeInTheDocument());
     await openPlanTab();
     expect(screen.getByDisplayValue('Tournament plan')).toBeInTheDocument();
-    expect(screen.getByText('Export JSON')).toBeInTheDocument(); // footer export
+    // Export lives in the plan's ⋮ menu on the Settings tab.
+    await openPlanMenu();
+    expect(screen.getByText('Export plan to file')).toBeInTheDocument();
   });
 
   it('a new plan neither shows nor includes archived players', async () => {
@@ -412,6 +420,87 @@ describe('PlaytimePlannerModal', () => {
         fireEvent.keyDown(document, { key: 'Escape' });
       });
       expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    /**
+     * Onboarding v3: opened as a layer over one plan (the compact plan
+     * screen's "Tarkempi muokkaus"), Escape/back closes straight back to the
+     * caller - and the caller hears about the plan it was showing.
+     */
+    it('as a single-plan layer, closes from the plan and reports the open plan', async () => {
+      const onClose = jest.fn();
+      const onActivePlanChange = jest.fn();
+      mockGetPlans.mockResolvedValue({ existing: existingPlan });
+      render(
+        <PlaytimePlannerModal
+          isOpen
+          onClose={onClose}
+          initialTarget={{ planId: 'existing', planGameId: existingPlan.games[0].id }}
+          singlePlanLayer
+          onActivePlanChange={onActivePlanChange}
+        />,
+      );
+      await screen.findByLabelText('Game name');
+      expect(onActivePlanChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'existing' }));
+
+      await act(async () => {
+        fireEvent.keyDown(document, { key: 'Escape' });
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    /**
+     * Onboarding v3: on phones the X is hidden (hardware back is the norm), but
+     * the layer a new coach was sent into from the plan screen must still have a
+     * visible way back.
+     * @critical
+     */
+    it('as a single-plan layer with the X hidden, shows a Back that returns to the caller', async () => {
+      const original = window.matchMedia;
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: () => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }),
+      });
+      try {
+        const onClose = jest.fn();
+        mockGetPlans.mockResolvedValue({ existing: existingPlan });
+        render(
+          <PlaytimePlannerModal
+            isOpen
+            onClose={onClose}
+            initialTarget={{ planId: 'existing', planGameId: existingPlan.games[0].id }}
+            singlePlanLayer
+          />,
+        );
+        await screen.findByLabelText('Game name');
+        expect(screen.getByTestId('planner-layer-back')).toHaveTextContent('Back');
+
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planner-layer-back'));
+        });
+        expect(onClose).toHaveBeenCalledTimes(1);
+      } finally {
+        Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: original });
+      }
+    });
+
+    it('without the layer, a hidden X adds no Back (hardware back steps out as before)', async () => {
+      const original = window.matchMedia;
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: () => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }),
+      });
+      try {
+        mockGetPlans.mockResolvedValue({ existing: existingPlan });
+        render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+        await enterPlan();
+        await screen.findByLabelText('Game name');
+        expect(screen.queryByTestId('planner-layer-back')).not.toBeInTheDocument();
+      } finally {
+        Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: original });
+      }
     });
 
     it('only blurs a focused input - never navigates mid-edit', async () => {
@@ -780,7 +869,7 @@ describe('PlaytimePlannerModal', () => {
     await screen.findByDisplayValue('Saved Cup');
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Suggest fair lineups' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Suggest lineups' }));
     });
     // Nothing changes until confirmed.
     expect(screen.getByText(/0\/\d+ placed/)).toBeInTheDocument();
@@ -790,7 +879,7 @@ describe('PlaytimePlannerModal', () => {
     // 8v8 formation, but only 1 roster player -> exactly 1 placed.
     await waitFor(() => expect(screen.getByText(/1\/\d+ placed/)).toBeInTheDocument());
     expect(mockShowToast).toHaveBeenCalledWith(
-      'Fair lineups suggested - check the balance view.',
+      'Lineups suggested - check the balance view.',
       'success',
     );
   });
@@ -921,13 +1010,13 @@ describe('PlaytimePlannerModal', () => {
     await screen.findByLabelText('Game name');
     expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
 
-    // Ribbon tabs carry the short code AND the game name.
+    // Ribbon tabs carry the game name (the opponent) only.
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^G2 .*Game 2$/ }));
+      fireEvent.click(screen.getByRole('button', { name: /^Game 2/ }));
     });
     expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
     // Current tab is marked for assistive tech.
-    expect(screen.getByRole('button', { name: /^G2 .*Game 2$/ })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('button', { name: /^Game 2/ })).toHaveAttribute('aria-current', 'true');
   });
 
   it('marks a placed player absent: slot clears, bench hides them, toggle restores', async () => {
@@ -977,9 +1066,10 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final' } });
     });
     // The ribbon tab picks up the new name; switching games swaps the header.
-    expect(screen.getByRole('button', { name: /^G1 .*Final$/ })).toBeInTheDocument();
+    // Tabs show the game's name only (no "G1" prefix).
+    expect(screen.getByRole('button', { name: /^Final/ })).toBeInTheDocument();
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^G2 .*Game 2$/ }));
+      fireEvent.click(screen.getByRole('button', { name: /^Game 2/ }));
     });
     expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Final')).not.toBeInTheDocument();
@@ -1054,10 +1144,14 @@ describe('PlaytimePlannerModal', () => {
     expect(announcement()).toHaveAttribute('data-announcement-nonce', '4');
   });
 
-  it('placing a starter KEEPS their scheduled subs (rotations survive lineup edits)', async () => {
-    // Alex is scheduled to come into s0 at 6' but starts nowhere. Placing him
-    // as the GK starter must NOT strip that sub - the old Phase-1 guard did,
-    // which made rotations unbuildable from the lineup side.
+  /**
+   * Review R13: a player is never in two slots at once. Alex is scheduled to
+   * come into s0 at 6' but starts nowhere; placed as the keeper (on for the
+   * whole game) that change would put him in goal AND in s0, so it goes. A
+   * return after a player comes off is kept (placePlayerInSlot unit tests).
+   * @critical
+   */
+  it('placing a starter drops a planned change that would put them in two slots at once', async () => {
     mockGetPlans.mockResolvedValue({
       existing: {
         ...existingPlan,
@@ -1090,9 +1184,9 @@ describe('PlaytimePlannerModal', () => {
       );
     });
 
-    // The sub survives: the pill still announces Alex coming into s0 at 6'.
-    expect(screen.getByRole('button', { name: "6' Alex (#1)" })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'GK: Alex' })).toBeInTheDocument();
+    // In goal all game, so the 6' change into s0 is gone.
+    expect(screen.queryByRole('button', { name: "6' Alex (#1)" })).not.toBeInTheDocument();
   });
 
   it('swaps two players whole-game by tapping one placement then another', async () => {
@@ -1185,7 +1279,16 @@ describe('PlaytimePlannerModal', () => {
     await enterPlan();
     await screen.findByLabelText('Game name');
     const announcement = () => document.querySelector('[data-announcement-nonce]');
+    // Clear all games is a plan-level action on the Settings tab (round 2);
+    // the Games tab keeps only Clear field.
+    expect(screen.queryByRole('button', { name: 'Clear all games' })).not.toBeInTheDocument();
+    const openGamesTab = async () => {
+      await act(async () => {
+        fireEvent.click(screen.getByRole('tab', { name: 'Games' }));
+      });
+    };
 
+    await openPlanTab();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Clear all games' }));
     });
@@ -1193,14 +1296,17 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     });
+    await openGamesTab();
     expect(screen.getByRole('button', { name: 'GK: Alex' })).toBeInTheDocument();
 
+    await openPlanTab();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Clear all games' }));
     });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
     });
+    await openGamesTab();
     // Current game emptied (starter + sub) and announced; the OTHER game's
     // field emptied too (visible via its game tab).
     expect(screen.getByRole('button', { name: 'GK: empty' })).toBeInTheDocument();
@@ -1529,9 +1635,10 @@ describe('PlaytimePlannerModal', () => {
       render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await enterPlan();
     await openPlanTab();
-      await waitFor(() => expect(screen.getByText('Export JSON')).toBeInTheDocument());
+      await openPlanMenu();
+      await waitFor(() => expect(screen.getByText('Export plan to file')).toBeInTheDocument());
       await act(async () => {
-        fireEvent.click(screen.getByText('Export JSON'));
+        fireEvent.click(screen.getByText('Export plan to file'));
       });
       // Must be the export message, NOT the import one (that was the bug).
       await waitFor(() =>
@@ -1546,7 +1653,12 @@ describe('PlaytimePlannerModal', () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     mockImportPlan.mockResolvedValue(null);
     const { container } = render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByText('Import JSON')).toBeInTheDocument());
+    // Import lives in the plan list's ⋮ menu.
+    const listMenu = await screen.findByTestId('planner-list-menu');
+    await act(async () => {
+      fireEvent.click(listMenu);
+    });
+    expect(screen.getByText('Import plan from file')).toBeInTheDocument();
 
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['{"bad":true}'], 'plan.json', { type: 'application/json' });
@@ -1574,9 +1686,10 @@ describe('PlaytimePlannerModal', () => {
       render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await enterPlan(/Cup A\/B/);
     await openPlanTab();
-      await waitFor(() => expect(screen.getByText('Export JSON')).toBeInTheDocument());
+      await openPlanMenu();
+      await waitFor(() => expect(screen.getByText('Export plan to file')).toBeInTheDocument());
       await act(async () => {
-        fireEvent.click(screen.getByText('Export JSON'));
+        fireEvent.click(screen.getByText('Export plan to file'));
       });
       // '/' and space in the name are sanitized to underscores.
       await waitFor(() => expect(clicked).toEqual(['Cup_A_B.json']));

@@ -7,7 +7,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import TeamKitColorPicker from './TeamKitColorPicker';
-import { TEAM_KIT_COLORS } from '@/config/palette';
+import { TEAM_KIT_PICKER_COLORS as TEAM_KIT_COLORS, TEAM_KIT_COLORS as ALL_KIT_COLORS } from '@/config/palette';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -107,9 +107,16 @@ describe('TeamKitColorPicker', () => {
     });
   });
 
-  /** Four full rows of six: the layout the widened palette exists to fill. */
-  it('offers a palette that fills the grid exactly', () => {
-    expect((TEAM_KIT_COLORS.length + 1) % 6).toBe(0);
+  /** Twelve colours: two full rows of six. */
+  it('offers a palette that fills two rows of six exactly', () => {
+    expect(TEAM_KIT_COLORS).toHaveLength(12);
+  });
+
+  /** A team saved with a colour that is no longer offered keeps it, selected. */
+  it('still shows a stored colour that is valid but no longer offered', () => {
+    const retired = ALL_KIT_COLORS[ALL_KIT_COLORS.length - 1].hex;
+    render(<TeamKitColorPicker value={retired} onChange={jest.fn()} />);
+    expect(screen.getByTestId('kit-colour-legacy')).toHaveAttribute('aria-checked', 'true');
   });
 
   it('has no duplicate colours', () => {

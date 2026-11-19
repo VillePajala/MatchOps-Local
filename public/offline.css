@@ -5,9 +5,9 @@
   box-sizing: border-box;
 }
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #1e293b;
-  color: #f1f5f9;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #0f172a;
+  color: #ffffff;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -27,39 +27,41 @@ h1 {
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #f8fafc;
+  color: #ffb224;
 }
 .subtitle {
   font-size: 18px;
-  color: #94a3b8;
+  color: #cbd5e1;
   margin-bottom: 20px;
 }
 .message {
   font-size: 15px;
-  color: #64748b;
+  color: #94a3b8;
   margin-bottom: 12px;
   line-height: 1.5;
 }
 .data-notice {
   font-size: 14px;
-  color: #22c55e;
+  color: #3fe08c;
   margin-bottom: 24px;
   font-weight: 500;
 }
 button {
-  background-color: #4f46e5;
-  color: white;
+  background: linear-gradient(180deg, #ffc34d, #ffb224);
+  color: #1c0f00;
   border: none;
-  padding: 12px 24px;
+  min-height: 48px;
+  padding: 12px 28px;
   font-size: 16px;
-  font-weight: 500;
-  border-radius: 8px;
+  font-weight: 700;
+  border-radius: 9999px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: filter 0.2s;
 }
 button:hover {
-  background-color: #4338ca;
+  filter: brightness(1.06);
 }
-button:active {
-  background-color: #3730a3;
+button:focus-visible {
+  outline: 2px solid #ffb224;
+  outline-offset: 3px;
 }

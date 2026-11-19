@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { labelStyle, selectStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { CERTIFICATIONS, CERTIFICATION_GROUPS } from '@/config/gameOptions';
 
 interface CertificationManagerProps {
@@ -62,23 +63,23 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-300 mb-1">
+      <label className={labelStyle}>
         {t('personnelDetailsModal.certifications', 'Certifications')}
       </label>
 
       {/* Display existing certifications */}
       {certifications.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-2">
+        <div className="flex flex-wrap gap-2 mb-3">
           {certifications.map((cert) => (
             <div
               key={cert}
-              className="flex items-center gap-1 bg-slate-600 px-2 py-1 rounded-md text-sm text-white"
+              className="flex items-center gap-1 pl-3.5 pr-1 min-h-11 rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] font-ui text-sm font-medium text-ink"
             >
               <span>{cert}</span>
               <button
                 type="button"
                 onClick={() => handleRemove(cert)}
-                className="text-slate-400 hover:text-red-400 ml-1"
+                className="inline-flex items-center justify-center min-h-9 min-w-9 rounded-full text-lg leading-none text-ink-3 hover:text-red-400 hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 aria-label={`${t('common.remove', 'Remove')}: ${cert}`}
               >
                 ×
@@ -90,14 +91,14 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
 
       {/* Add new certification UI */}
       {isAdding ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <select
             value={selectedCert}
             onChange={(e) => setSelectedCert(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+            className={selectStyle}
             aria-label={t('personnelDetailsModal.selectCertification', 'Select certification')}
           >
-            <option value="">{t('personnelDetailsModal.selectCertificationPlaceholder', '-- Select Certification --')}</option>
+            <option value="">{t('personnelDetailsModal.selectCertificationPlaceholder', 'Select Certification')}</option>
             {availableGroups.map(group => (
               <optgroup key={group.labelKey} label={t(group.labelKey, group.label)}>
                 {group.certifications.map(cert => (
@@ -113,7 +114,7 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
               type="button"
               onClick={handleAdd}
               disabled={!selectedCert}
-              className="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-indigo-400/30"
+              className={`${secondaryButtonStyle} flex-1`}
               aria-label={t('common.add', 'Add')}
             >
               {t('common.add', 'Add')}
@@ -121,7 +122,7 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
             <button
               type="button"
               onClick={handleCancel}
-              className="flex-1 px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm text-sm font-medium border border-slate-400/30"
+              className={`${secondaryButtonStyle} flex-1`}
             >
               {t('common.cancel', 'Cancel')}
             </button>
@@ -132,7 +133,7 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
           type="button"
           onClick={() => setIsAdding(true)}
           disabled={!hasAvailableCertifications}
-          className="px-3 py-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-slate-400/30"
+          className={`${secondaryButtonStyle} w-full`}
           aria-label={t('personnelDetailsModal.addCertification', 'Add Certification')}
         >
           + {t('personnelDetailsModal.addCertification', 'Add Certification')}

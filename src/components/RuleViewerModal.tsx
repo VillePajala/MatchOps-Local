@@ -2,7 +2,13 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { CollapsibleModalHeader, modalContainerStyle, ModalBackgroundEffects } from '@/styles/modalStyles';
+import {
+  CollapsibleModalHeader,
+  modalContainerStyle,
+  ModalBackgroundEffects,
+  primaryButtonStyle,
+  secondaryButtonStyle,
+} from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { withPage } from '@/config/rulesIndex';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
@@ -212,12 +218,12 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
   };
 
   return (
-    <div className="fixed inset-0 z-[85] font-display flex" role="dialog" aria-modal="true" aria-label={title}>
+    <div className="fixed inset-0 z-[85] flex" role="dialog" aria-modal="true" aria-label={title}>
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
         <ModalBackgroundEffects />
         <div className="relative z-10 flex flex-col h-full min-h-0">
           <CollapsibleModalHeader title={title} onClose={onClose} closeLabel={t('common.close', 'Close')}>
-            <p className="text-sm text-slate-400 px-6 pb-3 text-center">
+            <p className="font-ui text-sm text-ink-3 px-6 pb-3 text-center">
               {t('ruleViewer.subtitle', 'Official rulebook. Page {{n}}{{total}}.', {
                 n: current,
                 total: total ? `/${total}` : '',
@@ -228,13 +234,13 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
           <div ref={wrapRef} className="flex-1 min-h-0 overflow-auto px-1 py-2 flex justify-center">
             {status === 'error' ? (
               <div className="p-6 text-center space-y-3">
-                <p className="text-sm text-slate-300">
+                <p className="text-sm text-ink-2">
                   {t('ruleViewer.error', 'Could not open the rulebook. Check your connection.')}
                 </p>
                 <button
                   type="button"
                   onClick={openInBrowser}
-                  className="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white"
+                  className={primaryButtonStyle}
                 >
                   {t('ruleViewer.openInBrowser', 'Open in browser')}
                 </button>
@@ -242,7 +248,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
             ) : (
               <>
                 {status !== 'ready' && (
-                  <p className="absolute top-1/2 text-sm text-slate-400" data-testid="rule-viewer-loading">
+                  <p className="absolute top-1/2 text-sm text-ink-3" data-testid="rule-viewer-loading">
                     {t('ruleViewer.loading', 'Loading the page...')}
                   </p>
                 )}
@@ -260,20 +266,20 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
             )}
           </div>
 
-          <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-t border-white/10">
+          <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-t border-hairline">
             <button
               type="button"
               onClick={() => setCurrent((p) => Math.max(1, p - 1))}
               disabled={current <= 1 || status === 'error'}
               data-testid="rule-viewer-prev"
-              className="px-4 py-2 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100 disabled:opacity-40"
+              className={secondaryButtonStyle}
             >
               {t('ruleViewer.prev', 'Previous')}
             </button>
             <button
               type="button"
               onClick={openInBrowser}
-              className="px-3 py-2 rounded-md text-xs text-slate-300 hover:text-white"
+              className="inline-flex min-h-11 items-center rounded-full px-3 font-ui text-sm font-semibold text-ink-2 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             >
               {t('ruleViewer.openInBrowser', 'Open in browser')}
             </button>
@@ -282,7 +288,7 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
               onClick={() => setCurrent((p) => (total ? Math.min(total, p + 1) : p + 1))}
               disabled={(total > 0 && current >= total) || status === 'error'}
               data-testid="rule-viewer-next"
-              className="px-4 py-2 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100 disabled:opacity-40"
+              className={secondaryButtonStyle}
             >
               {t('ruleViewer.next', 'Next')}
             </button>

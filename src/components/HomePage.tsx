@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { GameContainer } from '@/components/HomePage/containers/GameContainer';
 import { ModalManager } from '@/components/HomePage/containers/ModalManager';
-import GuidedTourMatchReporter from '@/components/GuidedTour/GuidedTourMatchReporter';
 import {
   useGameOrchestration,
   type UseGameOrchestrationProps,
@@ -41,9 +40,6 @@ function HomePageInner(props: HomePageProps) {
     gameContainerProps,
     modalManagerProps,
     isBootstrapping,
-    isTimerRunning,
-    hasLoggedGoal,
-    hasAppliedFormation,
   } = useGameOrchestration(props);
   const assessmentRatingStyle = useAssessmentRatingStyle();
   const assessmentTemplate = useAssessmentTemplate();
@@ -81,10 +77,10 @@ function HomePageInner(props: HomePageProps) {
     <>
       {/* Keep loading overlay until layout has settled */}
       {!layoutReady && (
-        <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center">
+        <div className="fixed inset-0 z-50 s1-canvas font-ui flex flex-col items-center justify-center">
           <div className="flex flex-col items-center gap-6">
-            <div className="w-16 h-16 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin" aria-hidden="true" />
-            <p className="text-slate-400 text-sm">{t('status.loadingGameData', 'Loading Game Data...')}</p>
+            <div className="w-16 h-16 border-4 border-white/10 border-t-action rounded-full animate-spin" aria-hidden="true" />
+            <p className="text-ink-3 text-sm">{t('status.loadingGameData', 'Loading Game Data...')}</p>
           </div>
         </div>
       )}
@@ -93,7 +89,6 @@ function HomePageInner(props: HomePageProps) {
         <GameContainer {...gameContainerProps} />
       </div>
       <ModalManager {...modalManagerProps} ratingStyle={assessmentRatingStyle} assessmentTemplate={assessmentTemplate} />
-      <GuidedTourMatchReporter isTimerRunning={isTimerRunning} hasLoggedGoal={hasLoggedGoal} hasAppliedFormation={hasAppliedFormation} />
     </>
   );
 }

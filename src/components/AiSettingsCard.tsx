@@ -26,6 +26,20 @@ import {
   useAiProviderState,
 } from '@/utils/aiProvider';
 import logger from '@/utils/logger';
+import {
+  groupedListStyle,
+  sectionLabelStyle,
+  subtextStyle,
+  secondaryButtonStyle,
+  dangerButtonStyle,
+  inputBaseStyle,
+  selectStyle,
+  textareaStyle,
+  switchInputStyle,
+  linkStyle,
+  neutralBadgeStyle,
+  pillQuietStyle,
+} from '@/styles/modalStyles';
 import { resetAiUsage, useAiUsage } from '@/utils/aiUsage';
 import { DRAFTING_MODEL } from '@/utils/aiDrafting';
 
@@ -33,13 +47,17 @@ interface AiSettingsCardProps {
   userId?: string;
 }
 
-const rowStyle = 'p-3 bg-slate-800/50 rounded-md';
-const primary =
-  'rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500';
-const secondary =
-  'rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500';
-const danger =
-  'rounded-md bg-red-700 hover:bg-red-600 border border-red-500/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-red-500';
+// A row of the group: 56px minimum, inset divider above it (not the first).
+const rowStyle =
+  'relative min-h-14 py-3 pl-[18px] pr-4 font-ui before:absolute before:top-0 before:left-[18px] before:right-0 before:h-px before:bg-hairline first:before:hidden';
+// A row's own button: the ghost pill (settings has no single primary action).
+const secondary = `${secondaryButtonStyle} shrink-0 min-h-10! px-4! text-sm!`;
+// No amber pill here: settings has no single primary action (ghost, as in the mock).
+const primary = secondary;
+// Destructive but not final (a confirmation follows): the house tinted danger
+// pill; the solid red is only on the confirm dialog's final button.
+const danger = `${dangerButtonStyle} shrink-0 min-h-11! px-4! text-sm!`;
+const rowKey = 'font-ui text-base font-medium text-ink';
 
 const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
   const { t } = useTranslation();
@@ -120,41 +138,39 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
   }, [parentText, showToast, t]);
 
   return (
-    <div data-testid="ai-settings-card" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-2">
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2 flex-wrap">
-          {t('aiSettings.title', 'Voice notes and AI')}
+    <section data-testid="ai-settings-card" className="space-y-2">
+      <h3 className={`${sectionLabelStyle} px-1`}>
+        {t('aiSettings.title', 'Voice notes and AI')}
+      </h3>
+      <div className={groupedListStyle}>
+      <div className="px-[18px] pt-4 pb-3.5 font-ui space-y-2.5">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Says who this is for before anyone reads further: a coach without
               an API key should not expect a one-button AI here. */}
-          <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/30" data-testid="ai-experimental">
+          <span className={neutralBadgeStyle} data-testid="ai-experimental">
             {t('aiSettings.experimentalTag', 'Experimental')}
           </span>
-        </h3>
-        <span
-          data-testid="ai-status"
-          className={`shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-semibold border ${
-            state.connected
-              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-              : 'bg-slate-700/60 text-slate-300 border-slate-600'
-          }`}
-        >
-          {state.connected ? t('aiSettings.statusConnected', 'Connected') : t('aiSettings.statusNotConnected', 'Not connected')}
-        </span>
+          <span
+            data-testid="ai-status"
+            className={state.connected ? `${pillQuietStyle} text-win!` : pillQuietStyle}
+          >
+            {state.connected ? t('aiSettings.statusConnected', 'Connected') : t('aiSettings.statusNotConnected', 'Not connected')}
+          </span>
+        </div>
+        <p className="font-ui text-sm leading-relaxed text-ink-2">
+          {t('aiSettings.intro', 'Voice notes work without this. Transcription and drafts need your own AI provider account - the recordings then go from your phone to that provider only, on your key, only when you press the button.')}
+        </p>
+        <p className={`${subtextStyle} leading-relaxed`}>
+          {t('aiSettings.experimentalNote', 'Needs your own OpenAI account and API key. Built for coaches comfortable with that; not for everyone yet.')}{' '}
+          <a href="/voice-notes" target="_blank" rel="noopener noreferrer" className={linkStyle} data-testid="ai-parent-page">
+            {t('aiSettings.parentPageLink', 'Page for families: what leaves the phone')}
+          </a>
+        </p>
       </div>
-
-      <p className="text-sm text-slate-400 mb-2">
-        {t('aiSettings.intro', 'Voice notes work without this. Transcription and drafts need your own AI provider account - the recordings then go from your phone to that provider only, on your key, only when you press the button.')}
-      </p>
-      <p className="text-sm text-slate-400 mb-2">
-        {t('aiSettings.experimentalNote', 'Needs your own OpenAI account and API key. Built for coaches comfortable with that; not for everyone yet.')}{' '}
-        <a href="/voice-notes" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline" data-testid="ai-parent-page">
-          {t('aiSettings.parentPageLink', 'Page for families: what leaves the phone')}
-        </a>
-      </p>
 
       {!state.hasConsent && (
         <div className={`${rowStyle} flex items-center gap-3`}>
-          <p className="flex-1 text-sm text-slate-200">{t('aiSettings.setUpLabel', 'Set up transcription and drafts')}</p>
+          <p className={`flex-1 ${rowKey}`}>{t('aiSettings.setUpLabel', 'Set up transcription and drafts')}</p>
           <button type="button" onClick={() => setGateOpen(true)} className={primary} data-testid="ai-setup">
             {t('aiSettings.setUp', 'Set up')}
           </button>
@@ -163,12 +179,12 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
 
       {state.hasConsent && !state.hasKey && (
         <div className={`${rowStyle} space-y-2`}>
-          <label htmlFor="ai-key-input" className="block text-sm font-medium text-slate-200">
+          <label htmlFor="ai-key-input" className={`block ${rowKey}`}>
             {t('aiSettings.keyLabel', '{{provider}} API key', { provider: provider.label })}
           </label>
-          <p className="text-sm text-slate-400">
+          <p className={subtextStyle}>
             {t('aiSettings.keyHint', 'Create a dedicated key for MatchOps and set a monthly spend cap on it.')}{' '}
-            <a href={provider.keysUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline">
+            <a href={provider.keysUrl} target="_blank" rel="noopener noreferrer" className={linkStyle}>
               {t('aiSettings.keyLink', 'Open the provider\'s key page')}
             </a>
           </p>
@@ -181,7 +197,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
               value={keyInput}
               onChange={(e) => setKeyInput(e.target.value)}
               placeholder="sk-..."
-              className="flex-1 min-w-0 bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`${inputBaseStyle} flex-1 min-w-0 w-auto! min-h-11!`}
             />
             <button type="button" onClick={() => void connect()} disabled={!keyInput.trim() || testing} className={primary} data-testid="ai-connect">
               {testing ? t('aiSettings.testing', 'Checking...') : t('aiSettings.connect', 'Connect')}
@@ -192,7 +208,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
 
       {state.connected && (
         <div className={`${rowStyle} flex flex-wrap items-center gap-2`}>
-          <p className="flex-1 min-w-[12rem] text-sm text-slate-200" data-testid="ai-connected-line">
+          <p className="flex-1 min-w-[12rem] font-ui text-base text-ink" data-testid="ai-connected-line">
             {t('aiSettings.connectedLine', 'Requests go to {{provider}} on your own key (••••{{hint}}).', { provider: provider.label, hint: state.keyHint ?? '' })}
           </p>
           <button type="button" onClick={disconnect} className={secondary} data-testid="ai-disconnect">
@@ -202,31 +218,32 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
       )}
 
       {state.hasConsent && (
-        <label className={`${rowStyle} flex items-start gap-3 cursor-pointer`}>
+        <label className={`${rowStyle} flex items-center gap-3 cursor-pointer`}>
+          <span className="flex-1 min-w-0">
+            <span className={`block ${rowKey}`}>{t('aiSettings.pseudonymizeLabel', 'Replace player names with codes before drafting')}</span>
+            <span className={`block ${subtextStyle} mt-1`}>{t('aiSettings.pseudonymizeHint', 'On by default. Transcription still contains what you said.')}</span>
+          </span>
           <input
             type="checkbox"
+            role="switch"
             checked={state.pseudonymize}
             onChange={(e) => setPseudonymizeNames(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900"
+            className={switchInputStyle}
             data-testid="ai-pseudonymize"
           />
-          <span>
-            <span className="block text-sm font-medium text-slate-200">{t('aiSettings.pseudonymizeLabel', 'Replace player names with codes before drafting')}</span>
-            <span className="block text-xs text-slate-400">{t('aiSettings.pseudonymizeHint', 'On by default. Transcription still contains what you said.')}</span>
-          </span>
         </label>
       )}
 
       {state.connected && (
         <div className={`${rowStyle} space-y-2`} data-testid="ai-model">
-          <label htmlFor="ai-model-select" className="block text-sm text-slate-200">
+          <label htmlFor="ai-model-select" className={`block ${rowKey}`}>
             {t('aiSettings.modelLabel', 'Model used for report drafts')}
           </label>
           <select
             id="ai-model-select"
             value={state.model ?? DRAFTING_MODEL}
             onChange={(e) => setAiModel(e.target.value === DRAFTING_MODEL ? null : e.target.value)}
-            className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+            className={selectStyle}
             data-testid="ai-model-select"
           >
             <option value={DRAFTING_MODEL}>
@@ -259,7 +276,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
                 : t('aiSettings.modelLoad', 'Show the models on my account')}
             </button>
           )}
-          <p className="text-sm text-slate-400">
+          <p className={subtextStyle}>
             {state.model && state.model !== DRAFTING_MODEL
               ? t('aiSettings.modelCustomHint', 'The cost figures here are the default model\'s prices, so they are only a rough guide for {{model}}. Larger models write better and cost more.', { model: state.model })
               : t('aiSettings.modelHint', 'Only the low-cost models on your account are offered, so a mis-tap here cannot run up a bill. There is no automatic fallback either: if a model stops working the draft says so, rather than quietly using another one.')}
@@ -268,18 +285,18 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
       )}
 
       <div className={`${rowStyle} space-y-1`} data-testid="ai-usage">
-        <p className="text-sm text-slate-200">
+        <p className={rowKey}>
           {t('aiSettings.usageLabel', 'Estimated cost on your provider account')}
         </p>
         {usage.since ? (
           <>
-            <p className="text-sm font-semibold text-slate-100">
+            <p className="font-ui text-base font-semibold text-ink">
               {t('aiSettings.usageAmount', '~${{usd}} since {{since}}', {
                 usd: usage.estimatedUsd.toFixed(2),
                 since: usage.since,
               })}
             </p>
-            <p className="text-sm text-slate-400">
+            <p className={subtextStyle}>
               {t('aiSettings.usageBreakdown', '{{transcriptions}} transcriptions, {{drafts}} report drafts, {{readbacks}} translations and summaries. An estimate from list prices - your provider\'s bill is the real number.', {
                 transcriptions: usage.transcriptions,
                 drafts: usage.drafts,
@@ -291,32 +308,34 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
             </button>
           </>
         ) : (
-          <p className="text-sm text-slate-400">{t('aiSettings.usageNone', 'Nothing used on this device yet.')}</p>
+          <p className={subtextStyle}>{t('aiSettings.usageNone', 'Nothing used on this device yet.')}</p>
         )}
       </div>
 
       <div className={`${rowStyle} flex items-center gap-3`}>
-        <p className="flex-1 text-sm text-slate-200">{t('aiSettings.deleteRecordingsLabel', 'Delete all voice recordings on this device')}</p>
+        <p className={`flex-1 ${rowKey}`}>{t('aiSettings.deleteRecordingsLabel', 'Delete all voice recordings on this device')}</p>
         <button type="button" onClick={() => setConfirmDelete(true)} className={danger} data-testid="ai-delete-recordings">
           {t('aiSettings.deleteRecordings', 'Delete')}
         </button>
       </div>
 
       <details className={rowStyle}>
-        <summary className="text-sm font-medium text-slate-200 cursor-pointer">{t('aiConsent.rulesTitle', 'Dictation rules')}</summary>
+        <summary className={`${rowKey} cursor-pointer min-h-8 flex items-center`}>{t('aiConsent.rulesTitle', 'Dictation rules')}</summary>
         <div className="mt-2">
           <DictationRules />
         </div>
       </details>
 
       <details className={rowStyle}>
-        <summary className="text-sm font-medium text-slate-200 cursor-pointer">{t('aiSettings.parentTextTitle', 'Text for parents')}</summary>
-        <p className="text-sm text-slate-400 mt-2 mb-2">{t('aiSettings.parentTextHint', 'A ready-made note you can send to families about the notes you keep.')}</p>
-        <textarea readOnly value={parentText} rows={6} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm text-slate-100" aria-label={t('aiSettings.parentTextTitle', 'Text for parents')} />
+        <summary className={`${rowKey} cursor-pointer min-h-8 flex items-center`}>{t('aiSettings.parentTextTitle', 'Notice to families about AI use')}</summary>
+        <p className={`${subtextStyle} mt-2 mb-2`}>{t('aiSettings.parentTextHint', 'A ready-made note you can send to families about the notes you keep.')}</p>
+        <textarea readOnly value={parentText} rows={6} className={textareaStyle} aria-label={t('aiSettings.parentTextTitle', 'Notice to families about AI use')} />
         <button type="button" onClick={() => void copyParentText()} className={`${secondary} mt-2`} data-testid="ai-copy-parent-text">
           {t('aiSettings.copy', 'Copy')}
         </button>
       </details>
+
+      </div>
 
       <AiConsentGate isOpen={gateOpen} onAccepted={() => setGateOpen(false)} onCancel={() => setGateOpen(false)} />
       <ConfirmationModal
@@ -329,7 +348,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
         onConfirm={() => void deleteRecordings()}
         onCancel={() => setConfirmDelete(false)}
       />
-    </div>
+    </section>
   );
 };
 

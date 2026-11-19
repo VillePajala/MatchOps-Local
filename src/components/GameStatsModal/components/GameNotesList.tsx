@@ -37,29 +37,29 @@ const GameNotesList: React.FC<GameNotesListProps> = ({ notes, availablePlayers, 
         : t('dictation.sourceDictation', 'voice');
 
   return (
-    <div data-testid="game-notes" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <h3 className="text-xl font-semibold text-slate-200 mb-3">{t('dictation.notesTitle', 'Notes')}</h3>
+    <div data-testid="game-notes" className="s1-list p-4 font-ui">
+      <h3 className="text-base font-semibold text-ink mb-3">{t('dictation.notesTitle', 'Notes')}</h3>
       <ul className="space-y-2">
         {notes.map((note) => {
           const who = nameOf(note.entityId);
           return (
-            <li key={note.id} data-testid="game-note" className="flex items-start gap-2 rounded-md bg-slate-800/60 border border-slate-700/60 px-3 py-2">
+            <li key={note.id} data-testid="game-note" className="flex items-start gap-2 rounded-md bg-white/[0.03] border border-hairline px-3 py-2">
               <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                  <span className="font-semibold text-slate-300">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
+                  <span className="font-semibold text-ink-2">
                     {t('dictation.periodClock', 'P{{period}} {{clock}}', { period: note.period ?? '', clock: formatClock(note.time) })}
                   </span>
-                  {who && <span className="text-indigo-300 font-medium">{who}</span>}
-                  <span className="rounded-full bg-slate-700/60 px-2 py-0.5">{sourceLabel(note.source)}</span>
+                  {who && <span className="text-ink-2 font-medium">{who}</span>}
+                  <span className="rounded-full bg-white/[0.08] px-2 py-0.5">{sourceLabel(note.source)}</span>
                 </div>
-                <p className="text-sm text-slate-100 mt-1 whitespace-pre-wrap break-words">{note.text}</p>
+                <p className="text-sm text-ink mt-1 whitespace-pre-wrap break-words">{note.text}</p>
               </div>
               {onDeleteNote && (
                 <button
                   type="button"
                   onClick={() => setPendingDelete(note.id)}
                   aria-label={t('common.delete', 'Delete')}
-                  className="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-700 hover:text-red-300 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="shrink-0 rounded-md p-1.5 text-ink-3 hover:bg-white/[0.06] hover:text-red-300 transition-colors focus:outline-none focus:ring-2 focus:ring-action"
                 >
                   <HiOutlineTrash className="h-4 w-4" />
                 </button>

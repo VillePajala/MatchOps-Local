@@ -96,3 +96,109 @@ describe('useGameSessionWithHistory with the real reducer', () => {
     expect(saveToHistory).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Quick goal entry (D16, onboarding v3): the goal is logged first and its scorer /
+ * assister named a moment later. One Undo must remove the goal WITH its names - the
+ * names amend the goal's own history entry instead of becoming an undo step.
+ * @critical
+ */
+describe('useGameSessionWithHistory - quick goal names join the goal undo step', () => {
+  const goal = { id: 'goal-q1', type: 'goal' as const, time: 61 };
+
+  const setup = () => {
+    const saveToHistory = jest.fn();
+    const patchCurrentHistory = jest.fn();
+    const buildHistorySlice = (s: GameSessionState) => ({ gameEvents: s.gameEvents, homeScore: s.homeScore });
+    const hook = renderHook(() =>
+      useGameSessionWithHistory(initialGameSessionStatePlaceholder, {
+        buildHistorySlice,
+        saveToHistory,
+        patchCurrentHistory,
+      }),
+    );
+    const logGoal = () => {
+      act(() => {
+        hook.result.current[1]({ type: 'ADD_GAME_EVENT', payload: goal });
+        hook.result.current[1]({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'goal', action: 'add' } });
+      });
+    };
+    return { ...hook, saveToHistory, patchCurrentHistory, logGoal };
+  };
+
+  it('naming the scorer and assister patches the goal entry and pushes no new step', () => {
+    const { result, saveToHistory, patchCurrentHistory, logGoal } = setup();
+    logGoal();
+    expect(saveToHistory).toHaveBeenCalledTimes(1);
+
+    act(() => { result.current[1]({ type: 'AMEND_GAME_EVENT', payload: { ...goal, scorerId: 'p1' } }); });
+    act(() => { result.current[1]({ type: 'AMEND_GAME_EVENT', payload: { ...goal, scorerId: 'p1', assisterId: 'p2' } }); });
+
+    // Still exactly one undo step: the goal's. Undoing it removes the goal.
+    expect(saveToHistory).toHaveBeenCalledTimes(1);
+    expect(patchCurrentHistory).toHaveBeenCalledTimes(2);
+    expect(patchCurrentHistory).toHaveBeenLastCalledWith({
+      gameEvents: [{ ...goal, scorerId: 'p1', assisterId: 'p2' }],
+    });
+    expect(result.current[0].gameEvents).toEqual([{ ...goal, scorerId: 'p1', assisterId: 'p2' }]);
+  });
+
+  it('a name given before the goal entry was saved lands in that same entry', () => {
+    const { result, saveToHistory, patchCurrentHistory } = setup();
+    act(() => {
+      result.current[1]({ type: 'ADD_GAME_EVENT', payload: goal });
+      result.current[1]({ type: 'AMEND_GAME_EVENT', payload: { ...goal, scorerId: 'p1' } });
+    });
+    expect(saveToHistory).toHaveBeenCalledTimes(1);
+    expect(saveToHistory.mock.calls[0][0].gameEvents).toEqual([{ ...goal, scorerId: 'p1' }]);
+    expect(patchCurrentHistory).not.toHaveBeenCalled();
+  });
+
+  it('a name survives a clock tick dispatched before the effect ran', () => {
+    const { result, patchCurrentHistory, logGoal } = setup();
+    logGoal();
+    act(() => {
+      result.current[1]({ type: 'AMEND_GAME_EVENT', payload: { ...goal, scorerId: 'p1' } });
+      result.current[1]({ type: 'SET_TIMER_ELAPSED', payload: 62 });
+    });
+    expect(patchCurrentHistory).toHaveBeenCalledWith({ gameEvents: [{ ...goal, scorerId: 'p1' }] });
+  });
+
+  it('after another coach action, naming the goal is an ordinary edit with its own step', () => {
+    const { result, saveToHistory, patchCurrentHistory, logGoal } = setup();
+    logGoal();
+    act(() => { result.current[1]({ type: 'SET_GAME_NOTES', payload: 'note' }); });
+    expect(saveToHistory).toHaveBeenCalledTimes(2);
+
+    act(() => { result.current[1]({ type: 'AMEND_GAME_EVENT', payload: { ...goal, scorerId: 'p1' } }); });
+
+    // The goal entry is no longer the current one, so it must not be patched.
+    expect(patchCurrentHistory).not.toHaveBeenCalled();
+    expect(saveToHistory).toHaveBeenCalledTimes(3);
+    expect(saveToHistory.mock.calls[2][0].gameEvents).toEqual([{ ...goal, scorerId: 'p1' }]);
+  });
+
+  it('after an undo (state loaded from history), naming is an ordinary edit', () => {
+    const { result, saveToHistory, patchCurrentHistory, logGoal } = setup();
+    logGoal();
+    act(() => {
+      result.current[1]({ type: 'LOAD_STATE_FROM_HISTORY', payload: { gameEvents: [goal] } });
+    });
+    act(() => { result.current[1]({ type: 'AMEND_GAME_EVENT', payload: { ...goal, scorerId: 'p1' } }); });
+    expect(patchCurrentHistory).not.toHaveBeenCalled();
+    expect(saveToHistory).toHaveBeenCalledTimes(2);
+  });
+
+  it('without a patch function the amend falls back to its own undo step', () => {
+    const saveToHistory = jest.fn();
+    const { result } = renderHook(() =>
+      useGameSessionWithHistory(initialGameSessionStatePlaceholder, {
+        buildHistorySlice: (s: GameSessionState) => ({ gameEvents: s.gameEvents }),
+        saveToHistory,
+      }),
+    );
+    act(() => { result.current[1]({ type: 'ADD_GAME_EVENT', payload: goal }); });
+    act(() => { result.current[1]({ type: 'AMEND_GAME_EVENT', payload: { ...goal, scorerId: 'p1' } }); });
+    expect(saveToHistory).toHaveBeenCalledTimes(2);
+  });
+});

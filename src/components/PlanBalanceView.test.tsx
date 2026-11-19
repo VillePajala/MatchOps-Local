@@ -75,7 +75,7 @@ describe('PlanBalanceView', () => {
     // Default mode is Minutes; the position breakdown is not shown yet.
     expect(screen.queryByText(/GK 24'/)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Positions' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Zones' }));
 
     // Alex plays the whole 24' game in goal -> one GK zone worth 24 minutes,
     // and the single-position variety flag.
@@ -91,8 +91,8 @@ describe('PlanBalanceView', () => {
       game({ id: 'g2', startingSlots: [{ slotId: 's1', playerId: 'p1' }] }),
     ]);
     render(<PlanBalanceView plan={p} onToggleHighlight={noop} onReplaceHighlights={noop} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Positions' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Roles' }));
+    // One three-way switch: Minutes / Zones / Roles.
+    fireEvent.click(screen.getByRole('tab', { name: 'Roles' }));
 
     expect(screen.getByText(/LDM 24'/)).toBeInTheDocument();
     expect(screen.getByText(/RDM 24'/)).toBeInTheDocument();
@@ -102,8 +102,8 @@ describe('PlanBalanceView', () => {
   it('Roles count is singular for a one-role player (1 role, not "1 roles")', () => {
     // Alex plays only goalkeeper -> exactly one role; the count must read "1 role".
     render(<PlanBalanceView plan={plan([game()])} onToggleHighlight={noop} onReplaceHighlights={noop} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Positions' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Roles' }));
+    // One three-way switch: Minutes / Zones / Roles.
+    fireEvent.click(screen.getByRole('tab', { name: 'Roles' }));
     expect(screen.getByText(/^1 role$/)).toBeInTheDocument();
     expect(screen.queryByText(/1 roles/)).not.toBeInTheDocument();
   });
@@ -162,8 +162,8 @@ describe('PlanBalanceView', () => {
         onReplaceHighlights={noop}
       />,
     );
-    // Alex: full game = 100% of share, on fair share; his tile names the GK slot.
-    expect(screen.getByText(/100% of share · on fair share/)).toBeInTheDocument();
+    // Alex: full game = 100% of share, on own share; his tile names the GK slot.
+    expect(screen.getByText(/100% of share · on own share/)).toBeInTheDocument();
     expect(screen.getByText(/0% of share · -24 min vs own share/)).toBeInTheDocument();
     expect(screen.getByText('GK')).toBeInTheDocument();
   });
@@ -225,7 +225,7 @@ describe('zero-minutes warning split (rotation vs forgotten)', () => {
     subs: [],
   });
 
-  it('rotated starters (everyone plays somewhere) -> amber sits-out, NO red alarm', () => {
+  it('rotated starters (everyone plays somewhere) -> neutral sits-out note, NO red alarm', () => {
     // G1 starts p0,p1; G2 starts p2,p3 - every player sits out one full game
     // but everyone has minutes. The old combined warning shouted "4 players
     // with 0 minutes" at a fully-used roster.

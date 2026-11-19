@@ -10,6 +10,7 @@ import {
   wizardTitleStyle,
   wizardContentStyle,
   wizardCloseButtonStyle,
+  sectionLabelStyle,
   warningBoxStyle,
   errorBoxStyle,
   successBoxStyle,
@@ -77,40 +78,27 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
 
   const getStatusIcon = () => {
     if (isImporting) {
-      return <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />;
+      return <div className="animate-spin w-8 h-8 border-4 border-action border-t-transparent rounded-full" />;
     }
     
     if (!importResult) return null;
 
     if (importResult.failed.length === 0) {
-      return <HiOutlineCheckCircle className="w-8 h-8 text-green-500" />;
+      return <HiOutlineCheckCircle className="w-8 h-8 text-win" />;
     } else if (importResult.successful > 0) {
-      return <HiOutlineExclamationTriangle className="w-8 h-8 text-amber-500" />;
+      return <HiOutlineExclamationTriangle className="w-8 h-8 text-action" />;
     } else {
-      return <HiOutlineXCircle className="w-8 h-8 text-red-500" />;
-    }
-  };
-
-  const getStatusColor = () => {
-    if (isImporting) return 'text-blue-600';
-    if (!importResult) return 'text-gray-600';
-    
-    if (importResult.failed.length === 0) {
-      return 'text-green-600';
-    } else if (importResult.successful > 0) {
-      return 'text-amber-600';
-    } else {
-      return 'text-red-600';
+      return <HiOutlineXCircle className="w-8 h-8 text-loss" />;
     }
   };
 
   return (
     <WizardBackdrop onClick={handleBackdropClick}>
-      <div ref={modalRef} className={`${wizardModalLargeStyle} overflow-y-auto text-slate-100`} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+      <div ref={modalRef} className={`${wizardModalLargeStyle} font-ui overflow-y-auto text-ink`} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className={wizardHeaderStyle}>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-3">
             {getStatusIcon()}
-            <h2 className={`${wizardTitleStyle} ${getStatusColor()}`}>
+            <h2 className={wizardTitleStyle}>
               {isImporting ? t('importResults.importing') : t('importResults.title')}
             </h2>
           </div>
@@ -126,32 +114,32 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
         <div className={wizardContentStyle}>
           {isImporting ? (
             <div className="text-center py-8">
-              <p className="text-slate-300 mb-4">{t('importResults.processing')}</p>
-              <div className="w-full bg-slate-700 rounded-full h-2">
-                <div className="bg-indigo-500 h-2 rounded-full animate-pulse w-1/2"></div>
+              <p className="text-ink-2 mb-4">{t('importResults.processing')}</p>
+              <div className={progressBarContainerStyle}>
+                <div className="bg-action h-full rounded-full animate-pulse w-1/2"></div>
               </div>
             </div>
           ) : importResult ? (
             <div className="space-y-6">
               {/* Summary Statistics */}
-              <div className="bg-slate-900/40 border border-slate-700/50 rounded-lg p-4">
-                <h3 className="text-lg font-medium mb-3">{t('importResults.summary')}</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-slate-200">
-                  <div className="bg-slate-800/60 border border-slate-700 rounded p-3">
-                    <div className="text-2xl font-bold text-green-400">{importResult.successful}</div>
-                    <div className="text-sm text-slate-400">{t('importResults.successful')}</div>
+              <div>
+                <h3 className={`${sectionLabelStyle} mb-3`}>{t('importResults.summary')}</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-ink">
+                  <div className="rounded-2xl bg-carbon/60 p-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)]">
+                    <div className="s1-numeral font-display text-3xl font-bold italic">{importResult.successful}</div>
+                    <div className="text-sm text-ink-3">{t('importResults.successful')}</div>
                   </div>
-                  <div className="bg-slate-800/60 border border-slate-700 rounded p-3">
-                    <div className="text-2xl font-bold text-indigo-400">{importResult.skipped}</div>
-                    <div className="text-sm text-slate-400">{t('importResults.skipped')}</div>
+                  <div className="rounded-2xl bg-carbon/60 p-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)]">
+                    <div className="s1-numeral font-display text-3xl font-bold italic">{importResult.skipped}</div>
+                    <div className="text-sm text-ink-3">{t('importResults.skipped')}</div>
                   </div>
-                  <div className="bg-slate-800/60 border border-slate-700 rounded p-3">
-                    <div className="text-2xl font-bold text-red-400">{importResult.failed.length}</div>
-                    <div className="text-sm text-slate-400">{t('importResults.failed')}</div>
+                  <div className="rounded-2xl bg-carbon/60 p-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)]">
+                    <div className="s1-numeral font-display text-3xl font-bold italic">{importResult.failed.length}</div>
+                    <div className="text-sm text-ink-3">{t('importResults.failed')}</div>
                   </div>
-                  <div className="bg-slate-800/60 border border-slate-700 rounded p-3">
-                    <div className="text-2xl font-bold text-slate-300">{getSuccessRate()}%</div>
-                    <div className="text-sm text-slate-400">{t('importResults.successRate')}</div>
+                  <div className="rounded-2xl bg-carbon/60 p-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)]">
+                    <div className="s1-numeral font-display text-3xl font-bold italic">{getSuccessRate()}%</div>
+                    <div className="text-sm text-ink-3">{t('importResults.successRate')}</div>
                   </div>
                 </div>
               </div>
@@ -160,18 +148,18 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
               {getTotalProcessed() > 0 && (
                 <div className={progressBarContainerStyle}>
                   <div
-                    className={`${progressBarFillStyle} bg-green-500 rounded-l-full`}
+                    className={`${progressBarFillStyle} bg-win rounded-l-full`}
                     style={{ width: `${(importResult.successful / getTotalProcessed()) * 100}%` }}
                   ></div>
                   <div
-                    className={`${progressBarFillStyle} bg-indigo-500`}
+                    className={`${progressBarFillStyle} bg-ink-3`}
                     style={{
                       width: `${(importResult.skipped / getTotalProcessed()) * 100}%`,
                       marginLeft: `${(importResult.successful / getTotalProcessed()) * 100}%`
                     }}
                   ></div>
                   <div
-                    className={`${progressBarFillStyle} bg-red-500 rounded-r-full`}
+                    className={`${progressBarFillStyle} bg-loss rounded-r-full`}
                     style={{
                       width: `${(importResult.failed.length / getTotalProcessed()) * 100}%`,
                       marginLeft: `${((importResult.successful + importResult.skipped) / getTotalProcessed()) * 100}%`
@@ -184,12 +172,12 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
               {importResult.warnings.length > 0 && (
                 <div className={warningBoxStyle}>
                   <div className="flex items-start space-x-2">
-                    <HiOutlineExclamationTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <HiOutlineExclamationTriangle className="w-5 h-5 text-action mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className="text-amber-300 font-medium mb-2">{t('importResults.warnings')}</h4>
+                      <h4 className="text-ink-2 font-medium mb-2">{t('importResults.warnings')}</h4>
                       <ul className="space-y-1">
                         {importResult.warnings.map((warning, index) => (
-                          <li key={index} className="text-amber-200 text-sm">
+                          <li key={index} className="text-ink-2 text-sm">
                             • {warning}
                           </li>
                         ))}
@@ -203,16 +191,16 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
               {importResult.failed.length > 0 && (
                 <div className={errorBoxStyle}>
                   <div className="flex items-start space-x-2">
-                    <HiOutlineXCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                    <HiOutlineXCircle className="w-5 h-5 text-loss mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <h4 className="text-red-300 font-medium mb-2">
+                      <h4 className="text-ink font-medium mb-2">
                         {t('importResults.failedImports')} ({importResult.failed.length})
                       </h4>
                       <div className="space-y-2 max-h-48 overflow-y-auto">
                         {importResult.failed.map((failure, index) => (
-                          <div key={index} className="text-sm bg-slate-800/60 rounded p-2 border border-red-700/30">
-                            <div className="font-medium text-red-300">{failure.gameId}</div>
-                            <div className="text-red-400">{failure.error}</div>
+                          <div key={index} className="text-sm bg-carbon/60 rounded-xl p-2">
+                            <div className="font-medium text-ink">{failure.gameId}</div>
+                            <div className="text-ink-2">{failure.error}</div>
                           </div>
                         ))}
                       </div>
@@ -225,8 +213,8 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
               {importResult.failed.length === 0 && importResult.successful > 0 && (
                 <div className={successBoxStyle}>
                   <div className="flex items-center space-x-2">
-                    <HiOutlineCheckCircle className="w-5 h-5 text-green-400" />
-                    <p className="text-green-200">
+                    <HiOutlineCheckCircle className="w-5 h-5 text-win" />
+                    <p className="text-ink">
                       {t('importResults.successMessage', {
                         count: importResult.successful,
                         skipped: importResult.skipped
@@ -238,8 +226,8 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
             </div>
           ) : (
             <div className="text-center py-8">
-              <HiOutlineInformationCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-300">{t('importResults.noResults')}</p>
+              <HiOutlineInformationCircle className="w-12 h-12 text-ink-3 mx-auto mb-4" />
+              <p className="text-ink-2">{t('importResults.noResults')}</p>
             </div>
           )}
         </div>
