@@ -142,3 +142,47 @@ export function playerListLabel(player: { name: string; nickname?: string }): st
   const nickname = player.nickname?.trim();
   return nickname && nickname !== player.name.trim() ? `${player.name} (${nickname})` : player.name;
 }
+
+/**
+ * A player's short name, as the pitch discs show it: the nickname, else the
+ * first word of the name. New players get their first name as the nickname
+ * (`defaultNickname`), so for most players this is exactly the disc text.
+ */
+export function playerShortName(player: { name: string; nickname?: string }): string {
+  const nickname = player.nickname?.trim();
+  if (nickname) return nickname;
+  const name = player.name.trim();
+  return name.split(/\s+/)[0] || name;
+}
+
+/**
+ * Short names for a whole squad, keyed by player id and unique within it: two
+ * players who would both read "Tomas" become "Tomas Q." and "Tomas V." (the
+ * last name's initial), and the full name is used when even that collides.
+ * Compared case-insensitively.
+ */
+export function playerShortNames(
+  players: readonly { id: string; name: string; nickname?: string }[],
+): Map<string, string> {
+  const key = (s: string) => s.toLocaleLowerCase('fi');
+  const counts = (labels: Map<string, string>) => {
+    const byKey = new Map<string, number>();
+    for (const label of labels.values()) byKey.set(key(label), (byKey.get(key(label)) ?? 0) + 1);
+    return byKey;
+  };
+
+  const result = new Map(players.map((p) => [p.id, playerShortName(p)]));
+  const firstPass = counts(result);
+  for (const p of players) {
+    const short = result.get(p.id) ?? '';
+    if ((firstPass.get(key(short)) ?? 0) < 2) continue;
+    const words = p.name.trim().split(/\s+/);
+    const initial = words.length > 1 ? Array.from(words[words.length - 1])[0] : '';
+    result.set(p.id, initial ? `${short} ${initial.toLocaleUpperCase('fi')}.` : p.name.trim());
+  }
+  const secondPass = counts(result);
+  for (const p of players) {
+    if ((secondPass.get(key(result.get(p.id) ?? '')) ?? 0) > 1) result.set(p.id, p.name.trim());
+  }
+  return result;
+}

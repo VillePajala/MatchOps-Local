@@ -386,11 +386,14 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
   return (
     // Full screen over the pitch; the control capsule (z-40) floats over its
-    // bottom edge (10px + the safe-area inset up from the bottom, 56px tall),
-    // so the content scrolls with room to clear it - including the inset,
-    // which lifts the capsule on phones with a gesture bar.
+    // bottom edge. The capsule sits in the match control strip (GameContainer):
+    // 1px border + 12px top padding + the 56px capsule (ControlBar h-14) +
+    // 12px bottom padding + the safe-area inset = 81px + inset. The content
+    // scrolls with that much room plus a 24px gap, so the last row always
+    // clears the capsule - including the inset, which lifts it on phones with
+    // a gesture bar.
     <div
-      className="fixed inset-0 z-30 flex flex-col items-center px-4 pt-[30px] pb-[calc(7rem+env(safe-area-inset-bottom,0px))] overflow-y-auto font-ui text-ink backdrop-blur-lg"
+      className="fixed inset-0 z-30 flex flex-col items-center px-4 pt-[30px] pb-[calc(81px+24px+env(safe-area-inset-bottom,0px))] overflow-y-auto font-ui text-ink backdrop-blur-lg"
       style={{ background: 'radial-gradient(110% 38% at 50% -8%, rgb(30 41 59 / 0.7) 0%, transparent 72%), rgb(15 23 42 / 0.975)' }}
     >
       <div className="w-full max-w-lg flex flex-col items-center">
@@ -543,7 +546,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         )}
 
         {/* Timer Controls */}
-        <div className="flex w-full items-center gap-3 mb-5">
+        <div className="flex w-full items-center gap-3 mb-3">
           <button
             onClick={onStartPauseTimer}
             data-testid="tour-timer-startpause"
@@ -576,6 +579,31 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             disabled={timeElapsedInSeconds === 0 && gameStatus === 'notStarted'} // Only disable if truly at start
           >
             <FaUndo size={18}/>
+          </button>
+        </div>
+
+        {/* Goal buttons, straight under start/pause (owner, 2026-11-19):
+            the two taps a coach makes mid-play stay on the first screen at
+            every phone size, never below the plan or behind the capsule.
+            Our goal is the common one: a light solid button at ~60% of the
+            row; the opponent's goal stays a red outline at ~40% (7:5, so
+            "Vastustaja +1" still fits one line on a 320px phone). */}
+        <div className="grid w-full grid-cols-[7fr_5fr] gap-2.5 mb-5" data-testid="timer-goal-buttons">
+          <button
+            type="button"
+            onClick={onToggleGoalLogModal}
+            data-testid="tour-log-goal"
+            className={`${lightActionStyle} min-w-0 px-3 whitespace-nowrap`}
+            title={`${displayHomeTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
+          >
+            {t('timerOverlay.teamGoalButton', 'Goal for us')}
+          </button>
+          <button 
+            onClick={handleOpponentGoalClick} 
+            className={`${dangerActionStyle} min-w-0 px-2 whitespace-nowrap text-[clamp(14px,4.3vw,17px)]!`}
+            title={`${displayAwayTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
+          >
+            {t('timerOverlay.opponentGoalButton', 'Opponent +1')}
           </button>
         </div>
 
@@ -649,13 +677,17 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             "OK", and it records nothing: it moves on by itself once its time
             has passed. Amber while due, quiet while still ahead. Shown
             before kick-off and through the breaks (half-time is exactly when
-            planned subs happen), never after full time. */}
+            planned subs happen), never after full time.
+            Compact (owner, 2026-11-19): two short lines with the disc names
+            (nickname, else first name) behind an arrow - up = on, down = off.
+            Screen readers get the words "On"/"Off" and the full names instead
+            (sr-only text; the arrows and short names are aria-hidden). */}
         {shownSubGroup && (
           <div
             role="status"
             data-testid="planned-sub-group"
             data-due={shownSubDue ? 'true' : 'false'}
-            className={`w-full mb-3 p-4 text-left rounded-[18px] ${
+            className={`w-full mb-3 px-4 py-3 text-left rounded-[18px] ${
               shownSubDue
                 ? 'bg-[linear-gradient(180deg,rgb(255_178_36/0.16),rgb(255_178_36/0.07))] shadow-[inset_0_0_0_1.5px_rgb(255_178_36/0.75)]'
                 : 's1-list'
@@ -672,22 +704,31 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 </span>
               )}
             </div>
-            <div className="mt-1 text-[15px] text-ink">
-              <span className="font-semibold text-ink-3 mr-1.5">{t('timerOverlay.plannedSubsOn', 'On')}:</span>
-              {shownSubGroup.inNames.join(', ')}
-            </div>
+            <p
+              className="mt-1 flex items-baseline gap-2 text-[15px] font-semibold text-ink"
+              data-testid="planned-sub-on"
+            >
+              <span aria-hidden="true" className="w-3 shrink-0 text-center text-ink-3">↑</span>
+              <span aria-hidden="true" className="min-w-0">{shownSubGroup.inShortNames.join(', ')}</span>
+              <span className="sr-only">{t('timerOverlay.plannedSubsOn', 'On')}: {shownSubGroup.inNames.join(', ')}</span>
+            </p>
             {shownSubGroup.outNames.length > 0 && (
-              <div className="text-[15px] text-ink-2">
-                <span className="font-semibold text-ink-3 mr-1.5">{t('timerOverlay.plannedSubsOff', 'Off')}:</span>
-                {shownSubGroup.outNames.join(', ')}
-              </div>
+              <p
+                className="flex items-baseline gap-2 text-[15px] font-medium text-ink-2"
+                data-testid="planned-sub-off"
+              >
+                <span aria-hidden="true" className="w-3 shrink-0 text-center text-ink-3">↓</span>
+                <span aria-hidden="true" className="min-w-0">{shownSubGroup.outShortNames.join(', ')}</span>
+                <span className="sr-only">{t('timerOverlay.plannedSubsOff', 'Off')}: {shownSubGroup.outNames.join(', ')}</span>
+              </p>
             )}
           </div>
         )}
 
-        {/* Game Setup & Interval Controls Section */}
+        {/* Secondary actions, below the plan (owner, 2026-11-19): the
+            legacy assess hand-off, "Reset sub timer", dictation, and the
+            overtime / penalties expander. */}
         <div className="w-full mb-3 space-y-3">
-          {/* Main Action Buttons Section */}
           <div className="flex flex-col gap-2.5">
             {/* Legacy fallback for hosts that do not wire onFinishGame. */}
             {gameStatus === 'gameEnd' && !onFinishGame && onOpenPlayerAssessmentModal && (
@@ -717,9 +758,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             </div>
             )}
             
-            {/* Kirjuri voice note (PR 2): one full-width press-hold row above
-                the goals - thumb-findable without looking. Release = stop.
-                Space/Enter toggle for keyboards. */}
+            {/* Kirjuri voice note (PR 2): one full-width press-hold row.
+                Release = stop. Space/Enter toggle for keyboards. */}
             {dictation && (
               <>
                 <button
@@ -778,30 +818,6 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 />
               </>
             )}
-
-            {/* Goal Buttons - Side by side layout */}
-            {/* Our goal is the common one: a light solid button at ~60% of
-                the row; the opponent's goal stays a red outline at ~40%
-                (7:5, so "Vastustaja +1" still fits one line on a 320px
-                phone). */}
-            <div className="grid grid-cols-[7fr_5fr] gap-2.5">
-              <button
-                type="button"
-                onClick={onToggleGoalLogModal}
-                data-testid="tour-log-goal"
-                className={`${lightActionStyle} min-w-0 px-3 whitespace-nowrap`}
-                title={`${displayHomeTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
-              >
-                {t('timerOverlay.teamGoalButton', 'Goal for us')}
-              </button>
-              <button 
-                onClick={handleOpponentGoalClick} 
-                className={`${dangerActionStyle} min-w-0 px-2 whitespace-nowrap text-[clamp(14px,4.3vw,17px)]!`}
-                title={`${displayAwayTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
-              >
-                {t('timerOverlay.opponentGoalButton', 'Opponent +1')}
-              </button>
-            </div>
           </div>
 
           {/* Overtime / penalties — edge-of-game actions, tucked behind an
