@@ -824,7 +824,10 @@ export function HomeDashboard({
         <div>
           {/* THE TOGGLE IS THE LABEL, not a control above it: two words at the
               heading's own size cost no height. */}
-          <div className="-mb-0.5 flex items-center gap-2 px-1">
+          {/* Wraps on narrow phones: "Tulevat · Viimeisimmät" plus the season
+              record does not fit one line at ~366px, so the record drops below,
+              right-aligned (ml-auto), instead of running off the screen. */}
+          <div className="-mb-0.5 flex flex-wrap items-center gap-x-2 px-1">
             {hasBoth ? (
               <div className="flex items-center gap-1" role="tablist">
                 {(['upcoming', 'recent'] as const).map((which, i) => (

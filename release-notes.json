@@ -4,6 +4,17 @@
     {
       "date": "2026-11-19",
       "en": [
+        "The home screen always opens on the full view with your next match and recent games; the compact view was removed.",
+        "The season record next to the game list no longer runs off the screen."
+      ],
+      "fi": [
+        "Etusivu avautuu aina täyteen näkymään, jossa näkyvät seuraava ottelu ja viimeisimmät pelit; tiivis näkymä poistui.",
+        "Kauden tulos pelilistan vieressä ei enää valu näytön yli."
+      ]
+    },
+    {
+      "date": "2026-11-19",
+      "en": [
         "A new look across the whole app, and a clearer match view: the score and players sit above the pitch and nothing covers it.",
         "Log a goal with one tap (\"Maali meille\") and pick the scorer from the squad.",
         "Before kick-off, mark who is away (\"Ketkä ovat paikalla?\") - the plan adjusts.",

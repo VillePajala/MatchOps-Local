@@ -217,14 +217,10 @@ interface StartScreenProps {
   isCloudAvailable?: boolean;
   /** Completion signals for the recommended full-setup workflow card. */
   setupProgress?: SetupProgress;
-  /** Home presentation: 'simple' launcher (default) or the info-rich dashboard. */
-  homeView?: 'simple' | 'dashboard';
   /** Computed Pelit-tab dashboard data (resume, Vuosi record, recent games). */
   homeSummary?: HomeSummary | null;
   /** Tilastot tab only: the same summary narrowed to the chosen team. */
   homeStatsSummary?: HomeSummary | null;
-  /** Gear-sheet toggle for the view above. */
-  onSetHomeView?: (view: 'simple' | 'dashboard') => void;
   /** Recent-strip deep-link: open a specific saved game by id. */
   onOpenGameById?: (id: string) => void;
   /**
@@ -282,10 +278,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
   isFirstTimeUser = false,
   isCloudAvailable = false,
   setupProgress,
-  homeView = 'simple',
   homeSummary,
   homeStatsSummary,
-  onSetHomeView,
   onOpenGameById,
   appLayout = 'full',
   onSwitchToFullLayout,
@@ -299,7 +293,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const { t } = useTranslation();
   // Dashboard is the default view, but it only renders once there are games to
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
-  const dashboardOn = homeView === 'dashboard' && !isFirstTimeUser && hasSavedGames;
+  // The full layout always shows the dashboard once there are games: the old
+  // compact launcher ("Etusivun kortit: tiivis") was retired 2026-11-19 - the
+  // basic layout (Perusnäkymä) now serves coaches who want a simpler Home.
+  const dashboardOn = !isFirstTimeUser && hasSavedGames;
   // Entity counts on the Club / Competitions rows - only once the enriched
   // summary has loaded, so a still-loading 0 never reads as "you have none".
   const counts = homeSummary?.countsReady ? homeSummary.counts : undefined;
@@ -840,24 +837,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" aria-hidden="true" />
             <h4 className="mb-2.5 px-1 text-xs font-bold uppercase tracking-[0.16em] text-ink-3">{t('startScreen.gearTitle', 'App & account')}</h4>
             <div className={HOME_CARD + ' flex flex-col'}>
-              {/* Home view toggle - keeps the sheet open so the switch is
-                  visibly reactive; the Home body updates behind it. */}
-              {/* No effect in the basic layout, which has no dashboard. */}
-              {onSetHomeView && !isBasic && (
-                <button
-                  type="button"
-                  onClick={() => onSetHomeView(homeView === 'dashboard' ? 'simple' : 'dashboard')}
-                  aria-pressed={homeView === 'simple'}
-                  className={SHEET_ROW}
-                >
-                  <span className={SHEET_ROW_RULE}>
-                    <span className={ROW_LABEL}>{t('startScreen.gearSimplifiedView', 'Compact home cards')}</span>
-                    <span className={`inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full p-0.5 transition-colors ${homeView === 'simple' ? 'bg-action' : 'bg-surface-2 ring-1 ring-inset ring-white/10'}`} aria-hidden="true">
-                      <span className={`h-6 w-6 rounded-full bg-ink shadow transition-transform ${homeView === 'simple' ? 'translate-x-5' : ''}`} />
-                    </span>
-                  </span>
-                </button>
-              )}
               <button type="button" onClick={() => { setShowGearSheet(false); onOpenSettings(); }} className={SHEET_ROW}>
                 <span className={SHEET_ROW_RULE}>
                   <span className={ROW_LABEL}>{t('startScreen.appSettings', 'Settings')}</span>

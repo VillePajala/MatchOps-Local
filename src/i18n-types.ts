@@ -3006,7 +3006,6 @@ export type TranslationKey =
   | 'startScreen.gearDashboardView'
   | 'startScreen.gearGuide'
   | 'startScreen.gearSignOut'
-  | 'startScreen.gearSimplifiedView'
   | 'startScreen.gearTitle'
   | 'startScreen.heroAddPlayers'
   | 'startScreen.heroCreateTeam'
