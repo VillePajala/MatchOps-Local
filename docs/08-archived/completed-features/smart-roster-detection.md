@@ -1,5 +1,7 @@
 # Smart Roster Detection and Guard Conditions
 
+> **Archived 2026-11-20 (from docs/04-features/):** obsolete - the StartScreen guard buttons, hint keys and page.tsx line references it documents no longer exist after the Home redesign.
+
 This document details the smart detection logic and guard conditions that prevent empty roster scenarios and provide intelligent UI state management in MatchOps-Local.
 
 ## Architecture Overview

@@ -1,6 +1,6 @@
 # Game Import
 
-**Status**: ✅ Implemented
+**Status**: ⚠️ Code exists but is not wired to any screen (verified 2026-11-20): `useGameImport` and `ImportResultsModal` have no callers, so there is no "Load Game → Import" entry today. Whole-data restore goes through [Backup & Restore](./backup-restore.md).
 **Last Updated**: January 5, 2026
 
 ## Overview

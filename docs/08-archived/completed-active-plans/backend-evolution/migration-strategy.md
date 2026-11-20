@@ -869,4 +869,4 @@ describe('Migration E2E', () => {
 **Next Steps**:
 - Review [Phased Implementation Roadmap](./phased-implementation-roadmap.md) for execution timeline
 - See [Dual-Backend Architecture](../../02-technical/architecture/dual-backend-architecture.md) for overall design
-- Check [DataStore Interface](../../02-technical/architecture/datastore-interface.md) for API details
+- Check [DataStore Interface](./datastore-interface.md) for API details

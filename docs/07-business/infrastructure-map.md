@@ -1,6 +1,7 @@
 # Infrastructure & Architecture Map
 
 **Created**: December 17, 2025
+**Last Updated**: November 20, 2026
 **Owner**: Ville Pajala
 
 ---
@@ -20,10 +21,10 @@
 │   │                         MATCHOPS                                 │   │
 │   │                    (Product / PWA App)                           │   │
 │   │                                                                  │   │
-│   │   • Soccer coaching app                                          │   │
+│   │   • Soccer & futsal coaching app                                 │   │
 │   │   • Local-first PWA (offline capable)                           │   │
-│   │   • Free tier + Premium (pricing TBD)                            │   │
-│   │   • Available on Google Play Store (TWA)                        │   │
+│   │   • Free (monetization parked; billing code exists, off)         │   │
+│   │   • Live on Google Play (TWA, cloud-only: sign-in required)     │   │
 │   │                                                                  │   │
 │   └─────────────────────────────────────────────────────────────────┘   │
 │                                                                          │
@@ -65,8 +66,8 @@
 │   │  • MX → Cloudflare Email    │   │  • MX → Cloudflare Email    │    │
 │   │                             │   │                             │    │
 │   │  Email Routing:             │   │  Email Routing:             │    │
-│   │  • support@ → Gmail         │   │  • alerts@ → Gmail          │    │
-│   │  • hello@ → Gmail           │   │  • dev@ → Gmail             │    │
+│   │  • support@ → owner Gmail   │   │  • alerts@ → Gmail          │    │
+│   │  • hello@ → owner Gmail     │   │  • dev@ → Gmail             │    │
 │   │                             │   │  • hello@ → Gmail           │    │
 │   └─────────────────────────────┘   └─────────────────────────────┘    │
 │                                                                          │
@@ -83,7 +84,8 @@
 │                      (Source Control)                                    │
 │                                                                          │
 │   Repositories:                                                          │
-│   • VillePajala/MatchOps-Local     → match-ops.com (product)            │
+│   • VillePajala/MatchOps-Local     → app.match-ops.com (app, repo root) │
+│                                      + match-ops.com (site, site/)      │
 │   • VillePajala/velomoai-website   → velomoai.com (company site)        │
 │                                                                          │
 └───────────────────────────────┬─────────────────────────────────────────┘
@@ -97,9 +99,9 @@
 │                                                                          │
 │   Projects:                                                              │
 │   ┌─────────────────────────────┐   ┌─────────────────────────────┐    │
-│   │     matchops-local          │   │    velomoai-website         │    │
+│   │  match-ops-local (app)      │   │    velomoai-website         │    │
 │   │                             │   │                             │    │
-│   │  Domain: match-ops.com      │   │  Domain: velomoai.com       │    │
+│   │  Domain: app.match-ops.com  │   │  Domain: velomoai.com       │    │
 │   │  Framework: Next.js 16      │   │  Framework: Next.js 16      │    │
 │   │  Plan: Hobby (Free)         │   │  Plan: Hobby (Free)         │    │
 │   │                             │   │                             │    │
@@ -115,6 +117,9 @@
 │   • NEXT_PUBLIC_SUPABASE_ANON_KEY                                       │
 │   • GOOGLE_SERVICE_ACCOUNT_KEY (future - Play Billing)                  │
 │                                                                          │
+│   Marketing site: project match-ops-hub (repo site/ folder)             │
+│   → www.match-ops.com (match-ops.com redirects to www)                  │
+│                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -128,22 +133,17 @@
 │                    (Android Distribution)                                │
 │                                                                          │
 │   App: MatchOps                                                          │
-│   Package: app.matchops.local                                            │
-│   Type: TWA (Trusted Web Activity)                                       │
-│   Status: Internal Testing                                               │
+│   Package: com.matchops.local                                            │
+│   Type: TWA (Trusted Web Activity) wrapping app.match-ops.com           │
+│   Status: Production (released 2026-06-09); current 1.0.9 (versionCode  │
+│           20), live 2026-11-20. Cloud-only: users must sign in.         │
 │                                                                          │
 │   ┌─────────────────────────────────────────────────────────────────┐   │
 │   │                    BUBBLEWRAP                                    │   │
 │   │              (TWA Build Tool - Local)                            │   │
 │   │                                                                  │   │
 │   │   Wraps PWA (match-ops.com) into Android APK/AAB                │   │
-│   │   Config: /AnotherProjects/AnotherProjects/AnotherProjects/     │   │
-│   │           AnotherProjects/AnotherProjects/AnotherProjects/      │   │
-│   │           AnotherProjects/AnotherProjects/AnotherProjects/      │   │
-│   │           AnotherProjects/AnotherProjects/AnotherProjects/      │   │
-│   │           AnotherProjects/AnotherProjects/AnotherProjects/      │   │
-│   │           AnotherProjects/AnotherProjects/AnotherProjects/      │   │
-│   │           AnotherProjects/AnotherProjects/AnotherProjects/      │   │
+│   │   Build steps: docs/05-development/twa-build-guide.md           │   │
 │   │                                                                  │   │
 │   │   Key files:                                                     │   │
 │   │   • twa-manifest.json                                           │   │
@@ -151,8 +151,8 @@
 │   │                                                                  │   │
 │   └─────────────────────────────────────────────────────────────────┘   │
 │                                                                          │
-│   Monetization (Pricing TBD):                                           │
-│   • Product: matchops_premium (pricing undecided)                       │
+│   Monetization: PARKED - app is free (PREMIUM_ENFORCEMENT_ENABLED=false)│
+│   • Product: matchops_premium_monthly (not sold)                        │
 │   • API: Digital Goods API + Payment Request API                        │
 │   • Verification: Edge Function (verify-subscription)                   │
 │                                                                          │
@@ -162,7 +162,7 @@
 │                           WEB / PWA                                      │
 │                    (Direct Web Access)                                   │
 │                                                                          │
-│   URL: https://match-ops.com                                            │
+│   URL: https://app.match-ops.com                                        │
 │   Install: Add to Home Screen (iOS/Android/Desktop)                     │
 │   Offline: Full offline capability via Service Worker                   │
 │                                                                          │
@@ -198,7 +198,8 @@
                       ▼
            ┌─────────────────────┐
            │       GMAIL         │
-           │  (Personal Inbox)   │
+           │ (owner's personal   │
+           │  inbox)             │
            │                     │
            │  Labels:            │
            │  • MatchOps         │
@@ -274,15 +275,19 @@
 ├─────────────────────┤  ├─────────────────────┤  ├─────────────────────┤
 │                     │  │                     │  │                     │
 │  match-ops.com      │  │  LinkedIn:          │  │  Google Play:       │
-│  (Product)          │  │  Velomo AI          │  │  MatchOps           │
-│                     │  │  (Company Page)     │  │  (Internal Testing) │
+│  (Product site)     │  │  Velomo AI          │  │  MatchOps           │
+│                     │  │  (Company Page)     │  │  (Production)       │
 │  velomoai.com       │  │                     │  │                     │
 │  (Company)          │  │  X/Twitter:         │  │  Apple App Store:   │
 │                     │  │  Personal account   │  │  Not planned        │
 │                     │  │  (promotes product) │  │                     │
 │                     │  │                     │  │                     │
+│                     │  │  YouTube: MatchOps  │  │                     │
+│                     │  │  (set up 2026-11-20)│  │                     │
 └─────────────────────┘  └─────────────────────┘  └─────────────────────┘
 ```
+
+**YouTube channel** (set up 2026-11-20): base name (English) "MatchOps – Soccer & futsal app for coaches", Finnish translation "MatchOps – Jalkapallo- ja futsalvalmentajille". Playlists "Start here" / "Aloita tästä". Videos: the "hero" and "basic" videos, each in Finnish and English. Background music is licensed from Envato (licence HK2RXGA9YT); Content ID claims on the videos have to be disputed with that licence.
 
 ---
 
@@ -316,7 +321,7 @@
 │   Testing:                                                               │
 │   • Jest 30                                                             │
 │   • React Testing Library                                               │
-│   • 4,700+ tests                                                        │
+│   • ~7,700 tests                                                        │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -336,6 +341,8 @@
 | Error Monitoring | Sentry | Free tier | - |
 | Source Control | GitHub | Free | - |
 | Play Store | Google | $25 one-time | - |
+| YouTube channel | Google | Free | - |
+| Video music licence | Envato | Licence HK2RXGA9YT | - |
 
 **Total Recurring: ~$24/year** (Supabase and Resend free tiers sufficient for early launch; scale as needed)
 
@@ -354,6 +361,7 @@
 | Google Play Console | [email] | App distribution |
 | Sentry | [email] | Error monitoring |
 | LinkedIn | Velomo AI | Company page |
+| YouTube | [Google account] | MatchOps channel |
 
 ---
 
@@ -369,7 +377,7 @@
 │              ▼                 ▼                 ▼                      │
 │     ┌─────────────┐   ┌─────────────┐   ┌─────────────┐                │
 │     │  Web (PWA)  │   │ Play Store  │   │   Direct    │                │
-│     │match-ops.com│   │   (TWA)     │   │   Install   │                │
+│     │app.match-ops│   │   (TWA)     │   │   Install   │                │
 │     └──────┬──────┘   └──────┬──────┘   └──────┬──────┘                │
 │            │                 │                 │                        │
 │            └─────────────────┼─────────────────┘                        │
@@ -391,12 +399,12 @@
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐    │
 │  │ Sentry   │ │ Supabase │ │ Supabase │ │ Play     │ │  PWA     │    │
 │  │ (Errors) │ │   Auth   │ │   DB     │ │ Billing  │ │ Updates  │    │
-│  │          │ │ (Cloud)  │ │ (Cloud)  │ │ [Future] │ │          │    │
+│  │          │ │ (Cloud)  │ │ (Cloud)  │ │ [Parked] │ │          │    │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘    │
 │                                                                          │
-│   Note: App is LOCAL-FIRST. In local mode, no user data leaves the     │
-│   device. Cloud mode syncs data to Supabase (EU). Error reports        │
-│   (opt-in) go to Sentry.                                               │
+│   Note: App is LOCAL-FIRST (IndexedDB first, background sync). The    │
+│   Play build is cloud-only: data syncs to Supabase (EU). Error reports │
+│   go to Sentry unless the user turns the diagnostics switch off.       │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -408,6 +416,7 @@
 | Resource | URL |
 |----------|-----|
 | Product Website | https://match-ops.com |
+| App | https://app.match-ops.com |
 | Company Website | https://velomoai.com |
 | GitHub (Product) | https://github.com/VillePajala/MatchOps-Local |
 | Play Console | https://play.google.com/console |
@@ -420,7 +429,7 @@
 
 ## Related Documentation
 
-- [Communication Infrastructure Plan](./communication-infrastructure-plan.md)
-- [Play Store Implementation Plan](../03-active-plans/PLAY-STORE-IMPLEMENTATION-PLAN.md)
+- [Communication Infrastructure Plan](../08-archived/completed-active-plans/communication-infrastructure-plan.md) (archived)
+- [Play Store Implementation Plan](../08-archived/completed-active-plans/PLAY-STORE-IMPLEMENTATION-PLAN.md) (archived)
 - [Play Billing Implementation](../04-features/play-billing-implementation.md)
 - [Unified Roadmap](../03-active-plans/UNIFIED-ROADMAP.md)

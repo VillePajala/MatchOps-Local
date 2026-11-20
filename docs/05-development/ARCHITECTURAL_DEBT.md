@@ -173,6 +173,8 @@ const saveWithRetry = async (saveFn, maxRetries = 3, context) => {
 
 ### 🟢 LOW: CollapsibleFilters Prop Drilling and Scattered Filter Logic
 
+> **Status (2026-11-20): obsolete.** `CollapsibleFilters.tsx` no longer exists - it was replaced by a single filter bar in PR #793 ("One filter bar for the statistics modal"). Kept below for history.
+
 **Discovered**: December 11, 2025 (during Game Stats UI review)
 **Component**: `src/components/GameStatsModal/components/CollapsibleFilters.tsx`
 **Impact**: Low - fully functional today, but adding filters or tests requires plumbing 7+ props through a single component

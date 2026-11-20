@@ -1,9 +1,11 @@
 # Dual-Backend Architecture
 
 **Status**: ✅ **Phase 1-4 Implemented** (Local + Cloud backends complete, Local-First Sync added)
-**Last Updated**: 2026-01-28
-**Purpose**: Comprehensive architectural plan for supporting both IndexedDB (free/local) and Supabase (premium/cloud) backends
-**Related**: [DataStore Interface](./datastore-interface.md) | [AuthService Interface](./auth-service-interface.md) | [Current Storage Schema](../database/current-storage-schema.md) | [Supabase Schema](../database/supabase-schema.md) | [Auth/Data/Sync Runtime Architecture](./auth-data-sync-architecture.md)
+**Last Updated**: 2026-11-20 (current-state note and mode matrix)
+**Purpose**: Comprehensive architectural plan for supporting both IndexedDB (local) and Supabase (cloud) backends
+
+> **Current state (2026-11-20)**: The app is **free**; monetization is parked (`PREMIUM_ENFORCEMENT_ENABLED = false`), so cloud mode is **not** subscriber-only - any signed-in user can turn it on. The Google Play app (TWA, live since 2026-06-09) is cloud-only: sign-in is required. Cloud mode is local-first: `SyncedDataStore` writes IndexedDB first and syncs to Supabase in the background. Where this plan says "subscriber", "premium" or quotes prices, it describes the original business plan, not the app today.
+**Related**: [DataStore Interface (archived spec)](../../08-archived/completed-active-plans/backend-evolution/datastore-interface.md) | [AuthService Interface (archived spec)](../../08-archived/completed-active-plans/backend-evolution/auth-service-interface.md) | [Current Storage Schema](../database/current-storage-schema.md) | [Supabase Schema](../database/supabase-schema.md) | [Auth/Data/Sync Runtime Architecture](./auth-data-sync-architecture.md)
 
 ## Executive Summary
 
@@ -27,10 +29,11 @@ A user can be signed in but still use local mode. This is the **correct design**
 
 | User State | Mode | Sync | Storage | Limits |
 |------------|------|------|---------|--------|
-| No account | Local | OFF | IndexedDB | None |
-| Free account (signed in) | Local | OFF | IndexedDB | None |
-| Subscriber + sync OFF | Local | OFF | IndexedDB | None |
-| Subscriber + sync ON | Cloud | ON | Supabase | None |
+| No account (web/PWA only) | Local | OFF | IndexedDB | None |
+| Signed in, sync OFF (web/PWA only) | Local | OFF | IndexedDB | None |
+| Signed in, sync ON (always in the Google Play app) | Cloud | ON | IndexedDB first, synced to Supabase | None |
+
+No subscription is required for any row while monetization is parked.
 
 ### Implementation Status (January 2026)
 
@@ -205,8 +208,8 @@ export async function getDataStore(): Promise<DataStore> {
 #### 4. Interface Layer (NEW)
 **Role**: Define contracts for data access and authentication
 **Interfaces**:
-- `DataStore` - Domain-oriented data operations (see [DataStore Interface](./datastore-interface.md))
-- `AuthService` - Authentication and session management (see [AuthService Interface](./auth-service-interface.md))
+- `DataStore` - Domain-oriented data operations (authoritative: `src/interfaces/DataStore.ts`)
+- `AuthService` - Authentication and session management (authoritative: `src/interfaces/AuthService.ts`)
 
 #### 5. Implementation Layer
 **Implementations**:
@@ -876,4 +879,4 @@ SELECT * FROM games WHERE season_id = 'season_123';
 **Next Steps**:
 1. Review [Migration Strategy](../../08-archived/completed-active-plans/backend-evolution/migration-strategy.md) for data transformation details
 2. Check [Phased Implementation Roadmap](../../08-archived/completed-active-plans/backend-evolution/phased-implementation-roadmap.md) for execution plan
-3. See [Master Execution Guide](../../03-active-plans/master-execution-guide.md) for integration with overall roadmap
+3. See [Master Execution Guide](../../08-archived/completed-active-plans/master-execution-guide.md) for integration with overall roadmap

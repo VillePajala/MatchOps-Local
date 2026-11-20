@@ -1,5 +1,7 @@
 # Adaptive Start Screen
 
+> **Archived 2026-11-20 (from docs/04-features/):** obsolete - the two-mode start screen was replaced by the redesigned Home (basic/full layouts; tabs Pelit/Seura/Kilpailut/Tilastot).
+
 ## Overview
 Dual-mode start screen interface that intelligently adapts between first-time user and experienced user layouts based on app data state.
 

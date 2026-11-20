@@ -1,7 +1,7 @@
 # MatchOps Monetization Strategy
 
-**Status:** Authoritative (canonical monetization reference)
-**Last Updated:** February 2026
+**Status:** Authoritative (canonical monetization reference). **Monetization is parked** - the app is free. Billing code exists but enforcement is off (`PREMIUM_ENFORCEMENT_ENABLED = false`); the billing plan is archived in [`docs/08-archived/completed-active-plans/billing-implementation-plan.md`](../08-archived/completed-active-plans/billing-implementation-plan.md).
+**Last Updated:** November 2026
 
 ---
 
@@ -15,12 +15,12 @@ MatchOps launches **completely free** to maximize adoption and build reputation.
 
 ## Strategy: Free Launch → Optional Paid Later
 
-### Phase 1: Launch (Current)
+### Phase 1: Launch (Current - live on Google Play since 2026-06-09)
 
 | Tier | Price | Features |
 |------|-------|----------|
-| Local | Free | Full app, all features, data in browser |
-| Cloud | Free | Backup + sync (while on Supabase free tier) |
+| Local | Free | Full app, all features, data in browser (web only - "Start without an account") |
+| Cloud | Free | Backup + sync (while on Supabase free tier). The Play build is cloud-only: users sign in. |
 
 **Rationale:**
 - Zero friction for adoption

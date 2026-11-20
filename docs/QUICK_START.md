@@ -1,98 +1,94 @@
 # Quick Start Guide
 
-**Get running your first game in under 5 minutes**
+**From install to your first match plan in a few minutes.** MatchOps works for both
+football (soccer) and futsal. The full guide is on the website:
+[English](https://match-ops.com/en/guide) · [suomeksi](https://match-ops.com/guide).
 
 ---
 
-## Step 1: Add Your Players (2 minutes)
+## Step 1: Create a free account
 
-1. Open the **Menu** (hamburger icon, bottom right)
-2. Tap **"Manage Roster"**
-3. Tap **"+ Add Player"**
-4. Enter: Name, Jersey Number
-5. Tap **Save**
-6. Repeat for your starting lineup (minimum 5-11 players)
+1. Install MatchOps from Google Play (or open [app.match-ops.com](https://app.match-ops.com) in a
+   browser and add it to your home screen).
+2. The first screen reads **"Plan, rotate, record."** Tap **Create a free account**
+   (or **Sign in** if you already have one).
+3. Enter your email and a password (at least 8 characters), accept the Terms of Service
+   and Privacy Policy, then type in the verification code the app emails you.
 
-**Tip:** Use short nicknames - they display better on player discs.
-
----
-
-## Step 2: Create a Game (1 minute)
-
-1. Open **Menu → New Game**
-2. Enter:
-   - Your team name
-   - Opponent name
-   - Game date (defaults to today)
-3. Tap **"Start Game"**
+Once signed in, the app also works without a connection - changes sync when you are back
+online.
 
 ---
 
-## Step 3: Set Your Lineup (1 minute)
+## Step 2: Your team and players (setup wizard)
 
-**Option A: Select and Place**
-- Tap a player in the bar to select them, then tap on the field to place them
-- Reposition players by tapping and dragging them on the field
+A new account opens a short two-step setup:
 
-**Option B: Use Formation Picker**
-1. Tap players in the bottom bar to select them
-2. Tap the **Formation** button (grid icon)
-3. Choose a formation (4-3-3, 4-4-2, etc.)
-4. Players auto-place on field
+1. **Your team** - team name, sport (**Football** or **Futsal**), optional age group and
+   the format (e.g. 5v5 or 8v8). Tap **Continue**.
+2. **Players** - type names one at a time, or use **Paste from clipboard** to add a whole
+   list (one name per line; leading numbers such as "7." or "#12" are removed). First
+   names are enough. Tap **Done**, or **Skip, I'll do this later**.
 
 ---
 
-## Step 4: Start the Game (30 seconds)
+## Step 3: Your first plan
 
-1. Tap the **Timer** (shows 00:00)
-2. Timer overlay opens
-3. Tap **Start**
-4. Timer begins counting
+The app asks **When is the next game?** Pick the date and (optionally) the opponent, then
+tap **Make the plan**.
 
-**Close the overlay** - timer keeps running in the background.
+The **Plan** screen shows who starts where, who is in goal and when the changes happen.
 
----
+- **Swap two players** - tap one, then the other
+- **Shuffle again** - a new suggestion
+- **Detailed editing** - opens the full Match planner
 
-## During the Game
-
-### Record a Goal
-- Tap the **score** in the top bar
-- Tap **+** for the team that scored
-
-### Make a Substitution
-- Tap a player on the field, then tap **Remove** to send them to the bench
-- Tap a substitute in the Player Bar, then tap an empty spot on the field to place them
-
-### Pause for Stoppage
-- Tap timer → Tap **Pause**
+Tap **Looks good** to go to Home.
 
 ---
 
-## After the Game
+## Step 4: Home
 
-### Save Your Game
-- **Menu → Save**
-- Or just close the app (auto-saves)
+New accounts start in the **basic layout**. The **Next game** card shows the date, the
+opponent and the rotation:
 
-### View Stats
-- **Menu → Stats**
+- **Start the match** (on match day) or **Mark who is away** (other days) - both first
+  open **Who is here?**, where you mark absent players
+- **Show rotation** - edit the plan
+- **Share** - send the plan as text, e.g. to the team chat
 
----
-
-## That's It!
-
-You're ready to track your games. For more features:
-- **Menu → How It Works** - In-app help
-- **[User guide](/en/guide)** - Complete guide ([suomeksi](/guide))
+Below the card: **Team**, **All games**, **Statistics** and **New game**. **All features**
+shows what the full layout adds (Home tabs **Games**, **Club**, **Competitions** and
+**Stats**). Switch any time: gear → **Settings** → **Layout**.
 
 ---
 
-## Quick Tips
+## Step 5: During the match
 
-| Want to... | Do this |
-|------------|---------|
-| Undo a mistake | Tap Tactics → Undo button |
-| Draw plays | Tap Tactics button |
-| Clear the field | Tap Reset (trash icon) |
-| Load old game | Menu → Load Game |
-| Export data | Menu → Backup & Restore |
+The match opens on the pitch with the starting line-up already placed.
+
+- **Place a player:** tap the player in the player bar, then tap the spot on the pitch
+- **Remove from the pitch:** double-tap the player
+- **Clock:** tap the clock in the middle of the control bar → **Start**
+- **Goal for us:** on the large clock; then pick the scorer and assister (or **Skip**)
+- **Opponent +1:** on the large clock, then confirm
+- **Next change:** when the game has a plan, the large clock shows who goes on and who
+  comes off next
+- **Sub done** (full layout): restarts the change timer after you have made the changes
+
+Everything saves automatically. **Quick Save** in the match menu saves right now.
+
+---
+
+## Step 6: After the match
+
+At full time the large clock shows **Finish this game** - a checklist for the result,
+goals and the match report. Statistics update on Home under **Statistics**.
+
+---
+
+## More
+
+- **[User guide](https://match-ops.com/en/guide)** ([suomeksi](https://match-ops.com/guide)) -
+  the complete, maintained guide
+- In the app: gear → **Settings** for language, layout and account

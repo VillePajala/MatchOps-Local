@@ -8,13 +8,13 @@ This documentation covers everything about the MatchOps-Local project - what it 
 
 ## ✅ Project Status: Production Ready
 
-**Last Updated**: 2026-11-17
+**Last Updated**: 2026-11-20
 
 | Category | Status |
 |----------|--------|
 | Codebase Health | ✅ Excellent (~7,700 tests, page.tsx orchestrator with 9 extracted hooks) |
 | Security | ✅ 0 vulnerabilities |
-| Framework | ✅ **Next.js 16.0.10 + React 19.2** |
+| Framework | ✅ **Next.js 16.3 + React 19.2** |
 | Cloud Backend | ✅ **Supabase** (PostgreSQL, Auth, Edge Functions) |
 | Performance | ✅ React.memo optimization complete |
 
@@ -34,8 +34,7 @@ All P0/P1/P2 refactoring and cloud backend work is **complete**. The app is **li
 ## 🚀 Quick Navigation
 
 ### ⭐ **Start Here** (For Developers)
-- **[03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md)** - 📊 **Single source of truth** for all project work
-- **[03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md)** - what is open and what is done (the Play Store release plan is archived)
+- **[03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md)** - 📊 **Single source of truth** for all project work: what is open and what is done (the Play Store release plan is archived)
 - **[01-project/overview.md](./01-project/overview.md)** - What MatchOps-Local is and why it exists
 
 ### 📂 **Documentation Categories**
@@ -48,11 +47,11 @@ All P0/P1/P2 refactoring and cloud backend work is **complete**. The app is **li
    - Data freshness & modal data flow: see [02-technical/data-freshness-and-modal-data-flow.md](./02-technical/data-freshness-and-modal-data-flow.md)
    - **Current Implementation**: [IndexedDB Schema](./02-technical/database/current-storage-schema.md) | [Architecture](./02-technical/architecture.md)
    - **✅ Dual-Backend Architecture** (Local + Cloud with Supabase)
-     - [Architecture Overview](./02-technical/architecture/dual-backend-architecture.md) | [Supabase Schema](./02-technical/database/supabase-schema.md) | [DataStore Interface](./02-technical/architecture/datastore-interface.md) | [AuthService Interface](./02-technical/architecture/auth-service-interface.md)
+     - [Architecture Overview](./02-technical/architecture/dual-backend-architecture.md) | [Supabase Schema](./02-technical/database/supabase-schema.md) | Interfaces: `src/interfaces/DataStore.ts`, `src/interfaces/AuthService.ts` (the old interface specs are archived)
    - **Supabase Implementation Guide**: [supabase-implementation-guide.md](./02-technical/supabase-implementation-guide.md) — Transform rules and implementation reference
 
 3. **[03-active-plans/](./03-active-plans/)** - Active Plans & Current Status ⭐
-   - Master execution guide, roadmaps, Play Store release checklists
+   - Unified roadmap and the plans for work still open (completed plans move to `08-archived/completed-active-plans/`)
 
 4. **[04-features/](./04-features/)** - Feature Specifications
    - Detailed feature specs and implementation plans
@@ -64,13 +63,13 @@ All P0/P1/P2 refactoring and cloud backend work is **complete**. The app is **li
    - Testing strategy, E2E guide, manual testing, maintenance
 
 7. **[07-business/](./07-business/)** - Business & Monetization
-   - Monetization strategies, paywall implementation
+   - Monetization strategies (parked: the app is free), store listing, infrastructure map
 
 8. **[08-archived/](./08-archived/)** - Archived Documentation ⚠️
    - Completed work, superseded plans, historical reference (IndexedDB foundation, bug fixes, code reviews)
 
 9. **[09-specifications/](./09-specifications/)** - Formal Specifications
-   - Software requirements, UI design documents
+   - Formal specifications (linked entities and game sync)
 
 10. **[10-analysis/](./10-analysis/)** - Technical Analysis
     - Technical research and analysis documents
@@ -90,13 +89,13 @@ All P0/P1/P2 refactoring and cloud backend work is **complete**. The app is **li
 ## 🔑 Key Project Differentiators
 
 ### **1. Local-First Architecture**
-All data stays on the coach's device, ensuring complete privacy, instant performance, and offline reliability - revolutionary for youth sports applications.
+Every change is saved on the coach's device first, ensuring instant performance and offline reliability. Local mode (web/PWA) keeps all data on the device; cloud mode (required in the Google Play app) syncs it to Supabase in the background.
 
 ### **2. Soccer-Specific Design**
 Purpose-built for soccer coaching workflows with interactive field, tactics board, comprehensive statistics, and season management.
 
-### **3. Flexible Pricing**
-Free local mode with no subscriptions. Optional cloud sync available for cross-device access.
+### **3. Free**
+The app is free, cloud sync included. Monetization is parked (billing code exists but enforcement is off).
 
 ### **4. Professional Feature Set**
 Advanced analytics, multi-team management, performance tracking, and comprehensive backup capabilities typically only found in expensive enterprise solutions.
@@ -164,8 +163,7 @@ In youth sports, where we handle sensitive information about minors, the local-f
 3. Explore [04-features/](./04-features/) - Feature specifications
 
 ### **Planning Work?**
-1. Check [03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md) ⭐ - Single source of truth
-2. Review [03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md) - prioritized roadmap
+1. Check [03-active-plans/UNIFIED-ROADMAP.md](./03-active-plans/UNIFIED-ROADMAP.md) ⭐ - Single source of truth (prioritized roadmap)
 
 ## 🔄 Documentation Maintenance
 
@@ -174,7 +172,7 @@ This project documentation is:
 - **Accurate**: Maintained in sync with actual implementation
 - **Comprehensive**: Covers all aspects of project vision and execution
 - **Accessible**: Written for both technical and non-technical audiences
-- **Organized**: Numbered directories (01-10) for logical navigation
+- **Organized**: Numbered directories (01-11) for logical navigation
 
 ## 💬 Feedback & Improvements
 

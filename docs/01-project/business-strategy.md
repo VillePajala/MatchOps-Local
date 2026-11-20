@@ -24,7 +24,7 @@ MatchOps is envisioned as a family of local-first soccer coaching tools, each fo
 
 | Product | Purpose | Status |
 |---------|---------|--------|
-| **MatchOps-Local** | Real-time game tracking, player management, match statistics | Pre-launch |
+| **MatchOps-Local** | Real-time game tracking, player management, match statistics | Live (Google Play since 2026-06-09, free) |
 | **MatchOps Practice** (working title) | Soccer practice/training session design and planning | Idea stage |
 | **MatchOps Analyzer** (working title) | Multi-coach data aggregation and team-wide statistics | Concept (see [ADR-003](../05-development/architecture-decisions/ADR-003-data-aggregation-external-tooling.md)) |
 

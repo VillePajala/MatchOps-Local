@@ -1,5 +1,7 @@
 # Seasons and Tournaments - Decoupled Architecture
 
+> **Note (2026-11-20):** Code snippets and line numbers below are from late 2025 and illustrative only. Storage now goes through the DataStore layer (`LocalDataStore` on IndexedDB; `SyncedDataStore` + Supabase in cloud mode) - check `src/datastore/` for current code.
+
 This document details how seasons and tournaments operate independently from team rosters in MatchOps-Local, providing a flexible system for organizing games without tight coupling to specific teams.
 
 ## Architecture Overview
@@ -61,7 +63,7 @@ export interface Tournament {
 
 ## Storage Implementation
 
-### localStorage Keys
+### Storage Keys (IndexedDB key-value store, via LocalDataStore)
 **File**: `/src/config/storageKeys.ts`
 - `SEASONS_LIST_KEY` = 'seasons_list' - All seasons data
 - `TOURNAMENTS_LIST_KEY` = 'tournaments_list' - All tournaments data

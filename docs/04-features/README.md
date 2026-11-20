@@ -13,7 +13,7 @@ This directory contains detailed specifications for individual features and syst
 ### Team & Player Management
 - **[team-management.md](./team-management.md)** - Multi-team support and team organization
 - **[master-roster-management.md](./master-roster-management.md)** - Central player roster system
-- **[player-assessment.md](./player-assessment.md)** - 10-dimension player performance ratings
+- **[player-assessment.md](./player-assessment.md)** - Template-based player ratings (10 metrics by default)
 - **[personnel-management.md](./personnel-management.md)** - Staff and personnel tracking
 
 ### Organization
@@ -24,14 +24,10 @@ This directory contains detailed specifications for individual features and syst
 ### Data Management
 - **[backup-restore.md](./backup-restore.md)** - Full backup and restore functionality
 - **[game-import.md](./game-import.md)** - Import games from JSON exports
-- **[external-matches.md](./external-matches.md)** - Import games from external sources
+- **[external-matches.md](./external-matches.md)** - Player stat adjustments for games played outside the app
 
 ### User Experience
-- **[adaptive-start-screen.md](./adaptive-start-screen.md)** - Context-aware user experience
-- **[first-game-onboarding.md](./first-game-onboarding.md)** - New user guidance
-- **[how-it-works-help.md](./how-it-works-help.md)** - In-app help system
-- **[smart-roster-detection.md](./smart-roster-detection.md)** - Intelligent roster suggestions
-- **[robust-alert-system.md](./robust-alert-system.md)** - User notifications and alerts
+The older start-screen, first-game overlay, help-modal, roster-guard and native-alert specs were archived on 2026-11-20 to [`../08-archived/completed-features/`](../08-archived/completed-features/) - they described UI replaced by the 2026-11 redesign and onboarding v3.
 
 ### Tactical Features
 - **[tactics-field-variations.md](./tactics-field-variations.md)** - Tactics view field layouts
@@ -44,10 +40,11 @@ System-level features that handle data integrity and PWA behavior:
 - **[app-resume.md](./app-resume.md)** - Mobile app background recovery
 - **[storage-migration.md](./storage-migration.md)** - localStorage to IndexedDB migration
 - **[pwa-updates.md](./pwa-updates.md)** - PWA update detection and management
+- **[sync-system.md](./sync-system.md)** - Local-first cloud sync (SyncQueue/SyncEngine)
 
 ## Platform Integration
 
-- **[play-billing-implementation.md](./play-billing-implementation.md)** - Google Play billing
+- **[play-billing-implementation.md](./play-billing-implementation.md)** - Google Play billing (parked - the app is free)
 
 ## Document Structure
 

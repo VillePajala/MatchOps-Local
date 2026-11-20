@@ -4,6 +4,8 @@
 **Status**: PRs 1-11 Complete, Local-First Sync Complete
 **Last Updated**: January 26, 2026 (v1.12.0: Local-first sync merged via PR #324, all core cloud infrastructure complete)
 
+> **Reading this guide today (2026-11-20)**: Sections 1-9 are the original build plan. Everything marked **[TO BUILD]** is built, and the counts there (tests, tables, line counts) are as of January 2026 - today the suite has ~7,700 tests and the schema runs to migration 063 (see [supabase-schema.md](./database/supabase-schema.md)). The transform rules are kept current in the root `CLAUDE.md` (Critical Implementation Rules). Section 10 (infrastructure, deploy, backup restore in 10.11) is maintained.
+
 ---
 
 ## ⚠️ BEFORE YOU START: Verification Resources
@@ -12,10 +14,10 @@ This plan has been **verified against actual source code**. Use these companion 
 
 | Document | Purpose | When to Use |
 |----------|---------|-------------|
-| **[supabase-preflight-checklist.md](./supabase-preflight-checklist.md)** | PR-by-PR checklists | ✅ **Before & during each PR** |
-| **[supabase-live-verification-report.md](./supabase-live-verification-report.md)** | Proof that plan matches code | When you need confidence |
-| **[supabase-verification-matrix.md](./supabase-verification-matrix.md)** | Field-by-field type mappings | During transform coding |
-| **[scripts/verify-supabase-plan.ts](../../../scripts/verify-supabase-plan.ts)** | Automated verification | Run before each PR |
+| **[supabase-preflight-checklist.md](../08-archived/completed-active-plans/supabase-preflight-checklist.md)** | PR-by-PR checklists | ✅ **Before & during each PR** |
+| **[supabase-live-verification-report.md](../08-archived/completed-active-plans/supabase-live-verification-report.md)** | Proof that plan matches code | When you need confidence |
+| **[supabase-verification-matrix.md](../08-archived/completed-active-plans/supabase-verification-matrix.md)** | Field-by-field type mappings | During transform coding |
+| **[scripts/verify-supabase-plan.ts](../../scripts/verify-supabase-plan.ts)** | Automated verification | Run before each PR |
 
 ### Before Starting ANY PR
 
@@ -199,7 +201,7 @@ For **each** PR, the process is:
 
 **Branch**: `supabase/pr1-foundation`
 **Depends on**: Nothing (first PR)
-**📋 Pre-flight**: See [supabase-preflight-checklist.md](./supabase-preflight-checklist.md#pr-1-foundation--configuration)
+**📋 Pre-flight**: See [supabase-preflight-checklist.md](../08-archived/completed-active-plans/supabase-preflight-checklist.md#pr-1-foundation--configuration)
 
 **Files to Create**:
 ```
@@ -233,7 +235,7 @@ package.json                         # Add @supabase/supabase-js dependency
 
 **Branch**: `supabase/pr2-supabase-client`
 **Depends on**: PR #1 merged
-**📋 Pre-flight**: See [supabase-preflight-checklist.md](./supabase-preflight-checklist.md#pr-2-supabase-client--types)
+**📋 Pre-flight**: See [supabase-preflight-checklist.md](../08-archived/completed-active-plans/supabase-preflight-checklist.md#pr-2-supabase-client--types)
 
 **Files to Create**:
 ```
@@ -260,7 +262,7 @@ src/datastore/supabase/index.ts      # Barrel export
 
 **Branch**: `supabase/pr3-datastore-core`
 **Depends on**: PR #2 merged
-**📋 Pre-flight**: See [supabase-preflight-checklist.md](./supabase-preflight-checklist.md#pr-3-supabasedatastore-core)
+**📋 Pre-flight**: See [supabase-preflight-checklist.md](../08-archived/completed-active-plans/supabase-preflight-checklist.md#pr-3-supabasedatastore-core)
 
 > ⚠️ **Critical**: This PR implements composite uniqueness rules. Before coding, read the "Critical Behavior Parity Checks" section in the preflight checklist.
 
@@ -311,7 +313,7 @@ src/datastore/index.ts               # Export SupabaseDataStore
 
 **Branch**: `supabase/pr4-datastore-games`
 **Depends on**: PR #3 merged
-**📋 Pre-flight**: See [supabase-preflight-checklist.md](./supabase-preflight-checklist.md#pr-4-supabasedatastore-games)
+**📋 Pre-flight**: See [supabase-preflight-checklist.md](../08-archived/completed-active-plans/supabase-preflight-checklist.md#pr-4-supabasedatastore-games)
 
 > ⚠️ **MOST CRITICAL PR**: This implements the game transforms (5 tables). The preflight checklist has **detailed transform verification checklists** for:
 > - Empty string → NULL (10 fields)
@@ -321,7 +323,7 @@ src/datastore/index.ts               # Export SupabaseDataStore
 > - Event ordering via order_index
 > - Assessment slider flattening
 >
-> **Reference**: Use [supabase-verification-matrix.md](./supabase-verification-matrix.md) for field-by-field mappings.
+> **Reference**: Use [supabase-verification-matrix.md](../08-archived/completed-active-plans/supabase-verification-matrix.md) for field-by-field mappings.
 
 **Pre-requisite: Generate Supabase Types**
 ```bash
@@ -379,7 +381,7 @@ src/datastore/SupabaseDataStore.ts   # Add game methods
 
 **Branch**: `supabase/pr5-auth-service`
 **Depends on**: PR #2 merged (can parallel with PR #3-4)
-**📋 Pre-flight**: See [supabase-preflight-checklist.md](./supabase-preflight-checklist.md#pr-5-supabaseauthservice--auth-ui)
+**📋 Pre-flight**: See [supabase-preflight-checklist.md](../08-archived/completed-active-plans/supabase-preflight-checklist.md#pr-5-supabaseauthservice--auth-ui)
 
 **Files to Create**:
 ```
@@ -435,7 +437,7 @@ src/public/locales/fi/common.json        # Add auth translation keys (Finnish)
 
 **Branch**: `supabase/pr6-migration`
 **Depends on**: PR #4 and PR #5 merged
-**📋 Pre-flight**: See [supabase-preflight-checklist.md](./supabase-preflight-checklist.md#pr-6-migration-service)
+**📋 Pre-flight**: See [supabase-preflight-checklist.md](../08-archived/completed-active-plans/supabase-preflight-checklist.md#pr-6-migration-service)
 
 **Files to Create**:
 ```
@@ -464,7 +466,7 @@ src/components/MigrationProgress.tsx       # Progress indicator (optional)
 
 **Branch**: `supabase/pr7-performance`
 **Depends on**: PR #4 merged
-**📋 Pre-flight**: See [supabase-preflight-checklist.md](./supabase-preflight-checklist.md#pr-7-performance--queryprovider)
+**📋 Pre-flight**: See [supabase-preflight-checklist.md](../08-archived/completed-active-plans/supabase-preflight-checklist.md#pr-7-performance--queryprovider)
 
 **Files to Modify**:
 ```
@@ -495,7 +497,7 @@ src/utils/optimistic.ts              # Shared optimistic update helpers (optiona
 
 **Branch**: `supabase/pr8-integration`
 **Depends on**: All previous PRs merged
-**📋 Pre-flight**: See [supabase-preflight-checklist.md](./supabase-preflight-checklist.md#pr-8-integration--final-polish)
+**📋 Pre-flight**: See [supabase-preflight-checklist.md](../08-archived/completed-active-plans/supabase-preflight-checklist.md#pr-8-integration--final-polish)
 
 > ⚠️ **Final Gate**: Before merging to master, run the **complete verification suite** in the preflight checklist "Final Checklist Before Master Merge" section.
 
@@ -4544,7 +4546,7 @@ async upsertPlayerAdjustment(adjustment: ...): Promise<PlayerStatAdjustment> {
 
 This PR enables users to downgrade from cloud mode to local mode while keeping their data, and provides cloud account management accessible from local mode.
 
-> **Full Plan**: See [pr11-reverse-migration-plan.md](./pr11-reverse-migration-plan.md) for detailed design.
+> **Full Plan**: See [pr11-reverse-migration-plan.md](../08-archived/completed-active-plans/pr11-reverse-migration-plan.md) for detailed design.
 
 #### Key Features
 

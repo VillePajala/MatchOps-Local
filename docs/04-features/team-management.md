@@ -1,5 +1,7 @@
 # Team Management - Multi-Team Architecture
 
+> **Note (2026-11-20):** Code snippets and line numbers below are from late 2025 and illustrative only. Storage now goes through the DataStore layer (`LocalDataStore` on IndexedDB; `SyncedDataStore` + Supabase in cloud mode) - check `src/datastore/` for current code.
+
 This document details the multi-team architecture, team CRUD operations, player assignment, and UI management components in MatchOps-Local.
 
 ## Architecture Overview
@@ -51,7 +53,7 @@ export interface TeamPlayer {
 
 ## Storage Implementation
 
-### localStorage Keys
+### Storage Keys (IndexedDB key-value store, via LocalDataStore)
 **File**: `/src/config/storageKeys.ts`
 - `TEAMS_INDEX_KEY` - All teams metadata
 - `TEAM_ROSTERS_KEY` - All team rosters data
@@ -434,6 +436,8 @@ interface TeamManagerModalProps {
 
 ### TeamRosterModal Component
 **File**: `/src/components/TeamRosterModal.tsx`
+
+> **Historical (removed 2025-11-02):** `TeamRosterModal` and `TeamDetailsModal` were replaced by `src/components/UnifiedTeamModal.tsx`. The snippets below show the old implementation.
 
 Interface for managing individual team rosters:
 

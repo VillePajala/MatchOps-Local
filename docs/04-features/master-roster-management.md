@@ -1,5 +1,7 @@
 # Master Roster Management (Roster Settings Modal)
 
+> **Note (2026-11-20):** The CSS/colour values below (slate/indigo) predate the 2026-11 "Syke Refined" redesign and are no longer accurate; for current styling and behaviour read `src/components/RosterSettingsModal.tsx`.
+
 ## Overview
 Full-screen modal interface for managing the master player roster with basic search functionality, individual player CRUD operations, and player statistics access.
 

@@ -31,8 +31,8 @@ In local mode, MatchOps-Local is a **local-first Progressive Web App** with a fu
 
 **Network Communication:**
 - **PWA updates**: Standard HTTPS (handled by browser)
-- **License validation**: Play Store API (HTTPS, managed by Google)
-- **Error reporting**: Sentry (opt-in, HTTPS)
+- **License validation**: none today (monetization parked; billing code exists but `PREMIUM_ENFORCEMENT_ENABLED = false`)
+- **Error reporting**: Sentry (HTTPS; on by default, the user can turn it off in Settings)
 - **User game data**: NEVER transmitted
 
 ### Security Priorities
@@ -47,7 +47,7 @@ In local mode, MatchOps-Local is a **local-first Progressive Web App** with a fu
    - Secure update mechanism
    - Manifest validation
 
-3. **License Protection** (Medium Priority)
+3. **License Protection** (Parked with monetization; applies only if billing is enforced)
    - Play Store purchase verification
    - Local license caching (tamper detection)
    - Offline grace period for license checks
@@ -126,7 +126,7 @@ CREATE POLICY "Users can delete own games"
 - Validates JWT at code level (not gateway) for compatibility with asymmetric keys
 - Verifies Play Store purchase tokens via Google Play Developer API
 - Creates/updates subscription records in database
-- Rate limited by Supabase infrastructure
+- Rate limited via the `check_rate_limit()` RPC (migration 024)
 
 **delete-account:**
 - Requires valid JWT authentication
@@ -215,15 +215,13 @@ CREATE POLICY "Users can delete own games"
 ## Content Security Policy (CSP)
 
 ### Current Status
-- CSP headers are planned but not yet enabled in `next.config.ts`.
-- Implementation is tracked in PRODUCTION_READINESS_FIX_PLAN.md §1 and sequenced as Phase P1 in MASTER_EXECUTION_GUIDE.md.
+- CSP is enabled: `next.config.ts` sends a `Content-Security-Policy` header (plus `X-Frame-Options: DENY` and other security headers) on every response.
+- Violations are reported via `report-to csp-endpoint` and `report-uri /api/csp-report`.
+- **The live directives are the ones in `next.config.ts`** (each `connect-src` host is commented there: Supabase, Sentry, `play.googleapis.com`, `api.openai.com` for Kirjuri BYOK, `www-assets.palloliitto.fi`, `photon.komoot.io`).
 
-### CSP Headers Configuration (Planned)
-Will be implemented via Next.js security headers to prevent XSS and unauthorized resource loading.
+### Allowed Sources (Original Target Policy, Superseded)
 
-### Allowed Sources (Target Policy for Local-First PWA)
-
-**Appropriate CSP for our architecture:**
+The policy as first designed, kept for its reasoning. It differs from the live policy (e.g. live `img-src` / `font-src` are `'self'` only, and `connect-src` allows the hosts listed above):
 ```
 default-src 'self';
 script-src 'self' 'unsafe-inline' 'unsafe-eval';  # Next.js requirements
@@ -250,22 +248,21 @@ Note: Demo files under `public/demos/` may reference external fonts (Google Font
 ## Data Protection
 
 ### Client-Side Data Handling
-- All game data stored locally via the DataStore abstraction (IndexedDB backend via LocalDataStore)
-- **Data never transmitted**: Game scores, player names, statistics stay on device
-- No sensitive user data collected (no PII, financial, or health data)
-- Optional email in error reports only (explicit consent required)
+- All game data is saved locally first via the DataStore abstraction (IndexedDB via LocalDataStore)
+- **Local mode**: game scores, player names and statistics stay on the device
+- **Cloud mode** (required in the Google Play app): the same data also syncs to Supabase (EU region), protected by auth + RLS
+- No sensitive user data collected (no financial or health data)
 
 ### Privacy-First Data Policy
-- **What stays local**: Game data, scores, player rosters, team configurations
-- **What's transmitted**: License status checks, error reports (opt-in), PWA updates
+- **What stays local** (local mode): Game data, scores, player rosters, team configurations
+- **What's transmitted**: cloud sync (cloud mode), error reports (Sentry; on by default, one switch in Settings turns them off - `diagnosticsEnabled`, migration 063), PWA updates
 - **No behavioral tracking**: Feature usage, user patterns, or analytics NOT collected
 - **User data ownership**: Complete control, export capability, no cloud lock-in
 
 ### Error Reporting Security
 - Error messages sanitized before sending to Sentry
 - No game data (scores, players) in error reports
-- User emails only collected with explicit consent
-- Error reporting can be completely disabled by user
+- Error reporting can be completely disabled by the user (Settings, "Error reporting and usage statistics"; `src/utils/diagnosticsPreference.ts`)
 
 ## Build Security
 
@@ -284,7 +281,7 @@ Note: Demo files under `public/demos/` may reference external fonts (Google Font
 ### Before Production Deployment
 - [ ] Sentry DSN configured for production project
 - [ ] SENTRY_AUTH_TOKEN set as server-side only variable
-- [ ] CSP headers configured and tested
+- [ ] CSP headers (in `next.config.ts`) still allow every host the release needs
 - [ ] Environment variables validated
 - [ ] No secrets in client bundle (verify with build inspection)
 - [ ] Security audit passed (npm audit)

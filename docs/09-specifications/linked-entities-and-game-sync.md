@@ -1,5 +1,7 @@
 # Linked Entities: Live Name Resolution
 
+> **Status (verified 2026-11-20): implemented.** `src/utils/entityLookup.ts` (`createEntityMaps`, `getDisplayNames`) exists and is used, and full backups include teams (`TEAMS_INDEX_KEY` in `src/utils/fullBackup.ts`). The "Current Behavior (Buggy)" and backup-bug sections describe the state before the fix; file paths in the plan (e.g. `ControlBar.test.tsx`) may have changed since.
+
 ## Context
 
 - We recently refactored modal data flows to consume React Query–driven props (no on-open storage reads), fixing stale modal state and improving responsiveness.

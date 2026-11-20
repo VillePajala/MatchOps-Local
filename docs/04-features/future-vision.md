@@ -428,7 +428,7 @@ Coach: "Goal, Matti, assist from Ville, 23 minutes"
 
 - [Dual-Backend Architecture](../02-technical/architecture/dual-backend-architecture.md)
 - [Technology Decisions](../02-technical/technology-decisions.md)
-- [Supabase Implementation Guide](../03-active-plans/supabase-implementation-guide.md)
+- [Supabase Implementation Guide](../02-technical/supabase-implementation-guide.md)
 
 ---
 

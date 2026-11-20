@@ -1,6 +1,6 @@
 # Play Store Listing Assets
 
-This directory contains all assets and text needed for the Google Play Store listing.
+Google Play Store listing reference. MatchOps is live on Google Play (released 2026-06-09; current version 1.0.9, versionCode 20, live 2026-11-20, with the new badge icon). The Play build is cloud-only: users must sign in.
 
 ## Required Assets
 
@@ -8,7 +8,7 @@ This directory contains all assets and text needed for the Google Play Store lis
 - [x] 512x512 PNG (high-res icon) - `public/icons/play-store-icon-512.png` (generated; see twa-build-guide.md "Icon source of truth")
 
 ### Feature Graphic
-- [ ] 1024x500 PNG - Required for store listing
+- [x] 1024x500 PNG - an early version is in `public/screenshots/play-store/feature-graphic.png` (2025-12); the one live in the Play Console may be newer
 
 ### Screenshots (Phone)
 Required: 2-8 screenshots
@@ -27,15 +27,7 @@ Required: 2-8 screenshots
 
 ## Store Listing Text
 
-See [store-description-en.md](./store-description-en.md) for full listing text.
-
-### Short Description (80 chars max)
-```
-Soccer game timer & tactics app for coaches. Track lineups, stats & gameplay.
-```
-
-### Full Description (4000 chars max)
-See the full description file.
+The current listing texts are [`docs/04-features/store-listing-en.txt`](../../04-features/store-listing-en.txt) and [`docs/04-features/store-listing-fi.txt`](../../04-features/store-listing-fi.txt). The old English description that used to live here is archived at [`docs/08-archived/store-description-en.md`](../../08-archived/store-description-en.md).
 
 ## Content Rating
 
@@ -46,7 +38,7 @@ See the full description file.
 - Sexual Content: None
 - Language: None
 - Controlled Substances: None
-- User-Generated Content: No (local data only)
+- User-Generated Content: No (coach's own data in a private account; nothing is shared between users)
 - Location Sharing: No
 - Ads: No
 
@@ -57,75 +49,80 @@ Expected Rating: **Everyone (E)**
 ### Privacy Policy URL
 **Required**: Must be hosted publicly
 
-Key points for privacy policy:
-- Local-first app - data stays on device
-- No user accounts in local mode
-- No personal data collected except:
-  - Player names (user-entered, stored locally)
-  - Optional: Error reports via Sentry (anonymized)
-- Future: License validation via Play Store API
+Live at https://match-ops.com/privacy-policy (redirects to the site's `/privacy`). Version 2026-11. Snapshot: [privacy-policy.md](./privacy-policy.md).
 
 ### Terms of Service URL
-Optional but recommended
+Live at https://match-ops.com/terms. Version 2026-11. Snapshot: [terms-of-service.md](./terms-of-service.md).
 
-### Data Safety form (Play Console, owner-only) - checklist as of 2026-09-21
+### Data Safety form (Play Console, owner-only) - answers as of 2026-11-20
 
-The declaration predates venue coordinates (migrations 047/048), the venue
-search and the BYOK AI. Declare this, in the console's own categories:
+Checked against the code and the 2026-11 policy. The Play build is cloud-only
+(sign-in required); local mode is not in the Play build.
 
-**Collected (sent off the device to us, i.e. Supabase in cloud mode)**
-- Personal info → **Name**: player names, coach-entered. Required for the
-  app's function. Not used for advertising.
-- Personal info → **Email address**: the account. Required (cloud mode).
-- App activity → **Other user-generated content**: matches, lineups, events,
-  notes, venue names and addresses, venue coordinates the coach pinned.
-- App info and performance → **Crash logs**: Sentry, production only.
-- NOT collected: device location (the app has no geolocation permission;
-  `Permissions-Policy: geolocation=()`), contacts, photos, financial info,
-  health info, messages, browsing history, device IDs for ads.
-
-**Shared (sent to a third party)**
-- Venue search text → **Photon (Komoot)**, only when the coach types in the
-  address field. Declare under "Other user-generated content", purpose "App
-  functionality".
-- Voice notes / text → the coach's own AI provider (OpenAI), only if they
-  connect their own key. Google exempts transfers the user initiates to a
-  provider they chose, so this can be left out of "shared" - but say so in
-  the privacy policy (done). Owner's call whether to declare it anyway.
-- Rulebook fetch → palloliitto.fi sees an ordinary web request. No user data.
-
-**Handling**
-- Encrypted in transit: yes (HTTPS everywhere).
-- Users can request deletion: yes - Settings → delete account removes cloud
-  data (edge function) and the local device copy.
-- Data collection is required, not optional, for the app to work in cloud
-  mode; local mode collects nothing.
+**Data collection and security**
+- Collects or shares required data types: yes. Encrypted in transit: yes (HTTPS).
+- Deletion: yes. Account: Settings → Data → Delete account (`delete-account`
+  edge function; consent records go with it, migration 063). Data only:
+  Settings → Data → delete cloud data. Deletion URL:
+  https://www.match-ops.com/delete-account (English: /en/delete-account).
 - Independent security review: no.
+
+**Data types** (processors Supabase, Sentry, Resend, Vercel are not "sharing")
+
+| Type | Collected / shared | Required | Purposes |
+|---|---|---|---|
+| Personal info → Email address | collected | required | App functionality, Account management, Developer communications (marketing opt-in) |
+| Personal info → Name (players, staff, coach-entered) | collected | required | App functionality |
+| Personal info → User IDs (account UUID) | collected | required | App functionality, Account management |
+| Personal info → Phone number (staff, optional field) | collected | optional | App functionality |
+| App activity → Other user-generated content (games, line-ups, events, notes, transcripts, venues, pins, starting point) | collected **and shared** (Photon: typed venue text and pin coordinates) | required | App functionality |
+| App activity → App interactions (onboarding milestones, page paths in Sentry traces) | collected | optional (diagnostics switch) | Analytics |
+| App info and performance → Crash logs | collected | optional (switch) | Analytics |
+| App info and performance → Diagnostics (traces, masked replay on error) | collected | optional (switch) | Analytics |
+| Audio → Voice recordings (only when sent to the coach's own AI provider) | collected, not shared | optional | App functionality |
+
+**Not ticked:** Location (venue pins are places the coach chooses; the app never
+reads device location, `geolocation=()`), photos/videos, contacts, messages,
+financial, health (no health field; the app asks not to record health data),
+web browsing, calendar, files, device or ad IDs. Sentry gets no user ID/email
+and no IP (`sendDefaultPii` off).
+
+**Judgement calls:** Audio declared as collected (cautious; the user-initiated
+BYOK transfer would arguably be exempt). Photon declared as shared because the
+background address heal sends pin coordinates without a user action. Target
+audience stays adults (coaches), although the players are children.
+
+**Known policy/code mismatches (2026-11-20, to fix):** (1) `healVenueAddresses`
+reverse-geocodes saved pins via Photon in the background - the policy says
+Photon gets only typed text; (2) server/edge Sentry configs ignore the
+diagnostics switch; (3) the site's delete-account page says "Settings → Backup"
+(app: Settings → Data → Backup & Export); (4) the policy's children's section
+omits Photon.
 
 ## Pricing & Distribution
 
 ### Pricing Model
-- **Free Download**; premium features planned (pricing TBD)
+- **Free.** Monetization is parked: billing code exists but enforcement is off (`PREMIUM_ENFORCEMENT_ENABLED = false`).
 
 ### Target Countries
 - Initial: Finland, Sweden, Norway, Denmark, UK, USA, Canada
 - Expansion: All countries where Play Store available
 
 ### Device Compatibility
-- Android 5.0+ (API 21+)
+- Android 7.0+ (API 24+), target Android 16 (API 36) from 1.0.9
 - Phones and tablets
 - No special hardware requirements
 
 ## Checklist
 
-Before submission:
-- [ ] App icon uploaded (512x512)
-- [ ] Feature graphic created (1024x500)
-- [ ] At least 2 phone screenshots
-- [ ] Short description (80 chars)
-- [ ] Full description (4000 chars)
-- [ ] Privacy Policy URL live
-- [ ] Content rating questionnaire completed
-- [ ] App category selected
-- [ ] Contact email configured
-- [ ] Release name set (e.g., "1.0.0")
+Done - the app passed review and is live (first release 2026-06-09):
+- [x] App icon uploaded (512x512)
+- [x] Feature graphic created (1024x500)
+- [x] At least 2 phone screenshots
+- [x] Short description (80 chars)
+- [x] Full description (4000 chars)
+- [x] Privacy Policy URL live
+- [x] Content rating questionnaire completed
+- [x] App category selected
+- [x] Contact email configured
+- [x] Release name set (current: 1.0.9)

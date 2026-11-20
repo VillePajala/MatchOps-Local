@@ -8,8 +8,8 @@ MatchOps-Local is built on **local-first principles** with a **dual-backend arch
 
 ### Core Architectural Principles
 
-1. **Local-First Data**: Default mode stores all data locally (IndexedDB) — works offline, no account needed
-2. **Optional Cloud Sync**: Premium feature via Supabase backend for cross-device access
+1. **Local-First Data**: Every change is saved locally first (IndexedDB) — works offline; local mode (web/PWA) needs no account
+2. **Cloud Sync**: Free Supabase backend for cross-device access — optional on the web, required in the Google Play app (cloud-only TWA)
 3. **Backend Abstraction**: DataStore interface allows seamless switching between local and cloud modes
 4. **Progressive Enhancement**: Works offline, better online
 5. **Single Page Application**: Smooth, native-like user experience
@@ -54,21 +54,22 @@ MatchOps-Local is built on **local-first principles** with a **dual-backend arch
 
 ### Dual-Mode Architecture
 
-The app supports two operating modes, selectable at first launch:
+The app supports two operating modes. On the web/PWA the user picks one at first launch; the Google Play app always runs cloud mode:
 
 | Aspect | Local Mode | Cloud Mode |
 |--------|------------|------------|
-| **Data Storage** | IndexedDB (browser) | Supabase PostgreSQL |
+| **Data Storage** | IndexedDB (browser) | IndexedDB first, synced in the background to Supabase PostgreSQL (`SyncedDataStore`) |
 | **Authentication** | None required | Email/password via Supabase Auth |
-| **Offline Support** | Full functionality | Read cached data; writes fail with clear error |
-| **Cross-Device** | No | Yes (real-time sync) |
-| **Cost** | Free | €4.99/month subscription |
+| **Offline Support** | Full functionality | Full functionality; writes queue in the SyncQueue and sync when online |
+| **Cross-Device** | No | Yes (background sync) |
+| **Cost** | Free | Free (monetization parked) |
 | **Privacy** | Data never leaves device | Data in Supabase (EU region), RLS-protected |
 
 **Key Implementation Details:**
 - **DataStore Interface**: `src/interfaces/DataStore.ts` — 60+ methods for all data operations
 - **LocalDataStore**: `src/datastore/LocalDataStore.ts` — IndexedDB implementation
 - **SupabaseDataStore**: `src/datastore/SupabaseDataStore.ts` — Supabase/PostgreSQL implementation
+- **SyncedDataStore**: `src/datastore/SyncedDataStore.ts` — cloud mode's store: wraps LocalDataStore + SupabaseDataStore, syncs via `src/sync/` (SyncQueue, SyncEngine)
 - **Factory**: `src/datastore/factory.ts` — Mode-aware singleton that returns the correct implementation
 - **Migration Service**: Bidirectional data transfer between local and cloud modes
 
@@ -226,7 +227,7 @@ const usePlayerManagement = () => {
 
 ### Offline-First Design
 1. **Core Functionality**: All features work without internet
-2. **Data Persistence**: localStorage survives browser restarts
+2. **Data Persistence**: IndexedDB survives browser restarts
 3. **Asset Caching**: UI resources cached for offline use
 4. **Progressive Enhancement**: Optional features require connectivity
 

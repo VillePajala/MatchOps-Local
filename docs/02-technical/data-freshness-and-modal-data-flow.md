@@ -32,5 +32,5 @@ All modal components receive fresh entity data (players, teams, seasons, tournam
 
 ## Related
 
-- See also: `docs/09-design/linked-entities-and-game-sync.md` for recommendations on name/display vs settings sync behavior.
+- See also: `docs/09-specifications/linked-entities-and-game-sync.md` for recommendations on name/display vs settings sync behavior.
 

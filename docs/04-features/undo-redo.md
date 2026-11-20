@@ -51,10 +51,7 @@ interface HistoryState<T> {
 
 ## Keyboard Shortcuts
 
-| Action | Shortcut |
-|--------|----------|
-| Undo | Ctrl/Cmd + Z |
-| Redo | Ctrl/Cmd + Shift + Z |
+None - no keyboard shortcuts are wired (verified 2026-11-20); use the on-screen buttons.
 
 ## UI Controls
 

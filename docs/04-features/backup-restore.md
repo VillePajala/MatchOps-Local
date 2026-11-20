@@ -49,12 +49,12 @@ A full backup includes:
 ## User Flow
 
 ### Creating Backup
-1. Go to Settings → Backup & Restore
-2. Click "Create Backup"
-3. File downloads as `matchops-backup-YYYY-MM-DD.json`
+1. Home → gear ("App & account") → Backup & Restore
+2. Create a backup
+3. The file `MatchOpsLocal_Backup_YYYYMMDD_HHMMSS.json` goes to the OS share sheet where available, otherwise downloads
 
 ### Restoring Backup
-1. Go to Settings → Backup & Restore
+1. Home → gear ("App & account") → Backup & Restore
 2. Click "Restore from Backup"
 3. Select backup file
 4. Confirm restore (warning: overwrites current data)

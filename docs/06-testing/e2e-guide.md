@@ -44,7 +44,7 @@ npm run e2e:report
 Tests core user journeys and application functionality:
 
 - **Homepage Loading**: Verifies app initialization and key elements
-- **Soccer Field Interactions**: Canvas rendering, drag/drop, tactical mode
+- **Soccer Field Interactions**: Canvas rendering, pointer interactions on the field, tactical mode
 - **Modal Operations**: Settings, roster, stats dialogs
 - **Timer Functionality**: Game clock operations
 - **Responsive Design**: Multi-device viewport testing

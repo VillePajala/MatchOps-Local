@@ -36,7 +36,7 @@ The soccer coaching software market includes everything from professional club m
 - **Generic**: Not optimized specifically for soccer coaching needs
 
 #### **MatchOps-Local Advantages**
-- ✅ **Free Local Mode**: No subscription required for local mode; optional paid cloud sync
+- ✅ **Free**: No subscription; local mode and cloud sync are both free (monetization parked)
 - ✅ **Complete Privacy**: Local storage vs. cloud data collection (in local mode)
 - ✅ **Offline First**: Full functionality vs. limited offline features (in local mode)
 - ✅ **Soccer Focused**: Purpose-built for soccer vs. generic sports
@@ -71,7 +71,7 @@ The soccer coaching software market includes everything from professional club m
 - ✅ **Comprehensive**: Tactics plus complete team management
 - ✅ **Game Management**: Real-time game tracking and statistics
 - ✅ **Local-First**: No internet required in local mode
-- ✅ **Cost**: Free local mode; optional paid cloud sync
+- ✅ **Cost**: Free, including cloud sync (monetization parked)
 - ✅ **Integrated**: Tactics board integrated with player and game data
 
 #### **TacticalPad Advantages**  
@@ -226,7 +226,7 @@ The soccer coaching software market includes everything from professional club m
 #### Primary Differentiators
 1. **Local-First Architecture**: Only solution with complete offline capability
 2. **Soccer-Specific Design**: Purpose-built for soccer coaching workflows
-3. **Free Local Mode**: No subscriptions required for local mode; optional paid cloud sync
+3. **Free**: No subscriptions; local mode and cloud sync are both free (monetization parked)
 4. **Complete Privacy (Local Mode)**: No data collection or external transmission in local mode
 5. **Professional Features**: Advanced analytics typically only in expensive solutions
 

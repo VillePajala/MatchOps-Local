@@ -4,7 +4,7 @@ This directory contains technical analysis documents and research.
 
 ## Documents
 
-*No active analysis documents at this time.*
+- **[taso-torneopal-api.md](./taso-torneopal-api.md)** - Taso / TorneoPal (and myClub) API research, 2026-09 - dated research, read with the roadmap's Taso item
 
 Historical analysis documents (localStorage usage, bundle analysis, supabase-implementation-review) have been moved to `docs/08-archived/` as they are no longer actively maintained.
 

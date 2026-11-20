@@ -1,6 +1,6 @@
 # Auth, Data & Sync: Runtime Architecture
 
-**Last Updated**: 2026-02-01
+**Last Updated**: 2026-11-20 (subscription references corrected; the rest as of 2026-02-01)
 **Status**: Active reference document
 **Purpose**: Detailed documentation of how authentication, data storage, and sync actually work at runtime
 
@@ -33,13 +33,13 @@ This document complements the high-level [Architecture](../architecture.md) and 
 | Concept | What It Means | When It Happens |
 |---------|---------------|-----------------|
 | **Authentication** | User has a Supabase account and valid session | User signs in |
-| **Cloud Mode** | Data operations go to Supabase PostgreSQL | User enables sync + has subscription |
-| **Local Mode** | Data operations go to IndexedDB | Default, or sync disabled |
+| **Cloud Mode** | Data operations go to IndexedDB first, then sync to Supabase PostgreSQL in the background | User enables sync (no subscription needed while monetization is parked); always on in the Google Play app |
+| **Local Mode** | Data operations go to IndexedDB only | Web/PWA default, or sync disabled |
 
 A user can be **authenticated** (signed in) while still in **local mode**. This allows:
-- Free accounts ready for upgrade
+- Accounts on the web without turning on cloud sync
 - Support tickets tied to accounts
-- Smooth transition when user subscribes
+- Turning cloud sync on later without a new sign-up
 
 ### 2. Local-First Philosophy
 
@@ -590,7 +590,7 @@ if (hasMigrationCompleted(userId)) {
 2. Clicks "Sign In" in settings
 3. Creates account via email/password
 4. Still in LOCAL mode (auth ≠ sync)
-5. If subscriber: Can enable cloud sync
+5. Can enable cloud sync (no subscription needed while monetization is parked)
 6. Migration wizard: Upload local data
 7. Mode switches to cloud
 8. DataStore: SyncedDataStore(userId)

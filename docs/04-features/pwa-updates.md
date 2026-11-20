@@ -25,7 +25,7 @@ Everything else, meaning any change under `src/`, `public/`, the build scripts o
 The ServiceWorkerRegistration component handles:
 1. Service worker registration on app mount
 2. Detection of waiting service workers
-3. Periodic update checks (every 60 seconds)
+3. Periodic update checks (hourly in production, every minute in development), plus checks when the tab becomes visible and when the device comes back online
 4. User notification via UpdateBanner
 5. Controlled activation of new service workers
 
@@ -84,7 +84,8 @@ updateInterval = setInterval(() => {
 }, 60000);
 ```
 
-**Why 60 seconds?**
+**Current interval (2026-11):** the 60-second snippet above is the original October 2025 fix. Production now polls hourly (`60 * 60_000`) to save battery, dev every minute, and `ServiceWorkerRegistration` also checks on `visibilitychange` and `online`. The original rationale:
+
 - Browser default: Only checks on navigation/every 24 hours
 - 60-second interval ensures prompt detection (1-2 minutes typical)
 - Balance between responsiveness and resource usage
@@ -181,7 +182,7 @@ Release notes are displayed in the UpdateBanner to inform users about changes.
 
 **After Fix (October 7, 2025)**:
 - ✅ On page navigation
-- ✅ Every 60 seconds (automatic)
+- ✅ Periodically (originally every 60 seconds; now hourly in production) plus on tab visibility and reconnect
 - ✅ Reliable update detection for all users
 
 ## Implementation Details
@@ -220,7 +221,7 @@ registration.update().catch(error => {
 ```
 
 Failed update checks are logged but don't block:
-- Next check happens in 60 seconds
+- Next check happens at the next interval, visibility change or reconnect
 - User experience unaffected
 - Offline scenarios handled gracefully
 
@@ -231,7 +232,7 @@ Failed update checks are logged but don't block:
 
 Test suite covers:
 1. ✅ Service worker registration on mount
-2. ✅ Periodic update checks every 60 seconds
+2. ✅ Periodic update checks (hourly outside development)
 3. ✅ Update banner display when SW waiting
 4. ✅ Interval cleanup on component unmount
 
@@ -390,7 +391,7 @@ useAppResume({
 
 ### Update Check Interval
 
-To adjust the update check frequency, modify the interval in `ServiceWorkerRegistration.tsx`:
+To adjust the update check frequency, modify `pollingInterval` in `ServiceWorkerRegistration.tsx` (currently `isDev ? 60_000 : 60 * 60_000`). Older examples:
 
 ```typescript
 // Default: 60 seconds (60000ms)
@@ -411,7 +412,7 @@ updateInterval = setInterval(() => {
 
 **Recommendations**:
 - Development: 30-60 seconds (rapid feedback)
-- Production: 60 seconds (balance responsiveness/resources)
+- Production: hourly (current setting; visibility/online checks cover app resume)
 - Low-priority: 5 minutes (minimize resource usage)
 
 ### Disable Update Checks
