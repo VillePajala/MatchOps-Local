@@ -81,10 +81,11 @@ await rec.scene('timer', only && !only.includes('timer') ? null : T().clock(586,
 
 // Full time from 49:52: the clock runs out, Viimeistele ottelu, the goal log, Pöytäkirja, positions, the report and its share sheet.
 const EVENTS = [goal('ev_b_1', 590, pid(10), pid(7)), { id: 'ev_b_2', type: 'opponentGoal', time: 1870 }, goal('ev_b_3', 2840, pid(9), pid(11))];
-await rec.scene('finish', only && !only.includes('finish') ? null : T().fullTime(2992, EVENTS, { subIntervalMinutes: 5, lastSubConfirmationTimeSeconds: 2880 }, { 8: 'lm', 9: 'rm', 11: 'st' }), { inMatch: true, startCur: [195, 815], only }, async ({ page, arm, tap, glide, glideTo, hold, mark, scrollToHeading, scrollToSelector }) => {
+await rec.scene('finish', only && !only.includes('finish') ? null : T().fullTime(2992, EVENTS, { subIntervalMinutes: 5, lastSubConfirmationTimeSeconds: 2880 }, { 8: 'lm', 9: 'rm', 11: 'st' }), { inMatch: true, startCur: [195, 815], only }, async ({ page, arm, tap, glide, glideTo, hold, mark, scrollToHeading, scrollToSelector, tapThroughLoad }) => {
   await hold(400); await tap(page.getByRole('button', { name: 'Avaa ajastin' }), 200); await hold(900); await arm();
   await tap(page.getByRole('button', { name: /Käynnistä|Jatka/ }).first()); await page.getByTestId('timer-finish-game').waitFor({ timeout: 30000 }); await hold(1400);
-  mark(8); await hold(800); await tap(page.getByTestId('timer-finish-game'), 800); await hold(2400); await arm();
+  // the timer closes before the finish screen opens: dip over the match view in between
+  mark(8); await hold(800); await tapThroughLoad(page.getByTestId('timer-finish-game'), () => page.getByRole('button', { name: 'Pöytäkirja' }).first().waitFor({ timeout: 30000 }), 800); await hold(1600);
   mark(8.5); await scrollToHeading('Maaliloki'); await hold(4000);
   mark(9); await tap(page.getByRole('button', { name: 'Pöytäkirja' }).first(), 700); await hold(4400); await arm();
   await glide(page.getByRole('button', { name: 'Kopioi' }).first(), 1600); await hold(300);

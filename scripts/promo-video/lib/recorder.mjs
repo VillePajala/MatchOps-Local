@@ -38,8 +38,8 @@ div.fixed[role=log][aria-live=polite]{display:none!important}
 [role=dialog] button[aria-label="Sulje"],[role=dialog] button[aria-label="Valmis"]{display:flex!important;position:relative;z-index:5}
 [role=dialog] div.overflow-hidden.border-b{height:auto!important}
 [role=dialog] div.overflow-hidden.border-b>div{transform:none!important}
-#cur{position:fixed;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.5);background:rgba(255,255,255,.12);pointer-events:none;z-index:99998;transition:transform .65s cubic-bezier(.4,0,.2,1)}
-.tap{position:fixed;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none;z-index:99999;animation:tap .5s ease-out forwards}@keyframes tap{from{transform:scale(.5);opacity:.9}to{transform:scale(1.6);opacity:0}}`;
+#cur{position:fixed;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.5);background:rgba(255,255,255,.12);pointer-events:none;z-index:2147483647;transition:transform .65s cubic-bezier(.4,0,.2,1)}
+.tap{position:fixed;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none;z-index:2147483647;animation:tap .5s ease-out forwards}@keyframes tap{from{transform:scale(.5);opacity:.9}to{transform:scale(1.6);opacity:0}}`;
 
 export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || 'http://localhost:3000', viewport = { width: 390, height: 844 }, scale = 2 } = {}) {
   fs.mkdirSync(path.join(outDir, 'raw'), { recursive: true });
@@ -114,9 +114,13 @@ export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || '
      *  the film shows a short cut instead of a spinner. */
     const tapThroughLoad = async (loc, ready, rest = 700) => {
       await glide(loc, rest); const b = await loc.boundingBox(); if (!b) throw new Error('tapThroughLoad: no box');
-      await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2); await hold(120);
-      await page.evaluate(() => { const v = document.createElement('div'); v.id = 'veil'; v.style.cssText = 'position:fixed;inset:0;background:#0b1220;z-index:99997;opacity:0;transition:opacity .15s'; document.body.appendChild(v); void v.offsetWidth; v.style.opacity = '1'; });
-      await ready(); await hold(700); await arm();
+      // The veil goes down first and sits above everything but the cursor: the app's loading screens
+      // stack very high (the game's "Ladataan peliä..." splash covered a lower veil), and a veil that
+      // starts after the click lets the first loading frames through.
+      await ripple(b.x + b.width / 2, b.y + b.height / 2);
+      await page.evaluate(() => { const v = document.createElement('div'); v.id = 'veil'; v.style.cssText = 'position:fixed;inset:0;background:#0b1220;z-index:2147483646;opacity:0;transition:opacity .15s;pointer-events:none'; document.body.appendChild(v); void v.offsetWidth; v.style.opacity = '1'; });
+      await hold(180); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+      await ready(); await hold(800); await arm();
       await page.evaluate(() => { const v = document.getElementById('veil'); if (!v) return; v.style.transition = 'opacity .3s'; v.style.opacity = '0'; setTimeout(() => v.remove(), 350); }); await hold(350); };
     /** Write the app's whole IndexedDB payload to `file`, so the next recording can start from exactly
      *  what this one left (the lineup the plan produced, the goal just logged). The app saves on a
