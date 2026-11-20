@@ -3,6 +3,19 @@
   "releases": [
     {
       "date": "2026-11-20",
+      "en": [
+        "Scores are coloured by result again in the game lists and player stats: green for a win, red for a loss.",
+        "The timer score turns green while you lead and red while you trail.",
+        "A cleaner teams list: one card per team with its kit colour and players, age group and competition on one line."
+      ],
+      "fi": [
+        "Tulokset näkyvät taas väreillä pelilistoissa ja pelaajatilastoissa: voitto vihreällä, tappio punaisella.",
+        "Ajastimen tulos muuttuu vihreäksi, kun johdatte, ja punaiseksi, kun olette tappiolla.",
+        "Selkeämpi joukkuelista: jokaisella joukkueella oma kortti, jossa peliasun väri sekä pelaajat, ikäluokka ja sarja yhdellä rivillä."
+      ]
+    },
+    {
+      "date": "2026-11-20",
       "en": ["Settings and support emails now show the app's real version."],
       "fi": ["Asetukset ja tukisähköposti näyttävät nyt sovelluksen oikean version."]
     },

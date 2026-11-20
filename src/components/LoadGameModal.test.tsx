@@ -228,6 +228,30 @@ describe('LoadGameModal', () => {
     expect((screen.getByTestId('load-game-sort') as HTMLSelectElement).value).toBe('opponent');
   });
 
+  /**
+   * The score numeral is coloured by result from our side (home/away aware);
+   * a game not played yet keeps a dim neutral score.
+   * @integration
+   */
+  it.each([
+    ['home', 2, 0, 's1-numeral-win'],
+    ['home', 0, 2, 's1-numeral-loss'],
+    ['home', 1, 1, 's1-numeral-draw'],
+    ['away', 0, 2, 's1-numeral-win'],
+    ['away', 3, 1, 's1-numeral-loss'],
+  ] as const)('colours a played %s game %i-%i with %s', async (homeOrAway, homeScore, awayScore, expected) => {
+    const games = createSampleGames();
+    Object.assign(games['game_1659123456_abc'], { homeOrAway, homeScore, awayScore });
+    await renderModal({ savedGames: games });
+    const score = await screen.findByTestId('game-score-game_1659123456_abc');
+    expect(score).toHaveTextContent(`${homeScore}-${awayScore}`);
+    expect(score).toHaveClass(expected);
+    // The unplayed game stays neutral.
+    const unplayed = screen.getByTestId('game-score-game_1659223456_def');
+    expect(unplayed).toHaveClass('text-ink-3');
+    expect(unplayed.className).not.toMatch(/s1-numeral/);
+  });
+
   it('shows a not-played status dot for unplayed games', async () => {
     await renderModal();
     // The badge is now a small red status dot carrying the label as its title.

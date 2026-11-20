@@ -22,16 +22,7 @@ import PlayerPositionsEditor from './PlayerPositionsEditor';
 import ConfirmationModal from './ConfirmationModal';
 import logger from '@/utils/logger';
 import { ENTITY_DOT } from '@/config/palette';
-
-/** Result strip colour, shared with the stats view's own game list. */
-export const getResultClass = (result: 'W' | 'L' | 'D' | 'N/A') => {
-  switch (result) {
-    case 'W': return 'bg-green-500';
-    case 'L': return 'bg-red-500';
-    case 'D': return 'bg-gray-500';
-    default: return 'bg-gray-700';
-  }
-};
+import { RESULT_CLASSES } from '@/utils/gameResult';
 
 const NO_POOL: string[] = [];
 
@@ -1024,8 +1015,8 @@ const ExternalGamesSection: React.FC<ExternalGamesSectionProps> = ({ player, sea
                           {t('playerStats.adjustmentNotCounted', 'Not counted under the current filters')}
                         </p>
                       )}
-                      {/* Result color strip */}
-                      <span className={`absolute inset-y-0 left-0 w-1 ${getResultClass(adjResult)}`}></span>
+                      {/* Result colour strip (shared RESULT_CLASSES tokens) */}
+                      <span className={`absolute inset-y-0 left-0 w-1 ${RESULT_CLASSES[adjResult].strip}`}></span>
 
                       {/* Card layout with two rows */}
                       <div className="flex flex-col gap-2">

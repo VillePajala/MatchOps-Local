@@ -10,7 +10,7 @@ import type { TranslationKey } from '@/i18n-types';
 import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
 import { listOpponents, normalizeOpponentName } from '@/utils/opponentNames';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
-import { resolveGameResult } from '@/utils/gameResult';
+import { resolveGameResult, RESULT_CLASSES } from '@/utils/gameResult';
 import { computeGameCompleteness } from '@/utils/gameCompleteness';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { getLeagueName, CUSTOM_LEAGUE_ID } from '@/config/leagues';
@@ -456,10 +456,8 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               homeOrAway: game.homeOrAway,
               shootoutKicks: game.shootoutKicks,
             });
-            const isDraw = displayResult === 'D';
-            const isWin = displayResult === 'W';
-            const badgeTone = isDraw ? 'bg-white/[0.09] text-ink-2' : isWin ? 'bg-win/[0.14] text-win' : 'bg-loss/[0.14] text-loss';
-            const badgeLetter = isDraw ? t('export.tieShort', 'T') : isWin ? t('export.winShort', 'W') : t('export.lossShort', 'L');
+            const resultClasses = RESULT_CLASSES[displayResult];
+            const badgeLetter = displayResult === 'D' ? t('export.tieShort', 'T') : displayResult === 'W' ? t('export.winShort', 'W') : t('export.lossShort', 'L');
 
             // The game open in the match view: a faint amber wash from the left.
             const currentGameClass = isCurrent
@@ -490,7 +488,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                     <span className="sr-only">{t('loadGameModal.unplayedBadge', 'Not played')}</span>
                   </span>
                 ) : (
-                  <span className={`mt-0.5 grid h-9 w-9 place-items-center rounded-full text-xs font-bold tracking-[0.02em] ${badgeTone}`}>
+                  <span className={`mt-0.5 grid h-9 w-9 place-items-center rounded-full text-xs font-bold tracking-[0.02em] ${resultClasses.disc}`}>
                     {badgeLetter}
                   </span>
                 )}
@@ -519,9 +517,12 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                   )}
                 </div>
 
-                {/* Score: italic numerals (grey while not a result yet) */}
+                {/* Score: italic numerals coloured by result (green win, light
+                    grey draw, red loss - the shared RESULT_CLASSES); a game
+                    not played yet keeps a dim neutral score. */}
                 <div
-                  className={`mt-[3px] whitespace-nowrap pr-[0.08em] font-display text-[30px] font-extrabold italic leading-[0.9] ${isUnplayed ? 'text-ink-3' : 's1-numeral'}`}
+                  className={`mt-[3px] whitespace-nowrap pr-[0.08em] font-display text-[30px] font-extrabold italic leading-[0.9] ${isUnplayed ? RESULT_CLASSES['N/A'].numeral : resultClasses.numeral}`}
+                  data-testid={`game-score-${gameId}`}
                 >
                   {displayHomeScore}-{displayAwayScore}
                 </div>

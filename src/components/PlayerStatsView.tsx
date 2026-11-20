@@ -11,6 +11,7 @@ import { Player, Season, Tournament, Team } from '@/types';
 import { AppState } from '@/types';
 import type { GameType, Gender } from '@/types/game';
 import { calculatePlayerStats, PlayerStats as PlayerStatsData, isGameInPlayerScope } from '@/utils/playerStats';
+import { RESULT_CLASSES } from '@/utils/gameResult';
 import { adjustmentInScope } from '@/utils/adjustmentScope';
 import { knownOpponentPool } from '@/utils/opponentNames';
 import type { PlayerStatAdjustment } from '@/types';
@@ -45,14 +46,7 @@ const COMPETITION_ROW =
 const COMPETITION_GRID = 'grid grid-cols-[repeat(4,minmax(0,1fr))_auto] gap-x-2 text-center text-sm';
 const COMPETITION_LABEL = 'text-xs text-ink-3 whitespace-nowrap';
 
-/** Round result disc, as in the home screen's results list (V / T / H). */
-const RESULT_DISC_TONE: Record<'W' | 'L' | 'D' | 'N/A', string> = {
-  W: 'bg-win/15 text-win',
-  D: 'bg-white/10 text-draw',
-  L: 'bg-loss/15 text-loss',
-  'N/A': 'bg-white/[0.06] text-ink-3',
-};
-
+/** Round result disc, as in the home screen's results list (V / T / H); tones from the shared RESULT_CLASSES. */
 const ResultDisc: React.FC<{ result: 'W' | 'L' | 'D' | 'N/A' }> = ({ result }) => {
   const { t } = useTranslation();
   const letter =
@@ -65,7 +59,7 @@ const ResultDisc: React.FC<{ result: 'W' | 'L' | 'D' | 'N/A' }> = ({ result }) =
           : '–';
   return (
     <span
-      className={`grid h-8 w-8 flex-none place-items-center rounded-full font-display text-[17px] font-bold leading-none ${RESULT_DISC_TONE[result]}`}
+      className={`grid h-8 w-8 flex-none place-items-center rounded-full font-display text-[17px] font-bold leading-none ${RESULT_CLASSES[result].disc}`}
       data-testid="player-game-result"
     >
       {letter}
@@ -968,15 +962,29 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         )}
                       </span>
                     </span>
-                    <span className="flex flex-none items-center">
-                      <span className="w-11 text-center">
-                        <span className={`block font-bold text-xl leading-6 tabular-nums ${game.goals > 0 ? 'text-ink' : 'text-ink-3'}`}>{game.goals}</span>
-                        <span className="block text-xs text-ink-3">{t('playerStats.goals', 'Goals')}</span>
+                    {/* The team's score, coloured by result like the disc
+                        (shared RESULT_CLASSES); none for an external game
+                        logged without one. */}
+                    {typeof game.ourScore === 'number' && typeof game.theirScore === 'number' && (
+                      <span
+                        className={`flex-none whitespace-nowrap pr-[3px] font-display text-[26px] font-extrabold italic leading-none tabular-nums ${RESULT_CLASSES[game.result].numeral}`}
+                        data-testid="player-game-score"
+                      >
+                        {game.ourScore}–{game.theirScore}
                       </span>
-                      <span className="w-11 text-center">
-                        <span className={`block font-bold text-xl leading-6 tabular-nums ${game.assists > 0 ? 'text-ink' : 'text-ink-3'}`}>{game.assists}</span>
-                        <span className="block text-xs text-ink-3">{t('playerStats.assists', 'Assists')}</span>
+                    )}
+                    {/* The player's own goals + assists: white, 0+0 dimmed. */}
+                    <span
+                      className="w-12 flex-none text-right"
+                      title={`${t('playerStats.goals', 'Goals')} + ${t('playerStats.assists', 'Assists')}`}
+                    >
+                      <span
+                        className={`block font-bold text-[15px] leading-5 tabular-nums ${game.goals + game.assists > 0 ? 'text-ink' : 'text-ink-3 font-medium'}`}
+                        data-testid="player-game-ga"
+                      >
+                        {game.goals}+{game.assists}
                       </span>
+                      <span className="block text-[10px] font-medium uppercase tracking-[0.08em] text-ink-3">{t('playerStats.goalsAssistsShort', 'G+A')}</span>
                     </span>
                   </GameWrapper>
                 );

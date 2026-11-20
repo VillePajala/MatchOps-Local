@@ -2189,6 +2189,7 @@
     "metricTrends": "Rating Trends",
     "metricSelect": "Select Metric",
     "goalsAssists": "Goals & Assists",
+    "goalsAssistsShort": "G+A",
     "useDemandCorrection": "By difficulty",
     "useDemandCorrectionTooltip": "When enabled, ratings from harder games count more",
     "recencyWeighted": "Current form",

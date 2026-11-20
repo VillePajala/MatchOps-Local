@@ -1,4 +1,4 @@
-import { resolveGameResult } from './gameResult';
+import { resolveGameResult, RESULT_CLASSES, liveScoreNumeralClass } from './gameResult';
 import { getShootoutTally, getShootoutWinner, hasDecidedShootout } from './shootout';
 import type { ShootoutKick } from '@/types/game';
 
@@ -115,5 +115,30 @@ describe('resolveGameResult', () => {
       shootoutKicks: [kick('home', true, 0), kick('away', true, 1)],
     };
     expect(resolveGameResult(game)).toBe('D');
+  });
+});
+
+describe('RESULT_CLASSES / liveScoreNumeralClass', () => {
+  it('maps each result to the result tokens and N/A to a neutral score', () => {
+    expect(RESULT_CLASSES.W).toEqual({ disc: 'bg-win/15 text-win', numeral: 's1-numeral-win', strip: 'bg-win' });
+    expect(RESULT_CLASSES.L.numeral).toBe('s1-numeral-loss');
+    expect(RESULT_CLASSES.D.numeral).toBe('s1-numeral-draw');
+    expect(RESULT_CLASSES['N/A'].numeral).toBe('text-ink-3');
+    // Green / red are for results only - no raw palette colours.
+    for (const tone of Object.values(RESULT_CLASSES)) {
+      expect(Object.values(tone).join(' ')).not.toMatch(/green|red|amber|action/);
+    }
+  });
+
+  it('colours the live score by situation from our side (home)', () => {
+    expect(liveScoreNumeralClass(2, 1, 'home')).toBe('s1-numeral-win');
+    expect(liveScoreNumeralClass(0, 1, 'home')).toBe('s1-numeral-loss');
+    expect(liveScoreNumeralClass(0, 0, 'home')).toBe('s1-numeral');
+  });
+
+  it('flips for an away game', () => {
+    expect(liveScoreNumeralClass(0, 1, 'away')).toBe('s1-numeral-win');
+    expect(liveScoreNumeralClass(2, 1, 'away')).toBe('s1-numeral-loss');
+    expect(liveScoreNumeralClass(3, 3, 'away')).toBe('s1-numeral');
   });
 });

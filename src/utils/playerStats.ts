@@ -95,6 +95,9 @@ export interface GameStats {
   assists: number;
   points: number;
   result: 'W' | 'L' | 'D' | 'N/A';
+  /** The score from the player's TEAM side (ours first), when one is known. */
+  ourScore?: number;
+  theirScore?: number;
   receivedFairPlayCard: boolean;
   fairPlayCards?: number;  // Number of fair play cards (for external games that may have multiple)
   isExternal?: boolean;  // True for external games (adjustments)
@@ -209,6 +212,8 @@ export const calculatePlayerStats = (
         assists,
         points,
         result,
+        ourScore: game.homeOrAway === 'away' ? game.awayScore : game.homeScore,
+        theirScore: game.homeOrAway === 'away' ? game.homeScore : game.awayScore,
         receivedFairPlayCard: fairPlayCards > 0,
         gameType: game.gameType,
       });
@@ -299,6 +304,7 @@ export const calculatePlayerStats = (
       assists: adj.assistsDelta || 0,
       points: (adj.goalsDelta || 0) + (adj.assistsDelta || 0),
       result,
+      ...(result !== 'N/A' ? { ourScore: adj.scoreFor, theirScore: adj.scoreAgainst } : {}),
       receivedFairPlayCard: fpCards > 0,
       fairPlayCards: fpCards,
       isExternal: true,

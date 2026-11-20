@@ -157,6 +157,40 @@ describe('PlayerStatsView game type filtering', () => {
     expect(winRow.className).not.toMatch(/\bborder\b/);
   });
 
+  /**
+   * The team's score sits next to the disc, coloured by result from the
+   * team's side (away games flipped); the player's own G+A is white, 0+0 dim.
+   * @integration
+   */
+  it('colours each game-log score by result and dims a 0+0 figure', async () => {
+    const games = {
+      win: createGame({ opponentName: 'Win Opp', gameDate: '2024-02-01', homeScore: 3, awayScore: 1 }),
+      // Away 0-4: ours is the away number, so this is a 4-0 win.
+      awayWin: createGame({ opponentName: 'Away Opp', gameDate: '2024-02-05', homeScore: 0, awayScore: 4, homeOrAway: 'away' }),
+      loss: createGame({ opponentName: 'Loss Opp', gameDate: '2024-02-08', homeScore: 0, awayScore: 2 }),
+      draw: createGame({
+        opponentName: 'Draw Opp', gameDate: '2024-02-15', homeScore: 1, awayScore: 1,
+        gameEvents: [{ id: 'g1', type: 'goal', time: 60, scorerId: player.id }],
+      }),
+    };
+    render(<PlayerStatsView {...baseProps} savedGames={games} />);
+    const score = (id: string) => within(screen.getByTestId(`player-game-row-${id}`)).getByTestId('player-game-score');
+    const ga = (id: string) => within(screen.getByTestId(`player-game-row-${id}`)).getByTestId('player-game-ga');
+    await screen.findByTestId('player-game-row-win');
+
+    expect(score('win')).toHaveTextContent('3–1');
+    expect(score('win')).toHaveClass('s1-numeral-win');
+    expect(score('awayWin')).toHaveTextContent('4–0');
+    expect(score('awayWin')).toHaveClass('s1-numeral-win');
+    expect(score('loss')).toHaveClass('s1-numeral-loss');
+    expect(score('draw')).toHaveClass('s1-numeral-draw');
+
+    expect(ga('draw')).toHaveTextContent('1+0');
+    expect(ga('draw')).toHaveClass('text-ink');
+    expect(ga('loss')).toHaveTextContent('0+0');
+    expect(ga('loss')).toHaveClass('text-ink-3');
+  });
+
   it('opens the match evidence text for the player from the summary card', async () => {
     render(<PlayerStatsView {...baseProps} savedGames={buildSavedGames()} />);
     await waitFor(() => expect(screen.getByTestId('player-evidence')).toBeInTheDocument());
