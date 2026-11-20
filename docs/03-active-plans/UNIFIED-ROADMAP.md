@@ -23,11 +23,10 @@ solo-maintained, live app: live correctness first, then UX, then features, then 
 - [ ] **Full review 2026-11: three owner research tasks remain** - 2.2 (write to the ~15 coaches who stopped after one or two games), 2.3 (watch 1–2 new coaches set up and run a game), 2.5 (finalise the onboarding decisions D1–D29 into `new-user-funnel-fix-plan.md`). Checklist: `code-review-findings-2026-06-25.md`.
 - [ ] **Play Console Data Safety form** *(owner-only)* - checklist in `docs/07-business/store-listing/README.md` (written 2026-09-21; predates the 2026-11 policy, which added the error-reporting/usage-statistics switch and onboarding data). Re-check against the 2026-11 privacy policy and submit. (status unverified)
 - [ ] **Play Store listing for the redesign** *(owner-only)* - the store description (`docs/04-features/store-listing-{fi,en}.txt`) and screenshots were last refreshed 2026-09-10; the site got v3 screenshots in #1064. Swap the store gallery to the v3 set and remove any development/trends shot still there. (status unverified)
-- [ ] **Migration 063 on prod** (#1064: consent records deleted with the account) - confirm it is applied to staging and prod. (status unverified)
 
 ### Code review 2026-06-11 — remainders
 
-- [ ] **CR-M3 remainder (deferred):** an ambiguous-network retry of an already-committed save can still throw a spurious ConflictError (`:3571-3652`) — rare, not data loss (the save landed); a safe fix needs own-write-vs-real-conflict detection that must not mask real conflicts. Also: migration `030` was applied to staging; prod application is (status unverified).
+- [ ] **CR-M3 remainder (deferred):** an ambiguous-network retry of an already-committed save can still throw a spurious ConflictError (`:3571-3652`) — rare, not data loss (the save landed); a safe fix needs own-write-vs-real-conflict detection that must not mask real conflicts. Also: migration `030` was applied to staging; verified applied on prod 2026-11-20 (`save_game_with_relations` has `p_expected_version`).
 - [ ] **CR-M8 remainder (dormant until billing):** purchase-token reuse race — no unique index on token (`019` is non-unique, `verify-subscription/index.ts:283`); `is_active` never expires without a client call (`010:96`); purchase never acknowledged with Google → auto-refund in ~3 days when billing goes live; `check_rate_limit` cleanup uses caller's window — latent until windows diverge (`024:46`). Do together with the `verify-subscription` deploy below.
 
 **Verified solid (no action, 2026-06-11):** RLS on every table; `save_game_with_relations` (027) pins search_path + force-injects user_id/game_id; all 19 transform rules hold in both stores; reducer score/event atomicity; IndexedDB transaction usage; sign-out hygiene; edge-function JWT verification + fail-closed rate limiting; SW/manifest pipeline.
@@ -446,7 +445,7 @@ The manual checklist `user-flow-testing-plan.md` (the root `TESTING-PLAN.md` mer
 - **2026-11-16 — Match timer deep review**: four Fable 5.2 reviewers; findings 4.21–4.36 fixed (#956–#969), 4.33b (#970). Owner question 4.34 decided 2026-11-20: the recorded kicks decide a shootout result; no change.
 - **2026-11 — Extra time** (#1049–#1051, migrations 060/061).
 - **2026-11 — App redesign "Syke Refined" + Onboarding v3 live** (#1054; follow-ups #1055–#1063, incl. compact Home retired #1056).
-- **2026-11-19 — Privacy policy and terms 2026-11** (GDPR fixes, data switch, migration 063) and **the next game's plan on the next-match card** (#1064).
+- **2026-11-19 — Privacy policy and terms 2026-11** (GDPR fixes, data switch, migration 063 - applied staging + prod, verified 2026-11-20) and **the next game's plan on the next-match card** (#1064).
 - **2026-11-20 — Promo videos** hero + basic rebuilt for the redesigned app, fi + en; **full-app line on basic Home, "Sub done" timer button, goals + assists in one recap block** (#1065).
 - **2026-11-20 — Play 1.0.9** built with targetSdk 36, live.
 - **Ideas sweep 2026-09-17 cross-offs**: Referee Quick Reference = Rules Directory, Formation Templates (presets) = formation presets, Head-to-Head = `utils/headToHead.ts`, Voice Moments = Kirjuri; `future-vision.md` carries a warning header saying so.
