@@ -13,6 +13,10 @@ Rendered video, raw recordings and generated frames live in `out/` and are never
 
 Output: `out/hero/matchops-hero-phone.mp4` plus one clip per caption in `out/hero/clips-phone/`. Each video has its own folder under `out/` named after its scene file; the shared intro, end card, phone frame and demo data sit in `out/` itself. `VIDEO=basic bash run.sh` renders the basic-usage video the same way. `STYLE=plain bash run.sh` renders without the phone frame. `bash run.sh timer` re-records only that recording; then `node render/encode.mjs --style phone --out out/hero` re-cuts everything. The hero and basic recordings chain: `front` ends by saving the app's state to `out/<video>/state-front.json` and `timer` / `finish` start from it, so after re-recording `front` re-record the other two as well. If port 3000 is taken, `BASE_URL=http://localhost:3001` points the recorder elsewhere (run.sh's dev-server check still looks at :3000; run the steps by hand then).
 
+## English versions
+
+`VLANG=en VIDEO=hero bash run.sh` (and `VIDEO=basic`) records the same scenes with the app in English (the language setting, the `matchops_language` key and an en-GB browser), English captions (`CAPTIONS_EN` in each scene file), the English intro (`Plan, rotate, record.`, the site's product line) and the English Google Play badge. Everything lands in `out/<video>/en/` with `-en` in the file names (`matchops-hero-phone-en-music.mp4`, `matchops-hero-16x9-en-music.mp4`), so the Finnish renders stay untouched. UI labels the scenes click or wait for live in `lib/ui.mjs`, one set per language, copied from `public/locales/<lang>/common.json`.
+
 ## The videos
 
 | Scene file | What it shows |

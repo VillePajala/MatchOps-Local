@@ -32,10 +32,11 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
+import { LANG, ui } from './ui.mjs';
 
 const STYLE = `nextjs-portal{display:none!important}
 div.fixed[role=log][aria-live=polite]{display:none!important}
-[role=dialog] button[aria-label="Sulje"],[role=dialog] button[aria-label="Valmis"]{display:flex!important;position:relative;z-index:5}
+[role=dialog] button[aria-label="Sulje"],[role=dialog] button[aria-label="Valmis"],[role=dialog] button[aria-label="Close"],[role=dialog] button[aria-label="Done"]{display:flex!important;position:relative;z-index:5}
 [role=dialog] div.overflow-hidden.border-b{height:auto!important}
 [role=dialog] div.overflow-hidden.border-b>div{transform:none!important}
 #cur{position:fixed;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.5);background:rgba(255,255,255,.12);pointer-events:none;z-index:2147483647;transition:transform .65s cubic-bezier(.4,0,.2,1)}
@@ -49,17 +50,18 @@ export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || '
    *  the app boots to its sign-up form. Use a synthetic address; delete the accounts afterwards. */
   async function scene(name, data, { inMatch = false, startCur = [195, 700], only = null, cloud = false } = {}, run) {
     if (only && !only.includes(name)) return null;
-    const ctx = await browser.newContext({ viewport, locale: 'fi-FI', timezoneId: 'Europe/Helsinki',
+    const ctx = await browser.newContext({ viewport, locale: LANG === 'en' ? 'en-GB' : 'fi-FI', timezoneId: 'Europe/Helsinki',
       recordVideo: { dir: path.join(outDir, 'raw'), size: { width: viewport.width * scale, height: viewport.height * scale } } });
     const t0 = Date.now(); const now = () => (Date.now() - t0) / 1000; const marks = [];
-    await ctx.addInitScript(({ inMatch, cloud }) => {
+    await ctx.addInitScript(({ inMatch, cloud, lang }) => {
       try {
+        localStorage.setItem('matchops_language', lang);
         if (!cloud) { localStorage.setItem('matchops_backend_mode', 'local'); localStorage.setItem('matchops_welcome_seen', 'true'); }
         if (inMatch) sessionStorage.setItem('matchops_was_in_match', '1'); else sessionStorage.removeItem('matchops_was_in_match');
       } catch {}
       // Dev-mode StrictMode double-mount makes the single-tab lock look taken; grant it.
       try { Object.defineProperty(navigator, 'locks', { value: { request: (_n, _o, cb) => Promise.resolve(typeof _o === 'function' ? _o({ name: _n }) : cb({ name: _n })) } }); } catch {}
-    }, { inMatch, cloud });
+    }, { inMatch, cloud, lang: LANG });
     const page = await ctx.newPage();
     await page.goto(baseUrl + '/manifest.json');
     if (!cloud) await page.evaluate(async (d) => { await new Promise((res, rej) => { const req = indexedDB.open('MatchOpsLocal', 1);
@@ -70,7 +72,7 @@ export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || '
     let curPos = startCur;
     const setCur = async (x, y, dur) => { curPos = [x, y]; await page.evaluate(([x, y, dur, from]) => { let c = document.getElementById('cur'); if (!c) { c = document.createElement('div'); c.id = 'cur'; c.style.transition = 'none'; c.style.transform = `translate(${from[0]}px,${from[1]}px)`; document.body.appendChild(c); void c.offsetWidth; c.style.transition = ''; } if (dur) c.style.transitionDuration = dur + 'ms'; c.style.transform = `translate(${x}px,${y}px)`; }, [x, y, dur, curPos]); };
     const arm = async () => { await page.addStyleTag({ content: STYLE }); await page.evaluate((pos) => {
-      for (const b of document.querySelectorAll('button')) if (/Tervetuloa/.test(b.textContent || '')) b.style.display = 'none';
+      for (const b of document.querySelectorAll('button')) if (/Tervetuloa|Welcome/.test(b.textContent || '')) b.style.display = 'none';
       if (!document.getElementById('cur')) { const c = document.createElement('div'); c.id = 'cur'; c.style.transition = 'none'; c.style.transform = `translate(${pos[0]}px,${pos[1]}px)`; document.body.appendChild(c); void c.offsetWidth; c.style.transition = ''; }
       if (!window.__tap) { window.__tap = 1; document.addEventListener('pointerdown', (e) => { const d = document.createElement('div'); d.className = 'tap'; d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px'; document.body.appendChild(d); setTimeout(() => d.remove(), 550); }, true); } }, curPos); };
     const hold = (ms) => page.waitForTimeout(ms);
@@ -135,7 +137,7 @@ export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || '
     await page.goto(baseUrl + '/', { waitUntil: 'networkidle' });
     try {
       if (cloud) await page.getByTestId('login-intro-create').waitFor({ timeout: 90000 });
-      else if (inMatch) await page.getByRole('button', { name: 'Avaa ajastin' }).waitFor({ timeout: 90000 }); else await page.getByText(/Seuraava ottelu|Viimeksi avattu|Uusi ottelu|Jatka/i).first().waitFor({ timeout: 90000 });
+      else if (inMatch) await page.getByRole('button', { name: ui.openTimer }).waitFor({ timeout: 90000 }); else await page.getByText(/Seuraava ottelu|Viimeksi avattu|Uusi ottelu|Jatka|Next match|Last opened|New game|Continue/i).first().waitFor({ timeout: 90000 });
     } catch (e) { await page.screenshot({ path: path.join(outDir, `fail-${name}-boot.png`) }).catch(() => {}); throw e; }
     await page.evaluate(() => { for (let i = 0; i < 4; i++) history.pushState({}, '', '/'); });
     await arm(); await hold(300);

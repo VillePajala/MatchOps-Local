@@ -5,6 +5,7 @@
  * recording left in the app.
  */
 import fs from 'node:fs';
+import { LANG } from './ui.mjs';
 export const pid = (n) => `player_demo_${String(n).padStart(2, '0')}`;
 export const FIXTURE = 'game_demo_07';
 // 8v8 2-1-2-1-1 (the owner's own formation): gk + 7
@@ -30,7 +31,11 @@ export const positions = (game, more = {}) => {
   return out;
 };
 /** The coach's own match report on the finish screen (typed after the final whistle in real life). */
-export const report = () => 'Hyvä avaus: Leevi vei meidät johtoon ensimmäisellä jaksolla Oliverin syötöstä. Toisella jaksolla puolustus pysyi tiiviinä ja Niilo ratkaisi pelin lopussa. Laitapelaajien juoksuvoima riitti loppuun asti.';
+export const report = () => (LANG === 'en'
+  ? "Strong start: Leevi put us ahead in the first half from Oliver's pass. In the second half the defence stayed compact and Niilo settled it late on. The wingers kept running to the very end."
+  : 'Hyvä avaus: Leevi vei meidät johtoon ensimmäisellä jaksolla Oliverin syötöstä. Toisella jaksolla puolustus pysyi tiiviinä ja Niilo ratkaisi pelin lopussa. Laitapelaajien juoksuvoima riitti loppuun asti.');
+/** The app's language follows the video's (settings + the plan's name, which is the coach's own text). */
+const localise = (d) => { d.soccerAppSettings.language = LANG; if (LANG === 'en') for (const p of Object.values(d.soccerPlaytimePlans || {})) p.name = 'Tournament day'; return d; };
 
 /** The club with no matches yet and no starting point: the state video 1 ends in, for "Luo ottelu". */
 export function freshState(backupPath) {
@@ -56,7 +61,7 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
  *  plan's link for the hero (the card offers Näytä suunnitelma / Jaa and the attendance re-plan). */
 export function loadStates(backupPath) {
   const base = JSON.parse(fs.readFileSync(backupPath, 'utf8')).localStorage;
-  const variant = (mod) => { const d = clone(base); mod(d.savedSoccerGames[FIXTURE], d); return d; };
+  const variant = (mod) => { const d = localise(clone(base)); mod(d.savedSoccerGames[FIXTURE], d); return d; };
   return {
     basicFront: variant((g) => { g.playersOnField = []; g.selectedPlayerIds = PRESENT.map(pid); g.subIntervalMinutes = 5; }),
     heroFront: variant((g, d) => { g.playersOnField = []; d.soccerPlaytimePlanLinks = LINKS; }),

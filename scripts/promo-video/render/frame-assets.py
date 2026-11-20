@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); OUT = os.path.join(ROOT, 'out'); A = os.path.join(ROOT, 'assets')
 ap = argparse.ArgumentParser(); ap.add_argument('--tagline', default='Suunnittele - kirjaa - oivalla'); ap.add_argument('--lang', default='fi'); ap.add_argument('--icon', default=os.path.join(ROOT, '..', '..', 'public', 'icons', 'icon-512x512.png'))
 args = ap.parse_args(); os.makedirs(OUT, exist_ok=True)
+SFX = '' if args.lang == 'fi' else '-' + args.lang  # intro/end cards per language: intro.png (fi), intro-en.png ...
 W, H = 1080, 1920; NAVY = (11, 18, 32); AMBER = (251, 191, 36); INK2 = (199, 210, 254)
 F = lambda s: ImageFont.truetype(os.path.join(A, 'Rajdhani-Bold.ttf'), s)
 # intro: icon, wordmark, tagline
@@ -12,12 +13,12 @@ img = Image.new('RGB', (W, H), NAVY); d = ImageDraw.Draw(img)
 logo = Image.open(args.icon).convert('RGBA').resize((300, 300)); img.paste(logo, ((W - 300) // 2, H // 2 - 420), logo)
 w = d.textlength('MatchOps', font=F(150)); d.text(((W - w) / 2, H // 2 - 80), 'MatchOps', font=F(150), fill=AMBER)
 w = d.textlength(args.tagline, font=F(60)); d.text(((W - w) / 2, H // 2 + 110), args.tagline, font=F(60), fill=INK2)
-img.save(os.path.join(OUT, 'intro.png'))
+img.save(os.path.join(OUT, f'intro{SFX}.png'))
 # end card: wordmark + official badge
 img = Image.new('RGB', (W, H), NAVY); d = ImageDraw.Draw(img)
 w = d.textlength('MatchOps', font=F(150)); d.text(((W - w) / 2, H / 2 - 190), 'MatchOps', font=F(150), fill=AMBER)
 badge = Image.open(os.path.join(A, f'google-play-badge-{args.lang}.png')).convert('RGBA'); bw = 520; badge = badge.resize((bw, int(badge.height * bw / badge.width))); img.paste(badge, ((W - bw) // 2, H // 2 + 30), badge)
-img.save(os.path.join(OUT, 'end.png'))
+img.save(os.path.join(OUT, f'end{SFX}.png'))
 # phone frame, like the marketing site's .phone-frame: thin graphite bezel, camera dot, soft shadow and amber glow.
 BZ = 14; MY = 54; SH = H - 2 * (MY + BZ); SW = round(SH * 390 / 844); SX = (W - SW) // 2; SY = MY + BZ; RI = 52; RO = RI + BZ
 under = Image.new('RGBA', (W, H), NAVY + (255,))
