@@ -1,6 +1,6 @@
 /**
  * Cuts every recording into captioned clips and joins them into the hero.
- * Usage: node render/encode.mjs [--style phone|plain] [--out out/hero] [--assets out] [--music track.mp3] [--music-lufs -18]
+ * Usage: node render/encode.mjs [--style phone|plain] [--out out/hero] [--assets out] [--music track.mp3] [--music-lufs -18] [--wide]
  *  --out is one video's folder (its rec-*.json, captions and clips); --assets holds the shared intro/end/phone frames.
  *  - marks are wall-clock; the screencast file runs slightly slow, so each recording's marks are
  *    scaled by (file length / measured length) before cutting;
@@ -58,8 +58,10 @@ recs.forEach((r, ri) => {
   let cur = '[v]', k = 0;
   for (const s of r.segs) {
     const cap = path.join(OUT, `cap_${style}_${String(s.id).replace('.', '_')}.png`); if (!fs.existsSync(cap)) continue;
-    const a = s.start - t0, b = s.end - t0; const idx = n++; inputs.push('-loop', '1', '-t', f2(D), '-i', cap);
-    chain += `;[${idx}:v]format=rgba,fade=t=in:st=${f2(a)}:d=0.25:alpha=1,fade=t=out:st=${f2(b - 0.25)}:d=0.25:alpha=1[c${k}];${cur}[c${k}]overlay=0:0:enable='between(t,${f2(a)},${f2(b)})'[o${k}]`; cur = `[o${k}]`; k++;
+    // Each band is generated only for its own window and shifted into place: looping every band over the
+    // whole recording ran ffmpeg out of memory once a recording carried ten or more captions.
+    const a = s.start - t0, b = s.end - t0; const idx = n++; inputs.push('-loop', '1', '-framerate', '30', '-t', f2(b - a), '-i', cap);
+    chain += `;[${idx}:v]format=rgba,fade=t=in:st=0:d=0.25:alpha=1,fade=t=out:st=${f2(b - a - 0.25)}:d=0.25:alpha=1,setpts=PTS+${f2(a)}/TB[c${k}];${cur}[c${k}]overlay=0:0:eof_action=pass[o${k}]`; cur = `[o${k}]`; k++;
   }
   const fin = ri === 0 ? 0.7 : 0.3, fout = ri === recs.length - 1 ? 0.3 : 0.3;
   chain += `;${cur}fade=t=in:st=0:d=${fin}:color=0x0b1220,fade=t=out:st=${f2(D - fout)}:d=${fout}:color=0x0b1220,format=yuv420p[out]`;
@@ -89,4 +91,15 @@ if (music) {
   const out = hero.replace(/\.mp4$/, '-music.mp4');
   run([...inputs, '-filter_complex', chain, '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest', out]);
   console.log('music', path.basename(music), `x${n}`, '->', out, (fs.statSync(out).size / 1e6).toFixed(1) + ' MB');
+}
+
+/**
+ * --wide: a 16:9 copy (1920x1080) of the finished video for YouTube and slides - the phone canvas
+ * scaled to full height on the navy ground. Made from the music version when there is one.
+ */
+if (process.argv.includes('--wide')) {
+  const src = music ? hero.replace(/\.mp4$/, '-music.mp4') : hero;
+  const out = path.join(OUT, `matchops-${NAME}-16x9${music ? '-music' : ''}.mp4`);
+  run(['-i', src, '-vf', 'scale=-2:1080,pad=1920:1080:(ow-iw)/2:0:color=0x0b1220,format=yuv420p', '-c:v', 'libx264', '-preset', 'medium', '-crf', '24', '-r', '30', '-c:a', 'copy', '-movflags', '+faststart', out]);
+  console.log('wide ->', out, (fs.statSync(out).size / 1e6).toFixed(1) + ' MB');
 }

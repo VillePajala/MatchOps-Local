@@ -2,11 +2,11 @@
 # End to end: demo data -> static frames -> recordings -> captions -> encode. Needs `npm run dev` running in the repo root.
 set -euo pipefail
 cd "$(dirname "$0")"
-VIDEO="${VIDEO:-hero}"; STYLE="${STYLE:-phone}"; SCENES="${1:-}"; MUSIC="${MUSIC:-}"   # VIDEO=<scene file name>; MUSIC=path/to/track.mp3 adds a music version
+VIDEO="${VIDEO:-hero}"; STYLE="${STYLE:-phone}"; SCENES="${1:-}"; MUSIC="${MUSIC:-}"; WIDE="${WIDE:-}"   # VIDEO=<scene file name>; MUSIC=path/to/track.mp3 adds a music version; WIDE=1 a 16:9 copy
 curl -sf -o /dev/null --max-time 60 http://localhost:3000/ || { echo "dev server not answering on :3000 - run 'npm run dev' in the repo root first"; exit 1; }
 [ -d node_modules ] || npm install --silent
 node demo/make-demo.mjs
 python3 render/frame-assets.py
 node "scenes/$VIDEO.mjs" $SCENES
 python3 render/captions.py --style "$STYLE" --out "out/$VIDEO"
-node render/encode.mjs --style "$STYLE" --out "out/$VIDEO" ${MUSIC:+--music "$MUSIC"}
+node render/encode.mjs --style "$STYLE" --out "out/$VIDEO" ${MUSIC:+--music "$MUSIC"} ${WIDE:+--wide}
