@@ -93,7 +93,7 @@ BYOK transfer would arguably be exempt). Photon declared as shared because the
 background address heal sends pin coordinates without a user action. Target
 audience stays adults (coaches), although the players are children.
 
-**Policy/code mismatches found 2026-11-20 - all fixed in PR #PRNUM:** (1)
+**Policy/code mismatches found 2026-11-20 - all fixed in PR #1067:** (1)
 `healVenueAddresses` reverse-geocodes saved pins via Photon in the background -
 the policy now says so; (2) server/edge Sentry configs ignored the diagnostics
 switch - they now send errors only (`tracesSampleRate: 0`, `sendDefaultPii:
