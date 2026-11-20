@@ -38,7 +38,7 @@ describe('buildTasoReport', () => {
       '1 Emma Jones (GK)',
       '7 Noah Brown',
       '10 Liam Smith',
-      '- Ada Lovelace',
+      'Ada Lovelace',
     ]);
   });
 
@@ -78,7 +78,7 @@ describe('buildTasoReport', () => {
         '7 Noah Brown · CB',
         // Back-to-front order, whatever order they were recorded in.
         '10 Liam Smith · CB/ST',
-        '- Ada Lovelace',
+        'Ada Lovelace',
       ]);
     });
 
@@ -120,9 +120,9 @@ describe('buildTasoReport', () => {
       'Match sheet',
       'Tigers - Lions 2-1 (half-time 1-1)',
       'Goals (minute, scorer, assist):',
-      "13' #10 Liam Smith (assist #7 Noah Brown)",
+      "13' 10 Liam Smith (assist 7 Noah Brown)",
       "25' opponent goal",
-      "41' #7 Noah Brown",
+      "41' 7 Noah Brown",
     ]);
   });
 
@@ -155,7 +155,7 @@ describe('buildTasoReport', () => {
 
   it('marks an unnumbered scorer the same way as in the squad list', () => {
     const game: TasoGame = { ...base, homeScore: 1, awayScore: 0, gameEvents: [ev('goal', 5 * 60, { scorerId: 'p4' })] };
-    expect(buildTasoReport(game, players, t).report).toContain("5' #- Ada Lovelace");
+    expect(buildTasoReport(game, players, t).report).toContain("5' Ada Lovelace");
   });
 
   it('says so when no goal was recorded', () => {

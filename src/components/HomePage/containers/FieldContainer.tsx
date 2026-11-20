@@ -421,7 +421,7 @@ export function FieldContainer({
           plannedSubGroup={plannedSubGroup}
           plannedSubsEarlier={plannedSubsEarlier}
           onToggleGoalLogModal={quickGoal}
-          // Basic layout: no "Nollaa vaihtoajastin" (D13) - the plan's
+          // Basic layout: no "Vaihto tehty" (D13) - the plan's
           // reminders are the basic coach's sub timing.
           showSubTimerReset={appLayout !== 'basic'}
           onOpenPlayerAssessmentModal={assessmentsEnabled ? onOpenPlayerAssessmentModal : undefined}

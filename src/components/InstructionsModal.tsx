@@ -166,7 +166,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                 <li>{t('firstGameGuide.clockNext', 'Tap the clock to open the large clock. The next planned change is shown there as a block.')}</li>
                 <li>{t('firstGameGuide.clockGoal', 'Our goal: tap "Goal for us". The goal is logged and the score moves at once. Then pick the scorer from "Who scored?" (all squad players) or tap "Skip".')}</li>
                 <li>{t('firstGameGuide.clockOpponent', 'Opponent goal: tap "Opponent +1".')}</li>
-                <li>{t('firstGameGuide.clockReset', 'In the full layout, "Reset sub timer" restarts the change timer.')}</li>
+                <li>{t('firstGameGuide.clockReset', 'In the full layout, "Sub done" restarts the change timer.')}</li>
                 <li>{t('firstGameGuide.dictationTip', 'Hold the microphone button on the large clock to dictate a voice note - it stays on your phone.')}</li>
               </ul>
             </div>

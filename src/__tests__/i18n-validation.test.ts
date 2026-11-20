@@ -420,7 +420,7 @@ describe('Translation File Validation', () => {
       // Common keys: done, retry
       // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
       // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
-      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420 → 2421 → 2442
+      // Previous (batch/full-app-line: -2, noNumber and recap goals/assists out, goalsAssists in; now 3656): 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420 → 2421 → 2442
       // Settings feedback: friendly email path plus copyable app info
       // Goal log source of truth: unknownScorer, scoreMismatch, recalculateScoreButton,
       // recalculateScoreTitle, recalculateScoreConfirm, recalculateConfirmButton (+6)
@@ -747,7 +747,7 @@ describe('Translation File Validation', () => {
       // +6 startScreen.club* (Seura club card). 3615.
       // +7 startScreen tab heroes: openGame, dashTileRecord, dashTopScorers, dashGamesWord/dashGoalsWord _one/_other. 3622.
       // +32 privacy 2026-11: policy (+9 -1 IP), terms art. 28 / player data (+16), Settings privacy + field hints (+8). 3657.
-      expect(enKeys.length).toBe(3658);
+      expect(enKeys.length).toBe(3656);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -960,7 +960,7 @@ describe('Translation File Validation', () => {
       // +6 (Seura club card). 3615.
       // +7 (Home tab heroes). 3622.
       // +32 privacy 2026-11: policy (+9 -1 IP), terms art. 28 / player data (+16), Settings privacy + field hints (+8). 3657.
-      expect(fiKeys.length).toBe(3658);
+      expect(fiKeys.length).toBe(3656);
     });
   });
 });

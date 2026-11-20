@@ -44,10 +44,8 @@ describe('buildGameRecap', () => {
     // Header: score line, then date and location each on their own line (no age group).
     expect(text).toContain('Tigers 3-2 Lions\n26.6.2026\nCentral Park');
     expect(text).not.toContain('U11');
-    // One name per line, count always shown; Liam (2) before Emma (1) by count.
-    expect(text).toContain('Goals:\nLiam 2\nEmma 1');
-    // Noah assisted twice.
-    expect(text).toContain('Assists:\nNoah 2');
+    // One block, one line per player (goals+assists): Liam 2+0, Emma 1+0, then Noah 0+2 (sorted by goals, then assists).
+    expect(text).toContain('Goals + assists:\nLiam 2+0\nEmma 1+0\nNoah 0+2');
     expect(text).toContain("Match report:");
     expect(text).toContain('Great pressing in the second half.');
   });
@@ -115,14 +113,13 @@ describe('buildGameRecap', () => {
     );
     expect(text).toContain('Tigers 0-0 Lions');
     expect(text).not.toContain('Goals');
-    expect(text).not.toContain('Assists');
     expect(text).not.toContain("Match report:");
     expect(text).not.toContain('Central Park');
   });
 
   it('falls back to Unknown for a deleted scorer', () => {
     const text = buildGameRecap({ ...base, gameEvents: [goal('ghost')] }, players, t);
-    expect(text).toContain('Goals:\nUnknown 1');
+    expect(text).toContain('Goals + assists:\nUnknown 1+0');
   });
 
   it('renders a position-keyed lineup (back-to-front), multi-position and multi-player', () => {
