@@ -1,6 +1,6 @@
 # Full Review 2026-11 — Fix Checklist
 
-**Status:** review completed 2026-11-11; nothing fixed yet. Tick items as they ship (add the PR number).
+**Status (2026-11-20):** ✅ **complete except three owner research tasks: 2.2, 2.3 and 2.5** (Step 2). Every fix item has shipped (PR numbers on each line, #893–#1051); the owner question at 4.34 was decided 2026-11-20 (the recorded kicks decide a shootout result; no change). Review completed 2026-11-11.
 **How to use:** work top to bottom. Before implementing an item, discuss it: confirm it is still real, agree the fix, then implement with its test. One PR per item unless an item says otherwise.
 
 **Source.** Five read-only review runs, plus the onboarding research.
@@ -197,7 +197,7 @@ Answers that may change Steps 3+ and the onboarding plan. Details in `review-202
 - [ ] **2.2** Write to the ~15 coaches who stopped after one or two games and ask why (Finnish draft in FINAL-PLAN)
 - [ ] **2.3** Watch 1–2 coaches who have never seen the app set up and run a game on today's app
 - [x] **2.4** ✅ *Captured 2026-11-13 on staging (prod build pointed at staging): review-2026-11/screens/cloud-wizard/ - sign-up, wizard team + players, finished Home, new-game form. Not captured: the email-code screen (staging auto-confirms). Seen: reopening mid-wizard restarts at step 1 with fields empty (nothing is saved until Valmis, so no duplicates); the new-game form after the wizard has no team pre-selected and 0/10 players ticked.* Capture the cloud SetupWizard screens on staging (never captured in the review)
-- [ ] **2.5** Go through the open decisions (D1–D29 in FINAL-PLAN) and finalise the onboarding plan into the existing `onboarding-funnel-plan.md` / `new-user-funnel-fix-plan.md`, linked from UNIFIED-ROADMAP
+- [ ] **2.5** Go through the open decisions (D1–D29 in FINAL-PLAN) and finalise the onboarding plan into the existing `new-user-funnel-fix-plan.md` (the older `onboarding-funnel-plan.md` is archived in `docs/08-archived/completed-active-plans/`), linked from UNIFIED-ROADMAP
 
 ## Step 3 — Data integrity: cloud, sync, sign-in/out
 
@@ -653,7 +653,7 @@ Root cause: newer game fields are missing from the undo history sets, the autosa
 
   </details>
 
-- [x] **4.20** [high] Match timer: deep, independent review (owner request 2026-11-11) — ✅ done 2026-11-16: four Fable 5.2 reviewers; findings 4.21–4.36 fixed (#956–#969); open: 4.33b (Match details write race), owner question on the Penalties checkbox (4.34)
+- [x] **4.20** [high] Match timer: deep, independent review (owner request 2026-11-11) — ✅ done 2026-11-16: four Fable 5.2 reviewers; findings 4.21–4.36 fixed (#956–#969); 4.33b fixed (#970); owner question on the Penalties checkbox (4.34) decided 2026-11-20: recorded kicks decide; no change
   <details><summary>Details</summary>
 
   - **Why:** the timer is the core of match day, and this review found clock bugs in several separate places. A dedicated review of the whole timer design is wanted, not item-by-item patches.
@@ -724,7 +724,7 @@ Root cause: newer game fields are missing from the undo history sets, the autosa
   - a history entry is skipped when a tick lands between an async dispatch and its effect;
   - Match details read-modify-write races the snapshot autosave.
 - [x] **4.33b** [low] Match details writes (`updateGameDetails`, src/utils/savedGames.ts) are a read-modify-write outside the key lock and race the snapshot autosave (two quick modal writes can drop the first field; a modal write landing around an autosave can put back older status/clock/events until the next autosave). Fix: merge inside `withKeyLock` as a DataStore-level `updateGame(id, patch)`; stop double-writing fields the reducer owns; functional `setSavedGames(prev => ...)` in handleQuickSaveGame. Split from 4.33 (storage-level change). — ✅ #970 (per-game write queue in savedGames.ts; functional setSavedGames)
-- [x] **4.34** [low] Interval-derived numbers: — ✅ #968 (owner question open: should the Penalties checkbox decide the result instead of the recorded kicks? Changing it would change existing results; comment corrected meanwhile)
+- [x] **4.34** [low] Interval-derived numbers: — ✅ #968 (owner question - should the Penalties checkbox decide the result instead of the recorded kicks? - decided by the owner 2026-11-20: recorded kicks decide; no change)
   - Excel "Total Game Duration" and assessment minutesPlayed sum only the between-sub intervals (a game with no subs gives 00:00);
   - IntervalLog.timestamp is rendered as a 1970 date;
   - the Penalties checkbox does not gate the result (the comment says it does).
