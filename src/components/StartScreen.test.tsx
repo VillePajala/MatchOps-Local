@@ -61,6 +61,7 @@ import StartScreen from './StartScreen';
 import { getPlanLink } from '@/utils/playtimePlanner/planLinks';
 import { getPlan } from '@/utils/playtimePlanner/storage';
 import { buildFirstPlan } from '@/services/nextGamePair';
+import { APP_VERSION } from '@/config/constants';
 
 describe('StartScreen', () => {
   /** Phase 3 entry point: "Add to player stats" is the last row of the Stats tab, live even before the first match. */
@@ -1154,7 +1155,7 @@ describe('Home dashboard view (opt-in)', () => {
     const settingsRow = within(sheet).getByRole('button', { name: 'Settings' });
     expect(settingsRow.querySelector('svg')).not.toBeNull();
     expect(within(sheet).getByRole('link', { name: 'User Guide' }).querySelector('svg')).not.toBeNull();
-    expect(screen.getByTestId('gear-footer')).toHaveTextContent(/^MatchOps v\d+\.\d+\.\d+·match-ops\.com$/);
+    expect(screen.getByTestId('gear-footer')).toHaveTextContent(`MatchOps ${APP_VERSION}·match-ops.com`);
     expect(within(sheet).getByRole('link', { name: 'match-ops.com' })).toHaveAttribute('href', 'https://www.match-ops.com');
   });
 });

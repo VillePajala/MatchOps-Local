@@ -10,7 +10,7 @@ import type { HomeSummary } from '@/utils/homeSummary';
 import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonHero, HomeStatsHero, HomeTopScorersCard, HomeClubCard, HomeIcon, HOME_CARD, HOME_FOCUS, formatDayMonth } from '@/components/HomeDashboard';
 import type { HomeCompetition } from '@/utils/homeSummary';
 import { useHorizontalSwipe } from '@/hooks/useHorizontalSwipe';
-import packageJson from '../../package.json';
+import { APP_VERSION } from '@/config/constants';
 import { commonClubName } from '@/utils/homeTeamScope';
 import { useAuth } from '@/contexts/AuthProvider';
 import HomeBasic from '@/components/HomeBasic';
@@ -1040,7 +1040,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
             )}
             {/* Which build this is, and where the app lives. */}
             <div className="mt-2 flex flex-wrap items-center gap-x-1.5 px-1 text-[13px] text-ink-3" data-testid="gear-footer">
-              <span>MatchOps v{packageJson.version}</span>
+              <span>MatchOps {APP_VERSION}</span>
               <span aria-hidden="true">·</span>
               <a
                 href="https://www.match-ops.com"

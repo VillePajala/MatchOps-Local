@@ -3,6 +3,11 @@
   "releases": [
     {
       "date": "2026-11-20",
+      "en": ["Settings and support emails now show the app's real version."],
+      "fi": ["Asetukset ja tukisähköposti näyttävät nyt sovelluksen oikean version."]
+    },
+    {
+      "date": "2026-11-20",
       "en": ["Clearer privacy policy and account-deletion info, including how to delete your data but keep your account."],
       "fi": ["Selkeämmät tietosuoja- ja tilin poisto-ohjeet, myös miten poistat tietosi mutta säilytät tilin."]
     },

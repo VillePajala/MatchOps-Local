@@ -3,7 +3,7 @@
 import React, { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CollapsibleModalHeader, modalContainerStyle } from '@/styles/modalStyles';
-import packageJson from '../../package.json';
+import { APP_VERSION } from '@/config/constants';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useAppLayout } from '@/hooks/useAppLayout';
 import {
@@ -240,7 +240,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             </div>
           </GuideSection>
 
-          <p className="text-sm text-ink-3 text-center pt-2">v{packageJson.version}</p>
+          <p className="text-sm text-ink-3 text-center pt-2">{APP_VERSION}</p>
         </div>
       </div>
     </div>

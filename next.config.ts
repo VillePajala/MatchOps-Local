@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { readFileSync } from 'fs';
 import { withSentryConfig } from '@sentry/nextjs';
 
 /**
@@ -185,14 +186,31 @@ const securityHeaders = [
   },
 ];
 
+/** "2026-11-20 (99dfbba)": newest release-notes date + short commit SHA. */
+function buildAppVersion(): string {
+  let date = '';
+  try {
+    const notes = JSON.parse(readFileSync('./release-notes.json', 'utf8')) as {
+      releases?: Array<{ date?: string }>;
+    };
+    date = notes.releases?.[0]?.date ?? '';
+  } catch {
+    // release-notes.json missing or malformed: fall back to the commit only
+  }
+  const sha = (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 7);
+  if (date && sha) return `${date} (${sha})`;
+  return date || sha || 'dev';
+}
+
 const nextConfig: NextConfig = {
   // Expose Git branch to client for preview/production indicators
   env: {
     NEXT_PUBLIC_GIT_BRANCH: process.env.VERCEL_GIT_COMMIT_REF || 'development',
-    // Expose package version at build time for Sentry release tracking.
-    // process.env.npm_package_version is only available during npm scripts,
-    // not at server/edge runtime — so we bake it into the bundle here.
-    NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version || '0.0.0',
+    // The app version shown to coaches (Settings, support email, start screen)
+    // and used as the Sentry release. The web app ships on every merge, so a
+    // hand-bumped package.json version never moved (it stayed 1.0.0). Derive it
+    // at build time instead: the newest release-notes date plus the commit.
+    NEXT_PUBLIC_APP_VERSION: buildAppVersion(),
   },
   // No special experimental config needed - instrumentation.ts is auto-detected
   async headers() {

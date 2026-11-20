@@ -29,3 +29,10 @@ export const PREMIUM_ENFORCEMENT_ENABLED = false;
  * @see docs/02-technical/database/supabase-schema.md Section 16 (user_consents)
  */
 export const POLICY_VERSION = '2026-11';
+
+/**
+ * Version shown to coaches and sent with support emails: the newest
+ * release-notes date plus the commit, baked in at build time (next.config.ts).
+ * Not package.json's version - that was never bumped and always read 1.0.0.
+ */
+export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || 'dev';

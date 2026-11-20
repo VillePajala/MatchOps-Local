@@ -10,7 +10,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
 import { translateAuthError } from '@/utils/authHelpers';
 import { formatBytes } from '@/utils/bytes';
-import packageJson from '../../package.json';
+import { APP_VERSION } from '@/config/constants';
 import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath, HiOutlineCloudArrowDown, HiOutlineClipboardDocument, HiOutlineShare, HiOutlineEnvelope } from 'react-icons/hi2';
 import { importFullBackup, prewarmBackup, downloadFullBackup } from '@/utils/fullBackup';
 import type { SnapshotMeta } from '@/utils/backupSnapshots';
@@ -625,7 +625,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const feedbackBody = t(
     'settingsModal.feedbackEmailBody',
     'Hi, I wanted to share feedback about MatchOps:\n\n\n\nApp version: {{version}}',
-    { version: packageJson.version },
+    { version: APP_VERSION },
   );
   const feedbackHref = `mailto:support@match-ops.com?subject=${encodeURIComponent(feedbackSubject)}&body=${encodeURIComponent(feedbackBody)}`;
   const getDisplayMode = () => {
@@ -639,7 +639,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
   const buildAppInfo = () => [
     t('settingsModal.appInfoTitle', 'MatchOps app info'),
-    `${t('settingsModal.appInfoVersion', 'Version')}: ${packageJson.version}`,
+    `${t('settingsModal.appInfoVersion', 'Version')}: ${APP_VERSION}`,
     `${t('settingsModal.appInfoLanguage', 'Language')}: ${language}`,
     `${t('settingsModal.appInfoMode', 'Mode')}: ${authMode === 'cloud' ? t('settingsModal.appInfoModeCloud', 'Cloud') : t('settingsModal.appInfoModeLocal', 'Local')}`,
     `${t('settingsModal.appInfoDisplayMode', 'Display mode')}: ${getDisplayMode()}`,
@@ -1293,7 +1293,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-ui text-base text-ink-2">{packageJson.version}</span>
+                    <span className="font-ui text-base text-ink-2">{APP_VERSION}</span>
                     {process.env.NEXT_PUBLIC_GIT_BRANCH && process.env.NEXT_PUBLIC_GIT_BRANCH !== 'master' && (
                       <span className={neutralBadgeStyle}>
                         {t('settingsModal.previewBadge', 'Preview')}

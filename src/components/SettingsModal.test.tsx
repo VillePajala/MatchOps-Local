@@ -8,6 +8,7 @@ import { ToastProvider } from '@/contexts/ToastProvider';
 import { PremiumProvider } from '@/contexts/PremiumContext';
 import { AuthProvider } from '@/contexts/AuthProvider';
 import { allowConsoleMessagesInThisFile } from '../../tests/utils/allowConsole';
+import { APP_VERSION } from '@/config/constants';
 
 // This file drives these error paths on purpose (review 9.5: allowed here only).
 allowConsoleMessagesInThisFile(['Failed to save']);
@@ -44,7 +45,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, fallbackOrOpts?: unknown) => {
+    t: (key: string, fallbackOrOpts?: unknown, maybeOpts?: { version?: string }) => {
       // Return English translations for common keys
       const translations: Record<string, string> = {
         'settingsModal.title': 'App Settings',
@@ -70,7 +71,7 @@ jest.mock('react-i18next', () => ({
         'settingsModal.sendFeedbackDesc': 'Share feedback, questions, or ideas.',
         'settingsModal.sendFeedbackPrivacy': 'No game, roster, or player data is attached automatically.',
         'settingsModal.feedbackEmailSubject': 'MatchOps feedback',
-        'settingsModal.feedbackEmailBody': 'Hi, I wanted to share feedback about MatchOps:\n\n\n\nApp version: 1.0.0',
+        'settingsModal.feedbackEmailBody': 'Hi, I wanted to share feedback about MatchOps:\n\n\n\nApp version: {{version}}',
         'settingsModal.emailButton': 'Email',
         'settingsModal.copyAppInfo': 'Copy app info',
         'settingsModal.copyAppInfoDesc': 'Copy version and device details you can paste into feedback.',
@@ -98,7 +99,7 @@ jest.mock('react-i18next', () => ({
         'common.reset': 'Reset',
       };
       // Check translations map first
-      if (translations[key]) return translations[key];
+      if (translations[key]) return translations[key].replace('{{version}}', maybeOpts?.version ?? '');
       // Handle interpolation objects (e.g., storageUsageDetails)
       if (key === 'settingsModal.storageUsageDetails' && fallbackOrOpts && typeof fallbackOrOpts === 'object') {
         const opts = fallbackOrOpts as Record<string, string>;
@@ -259,7 +260,7 @@ describe('<SettingsModal />', () => {
     expect(href).toContain('mailto:support@match-ops.com');
     expect(decodeURIComponent(href ?? '')).toContain('subject=MatchOps feedback');
     expect(decodeURIComponent(href ?? '')).toContain('Hi, I wanted to share feedback about MatchOps:');
-    expect(decodeURIComponent(href ?? '')).toContain('App version: 1.0.0');
+    expect(decodeURIComponent(href ?? '')).toContain(`App version: ${APP_VERSION}`);
   });
 
   test('copies app info without including match data', async () => {
@@ -294,7 +295,7 @@ describe('<SettingsModal />', () => {
 
     const copiedText = writeTextMock.mock.calls[0][0] as string;
     expect(copiedText).toContain('MatchOps app info');
-    expect(copiedText).toContain('Version: 1.0.0');
+    expect(copiedText).toContain(`Version: ${APP_VERSION}`);
     expect(copiedText).toContain('Language: en');
     expect(copiedText).toContain('Mode: Local');
     expect(copiedText).toContain('Display mode: Standalone');
