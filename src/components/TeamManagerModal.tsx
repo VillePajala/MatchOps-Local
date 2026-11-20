@@ -3,7 +3,7 @@
 import { useRememberedListSetting, isBoolean } from '@/hooks/useRememberedListSetting';
 import { matchesSearch } from '@/utils/listSearch';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { secondaryButtonStyle, dangerConfirmButtonStyle, primaryButtonStyle, CollapsibleModalHeader, useCollapsingHeader, modalContainerStyle, searchInputStyle, popoverMenuStyle, popoverItemStyle, iconButtonEditStyle, badgeArchivedStyle, neutralBadgeStyle, dialogContainerStyle, dialogTitleStyle, dialogBodyStyle, warningBoxStyle } from '@/styles/modalStyles';
+import { secondaryButtonStyle, dangerConfirmButtonStyle, primaryButtonStyle, CollapsibleModalHeader, useCollapsingHeader, modalContainerStyle, searchInputStyle, popoverMenuStyle, popoverItemStyle, iconButtonEditStyle, badgeArchivedStyle, dialogContainerStyle, dialogTitleStyle, dialogBodyStyle, warningBoxStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -36,10 +36,8 @@ import UnifiedTeamModal from './UnifiedTeamModal';
 import DeleteBlockedDialog from './DeleteBlockedDialog';
 import { useResourceLimit } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
-import { ENTITY_DOT } from '@/config/palette';
 import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
-import { formatAppDate } from '@/utils/localeFormat';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
@@ -387,182 +385,113 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               );
             }
 
-            // Not overflow-hidden: that clipped a team's action menu when the
-            // list is short. The rows round their own hover corners instead.
+            // One card per team (owner, 2026-11-20, variant A): kit swatch, the
+            // name, ONE meta line, the menu. Separate cards, not one shared
+            // box. Not overflow-hidden: that would clip the action menu.
             return (
-              <div className="s1-list">
-                <div className="divide-y divide-hairline">
-                  {filteredTeams.map((team) => (
+              <div className="flex flex-col gap-2.5">
+                  {filteredTeams.map((team) => {
+                    const count = rosterCounts[team.id] || 0;
+                    const season = team.boundSeasonId ? seasonMap[team.boundSeasonId] : undefined;
+                    const tournament = team.boundTournamentId ? tournamentMap[team.boundTournamentId] : undefined;
+                    const series = getTeamBoundSeries(team, tournaments);
+                    // "<N> players · <age group> · <competition>": only the
+                    // parts the team has, so no dangling separators.
+                    const metaRest = [
+                      team.ageGroup,
+                      team.gameType === 'futsal' ? t('common.gameTypeFutsal', 'Futsal') : null,
+                      season ? getSeasonDisplayName(season) : null,
+                      tournament ? getTournamentDisplayName(tournament) : null,
+                      series ? t(`common.level${series.level}`, series.level) : null,
+                    ].filter(Boolean) as string[];
+                    const playersText = t('teamManager.playersCount', '{{count}} players', { count });
+                    const placements = getTeamPlacements(team.id);
+                    return (
                     <div
                       key={team.id}
-                      className={`px-[18px] py-4 font-ui transition-colors hover:bg-white/[0.03] first:rounded-t-[22px] last:rounded-b-[22px] ${team.archived ? 'opacity-60' : ''}`}
+                      className={`s1-list flex items-center gap-1 py-1.5 pl-1.5 pr-1 font-ui ${team.archived ? 'opacity-60' : ''}`}
+                      data-testid={`team-card-${team.id}`}
                     >
-                      {/* Top row: Team name + archived badge + actions */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div
-                          className="flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => handleEditTeam(team.id)}
-                          title={t('teamManager.roster', 'Roster')}
-                        >
-                          <div className="flex items-center gap-2">
-                            {/* Kit stripe. The colour is the team's, so it is
-                                set inline rather than from a class - and it is
-                                a STRIPE rather than a dot because a kit reads
-                                as a band of colour, and a 3px bar survives
-                                being glanced at where a dot does not. */}
-                            {team.color && (
-                              <span
-                                aria-hidden="true"
-                                className="w-1 h-5 rounded-full shrink-0"
-                                style={{ backgroundColor: team.color }}
-                              />
-                            )}
-                            <span className="font-display text-[26px] font-bold leading-[1.1] text-ink truncate" title={team.name}>{team.name}</span>
+                      <button
+                        type="button"
+                        className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-2xl py-1.5 pl-2.5 pr-1 text-left transition-colors hover:bg-white/[0.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                        onClick={() => handleEditTeam(team.id)}
+                        title={t('teamManager.roster', 'Roster')}
+                      >
+                        {/* Kit swatch: the team's own colour, set inline. A team
+                            without one gets an empty outlined swatch so the
+                            names still line up. */}
+                        <span
+                          aria-hidden="true"
+                          className="h-9 w-3.5 flex-none rounded-[5px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.15)]"
+                          style={team.color ? { backgroundColor: team.color } : undefined}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span className="truncate font-display text-[22px] font-bold leading-[1.1] text-ink">{team.name}</span>
                             {team.archived && (
                               <span className={`${badgeArchivedStyle} shrink-0`}>
                                 {t('teamManager.archivedBadge', 'Archived')}
                               </span>
                             )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <div className="relative" ref={actionsMenuTeamId === team.id ? actionsMenuRef : null}>
-                            <button
-                              onClick={(e) => handleActionsMenuToggle(e, team.id)}
-                              className={iconButtonEditStyle}
-                              aria-label={t('teamManager.teamActions', 'Team actions')}
-                            >
-                              <HiOutlineEllipsisVertical className="w-5 h-5" />
-                            </button>
-
-                            {actionsMenuTeamId === team.id && (
-                              <div className={`${popoverMenuStyle} ${menuPositions[team.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
-                                <button
-                                  onClick={() => handleEditTeam(team.id)}
-                                  className={popoverItemStyle}
-                                >
-                                  <HiOutlinePencil className="w-4 h-4" />
-                                  {t('teamManager.edit', 'Edit')}
-                                </button>
-                                <button
-                                  onClick={() => handleToggleArchive(team.id, team.archived || false)}
-                                  className={popoverItemStyle}
-                                >
-                                  <HiOutlineArchiveBox className="w-4 h-4" />
-                                  {team.archived
-                                    ? t('teamManager.unarchive', 'Unarchive')
-                                    : t('teamManager.archive', 'Archive')}
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteTeam(team.id)}
-                                  className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
-                                >
-                                  <HiOutlineTrash className="w-4 h-4" />
-                                  {t('teamManager.delete', 'Delete')}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Context chips under the name (same as the league card). */}
-                      <div className="flex flex-wrap gap-1.5 mt-2 cursor-pointer" onClick={() => handleEditTeam(team.id)}>
-                          {/* Age group */}
-                          {team.ageGroup && (
-                            <span
-                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
-                              aria-label={t('teamManager.ageGroupContext', 'Age group: {{ageGroup}}', { ageGroup: team.ageGroup })}
-                            >
-                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.clubSeason}`}></span>
-                              {team.ageGroup}
-                            </span>
-                          )}
-                          {/* Game type */}
-                          {team.gameType === 'futsal' && (
-                            <span
-                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
-                              aria-label={t('teamManager.gameTypeContext', 'Game type: Futsal')}
-                            >
-                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.gameType}`}></span>
-                              {t('common.gameTypeFutsal', 'Futsal')}
-                            </span>
-                          )}
-                          {/* Season - shows full name with club season */}
-                          {team.boundSeasonId && seasonMap[team.boundSeasonId] && (
-                            <span
-                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
-                              aria-label={t('teamManager.seasonContext', 'League: {{name}}', { name: getSeasonDisplayName(seasonMap[team.boundSeasonId]) })}
-                            >
-                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.season}`}></span>
-                              <span className="break-words min-w-0">{getSeasonDisplayName(seasonMap[team.boundSeasonId])}</span>
-                            </span>
-                          )}
-                          {/* Tournament - shows full name with club season */}
-                          {team.boundTournamentId && tournamentMap[team.boundTournamentId] && (
-                            <span
-                              className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
-                              aria-label={t('teamManager.tournamentContext', 'Tournament: {{name}}', { name: getTournamentDisplayName(tournamentMap[team.boundTournamentId]) })}
-                            >
-                              <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.tournament}`}></span>
-                              <span className="break-words min-w-0">{getTournamentDisplayName(tournamentMap[team.boundTournamentId])}</span>
-                            </span>
-                          )}
-                          {/* Tournament Series */}
-                          {(() => {
-                            const series = getTeamBoundSeries(team, tournaments);
-                            if (!series) return null;
-                            return (
-                              <span
-                                className="inline-flex max-w-full items-center gap-1.5 min-h-[26px] py-0.5 px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold text-ink-2"
-                                aria-label={t('teamManager.seriesContext', 'Level: {{level}}', { level: series.level })}
-                              >
-                                <span className={`w-1.5 h-1.5 shrink-0 rounded-full ${ENTITY_DOT.series}`}></span>
-                                {t(`common.level${series.level}`, series.level)}
-                              </span>
-                            );
-                          })()}
-                          {(() => {
-                            const placements = getTeamPlacements(team.id);
-                            if (placements.length === 0) return null;
-                            return (
-                              <>
-                                {placements.map((p, idx) => (
-                                  <span
-                                    key={idx}
-                                    className={`${neutralBadgeStyle} max-w-full whitespace-normal!`}
-                                    title={p.name}
-                                  >
-                                    {p.emoji} <span className="break-words min-w-0">{p.name}</span>
-                                  </span>
-                                ))}
-                              </>
-                            );
-                          })()}
-                      </div>
-
-                      {/* Footer as the league card's: the numeral and its label. */}
-                      <div
-                        className="-mx-[18px] -mb-4 mt-4 flex items-baseline justify-between gap-3 border-t border-hairline px-[18px] pt-3 pb-3.5 cursor-pointer"
-                        onClick={() => handleEditTeam(team.id)}
-                      >
-                        <div className="flex items-baseline gap-2.5">
-                          <span className="s1-numeral pr-[3px] font-display text-[34px] font-bold italic leading-none">{rosterCounts[team.id] || 0}</span>
-                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">
-                            {t('teamManager.playersLabel', 'players', { count: rosterCounts[team.id] || 0 })}
                           </span>
-                        </div>
-                        <span className="text-xs text-ink-3">
-                          {t('teamManager.createdAt', 'Created {{date}}', {
-                            date: formatAppDate(team.createdAt)
-                          })}
+                          <span
+                            className="mt-0.5 block truncate text-[13px] leading-5 text-ink-3"
+                            title={[playersText, ...metaRest].join(' · ')}
+                            data-testid={`team-meta-${team.id}`}
+                          >
+                            <b className="font-semibold text-ink-2">{playersText}</b>
+                            {metaRest.length > 0 && ` · ${metaRest.join(' · ')}`}
+                          </span>
+                          {placements.length > 0 && (
+                            <span className="mt-0.5 block truncate text-xs leading-4 text-ink-3">
+                              {placements.map((p) => `${p.emoji} ${p.name}`).join(' · ')}
+                            </span>
+                          )}
                         </span>
+                      </button>
+
+                      <div className="relative" ref={actionsMenuTeamId === team.id ? actionsMenuRef : null}>
+                        <button
+                          onClick={(e) => handleActionsMenuToggle(e, team.id)}
+                          className={iconButtonEditStyle}
+                          aria-label={t('teamManager.teamActions', 'Team actions')}
+                        >
+                          <HiOutlineEllipsisVertical className="w-5 h-5" />
+                        </button>
+
+                        {actionsMenuTeamId === team.id && (
+                          <div className={`${popoverMenuStyle} ${menuPositions[team.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                            <button
+                              onClick={() => handleEditTeam(team.id)}
+                              className={popoverItemStyle}
+                            >
+                              <HiOutlinePencil className="w-4 h-4" />
+                              {t('teamManager.edit', 'Edit')}
+                            </button>
+                            <button
+                              onClick={() => handleToggleArchive(team.id, team.archived || false)}
+                              className={popoverItemStyle}
+                            >
+                              <HiOutlineArchiveBox className="w-4 h-4" />
+                              {team.archived
+                                ? t('teamManager.unarchive', 'Unarchive')
+                                : t('teamManager.archive', 'Archive')}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTeam(team.id)}
+                              className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
+                            >
+                              <HiOutlineTrash className="w-4 h-4" />
+                              {t('teamManager.delete', 'Delete')}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
               </div>
-            </div>
             );
           })()}
           {archivedTeamCount > 0 && (

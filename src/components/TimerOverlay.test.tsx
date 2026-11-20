@@ -35,6 +35,41 @@ describe('TimerOverlay', () => {
     jest.clearAllMocks();
   });
 
+  /**
+   * The score shows the live situation from OUR side: both numbers green while
+   * we lead, red while we trail, neutral white when level (0-0 included).
+   * Home/away decides which number is ours.
+   * @critical
+   */
+  describe('score colour by live situation', () => {
+    const scoreNumerals = (home: number, away: number) => {
+      const digits = screen.getAllByTestId('steady-digits').slice(0, 2);
+      expect(digits[0]).toHaveTextContent(String(home));
+      expect(digits[1]).toHaveTextContent(String(away));
+      return digits;
+    };
+
+    it.each([
+      // [homeOrAway, homeScore, awayScore, expected class]
+      ['home', 0, 0, 's1-numeral'],
+      ['home', 2, 2, 's1-numeral'],
+      ['home', 2, 1, 's1-numeral-win'],
+      ['home', 0, 1, 's1-numeral-loss'],
+      // Away game: the AWAY number is ours.
+      ['away', 0, 1, 's1-numeral-win'],
+      ['away', 2, 1, 's1-numeral-loss'],
+      ['away', 1, 1, 's1-numeral'],
+    ] as const)('%s game %i-%i colours both numbers %s', (homeOrAway, homeScore, awayScore, expected) => {
+      render(<TimerOverlay {...baseProps} homeOrAway={homeOrAway} homeScore={homeScore} awayScore={awayScore} />);
+      for (const el of scoreNumerals(homeScore, awayScore)) {
+        expect(el).toHaveClass(expected);
+        for (const other of ['s1-numeral', 's1-numeral-win', 's1-numeral-loss'].filter((c) => c !== expected)) {
+          expect(el).not.toHaveClass(other);
+        }
+      }
+    });
+  });
+
   it('calls onStartPauseTimer when Start is clicked', () => {
     render(<TimerOverlay {...baseProps} />);
     const startButton = screen.getByRole('button', { name: /start/i });

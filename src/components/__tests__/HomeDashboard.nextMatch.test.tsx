@@ -776,3 +776,17 @@ describe('next-match plan actions', () => {
     expect(onShare).toHaveBeenCalledTimes(1);
   });
 });
+
+/** Recent results: the score numeral takes the result colour, as the disc does. */
+describe('recent results colour', () => {
+  it.each([
+    ['W', 2, 1, 's1-numeral-win'],
+    ['L', 0, 3, 's1-numeral-loss'],
+    ['D', 1, 1, 's1-numeral-draw'],
+  ] as const)('colours a %s score with %s', (result, ourScore, theirScore, expected) => {
+    render(<HomeDashboard summary={base({ recent: [{ ...recent('r', 'HJK'), result, ourScore, theirScore }] })} t={t} />);
+    const score = screen.getByTestId('home-recent-score');
+    expect(score).toHaveTextContent(`${ourScore}–${theirScore}`);
+    expect(score).toHaveClass(expected);
+  });
+});

@@ -122,6 +122,31 @@ describe('TeamManagerModal', () => {
       expect(screen.getByRole('heading', { name: 'Teams' })).toBeInTheDocument();
     });
 
+    /**
+     * Variant A team cards (2026-11-20): one card per team, ONE meta line
+     * "<N> players · <age group> · ..." with only the parts the team has (no
+     * dangling separators), and no created date.
+     * @integration
+     */
+    it('shows one card per team with a players / age group meta line', async () => {
+      (teamsUtils.getAllTeamRosters as jest.Mock).mockResolvedValue({
+        t1: [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }],
+      });
+      const teams: Team[] = [
+        { ...mockTeams[0], ageGroup: 'U12', gameType: 'futsal' },
+        mockTeams[1],
+      ];
+      await renderWithQueryClient(<TeamManagerModal {...defaultProps} teams={teams} />);
+
+      await waitFor(() => expect(screen.getByTestId('team-meta-t1')).toHaveTextContent('3 players · U12 · Futsal'));
+      expect(screen.getByTestId('team-meta-t2').textContent).toBe('0 players');
+      expect(screen.getByTestId('team-card-t1')).not.toBe(screen.getByTestId('team-card-t2'));
+      expect(screen.queryByText(/Created/)).not.toBeInTheDocument();
+      // The kit swatch carries the team's own colour.
+      const swatch = screen.getByTestId('team-card-t1').querySelector('[aria-hidden="true"][style]') as HTMLElement;
+      expect(swatch.style.backgroundColor).toBe('rgb(99, 102, 241)');
+    });
+
     it('renders all teams in list', async () => {
       await renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
       expect(screen.getByText('Team Alpha')).toBeInTheDocument();

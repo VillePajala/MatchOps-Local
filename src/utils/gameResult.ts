@@ -46,3 +46,45 @@ export const resolveGameResult = (game: ResolvableGame): GameResult => {
 
   return 'D';
 };
+
+/**
+ * A game's result as the lists show it: W/L/D, or 'N/A' for a game with no
+ * result to show (not played yet, or an external game logged without a score).
+ */
+export type ResultTone = GameResult | 'N/A';
+
+/**
+ * Result → classes: the ONE place the result colours are picked, so the home
+ * screen, saved games, player stats and external games cannot drift apart.
+ * Green / red are for results only (amber is action / selection).
+ *
+ * - `disc`: the round V / T / H badge.
+ * - `numeral`: the italic score numerals (gradient text, globals.css). A game
+ *   without a result keeps a dim neutral score.
+ * - `strip`: a thin edge bar marking a card by result.
+ */
+export const RESULT_CLASSES: Record<ResultTone, { disc: string; numeral: string; strip: string }> = {
+  W: { disc: 'bg-win/15 text-win', numeral: 's1-numeral-win', strip: 'bg-win' },
+  D: { disc: 'bg-white/10 text-draw', numeral: 's1-numeral-draw', strip: 'bg-draw' },
+  L: { disc: 'bg-loss/15 text-loss', numeral: 's1-numeral-loss', strip: 'bg-loss' },
+  'N/A': { disc: 'bg-white/[0.06] text-ink-3', numeral: 'text-ink-3', strip: 'bg-white/15' },
+};
+
+/**
+ * The LIVE score's numeral class during a match, from our team's side
+ * (`homeOrAway`): leading → win colour, trailing → loss colour, level
+ * (including 0-0) → the neutral white numeral. It is the situation on the
+ * pitch, not a result, so a level score is never 'draw'-tinted and a
+ * shootout is not consulted.
+ */
+export const liveScoreNumeralClass = (
+  homeScore: number,
+  awayScore: number,
+  homeOrAway: 'home' | 'away',
+): string => {
+  const ours = homeOrAway === 'home' ? homeScore : awayScore;
+  const theirs = homeOrAway === 'home' ? awayScore : homeScore;
+  if (ours > theirs) return RESULT_CLASSES.W.numeral;
+  if (ours < theirs) return RESULT_CLASSES.L.numeral;
+  return 's1-numeral';
+};

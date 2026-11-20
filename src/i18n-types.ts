@@ -1940,6 +1940,7 @@ export type TranslationKey =
   | 'playerStats.gamesPlayed_short'
   | 'playerStats.goals'
   | 'playerStats.goalsAssists'
+  | 'playerStats.goalsAssistsShort'
   | 'playerStats.goalsPerGame'
   | 'playerStats.home'
   | 'playerStats.homeAway'

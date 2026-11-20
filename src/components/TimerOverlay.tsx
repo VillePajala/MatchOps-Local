@@ -13,6 +13,7 @@ import { HiOutlineMicrophone, HiOutlineChevronDown, HiOutlineMinus, HiOutlinePlu
 import { chipStyle, chipSelectedStyle, inlineFieldStyle, sectionLabelStyle } from '@/styles/modalStyles';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import { clockContinuation } from '@/utils/clockContinuation';
+import { liveScoreNumeralClass } from '@/utils/gameResult';
 import { formatAppDecimal } from '@/utils/localeFormat';
 import { extraTimePeriodCount, isExtraTimePeriod, isLastPeriod, periodEndSeconds, type MatchStructure } from '@/utils/matchStructure';
 
@@ -337,8 +338,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   };
   // --- End Handlers ---
 
-  // The score is neutral white: green/red would read as a result that has
-  // not happened yet (a 0-0 used to show one red and one green zero).
+  // The score shows the LIVE situation from our side: both numbers green while
+  // we lead, red while we trail, neutral white when level (0-0 included). One
+  // colour for the whole score - the old per-team colours showed a 0-0 as one
+  // red and one green zero.
+  const scoreNumeralClass = liveScoreNumeralClass(homeScore, awayScore, homeOrAway);
 
   // Compact period label for pill UI. At full time we show no pill - the
   // stopped clock and game-over state already convey the end, and a terse
@@ -416,11 +420,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                   known. SteadyDigits so a two-digit score cannot shunt the
                   centred row sideways - the same Rajdhani problem the clock
                   below has. */}
-              <SteadyDigits className="font-display italic font-extrabold text-[40px] leading-none pr-[3px] s1-numeral">
+              <SteadyDigits className={`font-display italic font-extrabold text-[40px] leading-none pr-[3px] ${scoreNumeralClass}`}>
                 {String(homeScore)}
               </SteadyDigits>
               <span className="text-ink-3 text-[22px]">-</span>
-              <SteadyDigits className="font-display italic font-extrabold text-[40px] leading-none pr-[3px] s1-numeral">
+              <SteadyDigits className={`font-display italic font-extrabold text-[40px] leading-none pr-[3px] ${scoreNumeralClass}`}>
                 {String(awayScore)}
               </SteadyDigits>
             </span>

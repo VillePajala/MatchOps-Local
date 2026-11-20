@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import type { TFunction } from 'i18next';
 import type { HomeSummary, HomeResumeGame, HomeRecentGame, HomeUpcomingGame, HomeCounts } from '@/utils/homeSummary';
-import type { GameResult } from '@/utils/gameResult';
+import { RESULT_CLASSES, type GameResult } from '@/utils/gameResult';
 import { formatDriveTime } from '@/utils/travelPlan';
 
 /**
@@ -129,20 +129,6 @@ const formatWeekdayDate = (iso: string, locale: string): string => {
 
 const resultOf = (ours: number, theirs: number): GameResult =>
   ours > theirs ? 'W' : ours < theirs ? 'L' : 'D';
-
-/** Big score numeral, coloured by result. A match not yet played has none. */
-const numeralClass: Record<GameResult, string> = {
-  W: 's1-numeral-win',
-  D: 's1-numeral-draw',
-  L: 's1-numeral-loss',
-};
-
-/** Round result badge in the results list. */
-const badgeClass: Record<GameResult, string> = {
-  W: 'bg-win/15 text-win',
-  D: 'bg-white/10 text-draw',
-  L: 'bg-loss/15 text-loss',
-};
 
 /** V / T / TA in Finnish, W / L / T in English - the letters the app's exports already use. */
 const badgeLetter = (result: GameResult, t: TFunction): string =>
@@ -447,7 +433,7 @@ export function ResumeCard({ resume, onResume, locale, t }: {
               </span>
             )}
             <span
-              className={`${result ? numeralClass[result] : 's1-numeral'} col-start-2 row-start-1 row-span-2 -mr-1.5 shrink-0 self-end whitespace-nowrap pl-1 pr-2.5 font-display text-[clamp(64px,22vw,96px)] font-extrabold italic leading-[0.8] tracking-[-0.01em] tabular-nums max-[359px]:row-span-1`}
+              className={`${result ? RESULT_CLASSES[result].numeral : 's1-numeral'} col-start-2 row-start-1 row-span-2 -mr-1.5 shrink-0 self-end whitespace-nowrap pl-1 pr-2.5 font-display text-[clamp(64px,22vw,96px)] font-extrabold italic leading-[0.8] tracking-[-0.01em] tabular-nums max-[359px]:row-span-1`}
               data-testid="hero-score"
             >
               {`${resume.ourScore}–${resume.theirScore}`}
@@ -749,7 +735,7 @@ function RecentRow({ game, onOpen, accented, first, t }: {
       className={`${LIST_ROW} ${accented ? 'bg-action/[0.07] ring-1 ring-inset ring-action/45' : ''}`}
     >
       {!first && !accented && <RowRule />}
-      <span className={`grid h-8 w-8 flex-none place-items-center rounded-full font-display text-[17px] font-bold leading-none ${badgeClass[game.result]}`}>
+      <span className={`grid h-8 w-8 flex-none place-items-center rounded-full font-display text-[17px] font-bold leading-none ${RESULT_CLASSES[game.result].disc}`}>
         {badgeLetter(game.result, t)}
       </span>
       <span className="min-w-0 flex-1">
@@ -762,9 +748,8 @@ function RecentRow({ game, onOpen, accented, first, t }: {
         </span>
       </span>
       <span
-        className={`min-w-[46px] pr-[3px] text-right font-display text-[28px] font-bold italic leading-none tabular-nums ${
-          game.result === 'D' ? 'text-ink-2' : 'text-ink'
-        }`}
+        className={`min-w-[46px] pr-[3px] text-right font-display text-[28px] font-bold italic leading-none tabular-nums ${RESULT_CLASSES[game.result].numeral}`}
+        data-testid="home-recent-score"
       >
         {game.ourScore}–{game.theirScore}
       </span>
@@ -993,7 +978,7 @@ function FormStrip({ form, t }: { form: GameResult[]; t: TFunction }) {
           key={i}
           aria-hidden="true"
           data-result={r}
-          className={`grid h-7 min-w-7 place-items-center rounded-full px-1 font-display text-[15px] font-bold leading-none ${badgeClass[r]}`}
+          className={`grid h-7 min-w-7 place-items-center rounded-full px-1 font-display text-[15px] font-bold leading-none ${RESULT_CLASSES[r].disc}`}
         >
           {badgeLetter(r, t)}
         </span>
@@ -1474,7 +1459,7 @@ export function BasicNoNextGameCard({
               {last.opponent || t('startScreen.dashResumeGame', 'Game')}
             </span>
             <span
-              className={`${result ? numeralClass[result] : 's1-numeral'} shrink-0 font-display text-[44px] font-extrabold italic leading-none tabular-nums`}
+              className={`${result ? RESULT_CLASSES[result].numeral : 's1-numeral'} shrink-0 font-display text-[44px] font-extrabold italic leading-none tabular-nums`}
             >
               {`${last.ourScore}–${last.theirScore}`}
             </span>
