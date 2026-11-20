@@ -1,5 +1,7 @@
 # Robust Alert System (Native Browser Dialogs)
 
+> **Archived 2026-11-20 (from docs/04-features/):** obsolete - the app now uses ConfirmationModal and toasts; native alert()/confirm() remain only as fallbacks in src/utils/fullBackup.ts.
+
 ## Overview
 Consistent user guidance system using native browser alerts (`window.alert()`) and confirmations (`window.confirm()`) for validation, error handling, and destructive action confirmation across the application.
 

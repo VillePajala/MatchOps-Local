@@ -1,7 +1,7 @@
 # Testing Strategy 2025
 MatchOps‑Local — Comprehensive Testing Implementation Plan
 
-> **DEPRECATED (February 2026):** This document is a historical snapshot from January 2025. **The authoritative testing reference is now the "Testing Rules and Principles" section in [CLAUDE.md](../../CLAUDE.md).** Key differences: actual test count is ~4,746 (not 2,085), enforced coverage thresholds are 45-60% (not 90%), and component line counts have changed significantly due to refactoring. Do not rely on numbers or code examples in this document for current development.
+> **DEPRECATED (February 2026):** This document is a historical snapshot from January 2025. **The authoritative testing reference is now the "Testing Rules and Principles" section in [CLAUDE.md](../../CLAUDE.md).** Key differences: actual test count is ~7,700 as of 2026-11 (not 2,085), enforced coverage thresholds are 45-60% (not 90%), and component line counts have changed significantly due to refactoring. Do not rely on numbers or code examples in this document for current development. In particular, adding a player to the field is **select-and-place** (tap the player in the PlayerBar, then tap the field), not drag-and-drop.
 
 **Status**: ⚠️ Aspirational / Roadmap Document
 **Last Updated**: October 2025
@@ -311,11 +311,12 @@ describe('HomePage Component', () => {
       const mockRoster = createMockRoster();
       render(<HomePage />);
       
-      // Drag player from roster to field
+      // Select-and-place: tap the player in the bar, then tap the field
       const player = screen.getByText(mockRoster[0].name);
       const field = screen.getByTestId('soccer-field');
       
-      await dragAndDrop(player, field);
+      fireEvent.click(player);
+      fireEvent.click(field);
       
       expect(screen.getByTestId(`player-on-field-${mockRoster[0].id}`)).toBeVisible();
     });
@@ -357,7 +358,7 @@ describe('HomePage Performance', () => {
 ```
 
 #### **2.2 SoccerField Component Testing**
-Test the complex drag-and-drop field interactions:
+Test the field interactions (moving discs already on the field; placing from the bar is select-and-place):
 
 ```typescript
 // tests/components/SoccerField/SoccerField.test.tsx

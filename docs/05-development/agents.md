@@ -7,12 +7,14 @@ This repository uses Node.js 20, Next.js 16 and React 19 with TypeScript. Follow
 - Data scale is tiny (hundreds of records). Optimize for responsiveness and reliability, not for enterprise throughput.
 - Never suggest heavy SaaS patterns (RBAC, audit logs, JWT, encryption layers). Focus on PWA resiliency, offline UX, and modal/timer correctness instead.
 
-## Project Status (February 2026)
-- ✅ **All refactoring complete**: HomePage (~95 lines) + page.tsx (~1,242 lines), 9 extracted hooks, ~4,500+ tests passing
-- ✅ **Codebase healthy**: Next.js ^16.1.6 + React 19.2, 0 security vulnerabilities
+## Project Status (updated 2026-11-20)
+- ✅ **Live on Google Play since 2026-06-09**: free, distributed as a cloud-only TWA (sign-in required); the web app keeps local and cloud modes
+- ✅ **2026-11 redesign ("Syke Refined") + onboarding v3 live**: basic/full app layouts, Home tabs Pelit/Seura/Kilpailut/Tilastot
+- ✅ **Refactoring done**: HomePage.tsx (~96 lines) + page.tsx (~2,270 lines) with hooks in `src/components/HomePage/hooks/`; ~7,700 tests (`npm test` is the source)
+- ✅ **Codebase healthy**: Next.js 16 + React 19
 - ✅ **Cloud backend complete**: Supabase (PostgreSQL, Auth, Edge Functions), PRs 1-12 merged
 - ✅ **Major features**: Personnel, Game Type, Gender, Tournament Series, Cloud Sync all shipped
-- **Next**: Play Store release (see `docs/03-active-plans/UNIFIED-ROADMAP.md`)
+- **Next**: see `docs/03-active-plans/UNIFIED-ROADMAP.md`
 
 ## Allowed Scope
 - ✅ **Full speed ahead**: Major features, new game modes, complex functionality all unblocked

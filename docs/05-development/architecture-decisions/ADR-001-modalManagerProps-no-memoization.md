@@ -126,7 +126,7 @@ const modalManagerProps = useMemo(() => ({
 **Test explicitly documents this decision:**
 
 ```typescript
-// src/components/HomePage/hooks/__tests__/useModalOrchestration.test.ts:749-768
+// src/components/HomePage/hooks/__tests__/useModalOrchestration.test.tsx:634-655
 /**
  * Note: Without useMemo, object is recreated each render (expected behavior)
  * @performance
@@ -299,7 +299,7 @@ Only if profiling shows specific modals are expensive.
 ### Codebase References
 - Implementation: `src/components/HomePage/hooks/useModalOrchestration.ts:343-416`
 - Component: `src/components/HomePage/containers/ModalManager.tsx`
-- Tests: `src/components/HomePage/hooks/__tests__/useModalOrchestration.test.ts:749-768`
+- Tests: `src/components/HomePage/hooks/__tests__/useModalOrchestration.test.tsx:634-655`
 - Performance Plan: `docs/08-archived/REFACTORING_STATUS.md` (Layer 3, archived)
 
 ### Related Decisions

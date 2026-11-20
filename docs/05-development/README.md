@@ -10,7 +10,7 @@ This directory contains guides and resources for developers working on MatchOps-
 
 ## Architecture
 
-- **[HOMEPAGE_ARCHITECTURE.md](./HOMEPAGE_ARCHITECTURE.md)** - HomePage refactoring (complete)
+- **[HOMEPAGE_ARCHITECTURE.md](../08-archived/HOMEPAGE_ARCHITECTURE.md)** - HomePage refactoring guide (deprecated, archived 2026-11-20; read `src/components/HomePage/hooks/`)
 - **[ARCHITECTURAL_DEBT.md](./ARCHITECTURAL_DEBT.md)** - Technical debt tracker
 - **[architecture-decisions/](./architecture-decisions/)** - ADR records
 

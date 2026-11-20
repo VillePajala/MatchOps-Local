@@ -41,7 +41,7 @@ Grouped the way a coach meets them: before the match, during it, and after.
 - Bilingual throughout: English and Finnish
 
 ### During the match
-- Interactive soccer/futsal field with player drag-and-drop
+- Interactive soccer/futsal field: select a player in the player bar, then tap the field to place them
 - Match clock with configurable periods and sub-intervals, plus substitution alerts
 - Event logging: goals, assists, opponent events, notes
 - **Overtime and penalty shootouts**
@@ -111,7 +111,7 @@ src/
 │   ├── SupabaseDataStore   #   Supabase PostgreSQL (cloud)
 │   ├── SyncedDataStore     #   Local-first wrapper (local + cloud sync)
 │   └── factory             #   Mode-aware singleton factory
-├── hooks/                  # 50 custom hooks
+├── hooks/                  # 77 custom hooks
 ├── interfaces/             # DataStore, AuthService contracts
 ├── sync/                   # Background sync engine
 │   ├── SyncQueue           #   Persistent operation queue (IndexedDB)
@@ -126,7 +126,7 @@ supabase/
 │   ├── verify-subscription #   Play Store billing verification
 │   ├── delete-account      #   GDPR account + data deletion
 │   └── _shared/            #   Shared utilities (CORS)
-└── migrations/             # 47 PostgreSQL migrations with RLS
+└── migrations/             # 64 PostgreSQL migrations (000-063) with RLS
 ```
 
 ### Data Flow
@@ -206,7 +206,7 @@ Local mode requires no environment variables at all.
 
 ### Testing
 
-6,600+ tests across 346 suites. Configuration in `jest.config.js`:
+7,700+ tests across ~420 suites. Configuration in `jest.config.js`:
 
 - `detectOpenHandles: true` — catches resource leaks
 - `testTimeout: 30000` — 30s default
@@ -225,6 +225,7 @@ GitHub Actions workflows (`.github/workflows/`):
 - **release-notes-guard.yml** — **blocks any PR to master that changes the app but does not add a new top entry to `release-notes.json`**. A PR whose files are all outside the app (docs, CI, tests, tooling) does not deploy and is exempt; the same list drives Vercel's ignore step (`scripts/vercel-ignore-build.mjs`). An app change a coach cannot see takes an entry with `"internal": true`, which installs without the update banner. No skip label
 - **check-rule-links.yml** — verifies the external rule links still resolve
 - **update-test-badge.yml** — recounts tests on master and updates the badge above
+- **db-backup.yml** — nightly encrypted backup of the production Supabase database
 
 Deployment via Vercel (auto-deploy on push to master).
 

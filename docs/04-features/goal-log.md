@@ -1,7 +1,7 @@
 # Goal Log
 
 **Status**: ✅ Implemented
-**Last Updated**: January 5, 2026
+**Last Updated**: 2026-11-20
 
 ## Overview
 
@@ -9,56 +9,47 @@ Detailed logging and editing of goals and game events. Track scorers, assist pro
 
 ## Key Components
 
-- `GoalLogModal.tsx` - View and edit goal history
-- Game state event tracking
+- `TimerOverlay.tsx` - "Goal for us" and opponent-goal buttons, directly under start/pause
+- `QuickGoalSheet.tsx` - Optional "who scored / who assisted" sheet shown after a goal is logged (onboarding v3, D16)
+- `GoalLogModal.tsx` - Full goal form
+- `GameStatsModal` goal editor - Edit or delete logged goals afterwards
 
 ## Goal Event Data
 
+Goals are `GameEvent`s (`src/types/game.ts`):
+
 ```typescript
-interface GoalEvent {
+interface GameEvent {
   id: string;
-  type: 'goal';
-  timestamp: number;
-  period: number;
-  scoringTeam: 'home' | 'away';
-  scorerId?: string;    // Player who scored
-  assistId?: string;    // Player who assisted
-  goalType?: 'open_play' | 'penalty' | 'free_kick' | 'own_goal';
+  type: GameEventType; // 'goal' (ours) | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard' | 'note'
+  time: number;        // game clock, seconds
+  scorerId?: string;   // absent = unknown scorer (counts for the team, no player)
+  assisterId?: string;
+  // ...note/card-only fields
 }
 ```
 
+There is no goal-type field (penalty, free kick, own goal).
+
 ## Features
 
-- **Goal Recording**: Quick-tap goal logging during games
-- **Player Attribution**: Select scorer and assister
-- **Goal Types**: Categorize by play type
-- **Edit History**: Modify or delete past events
-- **Undo Support**: Undo accidental entries
-
-## Goal Types
-
-| Type | Description |
-|------|-------------|
-| Open Play | Regular goal from open play |
-| Penalty | Penalty kick conversion |
-| Free Kick | Direct free kick goal |
-| Own Goal | Own goal (credited to opponent) |
+- **One-tap goal**: "Goal for us" logs the goal and moves the score immediately
+- **Optional attribution**: The quick sheet asks for the scorer, then the assister; both can be skipped
+- **Opponent goals**: Separate button, confirmed before logging
+- **Edit History**: Modify or delete past goals
+- **Undo Support**: Undoing the goal also closes the quick sheet
 
 ## User Flow
 
 ### During Game
-1. Tap score button when goal scored
-2. Select scoring team
-3. Optionally select scorer
-4. Optionally select assister
-5. Goal logged with timestamp
+1. Tap "Goal for us" on the timer view - goal logged with the clock time
+2. Optionally pick the scorer, then the assister (players in this game's squad), or skip
+3. For the opponent, tap the opponent-goal button and confirm
 
 ### Editing
-1. Open Goal Log from Game Stats
-2. View all events chronologically
-3. Tap event to edit
-4. Modify details or delete
-5. Changes saved immediately
+1. Open the game's stats (GameStatsModal)
+2. Edit a goal's time, scorer or assister, or delete it
+3. Changes saved immediately
 
 ## Statistics Integration
 

@@ -1,5 +1,7 @@
 # Instructions Modal (How It Works Help)
 
+> **Archived 2026-11-20 (from docs/04-features/):** obsolete - InstructionsModal still exists but its content, sections and translation keys were rewritten (appGuide.*, firstGameGuide.*).
+
 ## Overview
 Comprehensive full-screen help modal that provides detailed guidance for all app features through a professional, scrollable interface with visual icons and structured sections.
 

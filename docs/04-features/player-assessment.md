@@ -1,11 +1,11 @@
 # Player Assessment
 
 **Status**: ✅ Implemented
-**Last Updated**: January 5, 2026
+**Last Updated**: 2026-11-20
 
 ## Overview
 
-The Player Assessment feature allows coaches to rate and evaluate players after each game. Assessments track 10 performance dimensions plus an overall rating, with optional notes.
+The Player Assessment feature allows coaches to rate and evaluate players after each game. Assessments track a template-defined set of metrics (10 in the default template) plus an overall rating, with optional notes.
 
 ## Key Components
 
@@ -19,48 +19,38 @@ The Player Assessment feature allows coaches to rate and evaluate players after 
 ## Data Model
 
 ```typescript
+// src/types/playerAssessment.ts
 interface PlayerAssessment {
-  overall: number;        // 1-10 overall rating
-  sliders: {
-    intensity: number;    // 1-10
-    courage: number;      // 1-10
-    duels: number;        // 1-10
-    technique: number;    // 1-10
-    creativity: number;   // 1-10
-    decisions: number;    // 1-10
-    awareness: number;    // 1-10
-    teamwork: number;     // 1-10
-    fair_play: number;    // 1-10
-    impact: number;       // 1-10
-  };
-  notes: string;          // Free-form notes
-  minutesPlayed: number;  // Time on pitch
-  createdAt: number;      // Timestamp
-  createdBy: string;      // Coach identifier
+  overall: number;                 // 1-10 holistic rating
+  sliders: Record<string, number>; // id-keyed, canonical 1-10 per metric
+  sliderScaleVersion?: number;     // scale gate; older scales migrated on read
+  notes: string;
+  minutesPlayed: number;
+  createdAt: number;
+  createdBy: string;
 }
 ```
 
+Metrics are defined in `src/config/assessmentMetrics.ts` (single source of truth). Legacy ids (`intensity`, `duels`, `technique`, `awareness`, `impact`, ...) are mapped onto the current set on read by `migrateAssessmentSliders`.
+
 ## Assessment Dimensions
 
-| Dimension | Description |
-|-----------|-------------|
-| Intensity | Effort, work rate, pressing |
-| Courage | Willingness to take risks, play forward |
-| Duels | Success in 1v1 situations |
-| Technique | Ball control, passing accuracy |
-| Creativity | Ability to create chances, surprise opponents |
-| Decisions | Game reading, choosing right options |
-| Awareness | Positioning, spatial awareness |
-| Teamwork | Communication, supporting teammates |
-| Fair Play | Sportsmanship, respect for rules |
-| Impact | Overall influence on game outcome |
+The coach picks a template (`ASSESSMENT_TEMPLATES`):
+
+| Template | Metrics |
+|----------|---------|
+| `balanced` (default, "set A") | ball_control, passing, scanning, game_reading, decisions, courage, effort, enjoyment, teamwork, fair_play |
+| `light6` (U7-U9) | ball_control, courage, effort, enjoyment, teamwork, fair_play |
+| `creative` | balanced + creativity, dribbling, finishing, off_ball_movement |
+
+Values are stored on a canonical 1-10 scale; display/entry style is a per-user setting (`assessmentRatingStyle`: `words` 5-level, `num5`, `num10`).
 
 ## User Flow
 
-1. After a game ends, coach opens Player Assessment from Game Stats
+1. After a game ends, coach opens assessments from the timer view ("Assess players", or the assessment step of the "Finish this game" flow)
 2. Each selected player gets an assessment card
-3. Coach rates each dimension using sliders (1-10)
-4. Overall rating calculated automatically or set manually
+3. Coach rates each metric in the chosen rating style (words, 1-5 or 1-10)
+4. Coach sets the overall rating (1-10)
 5. Optional notes can be added
 6. Assessments saved per player per game
 

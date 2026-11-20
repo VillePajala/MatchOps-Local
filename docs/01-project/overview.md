@@ -8,9 +8,9 @@ MatchOps-Local is a comprehensive Progressive Web App (PWA) designed specificall
 
 **Choose your mode:**
 - 🔒 **Local Mode (Free)**: All data stays on your device — works offline, no account needed
-- ☁️ **Cloud Mode (Premium)**: Optional Supabase backend for cross-device sync with email/password authentication
+- ☁️ **Cloud Mode (Free)**: Supabase backend for cross-device sync with email/password authentication. Changes are still saved on the device first and synced in the background.
 
-Start locally with zero setup. Enable cloud sync later if you need cross-device access. Migrate your data between modes anytime.
+The Google Play app is cloud-only (sign-in required). On the web/PWA, start locally with zero setup and enable cloud sync later if you need cross-device access. Migrate your data between modes anytime.
 
 ## The Problem We Solve
 
@@ -32,8 +32,8 @@ Start locally with zero setup. Enable cloud sync later if you need cross-device 
 MatchOps-Local combines the best of modern web technology with local data storage to create a powerful, private, and performant coaching solution.
 
 ### Core Philosophy: Local-First
-- **Your Data, Your Device**: All information stays on your hardware
-- **Privacy by Design**: No external servers, no data tracking, complete privacy
+- **Your Data, Your Device**: Every change is saved on your device first; in local mode all information stays there
+- **Privacy by Design**: No tracking; local mode uses no external servers, cloud mode stores data in Supabase (EU region) protected by RLS
 - **Offline Capable**: Full functionality without internet connection
 - **Performance Optimized**: Instant response times with local data access
 
@@ -71,9 +71,9 @@ MatchOps-Local combines the best of modern web technology with local data storag
 - Works perfectly in areas with poor cellular coverage
 - Battery efficient without constant network requests
 
-### 3. **Flexible Pricing**
-- **Local mode**: Completely free, no subscription, no limits
-- **Cloud mode**: Optional paid subscription for cross-device sync (pricing TBD)
+### 3. **Free**
+- **Local mode and cloud mode**: Both free, no subscription, no limits
+- Monetization is parked; billing code exists but enforcement is off
 - No per-user or per-team charges
 - Economic for clubs and organizations
 
@@ -89,7 +89,7 @@ MatchOps-Local combines the best of modern web technology with local data storag
 - TypeScript for reliability and maintainability
 - Tailwind CSS 4 for responsive, professional design
 - Supabase for optional cloud backend (PostgreSQL, Auth, Edge Functions)
-- Comprehensive testing suite (~4,500+ tests) for quality assurance
+- Comprehensive testing suite (~7,700 tests) for quality assurance
 
 ## Project Vision
 
@@ -137,6 +137,6 @@ MatchOps-Local is intentionally focused as a **data capture tool** for individua
 
 For technical details on the dual-mode architecture, see:
 - **[Dual-Backend Architecture](../02-technical/architecture/dual-backend-architecture.md)** — Local vs Cloud mode design
-- **[DataStore Interface](../02-technical/architecture/datastore-interface.md)** — Backend-agnostic data access
-- **[AuthService Interface](../02-technical/architecture/auth-service-interface.md)** — Authentication abstraction
+- **[Auth/Data/Sync Runtime Architecture](../02-technical/architecture/auth-data-sync-architecture.md)** — How auth, data and sync work at runtime
+- **DataStore / AuthService interfaces** — `src/interfaces/DataStore.ts`, `src/interfaces/AuthService.ts` (the code is the specification)
 - **[Supabase Schema](../02-technical/database/supabase-schema.md)** — PostgreSQL schema for cloud mode

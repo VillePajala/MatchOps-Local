@@ -1,23 +1,21 @@
 # Business & Monetization
 
-This directory contains business strategy, monetization, and communication infrastructure documentation.
+This directory contains business strategy, monetization, and infrastructure documentation. MatchOps is live on Google Play and **free**; monetization is parked.
 
 ## Documents
 
-- **[communication-infrastructure-plan.md](./communication-infrastructure-plan.md)** - Email, websites, and social media setup
-- **[monetization-strategies.md](./monetization-strategies.md)** - Detailed monetization approach and options
-- **[infrastructure-map.md](./infrastructure-map.md)** - Complete infrastructure overview
-- **[store-listing/](./store-listing/)** - Play Store listing assets and copy
-- **[velomoai-website-spec.md](./velomoai-website-spec.md)** - Velomo AI website specification
-- **[cgi-application-factory-showcase.md](./cgi-application-factory-showcase.md)** - CGI Application Factory portfolio showcase
-- **[video-script-instructions.md](./video-script-instructions.md)** - Instructional video scripts (English & Finnish)
+- **[monetization-strategies.md](./monetization-strategies.md)** - Monetization approach and options (parked; the app is free)
+- **[infrastructure-map.md](./infrastructure-map.md)** - Complete infrastructure overview (domains, email routing, hosting, Play Store, YouTube)
+- **[store-listing/](./store-listing/)** - Play Store listing reference, privacy policy and terms snapshots
+- **[cgi-application-factory-showcase.md](./cgi-application-factory-showcase.md)** - CGI Application Factory portfolio showcase (February 2026 snapshot)
 
-## Quick Start
+The current Play Store listing texts are [`docs/04-features/store-listing-en.txt`](../04-features/store-listing-en.txt) and [`docs/04-features/store-listing-fi.txt`](../04-features/store-listing-fi.txt).
 
-**Setting up email/social media?** Follow [communication-infrastructure-plan.md](./communication-infrastructure-plan.md)
+## Archived
 
-**Planning monetization?** Review [monetization-strategies.md](./monetization-strategies.md)
+- [communication-infrastructure-plan.md](../08-archived/completed-active-plans/communication-infrastructure-plan.md) - email, websites and social media setup (done; the current state is in the infrastructure map)
+- [velomoai-website-spec.md](../08-archived/velomoai-website-spec.md) - Velomo AI website spec (site built, live at velomoai.com)
+- [video-script-instructions.md](../08-archived/video-script-instructions.md) - early instructional video scripts for the pre-redesign app (superseded by the YouTube videos)
+- [store-description-en.md](../08-archived/store-description-en.md) - old English store description
 
-## Note
-
-This is part of the publication roadmap. See [../03-active-plans/master-execution-guide.md](../03-active-plans/master-execution-guide.md) for the complete path to app store publication.
+For what is open and what is done, see [UNIFIED-ROADMAP.md](../03-active-plans/UNIFIED-ROADMAP.md).

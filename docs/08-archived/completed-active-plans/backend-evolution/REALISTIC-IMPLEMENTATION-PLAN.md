@@ -1302,8 +1302,8 @@ This allows gradual rollout and easy rollback.
 
 - **Theoretical Design**: [phased-implementation-roadmap.md](./phased-implementation-roadmap.md)
 - **Architecture**: [dual-backend-architecture.md](../../02-technical/architecture/dual-backend-architecture.md)
-- **Interface Spec**: [datastore-interface.md](../../02-technical/architecture/datastore-interface.md)
-- **Auth Spec**: [auth-service-interface.md](../../02-technical/architecture/auth-service-interface.md)
+- **Interface Spec**: [datastore-interface.md](./datastore-interface.md)
+- **Auth Spec**: [auth-service-interface.md](./auth-service-interface.md)
 - **Migration**: [migration-strategy.md](./migration-strategy.md)
 - **Database Schema**: [supabase-schema.md](../../02-technical/database/supabase-schema.md)
 

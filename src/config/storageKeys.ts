@@ -21,18 +21,21 @@ export const PREMIUM_LICENSE_KEY = 'soccerPremiumLicense';
 // Warm-up plan storage key
 export const WARMUP_PLAN_KEY = 'soccerWarmupPlan';
 
-// Playing-Time Planner: local-only collection of tournament plans (map id -> plan).
-// Deliberately not routed through the DataStore/cloud - plans are local-first.
+// Playing-Time Planner: collection of tournament plans (map id -> plan). Stored
+// locally first, outside the DataStore game model; in cloud mode synced to the
+// `playtime_plans` table (migration 036, per-plan last-write-wins from 038).
 export const PLAYTIME_PLANS_KEY = 'soccerPlaytimePlans';
 
 // Playing-Time Planner Phase 2: planned sub schedules copied onto real games at
-// prefill (map gameId -> planned subs). Kept in a SEPARATE local-only store rather
-// than on the synced game model on purpose - it never touches the cloud transforms,
-// and it survives a cloud pull that replaces the game blob. Cloud sync is deferred.
+// prefill (map gameId -> planned subs). Kept in a SEPARATE store rather than on the
+// synced game model on purpose - it never touches the game transforms, and it
+// survives a cloud pull that replaces the game blob. Synced on its own to the
+// `playtime_game_subs` table (migration 036).
 export const PLAYTIME_GAME_SUBS_KEY = 'soccerPlaytimeGameSubs';
 
 // Playing-Time Planner Phase 3: plan link for games created from a plan (map
-// gameId -> {planId, planGameId}). Same local-only rationale as the sub store:
+// gameId -> {planId, planGameId}). Same separate-store rationale as the sub store
+// (synced on its own to `playtime_plan_links`, migration 036):
 // storing this on the synced game blob proved fragile (autosave snapshots and
 // cloud pulls both rebuild the blob and dropped the fields), so the link lives
 // here where nothing rewrites it.

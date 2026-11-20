@@ -10,8 +10,8 @@ The Warm-up Plan feature provides a customizable pre-match routine template. Coa
 ## Key Components
 
 - `useWarmupPlan.ts` - Hook for warm-up plan state management
-- `warmupPlan.ts` - Storage utilities
-- Settings modal integration for editing
+- `warmupPlan.ts` - Storage utilities and default template
+- `TrainingResourcesModal.tsx` - View/edit UI (opened from Home > Seura > Coaching "Warmup Plan" row, or the match menu)
 
 ## Data Model
 
@@ -33,20 +33,20 @@ interface WarmupPlan {
 
 ## Default Sections
 
-The default warm-up plan includes:
-1. **Arrival & Setup** - Equipment check, field preparation
-2. **Individual Warm-up** - Light jogging, dynamic stretches
-3. **Ball Work** - Passing drills, ball control
-4. **Team Activities** - Small-sided games, tactical exercises
-5. **Final Preparation** - Team talk, formation review
+The default warm-up plan (`createDefaultWarmupPlan` in `src/utils/warmupPlan.ts`, texts from `warmup.*` translation keys) includes:
+1. **30 min / Gathering** - Positive atmosphere, the day's agenda
+2. **20 min / Warm-up** - Raise body temperature, tune minds for the game
+3. **10 min / Ball Work** - Partner + ball work, goalkeeper warm-up
+4. **2 min / Bench Area**
+5. **During the Game** - Guidance for the bench during play
 
 ## User Flow
 
-1. Access Warm-up Plan from Settings
+1. Open the Warm-up Plan from Home (Seura tab > Coaching) or the match menu
 2. View current sections in order
 3. Edit section titles and content
 4. Add new sections or remove existing ones
-5. Reorder sections via drag-and-drop
+5. Reorder sections with the up/down arrow buttons
 6. Reset to default if needed
 
 ## Storage

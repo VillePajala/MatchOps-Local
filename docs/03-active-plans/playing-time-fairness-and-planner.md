@@ -1,7 +1,9 @@
 # Playing-Time Planner — Phased Build Plan
 
-**Status:** 🚧 Planning (DRAFT) · Big bet (P4) · Not started
-**Last updated:** 2026-07-03
+**Status:** ✅ Shipped and live (2026-07; prod migrations 036–038; plan cloud sync included). Kept
+active for §10 item 1 (modal chrome modernisation, open in the roadmap's P4). §12 (actual-playing-time
+segments) was DROPPED by the owner 2026-09-09.
+**Last updated:** 2026-11-20 (status line only; the body below is the original build plan)
 
 > The coach need is simple to state and hard to build: **take a set of games (a
 > tournament), plan the kokoonpanot + subs across all of them at once, and make

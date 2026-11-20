@@ -5,7 +5,7 @@
 **Status**: ✅ **Implemented**
 **Last Updated**: 2026-01-26
 **Purpose**: Unified authentication interface for both local (no-auth) and cloud (Supabase) backends
-**Related**: [Dual-Backend Architecture](./dual-backend-architecture.md) | [DataStore Interface](./datastore-interface.md) | [Supabase Schema](../database/supabase-schema.md)
+**Related**: [Dual-Backend Architecture](../../../02-technical/architecture/dual-backend-architecture.md) | [DataStore Interface](./datastore-interface.md) | [Supabase Schema](../../../02-technical/database/supabase-schema.md)
 
 ## Overview
 
@@ -963,5 +963,5 @@ const supabase = createClient(url, key, {
 
 **Next Steps**:
 - Review [DataStore Interface](./datastore-interface.md) for data access layer
-- See [Dual-Backend Architecture](./dual-backend-architecture.md) for complete system design
-- Check [Phased Implementation Roadmap](../../08-archived/completed-active-plans/backend-evolution/phased-implementation-roadmap.md) for rollout plan (archived)
+- See [Dual-Backend Architecture](../../../02-technical/architecture/dual-backend-architecture.md) for complete system design
+- Check [Phased Implementation Roadmap](./phased-implementation-roadmap.md) for rollout plan (archived)

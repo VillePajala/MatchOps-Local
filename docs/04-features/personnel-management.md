@@ -64,7 +64,7 @@ type PersonnelRole =
 
 ## User Flow
 
-1. Access Personnel Manager from main menu
+1. Open the Personnel Manager from Home (Seura tab)
 2. Add new personnel with role and contact info
 3. When setting up a game, select attending personnel
 4. Personnel included in game records and exports

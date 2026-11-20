@@ -1,7 +1,7 @@
 # Current Storage Schema (IndexedDB)
 
 **Status**: Active Documentation
-**Last Updated**: 2026-01-04
+**Last Updated**: 2026-11-20 (storage key list)
 **Applies To**: Current Production (IndexedDB backend)
 **Related**: [Architecture](../architecture.md) | [Dual-Backend Architecture](../architecture/dual-backend-architecture.md)
 
@@ -37,9 +37,14 @@ export const TEAM_ROSTERS_KEY = 'soccerTeamRosters';         // Team-specific ro
 // Personnel management (added Dec 2025)
 export const PERSONNEL_KEY = 'soccerPersonnel';              // Coaches, trainers, etc.
 
-// Premium features
+// Premium (monetization parked; key kept, enforcement off)
 export const PREMIUM_LICENSE_KEY = 'soccerPremiumLicense';   // License validation
 export const WARMUP_PLAN_KEY = 'soccerWarmupPlan';           // Warm-up routines
+
+// Playing-Time Planner
+export const PLAYTIME_PLANS_KEY = 'soccerPlaytimePlans';           // Plans (map id -> plan)
+export const PLAYTIME_GAME_SUBS_KEY = 'soccerPlaytimeGameSubs';    // Planned subs per game
+export const PLAYTIME_PLAN_LINKS_KEY = 'soccerPlaytimePlanLinks';  // Game -> plan link
 
 // Session/temporary data
 export const TIMER_STATE_KEY = 'soccerTimerState';           // Active game timer
@@ -47,7 +52,11 @@ export const LAST_HOME_TEAM_NAME_KEY = 'lastHomeTeamName';   // Legacy setting
 
 // UI state
 export const INSTALL_PROMPT_DISMISSED_KEY = 'installPromptDismissed';
-export const HAS_SEEN_FIRST_GAME_GUIDE_KEY = 'hasSeenFirstGameGuide';
+
+// Data safety (backup reminder)
+export const LAST_OFF_DEVICE_BACKUP_KEY = 'lastOffDeviceBackupAt';
+export const BACKUP_REMINDER_DISMISSED_KEY = 'backupReminderDismissedAt';
+export const DATA_FIRST_SEEN_KEY = 'dataFirstSeenAt';
 
 // Metadata
 export const APP_DATA_VERSION_KEY = 'appDataVersion';        // Schema version
@@ -494,7 +503,7 @@ AppState (Game)
 3. **Cross-device imports**: Entity names preserved via snapshot in backup
 4. **Orphaned games**: Games with deleted seasons/tournaments still load
 
-**See**: [Linked Entities and Game Sync](../../09-design/linked-entities-and-game-sync.md) for design decisions
+**See**: [Linked Entities and Game Sync](../../09-specifications/linked-entities-and-game-sync.md) for design decisions
 
 ## Storage Patterns
 

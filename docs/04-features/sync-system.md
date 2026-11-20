@@ -33,7 +33,7 @@ Persistent operation queue using IndexedDB.
 - Not called directly from application code
 
 **Key features:**
-- Separate IndexedDB database (`matchops_sync_queue`)
+- Separate IndexedDB database per user (`matchops_sync_queue_<userId>`; plain `matchops_sync_queue` without a user)
 - Operations persist across page refreshes
 - Automatic deduplication for same entity
 
@@ -203,4 +203,4 @@ Currently used after:
 
 ---
 
-See `docs/03-active-plans/local-first-sync-plan.md` for full implementation plan.
+See `docs/08-archived/completed-active-plans/local-first-sync-plan.md` for full implementation plan.

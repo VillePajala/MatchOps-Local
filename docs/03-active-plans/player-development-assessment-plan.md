@@ -1,8 +1,10 @@
 # Player Development Assessment - Vision & Plan
 
-**Status**: In progress. PR 1 (id-keyed storage, expand step) shipped 2026-06-29 (#545; prod
-migrated + 27 rows backfilled). PR 2 = metric content change to **set A** (next). Default metric set
-locked to set A 2026-06-29.
+**Status** (updated 2026-11-20): ✅ shipped 2026-06-29→07-01 (#545–#570), then hidden behind a
+per-user setting, **off by default, since 2026-09-09** (ratings and data kept; re-enabling is a
+setting). Kept active because CLAUDE.md Rule 5 and `src/config/assessmentMetrics.ts` point here as
+the design reference. History: PR 1 (id-keyed storage) shipped 2026-06-29 (#545; prod migrated +
+27 rows backfilled); default metric set locked to set A 2026-06-29.
 **Roadmap**: linked from `UNIFIED-ROADMAP.md`.
 **Origin**: design conversation exploring a shareable game card -> player "compass" -> the metrics
 themselves -> this system-level rethink.
@@ -338,7 +340,7 @@ a production schema migration - a project, not an afternoon. Doing the **ID-keye
 
 ## Relationship to the game card
 
-The shareable **game card** (see `game-recap-generator-plan.md`) and this development assessment are
+The shareable **game card** (see `docs/08-archived/completed-active-plans/game-recap-generator-plan.md`) and this development assessment are
 **different surfaces with different audiences**:
 
 - **Game card (shareable / team chat)**: match facts only - score, scorers, assisters. NOT the whole

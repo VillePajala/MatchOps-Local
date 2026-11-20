@@ -26,8 +26,8 @@ SheetJS intentionally moved away from npm for their latest versions.
 
 ### Files
 - **Export Logic:** `/src/utils/exportExcel.ts`
-- **Integration:** `/src/components/HomePage.tsx`, `/src/components/GameStatsModal.tsx`
-- **Tests:** Export functionality tested in `src/utils/seasonTournamentExport.test.ts`
+- **Integration:** `/src/components/GameStatsModal.tsx`, `/src/components/HomePage/hooks/useGameOrchestration.ts`, `/src/hooks/useLoadGameController.ts`, `/src/utils/exportGames.ts`
+- **Tests:** `src/utils/exportExcel.test.ts`, `src/utils/seasonTournamentExport.test.ts`
 
 ### Features Used
 - `XLSX.utils.book_new()` - Create new workbook

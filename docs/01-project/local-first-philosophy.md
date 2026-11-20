@@ -52,7 +52,7 @@ Local-first architecture provides significant cost advantages for soccer organiz
 - **No Per-User Charges**: Add unlimited coaches and teams without additional fees in local mode
 - **No Data Storage Fees**: No ongoing cloud storage charges; browser storage has practical capacity limits but is sufficient for this use case
 - **No Bandwidth Costs**: Eliminates data transfer and API usage fees in local mode
-- **Optional Cloud Sync**: An optional paid subscription (pricing TBD) enables cross-device sync for coaches who need it
+- **Cloud Sync**: Cross-device sync is free too (monetization is parked)
 
 #### **Organizational Benefits**
 - **Budget Predictability**: No surprise subscription increases or usage-based charges
@@ -105,9 +105,9 @@ Local-First Response Time: <50ms (consistent)
 - **Manual Sync**: Export/import functionality for data transfer when needed
 - **Backup Strategy**: Regular local backups with manual cloud storage if desired
 
-**Optional Cloud Mode** (Premium Feature):
+**Cloud Mode** (free):
 For coaches who need cross-device access, MatchOps-Local offers an optional cloud mode via Supabase:
-- **User Choice**: Cloud sync is opt-in, never forced
+- **User Choice**: On the web/PWA, cloud sync is opt-in; the Google Play app is cloud-only (sign-in required), still saving every change on the device first
 - **Data Portability**: Migrate data between local and cloud modes anytime
 - **Privacy Preserved**: EU data residency, RLS-protected, GDPR compliant
 - **Local-First Preserved**: Users who prefer local-only operation are never disadvantaged
@@ -258,12 +258,12 @@ When we added optional cloud sync, we ensured it maintains local-first principle
 
 ### The Business Reality
 
-Optional paid cloud sync (pricing TBD) enables sustainable development while keeping the core local-first experience free. This is healthier than:
+The app is currently free, cloud sync included; monetization is parked. If it is ever revisited, optional paid cloud sync would keep the core local-first experience free. That is healthier than:
 - ❌ Ad-supported models (privacy violation)
 - ❌ Freemium with locked features (punishes local-first users)
 - ❌ One-time purchase (unsustainable long-term)
 
-Cloud subscribers choose convenience; local users choose privacy. Both are first-class citizens.
+Cloud users choose convenience; local users choose privacy. Both are first-class citizens.
 
 ---
 

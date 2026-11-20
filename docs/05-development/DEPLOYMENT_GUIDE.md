@@ -16,16 +16,16 @@ MatchOps-Local/
 This monorepo uses Vercel's "Root Directory" feature to deploy two separate applications:
 
 ### 1. Main PWA Application
-- **URL**: `https://matchops.com`
+- **URL**: `https://app.match-ops.com`
 - **Root Directory**: `.` (repository root)
 - **Framework**: Next.js
 - **Purpose**: The actual MatchOps-Local PWA application
 
 ### 2. Marketing Website
-- **URL**: `https://www.matchops.com` or `https://docs.matchops.com`
+- **URL**: `https://www.match-ops.com`
 - **Root Directory**: `site/`
 - **Framework**: Next.js
-- **Purpose**: Marketing site + documentation
+- **Purpose**: Marketing site + the online user guide (`/guide`)
 
 ---
 
@@ -63,7 +63,7 @@ No environment variables required for basic deployment.
 ### Step 5: Custom Domain (Optional)
 
 1. Go to **Settings** → **Domains**
-2. Add custom domain (e.g., `www.matchops.com`)
+2. Add custom domain (production: `www.match-ops.com`)
 3. Configure DNS records as instructed by Vercel
 
 ---
@@ -83,6 +83,8 @@ Output Directory: .next
 ---
 
 ## Documentation Workflow
+
+> **Obsolete (verified 2026-11-20):** the docs-copy workflow below no longer exists. `site/` has no `prebuild` script and no `pages/docs`; the old Markdown docs were removed and `site/next.config.mjs` redirects `/docs` paths to the online guide (`site/pages/guide/`). Repository `docs/` is not published.
 
 ### How It Works
 
@@ -159,9 +161,8 @@ Every markdown file becomes a route automatically!
 ### Post-Deploy
 
 - [ ] Verify homepage loads correctly
-- [ ] Check `/features` page
-- [ ] Check `/download` page
-- [ ] Verify `/docs` routes work
+- [ ] Check `/guide` pages
+- [ ] Check `/privacy`, `/terms` and `/delete-account`
 - [ ] Test responsive design (mobile/tablet/desktop)
 - [ ] Check navigation links
 - [ ] Verify "Try It Now" button links to main app
@@ -186,8 +187,7 @@ npm install
 
 ### Documentation Not Showing
 
-**Problem**: `pages/docs/` folder empty
-**Solution**: Run prebuild manually:
+**Obsolete**: `site/` no longer builds a `pages/docs/` folder (see Documentation Workflow). Historical solution:
 ```bash
 cd site
 npm run prebuild

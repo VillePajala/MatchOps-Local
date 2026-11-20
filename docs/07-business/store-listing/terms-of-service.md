@@ -1,11 +1,11 @@
 # Terms of Service for MatchOps
 
-**Last Updated**: September 2026
-**Terms Version**: 2026-09
+**Last Updated**: November 2026
+**Terms Version**: 2026-11
 
-> **Hosted URL**: https://match-ops.com/terms (use this URL for Play Store submission)
+> **Hosted URL**: https://match-ops.com/terms (use this URL for Play Store submission) - redirects to `https://www.match-ops.com/terms`, verified live 2026-11-20.
 >
-> **Canonical source**: the live text is in the locale files (`public/locales/{en,fi}/common.json` and `site/public/locales/...` → `termsOfService.*`), rendered at `/terms`. Keep this snapshot in sync with those; it may lag the live text in places.
+> **Canonical source**: the live text is in the locale files (`public/locales/{en,fi}/common.json` and `site/public/locales/...` → `termsOfService.*`), rendered at `/terms`. This file is an English snapshot of the app text, regenerated 2026-11-20 for version 2026-11; if it differs from the locale files, the locale files win.
 
 ## Agreement to Terms
 
@@ -14,10 +14,11 @@ By downloading, installing, or using MatchOps ("the app"), you agree to these Te
 ## Description of Service
 
 MatchOps is a soccer coaching application with cloud sync that helps coaches:
+
 - Track game time and scores
 - Manage player rosters
 - Record player statistics
-- Organize seasons and tournaments
+- Organize leagues and tournaments
 
 Your data is stored in your private cloud account and cached on your device for offline use.
 
@@ -26,6 +27,7 @@ Your data is stored in your private cloud account and cached on your device for 
 We grant you a limited, non-exclusive, non-transferable, revocable license to use MatchOps for personal, non-commercial purposes in accordance with these terms.
 
 You may NOT:
+
 - Reverse engineer, decompile, or disassemble the app
 - Modify, adapt, or create derivative works
 - Distribute, sublicense, or transfer the app to others
@@ -35,6 +37,7 @@ You may NOT:
 ## User Responsibilities
 
 You are responsible for:
+
 - All data you enter into the app
 - Maintaining backups of your data (using the export feature)
 - Ensuring your use complies with applicable laws
@@ -42,37 +45,39 @@ You are responsible for:
 
 ## Data and Privacy
 
-Your data is stored in your private cloud account and cached on your device for offline use. See our [Privacy Policy](/privacy-policy) for details on data handling, security, GDPR rights, and what limited data we may collect.
+Your data is stored in your private cloud account and cached on your device for offline use. See our Privacy Policy for details on data handling, security, GDPR rights, and what limited data we may collect. [Privacy Policy](/privacy-policy)
 
 ### Data Security Acknowledgment
+
 By using MatchOps, you acknowledge that:
-- **Local mode**: Data is stored in your browser's IndexedDB without additional encryption beyond what your device provides
-- **Device security**: Your device's access controls (screen lock, password, biometrics) are your primary protection for local data
-- **Backup files**: Exported backup files contain unencrypted data and should be stored securely
-- **Personnel data**: If you store personnel contact information (email, phone), it follows the same security model as other app data
-- **Your responsibility**: You are responsible for protecting access to your device and backup files
+
+- On-device cache: data cached on your device is stored in the browser's IndexedDB without additional encryption beyond what your device provides
+- Device security: Your device's access controls (screen lock, password, biometrics) are your primary protection for local data
+- Backup files: Exported backup files contain unencrypted data and should be stored securely
+- Personnel data: If you store personnel contact information (email, phone), it follows the same security model as other app data
+- Your responsibility: You are responsible for protecting access to your device and backup files
 
 Your data is protected with server-side encryption, encryption at rest, and row-level security.
 
-## Premium Features
+## Data Processing (GDPR Art. 28)
 
-MatchOps may offer optional premium features in the future, which could include:
-- **Cloud Sync**: Access your data across multiple devices
-- **Additional capabilities**: Enhanced features beyond the free tier
+This section is the data processing agreement between you and us under GDPR Art. 28(3). It is based on the standard contractual clauses between controllers and processors adopted by the European Commission in Implementing Decision (EU) 2021/915, and it applies whenever you enter personal data about other people (players and staff).
 
-If premium features are introduced, pricing and billing details will be communicated in-app and through the Google Play Store. See Google Play's terms for billing, cancellation, and refund policies.
+- Roles: you - or the club you act for - are the controller of that data. MatchOps (Ville Pajala) is your processor.
+- Subject, nature and duration: storing, syncing and showing the data you enter (such as names, shirt numbers, positions, match events, statistics, notes and staff contact details) about the players and staff of your teams, for as long as your account exists.
+- Instructions: we process the data only to provide the service, on your documented instructions - these Terms and the actions you take in the app - unless EU or Finnish law requires otherwise; in that case we tell you first, unless the law forbids it.
+- Confidentiality: everyone authorised to process the data on our behalf is bound by confidentiality. We do not look at your content except when you ask us to or the law requires it.
+- Security (Art. 32): the data is hosted in the EU (Stockholm, Sweden), encrypted in transit (HTTPS/TLS) and at rest, and separated per account by row-level security. If a personal data breach affects your data, we notify you without undue delay.
+- Sub-processors: you give general authorisation for Supabase (database and authentication, EU), Sentry (error reporting), Resend (account emails) and Vercel (hosting). We bind them by contract to the same data protection obligations. We tell you about any intended addition or replacement in advance by updating this list and the Privacy Policy, so you can object; if you object, you can stop using the service and delete your account.
+- Assistance: the app lets you access, correct, export and delete the data yourself, which is how we help you answer requests from the people concerned. As far as the nature of the processing allows, we also help you with security, breach notification and impact assessments.
+- End of the service: when you delete your account, we delete the data (see the Privacy Policy for backups). You can export it at any time before that.
+- Demonstrating compliance: on request to support@match-ops.com, we make available the information needed to demonstrate that these obligations are met, and allow and contribute to reasonable audits.
 
-If you cancel a paid plan, your cloud data remains accessible in read-only mode. You can export or delete it at any time. After 90 days of account inactivity following cancellation, cloud data may be deleted.
+## Player Data: Your Responsibilities
 
-## Cloud Sync Terms
+Informing players and their families about the data you keep (GDPR Art. 13-14) is your duty, or your club's. Settings → Data has a ready-made notice you can copy and send.
 
-When you enable Cloud Sync:
-- You retain ownership of all your data
-- We strive for high availability but do not guarantee uninterrupted access
-- You are responsible for maintaining local backups of critical data
-- We implement industry-standard security measures to protect your data
-
-You can delete all cloud data at any time from Settings. Deletion is permanent and cannot be undone.
+Do not enter health data or other special categories of personal data (GDPR Art. 9) - for example injuries, illnesses, diagnoses, religion or ethnic origin - in notes, match reports or any other field. A first name or nickname is enough to identify a player.
 
 ## Intellectual Property
 
@@ -80,31 +85,26 @@ MatchOps and all related trademarks, logos, and content are the property of the 
 
 ## Disclaimer of Warranties
 
-THE APP IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO:
-- MERCHANTABILITY
-- FITNESS FOR A PARTICULAR PURPOSE
-- NON-INFRINGEMENT
-- ACCURACY OR RELIABILITY OF DATA
+The app is provided "as is" and "as available" without warranties of any kind, express or implied, including but not limited to:
 
-We do not warrant that:
-- The app will meet your specific requirements
-- The app will be uninterrupted, timely, secure, or error-free
-- Results obtained from the app will be accurate or reliable
-- Any errors will be corrected
+- Merchantability
+- Fitness for a particular purpose
+- Non-infringement
+- Accuracy or reliability of data
+
+We do not warrant that the app will meet your specific requirements, be uninterrupted, timely, secure, or error-free, or that any errors will be corrected.
 
 ## Limitation of Liability
 
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL THE DEVELOPER BE LIABLE FOR:
-- Any indirect, incidental, special, consequential, or punitive damages
-- Loss of data, profits, or business opportunities
-- Any damages arising from your use or inability to use the app
+To the maximum extent permitted by law, in no event shall the developer be liable for any indirect, incidental, special, consequential, or punitive damages, loss of data, profits, or business opportunities.
 
 Our total liability shall not exceed the amount you paid for the app (if any).
 
 ## Data Loss
 
 You acknowledge that:
-- Your data is stored in your private cloud account and cached on your device
+
+- Your data is stored in your cloud account and cached on your device for offline use
 - We are not responsible for data loss due to device failure, app uninstallation, or any other cause
 - You should regularly export and backup important data
 
@@ -119,34 +119,66 @@ To the maximum extent permitted by applicable law (including mandatory consumer-
 ## Third-Party Services
 
 The app may interact with third-party services:
-- **Google Play Store** — For app distribution and payments
-- **Sentry** — For error reporting (optional, can be disabled)
-- **Supabase** — For cloud sync and authentication (cloud mode)
-- **Vercel** — For PWA web hosting
-- **Photon (Komoot)** — For venue search in the match location field; it receives the text you type there
-- **OpenAI, or another AI provider you connect** — For voice-note transcription and match report drafts, only through your own account and API key, and only if you connect one
-- **palloliitto.fi** — The rulebook is fetched from the Football Association of Finland's own site when you open a law
+
+- **Google Play Store** - For app distribution and payments
+- **Sentry** - For automatic error reporting in production
+- **Supabase** - For cloud sync and authentication (cloud mode)
+- **Vercel** - For PWA web hosting
+- **Resend** - For account emails (sign-up confirmation, password reset) and, if you opt in, marketing emails
+- **Photon (Komoot)** - For place search in the match venue and starting-point fields; it receives the text you type there
+- **OpenAI, or another AI provider you connect** - For voice-note transcription and match report drafts, only through your own account and API key, and only if you connect one
+- **palloliitto.fi** - The rulebook is fetched from the Football Association of Finland's own site when you open a law
 
 Your use of these services is governed by their respective terms and policies.
 
+## Optional AI Services
+
+MatchOps lets you connect your own account with a third-party AI provider to transcribe voice notes and draft reports. Any such use is governed by your agreement with that provider. MatchOps is not a party to it, does not receive the data, and is not responsible for the provider's processing, availability, output or fees.
+
+You are responsible for the content you record or dictate and for having the right to process it. Do not record health information or other special categories of personal data (see Player Data: Your Responsibilities).
+
+AI output is a draft. You review and accept every item before it is saved, and you remain responsible for what you keep.
+
+## Paid Features
+
+We may introduce paid subscription plans in the future. If offered, paid features may include:
+
+- Cloud Sync: Access your data across multiple devices
+- Unlimited players, teams, leagues, and tournaments
+- Priority support
+
+If paid subscriptions are introduced, they will be billed through Google Play Store. See Google Play's terms for billing, cancellation, and refund policies.
+
+If you have an active subscription, you can cancel at any time through Google Play. After cancellation, you retain access until the end of your billing period.
+
+If a paid subscription is cancelled, your cloud data remains accessible. You can export or delete it at any time. We reserve the right to remove cloud data after an extended period of account inactivity, with prior notice.
+
+## Cloud Sync Terms
+
+When you use cloud sync:
+
+- You retain ownership of all your data
+- We strive for high availability but do not guarantee uninterrupted access
+- You are responsible for maintaining local backups of critical data
+- We implement industry-standard security measures to protect your data
+
+You can delete all cloud data at any time from Settings. Deletion is permanent and cannot be undone.
+
 ## Changes to the App
 
-We reserve the right to:
-- Modify or discontinue the app at any time
-- Update these terms with reasonable notice
-- Add or remove features
+We reserve the right to modify or discontinue the app at any time and add or remove features.
+
+## Changes to Terms
+
+We may update these terms when necessary. Material changes will update the "Last Updated" date and trigger a re-consent prompt for cloud mode users. Continued use of the app after changes constitutes acceptance of the new terms.
 
 ## Termination
 
 We may terminate or suspend your access to the app immediately, without notice, if you breach these terms. Upon termination, your license to use the app ends.
 
-If your account is terminated, you will lose access to cloud features. Your local data will remain on your device. Cloud data will be deleted within 30 days of termination.
+If your account is terminated, you will lose access to Cloud Sync features. Your local data will remain on your device. Cloud data will be deleted within a reasonable period after termination.
 
 You can voluntarily delete your cloud account and data at any time from the Settings menu.
-
-## Changes to Terms
-
-We may update these terms when necessary. Material changes will update the "Last Updated" date and trigger a re-consent prompt for cloud mode users. Continued use of the app after changes constitutes acceptance of the new terms.
 
 ## Governing Law and Dispute Resolution
 
@@ -162,10 +194,9 @@ These terms, together with our Privacy Policy, constitute the entire agreement b
 
 ## Contact
 
-Most actions (data export, deletion, account management) can be done directly in the app under Settings.
+Most actions (data export, deletion, account management) can be done directly in the app under Settings. For questions about these terms:
 
-For questions about these terms:
-- Email: support@match-ops.com
+Email: [support@match-ops.com](mailto:support@match-ops.com)
 
 ---
 

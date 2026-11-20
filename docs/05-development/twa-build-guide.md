@@ -2,12 +2,15 @@
 
 This guide explains how to build MatchOps-Local as a Trusted Web Activity (TWA) for Google Play Store distribution.
 
+**Current Play build (2026-11-20):** version 1.0.9 (versionCode 20), `targetSdkVersion 36`, `minSdkVersion 24`, built with Bubblewrap CLI 1.27.0 (`androidbrowserhelper` 2.7.4). The Play build is a cloud-only TWA: users must sign in. The Bubblewrap project lives at `~/projects/Archive/matchops-twa` (`twa-manifest.json`, `app/build.gradle`, signed `.aab` files); the keystore path and alias are in its `twa-manifest.json` (`signingKey`). See [Step 5](#step-5-build-with-bubblewrap-cli-used-for-the-play-builds).
+
 ## Prerequisites
 
-1. **Android Studio** with SDK installed
-2. **Java JDK** 11 or higher
-3. **Node.js** 18+
-4. **Google Play Console** developer account ($25 one-time fee)
+1. **Bubblewrap CLI 1.27.0** (`npm install -g @bubblewrap/cli@1.27.0`) - needed for `targetSdkVersion 36`
+2. **JDK and Android SDK** as configured in `~/.bubblewrap/config.json` (currently the Bubblewrap-managed JDK in `~/.bubblewrap/jdk` and the SDK in `~/android-sdk`; Android Studio is not required)
+3. **Android SDK build-tools 36.1.0**, installed with the SDK's own `sdkmanager` (see Step 5 - Bubblewrap's installer fails)
+4. **Node.js** 18+
+5. **Google Play Console** developer account ($25 one-time fee)
 
 ## Overview
 
@@ -17,6 +20,7 @@ A Trusted Web Activity (TWA) wraps a PWA in an Android app container. When the D
 
 ```bash
 # Generate a new keystore (only do this once - KEEP THIS SAFE!)
+# MatchOps already has one: see signingKey in ~/projects/Archive/matchops-twa/twa-manifest.json
 keytool -genkey -v -keystore matchops-release.keystore \
   -alias matchops-key \
   -keyalg RSA \
@@ -48,7 +52,7 @@ SHA256: AB:CD:EF:12:34:56:78:90:...
 
 ## Step 3: Update Asset Links
 
-Update `public/.well-known/assetlinks.json` with your actual fingerprint:
+Update `public/.well-known/assetlinks.json` with your actual fingerprint. (The live file lists two SHA-256 fingerprints for `com.matchops.local`; keep every fingerprint that signs a build users install - with Play App Signing that includes Play's app signing key from Play Console > App integrity.)
 
 ```json
 [
@@ -75,37 +79,51 @@ Update `public/.well-known/assetlinks.json` with your actual fingerprint:
 3. Use Google's verification tool:
    https://developers.google.com/digital-asset-links/tools/generator
 
-## Step 5: Build TWA with PWABuilder (Recommended)
+## Step 5: Build with Bubblewrap CLI (used for the Play builds)
 
-The easiest way to build a TWA is using PWABuilder:
+First-time setup only (the existing project already has this):
+
+```bash
+npx @bubblewrap/cli@1.27.0 init --manifest https://app.match-ops.com/manifest.json
+# Package name: com.matchops.local, app name: MatchOps Local, existing keystore: yes
+```
+
+Release build in the existing project:
+
+```bash
+cd ~/projects/Archive/matchops-twa
+# 1. Set the new appVersionName / appVersionCode in twa-manifest.json yourself
+# 2. Regenerate the Android project WITHOUT Bubblewrap's own version bump
+bubblewrap update --skipVersionUpgrade
+# 3. Build and sign - run in a real terminal (it prompts for the keystore and key passwords)
+bubblewrap build
+# 4. Check versionCode/versionName in app/build.gradle and twa-manifest.json match what you intended
+```
+
+### Build learnings (1.0.9, 2026-11-20)
+
+- **Bubblewrap 1.27.0 is needed for `targetSdkVersion 36`**.
+- **build-tools 36.1.0 must be installed by hand.** Bubblewrap's own installer fails; install it with the SDK's sdkmanager instead:
+  ```bash
+  ~/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;36.1.0"
+  ```
+- **`minSdkVersion 24` is required** by `androidbrowserhelper` 2.7.4 (pulled in by Bubblewrap 1.27); set it in `twa-manifest.json`.
+- **Version codes drift.** `bubblewrap update` bumps `appVersionCode` unless you pass `--skipVersionUpgrade`, and `bubblewrap build` may bump it again. Always check the final versionCode before uploading - Play rejects a versionCode it has already received.
+- **Use a real terminal for `bubblewrap build`.** It prompts for the keystore and key passwords, which needs an interactive terminal (not an agent's tool runner).
+
+## Alternative: PWABuilder (web UI)
+
+Not used for the current builds (twa-manifest.json `generatorApp: bubblewrap-cli`); kept as a fallback:
 
 1. Go to https://www.pwabuilder.com/
 2. Enter your production URL: `https://app.match-ops.com`
 3. Click "Build My PWA"
 4. Select "Android" → "Generate Package"
 5. Configure:
-   - **App name**: MatchOps
-   - **Package ID**: com.matchops.local (using `.local` as this is a local-first app with no server backend)
+   - **App name**: MatchOps Local
+   - **Package ID**: com.matchops.local (chosen when the app was local-only; a published package ID cannot change)
    - **Signing key**: Use the keystore generated in Step 1
 6. Download the AAB (Android App Bundle)
-
-## Alternative: Build with Bubblewrap CLI
-
-```bash
-# Install Bubblewrap
-npm install -g @bubblewrap/cli
-
-# Initialize TWA project
-npx bubblewrap init --manifest https://app.match-ops.com/manifest.json
-
-# Follow the prompts:
-# - Package name: com.matchops.local
-# - App name: MatchOps
-# - Use existing keystore: yes
-
-# Build the AAB
-npx bubblewrap build
-```
 
 ## Splash Screen and Icon Values (must match the web app)
 
@@ -178,7 +196,7 @@ Verify:
 1. Go to https://play.google.com/console
 2. Create new app or update existing
 3. Upload the AAB file
-4. Complete store listing (see PR #5: Store Listing Assets)
+4. Complete store listing (texts: `docs/04-features/store-listing-fi.txt`, `store-listing-en.txt`)
 5. Submit for review
 
 ## Troubleshooting
@@ -194,7 +212,7 @@ If the address bar appears, Digital Asset Links verification failed:
 
 ### "App not installed" Error
 
-1. Check minimum SDK version (TWA requires API 19+)
+1. Check the device's Android version: the current build needs Android 7.0+ (API 24, `minSdkVersion 24`)
 2. Ensure package name matches assetlinks.json
 3. Verify signing key is correct
 

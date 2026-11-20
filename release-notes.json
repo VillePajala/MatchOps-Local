@@ -3,6 +3,12 @@
   "releases": [
     {
       "date": "2026-11-20",
+      "internal": true,
+      "en": ["Documentation: roadmap cleaned up to open work only."],
+      "fi": ["Dokumentaatio: tiekartassa vain avoimet työt."]
+    },
+    {
+      "date": "2026-11-20",
       "en": [
         "The simplified view shows a link to the full app right at the top.",
         "The sub timer button now says \"Sub done\".",

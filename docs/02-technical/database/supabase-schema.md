@@ -1,8 +1,8 @@
 # Supabase PostgreSQL Schema
 
-**Status**: ✅ Implemented (Revised v17)
-**Last Updated**: 2026-01-26 (v17: Schema deployed, Edge Function complete, Local-First Sync merged)
-**Target**: Premium/Cloud Backend
+**Status**: ✅ Implemented (Revised v17; checked against migrations 000-063 on 2026-11-20)
+**Last Updated**: 2026-11-20 (columns and tables added by migrations 030-063)
+**Target**: Cloud Backend (cloud mode)
 **Related**: [Current Storage Schema](./current-storage-schema.md) | [Dual-Backend Architecture](../architecture/dual-backend-architecture.md) | [Migration Strategy](../../08-archived/completed-active-plans/backend-evolution/migration-strategy.md)
 
 ## Overview
@@ -103,10 +103,19 @@ users (Supabase Auth)
  ├── warmup_plans
  ├── user_settings
  ├── user_consents (GDPR compliance)
- └── subscriptions (Play Store billing)
+ ├── subscriptions (Play Store billing; enforcement off, app is free)
+ ├── playtime_plans, playtime_plan_links, playtime_game_subs (migration 036)
+ └── sync_tombstones (migration 059; no client access)
+rate_limits (migration 024; Edge Functions only, not user-owned)
 ```
 
 ## Core Tables
+
+**How to read the blocks below** (the authoritative definitions are the files in `supabase/migrations/`, 000-063):
+- **Primary keys**: since migration 013, every user-content table (players, teams, team_players, seasons, tournaments, personnel, games, game_players, game_events, game_tactical_data, player_assessments, player_adjustments, warmup_plans) has `PRIMARY KEY (user_id, id)`, not the `id text PRIMARY KEY` the blocks show. `user_settings` keeps `user_id` as its key; `user_consents` and `subscriptions` keep their own `id`.
+- **RLS policies**: since migration 016 the policies use `(select auth.uid()) = user_id` (evaluated once per query), not `auth.uid() = user_id`.
+- **`edited_at timestamptz`** (migration 059, newer-edit-wins sync): on players, teams, seasons, tournaments, personnel, user_settings, player_adjustments and warmup_plans. Not shown in each block.
+- Other columns added by later migrations are shown in the blocks with their migration number.
 
 ### 1. `users` (Managed by Supabase Auth)
 
@@ -231,6 +240,7 @@ CREATE TABLE players (
   color text,
   notes text,
   received_fair_play_card boolean DEFAULT false,
+  archived boolean NOT NULL DEFAULT false,  -- migration 054
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
   -- NOTE: No name uniqueness constraint - app allows duplicate player names
@@ -284,6 +294,8 @@ CREATE TABLE seasons (
 
   -- Team placements (jsonb for flexibility)
   team_placements jsonb DEFAULT '{}'::jsonb,  -- { [teamId]: { placement: 1, award?: "Champion", note?: "..." } }
+
+  opponents text[] NOT NULL DEFAULT '{}',  -- Season opponent list (migration 046)
 
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
@@ -480,6 +492,22 @@ CREATE TABLE games (
   -- Optimistic locking version (added in migration 012)
   version integer NOT NULL DEFAULT 1,
 
+  -- Added by later migrations (all written by save_game_with_relations)
+  shootout_kicks jsonb,                    -- 032
+  player_positions jsonb,                  -- 035: positions played per player
+  is_friendly boolean NOT NULL DEFAULT false,  -- 039
+  game_notes_ai_meta jsonb,                -- 043: AI provenance of game notes
+  captain_id text,                         -- 045: per-game captain (NULL = none)
+  field_number text,                       -- 047
+  location_lat double precision,           -- 048
+  location_lng double precision,           -- 048
+  location_address text,                   -- 049
+  arrival_buffer_minutes integer,          -- 050: per-game travel overrides
+  travel_minutes integer,                  -- 050
+  last_write_id text,                      -- 055: sync write identity
+  extra_time_periods smallint NOT NULL DEFAULT 0 CHECK (extra_time_periods BETWEEN 0 AND 2),  -- 060
+  extra_time_minutes smallint CHECK (extra_time_minutes IS NULL OR extra_time_minutes BETWEEN 1 AND 60),  -- 060
+
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -508,7 +536,7 @@ CREATE POLICY "Users can only access their own games"
 **Migration Notes**:
 - `SAVED_GAMES_KEY` object keys → `games.id`
 - Nested objects (`playersOnField`, `opponents`, `drawings`, etc.) → separate tables
-- Empty strings → NULL for all nullable fields (see [Empty String Normalization](#empty-string-normalization) for complete list: `seasonId`, `tournamentId`, `tournamentSeriesId`, `tournamentLevel`, `teamId`, `gameTime`, `gameLocation`, `ageGroup`, `leagueId`, `customLeagueName`)
+- Empty strings → NULL for all nullable fields (see [Empty String Normalization](#empty-string-normalization) for complete list: `seasonId`, `tournamentId`, `tournamentSeriesId`, `tournamentLevel`, `teamId`, `gameTime`, `gameLocation`, `ageGroup`, `leagueId`, `customLeagueName`; plus `captainId` since migration 045, which reads back as `undefined`)
 
 ### 9. `game_players`
 
@@ -578,7 +606,7 @@ CREATE TABLE game_events (
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
 
   event_type text NOT NULL CHECK (event_type IN (
-    'goal', 'opponentGoal', 'substitution', 'periodEnd', 'gameEnd', 'fairPlayCard'
+    'goal', 'opponentGoal', 'substitution', 'periodEnd', 'gameEnd', 'fairPlayCard', 'note'  -- 'note' since 041
   )),
   time_seconds numeric(10,2) NOT NULL, -- Seconds elapsed (supports 2 decimal precision)
 
@@ -588,6 +616,13 @@ CREATE TABLE game_events (
   scorer_id text,     -- No FK (player may be deleted)
   assister_id text,   -- No FK
   entity_id text,     -- Generic reference (e.g., player who received card)
+
+  -- Match notes (041-043)
+  note_text text,     -- 041: required when event_type = 'note'
+  period integer,     -- 041
+  source text,        -- 041
+  tag text,           -- 042: notes only
+  ai_meta jsonb,      -- 043: AI provenance, notes only
 
   created_at timestamptz DEFAULT now(),
 
@@ -643,6 +678,10 @@ CREATE TABLE player_assessments (
   fair_play numeric(3,1) CHECK (fair_play BETWEEN 1 AND 10),
   impact numeric(3,1) CHECK (impact BETWEEN 1 AND 10),
 
+  -- Current storage (CLAUDE.md Rule 5): the flat slider columns above are no longer written
+  slider_values jsonb,             -- 033: id-keyed map, canonical 1-10 scale
+  slider_scale_version smallint,   -- 034: NULL/1 = original 1-10, 2 = interim 1-5, 3 = current
+
   notes text,
   minutes_played integer,
   created_by text DEFAULT 'coach',
@@ -664,7 +703,7 @@ CREATE POLICY "Users can only access their own player assessments"
 
 **Migration Notes**:
 - `AppState.assessments[playerId]` → `player_assessments` rows
-- `assessments[id].sliders.intensity` → `intensity` column (flattened)
+- `assessments[id].sliders` → `slider_values` jsonb (migration 033). The flattened columns (`intensity`, ...) are only read as a fallback for older rows
 
 ### 12. `game_tactical_data`
 
@@ -852,6 +891,21 @@ CREATE TABLE user_settings (
   club_season_end_date text DEFAULT '2000-10-20',    -- Default: October 20th (matches clubSeasonDefaults.ts)
   has_configured_season_dates boolean DEFAULT false,
 
+  -- Added by later migrations
+  home_view text CHECK (home_view IS NULL OR home_view IN ('simple', 'dashboard')),  -- 040
+  starting_point_name text,              -- 051
+  starting_point_address text,           -- 051
+  starting_point_lat double precision,   -- 051
+  starting_point_lng double precision,   -- 051
+  arrival_buffer_minutes integer,        -- 051
+  assessments_enabled boolean,           -- 051
+  assessment_rating_style text,          -- 051
+  assessment_template text,              -- 051
+  known_venues jsonb,                    -- 052
+  app_layout text CHECK (app_layout IS NULL OR app_layout IN ('basic', 'full')),  -- 062: NULL = never chosen = full
+  onboarding_milestones jsonb,           -- 062: {milestone: ISO timestamp}, measurement only
+  diagnostics_enabled boolean,           -- 063: NULL = never chosen = on; false = off
+
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -879,8 +933,9 @@ Tracks user consent for Terms of Service and Privacy Policy (GDPR compliance).
 ```sql
 CREATE TABLE user_consents (
   id text PRIMARY KEY,  -- Format: consent_{timestamp}_{random}
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,  -- Nullable since 009; CASCADE since 063 (rows with NULL user_id deleted)
   consent_type text NOT NULL CHECK (consent_type IN ('terms_and_privacy', 'marketing')),
+  status text NOT NULL DEFAULT 'granted' CHECK (status IN ('granted', 'withdrawn')),  -- 026
   policy_version text NOT NULL,  -- e.g., '2025-01' for January 2025 policy
   consented_at timestamptz NOT NULL DEFAULT now(),
   ip_address text,  -- Optional: for audit trail
@@ -890,16 +945,18 @@ CREATE TABLE user_consents (
 
 CREATE INDEX idx_user_consents_user_id ON user_consents(user_id);
 
--- Unique constraint prevents duplicate consent records for same user/type/version
--- This is defense-in-depth: RPC also uses ON CONFLICT DO NOTHING
-CREATE UNIQUE INDEX idx_user_consents_unique
-  ON user_consents(user_id, consent_type, policy_version);
+-- Unique constraint prevents duplicate consent records for same user/type/version/status
+-- (026 replaced the earlier (user_id, consent_type, policy_version) index so a withdrawal
+-- can follow a grant). Defense-in-depth: the RPC also uses ON CONFLICT DO NOTHING
+ALTER TABLE user_consents
+  ADD CONSTRAINT user_consents_user_consent_status_unique
+  UNIQUE (user_id, consent_type, policy_version, status);
 
--- RLS Policy
+-- RLS Policy: read-only for users since 031; writes go through record_user_consent() RPC
 ALTER TABLE user_consents ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can only access their own consents"
-  ON user_consents FOR ALL
-  USING (auth.uid() = user_id);
+CREATE POLICY "Users can read their own consents"
+  ON user_consents FOR SELECT
+  USING (((select auth.uid()) = user_id) AND (user_id IS NOT NULL));
 ```
 
 **GDPR Compliance Notes**:
@@ -1032,6 +1089,63 @@ REVOKE EXECUTE ON FUNCTION upsert_subscription FROM authenticated;
 - App calls `get_subscription_status()` to check if user has active subscription
 - Edge Function (verify-purchase) calls `upsert_subscription()` to update status
 - Edge Function (RTDN webhook) calls `upsert_subscription()` for status changes
+
+### 18. Playtime planner tables (migration 036)
+
+Playing-Time Planner plans, plan-to-game links and per-game planned substitutions. Last-write-wins via `save_playtime_plan()` (migration 038).
+
+```sql
+CREATE TABLE playtime_plans (
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  id         text NOT NULL,
+  name       text NOT NULL DEFAULT '',
+  archived   boolean NOT NULL DEFAULT false,
+  data       jsonb NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, id)
+);
+
+CREATE TABLE playtime_plan_links (
+  user_id      uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  game_id      text NOT NULL,
+  plan_id      text NOT NULL,
+  plan_game_id text NOT NULL,
+  updated_at   timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, game_id)
+);
+
+CREATE TABLE playtime_game_subs (
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  game_id    text NOT NULL,
+  subs       jsonb NOT NULL DEFAULT '[]'::jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, game_id)
+);
+-- playtime_plan_links (user_id, plan_id) references playtime_plans (user_id, id) since 038.
+-- RLS on all three: (select auth.uid()) = user_id. clear_all_user_data() clears them (037).
+```
+
+### 19. Service tables (no client access)
+
+```sql
+-- Deletion record for newer-edit-wins sync (migration 059). Only the SECURITY DEFINER
+-- sync functions touch it; RLS enabled and ALL revoked from anon/authenticated.
+CREATE TABLE sync_tombstones (
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  table_name text NOT NULL,
+  row_id     text NOT NULL,
+  deleted_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, table_name, row_id)
+);
+
+-- Distributed rate limiting for Edge Functions via check_rate_limit() (migration 024).
+-- RLS enabled with no policies: only the service role reaches it.
+CREATE TABLE rate_limits (
+  key text PRIMARY KEY,
+  count int NOT NULL DEFAULT 1,
+  window_start timestamptz NOT NULL DEFAULT now()
+);
+```
 
 ### Timer State: LOCAL ONLY
 
@@ -1779,18 +1893,19 @@ Supabase Edge Functions handle operations that require service role access or ex
 
 **Purpose**: Securely delete user account and all data.
 
-**Location**: `supabase/functions/delete-account/index.ts`
+**Location**: `supabase/functions/delete-account/index.ts` (logic in `handler.ts`)
 
 **Security**:
 - Requires valid user JWT
 - Uses service role to delete auth user
-- Calls `delete_all_user_data()` RPC first
+- Rate-limited via `check_rate_limit()` (migration 024)
+- Calls `clear_all_user_data()` RPC first (as the user), then deletes the auth user; `user_consents` rows go with it (`ON DELETE CASCADE`, migration 063)
 
 **Endpoint**: `POST /functions/v1/delete-account`
 
 ### verify-subscription
 
-**Purpose**: Verify Google Play subscription purchases and store status in Supabase.
+**Purpose**: Verify Google Play subscription purchases and store status in Supabase. Monetization is parked (`PREMIUM_ENFORCEMENT_ENABLED = false`), so the app does not depend on it today.
 
 **Location**: `supabase/functions/verify-subscription/index.ts`
 
@@ -1857,4 +1972,4 @@ Supabase Edge Functions handle operations that require service role access or ex
 
 **Next Steps**:
 - Review [Migration Strategy](../../08-archived/completed-active-plans/backend-evolution/migration-strategy.md) for transformation logic
-- See [DataStore Interface](../../architecture/datastore-interface.md) for unified API over both backends
+- See `src/interfaces/DataStore.ts` for the unified API over both backends

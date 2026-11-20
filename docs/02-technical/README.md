@@ -17,8 +17,8 @@ This directory contains technical architecture documentation covering system des
 - **[architecture/](./architecture/)** - Detailed architecture components:
   - [dual-backend-architecture.md](./architecture/dual-backend-architecture.md) - Local vs Cloud mode design
   - [auth-data-sync-architecture.md](./architecture/auth-data-sync-architecture.md) - **Runtime behavior** of auth, data, and sync systems
-  - [datastore-interface.md](./architecture/datastore-interface.md) - DataStore interface specification
-  - [auth-service-interface.md](./architecture/auth-service-interface.md) - AuthService interface specification
+  - [ADR-002-react-query-cache-strategy.md](./architecture/ADR-002-react-query-cache-strategy.md) - React Query cache strategy
+  - DataStore / AuthService interfaces: the code is the specification (`src/interfaces/DataStore.ts`, `src/interfaces/AuthService.ts`); the old spec docs are in `08-archived/completed-active-plans/backend-evolution/`
 
 ## Quick Start
 

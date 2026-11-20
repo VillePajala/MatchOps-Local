@@ -1,7 +1,7 @@
 # Timer & Wake Lock
 
 **Status**: ✅ Implemented
-**Last Updated**: January 5, 2026
+**Last Updated**: 2026-11-20
 
 ## Overview
 
@@ -22,6 +22,8 @@ Precision game timer with screen wake lock to prevent device sleep during matche
 - **Pause/Resume**: Pause during stoppages
 - **Background Persistence**: Timer continues when app backgrounded
 - **State Recovery**: Resumes after app restart
+- **Timer view layout**: Goal buttons ("Goal for us" / opponent goal) sit directly under start/pause; see [goal-log.md](./goal-log.md)
+- **Sub interval**: "Vaihto tehty" ("Sub done") restarts the substitution-interval countdown without recording who came on; disabled while the clock is stopped and hidden in the basic app layout
 
 ## Wake Lock
 
@@ -38,18 +40,19 @@ const wakeLock = await navigator.wakeLock.request('screen');
 
 ### Fallback
 If Wake Lock API unavailable:
-- User prompted to adjust device settings
-- Timer continues even if screen locks
+- The hook logs that it is unsupported; no prompt is shown
+- Timer continues even if screen locks (elapsed time is recomputed from timestamps)
 
 ## Timer States
 
+`gameStatus` in `useGameSessionReducer.ts`, plus a separate running/paused flag:
+
 | State | Description |
 |-------|-------------|
-| `stopped` | Game not started |
-| `running` | Timer actively counting |
-| `paused` | Timer paused (stoppage) |
-| `period_break` | Between periods |
-| `ended` | Game finished |
+| `notStarted` | Game not started |
+| `inProgress` | Period in play (clock running or paused) |
+| `periodEnd` | Between periods |
+| `gameEnd` | Game finished |
 
 ## Persistence
 

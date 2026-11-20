@@ -5,7 +5,7 @@
 **Status**: ✅ **Implemented** (Phase 1-4 Complete, Local-First Sync Added)
 **Last Updated**: 2026-01-26
 **Purpose**: Unified data access interface for both IndexedDB (local) and Supabase (cloud) backends
-**Related**: [Dual-Backend Architecture](./dual-backend-architecture.md) | [Current Storage Schema](../database/current-storage-schema.md) | [Supabase Schema](../database/supabase-schema.md)
+**Related**: [Dual-Backend Architecture](../../../02-technical/architecture/dual-backend-architecture.md) | [Current Storage Schema](../../../02-technical/database/current-storage-schema.md) | [Supabase Schema](../../../02-technical/database/supabase-schema.md)
 
 ## Overview
 
@@ -883,5 +883,5 @@ function RosterList() {
 
 **Next Steps**:
 - Review [AuthService Interface](./auth-service-interface.md) for authentication layer
-- See [Dual-Backend Architecture](./dual-backend-architecture.md) for complete system design
-- Check [Phased Implementation Roadmap](../../08-archived/completed-active-plans/backend-evolution/phased-implementation-roadmap.md) for rollout plan (archived)
+- See [Dual-Backend Architecture](../../../02-technical/architecture/dual-backend-architecture.md) for complete system design
+- Check [Phased Implementation Roadmap](./phased-implementation-roadmap.md) for rollout plan (archived)

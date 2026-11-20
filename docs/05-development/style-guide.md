@@ -4,6 +4,8 @@ This document outlines the design system and styling conventions for MatchOps to
 
 **Last Updated**: January 4, 2026
 
+> **Note (2026-11-20):** The 2026-11 "Syke Refined" redesign replaced the slate/indigo palette described in sections 3-7. Current design tokens live in the `@theme` block of `src/app/globals.css`: navy `carbon`/`surface`/`surface-2` backgrounds, `ink`/`ink-2`/`ink-3` text, amber `action` (with `action-hot`) as the one "press this" colour, `win`/`loss`/`draw` result colours, `font-display` (Barlow Condensed) and `font-ui` (Inter), plus the `s1-*` component classes (`s1-canvas`, `s1-hero`, ...). Prefer those tokens over the raw Tailwind colours listed below; the non-colour sections (z-index, PWA, a11y, i18n, data flow) were not re-verified after the redesign.
+
 ---
 
 ## 1. Design Philosophy
@@ -12,7 +14,7 @@ MatchOps uses a **dark-first, sports-professional** aesthetic designed for:
 - Outdoor/sideline use (high contrast, readable in sunlight)
 - Touch-first interaction (large tap targets, swipe-friendly)
 - Quick glanceability (important info prominent)
-- Professional sports app feel (slate/indigo palette, subtle effects)
+- Professional sports app feel (navy surfaces, amber action colour, subtle effects)
 
 ---
 

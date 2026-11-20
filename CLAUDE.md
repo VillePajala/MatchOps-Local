@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ✅ Project Status: Live in Production (Free)
 
-**Last Updated**: 2026-11-17
+**Last Updated**: 2026-11-20
 **Released to Google Play**: 2026-06-09 — distributed as a cloud-only TWA (Play Store users must sign in; cloud mode required). The app is **free**; monetization is parked.
 
 ### Quick Stats
@@ -215,7 +215,7 @@ The `save_game_with_relations` RPC populates child rows via
 
 #### Rule 6: Composite Uniqueness (App-Level Validation)
 
-Schema uses simple `UNIQUE(user_id, name)`. **SupabaseDataStore MUST implement these composite checks to match LocalDataStore**:
+The database enforces no name uniqueness on teams, seasons or tournaments (the composite unique indexes were dropped in migration 058). **SupabaseDataStore MUST implement these composite checks in the app to match LocalDataStore**:
 
 - **Teams**: name + boundSeasonId + boundTournamentId + boundTournamentSeriesId + gameType
 - **Seasons**: name + clubSeason + gameType + gender + ageGroup + leagueId
@@ -281,7 +281,7 @@ Cloud mode uses **SyncedDataStore** which writes to local IndexedDB first, then 
 - Changes are saved locally immediately (works offline)
 - Background sync pushes changes to cloud when online
 - If offline, changes queue locally and sync when connectivity returns
-- Conflict resolution: Last-write-wins
+- Conflict resolution: games are saved with a version check (`p_expected_version`, migration 030); other records use newer-edit-wins, and a record deleted on another device stays deleted (migration 059). Not plain last-write-wins.
 
 ```typescript
 // SyncedDataStore wraps LocalDataStore + SupabaseDataStore:
@@ -360,7 +360,7 @@ clubSeason: entity.clubSeason ?? calculateClubSeason(entity.startDate, start, en
 **PostgreSQL handles concurrency** - no app-level locks:
 - Single operations: PostgreSQL row-level locks
 - Multi-table operations: RPC with transactions
-- Conflict resolution: Last-write-wins
+- Conflict resolution: see Rule 12 (version check for games, newer-edit-wins for other records)
 
 #### Rule 18: Migration Uses DataStore Getters
 
@@ -446,8 +446,9 @@ All Supabase work happened on `feature/supabase-cloud-backend`. Sub-PRs (e.g., `
 
 ### Build Process
 The build process includes custom generation steps that run before Next.js build:
-- `node scripts/generate-changelog.mjs` - Generates changelog from git history
-- `node scripts/generate-manifest.mjs` - Generates PWA manifest based on branch
+- `node scripts/generate-changelog.mjs` - Generates `public/changelog.json` from the curated `release-notes.json` (not from git history)
+- `node scripts/generate-manifest.mjs` - Generates PWA manifest based on branch (and stamps the service worker cache name)
+- `node scripts/copy-pdf-worker.mjs` - Copies the pdf.js worker into `public/` (same-origin, CSP)
 - Manifest configuration varies by branch (master vs development) for different app names and themes
 
 ## Architecture Overview
@@ -472,7 +473,7 @@ The build process includes custom generation steps that run before Next.js build
 
 **Data Flow**: The app's data layer relies on **React Query** to fetch, cache, and manage server-side state (persisted in IndexedDB). Asynchronous storage operations in `src/utils/storage.ts` provide IndexedDB access through a unified adapter layer.
 
-**⚠️ React Query Configuration (Issue #262 - Needs Reinvestigation)**: Currently using React Query defaults. Attempted optimization (reduced retries, longer staleTime) caused mobile data loading failures - IndexedDB on mobile has transient failures that require multiple retry attempts. Any future tuning must preserve `retry: 3` or test extensively on mobile devices. See `src/app/QueryProvider.tsx`.
+**⚠️ React Query Configuration (Issue #262 - Needs Reinvestigation)**: Local mode uses React Query defaults plus `retry: 3`; cloud mode adds a 5-minute `staleTime`, 30-minute `gcTime`, exponential-backoff retries and `refetchOnMount: false`. Attempted optimization (reduced retries, longer staleTime) caused mobile data loading failures - IndexedDB on mobile has transient failures that require multiple retry attempts. Any future tuning must preserve `retry: 3` or test extensively on mobile devices. See `src/app/QueryProvider.tsx`.
 
 **PWA Structure**: Full PWA with custom service worker (`public/sw.js`), dynamic manifest generation, install prompts and update notifications.
 
@@ -647,7 +648,7 @@ Extract when you're **already touching the file** for a feature:
 
 | File | Disables | Reason |
 |------|----------|--------|
-| `useGameOrchestration.ts` | 12 | Hook call order + state/setter split pattern (5 hooks already extracted) |
+| `useGameOrchestration.ts` | 7 | Hook call order + state/setter split pattern (5 hooks already extracted) |
 | `GameSettingsModal.tsx` | 2 | Ref-guarded effects preventing infinite loops |
 
 These patterns are intentional and documented. "Fixing" them would introduce bugs.

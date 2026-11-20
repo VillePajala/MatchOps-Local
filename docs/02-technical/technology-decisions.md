@@ -55,13 +55,13 @@ All technology decisions for MatchOps-Local are evaluated against our core princ
 
 ---
 
-### State Management: React Query + localStorage
+### State Management: React Query + IndexedDB
 
 #### **Decision Rationale**
 
 **Why React Query for local-first applications?**
 
-Traditional state management libraries (Redux, Zustand, Context API) are designed for in-memory state, not persistent data operations. React Query excels at async operations and caching, making it ideal for localStorage interactions.
+Traditional state management libraries (Redux, Zustand, Context API) are designed for in-memory state, not persistent data operations. React Query excels at async operations and caching, making it ideal for IndexedDB interactions (the app originally used localStorage).
 
 **React Query Advantages:**
 ```typescript
@@ -86,7 +86,7 @@ const { data: players, isLoading, error } = useQuery({
 ```
 
 **Key Benefits for Local-First:**
-- **Automatic Caching**: Reduces localStorage read operations
+- **Automatic Caching**: Reduces IndexedDB read operations
 - **Background Refetching**: Keeps data fresh across components
 - **Error Boundaries**: Robust error handling for data operations
 - **Optimistic Updates**: Immediate UI feedback with rollback on failure
@@ -166,8 +166,8 @@ function addPlayer(player: Player): void {
 ```
 
 **TypeScript Benefits for Local-First:**
-- **Data Validation**: Prevents invalid data from corrupting localStorage
-- **API Safety**: Ensures localStorage interactions use correct data types
+- **Data Validation**: Prevents invalid data from corrupting IndexedDB
+- **API Safety**: Ensures storage interactions use correct data types
 - **Refactoring**: Safe code changes with confidence in data integrity
 - **Documentation**: Types serve as living documentation of data structures
 - **Developer Experience**: Excellent IDE support for large codebase maintenance
@@ -279,7 +279,7 @@ test('complete game workflow', async ({ page }) => {
 
 **Why xlsx for Excel exports?**
 
-Excel export is a premium feature that allows coaches to share game and player statistics with parents, organizations, and other coaches. The library choice balances licensing, features, and bundle size.
+Excel export allows coaches to share game and player statistics with parents, organizations, and other coaches. The library choice balances licensing, features, and bundle size.
 
 **Current Implementation:**
 - **Library**: SheetJS xlsx Community Edition
@@ -324,7 +324,7 @@ npm install https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
 
 ### Why Supabase for Optional Cloud Sync?
 
-When we added cloud sync as a premium feature, we evaluated several backend options:
+When we added cloud sync (planned then as a premium feature; the app is now free), we evaluated several backend options:
 
 | Consideration | Supabase | Firebase | Custom Backend | AWS Amplify |
 |---------------|----------|----------|----------------|-------------|
@@ -352,19 +352,19 @@ When we added cloud sync as a premium feature, we evaluated several backend opti
 - User management (signup, login, password reset)
 
 **Supabase Database (PostgreSQL):**
-- 15 tables mirroring IndexedDB schema
+- 21 tables: 14 mirroring the IndexedDB data, the 3 playtime planner tables, `user_consents`, `subscriptions`, and the service tables `sync_tombstones` and `rate_limits`
 - RLS policies on all tables
 - Stored procedures for atomic multi-table operations
 - JSONB columns for complex nested data
 
 **Supabase Edge Functions (Deno):**
-- `verify-subscription`: Validates Play Store purchases
+- `verify-subscription`: Validates Play Store purchases (unused while monetization is parked)
 - `delete-account`: GDPR-compliant account removal
 
 **Not Using:**
 - Supabase Storage (no file uploads needed)
 - Supabase Realtime (not needed for single-user sync)
-- Supabase Vector (no AI features)
+- Supabase Vector (not needed; Kirjuri's AI calls go from the device to the coach's own provider)
 
 ---
 
@@ -381,6 +381,7 @@ When we added cloud sync as a premium feature, we evaluated several backend opti
 **Context**: Cross-platform deployment strategy
 **Decision**: Progressive Web App instead of native mobile apps
 **Rationale**: Single codebase, no app store dependencies, easier updates, web-based local-first architecture
+**Update**: The same PWA is also published on Google Play as a Trusted Web Activity (TWA), cloud-only, since 2026-06-09 - still one codebase
 **Consequences**: Some native features unavailable, but local-first benefits preserved
 
 ### ADR-003: React Query for Async State

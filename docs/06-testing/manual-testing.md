@@ -11,7 +11,7 @@ Use this short checklist to manually verify key workflows after making changes t
 7. **Try new assessment UI** – Expand a player card and verify the segmented overall selector, sliders and notes input work. Saving should collapse the card and show a checkmark.
 8. **Review assessment progress** – Save ratings for multiple players and ensure the header progress updates and saved players show a ✔ icon.
 9. **Check performance averages** – Open a player's stats page and confirm the new Performance Ratings section shows average slider values and number of rated games. In Game Stats, open the Overall tab to see team rating averages.
-10. **Toggle demand correction** – In Player Stats view, enable the *Weight by Difficulty* option and verify averages change when games use different difficulty factors.
+10. **Toggle demand correction** – In Player Stats view, enable the *By difficulty* option and verify averages change when games use different difficulty factors.
 11. **Game type empty state** – In Game Stats, switch the sport filter from **Soccer** to **Futsal** when there are no futsal games. Confirm the list shows an appropriate "No games found" message instead of staying blank.
 
 12. **Marketing consent on sign-up** – During cloud sign-up, verify a marketing consent checkbox appears (unchecked by default). Sign up without checking it, then check Settings → Account — no "Email Preferences" toggle should show as granted. Sign up again and check the box — toggle in Settings should reflect "granted" state.
@@ -22,10 +22,10 @@ Use this short checklist to manually verify key workflows after making changes t
 
 15. **Sign up flow** -- Create a new cloud account with email/password. Verify the confirmation email is received (via Resend SMTP). Confirm the account and verify you land in cloud mode with an empty state.
 16. **Sign in flow** -- Sign out, then sign back in with the same credentials. Verify your data is loaded from the cloud.
-17. **Local-to-cloud migration** -- Start in local mode with some saved games and players. Switch to cloud mode via Settings. Verify the migration wizard appears and data transfers to the cloud. Confirm games, players, seasons, and tournaments are all present after migration.
+17. **Local-to-cloud migration** (web app only - the Play build is cloud-only) -- Start in local mode with some saved games and players. Switch to cloud mode via Settings. Verify the migration wizard appears and data transfers to the cloud. Confirm games, players, seasons, and tournaments are all present after migration.
 18. **Cloud-to-local migration (reverse)** -- In cloud mode, go to Settings and switch to local mode. Verify the reverse migration transfers cloud data to local IndexedDB. Confirm data integrity after switching.
 19. **Sync status verification** -- In cloud mode, create a new game, save it, then open a different browser or incognito window (signed in to the same account). Verify the game appears in the second session.
 20. **Mode switching** -- Switch between local and cloud mode multiple times. Verify no data loss and the correct data store is active after each switch.
-21. **Offline behavior in cloud mode** -- While in cloud mode, disable network (airplane mode or DevTools offline toggle). Attempt to save a game. Verify a clear error message appears (not silent queuing). The app should suggest switching to local mode for offline work.
+21. **Offline behavior in cloud mode** -- While in cloud mode, disable network (airplane mode or DevTools offline toggle). Save a game. Cloud mode is local-first (`SyncedDataStore`): the save succeeds locally and is queued; the sync status indicator should show pending changes. Re-enable the network and verify the change syncs (check it in a second session).
 
 Running through these steps after updates helps catch regressions before deploying.

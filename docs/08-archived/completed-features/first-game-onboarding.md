@@ -1,5 +1,7 @@
 # First Game Onboarding (Center Overlay)
 
+> **Archived 2026-11-20 (from docs/04-features/):** obsolete - the first-game center overlay (FirstGameGuideOverlay) was removed; new users now get onboarding v3 and the in-app guide (InstructionsModal).
+
 ## Overview
 **✅ IMPLEMENTED**: This feature is complete. See `src/components/HomePage/components/FirstGameGuideOverlay.tsx` and `FirstGameGuide.tsx`.
 
