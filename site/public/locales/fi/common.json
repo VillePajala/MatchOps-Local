@@ -691,7 +691,7 @@
         "replay": "Virheen sattuessa: tallenne näytöstä virhettä edeltäviltä hetkiltä, jossa kaikki teksti ja kuvat on peitetty",
         "performance": "Suorituskykymittaukset otoksesta sivulatauksia ja näkymävaihtoja (noin joka kymmenes): ajoitukset ja avattu sovelluksen osoite"
       },
-      "errorReportingNote": "Tiedot ovat pseudonyymejä, eivät anonyymejä. Käytämme niitä vain virheiden löytämiseen ja korjaamiseen sekä sovelluksen nopeuden ylläpitoon. Raportit on rakennettu jättämään pois pelitietosi ja pelaajatiedot: teksti ja kuvat peitetään tallenteissa, ja avaimet sekä kirjautumistiedot poistetaan ennen lähetystä. Sentry käsittelee tiedot Yhdysvalloissa vakiosopimuslausekkeiden nojalla. Voit kytkeä tämän pois milloin tahansa kohdassa Asetukset → Tiedot → Virheraportit ja käyttötilastot; sen jälkeen sovellus ei lähetä Sentrylle mitään tilisi osalta.",
+      "errorReportingNote": "Tiedot ovat pseudonyymejä, eivät anonyymejä. Käytämme niitä vain virheiden löytämiseen ja korjaamiseen sekä sovelluksen nopeuden ylläpitoon. Raportit on rakennettu jättämään pois pelitietosi ja pelaajatiedot: teksti ja kuvat peitetään tallenteissa, ja avaimet sekä kirjautumistiedot poistetaan ennen lähetystä. Sentry käsittelee tiedot Yhdysvalloissa vakiosopimuslausekkeiden nojalla. Voit kytkeä tämän pois milloin tahansa kohdassa Asetukset → Tiedot → Virheraportit ja käyttötilastot; sen jälkeen laitteesi sovellus ei lähetä Sentrylle virheraportteja eikä käyttötilastoja. Palvelimemme raportoivat omat virheensä Sentrylle erikseen; nämä raportit eivät sisällä tilitietoja.",
       "licenseValidationTitle": "Play Kaupan lisenssivahvistus",
       "licenseValidationContent": "Jos maksullisia ominaisuuksia otetaan käyttöön, Google Play käsittelee kaikki maksut. Vahvistamme lisenssitilan Play Kaupan API:n kautta, mutta emme saa maksutietojasi.",
       "consentTrackingTitle": "Suostumustiedot",
@@ -719,7 +719,7 @@
       "title": "Mitä emme tee tiedoillasi",
       "items": {
         "gameContent": "Ottelusi, tulokset ja tilastot: tallennamme ne vain sovelluksen ja sen synkronoinnin tarjoamiseksi. Emme koskaan käytä, analysoi, jaa tai myy niitä.",
-        "location": "Laitteesi sijainti: sovellus ei koskaan lue sitä (ei GPS:ää). Tallentamasi paikat - ottelupaikat ja joukkueen lähtöpaikka osoitteineen ja karttamerkintöineen - tallennetaan osana tietojasi matka- ja lähtöaikojen näyttämiseksi. Paikkahaku lähettää kirjoittamasi tekstin Photonille (ks. Kolmannen osapuolen palvelut ja vastaanottajat).",
+        "location": "Laitteesi sijainti: sovellus ei koskaan lue sitä (ei GPS:ää). Tallentamasi paikat - ottelupaikat ja joukkueen lähtöpaikka osoitteineen ja karttamerkintöineen - tallennetaan osana tietojasi matka- ja lähtöaikojen näyttämiseksi. Paikkahaku lähettää kirjoittamasi tekstin Photonille, ja puuttuvan ottelupaikan osoitteen täydentäminen lähettää tallennetun karttamerkinnän koordinaatit (ks. Kolmannen osapuolen palvelut ja vastaanottajat).",
         "photos": "Valokuvat tai media: sovellus ei kerää niitä.",
         "deviceIds": "Seuranta tai mainonta: sovelluksessa ei ole mainoksia eikä mainonta- tai analytiikkaseurantaa, eikä se käytä laitetunnisteita niihin.",
         "playerNames": "Pelaajien nimet, muistiinpanot ja muut henkilöitä koskevat tiedot: sama - tallennetaan vain synkronoinnin tarjoamiseksi, eikä niitä koskaan käytetä, analysoida, jaeta tai myydä."
@@ -728,11 +728,11 @@
     },
     "thirdPartyServices": {
       "title": "Kolmannen osapuolen palvelut ja vastaanottajat",
-      "intro": "Supabase, Sentry, Resend ja Vercel ovat alikäsittelijöitämme, ja jokaisen kanssa on voimassa tietojenkäsittelysopimus. Google Play, Photon, palloliitto.fi ja yhdistämäsi tekoälypalvelu eivät ole alikäsittelijöitämme: ne vastaanottavat tietoja suoraan laitteeltasi vain käyttäessäsi niitä, omien ehtojensa mukaisesti.",
+      "intro": "Supabase, Sentry, Resend ja Vercel ovat alikäsittelijöitämme, ja jokaisen kanssa on voimassa tietojenkäsittelysopimus. Google Play, Photon, palloliitto.fi ja yhdistämäsi tekoälypalvelu eivät ole alikäsittelijöitämme: ne vastaanottavat tietoja suoraan laitteeltasi vain käyttäessäsi niitä (Photon myös alla kuvatussa ottelupaikan osoitteen automaattisessa täydentämisessä), omien ehtojensa mukaisesti.",
       "googlePlay": "Google Play -kauppa",
       "googlePlayDesc": "Sovelluksen jakelu ja maksut (Googlen infrastruktuuri).",
       "sentry": "Sentry",
-      "sentryDesc": "Virheraportit, virhetallenteet ja suorituskykymittaukset, ellet kytke niitä pois (Yhdysvallat, vakiosopimuslausekkeet).",
+      "sentryDesc": "Virheraportit, virhetallenteet ja suorituskykymittaukset laitteesi sovelluksesta, ellet kytke niitä pois, sekä palvelimiemme virheraportit, jotka eivät sisällä tilitietoja (Yhdysvallat, vakiosopimuslausekkeet).",
       "supabase": "Supabase",
       "supabaseDesc": "Pilvitietokanta ja todennus, EU (Tukholma, Ruotsi).",
       "vercel": "Vercel",
@@ -742,7 +742,7 @@
       "supabaseLink": "Supabasen tietosuojakäytäntö",
       "vercelLink": "Vercelin tietosuojakäytäntö",
       "photon": "Photon (Komoot)",
-      "photonDesc": "Paikkahaku ottelupaikan ja lähtöpaikan (Asetukset) kentissä, kun sitä käytetään. Se vastaanottaa kirjoittamasi tekstin, ei sijaintiasi (EU, Saksa).",
+      "photonDesc": "Paikkahaku ottelupaikan ja lähtöpaikan (Asetukset) kentissä: se vastaanottaa kirjoittamasi tekstin. Jos tallennetulla ottelupaikalla on karttamerkintä mutta ei osoitetta, sovellus lähettää taustalla myös merkinnän koordinaatit Photonille osoitteen täydentämiseksi. Photon ei koskaan vastaanota pelaajatietoja, tilitietoja eikä laitteesi sijaintia; kuten mikä tahansa verkkopalvelu, se näkee laitteesi IP-osoitteen (EU, Saksa).",
       "photonLink": "Komootin tietosuojakäytäntö",
       "openai": "OpenAI tai yhdistämäsi tekoälypalvelu",
       "openaiDesc": "Vain jos yhdistät oman tilisi: valitsemasi äänimuistiinpanot ja tekstit lähetetään palveluun omalla avaimellasi. Meillä ei ole avainta emmekä näe sisältöä (ks. Äänimuistiinpanot ja tekoäly).",
@@ -772,7 +772,7 @@
     },
     "childrensPrivacy": {
       "title": "Lasten yksityisyys",
-      "content": "MatchOps on aikuisille valmentajille tarkoitettu työkalu, ei lasten käyttöön. Pelaajat eivät käytä sovellusta: valmentaja syöttää pelaajien nimet, tilastot ja muistiinpanot. Nämä tiedot tallennetaan valmentajan laitteelle ja valmentajan pilvitilille EU:ssa vain palvelun tarjoamiseksi, emmekä koskaan lähetä niitä kolmansille osapuolille yllä lueteltuja alikäsittelijöitämme lukuun ottamatta - paitsi kun valmentaja yhdistää oman tekoälypalvelunsa ja päättää lähettää sinne muistiinpanoja tai tallenteita (ks. Äänimuistiinpanot ja valinnainen tekoäly). Pelaajatietojen rekisterinpitäjä on valmentaja tai seura, jonka puolesta hän toimii, ja hän vastaa pelaajien perheiden informoinnista; kohdassa Asetukset → Tiedot on siihen valmis tiedote."
+      "content": "MatchOps on aikuisille valmentajille tarkoitettu työkalu, ei lasten käyttöön. Pelaajat eivät käytä sovellusta: valmentaja syöttää pelaajien nimet, tilastot ja muistiinpanot. Nämä tiedot tallennetaan valmentajan laitteelle ja valmentajan pilvitilille EU:ssa vain palvelun tarjoamiseksi, emmekä koskaan lähetä niitä kolmansille osapuolille yllä lueteltuja alikäsittelijöitämme lukuun ottamatta - paitsi kun valmentaja yhdistää oman tekoälypalvelunsa ja päättää lähettää sinne muistiinpanoja tai tallenteita (ks. Äänimuistiinpanot ja valinnainen tekoäly). Paikkahaun teksti ja tallennettujen ottelupaikkojen karttamerkintöjen koordinaatit voivat mennä Photonille paikkahakua ja osoitteen täydentämistä varten; pelaajatietoja sinne ei mene. Pelaajatietojen rekisterinpitäjä on valmentaja tai seura, jonka puolesta hän toimii, ja hän vastaa pelaajien perheiden informoinnista; kohdassa Asetukset → Tiedot on siihen valmis tiedote."
     },
     "dataSecurity": {
       "title": "Tietoturva",
@@ -1024,7 +1024,7 @@
   },
   "deleteAccount": {
     "title": "Poista tilisi ja tietosi",
-    "intro": "Voit poistaa MatchOps-tilisi ja kaikki siihen liittyvät tiedot pysyvästi milloin tahansa. Näin se tehdään.",
+    "intro": "Tämä sivu koskee MatchOps-sovellusta (kehittäjä: Velomo AI). Voit poistaa MatchOps-tilisi ja kaikki siihen liittyvät tiedot pysyvästi milloin tahansa - tai poistaa vain tietosi ja säilyttää tilin. Näin se tehdään.",
     "inAppTitle": "Poista sovelluksesta (suositeltu)",
     "step1": "Avaa MatchOps ja kirjaudu tilillesi.",
     "step2": "Siirry kohtaan Asetukset → Tiedot → Poista tili.",
@@ -1032,10 +1032,20 @@
     "inAppNote": "Tämä poistaa pysyvästi tilisi ja kaikki tietosi palvelimiltamme sekä kyseiselle laitteelle tallennetun kopion. Toimintoa ei voi peruuttaa.",
     "whatTitle": "Mitä poistetaan",
     "whatContent": "Tilisi ja kaikki siihen liittyvät tiedot — pelaajat, joukkueet, ottelut, kaudet, turnaukset, henkilöstö, asetukset ja suostumustietosi (myös markkinointivalinnat) — sekä pilvestä että laitteellesi tallennetusta välimuistista. Mahdollinen kopio palveluntarjoajamme varmuuskopioissa poistuu, kun varmuuskopio vanhenee (enintään 30 päivää).",
+    "dataOnlyTitle": "Poista vain tiedot, säilytä tili",
+    "dataOnlyIntro": "Jos haluat jatkaa saman tilin käyttöä mutta poistaa kaikki tallentamasi tiedot:",
+    "dataOnlyStep1": "Avaa MatchOps ja kirjaudu tilillesi.",
+    "dataOnlyStep2": "Siirry kohtaan Asetukset → Tiedot → Vaaravyöhyke → Poista kaikki tiedot.",
+    "dataOnlyStep3": "Kirjoita FACTORY RESET ja vahvista.",
+    "dataOnlyDeleted": "Mitä poistetaan: pelaajat, joukkueet, ottelut (tapahtumineen, kokoonpanoineen ja arvioineen), kaudet, turnaukset, lisätyt pelaajatilastot, peliaikasuunnitelmat, henkilöstö, lämmittelysuunnitelma ja asetukset - sekä pilvestä että tältä laitteelta.",
+    "dataOnlyKept": "Mitä säilyy: tilisi (sähköpostiosoite ja kirjautuminen) sekä suostumustietosi (milloin hyväksyit käyttöehdot ja tietosuojakäytännön sekä markkinointivalintasi), joita tarvitaan suostumuksen osoittamiseen niin kauan kuin tili on olemassa. Lisäksi säilyy teknisiä poistomerkintöjä (vain poistetun kohteen tunniste ja poistoaika, ei sisältöä), jotka estävät toista laitettasi palauttamasta poistettuja tietoja; ne poistuvat 180 päivän jälkeen. Sovellus jättää tälle laitteelle automaattisen palautuspisteen, jolla vahingossa tehdyn poiston voi perua; se ei lähde laitteelta. Kaikki tilin tiedot poistuvat, kun poistat tilin.",
+    "dataOnlyRetention": "Tiedot poistetaan käytössä olevasta tietokannasta heti. Mahdollinen kopio palveluntarjoajamme varmuuskopioissa poistuu, kun varmuuskopio vanhenee (enintään 30 päivää).",
+    "itemsTitle": "Poista yksittäisiä tietoja",
+    "itemsContent": "Voit poistaa yksittäisiä otteluita, pelaajia, kausia ja turnauksia sovelluksessa milloin tahansa. Poisto koskee sekä pilveä että laitettasi.",
     "keepTitle": "Haluatko säilyttää tietosi?",
-    "keepContent": "Ennen poistamista voit viedä täyden varmuuskopion kohdasta Asetukset → Varmuuskopio. Voit palauttaa sen myöhemmin toisella laitteella tai uuden tilin luomisen jälkeen.",
+    "keepContent": "Ennen poistamista voit viedä täyden varmuuskopion kohdasta Asetukset → Tiedot → Varmuuskopiointi ja vienti → Varmuuskopioi kaikki tiedot. Voit palauttaa sen myöhemmin toisella laitteella tai uuden tilin luomisen jälkeen.",
     "cantAccessTitle": "Etkö pääse sovellukseen?",
-    "cantAccessContent": "Jos et enää pääse avaamaan sovellusta (esimerkiksi poistit sen), lähetä meille sähköpostia tiliisi liitetystä osoitteesta, niin poistamme tilisi ja tietosi puolestasi.",
+    "cantAccessContent": "Jos et enää pääse avaamaan sovellusta (esimerkiksi poistit sen), lähetä meille sähköpostia tiliisi liitetystä osoitteesta ja kerro, haluatko poistaa koko tilin vai vain tiedot, niin teemme poiston puolestasi.",
     "emailLabel": "Sähköposti",
     "timelineTitle": "Aikataulu",
     "timelineContent": "Sovelluksessa tehty poisto on välitön. Sähköpostipyynnöt käsitellään 30 päivän kuluessa."

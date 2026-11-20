@@ -3,6 +3,11 @@
   "releases": [
     {
       "date": "2026-11-20",
+      "en": ["Clearer privacy policy and account-deletion info, including how to delete your data but keep your account."],
+      "fi": ["Selkeämmät tietosuoja- ja tilin poisto-ohjeet, myös miten poistat tietosi mutta säilytät tilin."]
+    },
+    {
+      "date": "2026-11-20",
       "internal": true,
       "en": ["Documentation: roadmap cleaned up to open work only."],
       "fi": ["Dokumentaatio: tiekartassa vain avoimet työt."]

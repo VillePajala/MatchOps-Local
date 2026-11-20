@@ -63,7 +63,8 @@ Checked against the code and the 2026-11 policy. The Play build is cloud-only
 - Collects or shares required data types: yes. Encrypted in transit: yes (HTTPS).
 - Deletion: yes. Account: Settings → Data → Delete account (`delete-account`
   edge function; consent records go with it, migration 063). Data only:
-  Settings → Data → delete cloud data. Deletion URL:
+  Settings → Data → Danger Zone → Delete All Data (`clear_all_user_data`; keeps
+  the account, consent records and sync deletion markers). Deletion URL:
   https://www.match-ops.com/delete-account (English: /en/delete-account).
 - Independent security review: no.
 
@@ -92,12 +93,15 @@ BYOK transfer would arguably be exempt). Photon declared as shared because the
 background address heal sends pin coordinates without a user action. Target
 audience stays adults (coaches), although the players are children.
 
-**Known policy/code mismatches (2026-11-20, to fix):** (1) `healVenueAddresses`
-reverse-geocodes saved pins via Photon in the background - the policy says
-Photon gets only typed text; (2) server/edge Sentry configs ignore the
-diagnostics switch; (3) the site's delete-account page says "Settings → Backup"
-(app: Settings → Data → Backup & Export); (4) the policy's children's section
-omits Photon.
+**Policy/code mismatches found 2026-11-20 - all fixed in PR #PRNUM:** (1)
+`healVenueAddresses` reverse-geocodes saved pins via Photon in the background -
+the policy now says so; (2) server/edge Sentry configs ignored the diagnostics
+switch - they now send errors only (`tracesSampleRate: 0`, `sendDefaultPii:
+false`, no account data) and the policy says the switch covers the app on the
+device; (3) the site's delete-account page said "Settings → Backup" - now
+Settings → Data → Backup & Export, and the page has a "delete your data but
+keep your account" section; (4) the policy's children's section omitted Photon -
+it now names it (venue text and pin coordinates, no player data).
 
 ## Pricing & Distribution
 

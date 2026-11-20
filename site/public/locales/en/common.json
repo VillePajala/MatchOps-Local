@@ -691,7 +691,7 @@
         "replay": "When an error happens: a replay of the screen in the moments before it, with all text and images masked",
         "performance": "Performance traces for a sample of page loads and screen changes (about 1 in 10): timings and the app address visited"
       },
-      "errorReportingNote": "This is pseudonymous data, not anonymous. We use it only to find and fix bugs and keep the app fast. Reports are built to leave out your game data and player information: text and images are masked in replays, and keys and sign-in data are scrubbed before sending. Sentry processes it in the US under Standard Contractual Clauses. You can turn this off at any time in Settings → Data → Error reporting and usage statistics; from then on the app sends Sentry nothing for your account.",
+      "errorReportingNote": "This is pseudonymous data, not anonymous. We use it only to find and fix bugs and keep the app fast. Reports are built to leave out your game data and player information: text and images are masked in replays, and keys and sign-in data are scrubbed before sending. Sentry processes it in the US under Standard Contractual Clauses. You can turn this off at any time in Settings → Data → Error reporting and usage statistics; from then on the app on your device sends Sentry no error reports or usage statistics. Our servers report their own errors to Sentry separately; those reports contain no account data.",
       "licenseValidationTitle": "Play Store License Validation",
       "licenseValidationContent": "If paid features are introduced, Google Play will handle all payment processing. We verify license status through Play Store API but do not receive your payment information.",
       "consentTrackingTitle": "Consent Records",
@@ -719,7 +719,7 @@
       "title": "What We Do Not Do With Your Data",
       "items": {
         "gameContent": "Your games, scores and statistics: we store them only to provide the app and its sync. We never use, analyse, share or sell them.",
-        "location": "Your device's location: the app never reads it (no GPS). Places you choose to save - match venues and your team's starting point, with their address and map pin - are stored as part of your data to show travel and departure times. Searching for a place sends the text you type to Photon (see Third-Party Services and Recipients).",
+        "location": "Your device's location: the app never reads it (no GPS). Places you choose to save - match venues and your team's starting point, with their address and map pin - are stored as part of your data to show travel and departure times. Searching for a place sends the text you type to Photon, and filling in a missing venue address sends that saved pin's coordinates (see Third-Party Services and Recipients).",
         "photos": "Photos or media: the app does not collect them.",
         "deviceIds": "Tracking or advertising: the app has no ads and no advertising or analytics trackers, and uses no device identifiers for them.",
         "playerNames": "Player names, notes and other details about people: the same - stored only to provide the sync, never used, analysed, shared or sold."
@@ -728,11 +728,11 @@
     },
     "thirdPartyServices": {
       "title": "Third-Party Services and Recipients",
-      "intro": "Supabase, Sentry, Resend and Vercel are our sub-processors; data processing agreements are in place with each of them. Google Play, Photon, palloliitto.fi and an AI provider you connect are not our sub-processors: they receive data directly from your device, only when you use them, under their own terms.",
+      "intro": "Supabase, Sentry, Resend and Vercel are our sub-processors; data processing agreements are in place with each of them. Google Play, Photon, palloliitto.fi and an AI provider you connect are not our sub-processors: they receive data directly from your device, only when you use them (for Photon, also the automatic venue address lookup described below), under their own terms.",
       "googlePlay": "Google Play Store",
       "googlePlayDesc": "App distribution and payments (Google infrastructure).",
       "sentry": "Sentry",
-      "sentryDesc": "Error reporting, error replays and performance traces, unless you turn them off (US, Standard Contractual Clauses).",
+      "sentryDesc": "Error reports, error replays and performance traces from the app on your device, unless you turn them off; error reports from our servers, which contain no account data (US, Standard Contractual Clauses).",
       "supabase": "Supabase",
       "supabaseDesc": "Cloud database and authentication, hosted in the EU (Stockholm, Sweden).",
       "vercel": "Vercel",
@@ -742,7 +742,7 @@
       "supabaseLink": "Supabase's Privacy Policy",
       "vercelLink": "Vercel's Privacy Policy",
       "photon": "Photon (Komoot)",
-      "photonDesc": "Place search in the match venue field and the starting-point field (Settings), when used. It receives the text you type, not your location (EU, Germany).",
+      "photonDesc": "Place search in the match venue field and the starting-point field (Settings): it receives the text you type. When a saved venue has a map pin but no address, the app also sends that pin's coordinates to Photon in the background to fill in the address. Photon never receives player data, account details or your device's location; like any web service, it sees your device's IP address (EU, Germany).",
       "photonLink": "Komoot Privacy Policy",
       "openai": "OpenAI, or the AI provider you connect",
       "openaiDesc": "Only if you connect your own account: the voice notes and text you choose to send go to that provider under your own key. We hold no key and see no content (see Voice notes and AI).",
@@ -772,7 +772,7 @@
     },
     "childrensPrivacy": {
       "title": "Children's Privacy",
-      "content": "MatchOps is a tool for adult coaches, not for children. Players do not use the app: the coach enters player names, statistics and notes. That data is stored on the coach's device and in the coach's cloud account in the EU only to provide the service, and we never send it to third parties other than our sub-processors listed above - except when the coach connects their own AI provider and chooses to send notes or recordings to it (see Voice Notes and Optional AI). The coach, or the club the coach acts for, is the controller of the player data and is responsible for informing players' families; Settings → Data has a ready-made notice for that."
+      "content": "MatchOps is a tool for adult coaches, not for children. Players do not use the app: the coach enters player names, statistics and notes. That data is stored on the coach's device and in the coach's cloud account in the EU only to provide the service, and we never send it to third parties other than our sub-processors listed above - except when the coach connects their own AI provider and chooses to send notes or recordings to it (see Voice Notes and Optional AI). Venue search text and saved venue pin coordinates can go to Photon for place search and address lookup; no player data does. The coach, or the club the coach acts for, is the controller of the player data and is responsible for informing players' families; Settings → Data has a ready-made notice for that."
     },
     "dataSecurity": {
       "title": "Data Security",
@@ -1024,7 +1024,7 @@
   },
   "deleteAccount": {
     "title": "Delete Your Account and Data",
-    "intro": "You can permanently delete your MatchOps account and all associated data at any time. Here's how.",
+    "intro": "This page is for the MatchOps app (developer: Velomo AI). You can permanently delete your MatchOps account and all associated data at any time - or delete only your data and keep the account. Here's how.",
     "inAppTitle": "Delete from within the app (recommended)",
     "step1": "Open MatchOps and sign in to your account.",
     "step2": "Go to Settings → Data → Delete Account.",
@@ -1032,10 +1032,20 @@
     "inAppNote": "This permanently removes your account and all your data from our servers, and the copy cached on that device. It cannot be undone.",
     "whatTitle": "What gets deleted",
     "whatContent": "Your account and all data associated with it — players, teams, games, seasons, tournaments, personnel, settings and your consent records (including marketing choices) — both in the cloud and cached on your device. Any copy in our hosting provider's backups is removed when that backup expires (at most 30 days).",
+    "dataOnlyTitle": "Delete your data but keep your account",
+    "dataOnlyIntro": "If you want to keep using the same account but delete all the data you have saved:",
+    "dataOnlyStep1": "Open MatchOps and sign in to your account.",
+    "dataOnlyStep2": "Go to Settings → Data → Danger Zone → Delete All Data.",
+    "dataOnlyStep3": "Type FACTORY RESET and confirm.",
+    "dataOnlyDeleted": "What is deleted: players, teams, games (with their events, line-ups and assessments), seasons, tournaments, added player statistics, playing-time plans, staff, the warm-up plan and settings - both in the cloud and on that device.",
+    "dataOnlyKept": "What is kept: your account (email address and sign-in) and your consent records (when you accepted the Terms of Service and Privacy Policy, and your marketing choice), which are needed as proof of consent for as long as the account exists. Technical deletion markers (only the deleted item's identifier and the deletion time, no content) are also kept so that another of your devices cannot bring deleted data back; they are removed after 180 days. The app leaves an automatic restore point on that device so a mistaken deletion can be undone; it never leaves the device. Everything tied to the account is deleted when you delete the account.",
+    "dataOnlyRetention": "The data is removed from the live database immediately. Any copy in our hosting provider's backups is removed when that backup expires (at most 30 days).",
+    "itemsTitle": "Delete individual items",
+    "itemsContent": "You can delete individual games, players, seasons and tournaments in the app at any time. The deletion applies both in the cloud and on your device.",
     "keepTitle": "Want to keep your data?",
-    "keepContent": "Before deleting, you can export a full backup from Settings → Backup. You can restore it later on another device or after creating a new account.",
+    "keepContent": "Before deleting, you can export a full backup from Settings → Data → Backup & Export → Backup All Data. You can restore it later on another device or after creating a new account.",
     "cantAccessTitle": "Can't access the app?",
-    "cantAccessContent": "If you can no longer open the app (for example, you uninstalled it), email us from the address associated with your account and we will delete your account and data for you.",
+    "cantAccessContent": "If you can no longer open the app (for example, you uninstalled it), email us from the address associated with your account and tell us whether you want your whole account deleted or only your data, and we will do it for you.",
     "emailLabel": "Email",
     "timelineTitle": "Timeline",
     "timelineContent": "In-app deletion is immediate. Email requests are processed within 30 days."

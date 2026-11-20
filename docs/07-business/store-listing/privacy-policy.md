@@ -72,7 +72,7 @@ Unless you turn it off, Sentry receives the following from the app:
 - When an error happens: a replay of the screen in the moments before it, with all text and images masked
 - Performance traces for a sample of page loads and screen changes (about 1 in 10): timings and the app address visited
 
-This is pseudonymous data, not anonymous. We use it only to find and fix bugs and keep the app fast. Reports are built to leave out your game data and player information: text and images are masked in replays, and keys and sign-in data are scrubbed before sending. Sentry processes it in the US under Standard Contractual Clauses. You can turn this off at any time in Settings → Data → Error reporting and usage statistics; from then on the app sends Sentry nothing for your account.
+This is pseudonymous data, not anonymous. We use it only to find and fix bugs and keep the app fast. Reports are built to leave out your game data and player information: text and images are masked in replays, and keys and sign-in data are scrubbed before sending. Sentry processes it in the US under Standard Contractual Clauses. You can turn this off at any time in Settings → Data → Error reporting and usage statistics; from then on the app on your device sends Sentry no error reports or usage statistics. Our servers report their own errors to Sentry separately; those reports contain no account data.
 
 ### Play Store License Validation
 
@@ -107,7 +107,7 @@ Unless you turn it off, we store a few timestamps about your onboarding progress
 ## What We Do Not Do With Your Data
 
 - Your games, scores and statistics: we store them only to provide the app and its sync. We never use, analyse, share or sell them.
-- Your device's location: the app never reads it (no GPS). Places you choose to save - match venues and your team's starting point, with their address and map pin - are stored as part of your data to show travel and departure times. Searching for a place sends the text you type to Photon (see Third-Party Services and Recipients).
+- Your device's location: the app never reads it (no GPS). Places you choose to save - match venues and your team's starting point, with their address and map pin - are stored as part of your data to show travel and departure times. Searching for a place sends the text you type to Photon, and filling in a missing venue address sends that saved pin's coordinates (see Third-Party Services and Recipients).
 - Photos or media: the app does not collect them.
 - Tracking or advertising: the app has no ads and no advertising or analytics trackers, and uses no device identifiers for them.
 - Player names, notes and other details about people: the same - stored only to provide the sync, never used, analysed, shared or sold.
@@ -116,11 +116,11 @@ Note: staff contact details (email, phone) you enter are stored by your choice a
 
 ## Third-Party Services and Recipients
 
-Supabase, Sentry, Resend and Vercel are our sub-processors; data processing agreements are in place with each of them. Google Play, Photon, palloliitto.fi and an AI provider you connect are not our sub-processors: they receive data directly from your device, only when you use them, under their own terms.
+Supabase, Sentry, Resend and Vercel are our sub-processors; data processing agreements are in place with each of them. Google Play, Photon, palloliitto.fi and an AI provider you connect are not our sub-processors: they receive data directly from your device, only when you use them (for Photon, also the automatic venue address lookup described below), under their own terms.
 
 **Google Play Store** - App distribution and payments (Google infrastructure). [Google's Privacy Policy](https://policies.google.com/privacy)
 
-**Sentry** - Error reporting, error replays and performance traces, unless you turn them off (US, Standard Contractual Clauses). [Sentry's Privacy Policy](https://sentry.io/privacy/)
+**Sentry** - Error reports, error replays and performance traces from the app on your device, unless you turn them off; error reports from our servers, which contain no account data (US, Standard Contractual Clauses). [Sentry's Privacy Policy](https://sentry.io/privacy/)
 
 **Supabase** - Cloud database and authentication, hosted in the EU (Stockholm, Sweden). [Supabase's Privacy Policy](https://supabase.com/privacy)
 
@@ -128,7 +128,7 @@ Supabase, Sentry, Resend and Vercel are our sub-processors; data processing agre
 
 **Resend** - Sends the account emails (sign-up confirmation, password reset) from noreply@auth.match-ops.com and, if you opt in, marketing emails. It receives your email address and the message (may be processed in the US under Standard Contractual Clauses). [Resend's Privacy Policy](https://resend.com/legal/privacy-policy)
 
-**Photon (Komoot)** - Place search in the match venue field and the starting-point field (Settings), when used. It receives the text you type, not your location (EU, Germany). [Komoot Privacy Policy](https://www.komoot.com/privacy)
+**Photon (Komoot)** - Place search in the match venue field and the starting-point field (Settings): it receives the text you type. When a saved venue has a map pin but no address, the app also sends that pin's coordinates to Photon in the background to fill in the address. Photon never receives player data, account details or your device's location; like any web service, it sees your device's IP address (EU, Germany). [Komoot Privacy Policy](https://www.komoot.com/privacy)
 
 **OpenAI, or the AI provider you connect** - Only if you connect your own account: the voice notes and text you choose to send go to that provider under your own key. We hold no key and see no content (see Voice notes and AI). [OpenAI Privacy Policy](https://openai.com/policies/privacy-policy)
 
@@ -179,7 +179,7 @@ If you believe your data protection rights have been violated, you have the righ
 
 ## Children's Privacy
 
-MatchOps is a tool for adult coaches, not for children. Players do not use the app: the coach enters player names, statistics and notes. That data is stored on the coach's device and in the coach's cloud account in the EU only to provide the service, and we never send it to third parties other than our sub-processors listed above - except when the coach connects their own AI provider and chooses to send notes or recordings to it (see Voice Notes and Optional AI). The coach, or the club the coach acts for, is the controller of the player data and is responsible for informing players' families; Settings → Data has a ready-made notice for that.
+MatchOps is a tool for adult coaches, not for children. Players do not use the app: the coach enters player names, statistics and notes. That data is stored on the coach's device and in the coach's cloud account in the EU only to provide the service, and we never send it to third parties other than our sub-processors listed above - except when the coach connects their own AI provider and chooses to send notes or recordings to it (see Voice Notes and Optional AI). Venue search text and saved venue pin coordinates can go to Photon for place search and address lookup; no player data does. The coach, or the club the coach acts for, is the controller of the player data and is responsible for informing players' families; Settings → Data has a ready-made notice for that.
 
 ## Data Security
 
