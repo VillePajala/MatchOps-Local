@@ -228,7 +228,7 @@ describe('FieldContainer', () => {
     mockPlannedGhosts = [];
   });
 
-  /** Onboarding v3 (D13): the basic layout has no "Nollaa vaihtoajastin". */
+  /** Onboarding v3 (D13): the basic layout has no "Vaihto tehty". */
   it('hides the sub-timer reset on the timer in the basic layout only', () => {
     const withOverlay = () => ({ ...baseProps(), timerVM: { ...baseProps().timerVM, showLargeTimerOverlay: true } });
     const { unmount } = render(<FieldContainer {...withOverlay()} />);

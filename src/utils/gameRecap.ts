@@ -63,17 +63,22 @@ const formatRecapDate = (iso: string): string => {
 };
 
 /**
- * Count occurrences per player id, one "Name N" line each, ordered by count
- * (desc) then name (asc) for stable output. The count is always shown so the
- * list reads like a mini scoreboard.
+ * One "Name goals+assists" line per player who scored or assisted, sorted by
+ * goals desc, assists desc, then name. Unknown ids are tallied per id.
  */
-const tallyLines = (ids: string[], players: Player[], t: RecapTranslate): string[] => {
-  const counts = new Map<string, number>();
-  ids.forEach(id => counts.set(id, (counts.get(id) ?? 0) + 1));
-  return Array.from(counts.entries())
-    .map(([id, n]) => ({ name: displayName(id, players, t), n }))
-    .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name))
-    .map(({ name, n }) => `${name} ${n}`);
+const goalsAssistsLines = (scorerIds: string[], assisterIds: string[], players: Player[], t: RecapTranslate): string[] => {
+  const tally = new Map<string, { g: number; a: number }>();
+  const bump = (id: string, k: 'g' | 'a') => {
+    const e = tally.get(id) ?? { g: 0, a: 0 };
+    e[k] += 1;
+    tally.set(id, e);
+  };
+  scorerIds.forEach(id => bump(id, 'g'));
+  assisterIds.forEach(id => bump(id, 'a'));
+  return Array.from(tally.entries())
+    .map(([id, { g, a }]) => ({ name: displayName(id, players, t), g, a }))
+    .sort((x, y) => y.g - x.g || y.a - x.a || x.name.localeCompare(y.name))
+    .map(({ name, g, a }) => `${name} ${g}+${a}`);
 };
 
 /**
@@ -171,11 +176,8 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   ].filter(Boolean);
   blocks.push(headerLines.join('\n'));
 
-  const scorerLines = tallyLines(scorerIds, players, t);
-  if (scorerLines.length) blocks.push([`${t('recap.goals', 'Goals')}:`, ...scorerLines].join('\n'));
-
-  const assisterLines = tallyLines(assisterIds, players, t);
-  if (assisterLines.length) blocks.push([`${t('recap.assists', 'Assists')}:`, ...assisterLines].join('\n'));
+  const gaLines = goalsAssistsLines(scorerIds, assisterIds, players, t);
+  if (gaLines.length) blocks.push([`${t('recap.goalsAssists', 'Goals + assists')}:`, ...gaLines].join('\n'));
 
   // Actual positions when any were recorded; otherwise the starting line-up
   // (review R13), so a coach who never filled positions still shares one.

@@ -3,8 +3,11 @@
  *
  * Everything the hero video taught, kept here so the next video does not relearn it:
  *  - The app is seeded through IndexedDB (key/value store "MatchOpsLocal") before boot, in
- *    local mode, with the welcome and first-visit hints marked seen and the single-tab lock
- *    satisfied. No account, nothing touches staging or prod.
+ *    local mode, with the welcome screen marked seen and the single-tab lock satisfied. No
+ *    account, nothing touches staging or prod. The setup wizard, marketing consent and policy
+ *    re-consent are cloud-only, so a local recording never meets them; the seeds still say
+ *    appLayout 'full' and wizardDone so nothing depends on that.
+ *  - "Resume in the match" is a sessionStorage flag (matchops_was_in_match); `inMatch` sets it.
  *  - The clock for scene marks starts when the browser context is created, because that is
  *    when Playwright's recording starts. The screencast also runs slightly slow under load,
  *    so the encoder scales marks by (file length / measured length) per recording.
@@ -16,8 +19,12 @@
  *  - Modals close with the phone's back gesture, which cannot be filmed; the planner's X is
  *    unhidden for the recording and a few same-document history entries keep the modal's
  *    back-pop inside the app.
- *  - The pitch's planned-sub ghost rings animate and stall the screencast: seed the field
- *    without planned subs when the field itself is the subject.
+ *  - The pitch's planned-sub ghost rings used to stall the screencast; the hero now films the
+ *    match view with its planned subs without trouble, but check the frames if a field shot stutters.
+ *  - Opening a game or the planner shows a loading screen for a moment: `tapThroughLoad` dips to
+ *    navy over it instead of filming a spinner.
+ *  - Toasts (the "Maali kirjattu / Kumoa" undo, "saved" notes) are hidden: they cover the
+ *    score row and date the film. The Next.js dev indicator (nextjs-portal) is hidden too.
  *  - Modal headers collapse on scroll by a few pixels at a time, so a cursor that keeps scrolling
  *    targets into view makes the header's extras (Toista edellinen peli) flutter. The recorder pins
  *    that region open; a real thumb scroll does not jitter like that.
@@ -25,36 +32,41 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
+import { LANG, ui } from './ui.mjs';
 
 const STYLE = `nextjs-portal{display:none!important}
-[role=dialog] button[aria-label="Sulje"],[role=dialog] button[aria-label="Valmis"]{display:flex!important}
+div.fixed[role=log][aria-live=polite]{display:none!important}
+[role=dialog] button[aria-label="Sulje"],[role=dialog] button[aria-label="Valmis"],[role=dialog] button[aria-label="Close"],[role=dialog] button[aria-label="Done"]{display:flex!important;position:relative;z-index:5}
 [role=dialog] div.overflow-hidden.border-b{height:auto!important}
 [role=dialog] div.overflow-hidden.border-b>div{transform:none!important}
-#cur{position:fixed;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.5);background:rgba(255,255,255,.12);pointer-events:none;z-index:99998;transition:transform .65s cubic-bezier(.4,0,.2,1)}
-.tap{position:fixed;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none;z-index:99999;animation:tap .5s ease-out forwards}@keyframes tap{from{transform:scale(.5);opacity:.9}to{transform:scale(1.6);opacity:0}}`;
+#cur{position:fixed;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.5);background:rgba(255,255,255,.12);pointer-events:none;z-index:2147483647;transition:transform .65s cubic-bezier(.4,0,.2,1)}
+.tap{position:fixed;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none;z-index:2147483647;animation:tap .5s ease-out forwards}@keyframes tap{from{transform:scale(.5);opacity:.9}to{transform:scale(1.6);opacity:0}}`;
 
-const FIRST_VISIT_SURFACES = ['game-setup', 'goal-log', 'match-field', 'planner', 'seasons', 'stats', 'team-form', 'timer'];
-
-export async function openRecorder({ outDir, baseUrl = 'http://localhost:3000', viewport = { width: 390, height: 844 }, scale = 2 } = {}) {
+export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || 'http://localhost:3000', viewport = { width: 390, height: 844 }, scale = 2 } = {}) {
   fs.mkdirSync(path.join(outDir, 'raw'), { recursive: true });
+  // The launch flag renders and records at `scale` physical pixels per CSS pixel, but the page still reads
+  // devicePixelRatio 1, so the pitch canvas (its bitmap is sized by dpr) was drawn at half resolution and
+  // upscaled: soft pitch, crisp bars. The init script reports the real ratio. (deviceScaleFactor on the
+  // context is no fix: the screencast then captures at CSS size and pads the rest of the frame grey.)
   const browser = await chromium.launch({ args: [`--force-device-scale-factor=${scale}`] });
 
   /** `cloud: true` records the real first run against the dev server's staging backend: nothing is seeded and
    *  the app boots to its sign-up form. Use a synthetic address; delete the accounts afterwards. */
   async function scene(name, data, { inMatch = false, startCur = [195, 700], only = null, cloud = false } = {}, run) {
     if (only && !only.includes(name)) return null;
-    const ctx = await browser.newContext({ viewport, locale: 'fi-FI', timezoneId: 'Europe/Helsinki',
+    const ctx = await browser.newContext({ viewport, locale: LANG === 'en' ? 'en-GB' : 'fi-FI', timezoneId: 'Europe/Helsinki',
       recordVideo: { dir: path.join(outDir, 'raw'), size: { width: viewport.width * scale, height: viewport.height * scale } } });
     const t0 = Date.now(); const now = () => (Date.now() - t0) / 1000; const marks = [];
-    await ctx.addInitScript(({ inMatch, surfaces, cloud }) => {
+    await ctx.addInitScript(({ inMatch, cloud, lang, scale }) => {
+      try { Object.defineProperty(window, 'devicePixelRatio', { get: () => scale, configurable: true }); } catch {}
       try {
+        localStorage.setItem('matchops_language', lang);
         if (!cloud) { localStorage.setItem('matchops_backend_mode', 'local'); localStorage.setItem('matchops_welcome_seen', 'true'); }
-        if (inMatch) localStorage.setItem('matchops_was_in_match', '1'); else localStorage.removeItem('matchops_was_in_match');
-        for (const sf of surfaces) localStorage.setItem('matchops_first_visit_' + sf + '_local', '1');
+        if (inMatch) sessionStorage.setItem('matchops_was_in_match', '1'); else sessionStorage.removeItem('matchops_was_in_match');
       } catch {}
       // Dev-mode StrictMode double-mount makes the single-tab lock look taken; grant it.
       try { Object.defineProperty(navigator, 'locks', { value: { request: (_n, _o, cb) => Promise.resolve(typeof _o === 'function' ? _o({ name: _n }) : cb({ name: _n })) } }); } catch {}
-    }, { inMatch, surfaces: FIRST_VISIT_SURFACES, cloud });
+    }, { inMatch, cloud, lang: LANG, scale });
     const page = await ctx.newPage();
     await page.goto(baseUrl + '/manifest.json');
     if (!cloud) await page.evaluate(async (d) => { await new Promise((res, rej) => { const req = indexedDB.open('MatchOpsLocal', 1);
@@ -65,7 +77,7 @@ export async function openRecorder({ outDir, baseUrl = 'http://localhost:3000', 
     let curPos = startCur;
     const setCur = async (x, y, dur) => { curPos = [x, y]; await page.evaluate(([x, y, dur, from]) => { let c = document.getElementById('cur'); if (!c) { c = document.createElement('div'); c.id = 'cur'; c.style.transition = 'none'; c.style.transform = `translate(${from[0]}px,${from[1]}px)`; document.body.appendChild(c); void c.offsetWidth; c.style.transition = ''; } if (dur) c.style.transitionDuration = dur + 'ms'; c.style.transform = `translate(${x}px,${y}px)`; }, [x, y, dur, curPos]); };
     const arm = async () => { await page.addStyleTag({ content: STYLE }); await page.evaluate((pos) => {
-      for (const b of document.querySelectorAll('button')) if (/Tervetuloa/.test(b.textContent || '')) b.style.display = 'none';
+      for (const b of document.querySelectorAll('button')) if (/Tervetuloa|Welcome/.test(b.textContent || '')) b.style.display = 'none';
       if (!document.getElementById('cur')) { const c = document.createElement('div'); c.id = 'cur'; c.style.transition = 'none'; c.style.transform = `translate(${pos[0]}px,${pos[1]}px)`; document.body.appendChild(c); void c.offsetWidth; c.style.transition = ''; }
       if (!window.__tap) { window.__tap = 1; document.addEventListener('pointerdown', (e) => { const d = document.createElement('div'); d.className = 'tap'; d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px'; document.body.appendChild(d); setTimeout(() => d.remove(), 550); }, true); } }, curPos); };
     const hold = (ms) => page.waitForTimeout(ms);
@@ -104,14 +116,39 @@ export async function openRecorder({ outDir, baseUrl = 'http://localhost:3000', 
     /** Scroll the nearest scrollable ancestor of `sel` back to its top (un-collapses collapse-on-scroll headers). */
     const scrollPanelTop = async (sel, ms = 1200) => { await page.evaluate((sel) => { let el = document.querySelector(sel)?.parentElement; while (el && el.scrollHeight <= el.clientHeight + 2) el = el.parentElement; if (el) el.scrollTo({ top: 0, behavior: 'smooth' }); }, sel); await hold(ms); };
     const mark = (id) => marks.push({ id, t: now() });
+    /** Tap something that opens a screen with a loading state ("Ladataan peliä...", the planner's
+     *  "Ladataan..."): the screen dips to navy for the load and comes back once `ready` resolves, so
+     *  the film shows a short cut instead of a spinner. */
+    const tapThroughLoad = async (loc, ready, rest = 700) => {
+      await glide(loc, rest); const b = await loc.boundingBox(); if (!b) throw new Error('tapThroughLoad: no box');
+      // The veil goes down first and sits above everything but the cursor: the app's loading screens
+      // stack very high (the game's "Ladataan peliä..." splash covered a lower veil), and a veil that
+      // starts after the click lets the first loading frames through.
+      await ripple(b.x + b.width / 2, b.y + b.height / 2);
+      await page.evaluate(() => { const v = document.createElement('div'); v.id = 'veil'; v.style.cssText = 'position:fixed;inset:0;background:#0b1220;z-index:2147483646;opacity:0;transition:opacity .15s;pointer-events:none'; document.body.appendChild(v); void v.offsetWidth; v.style.opacity = '1'; });
+      await hold(180); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+      await ready(); await hold(800); await arm();
+      await page.evaluate(() => { const v = document.getElementById('veil'); if (!v) return; v.style.transition = 'opacity .3s'; v.style.opacity = '0'; setTimeout(() => v.remove(), 350); }); await hold(350); };
+    /** Write the app's whole IndexedDB payload to `file`, so the next recording can start from exactly
+     *  what this one left (the lineup the plan produced, the goal just logged). The app saves on a
+     *  short debounce: hold a moment after the last change before calling it. */
+    const dump = async (file) => { const d = await page.evaluate(() => new Promise((res, rej) => { const req = indexedDB.open('MatchOpsLocal');
+      req.onsuccess = () => { const db = req.result; const all = db.transaction('keyValueStore').objectStore('keyValueStore').getAll(); all.onsuccess = () => { const o = {}; for (const r of all.result) { try { o[r.key] = JSON.parse(r.value); } catch { o[r.key] = r.value; } } db.close(); res(o); }; all.onerror = () => rej(all.error); };
+      req.onerror = () => rej(req.error); })); fs.writeFileSync(file, JSON.stringify(d)); return d; };
+    /** A still for checking a scene by eye while writing it (out/<video>/shot-<name>.png); not part of the video. */
+    const shot = (n) => page.screenshot({ path: path.join(outDir, `shot-${n}.png`) });
     const text = async () => (await page.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
 
     await page.goto(baseUrl + '/', { waitUntil: 'networkidle' });
-    if (cloud) await page.getByTestId('login-intro-create').waitFor({ timeout: 90000 });
-    else if (inMatch) await page.getByRole('button', { name: 'Avaa ajastin' }).waitFor({ timeout: 90000 }); else await page.getByText(/Seuraava ottelu|Viimeksi avattu|Uusi ottelu/).first().waitFor({ timeout: 90000 });
+    // The dev server occasionally answers one navigation with its 404 page while it recompiles: reload once.
+    const booted = async () => {
+        if (cloud) await page.getByTestId('login-intro-create').waitFor({ timeout: 90000 });
+        else if (inMatch) await page.getByRole('button', { name: ui.openTimer }).waitFor({ timeout: 90000 }); else await page.getByText(/Seuraava ottelu|Viimeksi avattu|Uusi ottelu|Jatka|Next match|Last opened|New game|Continue/i).first().waitFor({ timeout: 90000 });
+    };
+    try { await booted(); } catch { await page.reload({ waitUntil: 'networkidle' }); try { await booted(); } catch (e) { await page.screenshot({ path: path.join(outDir, `fail-${name}-boot.png`) }).catch(() => {}); throw e; } }
     await page.evaluate(() => { for (let i = 0; i < 4; i++) history.pushState({}, '', '/'); });
     await arm(); await hold(300);
-    try { await run({ page, arm, glide, glideTo, tap, tapAt, touchTap, drag, type, hold, mark, orbit, ripple, pickFromSelect, scrollToHeading, scrollToId, scrollToSelector, scrollPanelTop, text }); }
+    try { await run({ page, arm, glide, glideTo, tap, tapAt, touchTap, drag, type, hold, mark, orbit, ripple, pickFromSelect, scrollToHeading, scrollToId, scrollToSelector, scrollPanelTop, text, shot, dump, tapThroughLoad }); }
     catch (e) { await page.screenshot({ path: path.join(outDir, `fail-${name}.png`) }).catch(() => {}); console.error('FAIL', name, page.url(), (await text().catch(() => '')).slice(0, 300)); throw e; }
     const endT = now(); const v = page.video(); await ctx.close(); const p = await v.path();
     const segs = marks.map((m, i) => ({ id: m.id, start: m.t, end: i + 1 < marks.length ? marks[i + 1].t : endT }));

@@ -1,18 +1,19 @@
 /**
  * Cuts every recording into captioned clips and joins them into the hero.
- * Usage: node render/encode.mjs [--style phone|plain] [--out out/hero] [--assets out] [--music track.mp3] [--music-lufs -18]
+ * Usage: node render/encode.mjs [--style phone|plain] [--out out/hero] [--assets out] [--music track.mp3] [--music-lufs -18] [--wide] [--lang fi|en] [--name hero]
  *  --out is one video's folder (its rec-*.json, captions and clips); --assets holds the shared intro/end/phone frames.
  *  - marks are wall-clock; the screencast file runs slightly slow, so each recording's marks are
  *    scaled by (file length / measured length) before cutting;
  *  - a clip id with a caption gets the caption overlay, one without becomes a plain transition;
  *  - 'phone' composites the recording into the phone frame (out/phone-under|over.png) first;
- *  - the joined hero is re-encoded a notch tighter (crf 24) so it stays under share-page limits.
+ *  - the joined video is encoded at crf 21 (slow, tune film) so the grass keeps its texture; a
+ *    music phone video stays well under 25 MB.
  */
 import fs from 'node:fs'; import path from 'node:path'; import { execFileSync } from 'node:child_process';
 const ffmpeg = (await import('ffmpeg-static')).default;
 const ROOT = new URL('..', import.meta.url).pathname;
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > -1 ? process.argv[i + 1] : d; };
-const style = arg('--style', 'phone'); const music = arg('--music', null); const musicLufs = Number(arg('--music-lufs', '-18')); const OUT = path.resolve(ROOT, arg('--out', 'out/hero')); const ASSETS = path.resolve(ROOT, arg('--assets', 'out')); const NAME = path.basename(OUT); const CLIPS = path.join(OUT, `clips-${style}`);
+const style = arg('--style', 'phone'); const music = arg('--music', null); const musicLufs = Number(arg('--music-lufs', '-18')); const OUT = path.resolve(ROOT, arg('--out', 'out/hero')); const ASSETS = path.resolve(ROOT, arg('--assets', 'out')); const LANG = arg('--lang', 'fi'); const SFX = LANG === 'fi' ? '' : `-${LANG}`; const NAME = arg('--name', path.basename(OUT)); const CLIPS = path.join(OUT, `clips-${style}`);
 const run = (args) => execFileSync(ffmpeg, ['-y', '-hide_banner', '-loglevel', 'error', ...args]);
 const durationOf = (p) => { try { execFileSync(ffmpeg, ['-hide_banner', '-i', p], { stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { const m = /Duration: (\d+):(\d+):([\d.]+)/.exec(String(e.stderr)); if (m) return (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]); } return null; };
 const enc = ['-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-r', '30', '-pix_fmt', 'yuv420p', '-movflags', '+faststart'];
@@ -26,7 +27,7 @@ for (const f of fs.readdirSync(OUT).filter(f => f.startsWith('rec-') && f.endsWi
 segs.sort((a, b) => a.id - b.id);
 fs.mkdirSync(CLIPS, { recursive: true });
 const fileId = (id) => { const s = String(id); return s.includes('.') ? s.split('.')[0].padStart(2, '0') + '_' + s.split('.')[1] : s.padStart(2, '0'); };
-run(['-loop', '1', '-i', path.join(ASSETS, 'intro.png'), '-t', '3.2', '-vf', 'fade=t=in:st=0:d=0.5:color=0x0b1220,fade=t=out:st=2.5:d=0.7:color=0x0b1220,format=yuv420p', ...enc, path.join(CLIPS, 'scene00.mp4')]);
+run(['-loop', '1', '-i', path.join(ASSETS, `intro${SFX}.png`), '-t', '3.2', '-vf', 'fade=t=in:st=0:d=0.5:color=0x0b1220,fade=t=out:st=2.5:d=0.7:color=0x0b1220,format=yuv420p', ...enc, path.join(CLIPS, 'scene00.mp4')]);
 const list = ['scene00.mp4'];
 for (const s of segs) {
   const out = `scene${fileId(s.id)}.mp4`; const cap = path.join(OUT, `cap_${style}_${String(s.id).replace('.', '_')}.png`); const fade = s.id === 1 ? ',fade=t=in:st=0:d=0.7' : '';
@@ -38,7 +39,7 @@ for (const s of segs) {
   chain += `;[v3]null${fade},format=yuv420p[out]`;
   run([...inputs, '-filter_complex', chain, '-map', '[out]', ...enc, path.join(CLIPS, out)]); list.push(out);
 }
-run(['-loop', '1', '-i', path.join(ASSETS, 'end.png'), '-t', '3', '-vf', 'fade=t=in:st=0:d=0.5:color=0x0b1220,format=yuv420p', ...enc, path.join(CLIPS, 'scene99.mp4')]); list.push('scene99.mp4');
+run(['-loop', '1', '-i', path.join(ASSETS, `end${SFX}.png`), '-t', '3', '-vf', 'fade=t=in:st=0:d=0.5:color=0x0b1220,format=yuv420p', ...enc, path.join(CLIPS, 'scene99.mp4')]); list.push('scene99.mp4');
 fs.writeFileSync(path.join(CLIPS, 'clips.txt'), list.map(p => `file '${p}'`).join('\n'));
 
 /**
@@ -58,8 +59,10 @@ recs.forEach((r, ri) => {
   let cur = '[v]', k = 0;
   for (const s of r.segs) {
     const cap = path.join(OUT, `cap_${style}_${String(s.id).replace('.', '_')}.png`); if (!fs.existsSync(cap)) continue;
-    const a = s.start - t0, b = s.end - t0; const idx = n++; inputs.push('-loop', '1', '-t', f2(D), '-i', cap);
-    chain += `;[${idx}:v]format=rgba,fade=t=in:st=${f2(a)}:d=0.25:alpha=1,fade=t=out:st=${f2(b - 0.25)}:d=0.25:alpha=1[c${k}];${cur}[c${k}]overlay=0:0:enable='between(t,${f2(a)},${f2(b)})'[o${k}]`; cur = `[o${k}]`; k++;
+    // Each band is generated only for its own window and shifted into place: looping every band over the
+    // whole recording ran ffmpeg out of memory once a recording carried ten or more captions.
+    const a = s.start - t0, b = s.end - t0; const idx = n++; inputs.push('-loop', '1', '-framerate', '30', '-t', f2(b - a), '-i', cap);
+    chain += `;[${idx}:v]format=rgba,fade=t=in:st=0:d=0.25:alpha=1,fade=t=out:st=${f2(b - a - 0.25)}:d=0.25:alpha=1,setpts=PTS+${f2(a)}/TB[c${k}];${cur}[c${k}]overlay=0:0:eof_action=pass[o${k}]`; cur = `[o${k}]`; k++;
   }
   const fin = ri === 0 ? 0.7 : 0.3, fout = ri === recs.length - 1 ? 0.3 : 0.3;
   chain += `;${cur}fade=t=in:st=0:d=${fin}:color=0x0b1220,fade=t=out:st=${f2(D - fout)}:d=${fout}:color=0x0b1220,format=yuv420p[out]`;
@@ -68,8 +71,8 @@ recs.forEach((r, ri) => {
 });
 parts.push('scene99.mp4');
 fs.writeFileSync(path.join(CLIPS, 'list.txt'), parts.map(p => `file '${p}'`).join('\n'));
-const hero = path.join(OUT, `matchops-${NAME}-${style}.mp4`);
-run(['-f', 'concat', '-safe', '0', '-i', path.join(CLIPS, 'list.txt'), '-c:v', 'libx264', '-preset', 'medium', '-crf', '24', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', hero]);
+const hero = path.join(OUT, `matchops-${NAME}-${style}${SFX}.mp4`);
+run(['-f', 'concat', '-safe', '0', '-i', path.join(CLIPS, 'list.txt'), '-c:v', 'libx264', '-preset', 'slow', '-crf', '21', '-tune', 'film', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', hero]);
 console.log('clips', list.length, '->', hero, (fs.statSync(hero).size / 1e6).toFixed(1) + ' MB', durationOf(hero)?.toFixed(1) + ' s');
 
 /**
@@ -89,4 +92,15 @@ if (music) {
   const out = hero.replace(/\.mp4$/, '-music.mp4');
   run([...inputs, '-filter_complex', chain, '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest', out]);
   console.log('music', path.basename(music), `x${n}`, '->', out, (fs.statSync(out).size / 1e6).toFixed(1) + ' MB');
+}
+
+/**
+ * --wide: a 16:9 copy (1920x1080) of the finished video for YouTube and slides - the phone canvas
+ * scaled to full height on the navy ground. Made from the music version when there is one.
+ */
+if (process.argv.includes('--wide')) {
+  const src = music ? hero.replace(/\.mp4$/, '-music.mp4') : hero;
+  const out = path.join(OUT, `matchops-${NAME}-16x9${SFX}${music ? '-music' : ''}.mp4`);
+  run(['-i', src, '-vf', 'scale=-2:1080,pad=1920:1080:(ow-iw)/2:0:color=0x0b1220,format=yuv420p', '-c:v', 'libx264', '-preset', 'medium', '-crf', '24', '-r', '30', '-c:a', 'copy', '-movflags', '+faststart', out]);
+  console.log('wide ->', out, (fs.statSync(out).size / 1e6).toFixed(1) + ' MB');
 }
