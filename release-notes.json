@@ -4,6 +4,21 @@
     {
       "date": "2026-11-20",
       "en": [
+        "The simplified view shows a link to the full app right at the top.",
+        "The sub timer button now says \"Sub done\".",
+        "The shared match report lists goals and assists together, e.g. \"Leevi 2+1\".",
+        "The match sheet shows shirt numbers without the # sign."
+      ],
+      "fi": [
+        "Kevennetyssä näkymässä on heti ylhäällä linkki koko sovellukseen.",
+        "Vaihtoajastimen painike on nyt \"Vaihto tehty\".",
+        "Jaettava otteluraportti listaa maalit ja syötöt yhdessä, esim. \"Leevi 2+1\".",
+        "Pöytäkirjassa pelinumerot näkyvät ilman #-merkkiä."
+      ]
+    },
+    {
+      "date": "2026-11-20",
+      "en": [
         "Updated privacy policy and terms: please review and accept them once.",
         "New in Settings → Data: switch off error reporting and usage statistics, and a ready-made notice you can send to players' families.",
         "The next-match card shows and shares the game's plan when it has one.",
