@@ -22,4 +22,16 @@ export function todayIso(now: Date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Whole calendar days from one ISO date ("2026-11-21") to another - never
+ * negative, 0 for a malformed date. Both read as plain calendar days (UTC
+ * midnight each), so no time zone or DST shift can make it off by one.
+ */
+export function daysBetween(fromIso: string, toIso: string): number {
+  const from = Date.parse(`${fromIso}T00:00:00Z`);
+  const to = Date.parse(`${toIso}T00:00:00Z`);
+  if (Number.isNaN(from) || Number.isNaN(to)) return 0;
+  return Math.max(0, Math.round((to - from) / 86400000));
+}
+
 export default todayIso;

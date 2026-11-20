@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, act, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, act, waitFor, fireEvent, within } from '@testing-library/react';
+import { todayIso } from '@/utils/todayIso';
 import userEvent from '@testing-library/user-event';
 import SeasonTournamentManagementModal from './SeasonTournamentManagementModal';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -839,6 +840,137 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
   });
 
 });
+/**
+ * The list cards (owner, 2026-11-21, variant A): a meta line of only the parts
+ * an item has, a played-games record line coloured by result, and a neutral
+ * "starts in" chip for one that has not started.
+ */
+describe('competition cards', () => {
+  const isoPlus = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return todayIso(d);
+  };
+  const game = (o: Record<string, unknown>) => ({
+    teamName: 'Us', opponentName: 'Them', gameDate: '2026-08-08', homeOrAway: 'home',
+    homeScore: 0, awayScore: 0, isPlayed: true, gameEvents: [], ...o,
+  });
+  /** Games per linked id, as getFilteredGames returns them. */
+  const linkGames = (byId: Record<string, Array<Record<string, unknown>>>) => {
+    mockGetFilteredGames.mockImplementation(async (f) => {
+      const id = f.tournamentId ?? f.seasonId ?? '';
+      return (byId[id] ?? []).map((g, i) => [`${id}-g${i}`, g]) as unknown as Awaited<ReturnType<typeof getFilteredGames>>;
+    });
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetFilteredGames.mockResolvedValue([]);
+  });
+
+  /** @critical the record must be the played games only, coloured by result */
+  it('shows the played record and a positive goal difference in the win colour', async () => {
+    linkGames({
+      t1: [
+        game({ homeScore: 3, awayScore: 1 }),                       // W
+        game({ homeScore: 1, awayScore: 1 }),                       // D
+        game({ homeOrAway: 'away', homeScore: 2, awayScore: 1 }),   // L (we are away)
+        game({ homeScore: 4, awayScore: 0 }),                       // W
+        game({ homeScore: 0, awayScore: 0, isPlayed: false }),      // not played: ignored
+      ],
+    });
+    renderWithProviders({ kind: 'tournament' });
+    const record = await screen.findByTestId('competition-record');
+    expect(record).toHaveTextContent('4 games');
+    const wdl = screen.getByTestId('competition-wdl');
+    expect(wdl).toHaveTextContent('2-1-1');
+    const [w, , d, , l] = Array.from(wdl.children);
+    expect(w).toHaveClass('text-win');
+    expect(d).toHaveClass('text-draw');
+    expect(l).toHaveClass('text-loss');
+    const gd = screen.getByTestId('competition-goal-diff');
+    expect(gd).toHaveTextContent('+5'); // +2, 0, -1, +4
+    expect(gd).toHaveClass('text-win');
+    expect(screen.queryByTestId('competition-starts-in')).toBeNull();
+  });
+
+  it('colours a negative goal difference as a loss (with a minus sign) and zero as a draw', async () => {
+    linkGames({
+      t1: [game({ homeScore: 0, awayScore: 2 })],
+      t2: [game({ homeScore: 1, awayScore: 1 })],
+    });
+    renderWithProviders({
+      kind: 'tournament',
+      tournaments: [
+        { id: 't1', name: 'Lost one', startDate: '2026-05-17' },
+        { id: 't2', name: 'Drawn one', startDate: '2026-05-10' },
+      ] as Tournament[],
+    });
+    await waitFor(() => expect(screen.getAllByTestId('competition-goal-diff')).toHaveLength(2));
+    const [lost, drawn] = screen.getAllByTestId('competition-goal-diff');
+    expect(lost).toHaveTextContent('\u22122');
+    expect(lost).toHaveClass('text-loss');
+    expect(drawn).toHaveTextContent(/^0$/);
+    expect(drawn).toHaveClass('text-draw');
+  });
+
+  it('shows when an unplayed competition starts: today, tomorrow, in N days', async () => {
+    renderWithProviders({
+      kind: 'tournament',
+      tournaments: [
+        { id: 'a', name: 'Today Cup', startDate: isoPlus(0) },
+        { id: 'b', name: 'Tomorrow Cup', startDate: isoPlus(1) },
+        { id: 'c', name: 'Later Cup', startDate: isoPlus(12) },
+      ] as Tournament[],
+    });
+    await waitFor(() => expect(screen.getAllByTestId('competition-starts-in')).toHaveLength(3));
+    // Newest start date first.
+    const chips = screen.getAllByTestId('competition-starts-in').map((c) => c.textContent);
+    expect(chips).toEqual(['Starts in 12 days', 'Starts tomorrow', 'Starts today']);
+    expect(screen.queryByTestId('competition-record')).toBeNull();
+  });
+
+  it('shows neither a record nor a chip for a past competition with no played games', async () => {
+    linkGames({ t1: [game({ isPlayed: false })] });
+    renderWithProviders({
+      kind: 'tournament',
+      tournaments: [{ id: 't1', name: 'Rained off', startDate: isoPlus(-3) }] as Tournament[],
+    });
+    await screen.findByText('Rained off');
+    await act(async () => {});
+    expect(screen.queryByTestId('competition-record')).toBeNull();
+    expect(screen.queryByTestId('competition-starts-in')).toBeNull();
+  });
+
+  it('builds the meta line from the parts an item has, with no dangling separators', async () => {
+    renderWithProviders({
+      kind: 'season',
+      seasons: [
+        { id: 's1', name: 'Full league', clubSeason: '25/26', gender: 'boys', ageGroup: 'P12', startDate: '2026-02-01' },
+        { id: 's2', name: 'Bare league', startDate: '2026-01-01' },
+        { id: 's3', name: 'Girls league', gender: 'girls', startDate: '2025-12-01' },
+      ] as Season[],
+    });
+    await screen.findByText('Full league');
+    expect(within(screen.getByTestId('competition-card-s1')).getByTestId('competition-meta')).toHaveTextContent(/^25\/26 · Boys · P12$/);
+    expect(within(screen.getByTestId('competition-card-s2')).queryByTestId('competition-meta')).toBeNull();
+    expect(within(screen.getByTestId('competition-card-s3')).getByTestId('competition-meta')).toHaveTextContent(/^Girls$/);
+  });
+
+  it('leads a tournament\'s meta line with its dates and lists its levels', async () => {
+    renderWithProviders({
+      kind: 'tournament',
+      tournaments: [{
+        id: 't1', name: 'Summer Cup', startDate: '2026-08-08', endDate: '2026-08-09', gender: 'boys',
+        series: [{ id: 'x', level: 'Harraste' }],
+      }] as Tournament[],
+    });
+    const meta = await screen.findByTestId('competition-meta');
+    // The date format follows the device's English variant; the order is the point.
+    expect(meta.textContent).toMatch(/^\S+2026\s–\s\S+2026 · Boys · Recreational$/);
+  });
+});
+
 /**
  * Home's Kilpailut tab (owner, 2026-11-19): a card opens that league or
  * tournament's sheet straight away, an add row the add sheet, and closing the

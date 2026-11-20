@@ -1507,14 +1507,20 @@
     "archiveLabel": "Archive",
     "archivedBadge": "Archived",
     "notesLabel": "Notes",
-    "statsGames": "Games",
-    "statsGoals": "Goals",
     "editDetails": "Edit Details",
     "searchPlaceholder": "Search...",
     "noSeasonsNudge": "No leagues yet. Create one, then link your teams and games to it to track league-level stats.",
     "noTournamentsNudge": "No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats.",
     "noSearchResults": "Nothing matches \"{{search}}\".",
-    "itemActions": "Actions for {{name}}"
+    "itemActions": "Actions for {{name}}",
+    "recordGames_one": "{{count}} game",
+    "recordGames_other": "{{count}} games",
+    "recordAria": "{{wins}} wins, {{draws}} draws, {{losses}} losses",
+    "goalDifference": "goal diff",
+    "startsToday": "Starts today",
+    "startsTomorrow": "Starts tomorrow",
+    "startsInDays_one": "Starts in {{count}} day",
+    "startsInDays_other": "Starts in {{count}} days"
   },
   "teamDetailsModal": {
     "createTitle": "Create Team",

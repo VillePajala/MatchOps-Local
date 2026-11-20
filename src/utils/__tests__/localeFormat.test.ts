@@ -4,7 +4,7 @@
  */
 import { act } from '@testing-library/react';
 import i18n from '@/i18n';
-import { formatAppDate, formatAppDateTime, formatAppDecimal, formatAppPercent } from '../localeFormat';
+import { formatAppDate, formatAppDateRange, formatAppDateTime, formatAppDecimal, formatAppPercent } from '../localeFormat';
 
 const inLanguage = async (lng: string, run: () => void) => {
   await act(async () => { await i18n.changeLanguage(lng); });
@@ -66,5 +66,23 @@ describe('localeFormat', () => {
   it('keeps fixed digits like toFixed did', () => {
     expect(formatAppDecimal(0)).toBe('0.0');
     expect(formatAppDecimal(2)).toBe('2.0');
+  });
+
+  describe('formatAppDateRange', () => {
+    it('writes a Finnish span compactly', () => {
+      expect(formatAppDateRange('2026-08-08', '2026-08-09', 'fi')).toBe('8.\u20139.8.2026');
+      expect(formatAppDateRange('2026-08-08', '2026-09-02', 'fi')).toBe('8.8.\u20132.9.2026');
+    });
+
+    it('one date for a one-day span, a single end, or an end before the start', () => {
+      expect(formatAppDateRange('2026-10-03', '2026-10-03', 'fi')).toBe('3.10.2026');
+      expect(formatAppDateRange('2026-10-03', undefined, 'fi')).toBe('3.10.2026');
+      expect(formatAppDateRange(undefined, '2026-10-04', 'fi')).toBe('4.10.2026');
+      expect(formatAppDateRange('2026-10-05', '2026-10-04', 'fi')).toBe('5.10.2026');
+    });
+
+    it('is empty with no dates', () => {
+      expect(formatAppDateRange(undefined, undefined, 'fi')).toBe('');
+    });
   });
 });

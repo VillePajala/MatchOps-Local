@@ -26,6 +26,21 @@ export function formatAppDate(value: string | number | Date, language?: string):
   return date ? date.toLocaleDateString(appLocale(language)) : String(value);
 }
 
+/**
+ * A date span, written compactly in the app's language: "8.–9.8.2026" /
+ * "08/08/2026 – 09/08/2026". One date when both ends are the same day or only
+ * one end is set; '' when neither is.
+ */
+export function formatAppDateRange(start?: string, end?: string, language?: string): string {
+  const from = start ? toDate(start) : null;
+  const to = end ? toDate(end) : null;
+  if (from && to && to.getTime() > from.getTime()) {
+    return new Intl.DateTimeFormat(appLocale(language)).formatRange(from, to);
+  }
+  const one = from ?? to;
+  return one ? one.toLocaleDateString(appLocale(language)) : '';
+}
+
 /** A moment, with the time: "3.10.2026 klo 14.05" / "03/10/2026, 14:05". */
 export function formatAppDateTime(value: string | number | Date): string {
   const date = toDate(value);
