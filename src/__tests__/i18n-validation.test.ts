@@ -747,7 +747,7 @@ describe('Translation File Validation', () => {
       // +6 startScreen.club* (Seura club card). 3615.
       // +7 startScreen tab heroes: openGame, dashTileRecord, dashTopScorers, dashGamesWord/dashGoalsWord _one/_other. 3622.
       // +32 privacy 2026-11: policy (+9 -1 IP), terms art. 28 / player data (+16), Settings privacy + field hints (+8). 3657.
-      expect(enKeys.length).toBe(3657);
+      expect(enKeys.length).toBe(3658);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -960,7 +960,7 @@ describe('Translation File Validation', () => {
       // +6 (Seura club card). 3615.
       // +7 (Home tab heroes). 3622.
       // +32 privacy 2026-11: policy (+9 -1 IP), terms art. 28 / player data (+16), Settings privacy + field hints (+8). 3657.
-      expect(fiKeys.length).toBe(3657);
+      expect(fiKeys.length).toBe(3658);
     });
   });
 });

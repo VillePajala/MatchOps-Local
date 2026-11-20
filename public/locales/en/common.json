@@ -4186,10 +4186,11 @@
     "allGamesRow": "All games · {{count}}"
   },
   "allFeatures": {
+    "fullAppLine": "Simplified view · See the full app",
     "title": "All features",
     "intro": "The basic layout shows what matters on match day. The full layout adds:",
     "itemTabs": "Home with tabs: games, club, competitions and statistics",
-    "itemPlanner": "Rotation planning for several games, such as a tournament day",
+    "itemPlanner": "Match planning for several games, such as a tournament day",
     "itemCompetitions": "Leagues and tournaments",
     "itemClub": "Staff, warm-up plan and rules",
     "itemTravel": "Venues and departure times",

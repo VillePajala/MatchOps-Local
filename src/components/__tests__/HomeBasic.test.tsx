@@ -205,6 +205,14 @@ describe('HomeBasic rows and Kaikki toiminnot', () => {
     await waitFor(() => expect(mockGetPlan).toHaveBeenCalled());
   });
 
+  it('shows a permanent full-app line under the header that opens the All features sheet', () => {
+    render(<HomeBasic summary={summary()} {...handlers()} locale="en" t={t} />);
+    const line = screen.getByTestId('full-app-line');
+    expect(line).toHaveTextContent('Simplified view · See the full app');
+    fireEvent.click(line);
+    expect(screen.getByTestId('all-features-sheet')).toBeInTheDocument();
+  });
+
   it('Kaikki toiminnot closes from its close button and with Escape (R13)', async () => {
     render(<HomeBasic summary={summary()} {...handlers()} locale="en" t={t} />);
     fireEvent.click(screen.getByTestId('all-features'));

@@ -4186,6 +4186,7 @@
     "allGamesRow": "Kaikki ottelut · {{count}}"
   },
   "allFeatures": {
+    "fullAppLine": "Kevennetty näkymä · Näytä koko sovellus",
     "title": "Kaikki toiminnot",
     "intro": "Perusnäkymä näyttää pelipäivän tärkeimmät. Koko näkymässä on lisäksi:",
     "itemTabs": "Koti välilehdillä: pelit, seura, kilpailut ja tilastot",

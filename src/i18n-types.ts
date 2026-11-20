@@ -66,6 +66,7 @@ export type TranslationKey =
   | 'aiSettings.usageLabel'
   | 'aiSettings.usageNone'
   | 'aiSettings.usageReset'
+  | 'allFeatures.fullAppLine'
   | 'allFeatures.intro'
   | 'allFeatures.itemClub'
   | 'allFeatures.itemCompetitions'
