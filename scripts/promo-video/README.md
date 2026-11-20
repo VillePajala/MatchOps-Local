@@ -25,7 +25,7 @@ Output: `out/hero/matchops-hero-phone.mp4` plus one clip per caption in `out/her
 | `scenes/start.mjs` | "Aloitus alle minuutissa": create the account, name the team, add eleven players, land on Home. Cloud mode against staging with a throwaway synthetic account (delete them afterwards: `delete from auth.users where email = 'mepa.valmentaja@example.com'` on STAGING only). About 50 s. |
 | `scenes/create.mjs` | "Luo ottelu": from the empty Home to the front-page card with the departure time. Team pick fills roster and season, the venue is created from a name and a map address (real place: Ukonniemi, Imatra), the starting point is set from the card's own prompt. Local mode, `freshState` seed (the demo club with no matches). About 90 s. |
 | `scenes/advanced.mjs` | "Ottelun asetukset tarkemmin": repeat last game, season with its official league and a tournament with its series, age group and sport, prefill from a plan, periods and length with the friendly toggle, pitch number and a coach. Ends on the filled form, never creates. `advancedState` seed (the club plus one coach and one tournament; personnel is a map keyed by id). About 75 s. |
-| `scenes/basic.mjs` | The same day without a plan, full layout: Home, the stacked match view (score row and player bar above the pitch, five-button control bar below), a formation, select-and-place (tap Leevi in the bar, tap the striker's spot; Eino to the free bench spot), the clock, Maali meille with scorer and assister, the 5-minute sub interval running out and Nollaa vaihtoajastin, full time, Viimeistele ottelu, goal log, Pöytäkirja, positions, Otteluraportti and its share sheet. About 115 s. |
+| `scenes/basic.mjs` | The same day without a plan, full layout: Home, the stacked match view (score row and player bar above the pitch, five-button control bar below), a formation, select-and-place (tap Leevi in the bar, tap the striker's spot; Eino to the free bench spot), the clock, Maali meille with scorer and assister, the 5-minute sub interval running out and Vaihto tehty (it restarts the sub timer), full time, Viimeistele ottelu, goal log, Pöytäkirja, positions, Otteluraportti and its share sheet. About 115 s. |
 
 Python needs Pillow (`pip install pillow`).
 
@@ -54,7 +54,7 @@ Only a licensed track goes into a published render. A stock-site preview is for 
 - **Captions**: Rajdhani Bold 48 px (52 px plain), white on a `#0b1220` band at 78% opacity, corner radius 18, band hugs the text (max 764 px inside the phone), bottom edge 230 px above the screen's bottom. One caption per clip, burned in. Sentences, Finnish, no trailing period on the short ones.
 - **Cursor**: 30 px white ring; glides 0.65 s (1.8 s for a deliberate long move), rests 0.85 s on the target, then a 52 px ripple. A quick loop around an element introduces it (`orbit`).
 - **Pace**: hold 2.5-3.5 s on anything the viewer must read, 6 s on a full text screen (Ottelukooste). Intro 3.2 s with a 0.7 s fade into scene 1; end card 3 s.
-- **Intro line** `Suunnittele - kirjaa - oivalla`; end card = wordmark + `Lataa se Google Playsta` badge.
+- **Intro line** `Suunnittele, peluuta, kirjaa.` (English: `Plan, rotate, record.`); end card = wordmark + the Google Play badge in the video's language.
 - **Content rules**: fictional data only; the owner's own 8v8 2-1-2-1-1 formation; playing time shown as a distribution across games, never as a promise of equal minutes (no fairness wording in captions).
 
 ## Writing a new scene
@@ -81,4 +81,4 @@ Only a licensed track goes into a published render. A stock-site preview is for 
 - Toasts are hidden for the film (the goal's undo toast covers the score row). The setup wizard, marketing consent and policy re-consent only exist in cloud mode, so local recordings never meet them.
 - "Back in the match" after a reload is a sessionStorage flag; `inMatch: true` sets it, and an in-progress game on Home opens straight into the match view.
 - Watch every recording before encoding: `out/<video>/shot-*.png` (the `shot(name)` helper) or frames pulled from the raw webm with ffmpeg at each mark.
-- Only the first `<video>`-sized output under ~15 MB can be attached to a share page; the encoder re-encodes the joined hero at crf 24.
+- The encoder writes the joined video at crf 21 (slow preset); a music phone video stays under 25 MB. The launch flag alone leaves devicePixelRatio at 1 and the pitch canvas renders at half resolution; the recorder reports the real ratio from its init script (a context `deviceScaleFactor` instead makes the screencast capture at CSS size, padded grey).

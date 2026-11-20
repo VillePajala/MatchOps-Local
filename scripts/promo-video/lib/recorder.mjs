@@ -44,6 +44,10 @@ div.fixed[role=log][aria-live=polite]{display:none!important}
 
 export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || 'http://localhost:3000', viewport = { width: 390, height: 844 }, scale = 2 } = {}) {
   fs.mkdirSync(path.join(outDir, 'raw'), { recursive: true });
+  // The launch flag renders and records at `scale` physical pixels per CSS pixel, but the page still reads
+  // devicePixelRatio 1, so the pitch canvas (its bitmap is sized by dpr) was drawn at half resolution and
+  // upscaled: soft pitch, crisp bars. The init script reports the real ratio. (deviceScaleFactor on the
+  // context is no fix: the screencast then captures at CSS size and pads the rest of the frame grey.)
   const browser = await chromium.launch({ args: [`--force-device-scale-factor=${scale}`] });
 
   /** `cloud: true` records the real first run against the dev server's staging backend: nothing is seeded and
@@ -53,7 +57,8 @@ export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || '
     const ctx = await browser.newContext({ viewport, locale: LANG === 'en' ? 'en-GB' : 'fi-FI', timezoneId: 'Europe/Helsinki',
       recordVideo: { dir: path.join(outDir, 'raw'), size: { width: viewport.width * scale, height: viewport.height * scale } } });
     const t0 = Date.now(); const now = () => (Date.now() - t0) / 1000; const marks = [];
-    await ctx.addInitScript(({ inMatch, cloud, lang }) => {
+    await ctx.addInitScript(({ inMatch, cloud, lang, scale }) => {
+      try { Object.defineProperty(window, 'devicePixelRatio', { get: () => scale, configurable: true }); } catch {}
       try {
         localStorage.setItem('matchops_language', lang);
         if (!cloud) { localStorage.setItem('matchops_backend_mode', 'local'); localStorage.setItem('matchops_welcome_seen', 'true'); }
@@ -61,7 +66,7 @@ export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || '
       } catch {}
       // Dev-mode StrictMode double-mount makes the single-tab lock look taken; grant it.
       try { Object.defineProperty(navigator, 'locks', { value: { request: (_n, _o, cb) => Promise.resolve(typeof _o === 'function' ? _o({ name: _n }) : cb({ name: _n })) } }); } catch {}
-    }, { inMatch, cloud, lang: LANG });
+    }, { inMatch, cloud, lang: LANG, scale });
     const page = await ctx.newPage();
     await page.goto(baseUrl + '/manifest.json');
     if (!cloud) await page.evaluate(async (d) => { await new Promise((res, rej) => { const req = indexedDB.open('MatchOpsLocal', 1);
@@ -135,10 +140,12 @@ export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || '
     const text = async () => (await page.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
 
     await page.goto(baseUrl + '/', { waitUntil: 'networkidle' });
-    try {
-      if (cloud) await page.getByTestId('login-intro-create').waitFor({ timeout: 90000 });
-      else if (inMatch) await page.getByRole('button', { name: ui.openTimer }).waitFor({ timeout: 90000 }); else await page.getByText(/Seuraava ottelu|Viimeksi avattu|Uusi ottelu|Jatka|Next match|Last opened|New game|Continue/i).first().waitFor({ timeout: 90000 });
-    } catch (e) { await page.screenshot({ path: path.join(outDir, `fail-${name}-boot.png`) }).catch(() => {}); throw e; }
+    // The dev server occasionally answers one navigation with its 404 page while it recompiles: reload once.
+    const booted = async () => {
+        if (cloud) await page.getByTestId('login-intro-create').waitFor({ timeout: 90000 });
+        else if (inMatch) await page.getByRole('button', { name: ui.openTimer }).waitFor({ timeout: 90000 }); else await page.getByText(/Seuraava ottelu|Viimeksi avattu|Uusi ottelu|Jatka|Next match|Last opened|New game|Continue/i).first().waitFor({ timeout: 90000 });
+    };
+    try { await booted(); } catch { await page.reload({ waitUntil: 'networkidle' }); try { await booted(); } catch (e) { await page.screenshot({ path: path.join(outDir, `fail-${name}-boot.png`) }).catch(() => {}); throw e; } }
     await page.evaluate(() => { for (let i = 0; i < 4; i++) history.pushState({}, '', '/'); });
     await arm(); await hold(300);
     try { await run({ page, arm, glide, glideTo, tap, tapAt, touchTap, drag, type, hold, mark, orbit, ripple, pickFromSelect, scrollToHeading, scrollToId, scrollToSelector, scrollPanelTop, text, shot, dump, tapThroughLoad }); }

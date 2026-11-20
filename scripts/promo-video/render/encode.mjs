@@ -6,7 +6,8 @@
  *    scaled by (file length / measured length) before cutting;
  *  - a clip id with a caption gets the caption overlay, one without becomes a plain transition;
  *  - 'phone' composites the recording into the phone frame (out/phone-under|over.png) first;
- *  - the joined hero is re-encoded a notch tighter (crf 24) so it stays under share-page limits.
+ *  - the joined video is encoded at crf 21 (slow, tune film) so the grass keeps its texture; a
+ *    music phone video stays well under 25 MB.
  */
 import fs from 'node:fs'; import path from 'node:path'; import { execFileSync } from 'node:child_process';
 const ffmpeg = (await import('ffmpeg-static')).default;
@@ -71,7 +72,7 @@ recs.forEach((r, ri) => {
 parts.push('scene99.mp4');
 fs.writeFileSync(path.join(CLIPS, 'list.txt'), parts.map(p => `file '${p}'`).join('\n'));
 const hero = path.join(OUT, `matchops-${NAME}-${style}${SFX}.mp4`);
-run(['-f', 'concat', '-safe', '0', '-i', path.join(CLIPS, 'list.txt'), '-c:v', 'libx264', '-preset', 'medium', '-crf', '24', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', hero]);
+run(['-f', 'concat', '-safe', '0', '-i', path.join(CLIPS, 'list.txt'), '-c:v', 'libx264', '-preset', 'slow', '-crf', '21', '-tune', 'film', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', hero]);
 console.log('clips', list.length, '->', hero, (fs.statSync(hero).size / 1e6).toFixed(1) + ' MB', durationOf(hero)?.toFixed(1) + ' s');
 
 /**

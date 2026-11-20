@@ -2,7 +2,7 @@
  * The basic-usage video: match day without a plan, in the full layout. Home -> the game opens on
  * an empty pitch in the stacked match view -> a formation fills it -> select-and-place (tap a
  * player in the bar, tap a spot) -> the clock -> a goal with scorer and assister -> the sub
- * interval running out and "Nollaa vaihtoajastin" -> full time, Viimeistele ottelu, Pöytäkirja,
+ * interval running out and "Vaihto tehty" -> full time, Viimeistele ottelu, Pöytäkirja,
  * Otteluraportti and its share sheet. Same rails as hero.mjs; see its header.
  *
  * Usage: node scenes/basic.mjs [front,timer,finish]
@@ -30,7 +30,7 @@ const CAPTIONS_FI = {
   '5': 'Kello käyntiin',
   '6': { text: 'Maali meille - valitse tekijä ja syöttäjä', pos: 'top' },
   '7': 'Vaihtoajastin muistuttaa valitsemasi välein',
-  '7.5': 'Vaihdon jälkeen: Nollaa vaihtoajastin',
+  '7.5': 'Vaihdon jälkeen: Vaihto tehty',
   '8': 'Loppuvihellys: Viimeistele ottelu',
   '8.5': 'Maalit tallentuvat aikoineen',
   '9': 'Pöytäkirja valmiina kopioitavaksi',
@@ -45,7 +45,7 @@ const CAPTIONS_EN = {
   '5': 'Clock on',
   '6': { text: 'Goal for us - pick the scorer and the assist', pos: 'top' },
   '7': 'The sub timer reminds you at your chosen interval',
-  '7.5': 'After the change: Reset sub timer',
+  '7.5': 'After the change: Sub done',
   '8': 'Final whistle: Finish this game',
   '8.5': 'Goals are saved with their times',
   '9': 'Match sheet ready to copy',
