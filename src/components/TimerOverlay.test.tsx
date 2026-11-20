@@ -132,7 +132,7 @@ describe('TimerOverlay', () => {
 
   it('opens reset confirmation and calls onResetTimer on confirm', async () => {
     render(<TimerOverlay {...baseProps} timeElapsedInSeconds={10} />);
-    // Exact name: "Reset sub timer" is a different control (D13).
+    // Exact name: "Sub done" is a different control (D13).
     const resetButton = screen.getByRole('button', { name: /^reset$/i });
     fireEvent.click(resetButton);
 
@@ -269,7 +269,7 @@ describe('TimerOverlay', () => {
         screen.getByTestId('tour-log-goal'),
         screen.getByRole('button', { name: /opponent \+1/i }),
         screen.getByTestId('planned-sub-group'),
-        screen.getByRole('button', { name: /reset sub timer/i }),
+        screen.getByRole('button', { name: /sub done/i }),
         screen.getByTestId('dictation-hold'),
       ];
       for (let i = 1; i < order.length; i++) {
@@ -580,14 +580,14 @@ describe('TimerOverlay', () => {
     });
 
     /** D13: the button restarts the interval countdown; it records no substitution. */
-    it('labels the interval reset "Reset sub timer" and hides it when the host asks', () => {
+    it('labels the interval reset "Sub done" and hides it when the host asks', () => {
       const { unmount } = render(<TimerOverlay {...baseProps} gameStatus="inProgress" isTimerRunning />);
-      fireEvent.click(screen.getByRole('button', { name: 'Reset sub timer' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Sub done' }));
       expect(baseProps.onSubstitutionMade).toHaveBeenCalledTimes(1);
       unmount();
 
       render(<TimerOverlay {...baseProps} gameStatus="inProgress" isTimerRunning showSubTimerReset={false} />);
-      expect(screen.queryByRole('button', { name: 'Reset sub timer' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Sub done' })).not.toBeInTheDocument();
     });
   });
 });

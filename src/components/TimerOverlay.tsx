@@ -76,7 +76,7 @@ interface TimerOverlayProps {
   /** Kirjuri voice notes (PR 2): press-hold recorder controls; absent = feature not wired. */
   dictation?: DictationControls;
   /**
-   * Shows "Reset sub timer" (D13). The basic layout will pass false to hide it;
+   * Shows "Sub done" (D13). The basic layout will pass false to hide it;
    * the full layout keeps it. Defaults to shown.
    */
   showSubTimerReset?: boolean;
@@ -726,7 +726,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         )}
 
         {/* Secondary actions, below the plan (owner, 2026-11-19): the
-            legacy assess hand-off, "Reset sub timer", dictation, and the
+            legacy assess hand-off, "Sub done", dictation, and the
             overtime / penalties expander. */}
         <div className="w-full mb-3 space-y-3">
           <div className="flex flex-col gap-2.5">
@@ -740,7 +740,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 {t('timerOverlay.assessPlayersButton', 'Assess players')}
               </button>
             )}
-            {/* Reset sub timer (D13; was "Substitution made"): restarts the
+            {/* Sub done (D13; was "Substitution made"): restarts the
                 interval countdown and records nothing about who came on. A
                 quiet pill, dimmed while the clock is stopped. Hidden where the
                 host says so (the basic layout). */}
@@ -753,7 +753,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 title={!(gameStatus === 'inProgress' && isTimerRunning) ? t('timerOverlay.disabledWhenPaused', 'Disabled while paused') ?? undefined : undefined}
                 className={`${secondaryActionStyle} w-full`}
               >
-                {t('timerOverlay.confirmSubButton', 'Reset sub timer')}
+                {t('timerOverlay.confirmSubButton', 'Sub done')}
               </button>
             </div>
             )}

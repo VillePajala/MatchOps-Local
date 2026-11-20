@@ -113,7 +113,7 @@ function AllFeaturesSheet({ onClose, onSwitchToFull, t }: {
   useEscapeToClose(true, onClose);
   const items = [
     t('allFeatures.itemTabs', 'Home with tabs: games, club, competitions and statistics'),
-    t('allFeatures.itemPlanner', 'Rotation planning for several games, such as a tournament day'),
+    t('allFeatures.itemPlanner', 'Match planning for several games, such as a tournament day'),
     t('allFeatures.itemCompetitions', 'Leagues and tournaments'),
     t('allFeatures.itemClub', 'Staff, warm-up plan and rules'),
     t('allFeatures.itemTravel', 'Venues and departure times'),
@@ -312,6 +312,15 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
 
   return (
     <div className="flex min-h-full flex-col gap-3.5" data-testid="home-basic">
+      <button
+        type="button"
+        onClick={() => setAllFeaturesOpen(true)}
+        data-testid="full-app-line"
+        className={`-my-2 flex min-h-[44px] w-full items-center justify-center gap-1 px-2 text-[13px] text-ink-3 ${HOME_FOCUS}`}
+      >
+        <span className="truncate">{t('allFeatures.fullAppLine', 'Simplified view · See the full app')}</span>
+        <HiOutlineChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      </button>
       {unfinished ? (
         <ResumeCard
           // Under way, so no result yet: no win/draw/loss pill on a live score.

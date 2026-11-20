@@ -131,7 +131,8 @@ export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTransl
   // both, and Taso's lineup screen has a box for each.
   const lineupLines = squad.map((p) => {
     const n = numberOf(p);
-    const num = n === undefined ? t('taso.noNumber', '-') : String(n);
+    // No number: just the name (no placeholder).
+    const num = n === undefined ? '' : `${n} `;
     const marks = [
       p.isGoalie ? t('taso.goalie', 'GK') : undefined,
       p.id === game.captainId ? t('taso.captain', 'C') : undefined,
@@ -139,7 +140,7 @@ export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTransl
     // Position last, after a separator, so the line still pastes as
     // "number name" first: "7 Onni Virtanen (Mv, C) · CB".
     const position = lineupPosition(p, game, t);
-    return `${num} ${p.name.trim()}${marks.length ? ` (${marks.join(', ')})` : ''}${position ? ` · ${position}` : ''}`;
+    return `${num}${p.name.trim()}${marks.length ? ` (${marks.join(', ')})` : ''}${position ? ` · ${position}` : ''}`;
   });
   const lineup = [t('taso.lineupTitle', 'Squad'), ...lineupLines].join('\n');
 
@@ -181,7 +182,7 @@ export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTransl
     const p = id ? byId.get(id) : undefined;
     if (!p) return t('taso.unknownPlayer', 'unknown');
     const n = numberOf(p);
-    return `#${n === undefined ? t('taso.noNumber', '-') : n} ${p.name.trim()}`;
+    return `${n === undefined ? '' : `${n} `}${p.name.trim()}`;
   };
   const goalLines = goals.map((e) => {
     const min = tasoMinute(e.time);
