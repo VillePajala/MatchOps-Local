@@ -2,7 +2,7 @@
  * Sentry configuration for Edge runtime (Vercel Edge Functions, Middleware)
  *
  * Edge runtime has limited APIs compared to Node.js, but still benefits from
- * error tracking and performance monitoring for middleware and edge functions.
+ * error tracking for middleware and edge functions (errors only, no traces).
  */
 import * as Sentry from '@sentry/nextjs';
 
@@ -20,8 +20,14 @@ if (dsn && (isProduction || isForceEnabled)) {
   Sentry.init({
     dsn,
 
-    // Performance monitoring - 10% sampling, sustainable at Play Store scale
-    tracesSampleRate: 0.1,
+    // Errors only: no performance traces from the server. The privacy policy
+    // says server-side reports carry no account data and the diagnostics
+    // switch covers usage statistics; server traces would be neither.
+    tracesSampleRate: 0,
+
+    // Never attach IP addresses, cookies or headers (SDK default, made explicit
+    // because the privacy policy depends on it).
+    sendDefaultPii: false,
 
     // Environment tracking
     environment: process.env.NODE_ENV,

@@ -42,6 +42,24 @@ export default function DeleteAccountPage() {
             </section>
 
             <section className="mb-8">
+              <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('deleteAccount.dataOnlyTitle')}</h2>
+              <p className="text-slate-300 mb-3">{t('deleteAccount.dataOnlyIntro')}</p>
+              <ol className="list-decimal list-inside text-slate-300 space-y-1 mb-3">
+                <li>{t('deleteAccount.dataOnlyStep1')}</li>
+                <li>{t('deleteAccount.dataOnlyStep2')}</li>
+                <li>{t('deleteAccount.dataOnlyStep3')}</li>
+              </ol>
+              <p className="text-slate-300 mb-3">{t('deleteAccount.dataOnlyDeleted')}</p>
+              <p className="text-slate-300 mb-3">{t('deleteAccount.dataOnlyKept')}</p>
+              <p className="text-slate-300">{t('deleteAccount.dataOnlyRetention')}</p>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('deleteAccount.itemsTitle')}</h2>
+              <p className="text-slate-300">{t('deleteAccount.itemsContent')}</p>
+            </section>
+
+            <section className="mb-8">
               <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('deleteAccount.keepTitle')}</h2>
               <p className="text-slate-300">{t('deleteAccount.keepContent')}</p>
             </section>
