@@ -59,10 +59,10 @@ const TEXT_PANEL_HEIGHT =
   'calc(2 * 1.15 * clamp(22px, 3.6vw, 30px) + 4px + 4 * 1.45 * clamp(16px, 2.6vw, 21px))';
 
 /**
- * The last-used mode on this device. Entering focus mode stores it; the
- * normal view stores "normal" once the coach steps through a concept in it.
- * Leaving focus mode with back on the way out (back, back -> the library)
- * does not, so the next concept opens in focus mode as the coach left it.
+ * Whether the coach was in focus mode when they last LEFT a concept on this
+ * device; the next concept opens in that mode. Written once, on leaving.
+ * Back from focus mode goes through the normal view to the library (back,
+ * back): that way out counts as leaving in focus mode.
  */
 const FOCUS_PREF_KEY = 'matchops_pelitapa_focus_mode';
 
@@ -123,19 +123,26 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
   const [overrides, setOverrides] = useState<Record<string, string | null>>({});
   const [picking, setPicking] = useState<string | null>(null);
   const [focus, setFocus] = useState(readFocusPreference);
-  const enterFocus = useCallback(() => {
-    setFocus(true);
-    writeFocusPreference(true);
+  /** Out of focus mode, and nothing done in the normal view yet: still "in focus mode" for leaving. */
+  const passingThrough = useRef(false);
+  const enterFocus = useCallback(() => setFocus(true), []);
+  const exitFocus = useCallback(() => {
+    setFocus(false);
+    passingThrough.current = true;
   }, []);
-  const exitFocus = useCallback(() => setFocus(false), []);
-  // Stepping through a concept in the normal view makes it the remembered mode.
   const focusRef = useRef(focus);
   useEffect(() => {
     focusRef.current = focus;
   }, [focus]);
+  // Any step change in the normal view means the coach is using it.
   useEffect(() => {
-    if (isOpen && !focusRef.current) writeFocusPreference(false);
-  }, [isOpen, nav.stage]);
+    if (!focusRef.current) passingThrough.current = false;
+  }, [nav]);
+  // Leaving the concept (closed or unmounted): remember the mode it was left in.
+  useEffect(() => {
+    if (!isOpen) return;
+    return () => writeFocusPreference(focusRef.current || passingThrough.current);
+  }, [isOpen]);
 
   // --- The team: roster + the current game's formation (best effort, never blocks).
   useEffect(() => {
@@ -185,13 +192,13 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
     ro.observe(el);
     return () => ro.disconnect();
   }, [isOpen, focus]);
-  const measured = area.w > 0 && area.h > 0;
-  // Normal view: the pitch at its own aspect. Focus mode: the whole screen
-  // (the board stretches the lines to it, discs stay round).
+  // The pitch keeps its true aspect in both views (a stretched pitch would
+  // distort the distances and angles the animations teach): the largest that
+  // fits the space - in focus mode the whole screen above the title strip.
   const boardW = Math.floor(
-    focus ? (measured ? area.w : FALLBACK_W) : measured ? Math.min(area.w, area.h * PITCH_ASPECT) : FALLBACK_W,
+    area.w > 0 && area.h > 0 ? Math.min(area.w, area.h * PITCH_ASPECT) : FALLBACK_W,
   );
-  const boardH = Math.floor(focus && measured ? area.h : boardW / PITCH_ASPECT);
+  const boardH = Math.floor(boardW / PITCH_ASPECT);
 
   // --- Navigation.
   const steps = validation.ok ? validation.concept.steps : [];
@@ -420,19 +427,19 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
           aria-label={pitchLabel}
           className="absolute inset-x-0 top-0"
           // The strip has its own row under the pitch: over the pitch it would hide our keeper.
-          style={{ touchAction: 'pan-y', bottom: inQuestion ? 0 : FOCUS_STRIP_HEIGHT }}
+          style={{ touchAction: 'pan-y', bottom: FOCUS_STRIP_HEIGHT }}
           onClick={onFocusTap}
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
           onPointerCancel={() => (swipeStart.current = null)}
           data-testid="pelitapa-focus-pitch"
         >
-          {pitch}
+          <div className="flex h-full w-full items-center justify-center">{pitch}</div>
 
           {inQuestion ? (
             <div
               key="q"
-              className="pt-text absolute inset-0 flex flex-col justify-center bg-carbon/95 px-[8vw]"
+              className="pt-text fixed inset-0 flex flex-col justify-center bg-carbon/95 px-[8vw]"
               style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
               aria-live="polite"
             >

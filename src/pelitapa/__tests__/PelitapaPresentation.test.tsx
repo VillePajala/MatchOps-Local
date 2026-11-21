@@ -378,29 +378,60 @@ describe('PelitapaPresentation focus mode', () => {
     expect(screen.getByTestId('pelitapa-focus')).toBeInTheDocument();
   });
 
-  it('remembers focus mode on this device: the next concept opens in it until the normal view is used again', async () => {
-    const first = render(<PelitapaPresentation isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+  it('remembers the mode a concept was left in: focus (also back, back out of it) or normal', async () => {
+    const open = async () => {
+      const view = render(<PelitapaPresentation isOpen onClose={jest.fn()} />);
+      await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+      return view;
+    };
+    const back = () =>
+      act(() => {
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      });
+
+    // Left while in focus mode.
+    let view = await open();
     enterFocus();
-    // Back to the normal view and straight out (back, back): still remembered.
-    act(() => {
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    });
-    first.unmount();
-
-    const second = render(<PelitapaPresentation isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+    view.unmount();
+    view = await open();
     expect(screen.getByTestId('pelitapa-focus')).toBeInTheDocument();
-    // Out of focus mode and stepping in the normal view: the normal view is the mode now.
-    await act(async () => {
-      fireEvent.keyDown(document, { key: 'Escape' });
-    });
-    fireEvent.click(screen.getByTestId('pelitapa-next'));
-    second.unmount();
 
-    render(<PelitapaPresentation isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+    // Back to the normal view, then straight out (back, back): still focus mode.
+    back();
     expect(screen.queryByTestId('pelitapa-focus')).toBeNull();
+    view.unmount();
+    view = await open();
+    expect(screen.getByTestId('pelitapa-focus')).toBeInTheDocument();
+
+    // Out of focus mode and presenting in the normal view, then left: normal.
+    back();
+    fireEvent.click(screen.getByTestId('pelitapa-next'));
+    view.unmount();
+    view = await open();
+    expect(screen.queryByTestId('pelitapa-focus')).toBeNull();
+
+    // Opened in the normal view, then focus mode entered and the concept left in it: focus.
+    enterFocus();
+    view.unmount();
+    await open();
+    expect(screen.getByTestId('pelitapa-focus')).toBeInTheDocument();
+  });
+
+  /** A stretched pitch would distort the distances and angles the animations teach. */
+  it('keeps the pitch at its true aspect in focus mode, the largest that fits', async () => {
+    const w = jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(400);
+    const h = jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(800);
+    try {
+      await renderView();
+      enterFocus();
+      const board = document.querySelector('.pt-pitch') as HTMLElement;
+      // Width-limited on a tall screen: full width, height at 100 : 68.
+      expect(board.style.width).toBe('400px');
+      expect(board.style.height).toBe(`${Math.floor(400 / (68 / 100))}px`);
+    } finally {
+      w.mockRestore();
+      h.mockRestore();
+    }
   });
 
   it('works without storage (blocked localStorage): opens in the normal view', async () => {
