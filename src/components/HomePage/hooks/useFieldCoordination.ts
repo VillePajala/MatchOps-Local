@@ -42,7 +42,6 @@ import logger from '@/utils/logger';
 import {
   calculateFormationPositions,
   applyFormationPreset,
-  generateSidelinePositions,
   generateSubSlots,
   type SubSlot,
 } from '@/utils/formations';
@@ -700,35 +699,19 @@ export function useFieldCoordination({
     logger.debug('[Formation] Setting sub slots:', newSubSlots);
     setSubSlots(newSubSlots);
 
-    // Handle overflow players (place at sub slot positions)
+    // Handle overflow players: fill the sub slots (one per field position on
+    // the right sideline). Anyone beyond that stays in the player bar - a
+    // generic sideline stack used to take them and piled discs up on the
+    // touchline (owner, 2026-11-21). Mirrors buildAutoPlacement.
     if (overflow > 0) {
       const overflowPlayers = fieldPlayers.slice(positions.length);
-      // Pre-compute fallback positions outside the loop (optimization)
-      const fallbackCount = Math.max(0, overflow - newSubSlots.length);
-      const fallbackPositions = fallbackCount > 0 ? generateSidelinePositions(fallbackCount) : [];
-
-      overflowPlayers.forEach((player, index) => {
-        if (index < newSubSlots.length) {
-          // Place at corresponding sub slot position
-          newFieldPlayers.push({
-            ...player,
-            relX: newSubSlots[index].relX,
-            relY: newSubSlots[index].relY
-          });
-        } else {
-          // Fallback: if more overflow than sub slots, use generic sideline positions
-          const fallbackIndex = index - newSubSlots.length;
-          if (fallbackIndex < fallbackPositions.length) {
-            newFieldPlayers.push({
-              ...player,
-              relX: fallbackPositions[fallbackIndex].relX,
-              relY: fallbackPositions[fallbackIndex].relY
-            });
-          }
-        }
+      overflowPlayers.slice(0, newSubSlots.length).forEach((player, index) => {
+        newFieldPlayers.push({
+          ...player,
+          relX: newSubSlots[index].relX,
+          relY: newSubSlots[index].relY
+        });
       });
-
-      logger.log(`Placed ${overflow} overflow players at sub slot positions`);
     }
 
     // Place-all moved EVERY placed player, so the position rule considers them

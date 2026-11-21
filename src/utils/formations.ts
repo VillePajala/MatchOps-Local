@@ -219,33 +219,6 @@ export function applyFormationPreset(
 }
 
 /**
- * Generate sideline positions for overflow/substitute players
- *
- * Places extra players on the right sideline near the bottom corner,
- * stacked vertically with tight spacing (like substitutes on the bench).
- *
- * @param count - Number of overflow players
- * @returns Array of sideline positions
- */
-export function generateSidelinePositions(count: number): FieldPosition[] {
-  if (count <= 0) return [];
-
-  const positions: FieldPosition[] = [];
-  const startY = 0.92;  // Start from bottom corner
-  const spacing = 0.06; // Tight spacing between subs
-  const relX = 0.945;   // Slightly inside the touch boundary
-
-  for (let i = 0; i < count; i++) {
-    positions.push({
-      relX,  // Right sideline (slightly inside)
-      relY: startY - i * spacing,  // Stack upward from bottom
-    });
-  }
-
-  return positions;
-}
-
-/**
  * Sub slot for substitution planning
  * Represents a position on the sideline where a sub can be placed
  */
@@ -468,28 +441,17 @@ export function buildAutoPlacement(
 
   const subSlots = generateSubSlots(positions);
 
-  // Overflow players (more outfielders than formation slots) go onto sub slots,
-  // then generic sideline positions once the sub slots run out. Reachable in
-  // the PRESET path (a fixed-size preset can be smaller than the squad); in
-  // auto mode overflow is always 0 (calculateFormationPositions returns exactly
-  // outfielders.length positions). Mirrors the match-side twin
-  // (handlePlaceAllPlayers) so the two stay behaviourally in sync.
-  const overflow = Math.max(0, outfielders.length - positions.length);
-  if (overflow > 0) {
-    const overflowPlayers = outfielders.slice(positions.length);
-    const fallbackCount = Math.max(0, overflow - subSlots.length);
-    const fallbackPositions = fallbackCount > 0 ? generateSidelinePositions(fallbackCount) : [];
-    overflowPlayers.forEach((player, index) => {
-      if (index < subSlots.length) {
-        placed.push({ ...player, relX: subSlots[index].relX, relY: subSlots[index].relY, isGoalie: false });
-      } else {
-        const fallbackIndex = index - subSlots.length;
-        if (fallbackIndex < fallbackPositions.length) {
-          placed.push({ ...player, relX: fallbackPositions[fallbackIndex].relX, relY: fallbackPositions[fallbackIndex].relY, isGoalie: false });
-        }
-      }
-    });
-  }
+  // Overflow players (more outfielders than formation slots) go onto the sub
+  // slots - one per field position on the right sideline. Players beyond that
+  // are NOT placed: they stay in the player bar, ready to tap and place. A
+  // generic sideline stack used to take them, but it overlapped the sub slots
+  // and piled discs up on the touchline (owner, 2026-11-21). Reachable only in
+  // the PRESET path (auto mode returns exactly outfielders.length positions).
+  // Mirrors the match-side twin (handlePlaceAllPlayers).
+  const overflowPlayers = outfielders.slice(positions.length);
+  overflowPlayers.slice(0, subSlots.length).forEach((player, index) => {
+    placed.push({ ...player, relX: subSlots[index].relX, relY: subSlots[index].relY, isGoalie: false });
+  });
 
   const formationSnapPoints: Point[] = [
     { relX: 0.5, relY: 0.95 },
