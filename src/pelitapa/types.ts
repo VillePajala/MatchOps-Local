@@ -14,6 +14,16 @@
 export const PITCH_WIDTH = 68;
 export const PITCH_LENGTH = 100;
 
+/**
+ * Our disc's radius as a fraction of the pitch width, and an opponent disc's
+ * radius as a fraction of ours. The ONE source for disc size: PelitapaPitch
+ * draws with it (normal view, thumbnails and focus mode alike) and
+ * lintConcept checks spacing with it, so what the lint passes is what the
+ * board shows.
+ */
+export const DISC_RADIUS_RATIO = 0.043;
+export const OPP_DISC_SCALE = 0.74;
+
 export type Point = [number, number];
 
 export type ConceptFormat = '5v5' | '8v8' | '11v11';

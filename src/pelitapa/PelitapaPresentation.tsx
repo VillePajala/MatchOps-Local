@@ -27,8 +27,9 @@ import type { Concept } from './types';
  * "Pohdittavaksi" question. The screen stays awake while it is open.
  *
  * Focus mode ("Fokustila", the full-screen button in the header): only the
- * pitch, edge to edge, with bigger discs; the step title in a strip at the
- * bottom and a small step counter. A tap on the right half of the pitch goes
+ * pitch, edge to edge (discs keep their size relative to the pitch, so they
+ * grow with it); the step title in a strip at the bottom and a small step
+ * counter. A tap on the right half of the pitch goes
  * forward, the left half back (a disc tap still picks the name), a swipe
  * works too; the question fills the screen. The phone's back button and
  * Escape return to the normal view on the same step. The mode is remembered
