@@ -3,7 +3,7 @@
 import React, { useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { SOCCER_FIELD_CONFIG } from '@/config/fieldConfigs';
 import { drawFieldBackground, drawFieldMarkings } from '@/utils/fieldDrawing';
-import { PITCH_LENGTH, PITCH_WIDTH, type ArrowKind, type ConceptPlayer, type Point } from './types';
+import { DISC_RADIUS_RATIO, OPP_DISC_SCALE, PITCH_LENGTH, PITCH_WIDTH, type ArrowKind, type ConceptPlayer, type Point } from './types';
 import type { ResolvedArrow, ResolvedStep, ResolvedZone } from './resolveStep';
 import { bendControl, easeStandard, quadPoint, type StepMotion } from './motion';
 
@@ -59,7 +59,7 @@ interface PelitapaPitchProps {
   still?: boolean;
   /** How the players and the ball travel into this step; null/undefined = they jump. */
   motion?: StepMotion | null;
-  /** Focus mode: bigger discs and names, scaled to the (larger) board. */
+  /** Focus mode: discs and names at DISC_RADIUS_RATIO of the (larger) board, with no clamp. */
   focus?: boolean;
 }
 
@@ -279,6 +279,19 @@ function discFontSize(name: string, r: number): number {
   return Math.max(10, Math.min(base, fit));
 }
 
+/**
+ * Disc radii in pixels for a board `width` pixels wide. Thumbnails and focus
+ * mode use exactly DISC_RADIUS_RATIO of the pitch width (the size lintConcept
+ * checks against); a focus-mode board is bigger, so its discs grow with it.
+ * The normal view clamps the size so discs stay tappable on a phone and do not
+ * balloon on a wide screen.
+ */
+export function discRadii(width: number, { still = false, focus = false }: { still?: boolean; focus?: boolean } = {}) {
+  const exact = width * DISC_RADIUS_RATIO;
+  const r = still || focus ? exact : Math.max(16, Math.min(30, exact));
+  return { r, rOpp: r * OPP_DISC_SCALE };
+}
+
 export default function PelitapaPitch({
   width: W,
   height: H,
@@ -294,12 +307,7 @@ export default function PelitapaPitch({
   // Several boards can be on one page (library thumbnails): ids must be unique.
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const unit = W / 100; // 1% of the pitch width
-  const r = still
-    ? W * 0.042
-    : focus
-      ? Math.max(20, Math.min(48, W * 0.054, H * 0.04))
-      : Math.max(16, Math.min(30, W * 0.043));
-  const rOpp = r * 0.74;
+  const { r, rOpp } = discRadii(W, { still, focus });
   const px = (p: Point): Point => [(p[0] / PITCH_WIDTH) * W, (p[1] / PITCH_LENGTH) * H];
   const moveMs = instant ? 0 : (motion?.durationMs ?? resolved.step.durationMs ?? DEFAULT_MOVE_MS);
   const highlights = new Set(resolved.highlights);

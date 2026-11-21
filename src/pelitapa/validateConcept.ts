@@ -1,4 +1,6 @@
 import {
+  DISC_RADIUS_RATIO,
+  OPP_DISC_SCALE,
   PITCH_LENGTH,
   PITCH_WIDTH,
   type ArrowKind,
@@ -182,11 +184,14 @@ export function validateConcept(input: unknown): ConceptValidation {
 }
 
 /**
- * Disc sizes on the board in concept units (the board draws our disc at ~4.3%
- * of the pitch width, an opponent at 74% of that). Used to find discs that
- * sit on top of each other.
+ * Disc sizes on the board in concept units, from the same constants the board
+ * draws with (DISC_RADIUS_RATIO of the pitch width; an opponent OPP_DISC_SCALE
+ * of that). Used to find discs that sit on top of each other.
  */
-export const LINT_DISC_RADIUS = { us: 2.9, opp: 2.2 } as const;
+export const LINT_DISC_RADIUS = {
+  us: DISC_RADIUS_RATIO * PITCH_WIDTH,
+  opp: DISC_RADIUS_RATIO * OPP_DISC_SCALE * PITCH_WIDTH,
+} as const;
 /** Discs closer than the sum of their radii plus this gap read as one blob. */
 export const LINT_DISC_GAP = 0.3;
 /** More arrows than this in one step is hard to follow for a kid. */

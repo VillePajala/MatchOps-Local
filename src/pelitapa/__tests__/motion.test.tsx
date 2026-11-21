@@ -12,8 +12,9 @@ import {
   quadPoint,
 } from '../motion';
 import { resolveStep } from '../resolveStep';
-import PelitapaPitch from '../PelitapaPitch';
-import { PITCH_LENGTH, PITCH_WIDTH, type Concept, type Point } from '../types';
+import PelitapaPitch, { discRadii } from '../PelitapaPitch';
+import { LINT_DISC_RADIUS } from '../validateConcept';
+import { DISC_RADIUS_RATIO, OPP_DISC_SCALE, PITCH_LENGTH, PITCH_WIDTH, type Concept, type Point } from '../types';
 
 /** a runs round x on a curve; the ball goes with a long ball to b, then a carries it. */
 const concept = (): Concept => ({
@@ -248,5 +249,41 @@ describe('PelitapaPitch motion', () => {
     rerender(board(0, null));
     expect(dist(translateOf(container.querySelector('[data-player="a"]') as Element), px([20, 70]))).toBeLessThan(0.2);
     expect(frames).toHaveLength(0);
+  });
+});
+
+/**
+ * The board and lintConcept share one disc size (DISC_RADIUS_RATIO of the
+ * pitch width), so spacing the lint passes is spacing the board shows -
+ * in focus mode too, where the board is bigger but the discs are not
+ * relatively bigger.
+ * @critical
+ */
+describe('PelitapaPitch disc size', () => {
+  const radiusOf = (container: HTMLElement, id: string) =>
+    Number(container.querySelector(`[data-player="${id}"] circle`)?.getAttribute('r'));
+
+  it('focus mode draws discs at exactly DISC_RADIUS_RATIO of the board width', () => {
+    const W = 760;
+    const { container } = render(
+      <PelitapaPitch width={W} height={1100} players={concept().players} resolved={resolveStep(concept(), 0)} labels={{}} focus />,
+    );
+    expect(radiusOf(container, 'a')).toBeCloseTo(W * DISC_RADIUS_RATIO, 5);
+    expect(radiusOf(container, 'x')).toBeCloseTo(W * DISC_RADIUS_RATIO * OPP_DISC_SCALE, 5);
+  });
+
+  it('focus mode and thumbnails are unclamped; the normal view clamps to 16..30 px', () => {
+    for (const W of [300, 760, 1400]) {
+      expect(discRadii(W, { focus: true }).r).toBeCloseTo(W * DISC_RADIUS_RATIO, 5);
+      expect(discRadii(W, { still: true }).r).toBeCloseTo(W * DISC_RADIUS_RATIO, 5);
+    }
+    expect(discRadii(200).r).toBe(16);
+    expect(discRadii(600).r).toBeCloseTo(600 * DISC_RADIUS_RATIO, 5);
+    expect(discRadii(1400).r).toBe(30);
+  });
+
+  it('lintConcept checks spacing with the same ratio, in concept units', () => {
+    expect(LINT_DISC_RADIUS.us).toBeCloseTo(DISC_RADIUS_RATIO * PITCH_WIDTH, 10);
+    expect(LINT_DISC_RADIUS.opp).toBeCloseTo(DISC_RADIUS_RATIO * OPP_DISC_SCALE * PITCH_WIDTH, 10);
   });
 });
