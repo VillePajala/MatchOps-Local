@@ -20,6 +20,18 @@ jest.mock('@/utils/appSettings', () => ({
 }));
 
 jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast: jest.fn() }) }));
+const mockHasFeature = jest.fn((_feature: string) => false);
+jest.mock('@/hooks/useAccountFeatures', () => ({
+  useAccountFeatures: () => ({ hasFeature: mockHasFeature }),
+}));
+jest.mock('@/pelitapa/PelitapaPresentation', () => ({
+  __esModule: true,
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="pelitapa-stub">
+      <button onClick={onClose}>close-pelitapa</button>
+    </div>
+  ),
+}));
 jest.mock('@/utils/playtimePlanner/planLinks', () => ({ getPlanLink: jest.fn().mockResolvedValue(null) }));
 jest.mock('@/utils/playtimePlanner/storage', () => ({
   ...jest.requireActual('@/utils/playtimePlanner/storage'),
@@ -596,6 +608,33 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     // Back to Games restores the front page.
     fireEvent.click(screen.getByRole('tab', { name: 'Games' }));
     expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument();
+  });
+
+  /**
+   * Pelitapa is hidden behind a server-controlled account flag: without it the
+   * club panel is exactly as before.
+   * @critical
+   */
+  it('Club panel: no Pelitapa row without the account flag', () => {
+    mockHasFeature.mockReturnValue(false);
+    render(<StartScreen {...shellProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    expect(screen.queryByTestId('club-pelitapa')).not.toBeInTheDocument();
+    expect(mockHasFeature).toHaveBeenCalledWith('pelitapa');
+  });
+
+  it('Club panel: with the flag, "Pelitapa (test)" opens the presentation view', async () => {
+    mockHasFeature.mockReturnValue(true);
+    render(<StartScreen {...shellProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    expect(screen.queryByTestId('pelitapa-stub')).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('club-pelitapa'));
+    });
+    expect(await screen.findByTestId('pelitapa-stub')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('close-pelitapa'));
+    await waitFor(() => expect(screen.queryByTestId('pelitapa-stub')).not.toBeInTheDocument());
+    mockHasFeature.mockReturnValue(false);
   });
 
   it('Seasons and Stats are REAL panels: tabs switch, the rows open the surfaces (3.1b)', () => {

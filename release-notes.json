@@ -3,6 +3,12 @@
   "releases": [
     {
       "date": "2026-11-21",
+      "internal": true,
+      "en": ["Groundwork for a test feature that is not yet visible to coaches."],
+      "fi": ["Pohjatyötä testiominaisuudelle, joka ei vielä näy valmentajille."]
+    },
+    {
+      "date": "2026-11-21",
       "en": ["Result letters are consistent everywhere: W, D, L."],
       "fi": ["Tuloskirjaimet ovat nyt kaikkialla samat: V, T, H (voitto, tasapeli, häviö)."]
     },

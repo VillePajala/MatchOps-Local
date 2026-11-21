@@ -754,7 +754,8 @@ describe('Translation File Validation', () => {
       // +6 / -4 Home "Joukkueet" card (dashTeamsCard, dashHomeAway, dashAtHome, dashAway,
       //     dashNoTeam, dashNoGames); top scorers removed (dashTopScorers, clubTopScorer,
       //     dashGoalsWord _one/_other) (2026-11-21). 3665.
-      expect(enKeys.length).toBe(3665);
+      // +13 Pelitapa (flagged): startScreen.rowPelitapa/clubPelitapaSub + 11 pelitapa.* (2026-11-21). 3678.
+      expect(enKeys.length).toBe(3678);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -970,7 +971,7 @@ describe('Translation File Validation', () => {
       // +1 playerStats.goalsAssistsShort (match log G+A figure). 3657.
       // +8 / -2 league & tournament cards (record line, starts-in chip). 3663.
       // +6 / -4 Home "Joukkueet" card; top scorers removed. 3665.
-      expect(fiKeys.length).toBe(3665);
+      expect(fiKeys.length).toBe(3678);
     });
   });
 });

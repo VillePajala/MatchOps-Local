@@ -31,6 +31,7 @@ const fetchedThisSession = new Set<string>();
 
 function readCache(userId: string): ReadonlySet<string> {
   try {
+    // eslint-disable-next-line no-restricted-globals -- a tiny per-user cache of server flags, not app data
     const raw = localStorage.getItem(CACHE_PREFIX + userId);
     if (!raw) return EMPTY;
     const parsed: unknown = JSON.parse(raw);
@@ -43,6 +44,7 @@ function readCache(userId: string): ReadonlySet<string> {
 
 function writeCache(userId: string, features: ReadonlySet<string>): void {
   try {
+    // eslint-disable-next-line no-restricted-globals -- a tiny per-user cache of server flags, not app data
     localStorage.setItem(CACHE_PREFIX + userId, JSON.stringify([...features].sort()));
   } catch {
     // Storage full or blocked: the in-memory answer still holds for this session.

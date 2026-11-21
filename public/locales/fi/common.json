@@ -1279,7 +1279,9 @@
     "clubSectionCoaching": "Valmennus",
     "clubTrainingSub": "Lämmittely ennen peliä",
     "clubRulesSub": "Laji- ja sarjasäännöt",
-    "clubMaterialsSub": "Palloliiton valmentajamateriaalit"
+    "clubMaterialsSub": "Palloliiton valmentajamateriaalit",
+    "rowPelitapa": "Pelitapa (testi)",
+    "clubPelitapaSub": "Animoidut pelitilanteet"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -4227,5 +4229,18 @@
   "privacyHints": {
     "noHealthData": "Älä kirjaa terveystietoja.",
     "firstNameEnough": "Etunimi tai lempinimi riittää."
+  },
+  "pelitapa": {
+    "close": "Sulje",
+    "previous": "Edellinen vaihe",
+    "next": "Seuraava",
+    "toQuestion": "Pohdittavaksi",
+    "restart": "Alusta",
+    "stepN": "Vaihe {{n}}",
+    "pitchLabel": "Kenttä, vaihe {{current}} / {{total}}",
+    "changePlayer": "Valitse pelaaja",
+    "changePlayerNamed": "Vaihda pelaaja: {{name}}",
+    "noName": "Ei nimeä",
+    "invalidConcept": "Tätä pelitilannetta ei voi näyttää."
   }
 }
