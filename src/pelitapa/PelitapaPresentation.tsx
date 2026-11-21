@@ -275,14 +275,6 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
 
       {/* Header */}
       <div className="flex w-full flex-shrink-0 items-center gap-3 px-4 pb-3 sm:px-7" style={{ maxWidth: PANEL_MAX_W }}>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t('pelitapa.close', 'Close')}
-          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-white/10 bg-surface-2 text-ink-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
-        >
-          <HiChevronLeft className="h-6 w-6" aria-hidden="true" />
-        </button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">
             {c.phase} · {c.format}
