@@ -30,7 +30,14 @@ import { clearSubscriptionCache } from '@/contexts/SubscriptionContext';
 import * as Sentry from '@sentry/nextjs';
 import type { AuthService } from '@/interfaces/AuthService';
 import logger from '@/utils/logger';
-import { getCachedUserIdentity, clearCachedSupabaseSession } from '@/auth/cachedSession';
+import {
+  getCachedUserIdentity,
+  clearCachedSupabaseSession,
+  readConfirmedConsentVersion,
+  rememberConfirmedConsentVersion,
+  forgetConfirmedConsentVersion,
+} from '@/auth/cachedSession';
+import { markLaunch } from '@/utils/launchTiming';
 import { setAiAccount, forgetAiAccount } from '@/utils/aiProvider';
 import { forgetReplacedReport } from '@/utils/reportUndo';
 import { onAuthServerUnreachable } from '@/auth/authReachability';
@@ -332,6 +339,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const stopListeningForUnreachable = onAuthServerUnreachable(() => enterGraceEarly('sign-in server unreachable'));
 
     async function initAuth() {
+      markLaunch('auth_init_start');
       // CRITICAL: Set mode FIRST, before any async operations that might fail.
       // If getAuthService() fails (e.g., AbortError), mode must still be set correctly
       // so the UI shows LoginScreen (cloud) instead of StartScreen (local).
@@ -435,30 +443,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Checked BEFORE setUser/setSession for the same reason signIn() does it
         // in that order: needsReConsent must be set first, or the app renders
         // logged-in for a frame before the modal appears.
+        //
+        // Except when this device already knows the account accepted the CURRENT
+        // version (readConfirmedConsentVersion - written only from the server's answer
+        // below): then nothing can need re-consent, so the start does not wait for the
+        // lookup, which still runs in the background. A new POLICY_VERSION or another
+        // account never matches, so they wait as before.
         if (currentSession && isCloudAvailable()) {
-          try {
-            const latestConsent = await service.getLatestConsent();
-            if (latestConsent && latestConsent.policyVersion !== POLICY_VERSION) {
-              logger.info('[AuthProvider] Restored session predates the current policy - requiring re-consent');
-              setNeedsReConsent(true);
-            }
-          } catch (consentError) {
-            // Never block startup on this. A user who cannot be checked is left
-            // alone; the token-refresh path will catch them later, which is the
-            // behaviour they had before this check existed.
-            logger.warn('[AuthProvider] Failed to check consent on session restore:', consentError);
-            if (!(consentError instanceof NetworkError)) {
-              try {
-                Sentry.captureException(consentError, {
-                  tags: { flow: 'session-restore-consent-check' },
-                  level: 'warning',
-                });
-              } catch {
-                // Sentry failure is acceptable
+          const sessionUserId = currentSession.user?.id;
+          const checkRestoredConsent = async (): Promise<void> => {
+            try {
+              const latestConsent = await service.getLatestConsent();
+              if (latestConsent && latestConsent.policyVersion !== POLICY_VERSION) {
+                logger.info('[AuthProvider] Restored session predates the current policy - requiring re-consent');
+                forgetConfirmedConsentVersion();
+                if (mounted) setNeedsReConsent(true);
+              } else if (latestConsent && sessionUserId) {
+                rememberConfirmedConsentVersion(sessionUserId, POLICY_VERSION);
+              }
+            } catch (consentError) {
+              // Never block startup on this. A user who cannot be checked is left
+              // alone; the token-refresh path will catch them later, which is the
+              // behaviour they had before this check existed.
+              logger.warn('[AuthProvider] Failed to check consent on session restore:', consentError);
+              if (!(consentError instanceof NetworkError)) {
+                try {
+                  Sentry.captureException(consentError, {
+                    tags: { flow: 'session-restore-consent-check' },
+                    level: 'warning',
+                  });
+                } catch {
+                  // Sentry failure is acceptable
+                }
               }
             }
+          };
+          if (sessionUserId && readConfirmedConsentVersion(sessionUserId) === POLICY_VERSION) {
+            void checkRestoredConsent();
+          } else {
+            await checkRestoredConsent();
+            if (!mounted) return;
           }
-          if (!mounted) return;
         }
 
         setUser(resolvedUser);
@@ -730,6 +755,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         initSettled = true;
+        markLaunch('auth_init_end');
         stopListeningForUnreachable();
         if (mounted) {
           setIsLoading(false);

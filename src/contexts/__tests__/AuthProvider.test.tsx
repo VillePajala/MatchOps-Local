@@ -719,6 +719,123 @@ describe('AuthProvider', () => {
       expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('no');
     });
 
+    /**
+     * Loading-speed stage 1: a restored session skips the WAIT for the consent lookup
+     * only when this device already knows the account accepted the current policy.
+     * Everyone else still sees the re-consent modal before the app (legal requirement).
+     * @critical
+     */
+    describe('restored session and the remembered consent', () => {
+      const CONSENT_KEY = 'matchops_consent_confirmed';
+      let store: Record<string, string>;
+
+      beforeEach(() => {
+        store = {};
+        (localStorage.getItem as jest.Mock).mockImplementation((key: string) => store[key] ?? null);
+        (localStorage.setItem as jest.Mock).mockImplementation((key: string, value: string) => { store[key] = String(value); });
+        (localStorage.removeItem as jest.Mock).mockImplementation((key: string) => { delete store[key]; });
+      });
+
+      function ConsentState() {
+        const { needsReConsent, isLoading, isAuthenticated } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <span data-testid="needs-reconsent">{needsReConsent ? 'yes' : 'no'}</span>
+          </div>
+        );
+      }
+
+      /** A consent lookup the test answers by hand. */
+      const pendingLookup = () => {
+        let answer!: (value: { policyVersion: string; consentedAt: string } | null) => void;
+        mockAuthService.getLatestConsent = jest.fn(() => new Promise((resolve) => { answer = resolve; }));
+        return {
+          answer: (policyVersion: string) => answer({ policyVersion, consentedAt: new Date().toISOString() }),
+        };
+      };
+
+      it('does not wait for the lookup when this account already accepted the current policy', async () => {
+        store[CONSENT_KEY] = JSON.stringify({ userId: mockCloudUser.id, version: POLICY_VERSION });
+        pendingLookup(); // never answered
+
+        render(<AuthProvider><ConsentState /></AuthProvider>);
+
+        await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('ready'));
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+        expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('no');
+        // The lookup still runs, in the background.
+        expect(mockAuthService.getLatestConsent).toHaveBeenCalled();
+      });
+
+      it('waits for the lookup when nothing is remembered, and then requires re-consent', async () => {
+        const lookup = pendingLookup();
+
+        render(<AuthProvider><ConsentState /></AuthProvider>);
+
+        await waitFor(() => expect(mockAuthService.getLatestConsent).toHaveBeenCalled());
+        // Not signed in on screen while the answer is outstanding.
+        expect(screen.getByTestId('loading')).toHaveTextContent('loading');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+
+        await act(async () => { lookup.answer('2024-01'); });
+
+        await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('ready'));
+        expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('yes');
+      });
+
+      it('waits when the remembered acceptance is of an older policy version', async () => {
+        store[CONSENT_KEY] = JSON.stringify({ userId: mockCloudUser.id, version: '2024-01' });
+        const lookup = pendingLookup();
+
+        render(<AuthProvider><ConsentState /></AuthProvider>);
+
+        await waitFor(() => expect(mockAuthService.getLatestConsent).toHaveBeenCalled());
+        expect(screen.getByTestId('loading')).toHaveTextContent('loading');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+
+        await act(async () => { lookup.answer('2024-01'); });
+        await waitFor(() => expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('yes'));
+      });
+
+      it('waits when the remembered acceptance belongs to another account', async () => {
+        store[CONSENT_KEY] = JSON.stringify({ userId: 'someone-else', version: POLICY_VERSION });
+        pendingLookup();
+
+        render(<AuthProvider><ConsentState /></AuthProvider>);
+
+        await waitFor(() => expect(mockAuthService.getLatestConsent).toHaveBeenCalled());
+        expect(screen.getByTestId('loading')).toHaveTextContent('loading');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+      });
+
+      it('remembers the acceptance once the server confirms the current version', async () => {
+        const lookup = pendingLookup();
+
+        render(<AuthProvider><ConsentState /></AuthProvider>);
+
+        await waitFor(() => expect(mockAuthService.getLatestConsent).toHaveBeenCalled());
+        await act(async () => { lookup.answer(POLICY_VERSION); });
+
+        await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('ready'));
+        expect(JSON.parse(store[CONSENT_KEY])).toEqual({ userId: mockCloudUser.id, version: POLICY_VERSION });
+      });
+
+      it('still shows the re-consent modal (and forgets the record) if the background lookup disagrees', async () => {
+        store[CONSENT_KEY] = JSON.stringify({ userId: mockCloudUser.id, version: POLICY_VERSION });
+        const lookup = pendingLookup();
+
+        render(<AuthProvider><ConsentState /></AuthProvider>);
+        await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('ready'));
+
+        await act(async () => { lookup.answer('2024-01'); });
+
+        await waitFor(() => expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('yes'));
+        expect(store[CONSENT_KEY]).toBeUndefined();
+      });
+    });
+
     it('should set needsReConsent when user has old policy version', async () => {
       // Mock old policy version
       mockAuthService.getLatestConsent = jest.fn().mockResolvedValue({
