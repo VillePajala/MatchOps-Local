@@ -71,6 +71,8 @@ describe('Edge Cases and Error Handling Tests', () => {
         // With IndexedDB as primary storage, localStorage corruption shouldn't block loading
         await waitFor(() => {
           expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
         }, { timeout: 10000 }); // Increased timeout for IndexedDB initialization
 
         // App should render and show some key content
@@ -92,6 +94,8 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 15000 });
 
       // Should render successfully despite storage issues
@@ -120,6 +124,8 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 15000 });
 
       // Should render despite network issues
@@ -353,6 +359,8 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 15000 });
 
       // Should render successfully without ResizeObserver
@@ -372,6 +380,8 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 15000 });
 
       // Should render successfully without performance API
@@ -389,6 +399,8 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 15000 });
 
       const buttons = screen.getAllByRole('button').filter(btn => !(btn as HTMLButtonElement).disabled);
@@ -488,6 +500,8 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 15000 });
 
       // Should render successfully even under memory pressure
@@ -500,6 +514,8 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 15000 });
 
       // Unmount should not throw errors
@@ -522,6 +538,8 @@ describe('Edge Cases and Error Handling Tests', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 15000 });
 
       // Check that the app provides ways to recover from errors
