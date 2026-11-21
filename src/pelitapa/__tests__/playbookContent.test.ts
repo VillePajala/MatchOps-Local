@@ -6,7 +6,7 @@
  */
 import { readdirSync, readFileSync } from 'fs';
 import path from 'path';
-import { validateConcept } from '../validateConcept';
+import { lintConcept, validateConcept } from '../validateConcept';
 
 const DIR = path.join(process.cwd(), 'content', 'pelitapa');
 const files = readdirSync(DIR).filter((f) => f.endsWith('.json'));
@@ -38,6 +38,21 @@ describe('committed playbook content', () => {
       });
       expect(problems).toEqual([]);
       expect(ids.size).toBe(doc.concepts.length);
+    });
+
+    /**
+     * Readability warnings (overlapping discs, too many arrows, a pass not from
+     * the ball...). Printed, not failed, for now: the reviewed content will
+     * replace this file, and then this becomes `expect(warnings).toEqual([])`.
+     */
+    it('lintConcept: prints the readability warnings', () => {
+      const warnings: string[] = [];
+      for (const c of doc.concepts) {
+        const v = validateConcept(c);
+        if (v.ok) warnings.push(...lintConcept(v.concept).map((w) => `${v.concept.id} ${w}`));
+      }
+      console.log(`[pelitapa lint] ${file}: ${warnings.length} warning(s)\n${warnings.join('\n')}`);
+      expect(Array.isArray(warnings)).toBe(true);
     });
   });
 });

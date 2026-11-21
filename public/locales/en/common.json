@@ -4267,6 +4267,7 @@
         "transitionMinus": "Transition: ball lost",
         "setPieces": "Set pieces"
       }
-    }
+    },
+    "focusMode": "Focus mode"
   }
 }

@@ -756,7 +756,8 @@ describe('Translation File Validation', () => {
       //     dashGoalsWord _one/_other) (2026-11-21). 3665.
       // +13 Pelitapa (flagged): startScreen.rowPelitapa/clubPelitapaSub + 11 pelitapa.* (2026-11-21). 3678.
       // +22 Pelitapa library: 16 pelitapa.library.* (steps _one/_other) + 6 pelitapa.library.phase.*. 3700.
-      expect(enKeys.length).toBe(3700);
+      // +1 pelitapa.focusMode (Pelitapa focus mode button). 3701.
+      expect(enKeys.length).toBe(3701);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -973,7 +974,8 @@ describe('Translation File Validation', () => {
       // +8 / -2 league & tournament cards (record line, starts-in chip). 3663.
       // +6 / -4 Home "Joukkueet" card; top scorers removed. 3665.
       // +22 Pelitapa library. 3700.
-      expect(fiKeys.length).toBe(3700);
+      // +1 Pelitapa focus mode. 3701.
+      expect(fiKeys.length).toBe(3701);
     });
   });
 });

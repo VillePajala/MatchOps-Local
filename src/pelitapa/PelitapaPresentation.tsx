@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiChevronLeft, HiArrowPath } from 'react-icons/hi2';
+import { HiChevronLeft, HiArrowPath, HiArrowsPointingOut } from 'react-icons/hi2';
 import type { Player } from '@/types';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useWakeLock } from '@/hooks/useWakeLock';
@@ -13,6 +13,7 @@ import logger from '@/utils/logger';
 import { DEMO_CONCEPT } from './demoConcept';
 import { validateConcept } from './validateConcept';
 import { crossesCut, resolveStep } from './resolveStep';
+import { planMotion } from './motion';
 import { assignPlayers, discName } from './assignNames';
 import PelitapaPitch, { PITCH_ASPECT, type DiscLabel } from './PelitapaPitch';
 import type { Concept } from './types';
@@ -24,6 +25,14 @@ import type { Concept } from './types';
  * swaps the name for this session. Steps move with next/previous, the dots,
  * a swipe on the pitch or the arrow keys; after the last step comes the
  * "Pohdittavaksi" question. The screen stays awake while it is open.
+ *
+ * Focus mode ("Fokustila", the full-screen button in the header): only the
+ * pitch, edge to edge, with bigger discs; the step title in a strip at the
+ * bottom and a small step counter. A tap on the right half of the pitch goes
+ * forward, the left half back (a disc tap still picks the name), a swipe
+ * works too; the question fills the screen. The phone's back button and
+ * Escape return to the normal view on the same step. The mode is remembered
+ * per device (see FOCUS_PREF_KEY).
  *
  * Lazily loaded (lazyModal): nothing here is in the start-up or match bundles.
  */
@@ -49,8 +58,38 @@ const PANEL_MAX_W = 760;
 const TEXT_PANEL_HEIGHT =
   'calc(2 * 1.15 * clamp(22px, 3.6vw, 30px) + 4px + 4 * 1.45 * clamp(16px, 2.6vw, 21px))';
 
+/**
+ * Whether the coach was in focus mode when they last LEFT a concept on this
+ * device; the next concept opens in that mode. Written once, on leaving.
+ * Back from focus mode goes through the normal view to the library (back,
+ * back): that way out counts as leaving in focus mode.
+ */
+const FOCUS_PREF_KEY = 'matchops_pelitapa_focus_mode';
+
+function readFocusPreference(): boolean {
+  try {
+    // eslint-disable-next-line no-restricted-globals -- a per-device view preference, not app data
+    return localStorage.getItem(FOCUS_PREF_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeFocusPreference(on: boolean): void {
+  try {
+    // eslint-disable-next-line no-restricted-globals -- a per-device view preference, not app data
+    if (on) localStorage.setItem(FOCUS_PREF_KEY, '1');
+    // eslint-disable-next-line no-restricted-globals -- a per-device view preference, not app data
+    else localStorage.removeItem(FOCUS_PREF_KEY);
+  } catch {
+    // Storage blocked: the mode just is not remembered.
+  }
+}
+
+/** Focus mode's title strip: one line of the title + padding + the phone's gesture bar. */
+const FOCUS_STRIP_HEIGHT = 'calc(1.2 * clamp(20px, 3.6vw, 32px) + 22px + env(safe-area-inset-bottom))';
+
 const MOTION_CSS = `
-.pt-move { transition: transform var(--pt-move, 900ms) cubic-bezier(.4,0,.2,1); }
 .pt-draw { stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: pt-draw var(--pt-draw, 650ms) cubic-bezier(.3,0,.2,1) var(--pt-delay, 0ms) forwards; }
 .pt-head { opacity: 0; animation: pt-fade 180ms ease-out calc(var(--pt-delay, 0ms) + var(--pt-draw, 650ms) - 120ms) forwards; }
 .pt-zone { opacity: 0; animation: pt-fade 450ms ease-out var(--pt-delay, 0ms) forwards; }
@@ -60,7 +99,6 @@ const MOTION_CSS = `
 @keyframes pt-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes pt-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .pt-move { transition: none; }
   .pt-draw { animation: none; stroke-dashoffset: 0; }
   .pt-head, .pt-zone, .pt-ring, .pt-text { animation: none; opacity: 1; }
 }
@@ -84,6 +122,27 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
   const [fieldPlayers, setFieldPlayers] = useState<Player[]>([]);
   const [overrides, setOverrides] = useState<Record<string, string | null>>({});
   const [picking, setPicking] = useState<string | null>(null);
+  const [focus, setFocus] = useState(readFocusPreference);
+  /** Out of focus mode, and nothing done in the normal view yet: still "in focus mode" for leaving. */
+  const passingThrough = useRef(false);
+  const enterFocus = useCallback(() => setFocus(true), []);
+  const exitFocus = useCallback(() => {
+    setFocus(false);
+    passingThrough.current = true;
+  }, []);
+  const focusRef = useRef(focus);
+  useEffect(() => {
+    focusRef.current = focus;
+  }, [focus]);
+  // Any step change in the normal view means the coach is using it.
+  useEffect(() => {
+    if (!focusRef.current) passingThrough.current = false;
+  }, [nav]);
+  // Leaving the concept (closed or unmounted): remember the mode it was left in.
+  useEffect(() => {
+    if (!isOpen) return;
+    return () => writeFocusPreference(focusRef.current || passingThrough.current);
+  }, [isOpen]);
 
   // --- The team: roster + the current game's formation (best effort, never blocks).
   useEffect(() => {
@@ -132,7 +191,10 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [isOpen]);
+  }, [isOpen, focus]);
+  // The pitch keeps its true aspect in both views (a stretched pitch would
+  // distort the distances and angles the animations teach): the largest that
+  // fits the space - in focus mode the whole screen above the title strip.
   const boardW = Math.floor(
     area.w > 0 && area.h > 0 ? Math.min(area.w, area.h * PITCH_ASPECT) : FALLBACK_W,
   );
@@ -157,9 +219,12 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
   const restart = useCallback(() => setStage(0), [setStage]);
 
   const closePicker = useCallback(() => setPicking(null), []);
-  useEscapeToClose(isOpen && !picking, onClose);
+  useEscapeToClose(isOpen && !picking && !focus, onClose);
+  useEscapeToClose(isOpen && !picking && focus, exitFocus);
   useEscapeToClose(!!picking, closePicker);
+  // Order matters: the focus guard sits above the modal's, the picker's above both.
   useModalHardwareBack(isOpen, onClose);
+  useHardwareBackSubLevel(isOpen && focus, exitFocus);
   useHardwareBackSubLevel(!!picking, closePicker);
 
   useEffect(() => {
@@ -179,7 +244,10 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
 
   // Swipe on the pitch: a clearly horizontal drag.
   const swipeStart = useRef<{ x: number; y: number; id: number } | null>(null);
+  /** A swipe just changed the step: the click the browser may still send is not a tap. */
+  const swiped = useRef(false);
   const onPointerDown = (e: React.PointerEvent) => {
+    swiped.current = false;
     if (e.pointerType === 'mouse') return;
     swipeStart.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
   };
@@ -190,7 +258,19 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
     const dx = e.clientX - s.x;
     const dy = e.clientY - s.y;
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    swiped.current = true;
     if (dx < 0) next();
+    else prev();
+  };
+
+  // Focus mode: a tap on the right half goes forward, the left half back. A
+  // disc's own tap (the name picker) comes first.
+  const onFocusTap = (e: React.MouseEvent<HTMLElement>) => {
+    if (picking || swiped.current) return;
+    const target = e.target as Element;
+    if (target.closest('[data-player][role="button"]') || target.closest('[data-pt-picker]')) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (e.clientX - rect.left >= rect.width / 2) next();
     else prev();
   };
 
@@ -234,6 +314,14 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
     setPicking(null);
   };
 
+  // How the players get to the step on screen.
+  const fromIndex = nav.from === 'question' ? last : nav.from;
+  const instant = validation.ok && crossesCut(validation.concept, fromIndex, index);
+  const motion = useMemo(
+    () => (validation.ok && !instant ? planMotion(validation.concept, fromIndex, index) : null),
+    [validation, instant, fromIndex, index],
+  );
+
   if (!isOpen) return null;
 
   if (!validation.ok) {
@@ -249,8 +337,6 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
 
   const c = validation.concept;
   const resolved = resolveStep(c, index);
-  const fromIndex = nav.from === 'question' ? last : nav.from;
-  const instant = crossesCut(c, fromIndex, index);
   const inQuestion = stage === 'question';
   const primaryLabel = inQuestion
     ? t('pelitapa.restart', 'Start over')
@@ -261,6 +347,141 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
         : t('pelitapa.restart', 'Start over');
   const pickingPlayer = picking ? assignment[picking] : undefined;
   const pickable = roster.filter((p) => !p.archived);
+
+  const pitch = (
+    <PelitapaPitch
+      width={boardW}
+      height={boardH}
+      players={c.players}
+      resolved={resolved}
+      labels={labels}
+      onDiscTap={pickable.length > 0 ? setPicking : undefined}
+      instant={instant}
+      motion={motion}
+      focus={focus}
+    />
+  );
+  const pitchLabel = t('pelitapa.pitchLabel', 'Pitch, step {{current}} of {{total}}', { current: index + 1, total: steps.length });
+
+  const picker = picking && (
+    <div data-pt-picker className="fixed inset-0 z-[61] flex items-end justify-center bg-[rgb(2_6_23/0.6)] sm:items-center" onClick={closePicker}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pelitapa-pick-title"
+        className="s1-sheet max-h-[75vh] w-full max-w-md overflow-y-auto rounded-t-[28px] px-4 pt-4 pb-[max(20px,env(safe-area-inset-bottom))] sm:rounded-[24px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id="pelitapa-pick-title" className="px-1 pb-3 font-display text-[24px] font-extrabold">
+          {t('pelitapa.changePlayer', 'Choose a player')}
+        </h3>
+        <ul className="flex flex-col gap-1">
+          {pickable.map((p) => {
+            const current = p.id === pickingPlayer;
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => choose(p.id)}
+                  aria-pressed={current}
+                  className={`flex h-12 w-full items-center justify-between rounded-2xl px-4 text-left text-[16px] font-semibold ${
+                    current ? 'bg-action/15 text-action' : 'text-ink hover:bg-white/5'
+                  }`}
+                >
+                  <span className="truncate">{p.name}</span>
+                  {p.jerseyNumber && <span className="text-ink-3 tabular-nums">#{p.jerseyNumber}</span>}
+                </button>
+              </li>
+            );
+          })}
+          <li>
+            <button
+              type="button"
+              onClick={() => choose(null)}
+              className="flex h-12 w-full items-center rounded-2xl px-4 text-left text-[16px] text-ink-3 hover:bg-white/5"
+            >
+              {t('pelitapa.noName', 'No name')}
+            </button>
+          </li>
+        </ul>
+        <button type="button" onClick={closePicker} className="s1-ghost mt-3 h-12 w-full rounded-full font-semibold">
+          {t('common.cancel', 'Cancel')}
+        </button>
+      </div>
+    </div>
+  );
+
+  if (focus) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${c.title} - ${t('pelitapa.focusMode', 'Focus mode')}`}
+        data-testid="pelitapa-focus"
+        className="fixed inset-0 z-[60] select-none overflow-hidden bg-carbon font-ui text-ink antialiased"
+      >
+        <style>{MOTION_CSS}</style>
+        <div
+          ref={areaRef}
+          role="group"
+          aria-label={pitchLabel}
+          className="absolute inset-x-0 top-0"
+          // The strip has its own row under the pitch: over the pitch it would hide our keeper.
+          style={{ touchAction: 'pan-y', bottom: FOCUS_STRIP_HEIGHT }}
+          onClick={onFocusTap}
+          onPointerDown={onPointerDown}
+          onPointerUp={onPointerUp}
+          onPointerCancel={() => (swipeStart.current = null)}
+          data-testid="pelitapa-focus-pitch"
+        >
+          <div className="flex h-full w-full items-center justify-center">{pitch}</div>
+
+          {inQuestion ? (
+            <div
+              key="q"
+              className="pt-text fixed inset-0 flex flex-col justify-center bg-carbon/95 px-[8vw]"
+              style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+              aria-live="polite"
+            >
+              <p className="text-[clamp(14px,2.4vw,20px)] font-bold uppercase tracking-[0.18em] text-action">
+                {t('pelitapa.toQuestion', 'Think about it')}
+              </p>
+              <p
+                className="mt-3 font-display text-[clamp(34px,7.2vw,72px)] font-extrabold leading-[1.08] text-balance"
+                data-testid="pelitapa-focus-question"
+              >
+                {c.question}
+              </p>
+            </div>
+          ) : (
+            <>
+              <span
+                className="pointer-events-none absolute right-3 rounded-full bg-[rgb(15_23_42/0.62)] px-2.5 py-1 text-[clamp(13px,1.9vw,17px)] font-bold tabular-nums text-ink backdrop-blur-sm"
+                style={{ top: 'max(10px, env(safe-area-inset-top))' }}
+                data-testid="pelitapa-focus-counter"
+              >
+                {index + 1}/{steps.length}
+              </span>
+              <div
+                className="pointer-events-none fixed inset-x-0 bottom-0 flex items-center bg-[rgb(15_23_42/0.72)] px-5 backdrop-blur-sm"
+                style={{ height: FOCUS_STRIP_HEIGHT, paddingBottom: 'env(safe-area-inset-bottom)' }}
+                aria-live="polite"
+              >
+                <p
+                  key={index}
+                  className="pt-text min-w-0 flex-1 truncate font-display text-[clamp(20px,3.6vw,32px)] font-extrabold leading-[1.2]"
+                  data-testid="pelitapa-focus-title"
+                >
+                  {resolved.step.title}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+        {picker}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -283,6 +504,16 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
             {c.title}
           </h2>
         </div>
+        <button
+          type="button"
+          onClick={enterFocus}
+          aria-label={t('pelitapa.focusMode', 'Focus mode')}
+          title={t('pelitapa.focusMode', 'Focus mode')}
+          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-white/10 bg-surface-2 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
+          data-testid="pelitapa-focus-enter"
+        >
+          <HiArrowsPointingOut className="h-5 w-5" aria-hidden="true" />
+        </button>
       </div>
 
       {/* Pitch: fills what the header and controls leave. */}
@@ -292,18 +523,10 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
           onPointerUp={onPointerUp}
           onPointerCancel={() => (swipeStart.current = null)}
           style={{ touchAction: 'pan-y' }}
-          aria-label={t('pelitapa.pitchLabel', 'Pitch, step {{current}} of {{total}}', { current: index + 1, total: steps.length })}
+          aria-label={pitchLabel}
           role="group"
         >
-          <PelitapaPitch
-            width={boardW}
-            height={boardH}
-            players={c.players}
-            resolved={resolved}
-            labels={labels}
-            onDiscTap={pickable.length > 0 ? setPicking : undefined}
-            instant={instant}
-          />
+          {pitch}
         </div>
       </div>
 
@@ -394,53 +617,7 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
       </div>
 
       {/* Player picker for one disc. */}
-      {picking && (
-        <div className="fixed inset-0 z-[61] flex items-end justify-center bg-[rgb(2_6_23/0.6)] sm:items-center" onClick={closePicker}>
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="pelitapa-pick-title"
-            className="s1-sheet max-h-[75vh] w-full max-w-md overflow-y-auto rounded-t-[28px] px-4 pt-4 pb-[max(20px,env(safe-area-inset-bottom))] sm:rounded-[24px]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="pelitapa-pick-title" className="px-1 pb-3 font-display text-[24px] font-extrabold">
-              {t('pelitapa.changePlayer', 'Choose a player')}
-            </h3>
-            <ul className="flex flex-col gap-1">
-              {pickable.map((p) => {
-                const current = p.id === pickingPlayer;
-                return (
-                  <li key={p.id}>
-                    <button
-                      type="button"
-                      onClick={() => choose(p.id)}
-                      aria-pressed={current}
-                      className={`flex h-12 w-full items-center justify-between rounded-2xl px-4 text-left text-[16px] font-semibold ${
-                        current ? 'bg-action/15 text-action' : 'text-ink hover:bg-white/5'
-                      }`}
-                    >
-                      <span className="truncate">{p.name}</span>
-                      {p.jerseyNumber && <span className="text-ink-3 tabular-nums">#{p.jerseyNumber}</span>}
-                    </button>
-                  </li>
-                );
-              })}
-              <li>
-                <button
-                  type="button"
-                  onClick={() => choose(null)}
-                  className="flex h-12 w-full items-center rounded-2xl px-4 text-left text-[16px] text-ink-3 hover:bg-white/5"
-                >
-                  {t('pelitapa.noName', 'No name')}
-                </button>
-              </li>
-            </ul>
-            <button type="button" onClick={closePicker} className="s1-ghost mt-3 h-12 w-full rounded-full font-semibold">
-              {t('common.cancel', 'Cancel')}
-            </button>
-          </div>
-        </div>
-      )}
+      {picker}
     </div>
   );
 }

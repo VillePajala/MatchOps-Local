@@ -1775,6 +1775,7 @@ export type TranslationKey =
   | 'pelitapa.changePlayer'
   | 'pelitapa.changePlayerNamed'
   | 'pelitapa.close'
+  | 'pelitapa.focusMode'
   | 'pelitapa.invalidConcept'
   | 'pelitapa.library.all'
   | 'pelitapa.library.back'
