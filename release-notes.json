@@ -9,6 +9,11 @@
     },
     {
       "date": "2026-11-21",
+      "en": ["A big squad no longer piles player discs up on the sideline: players beyond the formation and its sub spots wait in the player bar."],
+      "fi": ["Iso pelaajaryhmä ei enää kasaa pelaajia sivurajalle: muodostelman ja vaihtopaikkojen yli menevät pelaajat odottavat ylärivissä."]
+    },
+    {
+      "date": "2026-11-21",
       "en": ["Result letters are consistent everywhere: W, D, L."],
       "fi": ["Tuloskirjaimet ovat nyt kaikkialla samat: V, T, H (voitto, tasapeli, häviö)."]
     },
