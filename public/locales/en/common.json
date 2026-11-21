@@ -1429,7 +1429,7 @@
     "clubTrainingSub": "Your pre-game warm-up",
     "clubRulesSub": "Game and league rules",
     "clubMaterialsSub": "Finnish FA coaching materials",
-    "rowPelitapa": "Playing style (test)",
+    "rowPelitapa": "Playing style",
     "clubPelitapaSub": "Animated game situations"
   },
   "workspace": {
@@ -4241,6 +4241,32 @@
     "changePlayer": "Choose a player",
     "changePlayerNamed": "Change player: {{name}}",
     "noName": "No name",
-    "invalidConcept": "This concept cannot be shown."
+    "invalidConcept": "This concept cannot be shown.",
+    "library": {
+      "title": "Playing style",
+      "back": "Back",
+      "searchPlaceholder": "Search situations…",
+      "searchLabel": "Search situations",
+      "clearSearch": "Clear search",
+      "all": "All",
+      "formats": "Format",
+      "phases": "Phase of play",
+      "playbooks": "Playbook",
+      "builtInName": "MatchOps examples",
+      "steps_one": "{{count}} step",
+      "steps_other": "{{count}} steps",
+      "loading": "Loading your club's playbooks…",
+      "offline": "No connection. Showing what's saved on this device.",
+      "noResults": "No situations match.",
+      "showAll": "Show all",
+      "phase": {
+        "basics": "Basics",
+        "attacking": "Attacking",
+        "defending": "Defending",
+        "transitionPlus": "Transition: ball won",
+        "transitionMinus": "Transition: ball lost",
+        "setPieces": "Set pieces"
+      }
+    }
   }
 }

@@ -208,4 +208,29 @@ describe('PelitapaPresentation', () => {
     expect(screen.queryByTestId('pelitapa-board')).not.toBeInTheDocument();
     warn.mockRestore();
   });
+
+  it('a move over a cut step jumps (no transition); numbered arrows and links are drawn', async () => {
+    const concept: typeof DEMO_CONCEPT = {
+      ...DEMO_CONCEPT,
+      steps: [
+        { ...DEMO_CONCEPT.steps[0], arrows: [{ kind: 'pass', from: 'mv', to: 'vp', label: '1' }] },
+        { ...DEMO_CONCEPT.steps[1], zones: [{ kind: 'link', ids: ['vp', 'op'] }] },
+        { ...DEMO_CONCEPT.steps[2], cut: true },
+      ],
+    };
+    render(<PelitapaPresentation isOpen onClose={jest.fn()} concept={concept} />);
+    await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+    const moveMs = () => (document.querySelector('.pt-pitch') as HTMLElement).style.getPropertyValue('--pt-move');
+
+    expect(screen.getByTestId('pelitapa-arrow-label')).toHaveTextContent('1');
+    fireEvent.click(screen.getByTestId('pelitapa-next'));
+    expect(moveMs()).toBe('900ms');
+    expect(screen.getByTestId('pelitapa-board').querySelector('.pt-zone line')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('pelitapa-next'));
+    expect(moveMs()).toBe('0ms');
+    fireEvent.click(screen.getByRole('button', { name: 'Previous step' }));
+    expect(moveMs()).toBe('0ms');
+    fireEvent.click(screen.getByRole('button', { name: 'Previous step' }));
+    expect(moveMs()).toBe('900ms');
+  });
 });

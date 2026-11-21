@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { SOCCER_FIELD_CONFIG } from '@/config/fieldConfigs';
 import { drawFieldBackground, drawFieldMarkings } from '@/utils/fieldDrawing';
 import { PITCH_LENGTH, PITCH_WIDTH, type ArrowKind, type ConceptPlayer, type Point } from './types';
@@ -14,7 +14,10 @@ import type { ResolvedArrow, ResolvedStep, ResolvedZone } from './resolveStep';
  * Movement between steps is a CSS transition on each disc's transform (the
  * browser interpolates on the compositor); arrows draw themselves in after
  * the move, zones fade in. All of it is switched off under
- * prefers-reduced-motion.
+ * prefers-reduced-motion, and for a move over a `cut` step (`instant`).
+ *
+ * `still` draws a small static picture (the library's card thumbnails):
+ * no motion classes, no names or labels, sizes scaled to the board.
  */
 
 /** Width : length of the board (the concept's 68 x 100 grid). */
@@ -42,6 +45,10 @@ interface PelitapaPitchProps {
   /** Names on our discs, by concept player id. */
   labels: Record<string, DiscLabel | undefined>;
   onDiscTap?: (conceptPlayerId: string) => void;
+  /** Jump to this step without moving the players (a new variation). */
+  instant?: boolean;
+  /** A small, static thumbnail. */
+  still?: boolean;
 }
 
 const ARROW_STYLE: Record<ArrowKind, { color: string; width: number; dash?: string }> = {
@@ -109,7 +116,7 @@ function arrowGeometry(a: ResolvedArrow, px: (p: Point) => Point, unit: number, 
       d += ` L${(sx + ux * t + nx * s).toFixed(1)} ${(sy + uy * t + ny * s).toFixed(1)}`;
     }
     d += ` L${x2.toFixed(1)} ${y2.toFixed(1)}`;
-    return { d, end: [x2, y2] as Point, dir: [ux, uy] as Point };
+    return { d, end: [x2, y2] as Point, dir: [ux, uy] as Point, mid: [(sx + x2) / 2, (sy + y2) / 2] as Point };
   }
 
   if (a.bend !== 0) {
@@ -125,6 +132,8 @@ function arrowGeometry(a: ResolvedArrow, px: (p: Point) => Point, unit: number, 
       d: `M${sx.toFixed(1)} ${sy.toFixed(1)} Q${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`,
       end: [x2, y2] as Point,
       dir: [tx / tl, ty / tl] as Point,
+      // The curve's point at t = 0.5.
+      mid: [0.25 * sx + 0.5 * cx + 0.25 * x2, 0.25 * sy + 0.5 * cy + 0.25 * y2] as Point,
     };
   }
 
@@ -132,6 +141,7 @@ function arrowGeometry(a: ResolvedArrow, px: (p: Point) => Point, unit: number, 
     d: `M${sx.toFixed(1)} ${sy.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}`,
     end: [x2, y2] as Point,
     dir: [ux, uy] as Point,
+    mid: [(sx + x2) / 2, (sy + y2) / 2] as Point,
   };
 }
 
@@ -144,7 +154,19 @@ function headPath(end: Point, dir: Point, size: number): string {
   return `M${ex.toFixed(1)} ${ey.toFixed(1)} L${(bx - dy * w).toFixed(1)} ${(by + dx * w).toFixed(1)} L${(bx + dy * w).toFixed(1)} ${(by - dx * w).toFixed(1)} Z`;
 }
 
-function Zone({ zone, px, W, unit }: { zone: ResolvedZone; px: (p: Point) => Point; W: number; unit: number }) {
+function Zone({
+  zone,
+  px,
+  W,
+  unit,
+  still,
+}: {
+  zone: ResolvedZone;
+  px: (p: Point) => Point;
+  W: number;
+  unit: number;
+  still?: boolean;
+}) {
   const common = {
     fill: 'rgba(255,178,36,0.16)',
     stroke: 'rgba(255,178,36,0.75)',
@@ -188,11 +210,28 @@ function Zone({ zone, px, W, unit }: { zone: ResolvedZone; px: (p: Point) => Poi
       labelAt = [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length];
       break;
     }
+    case 'link': {
+      const [[x1, y1], [x2, y2]] = zone.points.map(px);
+      shape = (
+        <line
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke="rgba(255,255,255,0.75)"
+          strokeWidth={Math.max(1.2, unit * 0.36)}
+          strokeDasharray={`${unit * 1.1} ${unit * 0.8}`}
+          strokeLinecap="round"
+        />
+      );
+      labelAt = [(x1 + x2) / 2, (y1 + y2) / 2];
+      break;
+    }
   }
   return (
-    <g className="pt-zone">
+    <g className={still ? undefined : 'pt-zone'}>
       {shape}
-      {zone.label && (
+      {zone.label && !still && (
         <text
           x={labelAt[0]}
           y={labelAt[1]}
@@ -219,15 +258,28 @@ function discFontSize(name: string, r: number): number {
   return Math.max(10, Math.min(base, fit));
 }
 
-export default function PelitapaPitch({ width: W, height: H, players, resolved, labels, onDiscTap }: PelitapaPitchProps) {
+export default function PelitapaPitch({
+  width: W,
+  height: H,
+  players,
+  resolved,
+  labels,
+  onDiscTap,
+  instant = false,
+  still = false,
+}: PelitapaPitchProps) {
+  // Several boards can be on one page (library thumbnails): ids must be unique.
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const unit = W / 100; // 1% of the pitch width
-  const r = Math.max(16, Math.min(30, W * 0.043));
+  const r = still ? W * 0.042 : Math.max(16, Math.min(30, W * 0.043));
   const rOpp = r * 0.74;
   const px = (p: Point): Point => [(p[0] / PITCH_WIDTH) * W, (p[1] / PITCH_LENGTH) * H];
-  const moveMs = resolved.step.durationMs ?? DEFAULT_MOVE_MS;
+  const moveMs = instant ? 0 : (resolved.step.durationMs ?? DEFAULT_MOVE_MS);
   const highlights = new Set(resolved.highlights);
   const stepKey = resolved.index;
-  const lineBase = Math.max(2.2, W * 0.0068);
+  const lineBase = still ? Math.max(1, W * 0.008) : Math.max(2.2, W * 0.0068);
+  const whiteFill = `url(#pt-white-${uid})`;
+  const keeperFill = `url(#pt-keeper-${uid})`;
 
   // Our discs above theirs, highlighted ones on top.
   const ordered = [...players].sort((a, b) => {
@@ -242,9 +294,9 @@ export default function PelitapaPitch({ width: W, height: H, players, resolved, 
         position: 'relative',
         width: W,
         height: H,
-        borderRadius: 14,
+        borderRadius: still ? 10 : 14,
         overflow: 'hidden',
-        boxShadow: '0 30px 60px -30px rgba(0,0,0,.8), inset 0 0 0 2px rgba(255,255,255,.06)',
+        boxShadow: still ? undefined : '0 30px 60px -30px rgba(0,0,0,.8), inset 0 0 0 2px rgba(255,255,255,.06)',
         ['--pt-move' as string]: `${moveMs}ms`,
         ['--pt-draw' as string]: `${ARROW_DRAW_MS}ms`,
       }}
@@ -254,7 +306,7 @@ export default function PelitapaPitch({ width: W, height: H, players, resolved, 
         {/* Zones fade in with the step. */}
         <g key={`z${stepKey}`} style={{ ['--pt-delay' as string]: `${Math.round(moveMs * 0.5)}ms` }}>
           {resolved.zones.map((z, i) => (
-            <Zone key={i} zone={z} px={px} W={W} unit={unit} />
+            <Zone key={i} zone={z} px={px} W={W} unit={unit} still={still} />
           ))}
         </g>
 
@@ -265,23 +317,28 @@ export default function PelitapaPitch({ width: W, height: H, players, resolved, 
             const sw = lineBase * style.width;
             const shorten = a.toId ? r * 1.08 : r * 0.35;
             const g = arrowGeometry(a, px, unit, shorten);
-            const head = Math.max(8, sw * 3.1);
-            const delay = Math.round(moveMs * 0.7 + i * 180);
-            const maskId = `pt-m-${stepKey}-${i}`;
+            const head = still ? Math.max(3.5, sw * 3.1) : Math.max(8, sw * 3.1);
+            const delay = Math.round((instant ? 120 : moveMs * 0.7) + i * 180);
+            const maskId = `pt-m-${uid}-${stepKey}-${i}`;
+            // A still board has no draw-in: no mask needed.
+            const mask = still ? undefined : `url(#${maskId})`;
+            const badge = a.label && !still ? Math.max(11, r * 0.48) : 0;
             return (
               <g key={i} data-arrow-kind={a.kind} style={{ ['--pt-delay' as string]: `${delay}ms` }}>
-                <mask id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={W} height={H}>
-                  <path
-                    className="pt-draw"
-                    d={g.d}
-                    pathLength={1}
-                    fill="none"
-                    stroke="#fff"
-                    strokeWidth={sw + 6 + (a.kind === 'drib' ? unit * 2.2 : 0)}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </mask>
+                {!still && (
+                  <mask id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={W} height={H}>
+                    <path
+                      className="pt-draw"
+                      d={g.d}
+                      pathLength={1}
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth={sw + 6 + (a.kind === 'drib' ? unit * 2.2 : 0)}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </mask>
+                )}
                 <path
                   d={g.d}
                   fill="none"
@@ -290,7 +347,7 @@ export default function PelitapaPitch({ width: W, height: H, players, resolved, 
                   strokeDasharray={style.dash ? style.dash.split(' ').map((v) => Number(v) * sw).join(' ') : undefined}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  mask={`url(#${maskId})`}
+                  mask={mask}
                   transform="translate(0 1)"
                 />
                 <path
@@ -301,16 +358,31 @@ export default function PelitapaPitch({ width: W, height: H, players, resolved, 
                   strokeDasharray={style.dash ? style.dash.split(' ').map((v) => Number(v) * sw).join(' ') : undefined}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  mask={`url(#${maskId})`}
+                  mask={mask}
                 />
                 <path
-                  className="pt-head"
+                  className={still ? undefined : 'pt-head'}
                   d={headPath(g.end, g.dir, head)}
                   fill={style.color}
                   stroke="rgba(15,23,42,0.25)"
                   strokeWidth={1}
                   strokeLinejoin="round"
                 />
+                {badge > 0 && (
+                  <g className="pt-head" data-testid="pelitapa-arrow-label">
+                    <circle cx={g.mid[0]} cy={g.mid[1]} r={badge} fill={NAVY} stroke={AMBER} strokeWidth={Math.max(1.5, badge * 0.12)} />
+                    <text
+                      x={g.mid[0]}
+                      y={g.mid[1] + 0.5}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fill={AMBER}
+                      style={{ font: `700 ${(badge * 1.15).toFixed(1)}px var(--font-barlow-condensed), 'Barlow Condensed', 'Arial Narrow', sans-serif` }}
+                    >
+                      {a.label}
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}
@@ -327,7 +399,7 @@ export default function PelitapaPitch({ width: W, height: H, players, resolved, 
           return (
             <g
               key={p.id}
-              className="pt-move"
+              className={still ? undefined : 'pt-move'}
               style={{ transform: `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)` }}
               data-player={p.id}
               data-highlighted={lit ? 'true' : undefined}
@@ -350,20 +422,20 @@ export default function PelitapaPitch({ width: W, height: H, players, resolved, 
             >
               {lit && (
                 <circle
-                  className="pt-ring"
-                  r={(us ? r : rOpp) + Math.max(4, r * 0.2)}
+                  className={still ? undefined : 'pt-ring'}
+                  r={(us ? r : rOpp) + (still ? r * 0.35 : Math.max(4, r * 0.2))}
                   fill="rgba(255,178,36,0.18)"
                   stroke={AMBER}
                   strokeOpacity={0.85}
-                  strokeWidth={Math.max(2.5, r * 0.13)}
+                  strokeWidth={still ? Math.max(1, r * 0.16) : Math.max(2.5, r * 0.13)}
                 />
               )}
               {us ? (
                 <>
-                  <circle r={r} cy={r * 0.12} fill="rgba(0,0,0,0.35)" style={{ filter: 'blur(3px)' }} />
-                  <circle r={r} fill={keeper ? 'url(#pt-keeper)' : 'url(#pt-white)'} />
+                  {!still && <circle r={r} cy={r * 0.12} fill="rgba(0,0,0,0.35)" style={{ filter: 'blur(3px)' }} />}
+                  <circle r={r} fill={keeper ? keeperFill : whiteFill} />
                   {keeper ? (
-                    <circle r={r - 1} fill="none" stroke="#fff" strokeWidth={2} />
+                    <circle r={Math.max(r - 1, r * 0.85)} fill="none" stroke="#fff" strokeWidth={still ? Math.max(0.8, r * 0.14) : 2} />
                   ) : (
                     <circle r={r - 0.5} fill="none" stroke="rgba(15,23,42,0.18)" strokeWidth={1} />
                   )}
@@ -383,7 +455,7 @@ export default function PelitapaPitch({ width: W, height: H, players, resolved, 
                   )}
                 </>
               ) : (
-                <circle r={rOpp} fill="rgba(15,23,42,0.28)" stroke={OPP_RED} strokeWidth={Math.max(2.5, rOpp * 0.16)} />
+                <circle r={rOpp} fill="rgba(15,23,42,0.28)" stroke={OPP_RED} strokeWidth={still ? Math.max(1, rOpp * 0.22) : Math.max(2.5, rOpp * 0.16)} />
               )}
               {tappable && <circle r={r + 4} fill="transparent" />}
             </g>
@@ -395,23 +467,23 @@ export default function PelitapaPitch({ width: W, height: H, players, resolved, 
           const held = !!resolved.ball.holder;
           const holder = held ? players.find((p) => p.id === resolved.ball?.holder) : undefined;
           const hr = holder?.side === 'opp' ? rOpp : r;
-          const br = Math.max(5.5, r * 0.32);
+          const br = still ? Math.max(2.2, r * 0.4) : Math.max(5.5, r * 0.32);
           const ox = held ? hr * 0.72 : 0;
           const oy = held ? -hr * 0.72 : 0;
           return (
-            <g className="pt-move" style={{ transform: `translate(${(bx + ox).toFixed(1)}px, ${(by + oy).toFixed(1)}px)` }} data-testid="pelitapa-ball">
+            <g className={still ? undefined : 'pt-move'} style={{ transform: `translate(${(bx + ox).toFixed(1)}px, ${(by + oy).toFixed(1)}px)` }} data-testid="pelitapa-ball">
               <circle r={br} cy={1.5} fill="rgba(0,0,0,0.35)" />
-              <circle r={br} fill="#fff" stroke={NAVY} strokeWidth={Math.max(1.5, br * 0.28)} />
+              <circle r={br} fill="#fff" stroke={NAVY} strokeWidth={still ? br * 0.3 : Math.max(1.5, br * 0.28)} />
             </g>
           );
         })()}
 
         <defs>
-          <linearGradient id="pt-white" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={`pt-white-${uid}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#ffffff" />
             <stop offset="1" stopColor="#e6e9ee" />
           </linearGradient>
-          <linearGradient id="pt-keeper" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={`pt-keeper-${uid}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#2a3854" />
             <stop offset="1" stopColor={NAVY} />
           </linearGradient>

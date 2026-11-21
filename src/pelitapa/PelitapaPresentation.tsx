@@ -12,7 +12,7 @@ import { getCurrentGameIdSetting } from '@/utils/appSettings';
 import logger from '@/utils/logger';
 import { DEMO_CONCEPT } from './demoConcept';
 import { validateConcept } from './validateConcept';
-import { resolveStep } from './resolveStep';
+import { crossesCut, resolveStep } from './resolveStep';
 import { assignPlayers, discName } from './assignNames';
 import PelitapaPitch, { PITCH_ASPECT, type DiscLabel } from './PelitapaPitch';
 import type { Concept } from './types';
@@ -64,7 +64,12 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
     if (!validation.ok) logger.warn('[Pelitapa] Invalid concept', validation.errors);
   }, [validation]);
 
-  const [stage, setStage] = useState<Stage>(0);
+  // The step on screen and the one it came from (a move over a `cut` step jumps).
+  const [nav, setNav] = useState<{ stage: Stage; from: Stage }>({ stage: 0, from: 0 });
+  const stage = nav.stage;
+  const setStage = useCallback((update: Stage | ((s: Stage) => Stage)) => {
+    setNav((n) => ({ stage: typeof update === 'function' ? update(n.stage) : update, from: n.stage }));
+  }, []);
   const [roster, setRoster] = useState<Player[]>([]);
   const [fieldPlayers, setFieldPlayers] = useState<Player[]>([]);
   const [overrides, setOverrides] = useState<Record<string, string | null>>({});
@@ -135,11 +140,11 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
       if (s < last) return s + 1;
       return hasQuestion ? 'question' : 0;
     });
-  }, [last, hasQuestion]);
+  }, [last, hasQuestion, setStage]);
   const prev = useCallback(() => {
     setStage((s) => (s === 'question' ? last : Math.max(0, s - 1)));
-  }, [last]);
-  const restart = useCallback(() => setStage(0), []);
+  }, [last, setStage]);
+  const restart = useCallback(() => setStage(0), [setStage]);
 
   const closePicker = useCallback(() => setPicking(null), []);
   useEscapeToClose(isOpen && !picking, onClose);
@@ -234,6 +239,8 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
 
   const c = validation.concept;
   const resolved = resolveStep(c, index);
+  const fromIndex = nav.from === 'question' ? last : nav.from;
+  const instant = crossesCut(c, fromIndex, index);
   const inQuestion = stage === 'question';
   const primaryLabel = inQuestion
     ? t('pelitapa.restart', 'Start over')
@@ -293,6 +300,7 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
             resolved={resolved}
             labels={labels}
             onDiscTap={pickable.length > 0 ? setPicking : undefined}
+            instant={instant}
           />
         </div>
       </div>

@@ -9,7 +9,9 @@
 #   3. sync_write_check answers apply / stale / deleted (059);
 #   4. sync_tombstones is closed to clients;
 #   5. account_features (064): readable by its owner only, not writable by clients;
-#   6. clear_all_user_data runs and keeps the granted features.
+#   6. playbooks (065): nothing visible without a playbook_access grant; with one, the
+#      playbook and its concepts; none of the three tables writable by clients;
+#   7. clear_all_user_data runs and keeps the granted features and playbook access.
 # Test users are deleted at the end (Management API, the Supabase CLI's token).
 #
 # STAGING ONLY: the target is fixed to the staging project (no override). Usage:
@@ -35,6 +37,7 @@ TOKEN=$(cat ~/.supabase/access-token 2>/dev/null || true)
 [ "$(env_value NEXT_PUBLIC_SUPABASE_URL)" = "$URL" ] || { echo ".env.development does not point at staging ($URL)" >&2; exit 2; }
 
 PASS=0; FAIL=0; USERS=()
+SMOKE_PB="smoke-pb-$(date +%s)-$(od -An -N2 -tx2 /dev/urandom | tr -d ' ')"
 ok()   { PASS=$((PASS+1)); echo "  ok   $1"; }
 bad()  { FAIL=$((FAIL+1)); echo "  FAIL $1 (got: $2)"; }
 expect() { if [ "$2" = "$3" ]; then ok "$1"; else bad "$1" "$2"; fi; }
@@ -72,6 +75,8 @@ cleanup() {
       status=1
     fi
   done
+  # Users first: their playbook_access rows go with them (FK cascade); then the playbook.
+  sql "delete from public.playbooks where id='$SMOKE_PB';" >/dev/null
   rm -f "$BODY_FILE"
   exit $status
 }
@@ -118,12 +123,34 @@ rest PATCH "account_features?feature=eq.smoke_flag" "$JWT_A" '{"enabled":false}'
 rest DELETE "account_features?feature=eq.smoke_flag" "$JWT_A" >/dev/null
 expect "user A cannot change or delete its feature" "$(sql "select count(*) filter (where enabled) as n from public.account_features where user_id='$UID_A'" | jq -r '.[0].n')" "1"
 
-echo "6. clear_all_user_data"
+echo "6. playbooks"
+sql "insert into public.playbooks (id, name) values ('$SMOKE_PB', 'Smoke'); insert into public.playbook_concepts (playbook_id, id, format, phase, data) values ('$SMOKE_PB', 'c1', '8v8', 'Perusteet', '{\"id\":\"c1\"}');" >/dev/null
+expect "user A without access sees no playbook" "$(rest GET "playbooks?id=eq.$SMOKE_PB&select=id" "$JWT_A" | cut -d' ' -f2-)" "[]"
+expect "user A without access sees no concepts" "$(rest GET "playbook_concepts?playbook_id=eq.$SMOKE_PB&select=id" "$JWT_A" | cut -d' ' -f2-)" "[]"
+sql "insert into public.playbook_access (playbook_id, user_id) values ('$SMOKE_PB', '$UID_A')" >/dev/null
+expect "user A with access reads the playbook" "$(rest GET "playbooks?id=eq.$SMOKE_PB&select=id,name" "$JWT_A" | cut -d' ' -f2- | jq -c .)" "[{\"id\":\"$SMOKE_PB\",\"name\":\"Smoke\"}]"
+expect "user A with access reads its concepts" "$(rest GET "playbook_concepts?playbook_id=eq.$SMOKE_PB&select=id,data" "$JWT_A" | cut -d' ' -f2- | jq -c .)" '[{"id":"c1","data":{"id":"c1"}}]'
+expect "user A reads its own grant" "$(rest GET "playbook_access?select=playbook_id" "$JWT_A" | cut -d' ' -f2- | jq -r 'map(.playbook_id) | index("'"$SMOKE_PB"'") != null')" "true"
+expect "user B sees nothing of it" "$(rest GET "playbooks?id=eq.$SMOKE_PB&select=id" "$JWT_B" | cut -d' ' -f2-)$(rest GET "playbook_concepts?playbook_id=eq.$SMOKE_PB&select=id" "$JWT_B" | cut -d' ' -f2-)$(rest GET "playbook_access?playbook_id=eq.$SMOKE_PB&select=user_id" "$JWT_B" | cut -d' ' -f2-)" "[][][]"
+code=$(rest POST playbooks "$JWT_A" '{"id":"smoke-pb-x","name":"X"}' | cut -d' ' -f1)
+case "$code" in 401|403) ok "user A cannot create a playbook ($code)";; *) bad "user A cannot create a playbook" "$code";; esac
+code=$(rest POST playbook_concepts "$JWT_A" "{\"playbook_id\":\"$SMOKE_PB\",\"id\":\"c2\",\"format\":\"8v8\",\"phase\":\"P\",\"data\":{}}" | cut -d' ' -f1)
+case "$code" in 401|403) ok "user A cannot add a concept ($code)";; *) bad "user A cannot add a concept" "$code";; esac
+code=$(rest POST playbook_access "$JWT_B" "{\"playbook_id\":\"$SMOKE_PB\",\"user_id\":\"$UID_B\"}" | cut -d' ' -f1)
+case "$code" in 401|403) ok "user B cannot grant itself access ($code)";; *) bad "user B cannot grant itself access" "$code";; esac
+rest PATCH "playbooks?id=eq.$SMOKE_PB" "$JWT_A" '{"name":"Hacked"}' >/dev/null
+rest PATCH "playbook_concepts?playbook_id=eq.$SMOKE_PB" "$JWT_A" '{"data":{"x":1}}' >/dev/null
+rest DELETE "playbook_concepts?playbook_id=eq.$SMOKE_PB" "$JWT_A" >/dev/null
+rest DELETE "playbook_access?playbook_id=eq.$SMOKE_PB" "$JWT_A" >/dev/null
+expect "user A cannot change or delete any of it" "$(sql "select (select name from public.playbooks where id='$SMOKE_PB') || '/' || (select count(*) from public.playbook_concepts where playbook_id='$SMOKE_PB' and data = '{\"id\":\"c1\"}') || '/' || (select count(*) from public.playbook_access where playbook_id='$SMOKE_PB') as r" | jq -r '.[0].r')" "Smoke/1/1"
+
+echo "7. clear_all_user_data"
 rest POST players "$JWT_A" "{\"id\":\"smoke_q\",\"user_id\":\"$UID_A\",\"name\":\"Q\"}" >/dev/null
 code=$(rest POST rpc/clear_all_user_data "$JWT_A" '{}' | cut -d' ' -f1)
 case "$code" in 2??) ok "clear_all_user_data succeeds ($code)";; *) bad "clear_all_user_data succeeds" "$code";; esac
 expect "user A's rows are gone" "$(rest GET "players?select=id" "$JWT_A" | cut -d' ' -f2-)" "[]"
 expect "granted features survive the clear" "$(rest GET "account_features?select=feature" "$JWT_A" | cut -d' ' -f2- | jq -r 'length')" "1"
+expect "playbook access survives the clear" "$(rest GET "playbook_concepts?playbook_id=eq.$SMOKE_PB&select=id" "$JWT_A" | cut -d' ' -f2- | jq -r 'length')" "1"
 
 echo
 echo "passed $PASS, failed $FAIL"

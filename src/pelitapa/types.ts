@@ -38,6 +38,8 @@ export interface ConceptArrow {
   to: ArrowEnd;
   /** Sideways bend as a fraction of the arrow's length (-1..1). Long passes default to a curve. */
   bend?: number;
+  /** A short badge at the middle of the arrow (1-3 characters), e.g. the option number "1". */
+  label?: string;
 }
 
 export type ConceptZone =
@@ -46,7 +48,9 @@ export type ConceptZone =
   /** A full-width band centred on y (e.g. a line of play). */
   | { kind: 'band'; y: number; h?: number; label?: string }
   /** A shape through the CURRENT positions of these players (e.g. a passing triangle). */
-  | { kind: 'poly'; ids: string[]; label?: string };
+  | { kind: 'poly'; ids: string[]; label?: string }
+  /** A dashed line between the CURRENT positions of two players (e.g. a pair that keeps its distance). */
+  | { kind: 'link'; ids: [string, string]; label?: string };
 
 export interface ConceptStep {
   title: string;
@@ -61,6 +65,12 @@ export interface ConceptStep {
   highlights?: string[];
   /** How long the moves into this step take (ms). */
   durationMs?: number;
+  /**
+   * The step starts a new variation: players jump to their places instead of
+   * moving there (typically back to the starting picture after the previous
+   * option played out).
+   */
+  cut?: boolean;
 }
 
 export interface Concept {

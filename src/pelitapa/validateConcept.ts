@@ -96,6 +96,7 @@ export function validateConcept(input: unknown): ConceptValidation {
       if (!isText(s.title)) err(`${path}.title`, 'missing');
       if (typeof s.text !== 'string') err(`${path}.text`, 'must be text');
       if (s.durationMs !== undefined) positive(`${path}.durationMs`, s.durationMs);
+      if (s.cut !== undefined && typeof s.cut !== 'boolean') err(`${path}.cut`, 'must be true or false');
 
       if (s.positions !== undefined) {
         if (!isObj(s.positions)) err(`${path}.positions`, 'must be an object of id -> [x, y]');
@@ -124,6 +125,9 @@ export function validateConcept(input: unknown): ConceptValidation {
             checkEnd(`${ap}.to`, a.to);
             if (a.bend !== undefined && (!isNum(a.bend) || a.bend < -1 || a.bend > 1)) {
               err(`${ap}.bend`, 'must be a number in -1..1');
+            }
+            if (a.label !== undefined && (!isText(a.label) || Array.from(a.label).length > 3)) {
+              err(`${ap}.label`, 'must be 1-3 characters');
             }
           });
         }
@@ -159,8 +163,12 @@ export function validateConcept(input: unknown): ConceptValidation {
                 if (!Array.isArray(z.ids) || z.ids.length < 3) err(`${zp}.ids`, 'needs at least three player ids');
                 else z.ids.forEach((id, k) => checkId(`${zp}.ids[${k}]`, id));
                 break;
+              case 'link':
+                if (!Array.isArray(z.ids) || z.ids.length !== 2) err(`${zp}.ids`, 'needs exactly two player ids');
+                else z.ids.forEach((id, k) => checkId(`${zp}.ids[${k}]`, id));
+                break;
               default:
-                err(`${zp}.kind`, "must be 'rect', 'ellipse', 'band' or 'poly'");
+                err(`${zp}.kind`, "must be 'rect', 'ellipse', 'band', 'poly' or 'link'");
             }
           });
         }

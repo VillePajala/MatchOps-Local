@@ -1,5 +1,5 @@
 import { validateConcept } from '../validateConcept';
-import { resolveStep } from '../resolveStep';
+import { crossesCut, resolveStep } from '../resolveStep';
 import { assignPlayers, discName } from '../assignNames';
 import { DEMO_CONCEPT } from '../demoConcept';
 import type { Concept } from '../types';
@@ -110,7 +110,65 @@ describe('validateConcept', () => {
   });
 });
 
+describe('validateConcept: links, arrow labels, cuts', () => {
+  it('accepts a link zone, a short arrow label and a cut step', () => {
+    const c = base();
+    c.steps[1] = {
+      ...c.steps[1],
+      cut: true,
+      zones: [{ kind: 'link', ids: ['a', 'b'], label: 'Pari' }],
+      arrows: [{ kind: 'pass', from: 'a', to: 'b', label: '2' }],
+    };
+    const v = validateConcept(c);
+    expect(v.ok ? [] : v.errors).toEqual([]);
+  });
+
+  it('rejects a link without exactly two real players, a long label and a non-boolean cut', () => {
+    const c = base() as unknown as { steps: Array<Record<string, unknown>> };
+    c.steps[1].zones = [{ kind: 'link', ids: ['a'] }, { kind: 'link', ids: ['a', 'nobody'] }];
+    c.steps[1].arrows = [{ kind: 'pass', from: 'a', to: 'b', label: 'four' }, { kind: 'run', from: 'a', to: 'b', label: '' }];
+    c.steps[1].cut = 'yes';
+    const v = validateConcept(c);
+    expect(v.ok).toBe(false);
+    if (v.ok) return;
+    expect(v.errors).toEqual(
+      expect.arrayContaining([
+        'steps[1].zones[0].ids: needs exactly two player ids',
+        'steps[1].zones[1].ids[1]: unknown player "nobody"',
+        'steps[1].arrows[0].label: must be 1-3 characters',
+        'steps[1].arrows[1].label: must be 1-3 characters',
+        'steps[1].cut: must be true or false',
+      ]),
+    );
+  });
+});
+
 describe('resolveStep', () => {
+  it('link zones follow the two players; arrow labels carry through', () => {
+    const c = base();
+    c.steps[1] = {
+      ...c.steps[1],
+      zones: [{ kind: 'link', ids: ['a', 'gk'] }],
+      arrows: [{ kind: 'run', from: 'a', to: [10, 50], label: '1' }],
+    };
+    const r = resolveStep(c, 1);
+    expect(r.zones[0]).toEqual({ kind: 'link', points: [[18, 60], [34, 95]], label: undefined });
+    expect(r.arrows[0].label).toBe('1');
+    expect(resolveStep(base(), 0).arrows[0]).not.toHaveProperty('label');
+  });
+
+  it('crossesCut: only a move over a cut step jumps, in either direction', () => {
+    const c = base();
+    c.steps[2] = { ...c.steps[2], cut: true };
+    expect(crossesCut(c, 0, 1)).toBe(false);
+    expect(crossesCut(c, 1, 2)).toBe(true);
+    expect(crossesCut(c, 2, 1)).toBe(true);
+    expect(crossesCut(c, 0, 2)).toBe(true);
+    expect(crossesCut(c, 2, 2)).toBe(false);
+    expect(crossesCut(base(), 0, 2)).toBe(false);
+  });
+
+
   it('step 0: start positions, the ball on its holder, arrows resolved to points', () => {
     const r = resolveStep(base(), 0);
     expect(r.positions.a).toEqual([20, 70]);
