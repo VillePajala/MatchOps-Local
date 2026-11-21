@@ -13,6 +13,9 @@ import { useModalContext } from '@/contexts/ModalProvider';
 import { useAssessmentRatingStyle } from '@/hooks/useAssessmentRatingStyle';
 import { useAssessmentTemplate } from '@/hooks/useAssessmentTemplate';
 
+/** Opening a game faster than this shows no loader at all, only the plain canvas. */
+const SLOW_LOAD_THRESHOLD_MS = 450;
+
 type HomePageProps = UseGameOrchestrationProps;
 
 /**
@@ -49,6 +52,20 @@ function HomePageInner(props: HomePageProps) {
   // stays as a fixed overlay during that invisible frame.
   const [layoutReady, setLayoutReady] = useState(false);
 
+  // Show the branded loader only when opening a game is genuinely slow. A quick
+  // open rendered the logo screen for a fraction of a second, which read as a
+  // glitch (owner, 2026-11-21).
+  const [showSlowLoader, setShowSlowLoader] = useState(false);
+  useEffect(() => {
+    if (!isBootstrapping) return;
+    const id = setTimeout(() => setShowSlowLoader(true), SLOW_LOAD_THRESHOLD_MS);
+    return () => {
+      clearTimeout(id);
+      // Reset for the next open (cleanup runs when bootstrapping ends)
+      setShowSlowLoader(false);
+    };
+  }, [isBootstrapping]);
+
   useEffect(() => {
     if (isBootstrapping) return;
 
@@ -70,22 +87,20 @@ function HomePageInner(props: HomePageProps) {
   }, [isBootstrapping]);
 
   if (isBootstrapping) {
-    return <LoadingScreen message={t('status.loadingGameData', 'Loading Game Data...')} />;
+    // A quick open (most of them) shows only the plain canvas, so there is no
+    // logo flash; the branded loader appears only if loading actually takes a while.
+    return showSlowLoader
+      ? <LoadingScreen message={t('status.loadingGameData', 'Loading Game Data...')} />
+      : <div className="fixed inset-0 z-50 s1-canvas" aria-busy="true" />;
   }
 
   return (
     <>
       {/* Keep loading overlay until layout has settled */}
-      {!layoutReady && (
-        <div className="fixed inset-0 z-50 s1-canvas font-ui flex flex-col items-center justify-center">
-          <div className="flex flex-col items-center gap-6">
-            <div className="w-16 h-16 border-4 border-white/10 border-t-action rounded-full animate-spin" aria-hidden="true" />
-            <p className="text-ink-3 text-sm">{t('status.loadingGameData', 'Loading Game Data...')}</p>
-          </div>
-        </div>
-      )}
-      {/* Render game view - invisible until layout settles, then instant reveal */}
-      <div style={{ opacity: layoutReady ? 1 : 0 }}>
+      {/* Plain canvas for the two frames the layout needs - a spinner here only flashed */}
+      {!layoutReady && <div className="fixed inset-0 z-50 s1-canvas" aria-busy="true" />}
+      {/* Render game view - invisible until layout settles, then a short fade in */}
+      <div style={{ opacity: layoutReady ? 1 : 0, transition: 'opacity 140ms ease-out' }}>
         <GameContainer {...gameContainerProps} />
       </div>
       <ModalManager {...modalManagerProps} ratingStyle={assessmentRatingStyle} assessmentTemplate={assessmentTemplate} />
