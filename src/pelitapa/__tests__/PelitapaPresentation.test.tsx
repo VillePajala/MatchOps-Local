@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act, waitFor, within } from '@testing-librar
 import type { Player } from '@/types';
 import PelitapaPresentation from '../PelitapaPresentation';
 import { DEMO_CONCEPT } from '../demoConcept';
+import { planMotion } from '../motion';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -74,6 +75,7 @@ describe('PelitapaPresentation', () => {
     mockGetCurrentGameId.mockResolvedValue(null);
     mockGetGameById.mockResolvedValue(null);
     mockSyncWakeLock.mockClear();
+    localStorage.clear();
   });
 
   /** @critical the coach steps through the concept and ends on the question */
@@ -241,15 +243,178 @@ describe('PelitapaPresentation', () => {
     await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
     const moveMs = () => (document.querySelector('.pt-pitch') as HTMLElement).style.getPropertyValue('--pt-move');
 
+    // Without a durationMs the move takes longer the further the players go.
+    const into1 = `${planMotion(concept, 0, 1).durationMs}ms`;
+    expect(into1).not.toBe('700ms');
     expect(screen.getByTestId('pelitapa-arrow-label')).toHaveTextContent('1');
     fireEvent.click(screen.getByTestId('pelitapa-next'));
-    expect(moveMs()).toBe('900ms');
+    expect(moveMs()).toBe(into1);
     expect(screen.getByTestId('pelitapa-board').querySelector('.pt-zone line')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('pelitapa-next'));
     expect(moveMs()).toBe('0ms');
     fireEvent.click(screen.getByRole('button', { name: 'Previous step' }));
     expect(moveMs()).toBe('0ms');
     fireEvent.click(screen.getByRole('button', { name: 'Previous step' }));
-    expect(moveMs()).toBe('900ms');
+    expect(moveMs()).toBe(`${planMotion(concept, 1, 0).durationMs}ms`);
+  });
+});
+
+describe('PelitapaPresentation focus mode', () => {
+  beforeEach(() => {
+    mockGetPlayers.mockResolvedValue(roster);
+    mockGetCurrentGameId.mockResolvedValue(null);
+    mockGetGameById.mockResolvedValue(null);
+    mockSyncWakeLock.mockClear();
+    localStorage.clear();
+  });
+
+  const enterFocus = () => fireEvent.click(screen.getByRole('button', { name: 'Focus mode' }));
+  const focusPitch = () => {
+    const el = screen.getByTestId('pelitapa-focus-pitch');
+    // A 400 px wide screen: x < 200 is the left half.
+    el.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 800, right: 400, bottom: 800, x: 0, y: 0, toJSON: () => ({}) });
+    return el;
+  };
+  const tapAt = (x: number) => fireEvent.click(focusPitch(), { clientX: x, clientY: 300 });
+
+  /** @critical the coach shows the concept with nothing but the pitch on screen */
+  it('the button enters focus mode: only the pitch, the step title and a counter; same step', async () => {
+    await renderView();
+    fireEvent.click(screen.getByRole('button', { name: 'Step 2' }));
+    enterFocus();
+    expect(screen.getByTestId('pelitapa-focus')).toBeInTheDocument();
+    expect(screen.getByTestId('pelitapa-focus-title')).toHaveTextContent(steps[1].title);
+    expect(screen.getByTestId('pelitapa-focus-counter')).toHaveTextContent(`2/${steps.length}`);
+    // No header, controls or step text.
+    expect(screen.queryByTestId('pelitapa-next')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Previous step' })).toBeNull();
+    expect(screen.queryByText(steps[1].text)).toBeNull();
+    // Bigger discs on a frameless board.
+    const board = document.querySelector('.pt-pitch') as HTMLElement;
+    expect(board.style.borderRadius).toBe('0');
+    expect(mockSyncWakeLock).toHaveBeenCalledWith(true);
+    expect(mockSyncWakeLock).not.toHaveBeenCalledWith(false);
+  });
+
+  it('a tap on the right half steps forward, the left half back; a swipe works too', async () => {
+    await renderView();
+    enterFocus();
+    tapAt(300);
+    expect(screen.getByTestId('pelitapa-focus-title')).toHaveTextContent(steps[1].title);
+    tapAt(320);
+    expect(screen.getByTestId('pelitapa-focus-title')).toHaveTextContent(steps[2].title);
+    tapAt(50);
+    expect(screen.getByTestId('pelitapa-focus-title')).toHaveTextContent(steps[1].title);
+
+    const pitch = focusPitch();
+    fireEvent.pointerDown(pitch, { pointerId: 1, pointerType: 'touch', clientX: 300, clientY: 400 });
+    fireEvent.pointerUp(pitch, { pointerId: 1, pointerType: 'touch', clientX: 120, clientY: 410 });
+    // The click a browser may send after the swipe is not a second step.
+    fireEvent.click(pitch, { clientX: 120, clientY: 410 });
+    expect(screen.getByTestId('pelitapa-focus-title')).toHaveTextContent(steps[2].title);
+  });
+
+  it('a tap on one of our discs opens the name picker instead of stepping', async () => {
+    await renderView();
+    enterFocus();
+    focusPitch();
+    fireEvent.click(screen.getByRole('button', { name: 'Change player: Eeli' }));
+    const picker = screen.getByRole('dialog', { name: 'Choose a player' });
+    expect(screen.getByTestId('pelitapa-focus-title')).toHaveTextContent(steps[0].title);
+    fireEvent.click(within(picker).getByRole('button', { name: 'Niilo Lehtonen' }));
+    expect(screen.queryByRole('dialog', { name: 'Choose a player' })).toBeNull();
+    expect(screen.getByTestId('pelitapa-focus-title')).toHaveTextContent(steps[0].title);
+    expect(within(document.querySelector('[data-player="mv"]') as HTMLElement).getByText('Niilo')).toBeInTheDocument();
+  });
+
+  it('after the last step the question fills the screen; left goes back, right starts over', async () => {
+    await renderView();
+    enterFocus();
+    for (let i = 1; i < steps.length; i++) tapAt(300);
+    expect(screen.getByTestId('pelitapa-focus-title')).toHaveTextContent(steps[steps.length - 1].title);
+    tapAt(300);
+    expect(screen.getByTestId('pelitapa-focus-question')).toHaveTextContent(DEMO_CONCEPT.question as string);
+    expect(screen.queryByTestId('pelitapa-focus-title')).toBeNull();
+    expect(screen.queryByTestId('pelitapa-focus-counter')).toBeNull();
+    tapAt(10);
+    expect(screen.getByTestId('pelitapa-focus-title')).toHaveTextContent(steps[steps.length - 1].title);
+    tapAt(300);
+    tapAt(300);
+    expect(screen.getByTestId('pelitapa-focus-title')).toHaveTextContent(steps[0].title);
+  });
+
+  it('the phone back button and Escape return to the normal view on the same step (not close)', async () => {
+    const onClose = await renderView();
+    enterFocus();
+    tapAt(300);
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('pelitapa-focus')).toBeNull();
+    expect(screen.getByTestId('pelitapa-step-title')).toHaveTextContent(steps[1].title);
+
+    enterFocus();
+    await act(async () => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId('pelitapa-step-title')).toHaveTextContent(steps[1].title);
+    // From the normal view, Escape closes as before.
+    await act(async () => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('with the picker open, back closes only the picker', async () => {
+    await renderView();
+    enterFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Change player: Eeli' }));
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    expect(screen.queryByRole('dialog', { name: 'Choose a player' })).toBeNull();
+    expect(screen.getByTestId('pelitapa-focus')).toBeInTheDocument();
+  });
+
+  it('remembers focus mode on this device: the next concept opens in it until the normal view is used again', async () => {
+    const first = render(<PelitapaPresentation isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+    enterFocus();
+    // Back to the normal view and straight out (back, back): still remembered.
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    first.unmount();
+
+    const second = render(<PelitapaPresentation isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+    expect(screen.getByTestId('pelitapa-focus')).toBeInTheDocument();
+    // Out of focus mode and stepping in the normal view: the normal view is the mode now.
+    await act(async () => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
+    fireEvent.click(screen.getByTestId('pelitapa-next'));
+    second.unmount();
+
+    render(<PelitapaPresentation isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+    expect(screen.queryByTestId('pelitapa-focus')).toBeNull();
+  });
+
+  it('works without storage (blocked localStorage): opens in the normal view', async () => {
+    const get = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    const set = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    await renderView();
+    expect(screen.queryByTestId('pelitapa-focus')).toBeNull();
+    enterFocus();
+    expect(screen.getByTestId('pelitapa-focus')).toBeInTheDocument();
+    get.mockRestore();
+    set.mockRestore();
   });
 });

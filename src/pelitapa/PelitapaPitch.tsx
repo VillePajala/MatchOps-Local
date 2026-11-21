@@ -1,20 +1,24 @@
 'use client';
 
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { SOCCER_FIELD_CONFIG } from '@/config/fieldConfigs';
 import { drawFieldBackground, drawFieldMarkings } from '@/utils/fieldDrawing';
 import { PITCH_LENGTH, PITCH_WIDTH, type ArrowKind, type ConceptPlayer, type Point } from './types';
 import type { ResolvedArrow, ResolvedStep, ResolvedZone } from './resolveStep';
+import { bendControl, easeStandard, quadPoint, type StepMotion } from './motion';
 
 /**
  * The Pelitapa board: the match view's own grass and lines (painted by the
  * same fieldDrawing code on a canvas), with an SVG layer on top for zones,
  * arrows, discs and the ball, in pixel space so discs stay round.
  *
- * Movement between steps is a CSS transition on each disc's transform (the
- * browser interpolates on the compositor); arrows draw themselves in after
- * the move, zones fade in. All of it is switched off under
- * prefers-reduced-motion, and for a move over a `cut` step (`instant`).
+ * Movement between steps follows `motion` (planMotion): each moving disc and
+ * the ball are moved frame by frame (requestAnimationFrame, writing the
+ * transform straight to the element - no React render per frame) along the
+ * curve of the arrow that announced the move, or straight; the duration
+ * grows with the longest move. Arrows draw themselves in after the move,
+ * zones fade in. All of it is switched off under prefers-reduced-motion, and
+ * for a move over a `cut` step (`instant`).
  *
  * `still` draws a small static picture (the library's card thumbnails):
  * no motion classes, no names or labels, sizes scaled to the board.
@@ -29,6 +33,10 @@ const RUN_AMBER = '#ffd27a';
 const PRESS_RED = '#ff8a80';
 const OPP_RED = '#ef4444';
 const DEFAULT_MOVE_MS = 900;
+const BALL_KEY = '__ball';
+
+const translatePx = (p: Point) => `translate(${p[0].toFixed(1)}px, ${p[1].toFixed(1)}px)`;
+const lerp = (a: Point, b: Point, t: number): Point => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 const ARROW_DRAW_MS = 650;
 
 export interface DiscLabel {
@@ -49,6 +57,10 @@ interface PelitapaPitchProps {
   instant?: boolean;
   /** A small, static thumbnail. */
   still?: boolean;
+  /** How the players and the ball travel into this step; null/undefined = they jump. */
+  motion?: StepMotion | null;
+  /** Focus mode: bigger discs and names, scaled to the (larger) board. */
+  focus?: boolean;
 }
 
 const ARROW_STYLE: Record<ArrowKind, { color: string; width: number; dash?: string }> = {
@@ -120,20 +132,29 @@ function arrowGeometry(a: ResolvedArrow, px: (p: Point) => Point, unit: number, 
   }
 
   if (a.bend !== 0) {
-    const mx = (sx + x2) / 2;
-    const my = (sy + y2) / 2;
-    const l = Math.hypot(x2 - sx, y2 - sy);
-    const cx = mx + -uy * a.bend * l;
-    const cy = my + ux * a.bend * l;
-    const tx = x2 - cx;
-    const ty = y2 - cy;
+    // The same curve a player follows (planMotion): the quadratic over the
+    // FULL chord, then the piece between the two shortened ends (blossoming),
+    // so the drawn arrow lies exactly on the path the disc travels.
+    const p0: Point = [x1, y1];
+    const p1: Point = [x2raw, y2raw];
+    const c = bendControl(p0, p1, a.bend);
+    const t0 = start / len;
+    const t1 = 1 - cut / len;
+    const blossom = (u: number, v: number): Point => [
+      (1 - u) * (1 - v) * p0[0] + (u * (1 - v) + v * (1 - u)) * c[0] + u * v * p1[0],
+      (1 - u) * (1 - v) * p0[1] + (u * (1 - v) + v * (1 - u)) * c[1] + u * v * p1[1],
+    ];
+    const s0 = blossom(t0, t0);
+    const q = blossom(t0, t1);
+    const e = blossom(t1, t1);
+    const tx = e[0] - q[0];
+    const ty = e[1] - q[1];
     const tl = Math.hypot(tx, ty) || 1;
     return {
-      d: `M${sx.toFixed(1)} ${sy.toFixed(1)} Q${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`,
-      end: [x2, y2] as Point,
+      d: `M${s0[0].toFixed(1)} ${s0[1].toFixed(1)} Q${q[0].toFixed(1)} ${q[1].toFixed(1)} ${e[0].toFixed(1)} ${e[1].toFixed(1)}`,
+      end: e,
       dir: [tx / tl, ty / tl] as Point,
-      // The curve's point at t = 0.5.
-      mid: [0.25 * sx + 0.5 * cx + 0.25 * x2, 0.25 * sy + 0.5 * cy + 0.25 * y2] as Point,
+      mid: quadPoint(s0, q, e, 0.5),
     };
   }
 
@@ -267,19 +288,127 @@ export default function PelitapaPitch({
   onDiscTap,
   instant = false,
   still = false,
+  motion,
+  focus = false,
 }: PelitapaPitchProps) {
   // Several boards can be on one page (library thumbnails): ids must be unique.
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const unit = W / 100; // 1% of the pitch width
-  const r = still ? W * 0.042 : Math.max(16, Math.min(30, W * 0.043));
+  const r = still
+    ? W * 0.042
+    : focus
+      ? Math.max(20, Math.min(48, W * 0.054, H * 0.04))
+      : Math.max(16, Math.min(30, W * 0.043));
   const rOpp = r * 0.74;
   const px = (p: Point): Point => [(p[0] / PITCH_WIDTH) * W, (p[1] / PITCH_LENGTH) * H];
-  const moveMs = instant ? 0 : (resolved.step.durationMs ?? DEFAULT_MOVE_MS);
+  const moveMs = instant ? 0 : (motion?.durationMs ?? resolved.step.durationMs ?? DEFAULT_MOVE_MS);
   const highlights = new Set(resolved.highlights);
   const stepKey = resolved.index;
   const lineBase = still ? Math.max(1, W * 0.008) : Math.max(2.2, W * 0.0068);
   const whiteFill = `url(#pt-white-${uid})`;
   const keeperFill = `url(#pt-keeper-${uid})`;
+
+  // The ball sits off its holder's disc (top right), so it follows the disc size.
+  const ballOffset = (holder?: string): Point => {
+    if (!holder) return [0, 0];
+    const hr = players.find((p) => p.id === holder)?.side === 'opp' ? rOpp : r;
+    return [hr * 0.72, -hr * 0.72];
+  };
+  // Where every disc and the ball end up at this step, in pixels.
+  const finals = new Map<string, Point>();
+  for (const p of players) finals.set(p.id, px(resolved.positions[p.id]));
+  if (resolved.ball) {
+    const [bx, by] = px(resolved.ball.at);
+    const [ox, oy] = ballOffset(resolved.ball.holder);
+    finals.set(BALL_KEY, [bx + ox, by + oy]);
+  }
+
+  // --- Motion: frame by frame along the planned paths (see the header comment).
+  const discEls = useRef(new Map<string, SVGGElement>());
+  const ballEl = useRef<SVGGElement | null>(null);
+  /** Where each element is drawn right now (pixels), as the last frame left it. */
+  const live = useRef(new Map<string, Point>());
+  const frame = useRef<number | null>(null);
+  const latest = useRef<{ finals: Map<string, Point>; px: (p: Point) => Point; ballOffset: (h?: string) => Point } | null>(null);
+  useLayoutEffect(() => {
+    latest.current = { finals, px, ballOffset };
+  });
+  const stopFrames = () => {
+    if (frame.current !== null) {
+      cancelAnimationFrame(frame.current);
+      frame.current = null;
+    }
+  };
+  // A new board size re-renders every element at its new place: a move in
+  // flight cannot continue in the old pixels.
+  useLayoutEffect(() => {
+    stopFrames();
+    live.current.clear();
+  }, [W, H]);
+  useEffect(() => () => stopFrames(), []);
+  useLayoutEffect(() => {
+    const cur = latest.current;
+    if (still || !cur) return;
+    const put = (key: string, p: Point) => {
+      const el = key === BALL_KEY ? ballEl.current : discEls.current.get(key);
+      if (el) el.style.transform = translatePx(p);
+      live.current.set(key, p);
+    };
+    const reduced =
+      typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!motion || motion.durationMs <= 0 || reduced || typeof requestAnimationFrame !== 'function') {
+      // Jump: everything straight to its place (also ends a move in flight).
+      stopFrames();
+      cur.finals.forEach((p, key) => put(key, p));
+      return;
+    }
+    // Nothing moves into this step (e.g. the last step -> the question): let a
+    // move in flight finish rather than cutting it short.
+    if (Object.keys(motion.players).length === 0 && !motion.ball) return;
+    stopFrames();
+
+    const tracks: { key: string; at: (e: number) => Point }[] = [];
+    cur.finals.forEach((fin, key) => {
+      const planned = key === BALL_KEY ? motion.ball : motion.players[key];
+      const was = live.current.get(key);
+      if (planned) {
+        const p0 = cur.px(planned.from);
+        const p1 = cur.px(planned.to);
+        const [o0x, o0y] = key === BALL_KEY && motion.ball ? cur.ballOffset(motion.ball.fromHolder) : [0, 0];
+        const [o1x, o1y] = key === BALL_KEY && motion.ball ? cur.ballOffset(motion.ball.toHolder) : [0, 0];
+        if (!was || Math.hypot(was[0] - (p0[0] + o0x), was[1] - (p0[1] + o0y)) < 2) {
+          const c = bendControl(p0, p1, planned.bend);
+          tracks.push({
+            key,
+            at: (e) => {
+              const [x, y] = planned.bend === 0 ? lerp(p0, p1, e) : quadPoint(p0, c, p1, e);
+              return [x + o0x + (o1x - o0x) * e, y + o0y + (o1y - o0y) * e];
+            },
+          });
+          return;
+        }
+        // Interrupted mid-move: carry on straight from where it is now.
+      }
+      if (was && Math.hypot(was[0] - fin[0], was[1] - fin[1]) > 0.5) {
+        tracks.push({ key, at: (e) => lerp(was, fin, e) });
+      }
+    });
+    if (tracks.length === 0) return;
+
+    const duration = motion.durationMs;
+    tracks.forEach((tr) => put(tr.key, tr.at(0)));
+    let t0: number | null = null;
+    const tick = (now: number) => {
+      if (t0 === null) t0 = now;
+      const k = Math.min(1, (now - t0) / duration);
+      const e = easeStandard(k);
+      tracks.forEach((tr) => put(tr.key, tr.at(e)));
+      frame.current = k < 1 ? requestAnimationFrame(tick) : null;
+    };
+    frame.current = requestAnimationFrame(tick);
+    // Only a new step's motion restarts this; a re-render (a name change) must
+    // not. Sizes and positions are read through `latest`.
+  }, [motion, still]);
 
   // Our discs above theirs, highlighted ones on top.
   const ordered = [...players].sort((a, b) => {
@@ -294,9 +423,10 @@ export default function PelitapaPitch({
         position: 'relative',
         width: W,
         height: H,
-        borderRadius: still ? 10 : 14,
+        borderRadius: focus ? 0 : still ? 10 : 14,
         overflow: 'hidden',
-        boxShadow: still ? undefined : '0 30px 60px -30px rgba(0,0,0,.8), inset 0 0 0 2px rgba(255,255,255,.06)',
+        boxShadow:
+          still || focus ? undefined : '0 30px 60px -30px rgba(0,0,0,.8), inset 0 0 0 2px rgba(255,255,255,.06)',
         ['--pt-move' as string]: `${moveMs}ms`,
         ['--pt-draw' as string]: `${ARROW_DRAW_MS}ms`,
       }}
@@ -399,8 +529,11 @@ export default function PelitapaPitch({
           return (
             <g
               key={p.id}
-              className={still ? undefined : 'pt-move'}
-              style={{ transform: `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)` }}
+              ref={(el) => {
+                if (el) discEls.current.set(p.id, el);
+                else discEls.current.delete(p.id);
+              }}
+              style={{ transform: translatePx([x, y]) }}
               data-player={p.id}
               data-highlighted={lit ? 'true' : undefined}
               role={tappable ? 'button' : undefined}
@@ -463,15 +596,10 @@ export default function PelitapaPitch({
         })}
 
         {resolved.ball && (() => {
-          const [bx, by] = px(resolved.ball.at);
-          const held = !!resolved.ball.holder;
-          const holder = held ? players.find((p) => p.id === resolved.ball?.holder) : undefined;
-          const hr = holder?.side === 'opp' ? rOpp : r;
+          const at = finals.get(BALL_KEY) as Point;
           const br = still ? Math.max(2.2, r * 0.4) : Math.max(5.5, r * 0.32);
-          const ox = held ? hr * 0.72 : 0;
-          const oy = held ? -hr * 0.72 : 0;
           return (
-            <g className={still ? undefined : 'pt-move'} style={{ transform: `translate(${(bx + ox).toFixed(1)}px, ${(by + oy).toFixed(1)}px)` }} data-testid="pelitapa-ball">
+            <g ref={ballEl} style={{ transform: translatePx(at) }} data-testid="pelitapa-ball">
               <circle r={br} cy={1.5} fill="rgba(0,0,0,0.35)" />
               <circle r={br} fill="#fff" stroke={NAVY} strokeWidth={still ? br * 0.3 : Math.max(1.5, br * 0.28)} />
             </g>

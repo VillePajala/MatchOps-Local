@@ -1,4 +1,4 @@
-import { validateConcept } from '../validateConcept';
+import { lintConcept, validateConcept } from '../validateConcept';
 import { crossesCut, resolveStep } from '../resolveStep';
 import { assignPlayers, discName } from '../assignNames';
 import { DEMO_CONCEPT } from '../demoConcept';
@@ -256,5 +256,84 @@ describe('assignPlayers', () => {
     expect(discName({ name: 'Eeli Virtanen', nickname: 'Eetu' })).toBe('Eetu');
     expect(discName({ name: 'Eeli Virtanen' })).toBe('Eeli');
     expect(discName({ name: '  Onni ', nickname: ' ' })).toBe('Onni');
+  });
+});
+
+describe('lintConcept', () => {
+  /** Players well apart, a pass from the holder: nothing to warn about. */
+  const clean = (): Concept => ({
+    ...base(),
+    players: [
+      { id: 'gk', side: 'us', role: 'gk', start: [34, 95] },
+      { id: 'a', side: 'us', start: [20, 70] },
+      { id: 'b', side: 'us', start: [48, 70] },
+      { id: 'x', side: 'opp', start: [34, 40] },
+    ],
+    steps: [
+      { title: 'One', text: '', ball: 'gk', arrows: [{ kind: 'pass', from: 'gk', to: 'a' }] },
+      { title: 'Two', text: '', ball: 'a', positions: { a: [18, 60] }, arrows: [{ kind: 'long', from: 'a', to: [40, 30] }] },
+    ],
+  });
+
+  it('has no warnings for a clean concept or the built-in demo', () => {
+    expect(lintConcept(clean())).toEqual([]);
+    expect(lintConcept(DEMO_CONCEPT)).toEqual([]);
+  });
+
+  it('warns about discs on top of each other (our 2.9 + their 2.2 + a small gap)', () => {
+    const c = clean();
+    // 4 apart: closer than 2.9 + 2.2 + gap.
+    c.steps[1].positions = { a: [34, 44] };
+    const w = lintConcept(c);
+    expect(w).toEqual([expect.stringMatching(/^steps\[1\]: "a" and "x" overlap \(4\.0 apart/)]);
+    // 5.6 apart is enough.
+    c.steps[1].positions = { a: [34, 45.6] };
+    expect(lintConcept(c)).toEqual([]);
+  });
+
+  it('reports an overlap once, at the step where it starts (not again while nobody moves)', () => {
+    const c = clean();
+    c.steps[0].positions = { b: [22, 72] }; // next to a at the start
+    c.steps.push({ title: 'Three', text: '' });
+    const w = lintConcept(c).filter((m) => m.includes('overlap'));
+    expect(w).toEqual([expect.stringMatching(/^steps\[0\]: "a" and "b" overlap/)]);
+  });
+
+  it('warns about a disc reaching past the edge of the pitch', () => {
+    const c = clean();
+    c.steps[1].positions = { a: [1, 60] };
+    expect(lintConcept(c)).toEqual([expect.stringMatching(/^steps\[1\]\.positions\.a: the disc at \[1\.0, 60\.0\] reaches past the edge/)]);
+    const start = clean();
+    start.players[3].start = [34, 1];
+    expect(lintConcept(start)).toEqual([expect.stringMatching(/^players\[3\]\.start: .* reaches past the edge/)]);
+  });
+
+  it('warns about more than four arrows in a step', () => {
+    const c = clean();
+    c.steps[0].arrows = [
+      { kind: 'pass', from: 'gk', to: 'a' },
+      { kind: 'run', from: 'a', to: [10, 60] },
+      { kind: 'run', from: 'b', to: [58, 60] },
+      { kind: 'press', from: 'x', to: 'gk' },
+      { kind: 'run', from: 'gk', to: [34, 92] },
+    ];
+    expect(lintConcept(c)).toEqual(['steps[0].arrows: 5 arrows (more than 4 is hard to follow)']);
+  });
+
+  it('warns about a pass that does not start at the ball', () => {
+    const c = clean();
+    c.steps[0].arrows = [{ kind: 'pass', from: 'b', to: 'a' }];
+    c.steps[1].arrows = [{ kind: 'shot', from: [40, 40], to: [34, 0] }];
+    expect(lintConcept(c)).toEqual([
+      'steps[0].arrows[0].from: a pass that does not start at the ball ("gk")',
+      'steps[1].arrows[0].from: a shot that does not start at the ball ("a")',
+    ]);
+    // A pass from a point next to a loose ball is fine; with no ball at all it is not.
+    const loose = clean();
+    loose.steps[0] = { title: 'One', text: '', ball: [30, 50], arrows: [{ kind: 'pass', from: [30.5, 50], to: 'a' }] };
+    expect(lintConcept(loose).filter((m) => m.includes('steps[0]'))).toEqual([]);
+    const noBall = clean();
+    noBall.steps = [{ title: 'One', text: '', arrows: [{ kind: 'pass', from: 'gk', to: 'a' }] }];
+    expect(lintConcept(noBall)).toEqual(['steps[0].arrows[0].from: a pass but no ball on the pitch']);
   });
 });

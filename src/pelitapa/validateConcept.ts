@@ -4,7 +4,9 @@ import {
   type ArrowKind,
   type Concept,
   type ConceptFormat,
+  type Point,
 } from './types';
+import { resolveStep } from './resolveStep';
 
 /**
  * Checks a concept before the engine plays it. Concepts will come from the
@@ -177,4 +179,90 @@ export function validateConcept(input: unknown): ConceptValidation {
   }
 
   return errors.length === 0 ? { ok: true, concept: input as unknown as Concept } : { ok: false, errors };
+}
+
+/**
+ * Disc sizes on the board in concept units (the board draws our disc at ~4.3%
+ * of the pitch width, an opponent at 74% of that). Used to find discs that
+ * sit on top of each other.
+ */
+export const LINT_DISC_RADIUS = { us: 2.9, opp: 2.2 } as const;
+/** Discs closer than the sum of their radii plus this gap read as one blob. */
+export const LINT_DISC_GAP = 0.3;
+/** More arrows than this in one step is hard to follow for a kid. */
+export const LINT_MAX_ARROWS = 4;
+
+const PASS_KINDS: readonly ArrowKind[] = ['pass', 'long', 'shot'];
+
+/**
+ * Readability warnings for a concept that already passed validateConcept: it
+ * plays, but something will look wrong on the board. Warnings, not errors -
+ * usePlaybooks never rejects a concept for these; content authors fix them.
+ *
+ * - two discs overlap (centres closer than the radii + a small gap), checked
+ *   when one of the pair moves (or at the first step / a `cut` step);
+ * - a disc reaches past the edge of the pitch (it would be clipped);
+ * - a step has more than four arrows;
+ * - a pass / long ball / shot does not start at the ball holder.
+ */
+export function lintConcept(concept: Concept): string[] {
+  const warnings: string[] = [];
+  const side = new Map(concept.players.map((p) => [p.id, p.side]));
+  const radius = (id: string) => LINT_DISC_RADIUS[side.get(id) ?? 'us'];
+  const ids = concept.players.map((p) => p.id);
+  const fmt = (n: number) => n.toFixed(1);
+
+  concept.steps.forEach((step, i) => {
+    const resolved = resolveStep(concept, i);
+    const pos = resolved.positions;
+    const fresh = i === 0 || step.cut === true;
+    const moved = new Set(fresh ? ids : Object.keys(step.positions ?? {}));
+    const where = (id: string) =>
+      fresh && !step.positions?.[id] ? `players[${ids.indexOf(id)}].start` : `steps[${i}].positions.${id}`;
+
+    for (let a = 0; a < ids.length; a++) {
+      for (let b = a + 1; b < ids.length; b++) {
+        const A = ids[a];
+        const B = ids[b];
+        if (!moved.has(A) && !moved.has(B)) continue;
+        const d = Math.hypot(pos[A][0] - pos[B][0], pos[A][1] - pos[B][1]);
+        const min = radius(A) + radius(B) + LINT_DISC_GAP;
+        if (d < min) {
+          warnings.push(`steps[${i}]: "${A}" and "${B}" overlap (${fmt(d)} apart, need ${fmt(min)})`);
+        }
+      }
+    }
+
+    for (const id of moved) {
+      const [x, y] = pos[id];
+      const rr = radius(id);
+      if (x < rr || x > PITCH_WIDTH - rr || y < rr || y > PITCH_LENGTH - rr) {
+        warnings.push(`${where(id)}: the disc at [${fmt(x)}, ${fmt(y)}] reaches past the edge of the pitch`);
+      }
+    }
+
+    const arrows = step.arrows ?? [];
+    if (arrows.length > LINT_MAX_ARROWS) {
+      warnings.push(`steps[${i}].arrows: ${arrows.length} arrows (more than ${LINT_MAX_ARROWS} is hard to follow)`);
+    }
+    arrows.forEach((arrow, j) => {
+      if (!PASS_KINDS.includes(arrow.kind)) return;
+      const ball = resolved.ball;
+      const path = `steps[${i}].arrows[${j}].from`;
+      if (!ball) {
+        warnings.push(`${path}: a ${arrow.kind} but no ball on the pitch`);
+        return;
+      }
+      const startsAtHolder =
+        typeof arrow.from === 'string'
+          ? arrow.from === ball.holder
+          : Math.hypot((arrow.from as Point)[0] - ball.at[0], (arrow.from as Point)[1] - ball.at[1]) <= 1.5;
+      if (!startsAtHolder) {
+        const holder = ball.holder ? `"${ball.holder}"` : `[${fmt(ball.at[0])}, ${fmt(ball.at[1])}]`;
+        warnings.push(`${path}: a ${arrow.kind} that does not start at the ball (${holder})`);
+      }
+    });
+  });
+
+  return warnings;
 }

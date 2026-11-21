@@ -82,12 +82,20 @@ export const DEMO_CONCEPT: Concept = {
       title: 'Vapaa pelaaja vie pallon eteenpäin',
       text: 'Toppari kuljettaa vapaaseen tilaan. Laitapelaaja tarjoutuu edessä ja peli avautuu.',
       ball: 'op',
-      positions: { op: [56, 74], v5: [47, 63], v8: [38, 72] },
+      positions: { op: [56, 74], v5: [47, 63], v8: [39, 71] },
       highlights: ['op', 'ol'],
       arrows: [
         { kind: 'drib', from: 'op', to: [56, 63] },
-        { kind: 'run', from: 'ol', to: [62, 44] },
+        // Round the outside, away from the defender.
+        { kind: 'run', from: 'ol', to: [62, 44], bend: 0.25 },
       ],
+    },
+    {
+      title: 'Syöttö vapaalle laitapelaajalle',
+      text: 'Laitapelaaja kaartaa vapaaseen tilaan. Toppari syöttää hänelle ja hyökkäys jatkuu.',
+      positions: { op: [56, 63], ol: [62, 44] },
+      highlights: ['ol'],
+      arrows: [{ kind: 'pass', from: 'op', to: 'ol' }],
     },
   ],
   question: 'Missä sinä olisit vapaana, kun vastustaja painaa pallollista?',
