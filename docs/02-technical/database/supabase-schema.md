@@ -105,6 +105,7 @@ users (Supabase Auth)
  ├── user_consents (GDPR compliance)
  ├── subscriptions (Play Store billing; enforcement off, app is free)
  ├── playtime_plans, playtime_plan_links, playtime_game_subs (migration 036)
+ ├── account_features (migration 064; per-account feature flags, client read-only)
  └── sync_tombstones (migration 059; no client access)
 rate_limits (migration 024; Edge Functions only, not user-owned)
 ```
@@ -1125,7 +1126,43 @@ CREATE TABLE playtime_game_subs (
 -- RLS on all three: (select auth.uid()) = user_id. clear_all_user_data() clears them (037).
 ```
 
-### 19. Service tables (no client access)
+### 19. `account_features` (migration 064)
+
+Per-account feature flags controlled by the server. The first flag is `pelitapa`
+(the hidden Pelitapa library). Clients can only **read their own rows**; a feature
+is granted with SQL / the service role.
+
+```sql
+CREATE TABLE account_features (
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  feature    text NOT NULL CHECK (feature ~ '^[a-z][a-z0-9_]{0,63}$'),
+  enabled    boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, feature)
+);
+ALTER TABLE account_features ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON account_features FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON account_features TO authenticated;
+CREATE POLICY "Users can read their own account features"
+  ON account_features FOR SELECT TO authenticated
+  USING ((select auth.uid()) = user_id);
+-- No INSERT/UPDATE/DELETE policy: only the service role writes.
+```
+
+- **Account deletion** removes the rows (FK cascade).
+- **`clear_all_user_data()` keeps them**: a granted feature belongs to the account,
+  not to the coach's data, and the coach could not re-grant it.
+- **Granting a feature** (SQL editor or Management API):
+  ```sql
+  INSERT INTO account_features (user_id, feature)
+  SELECT id, 'pelitapa' FROM auth.users WHERE email = '<coach email>'
+  ON CONFLICT (user_id, feature) DO UPDATE SET enabled = true;
+  ```
+  Revoke with `UPDATE ... SET enabled = false` or `DELETE`. The app re-reads the flags
+  after sign-in and when it resumes, and keeps the last answer per user for offline use.
+- The client reads them in `src/hooks/useAccountFeatures.ts`.
+
+### 20. Service tables (no client access)
 
 ```sql
 -- Deletion record for newer-edit-wins sync (migration 059). Only the SECURITY DEFINER
@@ -1453,6 +1490,8 @@ GRANT EXECUTE ON FUNCTION clear_all_user_data TO authenticated;
 ```
 
 **Note**: `user_consents` is intentionally NOT deleted by `clear_all_user_data()`. Consent records must be retained for GDPR compliance even after account deletion to prove consent was given.
+
+**Note**: `account_features` (migration 064) is also NOT deleted by `clear_all_user_data()`: granted features belong to the account and only the service role can grant them. They are removed with the account (FK cascade).
 
 **Why RPC instead of sequential client-side deletes?**
 - **Atomicity**: Single PostgreSQL transaction ensures all-or-nothing semantics

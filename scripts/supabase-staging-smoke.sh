@@ -8,7 +8,8 @@
 #   2. one user cannot read another user's rows (RLS);
 #   3. sync_write_check answers apply / stale / deleted (059);
 #   4. sync_tombstones is closed to clients;
-#   5. clear_all_user_data runs.
+#   5. account_features (064): readable by its owner only, not writable by clients;
+#   6. clear_all_user_data runs and keeps the granted features.
 # Test users are deleted at the end (Management API, the Supabase CLI's token).
 #
 # STAGING ONLY: the target is fixed to the staging project (no override). Usage:
@@ -107,11 +108,22 @@ echo "4. sync_tombstones closed to clients"
 body=$(rest GET "sync_tombstones?select=*" "$JWT_A" | cut -d' ' -f2-)
 case "$body" in *"permission denied"*) ok "tombstones not readable";; *) bad "tombstones not readable" "$body";; esac
 
-echo "5. clear_all_user_data"
+echo "5. account_features"
+sql "insert into public.account_features (user_id, feature) values ('$UID_A', 'smoke_flag')" >/dev/null
+expect "user A reads its own feature" "$(rest GET "account_features?select=feature,enabled" "$JWT_A" | cut -d' ' -f2- | jq -c .)" '[{"feature":"smoke_flag","enabled":true}]'
+expect "user B cannot read A's feature" "$(rest GET "account_features?select=feature" "$JWT_B" | cut -d' ' -f2-)" "[]"
+code=$(rest POST account_features "$JWT_B" "{\"user_id\":\"$UID_B\",\"feature\":\"smoke_self\"}" | cut -d' ' -f1)
+case "$code" in 401|403) ok "user B cannot grant itself a feature ($code)";; *) bad "user B cannot grant itself a feature" "$code";; esac
+rest PATCH "account_features?feature=eq.smoke_flag" "$JWT_A" '{"enabled":false}' >/dev/null
+rest DELETE "account_features?feature=eq.smoke_flag" "$JWT_A" >/dev/null
+expect "user A cannot change or delete its feature" "$(sql "select count(*) filter (where enabled) as n from public.account_features where user_id='$UID_A'" | jq -r '.[0].n')" "1"
+
+echo "6. clear_all_user_data"
 rest POST players "$JWT_A" "{\"id\":\"smoke_q\",\"user_id\":\"$UID_A\",\"name\":\"Q\"}" >/dev/null
 code=$(rest POST rpc/clear_all_user_data "$JWT_A" '{}' | cut -d' ' -f1)
 case "$code" in 2??) ok "clear_all_user_data succeeds ($code)";; *) bad "clear_all_user_data succeeds" "$code";; esac
 expect "user A's rows are gone" "$(rest GET "players?select=id" "$JWT_A" | cut -d' ' -f2-)" "[]"
+expect "granted features survive the clear" "$(rest GET "account_features?select=feature" "$JWT_A" | cut -d' ' -f2- | jq -r 'length')" "1"
 
 echo
 echo "passed $PASS, failed $FAIL"
