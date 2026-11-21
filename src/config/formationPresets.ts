@@ -39,9 +39,13 @@ export interface FormationPreset {
   positions: FieldPosition[];
 }
 
-// Standard margins matching formations.ts
-const MARGIN = 0.15;
-const TIGHT_MARGIN = 0.10;
+// Edge margins. The widest spot must leave room for a full player disc
+// (48 px) plus a gap before the sub slots on the right sideline (relX 0.96),
+// even on a phone: at 0.82 the right-hand player no longer overlaps the sub
+// slot in the same row (owner, 2026-11-21; it did at 0.85 / 0.90). The left
+// margin matches so formations stay symmetric. Keep in sync with formations.ts.
+const MARGIN = 0.18;
+const TIGHT_MARGIN = 0.18;
 
 /**
  * Helper to generate evenly spaced positions in a row
