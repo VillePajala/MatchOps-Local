@@ -199,6 +199,23 @@ describe('PelitapaPresentation', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
+  /**
+   * Regression (owner, 2026-11-21): a step with long text shrank the pitch,
+   * because the text panel's width followed the pitch and its height grew with
+   * the text. The panel now has a fixed width and height; long text scrolls.
+   * @edge-case
+   */
+  it('keeps the text panel a fixed size so long step text cannot shrink the pitch', async () => {
+    const long = 'Hyvin pitkä selitys, joka jatkuu ja jatkuu. '.repeat(20);
+    const concept = { ...DEMO_CONCEPT, steps: DEMO_CONCEPT.steps.map((st, i) => (i === 0 ? { ...st, text: long } : st)) };
+    render(<PelitapaPresentation isOpen onClose={jest.fn()} concept={concept} />);
+    const text = await screen.findByText(long.trim());
+    const panel = text.closest('.pt-text') as HTMLElement;
+    expect(panel.style.height).toContain('calc(');
+    expect(panel.style.minHeight).toBe('');
+    expect(panel.className).toContain('overflow-y-auto');
+  });
+
   it('shows a message instead of the board for an invalid concept', async () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     await act(async () => {

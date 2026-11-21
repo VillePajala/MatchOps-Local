@@ -39,6 +39,16 @@ type Stage = number | 'question';
 /** Fallback board size before the first measurement (and in tests). */
 const FALLBACK_W = 358;
 
+/**
+ * The header and the text panel have a fixed width and height, independent of
+ * the pitch and of the step's text, so the pitch is the same size on every
+ * step: the largest the screen allows.
+ */
+const PANEL_MAX_W = 760;
+/** Step title (up to 2 lines) + body (up to 4 lines) at the panel's type sizes. */
+const TEXT_PANEL_HEIGHT =
+  'calc(2 * 1.15 * clamp(22px, 3.6vw, 30px) + 4px + 4 * 1.45 * clamp(16px, 2.6vw, 21px))';
+
 const MOTION_CSS = `
 .pt-move { transition: transform var(--pt-move, 900ms) cubic-bezier(.4,0,.2,1); }
 .pt-draw { stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: pt-draw var(--pt-draw, 650ms) cubic-bezier(.3,0,.2,1) var(--pt-delay, 0ms) forwards; }
@@ -264,7 +274,7 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
       <style>{MOTION_CSS}</style>
 
       {/* Header */}
-      <div className="flex w-full flex-shrink-0 items-center gap-3 px-4 pb-3 sm:px-7" style={{ maxWidth: Math.max(boardW + 32, 360) }}>
+      <div className="flex w-full flex-shrink-0 items-center gap-3 px-4 pb-3 sm:px-7" style={{ maxWidth: PANEL_MAX_W }}>
         <button
           type="button"
           onClick={onClose}
@@ -306,7 +316,7 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
       </div>
 
       {/* Controls */}
-      <div className="flex w-full flex-shrink-0 flex-col gap-3 px-4 pt-4 sm:px-7" style={{ maxWidth: boardW + 32 }}>
+      <div className="flex w-full flex-shrink-0 flex-col gap-3 px-4 pt-4 sm:px-7" style={{ maxWidth: PANEL_MAX_W }}>
         <div className="flex gap-1.5">
           {steps.map((_, i) => {
             const on = !inQuestion && i === index;
@@ -330,8 +340,12 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
           })}
         </div>
 
-        <div key={inQuestion ? 'q' : index} className="pt-text"
-          style={{ minHeight: 'calc(1.15 * clamp(22px, 3.6vw, 30px) + 4px + 3 * 1.45 * clamp(16px, 2.6vw, 21px))' }}
+        <div key={inQuestion ? 'q' : index} className="pt-text overflow-y-auto overscroll-contain"
+          // FIXED height (not min-height): the pitch takes whatever the header and
+          // this panel leave, so a step with long text must not take more room -
+          // otherwise the pitch shrank step by step (owner, 2026-11-21). Long text
+          // scrolls inside this box instead.
+          style={{ height: TEXT_PANEL_HEIGHT }}
           aria-live="polite"
         >
           {inQuestion ? (
