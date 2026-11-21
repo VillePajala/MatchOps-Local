@@ -22,6 +22,7 @@ import { CLOUD_COPY_ADOPTED_EVENT, GAME_REPLACED_BY_CLOUD_EVENT } from '@/sync/s
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRecheckOnLeavingMatch } from '@/hooks/useRecheckOnLeavingMatch';
 import { useAppResume } from '@/hooks/useAppResume';
 import { useDiagnosticsPreferenceSync } from '@/hooks/useDiagnosticsPreference';
 import { useMultiTabPrevention } from '@/hooks/useMultiTabPrevention';
@@ -1047,19 +1048,9 @@ export default function Home() {
       .catch(() => undefined);
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId, tabMayBoot]);
 
-  // Deep-review fix (stale Home): all Home flags (canResume, hasPlayers,
-  // hasSavedGames, first-time mode, setup card) were computed once at boot;
-  // returning via Koti showed the BOOT-time Home - most visibly, a brand-new
-  // user's first game left Home in first-time mode until a reload. Re-check
-  // whenever the user lands back on the start screen after a match.
-  const hasVisitedMatchRef = useRef(false);
-  useEffect(() => {
-    if (screen === 'home') {
-      hasVisitedMatchRef.current = true;
-    } else if (hasVisitedMatchRef.current) {
-      void checkAppState();
-    }
-  }, [screen, checkAppState]);
+  // Re-check the start state on returning from a match - in the background, without
+  // the loading screen (see the hook).
+  useRecheckOnLeavingMatch(screen, checkAppState);
 
   // Reset state when user signs out
   // This ensures the loading screen and start screen show again on next sign-in
