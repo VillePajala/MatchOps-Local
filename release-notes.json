@@ -3,6 +3,11 @@
   "releases": [
     {
       "date": "2026-11-21",
+      "en": ["Formations sit slightly narrower, so the widest player no longer overlaps the substitute spots on the sideline."],
+      "fi": ["Muodostelmat ovat hieman kapeampia, joten laitimmainen pelaaja ei enää peitä sivurajan vaihtopaikkoja."]
+    },
+    {
+      "date": "2026-11-21",
       "en": ["A big squad no longer piles player discs up on the sideline: players beyond the formation and its sub spots wait in the player bar."],
       "fi": ["Iso pelaajaryhmä ei enää kasaa pelaajia sivurajalle: muodostelman ja vaihtopaikkojen yli menevät pelaajat odottavat ylärivissä."]
     },

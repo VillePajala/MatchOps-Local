@@ -336,3 +336,21 @@ describe('PRESETS_BY_SIZE', () => {
     }
   });
 });
+
+/**
+ * Regression (owner, 2026-11-21): the widest formation spot overlapped the sub
+ * slot in the same row on a phone. A disc is 48 px; on a ~360 px wide field the
+ * sub slots sit at relX 0.96, so field spots must stay left of that by more than
+ * a full disc.
+ * @edge-case
+ */
+describe('formation spots leave room for the sub slots', () => {
+  const SUB_SLOT_X = 0.96;
+  const DISC_PX = 48;
+  const PHONE_FIELD_PX = 360;
+
+  it.each(FORMATION_PRESETS.map((p) => [p.id, p] as const))('%s keeps a full disc between its widest spot and the sub slots', (_id, preset) => {
+    const widest = Math.max(...preset.positions.map((pos) => pos.relX));
+    expect((SUB_SLOT_X - widest) * PHONE_FIELD_PX).toBeGreaterThan(DISC_PX);
+  });
+});

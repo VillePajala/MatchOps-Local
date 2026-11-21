@@ -93,7 +93,9 @@ export function calculateFormationPositions(playerCount: number): FieldPosition[
  */
 function getSmallTeamFormation(playerCount: number): FieldPosition[] {
   // Use consistent margin for all rows to create clean horizontal lines
-  const MARGIN = 0.15;
+  // 0.18: leaves room for a disc + gap before the sub slots at relX 0.96
+  // (matches formationPresets.ts MARGIN; was 0.15 and overlapped on phones).
+  const MARGIN = 0.18;
 
   switch (playerCount) {
     case 1:
