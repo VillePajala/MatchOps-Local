@@ -1,4 +1,4 @@
-import { computeTeamRecord } from './teamRecord';
+import { computeTeamRecord, computeCompetitionRecord } from './teamRecord';
 import type { AppState } from '@/types';
 
 const g = (o: Partial<AppState> = {}): AppState => ({
@@ -27,5 +27,23 @@ describe('computeTeamRecord', () => {
     expect(computeTeamRecord([])).toEqual({
       gamesPlayed: 0, wins: 0, losses: 0, ties: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0,
     });
+  });
+});
+
+describe('computeCompetitionRecord', () => {
+  it('counts only played games (isPlayed !== false), legacy games without the flag included', () => {
+    const rec = computeCompetitionRecord([
+      g({ homeScore: 3, awayScore: 1 }),
+      g({ homeScore: 0, awayScore: 0, isPlayed: false }),
+      g({ homeScore: 1, awayScore: 2, isPlayed: undefined }),
+    ]);
+    expect(rec.gamesPlayed).toBe(2);
+    expect(rec.wins).toBe(1);
+    expect(rec.losses).toBe(1);
+    expect(rec.goalDifference).toBe(1);
+  });
+
+  it('is empty when nothing has been played', () => {
+    expect(computeCompetitionRecord([g({ isPlayed: false })]).gamesPlayed).toBe(0);
   });
 });

@@ -4,16 +4,18 @@ import React from 'react';
 import type { TFunction } from 'i18next';
 import type { GameType, Gender } from '@/types';
 import { CLUB_SEASON_OFF_SEASON } from '@/utils/entityDisplayNames';
-import { formatAppDate } from '@/utils/localeFormat';
+import { formatAppDateRange } from '@/utils/localeFormat';
+import { daysBetween } from '@/utils/todayIso';
+import type { TeamRecord } from '@/utils/teamRecord';
 
 /**
- * The rich league / tournament card: name, context chips, then matches and
- * goals as the Home screen's italic numerals.
+ * One league / tournament card body in the Sarjat / Turnaukset manager
+ * (owner, 2026-11-21, variant A - the same card as the teams list): the name,
+ * ONE quiet meta line, and a result line once games have been played - or,
+ * for one that has not started yet, when it starts.
  *
- * The Sarjat / Turnaukset manager lists it; Home's Kilpailut tab only names
- * the featured one in a row (owner, 2026-11-19). The wrapper (a list row with
- * an actions menu) belongs to the caller. Spans only, so it is valid inside a
- * button.
+ * The wrapper (the card with its actions menu) belongs to the caller. Spans
+ * only, so it is valid inside a button.
  */
 export interface CompetitionCardItem {
   name: string;
@@ -21,80 +23,120 @@ export interface CompetitionCardItem {
   clubSeason?: string;
   gameType?: GameType;
   gender?: Gender;
+  ageGroup?: string;
   startDate?: string;
   endDate?: string;
   series?: Array<{ id: string; level: string }>;
 }
 
-const CHIP = 'inline-flex items-center h-[26px] px-[11px] rounded-full bg-white/[0.06] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)] font-ui text-xs font-semibold tracking-[0.04em] text-ink-2 whitespace-nowrap';
+/**
+ * The meta line's parts, in order, only those the item has (so no dangling
+ * separators). Tournaments lead with their dates, leagues with the club season.
+ */
+export function competitionMetaParts(
+  item: CompetitionCardItem,
+  kind: 'season' | 'tournament',
+  t: TFunction,
+  language?: string,
+): string[] {
+  const lead = kind === 'tournament'
+    ? formatAppDateRange(item.startDate, item.endDate, language)
+    : item.clubSeason && item.clubSeason !== CLUB_SEASON_OFF_SEASON ? item.clubSeason : null;
+  const gender = item.gender === 'boys'
+    ? t('common.genderBoys', 'Boys')
+    : item.gender === 'girls' ? t('common.genderGirls', 'Girls') : null;
+  const parts: Array<string | null | undefined> = [
+    lead,
+    item.gameType === 'futsal' ? t('common.futsal', 'Futsal') : null,
+    gender,
+    ...(item.series ?? []).map((s) => t(`common.level${s.level}`, s.level)),
+    item.ageGroup,
+  ];
+  return parts.filter((p): p is string => !!p && p.trim() !== '');
+}
 
-export function CompetitionCard({ item, showDates, games, goals, menu, t }: {
+/** "+4" / "−3" (a real minus sign) / "0", and the result colour it reads as. */
+export function goalDifferenceDisplay(diff: number): { text: string; className: string } {
+  if (diff > 0) return { text: `+${diff}`, className: 'text-win' };
+  if (diff < 0) return { text: `−${Math.abs(diff)}`, className: 'text-loss' };
+  return { text: '0', className: 'text-draw' };
+}
+
+/** "Starts today / tomorrow / in N days" - null unless the start is today or later. */
+export function startsInLabel(startDate: string | undefined, today: string, t: TFunction): string | null {
+  if (!startDate || startDate < today) return null;
+  const days = daysBetween(today, startDate);
+  if (days === 0) return t('seasonTournamentModal.startsToday', 'Starts today');
+  if (days === 1) return t('seasonTournamentModal.startsTomorrow', 'Starts tomorrow');
+  return t('seasonTournamentModal.startsInDays', 'Starts in {{count}} days', { count: days });
+}
+
+export function CompetitionCard({ item, kind, record, today, t, language }: {
   item: CompetitionCardItem;
-  /** Tournaments show their dates under the name; leagues do not. */
-  showDates: boolean;
-  games: number;
-  goals: number;
-  /** The manager's actions menu, top right. */
-  menu?: React.ReactNode;
+  kind: 'season' | 'tournament';
+  /** Its played games' record; undefined while it is still loading. */
+  record?: TeamRecord;
+  /** The coach's today (todayIso) - the "starts in" chip counts from it. */
+  today: string;
   t: TFunction;
+  language?: string;
 }) {
+  const meta = competitionMetaParts(item, kind, t, language);
+  const played = record && record.gamesPlayed > 0 ? record : null;
+  // Only once the record is known: a played tournament must not flash "Starts in".
+  const startsIn = record && !played ? startsInLabel(item.startDate, today, t) : null;
+  const gd = played ? goalDifferenceDisplay(played.goalDifference) : null;
+
   return (
-    <>
-      <span className="flex items-start gap-2 pl-[18px] pr-2">
-        <span className="block flex-1 min-w-0 pt-1.5">
-          <span className="block font-display text-[26px] font-bold leading-[1.1] text-ink break-words">{item.name}</span>
-          {showDates && (item.startDate || item.endDate) && (
-            <span className="mt-1 block text-sm text-ink-3">
-              {item.startDate ? formatAppDate(item.startDate) : ''}
-              {item.startDate && item.endDate ? ' – ' : ''}
-              {item.endDate ? formatAppDate(item.endDate) : ''}
-            </span>
-          )}
-          {/* Context chips: plain text (green/red mean results only) */}
-          <span className="flex flex-wrap gap-2 mt-2">
-            {item.archived && (
-              <span className={CHIP}>{t('seasonTournamentModal.archivedBadge', 'Archived')}</span>
-            )}
-            {item.clubSeason && item.clubSeason !== CLUB_SEASON_OFF_SEASON && (
-              <span className={CHIP}>
-                <span className="sr-only">{t('seasonDetailsModal.clubSeasonLabel', 'Season')}: </span>
-                {item.clubSeason}
-              </span>
-            )}
-            {item.gameType === 'futsal' && (
-              <span className={CHIP}>
-                <span className="sr-only">{t('common.gameTypeLabel', 'Sport Type')}: </span>
-                {t('common.futsal', 'Futsal')}
-              </span>
-            )}
-            {item.gender && (
-              <span className={CHIP}>
-                <span className="sr-only">{t('common.genderLabel', 'Gender')}: </span>
-                {item.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
-              </span>
-            )}
-            {item.series?.map((series) => (
-              <span key={series.id} className={CHIP}>
-                <span className="sr-only">{t('common.seriesLabel', 'Level')}: </span>
-                {t(`common.level${series.level}`, series.level)}
-              </span>
-            ))}
+    <span className="block min-w-0 flex-1">
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="truncate font-display text-[22px] font-bold leading-[1.1] text-ink">{item.name}</span>
+        {item.archived && (
+          <span className="inline-flex h-[22px] shrink-0 items-center rounded-full bg-white/[0.06] px-2 text-xs font-semibold text-ink-2">
+            {t('seasonTournamentModal.archivedBadge', 'Archived')}
           </span>
-        </span>
-        {menu}
+        )}
       </span>
-      {/* Matches / goals as the home screen's italic numerals */}
-      <span className="mt-4 flex border-t border-hairline">
-        <span className="flex-1 flex items-baseline gap-2.5 px-[18px] pt-3 pb-3.5">
-          <span className="s1-numeral pr-[3px] font-display text-[34px] font-bold italic leading-none">{games}</span>
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">{t('seasonTournamentModal.statsGames', 'Games')}</span>
+      {meta.length > 0 && (
+        <span
+          className="mt-0.5 block truncate text-[13px] leading-5 text-ink-3"
+          title={meta.join(' · ')}
+          data-testid="competition-meta"
+        >
+          {meta.join(' · ')}
         </span>
-        <span className="flex-1 flex items-baseline gap-2.5 px-[18px] pt-3 pb-3.5 border-l border-hairline">
-          <span className="s1-numeral pr-[3px] font-display text-[34px] font-bold italic leading-none">{goals}</span>
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">{t('seasonTournamentModal.statsGoals', 'Goals')}</span>
+      )}
+      {played && gd && (
+        <span className="mt-1.5 block truncate text-[13px] font-medium leading-5 text-ink-2" data-testid="competition-record">
+          {t('seasonTournamentModal.recordGames', '{{count}} games', { count: played.gamesPlayed })}
+          {' · '}
+          {/* W-D-L reads as "two dash zero dash one" aloud; say it in words. */}
+          <span className="sr-only">
+            {t('seasonTournamentModal.recordAria', '{{wins}} wins, {{draws}} draws, {{losses}} losses', {
+              wins: played.wins, draws: played.ties, losses: played.losses,
+            })}
+          </span>
+          <span aria-hidden="true" className="font-display text-[17px] font-extrabold italic tracking-[0.02em]" data-testid="competition-wdl">
+            <span className="text-win">{played.wins}</span>
+            <span className="text-ink-3">-</span>
+            <span className="text-draw">{played.ties}</span>
+            <span className="text-ink-3">-</span>
+            <span className="text-loss">{played.losses}</span>
+          </span>
+          {' · '}
+          {t('seasonTournamentModal.goalDifference', 'goal diff')}{' '}
+          <span className={`font-semibold tabular-nums ${gd.className}`} data-testid="competition-goal-diff">{gd.text}</span>
         </span>
-      </span>
-    </>
+      )}
+      {startsIn && (
+        <span
+          className="mt-2 inline-flex h-6 items-center rounded-full bg-white/[0.06] px-2.5 text-xs font-medium text-ink-2"
+          data-testid="competition-starts-in"
+        >
+          {startsIn}
+        </span>
+      )}
+    </span>
   );
 }
 

@@ -3,7 +3,7 @@
  * built on "today". Getting it wrong by a day shifts the "not played yet"
  * default, which exists to keep unplayed matches out of the season record.
  */
-import { todayIso } from '../todayIso';
+import { todayIso, daysBetween } from '../todayIso';
 
 describe('todayIso', () => {
   it('reads the local calendar date', () => {
@@ -40,5 +40,18 @@ describe('todayIso', () => {
 
   it('defaults to now', () => {
     expect(todayIso()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('daysBetween', () => {
+  it('counts whole calendar days, across a month and a DST change', () => {
+    expect(daysBetween('2026-11-21', '2026-11-21')).toBe(0);
+    expect(daysBetween('2026-11-21', '2026-11-22')).toBe(1);
+    expect(daysBetween('2026-10-20', '2026-11-02')).toBe(13);
+  });
+
+  it('is never negative, and 0 for a malformed date', () => {
+    expect(daysBetween('2026-11-21', '2026-11-01')).toBe(0);
+    expect(daysBetween('2026-11-21', 'nope')).toBe(0);
   });
 });
