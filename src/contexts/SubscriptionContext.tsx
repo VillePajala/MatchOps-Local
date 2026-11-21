@@ -26,6 +26,8 @@ import { getStorageItem, setStorageItem } from '@/utils/storage';
 import { isCloudAvailable } from '@/config/backendConfig';
 import logger from '@/utils/logger';
 import { isTransientError } from '@/utils/retry';
+import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
+import { markLaunch } from '@/utils/launchTiming';
 
 /**
  * Subscription status enum (matches database enum)
@@ -47,6 +49,25 @@ export function isSubscriptionActive(_status: SubscriptionStatus): boolean {
   return true;
   // Original logic:
   // return _status === 'active' || _status === 'cancelled' || _status === 'grace';
+}
+
+/**
+ * Whether the start-up flow must wait for the subscription status before it lets the
+ * coach in (page.tsx: the post-login check and the cloud-pull/migration check).
+ *
+ * Only when premium is enforced. While it is not (`PREMIUM_ENFORCEMENT_ENABLED` is
+ * false, the app is free), `isSubscriptionActive` is true for every status, so the
+ * answer of the `get_subscription_status` call cannot change any decision - waiting
+ * for it only held the loading screen for a network round trip (or longer on a bad
+ * connection). The status is still fetched in the background for the Settings screen.
+ *
+ * `enforced` is a parameter only so both branches can be tested.
+ */
+export function mustWaitForSubscriptionStatus(
+  isLoading: boolean,
+  enforced: boolean = PREMIUM_ENFORCEMENT_ENABLED,
+): boolean {
+  return enforced && isLoading;
 }
 
 /**
@@ -220,9 +241,16 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       }
 
       // Fetch from server (dynamic import to avoid pulling Supabase into local-mode bundle)
+      markLaunch('subscription_fetch_start');
       const { getSupabaseClient } = await import('@/datastore/supabase/client');
       const supabase = getSupabaseClient();
-      const { data, error } = await supabase.rpc('get_subscription_status');
+      let rpcResult;
+      try {
+        rpcResult = await supabase.rpc('get_subscription_status');
+      } finally {
+        markLaunch('subscription_fetch_end');
+      }
+      const { data, error } = rpcResult;
 
       if (error) {
         throw error;

@@ -19,7 +19,9 @@ import {
   useSubscriptionOptional,
   isSubscriptionActive,
   clearSubscriptionCache,
+  mustWaitForSubscriptionStatus,
 } from '../SubscriptionContext';
+import { PREMIUM_ENFORCEMENT_ENABLED } from '@/config/constants';
 import { useAuth } from '../AuthProvider';
 import { getSupabaseClient } from '@/datastore/supabase/client';
 import { getStorageItem, setStorageItem } from '@/utils/storage';
@@ -89,6 +91,39 @@ describe('SubscriptionContext', () => {
     it('gives access for none and expired too while the app is free', () => {
       expect(isSubscriptionActive('none')).toBe(true);
       expect(isSubscriptionActive('expired')).toBe(true);
+    });
+  });
+
+  /**
+   * The start-up flow (page.tsx post-login + migration checks) waits for the status only
+   * while premium is enforced (loading-speed stage 1).
+   * @critical
+   */
+  describe('mustWaitForSubscriptionStatus', () => {
+    it('does not wait while premium is not enforced, loading or not', () => {
+      expect(mustWaitForSubscriptionStatus(true, false)).toBe(false);
+      expect(mustWaitForSubscriptionStatus(false, false)).toBe(false);
+    });
+
+    it('waits for a loading status while premium is enforced', () => {
+      expect(mustWaitForSubscriptionStatus(true, true)).toBe(true);
+      expect(mustWaitForSubscriptionStatus(false, true)).toBe(false);
+    });
+
+    it('follows PREMIUM_ENFORCEMENT_ENABLED by default', () => {
+      expect(mustWaitForSubscriptionStatus(true)).toBe(PREMIUM_ENFORCEMENT_ENABLED);
+    });
+
+    /**
+     * Why skipping is safe: without enforcement every status has access, so the
+     * fetched answer cannot change what the start-up flow decides. If this ever fails,
+     * the skip above must be revisited.
+     */
+    it('skips only when no status could deny access', () => {
+      if (PREMIUM_ENFORCEMENT_ENABLED) return;
+      for (const status of ['none', 'active', 'cancelled', 'grace', 'expired'] as const) {
+        expect(isSubscriptionActive(status)).toBe(true);
+      }
     });
   });
 

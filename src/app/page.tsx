@@ -30,7 +30,7 @@ import DeepLinkClubRouter from '@/components/DeepLinkClubRouter';
 import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import type { AppAction } from '@/hooks/useDeepLinkHandler';
 import { usePremium } from '@/hooks/usePremium';
-import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useSubscription, mustWaitForSubscriptionStatus } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
 import { useSignOutWithPendingSyncWarning } from '@/hooks/useSignOutWithPendingSyncWarning';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -250,7 +250,12 @@ export default function Home() {
   // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
   const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
   // Cloud subscription status - fetched from Supabase (NOT local storage)
-  const { isActive: hasActiveSubscription, isLoading: isSubscriptionLoading } = useSubscription();
+  const { isActive: hasActiveSubscription, isLoading: isSubscriptionStatusLoading } = useSubscription();
+  // The post-login and migration checks below wait for the status only while premium
+  // is enforced; the app is free, so the answer cannot change what they decide and
+  // waiting only held the loading screen for a network call (see
+  // mustWaitForSubscriptionStatus).
+  const isSubscriptionLoading = mustWaitForSubscriptionStatus(isSubscriptionStatusLoading);
   const queryClient = useQueryClient();
   // Settings -> Data "Error reporting and usage statistics": keep Sentry in
   // step with the signed-in account's choice.
