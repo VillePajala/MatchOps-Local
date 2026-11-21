@@ -414,6 +414,78 @@ export type Database = {
           },
         ]
       }
+      playbook_access: {
+        Row: {
+          granted_at: string
+          playbook_id: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          playbook_id: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          playbook_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      playbook_concepts: {
+        Row: {
+          data: Json
+          format: string
+          id: string
+          phase: string
+          playbook_id: string
+          sort: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          data: Json
+          format: string
+          id: string
+          phase: string
+          playbook_id: string
+          sort?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          data?: Json
+          format?: string
+          id?: string
+          phase?: string
+          playbook_id?: string
+          sort?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      playbooks: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_note: string | null
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          name: string
+          owner_note?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_note?: string | null
+        }
+        Relationships: []
+      }
       playtime_game_subs: {
         Row: {
           game_id: string

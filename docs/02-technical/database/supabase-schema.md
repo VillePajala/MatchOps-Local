@@ -106,8 +106,10 @@ users (Supabase Auth)
  ├── subscriptions (Play Store billing; enforcement off, app is free)
  ├── playtime_plans, playtime_plan_links, playtime_game_subs (migration 036)
  ├── account_features (migration 064; per-account feature flags, client read-only)
+ ├── playbook_access (migration 065; which playbooks the account may read, client read-only)
  └── sync_tombstones (migration 059; no client access)
 rate_limits (migration 024; Edge Functions only, not user-owned)
+playbooks ─── playbook_concepts (migration 065; shared content, not user-owned, read via playbook_access)
 ```
 
 ## Core Tables
@@ -1162,7 +1164,58 @@ CREATE POLICY "Users can read their own account features"
   after sign-in and when it resumes, and keeps the last answer per user for offline use.
 - The client reads them in `src/hooks/useAccountFeatures.ts`.
 
-### 20. Service tables (no client access)
+### 20. Pelitapa playbooks (migration 065)
+
+Read-only **content** shared with chosen accounts: a playbook is a club's (or our own)
+set of Pelitapa concepts, one JSON document per concept in the format of
+`src/pelitapa/types.ts`. Not anyone's data: written only by the service role, read by
+accounts that have a `playbook_access` row.
+
+```sql
+CREATE TABLE playbooks (
+  id         text PRIMARY KEY CHECK (id ~ '^[a-z0-9][a-z0-9_-]{0,63}$'),
+  name       text NOT NULL,
+  owner_note text,                -- internal (source, permission); not shown in the app
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE playbook_concepts (
+  id          text NOT NULL,
+  playbook_id text NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
+  format      text NOT NULL CHECK (format IN ('5v5', '8v8', '11v11')),
+  phase       text NOT NULL,
+  sort        int  NOT NULL DEFAULT 0,
+  data        jsonb NOT NULL CHECK (jsonb_typeof(data) = 'object'),  -- the concept
+  version     int  NOT NULL DEFAULT 1,   -- content revision, bumped by the seed script
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (playbook_id, id)
+);
+CREATE TABLE playbook_access (
+  playbook_id text NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
+  user_id     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  granted_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (playbook_id, user_id)
+);
+-- RLS on all three, SELECT policies only; SELECT granted to authenticated, nothing to anon:
+--   playbook_access:   (select auth.uid()) = user_id
+--   playbooks:         EXISTS (access row for this playbook and auth.uid())
+--   playbook_concepts: EXISTS (access row for this playbook_id and auth.uid())
+```
+
+- **Content source**: `content/pelitapa/<playbook>.json` in the repo (validated by
+  `src/pelitapa/__tests__/playbookContent.test.ts`). The app never bundles these files;
+  it reads the database.
+- **Loading / granting** (staging): `node scripts/pelitapa/seed-playbook.mjs
+  content/pelitapa/pepo-8v8.json --grant <coach email> --apply` upserts the playbook and
+  its concepts (version bumps only on change), deletes concepts removed from the file and
+  grants access. Revoke with `DELETE FROM playbook_access WHERE ...`.
+- **Account deletion** removes the account's `playbook_access` rows (FK cascade);
+  playbooks stay. Deleting a playbook removes its concepts and grants.
+- **`clear_all_user_data()` keeps `playbook_access`**: access is granted to the account,
+  not part of the coach's data, and the coach could not re-grant it.
+- The client reads them in `src/pelitapa/usePlaybooks.ts` (accounts with the `pelitapa`
+  flag only), validates every concept and keeps the last answer per user for offline use.
+
+### 21. Service tables (no client access)
 
 ```sql
 -- Deletion record for newer-edit-wins sync (migration 059). Only the SECURITY DEFINER
@@ -1492,6 +1545,8 @@ GRANT EXECUTE ON FUNCTION clear_all_user_data TO authenticated;
 **Note**: `user_consents` is intentionally NOT deleted by `clear_all_user_data()`. Consent records must be retained for GDPR compliance even after account deletion to prove consent was given.
 
 **Note**: `account_features` (migration 064) is also NOT deleted by `clear_all_user_data()`: granted features belong to the account and only the service role can grant them. They are removed with the account (FK cascade).
+
+**Note**: `playbook_access` (migration 065) is NOT deleted by `clear_all_user_data()` either, for the same reason: access to a playbook is granted by the service role. It is removed with the account (FK cascade).
 
 **Why RPC instead of sequential client-side deletes?**
 - **Atomicity**: Single PostgreSQL transaction ensures all-or-nothing semantics
