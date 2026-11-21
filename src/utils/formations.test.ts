@@ -8,7 +8,6 @@
 import {
   calculateFormationPositions,
   applyFormationPreset,
-  generateSidelinePositions,
   generateSubSlots,
   isFieldPosition,
   buildAutoPlacement,
@@ -352,128 +351,6 @@ describe('applyFormationPreset', () => {
   });
 });
 
-describe('generateSidelinePositions', () => {
-  describe('basic functionality', () => {
-    it('returns empty array for 0 overflow players', () => {
-      const positions = generateSidelinePositions(0);
-      expect(positions).toEqual([]);
-    });
-
-    it('returns empty array for negative count', () => {
-      const positions = generateSidelinePositions(-1);
-      expect(positions).toEqual([]);
-    });
-
-    it('returns 1 position for 1 overflow player', () => {
-      const positions = generateSidelinePositions(1);
-      expect(positions).toHaveLength(1);
-    });
-
-    it('returns correct number of positions for multiple players', () => {
-      expect(generateSidelinePositions(3)).toHaveLength(3);
-      expect(generateSidelinePositions(5)).toHaveLength(5);
-      expect(generateSidelinePositions(10)).toHaveLength(10);
-    });
-  });
-
-  describe('position placement (right sideline, bottom corner)', () => {
-    it('places players on right side of field (relX near 1.0)', () => {
-      const positions = generateSidelinePositions(3);
-      positions.forEach(pos => {
-        expect(pos.relX).toBeGreaterThan(0.9);
-        expect(pos.relX).toBeLessThanOrEqual(1.0);
-      });
-    });
-
-    it('starts from bottom corner (high relY)', () => {
-      const positions = generateSidelinePositions(3);
-      // First player should be near bottom (high relY)
-      expect(positions[0].relY).toBeGreaterThan(0.8);
-    });
-
-    it('stacks players upward (decreasing relY)', () => {
-      const positions = generateSidelinePositions(5);
-      for (let i = 1; i < positions.length; i++) {
-        expect(positions[i].relY).toBeLessThan(positions[i - 1].relY);
-      }
-    });
-
-    it('maintains consistent horizontal position (same relX)', () => {
-      const positions = generateSidelinePositions(4);
-      const firstX = positions[0].relX;
-      positions.forEach(pos => {
-        expect(pos.relX).toBe(firstX);
-      });
-    });
-  });
-
-  describe('spacing', () => {
-    it('uses consistent spacing between players', () => {
-      const positions = generateSidelinePositions(4);
-      const spacings: number[] = [];
-      for (let i = 1; i < positions.length; i++) {
-        spacings.push(positions[i - 1].relY - positions[i].relY);
-      }
-      // All spacings should be equal
-      const firstSpacing = spacings[0];
-      spacings.forEach(spacing => {
-        expect(spacing).toBeCloseTo(firstSpacing, 5);
-      });
-    });
-
-    it('uses tight spacing (around 0.06) for compact sideline placement', () => {
-      const positions = generateSidelinePositions(2);
-      const spacing = positions[0].relY - positions[1].relY;
-      expect(spacing).toBeCloseTo(0.06, 2);
-    });
-  });
-
-  describe('coordinate validation', () => {
-    it('all positions have relX between 0 and 1', () => {
-      const positions = generateSidelinePositions(10);
-      positions.forEach(pos => {
-        expect(pos.relX).toBeGreaterThanOrEqual(0);
-        expect(pos.relX).toBeLessThanOrEqual(1);
-      });
-    });
-
-    it('all positions have relY between 0 and 1', () => {
-      const positions = generateSidelinePositions(10);
-      positions.forEach(pos => {
-        expect(pos.relY).toBeGreaterThanOrEqual(0);
-        expect(pos.relY).toBeLessThanOrEqual(1);
-      });
-    });
-
-    it('positions remain valid even with many overflow players', () => {
-      // With 15 players at 0.06 spacing starting from 0.92,
-      // the 15th player would be at 0.92 - 14*0.06 = 0.08
-      const positions = generateSidelinePositions(15);
-      positions.forEach(pos => {
-        expect(pos.relX).toBeGreaterThanOrEqual(0);
-        expect(pos.relX).toBeLessThanOrEqual(1);
-        expect(pos.relY).toBeGreaterThanOrEqual(0);
-        expect(pos.relY).toBeLessThanOrEqual(1);
-      });
-    });
-  });
-
-  describe('pure function properties', () => {
-    it('returns same result for same input (deterministic)', () => {
-      const result1 = generateSidelinePositions(5);
-      const result2 = generateSidelinePositions(5);
-      expect(result1).toEqual(result2);
-    });
-
-    it('returns new array each time (no shared references)', () => {
-      const result1 = generateSidelinePositions(3);
-      const result2 = generateSidelinePositions(3);
-      expect(result1).not.toBe(result2);
-      expect(result1[0]).not.toBe(result2[0]);
-    });
-  });
-});
-
 describe('generateSubSlots', () => {
   describe('edge cases and guards', () => {
     it('returns empty array for empty formation positions', () => {
@@ -780,6 +657,26 @@ describe('buildAutoPlacement', () => {
     const result = buildAutoPlacement(mkPlayers(16));
     expect(result.playersOnField).toHaveLength(16);
     expect(result.playersOnField.filter((p) => p.isGoalie)).toHaveLength(1);
+  });
+
+  it('leaves players beyond the preset slots and sub slots in the player bar (no sideline pile-up)', () => {
+    // A 4-outfield preset: 4 field spots + sub slots generated from those rows.
+    const preset = [
+      { relX: 0.2, relY: 0.7 },
+      { relX: 0.8, relY: 0.7 },
+      { relX: 0.2, relY: 0.3 },
+      { relX: 0.8, relY: 0.3 },
+    ];
+    // 1 goalie + 14 outfielders: far more than 4 spots + their sub slots.
+    const result = buildAutoPlacement(mkPlayers(15), preset);
+    const outfield = result.playersOnField.filter((p) => !p.isGoalie);
+    const onSideline = outfield.filter((p) => p.relX !== undefined && p.relX > 0.9);
+    // Every sideline disc sits on its own sub slot: no two share a spot.
+    const spots = new Set(onSideline.map((p) => `${p.relX?.toFixed(3)}:${p.relY?.toFixed(3)}`));
+    expect(spots.size).toBe(onSideline.length);
+    // Fewer players placed than the squad: the rest stay unplaced (player bar).
+    expect(result.playersOnField.length).toBeLessThan(15);
+    expect(result.playersOnField.length).toBe(1 + 4 + onSideline.length);
   });
 
   it('emits snap points beginning with the keeper spot', () => {
