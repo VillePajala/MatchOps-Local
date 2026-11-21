@@ -40,8 +40,18 @@ import {
   HiOutlineQuestionMarkCircle,
   HiOutlineDocumentText,
   HiOutlineArrowRightStartOnRectangle,
+  HiOutlinePlayCircle,
 } from 'react-icons/hi2';
 import { TASO_URL } from '@/config/externalLinks';
+import { useAccountFeatures } from '@/hooks/useAccountFeatures';
+import { lazyModal } from '@/components/lazyModal';
+
+/**
+ * Pelitapa (hidden behind the server-side 'pelitapa' account flag): its own
+ * chunk, fetched only when opened - kept out of the background warm-up so an
+ * account without the flag never downloads it.
+ */
+const PelitapaPresentation = lazyModal(() => import('@/pelitapa/PelitapaPresentation'), { warm: false });
 
 /**
  * HOME, S1 "SYKE REFINED" (owner-approved, phase 1 of 3). Colours and fonts
@@ -304,6 +314,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onAddPlayers,
 }) => {
   const { t } = useTranslation();
+  const { hasFeature } = useAccountFeatures();
+  const pelitapaOn = hasFeature('pelitapa');
+  const [pelitapaOpen, setPelitapaOpen] = useState(false);
   // Dashboard is the default view, but it only renders once there are games to
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
   // The full layout always shows the dashboard once there are games: the old
@@ -579,6 +592,15 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={onOpenTraining}
                   disabled={!onOpenTraining}
                 />
+                {pelitapaOn && (
+                  <HomeRow
+                    icon={HiOutlinePlayCircle}
+                    label={t('startScreen.rowPelitapa', 'Playing style (test)')}
+                    subtitle={t('startScreen.clubPelitapaSub', 'Animated game situations')}
+                    onClick={() => setPelitapaOpen(true)}
+                    testId="club-pelitapa"
+                  />
+                )}
                 {/* Rules belongs with the coaching material: reference a coach
                     consults, not app configuration. */}
                 {onOpenRules && (
@@ -1052,6 +1074,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {pelitapaOn && pelitapaOpen && (
+        <PelitapaPresentation isOpen onClose={() => setPelitapaOpen(false)} />
       )}
     </div>
   );

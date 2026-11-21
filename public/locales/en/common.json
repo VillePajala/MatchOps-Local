@@ -1428,7 +1428,9 @@
     "clubSectionCoaching": "Coaching",
     "clubTrainingSub": "Your pre-game warm-up",
     "clubRulesSub": "Game and league rules",
-    "clubMaterialsSub": "Finnish FA coaching materials"
+    "clubMaterialsSub": "Finnish FA coaching materials",
+    "rowPelitapa": "Playing style (test)",
+    "clubPelitapaSub": "Animated game situations"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -4227,5 +4229,18 @@
   "privacyHints": {
     "noHealthData": "Do not record health information.",
     "firstNameEnough": "A first name or nickname is enough."
+  },
+  "pelitapa": {
+    "close": "Close",
+    "previous": "Previous step",
+    "next": "Next",
+    "toQuestion": "Think about it",
+    "restart": "Start over",
+    "stepN": "Step {{n}}",
+    "pitchLabel": "Pitch, step {{current}} of {{total}}",
+    "changePlayer": "Choose a player",
+    "changePlayerNamed": "Change player: {{name}}",
+    "noName": "No name",
+    "invalidConcept": "This concept cannot be shown."
   }
 }

@@ -94,12 +94,16 @@ interface ModalLikeProps {
  * closed. Closing matters: the host's open flag must go back to false, or the next tap
  * on the same button changes nothing and the modal can't be retried.
  */
-export function lazyModal<P extends object>(loader: ModalLoader<P>): ComponentType<P> {
+export function lazyModal<P extends object>(
+  loader: ModalLoader<P>,
+  /** `warm: false` keeps the chunk out of warmLazyModals: for a view most accounts never open (a flagged feature). */
+  { warm = true }: { warm?: boolean } = {},
+): ComponentType<P> {
   // Shared by every mounted instance of this modal. Replacing it after a failure is
   // safe even with two instances: both then render a lazy over the same import(),
   // which the bundler caches, so neither can see a stale or half-loaded module.
   const current = { Lazy: lazy(loader) };
-  loaders.push(loader);
+  if (warm) loaders.push(loader);
 
   function LazyModal(props: P) {
     const { t } = useTranslation();
