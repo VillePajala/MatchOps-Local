@@ -162,6 +162,8 @@ interface GameStatsModalProps {
   initialSelectedPlayerId?: string | null;
   /** Tab to land on when opening (menu match-vs-team stats entries). */
   initialTab?: StatsTab;
+  /** Team filter to open with (Home's "Joukkueet" rows): a team id, or 'legacy'. */
+  initialTeamId?: string;
   onGameClick?: (gameId: string) => void;
   masterRoster?: Player[];
   onOpenSettings?: () => void;
@@ -233,6 +235,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onExportPlayerExcel,
   initialSelectedPlayerId = null,
   initialTab,
+  initialTeamId,
   onGameClick = NOOP,
   aggregateOnly = false,
   currentGameOnly = false,
@@ -356,7 +359,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   );
   const [playerQuery, setPlayerQuery] = useState('');
   const [allAdjustments, setAllAdjustments] = useState<PlayerStatAdjustment[]>([]);
-  const { filters, handlers } = useStatsFilters();
+  const { filters, handlers } = useStatsFilters(initialTeamId);
   const {
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,

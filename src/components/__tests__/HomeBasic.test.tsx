@@ -82,7 +82,6 @@ const summary = (overrides: Partial<HomeSummary> = {}): HomeSummary => ({
   upcomingList: [],
   counts: { players: 14, teams: 1, personnel: 0, seasons: 0, tournaments: 0 },
   countsReady: true,
-  topScorer: null,
   playedCount: 0,
   ...overrides,
 });

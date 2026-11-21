@@ -29,10 +29,14 @@ export interface StatsFiltersHandlers {
   resetAllFilters: () => void;
 }
 
-export function useStatsFilters() {
+/**
+ * @param initialTeamId The team filter to open with (Home's "Joukkueet" rows);
+ *   'legacy' for games naming no team. Omitted = all teams.
+ */
+export function useStatsFilters(initialTeamId?: string | 'legacy') {
   const [selectedSeasonIdFilter, setSelectedSeasonIdFilter] = useState<string | 'all'>('all');
   const [selectedTournamentIdFilter, setSelectedTournamentIdFilter] = useState<string | 'all'>('all');
-  const [selectedTeamIdFilter, setSelectedTeamIdFilter] = useState<string | 'all' | 'legacy'>('all');
+  const [selectedTeamIdFilter, setSelectedTeamIdFilter] = useState<string | 'all' | 'legacy'>(initialTeamId ?? 'all');
   const [selectedSeriesIdFilter, setSelectedSeriesIdFilter] = useState<string | 'all'>('all');
   const [selectedGameTypeFilter, setSelectedGameTypeFilter] = useState<GameType | 'all'>('all');
   const [selectedGenderFilter, setSelectedGenderFilter] = useState<Gender | 'all'>('all');

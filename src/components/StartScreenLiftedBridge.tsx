@@ -26,8 +26,6 @@ import { useModalContext } from '@/contexts/ModalProvider';
 import { useAppLayout, useSetAppLayout } from '@/hooks/useAppLayout';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
-import { getMasterRoster } from '@/utils/masterRosterManager';
-import logger from '@/utils/logger';
 
 /** "Milloin seuraava peli?" + the plan screen (basic Home's "Uusi ottelu", R1). */
 const NextGameFlow = lazyModal(() => import('@/components/NextGameFlow'));
@@ -42,7 +40,7 @@ type LiftedHandlerProps =
   | 'onOpenPlanner'
   | 'onViewStats'
   | 'onViewStatsTab'
-  | 'onViewPlayerStats'
+  | 'onViewTeamStats'
   | 'onAddCompetition'
   | 'onManageRoster'
   | 'onManageTeams'
@@ -86,7 +84,6 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
     setIsSeasonTournamentModalOpen,
     setCompetitionManagerKind,
     setCompetitionManagerTarget,
-    setSelectedPlayerForStats,
     setIsTrainingResourcesOpen,
     setIsRulesDirectoryOpen,
     setIsInstructionsModalOpen,
@@ -189,23 +186,9 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
       onOpenPlanner={() => setIsPlaytimePlannerOpen(true)}
       onViewStats={() => openClubStatsToTab('season')}
       onViewStatsTab={(tab) => openClubStatsToTab(tab)}
-      onViewPlayerStats={(playerId) => {
-        // The stats surface deep-links by Player (the roster's per-player
-        // shortcut uses the same pair). A player the roster no longer has, or
-        // a failed read, still lands on the player tab - never on nothing.
-        // accountId is page.tsx's userId (setOnboardingUserId), the key every
-        // other Home read uses.
-        void getMasterRoster(accountId ?? undefined)
-          .then((roster) => roster.find((p) => p.id === playerId) ?? null)
-          .catch((err) => {
-            logger.warn('Failed to read roster for player stats', { error: err });
-            return null;
-          })
-          .then((player) => {
-            setSelectedPlayerForStats(player);
-            openClubStatsToTab('player');
-          });
-      }}
+      // Tilastot's "Joukkueet" rows: overall stats with that team's filter
+      // set ('' = the games naming no team, the stats filter's 'legacy').
+      onViewTeamStats={(teamId) => openClubStatsToTab('overall', { teamId: teamId || 'legacy' })}
       onManageRoster={() => setIsRosterModalOpen(true)}
       onManageTeams={() => setIsTeamManagerOpen(true)}
       onManagePersonnel={() => setIsPersonnelManagerOpen(true)}

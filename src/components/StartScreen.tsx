@@ -7,7 +7,7 @@ import { useAppLanguage } from '@/hooks/useAppLanguage';
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonHero, HomeStatsHero, HomeTopScorersCard, HomeClubCard, HomeIcon, HOME_CARD, HOME_FOCUS, formatDayMonth } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonHero, HomeStatsHero, HomeTeamsCard, HomeClubCard, HomeIcon, HOME_CARD, HOME_FOCUS, formatDayMonth } from '@/components/HomeDashboard';
 import type { HomeCompetition } from '@/utils/homeSummary';
 import { useHorizontalSwipe } from '@/hooks/useHorizontalSwipe';
 import { APP_VERSION } from '@/config/constants';
@@ -184,8 +184,8 @@ interface StartScreenProps {
   onViewStats: () => void;
   /** Stats panel rows mirror the aggregate tabs (W8): open club stats on one. */
   onViewStatsTab?: (tab: 'season' | 'tournament' | 'overall' | 'player') => void;
-  /** Tilastot's scorers list: that player's stats. */
-  onViewPlayerStats?: (playerId: string) => void;
+  /** Tilastot's "Joukkueet" rows: that team's stats ('' = games naming no team). */
+  onViewTeamStats?: (teamId: string) => void;
   /** Kilpailut's "Sarjat / Turnaukset" rows with none yet: the add sheet. */
   onAddCompetition?: (kind: 'season' | 'tournament') => void;
   /** Gear sheet: direct sign out (cloud mode only). */
@@ -196,7 +196,7 @@ interface StartScreenProps {
   /** Home tab: seasons & tournaments (opens the existing modal). */
   onManageSeasons?: () => void;
   /** Teams the coach can scope Home to, and the current choice. */
-  teamScopeOptions?: Array<{ id: string; label: string }>;
+  teamScopeOptions?: Array<{ id: string; label: string; color?: string }>;
   teamScope?: string;
   onTeamScopeChange?: (scope: string) => void;
   onManageTournaments?: () => void;
@@ -265,7 +265,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onNewGame,
   onViewStats,
   onViewStatsTab,
-  onViewPlayerStats,
+  onViewTeamStats,
   onAddCompetition,
   onSignOut,
   onOpenSettings,
@@ -317,14 +317,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const competitions = homeSummary?.competitions;
   // Tilastot reads the team-scoped copy of the summary.
   const statsSummary = homeStatsSummary ?? homeSummary;
-  // Its record and goal-difference tiles open overall stats; the scorers list
-  // opens that player (the player tab when no id is known).
+  // Its record and goal-difference tiles open overall stats; a "Joukkueet"
+  // row opens overall stats filtered to that team.
   const openOverall = onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats;
-  const openPlayer = (playerId?: string) => {
-    if (playerId && onViewPlayerStats) onViewPlayerStats(playerId);
-    else if (onViewStatsTab) onViewStatsTab('player');
-    else onViewStats();
-  };
   // Club card title: the app has no club-name field, so it shows a club name
   // only when every team's name starts with the same one ("Kotkat P12",
   // "Kotkat T11" -> "Kotkat"); otherwise the neutral "Seura".
@@ -567,7 +562,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 showClubEyebrow={!!clubName}
                 counts={counts}
                 vuosi={homeSummary?.vuosi ?? null}
-                topScorer={homeSummary?.topScorer ?? null}
                 onPlayers={onManageRoster}
                 onTeams={onManageTeams}
                 onPersonnel={onManagePersonnel}
@@ -687,7 +681,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     onOpenOverall={openOverall}
                     t={t}
                   />
-                  <HomeTopScorersCard scorers={statsSummary.topScorers} onOpenPlayer={openPlayer} t={t} />
+                  <HomeTeamsCard
+                    summary={statsSummary}
+                    teams={teamScopeOptions ?? []}
+                    onOpenTeam={onViewTeamStats}
+                    t={t}
+                  />
                 </>
               )}
               {!hasSavedGames && (

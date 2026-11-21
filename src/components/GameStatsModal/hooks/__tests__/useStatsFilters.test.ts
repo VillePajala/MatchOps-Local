@@ -58,4 +58,14 @@ describe('useStatsFilters', () => {
     expect(result.current.filters.selectedSeriesIdFilter).toBe('all');
     expect(result.current.filters.selectedTournamentIdFilter).toBe('tour-2');
   });
+
+  /** Home's "Joukkueet" rows open stats already filtered to that team. */
+  it('opens with the given team filter, which a tab switch still resets', () => {
+    const { result } = renderHook(() => useStatsFilters('team-7'));
+    expect(result.current.filters.selectedTeamIdFilter).toBe('team-7');
+    act(() => {
+      result.current.handlers.resetAllFilters();
+    });
+    expect(result.current.filters.selectedTeamIdFilter).toBe('all');
+  });
 });

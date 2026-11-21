@@ -3,6 +3,11 @@
   "releases": [
     {
       "date": "2026-11-21",
+      "en": ["Home focuses on teams: the Statistics tab now shows each team's record, goal difference and recent results instead of top scorers."],
+      "fi": ["Kotinäkymä keskittyy joukkueisiin: Tilastot-välilehti näyttää nyt jokaisen joukkueen saldon, maalieron ja viimeisimmät tulokset maalintekijöiden sijaan."]
+    },
+    {
+      "date": "2026-11-21",
       "en": [
         "The app opens faster: it no longer waits for checks that do not affect you.",
         "Leaving a match goes straight back to Home, without the loading screen.",

@@ -187,6 +187,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     isClubStatsOpen,
     setIsClubStatsOpen,
     clubStatsInitialTab,
+    clubStatsInitialTeamId,
     openClubStatsToTab,
     selectedPlayerForStats,
     setSelectedPlayerForStats,
@@ -603,6 +604,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           onExportPlayerExcel={clubStats.handleExportPlayerExcel}
           initialSelectedPlayerId={selectedPlayerForStats?.id}
           initialTab={clubStatsInitialTab}
+          initialTeamId={clubStatsInitialTeamId}
           onGameClick={(gameId) => {
             /* The log's game rows are the LoadGame level crossing. The
                surface closes via the load controller's onEnterMatch - i.e.
