@@ -13,6 +13,7 @@ import {
   hasCloudData,
   hasCloudDataWithRetry,
   isReverseMigrationRunning,
+  hydrateLocalFromCloud,
   hydrateLocalFromCloudWithRetry,
   hydrationChangedAnything,
   isAuthNotReadyError,
@@ -94,6 +95,14 @@ const mockClearCloudAccountInfo = clearCloudAccountInfo as jest.Mock;
 const mockUpdateCloudAccountInfo = updateCloudAccountInfo as jest.Mock;
 
 const MockedLocalDataStore = LocalDataStore as jest.MockedClass<typeof LocalDataStore>;
+
+/** Lets pending microtasks run until the mock has been called (no timers involved). */
+async function waitForCall(mock: jest.Mock): Promise<void> {
+  for (let i = 0; i < 100 && mock.mock.calls.length === 0; i++) {
+    await Promise.resolve();
+  }
+  expect(mock).toHaveBeenCalled();
+}
 const MockedSupabaseDataStore = SupabaseDataStore as jest.MockedClass<typeof SupabaseDataStore>;
 
 // =============================================================================
@@ -1090,6 +1099,123 @@ describe('reverseMigrationService', () => {
    * Real timers on purpose: the delays are short, and faking them buys a second
    * of runtime at the cost of a subtler test.
    */
+  /**
+   * The launch pull reads the cloud tables in parallel (loading-speed stage 1). The
+   * result and the failure behaviour must be exactly what the one-by-one reads gave.
+   * @critical
+   */
+  describe('hydration reads the cloud tables in parallel', () => {
+    const MAIN_READS = [
+      'getPlayers', 'getTeams', 'getSeasons', 'getTournaments',
+      'getAllPersonnel', 'getGames', 'getWarmupPlan', 'getSettings',
+    ] as const;
+
+    /** A promise the test settles by hand. */
+    const deferred = <T,>() => {
+      let resolve!: (value: T) => void;
+      let reject!: (reason: unknown) => void;
+      const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+      return { promise, resolve, reject };
+    };
+
+    it('starts every table read before any of them has answered', async () => {
+      const gates = MAIN_READS.map(() => deferred<void>());
+      MAIN_READS.forEach((name, i) => {
+        const original = (mockSupabaseDataStore[name] as jest.Mock).getMockImplementation();
+        (mockSupabaseDataStore[name] as jest.Mock).mockImplementation(async (...args: unknown[]) => {
+          await gates[i].promise;
+          return original ? original(...args) : undefined;
+        });
+      });
+
+      const run = hydrateLocalFromCloud('test-user-id');
+      // Every read has been called while none has resolved yet.
+      for (const name of MAIN_READS) {
+        await waitForCall(mockSupabaseDataStore[name] as jest.Mock);
+      }
+      gates.forEach((gate) => gate.resolve());
+      const result = await run;
+
+      expect(result.success).toBe(true);
+      expect(mockSupabaseDataStore.getTeams).toHaveBeenCalledWith(true);
+      expect(mockSupabaseDataStore.getSeasons).toHaveBeenCalledWith(true);
+      expect(mockSupabaseDataStore.getTournaments).toHaveBeenCalledWith(true);
+    });
+
+    it('imports the same data as before', async () => {
+      // An empty device, so every cloud item is written.
+      for (const name of ['getPlayers', 'getTeams', 'getSeasons', 'getTournaments', 'getAllPersonnel'] as const) {
+        (mockLocalDataStore[name] as jest.Mock).mockResolvedValue([]);
+      }
+      (mockLocalDataStore.getGames as jest.Mock).mockResolvedValue({});
+
+      const result = await hydrateLocalFromCloud('test-user-id');
+
+      expect(result.success).toBe(true);
+      expect(mockLocalDataStore.upsertPlayer).toHaveBeenCalledWith(mockPlayer);
+      expect(mockLocalDataStore.upsertTeam).toHaveBeenCalledWith(expect.objectContaining({ id: mockTeam.id }));
+      expect(mockLocalDataStore.upsertSeason).toHaveBeenCalledWith(expect.objectContaining({ id: mockSeason.id }));
+      expect(mockLocalDataStore.upsertTournament).toHaveBeenCalledWith(expect.objectContaining({ id: mockTournament.id }));
+      expect(mockLocalDataStore.upsertPersonnelMember).toHaveBeenCalledWith(expect.objectContaining({ id: mockPersonnel.id }));
+      expect(mockLocalDataStore.saveGame).toHaveBeenCalledWith('game-1', expect.objectContaining({ teamName: mockGame.teamName }));
+      // The team roster still comes from the team list.
+      expect(mockSupabaseDataStore.getTeamRoster).toHaveBeenCalledWith(mockTeam.id);
+      expect(mockLocalDataStore.setTeamRoster).toHaveBeenCalledWith(mockTeam.id, [mockPlayer]);
+    });
+
+    it.each(MAIN_READS)('a failed %s fails the whole pull, writing nothing', async (name) => {
+      (mockSupabaseDataStore[name] as jest.Mock).mockRejectedValue(new Error(`${name} broke`));
+
+      const result = await hydrateLocalFromCloud('test-user-id');
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual([`Hydration failed: ${name} broke`]);
+      expect(mockLocalDataStore.upsertPlayer).not.toHaveBeenCalled();
+      expect(mockLocalDataStore.saveGame).not.toHaveBeenCalled();
+      expect(mockSupabaseDataStore.getTeamRoster).not.toHaveBeenCalled();
+    });
+
+    it('reports the earliest failing read in the old order, not the first to fail in time', async () => {
+      const games = deferred<never>();
+      (mockSupabaseDataStore.getPlayers as jest.Mock).mockImplementation(async () => {
+        // Players fails LAST in time...
+        await games.promise.catch(() => undefined);
+        throw new Error('players broke');
+      });
+      (mockSupabaseDataStore.getGames as jest.Mock).mockImplementation(() => games.promise);
+      games.reject(new Error('games broke')); // ...games fails first.
+
+      const result = await hydrateLocalFromCloud('test-user-id');
+
+      // One-by-one, players was read (and failed) first - that stays the reported error.
+      expect(result.errors).toEqual(['Hydration failed: players broke']);
+    });
+
+    it('a failed team roster is skipped, the other teams and the pull carry on', async () => {
+      const teamB = { ...mockTeam, id: 'team-2', name: 'Second' };
+      (mockSupabaseDataStore.getTeams as jest.Mock).mockResolvedValue([mockTeam, teamB]);
+      (mockSupabaseDataStore.getTeamRoster as jest.Mock).mockImplementation(async (teamId: string) => {
+        if (teamId === mockTeam.id) throw new Error('roster broke');
+        return [mockPlayer];
+      });
+
+      const result = await hydrateLocalFromCloud('test-user-id');
+
+      expect(result.success).toBe(true);
+      expect(mockLocalDataStore.setTeamRoster).toHaveBeenCalledWith('team-2', [mockPlayer]);
+      expect(mockLocalDataStore.setTeamRoster).not.toHaveBeenCalledWith(mockTeam.id, expect.anything());
+    });
+
+    it('a failed player-adjustment read is skipped and the pull carries on', async () => {
+      (mockSupabaseDataStore.getAllPlayerAdjustments as jest.Mock).mockRejectedValue(new Error('adjustments broke'));
+
+      const result = await hydrateLocalFromCloud('test-user-id');
+
+      expect(result.success).toBe(true);
+      expect(mockLocalDataStore.upsertPlayer).toHaveBeenCalledWith(mockPlayer);
+    });
+  });
+
   describe('hydrateLocalFromCloudWithRetry', () => {
     it('recovers when the first attempt fails and the next succeeds', async () => {
       const players = mockSupabaseDataStore.getPlayers as jest.Mock;

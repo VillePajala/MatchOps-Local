@@ -14,7 +14,8 @@
  * - Invalidates React Query caches to force data refetch
  * - Calls custom onResume callback for app-specific recovery
  * - Dispatches custom 'app-resume' event for components to handle recovery
- * - Forces page reload for very long background periods (5+ minutes)
+ * - Forces page reload for very long background periods (60+ minutes, see
+ *   FORCE_RELOAD_AFTER_BACKGROUND_MS)
  *
  * Error handling:
  * - If page reload fails (rare), logs to Sentry with 'fatal' level
@@ -29,14 +30,75 @@ import { isMatchLive } from '@/utils/matchTimerSignal';
 import { isRecordingSessionActive } from '@/utils/recordingSessionSignal';
 import { hasUnsavedInput } from '@/utils/unsavedInputSignal';
 
+/**
+ * Background time after which a return reloads the whole page (when it is safe to).
+ *
+ * Was 5 minutes. The reload came in for Android TWA / iOS returns that showed a black
+ * screen or an empty field (Dec 2025). Every part of that recovery now also runs on
+ * the soft path a return takes below this threshold: the field redraws itself
+ * (SoccerField: visibilitychange / pageshow / 'app-resume'), React Query refetches,
+ * page.tsx re-checks the start state in the background and pulls cloud changes after
+ * CLOUD_PULL_AFTER_BACKGROUND_MS, the sync engine resumes ('app-resume'), the
+ * Supabase client refreshes an expired token on its own when the page becomes
+ * visible, and the match clock re-anchors to wall time (useGameTimer). A reload after
+ * 5-60 minutes therefore only cost the coach a cold start (loading screen, sign-in
+ * restore, launch pull) each time they came back from another app. After an hour the
+ * reload stays, as the safety net for a WebView left in a state the soft path cannot
+ * repair. An OS that killed the app in between starts it cold anyway.
+ */
+export const FORCE_RELOAD_AFTER_BACKGROUND_MS = 60 * 60 * 1000;
+
+/**
+ * Background time after which a return also pulls cloud changes (page.tsx). The old
+ * reload threshold: before, such a return reloaded and so ran the launch pull - sync
+ * is push-only, so without this pull another device's edits would not show until the
+ * next cold start.
+ */
+export const CLOUD_PULL_AFTER_BACKGROUND_MS = 5 * 60 * 1000;
+
+/** What page.tsx knows when the app returns, for shouldPullCloudOnResume. */
+export interface ResumeCloudPullState {
+  mode: 'local' | 'cloud';
+  isAuthenticated: boolean;
+  userId: string | undefined;
+  /** The launch's post-login check has completed (the app is past its loading screen). */
+  postLoginCheckComplete: boolean;
+  /** The match view is mounted. */
+  matchOpen: boolean;
+  /** This account's data is on the device (migration flag) - else usePendingCloudPull owns the pull. */
+  migrationDone: boolean;
+  /** A background pull is already running. */
+  pullRunning: boolean;
+}
+
+/**
+ * Whether a return from the background pulls cloud changes (page.tsx handleAppResume).
+ *
+ * After CLOUD_PULL_AFTER_BACKGROUND_MS - the old reload threshold, so such a return
+ * still gets the pull the reload's launch used to run - for a signed-in cloud account
+ * past its launch checks, when:
+ * - no match is open: the launch-pull gate would unmount it, and the pull would rewrite
+ *   the game it holds in memory (a save from that outdated copy is refused by the sync's
+ *   version check, review 3.7, and the newer copy shows the next time it is opened);
+ * - a reload would have been allowed (mayReplaceScreenOnResume: no live match,
+ *   recording or typed input, not offline);
+ * - this account's data is already on the device, and no pull is running.
+ */
+export function shouldPullCloudOnResume(backgroundDuration: number, state: ResumeCloudPullState): boolean {
+  if (backgroundDuration <= CLOUD_PULL_AFTER_BACKGROUND_MS) return false;
+  if (state.mode !== 'cloud' || !state.isAuthenticated || !state.userId || !state.postLoginCheckComplete) return false;
+  if (state.matchOpen || !state.migrationDone || state.pullRunning) return false;
+  return mayReplaceScreenOnResume();
+}
+
 interface UseAppResumeOptions {
-  /** Callback when app resumes from background */
-  onResume?: () => void;
+  /** Callback when app resumes from background, with how long it was away (ms) */
+  onResume?: (backgroundDuration: number) => void;
   /** Callback before force reload - can be used to show notification. Return Promise to delay reload. */
   onBeforeForceReload?: () => void | Promise<void>;
   /** Minimum time in background (ms) before triggering refresh. Default: 30000 (30 seconds) */
   minBackgroundTime?: number;
-  /** Time in background (ms) after which to force a full page reload. Default: 300000 (5 minutes) */
+  /** Time in background (ms) after which to force a full page reload. Default: FORCE_RELOAD_AFTER_BACKGROUND_MS (60 minutes) */
   forceReloadTime?: number;
 }
 
@@ -51,8 +113,20 @@ function isDeviceOffline(): boolean {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }
 
+/**
+ * Whether a return from the background may replace what the coach has on screen (a
+ * reload, or a cloud pull that rewrites the stored data): never during a live match
+ * (the wall-clock timer re-anchors itself on foreground, and a reload would drop the
+ * user to the start screen with a paused clock), a voice recording, or a form with
+ * typed input (review 7.1), and never offline (nothing new can be fetched, and in
+ * cloud mode a reload restarts a sign-in that cannot finish without signal).
+ */
+export function mayReplaceScreenOnResume(): boolean {
+  return !isMatchLive() && !isRecordingSessionActive() && !hasUnsavedInput() && !isDeviceOffline();
+}
+
 export function useAppResume(options: UseAppResumeOptions = {}) {
-  const { onResume, onBeforeForceReload, minBackgroundTime = 30000, forceReloadTime = 300000 } = options;
+  const { onResume, onBeforeForceReload, minBackgroundTime = 30000, forceReloadTime = FORCE_RELOAD_AFTER_BACKGROUND_MS } = options;
   const queryClient = useQueryClient();
   const backgroundStartRef = useRef<number | null>(null);
   const lastPageShowRef = useRef<number>(0);
@@ -85,7 +159,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
     lastResumeTimestampRef.current = now;
 
     dispatchResumeEvent(backgroundDuration);
-    onResume?.();
+    onResume?.(backgroundDuration);
   }, [dispatchResumeEvent, onResume]);
 
   /**
@@ -143,7 +217,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
             isReloadingRef.current = false;
             queryClient.invalidateQueries();
             dispatchResumeEvent(backgroundDuration);
-            onResume?.();
+            onResume?.(backgroundDuration);
             return;
           }
           // Note: Tests should mock window.location.reload to verify this code path
@@ -176,7 +250,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
           // Attempt soft recovery as last resort (may not work if state is corrupted)
           queryClient.invalidateQueries();
           dispatchResumeEvent(backgroundDuration);
-          onResume?.();
+          onResume?.(backgroundDuration);
         }
       })().catch((err) => {
         // Catch any unhandled promise rejection from the IIFE
@@ -202,15 +276,11 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
       const backgroundDuration = Date.now() - backgroundStartRef.current;
 
       // For very long background periods, force a full page reload
-      // This handles cases where app state may have become corrupted —
-      // BUT never during a live match: the wall-clock timer reanchors itself on
-      // foreground (useGameTimer), and reloading would drop the user to the start
-      // screen with a paused clock. Fall through to the soft refresh instead.
-      // Never offline either: a reload with no connection can't fetch anything new
-      // and (in cloud mode) restarts the sign-in, which can't finish without signal.
-      // Nor with a form open (review 7.1): the reload would throw away what the
-      // coach typed - the setup wizard, New Game, a player being added.
-      if (backgroundDuration > forceReloadTime && !isMatchLive() && !isRecordingSessionActive() && !hasUnsavedInput() && !isDeviceOffline()) {
+      // This handles cases where app state may have become corrupted - but only when
+      // that cannot throw away a live match, a recording or typed input, and not
+      // offline (see mayReplaceScreenOnResume). Otherwise fall through to the soft
+      // refresh.
+      if (backgroundDuration > forceReloadTime && mayReplaceScreenOnResume()) {
         forceReloadWithNotification(backgroundDuration, 'visibilitychange');
         return;
       }
@@ -262,7 +332,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         const backgroundDuration = now - backgroundStartRef.current;
 
         // Skip the force-reload during a live match or offline (see visibilitychange note).
-        if (backgroundDuration > forceReloadTime && !isMatchLive() && !isRecordingSessionActive() && !hasUnsavedInput() && !isDeviceOffline()) {
+        if (backgroundDuration > forceReloadTime && mayReplaceScreenOnResume()) {
           forceReloadWithNotification(backgroundDuration, 'pageshow_bfcache');
           return;
         }

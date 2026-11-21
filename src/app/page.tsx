@@ -22,7 +22,8 @@ import { CLOUD_COPY_ADOPTED_EVENT, GAME_REPLACED_BY_CLOUD_EVENT } from '@/sync/s
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAppResume } from '@/hooks/useAppResume';
+import { useRecheckOnLeavingMatch } from '@/hooks/useRecheckOnLeavingMatch';
+import { useAppResume, FORCE_RELOAD_AFTER_BACKGROUND_MS, shouldPullCloudOnResume } from '@/hooks/useAppResume';
 import { useDiagnosticsPreferenceSync } from '@/hooks/useDiagnosticsPreference';
 import { useMultiTabPrevention } from '@/hooks/useMultiTabPrevention';
 import { useDeepLinkHandler } from '@/hooks/useDeepLinkHandler';
@@ -30,7 +31,7 @@ import DeepLinkClubRouter from '@/components/DeepLinkClubRouter';
 import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import type { AppAction } from '@/hooks/useDeepLinkHandler';
 import { usePremium } from '@/hooks/usePremium';
-import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useSubscription, mustWaitForSubscriptionStatus } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
 import { useSignOutWithPendingSyncWarning } from '@/hooks/useSignOutWithPendingSyncWarning';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -85,6 +86,7 @@ import TransitionOverlay from '@/components/TransitionOverlay';
 import logger from '@/utils/logger';
 import { usePendingCloudPull } from '@/hooks/usePendingCloudPull';
 import { rotateOldClips } from '@/utils/audioClipStore';
+import { markLaunch } from '@/utils/launchTiming';
 import * as Sentry from '@sentry/nextjs';
 import { reloadApp, claimReloadAttempt, clearReloadOnce } from '@/utils/reloadApp';
 
@@ -250,7 +252,12 @@ export default function Home() {
   // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
   const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
   // Cloud subscription status - fetched from Supabase (NOT local storage)
-  const { isActive: hasActiveSubscription, isLoading: isSubscriptionLoading } = useSubscription();
+  const { isActive: hasActiveSubscription, isLoading: isSubscriptionStatusLoading } = useSubscription();
+  // The post-login and migration checks below wait for the status only while premium
+  // is enforced; the app is free, so the answer cannot change what they decide and
+  // waiting only held the loading screen for a network call (see
+  // mustWaitForSubscriptionStatus).
+  const isSubscriptionLoading = mustWaitForSubscriptionStatus(isSubscriptionStatusLoading);
   const queryClient = useQueryClient();
   // Settings -> Data "Error reporting and usage statistics": keep Sentry in
   // step with the signed-in account's choice.
@@ -457,6 +464,7 @@ export default function Home() {
     { inBackground = false }: { inBackground?: boolean } = {},
   ): Promise<{ signals: Promise<boolean> } | undefined> => {
     if (!inBackground) setIsCheckingState(true);
+    markLaunch('check_app_state_start');
     // Consume the "first check" slot once per page load (boot / WebView recreation),
     // regardless of outcome, so later refreshTrigger re-runs can't auto-resume.
     const isFirstCheck = !didInitialResumeRef.current;
@@ -639,6 +647,7 @@ export default function Home() {
       setHasTeam(false);
       setHasTeamLinkedGame(false);
     } finally {
+      markLaunch('check_app_state_end');
       setIsCheckingState(false);
     }
   }, [userId, setAction, applyTeamScope, publishHomeSummaries, queryClient]);
@@ -1042,19 +1051,9 @@ export default function Home() {
       .catch(() => undefined);
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId, tabMayBoot]);
 
-  // Deep-review fix (stale Home): all Home flags (canResume, hasPlayers,
-  // hasSavedGames, first-time mode, setup card) were computed once at boot;
-  // returning via Koti showed the BOOT-time Home - most visibly, a brand-new
-  // user's first game left Home in first-time mode until a reload. Re-check
-  // whenever the user lands back on the start screen after a match.
-  const hasVisitedMatchRef = useRef(false);
-  useEffect(() => {
-    if (screen === 'home') {
-      hasVisitedMatchRef.current = true;
-    } else if (hasVisitedMatchRef.current) {
-      void checkAppState();
-    }
-  }, [screen, checkAppState]);
+  // Re-check the start state on returning from a match - in the background, without
+  // the loading screen (see the hook).
+  useRecheckOnLeavingMatch(screen, checkAppState);
 
   // Reset state when user signs out
   // This ensures the loading screen and start screen show again on next sign-in
@@ -1103,6 +1102,82 @@ export default function Home() {
   // account (migrateLegacyData) no longer runs. It uploaded that data before the
   // migration wizard asked, so the wizard's "Discard" could not keep it out of the
   // account. The wizard below is now the one path, and it asks first.
+
+  /**
+   * The background cloud -> local pull for an account whose data is already on this
+   * device (migration flag set): check the cloud, hydrate, refresh what is shown.
+   * Runs at launch (migration check below) and again when the app returns from a long
+   * background stay (handleAppResume) - sync is push-only, so this is the only way
+   * another device's edits reach this one.
+   *
+   * The caller marks the launch-pull gate as pending first (pullStarted / rearm);
+   * this ends it however the pull ends. One pull at a time: a call while one runs
+   * returns at once, and the running pull's end releases the gate.
+   */
+  const backgroundPullRunningRef = useRef(false);
+  const { pullFinished: launchPullFinished } = launchPullGate;
+  const runBackgroundCloudPull = useCallback(async (forUserId: string) => {
+    if (backgroundPullRunningRef.current) return;
+    backgroundPullRunningRef.current = true;
+    try {
+      const { hasCloudData, hydrateLocalFromCloudWithRetry, hydrationChangedAnything } = await import('@/services/reverseMigrationService');
+      const cloudResult = await hasCloudData();
+      if (cloudResult.checkFailed) {
+        logger.warn('[page.tsx] Background cloud check failed:', cloudResult.error);
+        return;
+      }
+      if (!cloudResult.hasData) {
+        logger.info('[page.tsx] Background cloud check: no cloud data');
+        return;
+      }
+
+      logger.info('[page.tsx] Background cloud check: cloud has data, starting hydration...');
+      // Tell the UI that "no local data" means "not yet", not "new coach".
+      setIsHydratingFromCloud(true);
+      const hydrationResult = await hydrateLocalFromCloudWithRetry(forUserId);
+
+      if (hydrationResult.success) {
+        const totalSkipped = (hydrationResult.skipped?.games || 0) +
+          (hydrationResult.skipped?.players || 0) +
+          (hydrationResult.skipped?.teams || 0);
+
+        logger.info('[page.tsx] Background hydration complete', {
+          imported: hydrationResult.counts,
+          skipped: hydrationResult.skipped,
+        });
+
+        // Refresh queries if we imported something - but don't show toast
+        // Background sync should be seamless; the user doesn't need to be notified
+        // NOTE: Only call refetchQueries(), NOT setRefreshTrigger() - the latter
+        // triggers checkAppState which shows a loading screen, breaking the seamless UX
+        //
+        // Any changed type counts, removals included (reviews 3.3, 3.5). Awaited and
+        // including inactive queries: a match held by the launch-pull gate mounts
+        // after this and must read the pulled data, not a stale cache.
+        if (hydrationChangedAnything(hydrationResult)) {
+          logger.info('[page.tsx] Background hydration: imported data, refreshing queries silently');
+          await queryClient.refetchQueries({ type: 'all' }).catch(err => {
+            logger.warn('[page.tsx] Background hydration refetch failed:', err);
+          });
+          // Start/Home also show page-owned state (setup signals, dashboard
+          // summary) that is computed from storage, not from the queries.
+          await refreshSetupSignalsRef.current();
+        } else if (totalSkipped > 0) {
+          logger.info('[page.tsx] Background hydration: no new data (local was already up-to-date)');
+        }
+      } else {
+        logger.warn('[page.tsx] Background hydration failed', { errors: hydrationResult.errors });
+      }
+    } catch (err) {
+      logger.error('[page.tsx] Background cloud sync exception:', err);
+    } finally {
+      // Lowered however hydration ended. Leaving it raised on failure
+      // would hide onboarding from a coach who genuinely has nothing.
+      setIsHydratingFromCloud(false);
+      backgroundPullRunningRef.current = false;
+      launchPullFinished();
+    }
+  }, [queryClient, launchPullFinished]);
 
   // Check if migration wizard should be shown (cloud mode only, post-authentication)
   // This runs once when the user first authenticates in cloud mode
@@ -1190,65 +1265,7 @@ export default function Home() {
           });
 
           // Run cloud check + hydration entirely in background (fire and forget)
-          (async () => {
-            try {
-              const { hasCloudData, hydrateLocalFromCloudWithRetry, hydrationChangedAnything } = await import('@/services/reverseMigrationService');
-              const cloudResult = await hasCloudData();
-              if (cloudResult.checkFailed) {
-                logger.warn('[page.tsx] Background cloud check failed:', cloudResult.error);
-                return;
-              }
-              if (!cloudResult.hasData) {
-                logger.info('[page.tsx] Background cloud check: no cloud data');
-                return;
-              }
-
-              logger.info('[page.tsx] Background cloud check: cloud has data, starting hydration...');
-              // Tell the UI that "no local data" means "not yet", not "new coach".
-              setIsHydratingFromCloud(true);
-              const hydrationResult = await hydrateLocalFromCloudWithRetry(userId);
-
-              if (hydrationResult.success) {
-                const totalSkipped = (hydrationResult.skipped?.games || 0) +
-                  (hydrationResult.skipped?.players || 0) +
-                  (hydrationResult.skipped?.teams || 0);
-
-                logger.info('[page.tsx] Background hydration complete', {
-                  imported: hydrationResult.counts,
-                  skipped: hydrationResult.skipped,
-                });
-
-                // Refresh queries if we imported something - but don't show toast
-                // Background sync should be seamless; the user doesn't need to be notified
-                // NOTE: Only call refetchQueries(), NOT setRefreshTrigger() - the latter
-                // triggers checkAppState which shows a loading screen, breaking the seamless UX
-                //
-                // Any changed type counts, removals included (reviews 3.3, 3.5). Awaited and
-                // including inactive queries: a match held by the launch-pull gate mounts
-                // after this and must read the pulled data, not a stale cache.
-                if (hydrationChangedAnything(hydrationResult)) {
-                  logger.info('[page.tsx] Background hydration: imported data, refreshing queries silently');
-                  await queryClient.refetchQueries({ type: 'all' }).catch(err => {
-                    logger.warn('[page.tsx] Background hydration refetch failed:', err);
-                  });
-                  // Start/Home also show page-owned state (setup signals, dashboard
-                  // summary) that is computed from storage, not from the queries.
-                  await refreshSetupSignalsRef.current();
-                } else if (totalSkipped > 0) {
-                  logger.info('[page.tsx] Background hydration: no new data (local was already up-to-date)');
-                }
-              } else {
-                logger.warn('[page.tsx] Background hydration failed', { errors: hydrationResult.errors });
-              }
-            } catch (err) {
-              logger.error('[page.tsx] Background cloud sync exception:', err);
-            } finally {
-              // Lowered however hydration ended. Leaving it raised on failure
-              // would hide onboarding from a coach who genuinely has nothing.
-              setIsHydratingFromCloud(false);
-              launchPullGate.pullFinished();
-            }
-          })();
+          void runBackgroundCloudPull(userId);
 
           return;
         }
@@ -1660,17 +1677,43 @@ export default function Home() {
     showToast(t('page.localDataDiscarded', 'Local data cleared.'), 'info');
   }, [userId, queryClient, showToast, t]);
 
+  // Latest values the resume handler reads, so it stays stable (no re-subscribing to
+  // visibility events on every render).
+  const resumeStateRef = useRef({ mode, isAuthenticated, userId, postLoginCheckComplete, screen });
+  useEffect(() => {
+    resumeStateRef.current = { mode, isAuthenticated, userId, postLoginCheckComplete, screen };
+  }, [mode, isAuthenticated, userId, postLoginCheckComplete, screen]);
+  const { rearm: rearmLaunchPullGate } = launchPullGate;
+
   // Memoize onResume to avoid re-subscribing to visibility events on every render
-  const handleAppResume = useCallback(() => {
+  const handleAppResume = useCallback((backgroundDuration: number) => {
     logger.log('[page.tsx] App resumed - triggering state refresh');
     backgroundCheckRef.current = true; // refresh in place; never unmount the match
     setRefreshTrigger((prev) => prev + 1);
-  }, []);
+
+    // A long stay away used to reload the page, and so pulled the cloud at launch.
+    // Pull here instead, under the launch rules: the pull-gate holds a match opened
+    // meanwhile, so it cannot autosave an older copy. When - see shouldPullCloudOnResume.
+    const state = resumeStateRef.current;
+    const pull = shouldPullCloudOnResume(backgroundDuration, {
+      mode: state.mode,
+      isAuthenticated: state.isAuthenticated,
+      userId: state.userId,
+      postLoginCheckComplete: state.postLoginCheckComplete,
+      matchOpen: state.screen === 'home',
+      migrationDone: !!state.userId && hasMigrationCompleted(state.userId),
+      pullRunning: backgroundPullRunningRef.current,
+    });
+    if (!pull || !state.userId) return;
+    logger.info('[page.tsx] Long background stay - pulling cloud changes in the background');
+    rearmLaunchPullGate();
+    void runBackgroundCloudPull(state.userId);
+  }, [rearmLaunchPullGate, runBackgroundCloudPull]);
 
   // Handle app resume from background (Android TWA blank screen fix)
   // Triggers refreshTrigger to re-run checkAppState when returning from extended background
   const handleBeforeForceReload = useCallback(() => {
-    // Show notification before force reload (5+ minute background)
+    // Show notification before force reload (60+ minute background)
     showToast(t('page.refreshingAfterBackground', 'Refreshing app after extended background period...'), 'info');
     return new Promise<void>(resolve => setTimeout(resolve, FORCE_RELOAD_NOTIFICATION_DELAY_MS));
   }, [showToast, t]);
@@ -1679,7 +1722,9 @@ export default function Home() {
     onResume: handleAppResume,
     onBeforeForceReload: handleBeforeForceReload,
     minBackgroundTime: 30000, // 30 seconds
-    forceReloadTime: 300000,  // 5 minutes - force full page reload
+    // 60 minutes - force full page reload. Was 5 minutes; why it could move is
+    // documented on FORCE_RELOAD_AFTER_BACKGROUND_MS.
+    forceReloadTime: FORCE_RELOAD_AFTER_BACKGROUND_MS,
   });
 
   // Listen for reload failure events from useAppResume
@@ -1930,6 +1975,10 @@ export default function Home() {
   // Compute whether to show loading screen
   const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut
     || launchPullGate.matchWaits;
+  // Launch timing: the first moment the app (or the sign-in screen) is on screen.
+  useEffect(() => {
+    if (!showLoadingScreen) markLaunch('app_visible');
+  }, [showLoadingScreen]);
 
   // Splash hand-off: when loading ends, the SAME LoadingScreen instance stays
   // mounted for LOADING_SCREEN_EXIT_MS as a non-interactive overlay that fades

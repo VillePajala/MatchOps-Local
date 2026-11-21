@@ -243,6 +243,7 @@ describe('Service Worker cache lifecycle across an update', () => {
   class FakeResponse {
     constructor(public body: string, public ok = true, public status = 200) {}
     clone() { return new FakeResponse(this.body, this.ok, this.status); }
+    async text() { return this.body; }
   }
   type Key = string | { url: string };
   const keyOf = (k: Key) => (typeof k === 'string' ? (k.startsWith('/') ? ORIGIN + k : k) : k.url);
@@ -297,9 +298,12 @@ describe('Service Worker cache lifecycle across an update', () => {
     const sandbox: Record<string, unknown> = {
       caches: storage.api,
       clients: { claim: jest.fn().mockResolvedValue(undefined) },
-      fetch: fetchMock,
+      fetch: (req: { url: string }) => fetchMock(req),
       Response: FakeResponse,
       URL,
+      // Looked up per call, so jest's fake timers apply when a test enables them.
+      setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
+      clearTimeout: (id: ReturnType<typeof setTimeout>) => clearTimeout(id),
       console: { log: () => {}, error: () => {} },
       location: { origin: ORIGIN, hostname: 'app.test' },
       addEventListener: (type: string, fn: (e: unknown) => void) => { handlers[type] = fn; },
@@ -329,6 +333,16 @@ describe('Service Worker cache lifecycle across an update', () => {
       activate: () => run('activate'),
       appReady: () => run('message', { data: { type: 'APP_READY' } }),
       navigate: (p = '/') => run('fetch', request(p, 'document')),
+      /** The page's response alone, without waiting for the worker's background work. */
+      navigateResponseOnly: (p = '/') => {
+        let response: Promise<FakeResponse> | undefined;
+        handlers.fetch({
+          ...request(p, 'document'),
+          waitUntil: () => {},
+          respondWith: (r: Promise<FakeResponse>) => { response = r; },
+        });
+        return response!;
+      },
       script: (p: string) => run('fetch', request(p, 'script')),
       image: (p: string) => run('fetch', request(p, 'image')),
     };
@@ -413,5 +427,143 @@ describe('Service Worker cache lifecycle across an update', () => {
     expect((await offline.image('/logos/logo.png'))!.body).toBe('old logo');
     // ...and it is not adopted into the new version's cache.
     expect(offline.storage.stores.get(currentName)?.has(ORIGIN + '/logos/logo.png') ?? false).toBe(false);
+  });
+  /**
+   * Loading-speed stage 1: a launch on a slow network gets this version's cached shell
+   * after NAVIGATION_NETWORK_TIMEOUT_MS - but only when the files it needs are cached.
+   */
+  describe('navigation on a slow network', () => {
+    const TIMEOUT_MS = Number(/const NAVIGATION_NETWORK_TIMEOUT_MS = (\d+)/.exec(swSource)![1]);
+    const SHELL = '<html><script src="/_next/static/chunks/app-NEW.js"></script>'
+      + '<link rel="stylesheet" href="/_next/static/chunks/style-NEW.css"/>'
+      + '<script>self.__next_f.push([1,"{\\"chunks\\":[\\"static/chunks/lazy-NEW.js\\"]}"])</script></html>';
+
+    /** A network that answers only when the test says so. */
+    const slowNetwork = (sw: ReturnType<typeof boot>) => {
+      let answer!: (r: FakeResponse) => void;
+      sw.fetchMock.mockImplementation(() => new Promise<FakeResponse>((resolve) => { answer = resolve; }));
+      return { answer: (body: string) => answer(new FakeResponse(body)) };
+    };
+    const ownCache = (sw: ReturnType<typeof boot>, entries: Array<[string, string]>) => {
+      sw.storage.stores.set(currentName, new Map(entries.map(([k, v]) => [ORIGIN + k, new FakeResponse(v)])));
+    };
+    /** Starts a navigation and lets the clock run past the time limit. */
+    const navigateSlowly = async (sw: ReturnType<typeof boot>) => {
+      const result = sw.navigateResponseOnly();
+      await jest.advanceTimersByTimeAsync(TIMEOUT_MS + 10);
+      return result;
+    };
+
+    beforeEach(() => { jest.useFakeTimers(); });
+    afterEach(() => { jest.useRealTimers(); });
+
+    it('the time limit is about three seconds', () => {
+      expect(TIMEOUT_MS).toBeGreaterThanOrEqual(2000);
+      expect(TIMEOUT_MS).toBeLessThanOrEqual(5000);
+    });
+
+    /** @critical */
+    it('serves the cached shell when everything it needs is cached, and still caches the network answer', async () => {
+      const sw = boot(true);
+      const net = slowNetwork(sw);
+      ownCache(sw, [
+        ['/', SHELL],
+        ['/_next/static/chunks/app-NEW.js', 'js'],
+        ['/_next/static/chunks/style-NEW.css', 'css'],
+        ['/_next/static/chunks/lazy-NEW.js', 'js'],
+      ]);
+      const response = sw.navigateResponseOnly();
+      await jest.advanceTimersByTimeAsync(TIMEOUT_MS + 10);
+      // Served before the network answered.
+      expect((await response).body).toBe(SHELL);
+      // The late network answer replaces the cached page for the next launch.
+      net.answer('fresh shell');
+      await jest.advanceTimersByTimeAsync(1);
+      expect(sw.storage.stores.get(currentName)!.get(ORIGIN + '/')!.body).toBe('fresh shell');
+    });
+
+    it('understands the Vercel build paths (/_next/static/immutable/...)', async () => {
+      const sw = boot(true);
+      slowNetwork(sw);
+      const vercelShell = '<script src="/_next/static/immutable/chunks/app-V.js"></script>'
+        + '<script>self.__next_f.push([1,"{\\"chunks\\":[\\"static/immutable/chunks/lazy-V.js\\"]}"])</script>';
+      ownCache(sw, [
+        ['/', vercelShell],
+        ['/_next/static/immutable/chunks/app-V.js', 'js'],
+        ['/_next/static/immutable/chunks/lazy-V.js', 'js'],
+      ]);
+      expect((await navigateSlowly(sw)).body).toBe(vercelShell);
+
+      // ...and one missing file still blocks it.
+      const sw2 = boot(true);
+      slowNetwork(sw2);
+      ownCache(sw2, [['/', vercelShell], ['/_next/static/immutable/chunks/app-V.js', 'js']]);
+      let served: FakeResponse | undefined;
+      void navigateSlowly(sw2).then((r) => { served = r; });
+      await jest.advanceTimersByTimeAsync(TIMEOUT_MS * 3);
+      expect(served).toBeUndefined();
+    });
+
+    it('answers from the network as before when it is fast enough', async () => {
+      const sw = boot(true);
+      ownCache(sw, [['/', SHELL], ['/_next/static/chunks/app-NEW.js', 'js']]);
+      const response = await sw.navigate();
+      expect(response!.body).toBe('network ' + ORIGIN + '/');
+    });
+
+    /** @critical - the cached page may come from a deploy whose files are gone. */
+    it('keeps waiting for the network when a file the cached shell needs is missing', async () => {
+      const sw = boot(true);
+      const net = slowNetwork(sw);
+      ownCache(sw, [
+        ['/', SHELL],
+        ['/_next/static/chunks/app-NEW.js', 'js'],
+        ['/_next/static/chunks/style-NEW.css', 'css'],
+        // lazy-NEW.js (named only in the inline payload) is not cached
+      ]);
+      let served: FakeResponse | undefined;
+      const pending = navigateSlowly(sw).then((r) => { served = r; });
+      await jest.advanceTimersByTimeAsync(TIMEOUT_MS * 3);
+      expect(served).toBeUndefined();
+      net.answer('fresh shell');
+      await pending;
+      expect(served!.body).toBe('fresh shell');
+    });
+
+    /** @critical - right after an update the coach must get the new version. */
+    it('does not serve the previous version shell on a slow network', async () => {
+      const sw = boot(true); // the OLD cache holds '/' and its chunk, this version's holds nothing
+      const net = slowNetwork(sw);
+      let served: FakeResponse | undefined;
+      const pending = navigateSlowly(sw).then((r) => { served = r; });
+      await jest.advanceTimersByTimeAsync(TIMEOUT_MS * 3);
+      expect(served).toBeUndefined();
+      net.answer('new version shell');
+      await pending;
+      expect(served!.body).toBe('new version shell');
+    });
+
+    it('a slow network that then fails falls back to the offline copy as before', async () => {
+      const sw = boot(true);
+      let fail!: (e: Error) => void;
+      sw.fetchMock.mockImplementation(() => new Promise((_, reject) => { fail = reject; }));
+      const pending = navigateSlowly(sw);
+      fail(new TypeError('Failed to fetch'));
+      // This version has no shell; the previous version's copy is the offline fallback.
+      expect((await pending)!.body).toBe('old shell');
+    });
+
+    it('does not serve a cached page that names no build files', async () => {
+      const sw = boot(true);
+      const net = slowNetwork(sw);
+      ownCache(sw, [['/', '<html>nothing to check</html>']]);
+      let served: FakeResponse | undefined;
+      const pending = navigateSlowly(sw).then((r) => { served = r; });
+      await jest.advanceTimersByTimeAsync(TIMEOUT_MS * 3);
+      expect(served).toBeUndefined();
+      net.answer('fresh shell');
+      await pending;
+      expect(served!.body).toBe('fresh shell');
+    });
   });
 });

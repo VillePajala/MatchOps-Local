@@ -167,3 +167,51 @@ export function getCachedFullSession(): CachedSupabaseSession | null {
   logger.debug('[cachedSession] Cached session found but missing required fields (access_token, refresh_token, or user)');
   return null;
 }
+
+/**
+ * The policy version the server last CONFIRMED this account has accepted, kept on the
+ * device so a restored session does not wait for the consent lookup on every launch.
+ *
+ * AuthProvider waits for that lookup before showing a restored session, so a coach on
+ * an older Terms/Privacy version gets the re-consent modal before the app (legal
+ * requirement). That cost a network round trip - more on a bad connection, the lookup
+ * retries - on every start, for an answer that only changes when POLICY_VERSION does.
+ * With this record equal to the current POLICY_VERSION the account has accepted it
+ * (written only from the server's answer), so the start goes ahead and the lookup runs
+ * in the background. A new POLICY_VERSION, or another account, never matches: the start
+ * waits for the lookup as before.
+ *
+ * Device-local localStorage (same pattern as the device sign-in flag): one entry, for
+ * the account that last restored a session here.
+ */
+const CONFIRMED_CONSENT_KEY = 'matchops_consent_confirmed';
+
+export function readConfirmedConsentVersion(userId: string): string | null {
+  try {
+    // eslint-disable-next-line no-restricted-globals -- device-local auth hint, not app data
+    const raw = localStorage.getItem(CONFIRMED_CONSENT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { userId?: unknown; version?: unknown };
+    return parsed.userId === userId && typeof parsed.version === 'string' ? parsed.version : null;
+  } catch {
+    return null;
+  }
+}
+
+export function rememberConfirmedConsentVersion(userId: string, version: string): void {
+  try {
+    // eslint-disable-next-line no-restricted-globals -- device-local auth hint, not app data
+    localStorage.setItem(CONFIRMED_CONSENT_KEY, JSON.stringify({ userId, version }));
+  } catch {
+    // Not persistable: the next start simply waits for the lookup again.
+  }
+}
+
+export function forgetConfirmedConsentVersion(): void {
+  try {
+    // eslint-disable-next-line no-restricted-globals -- device-local auth hint, not app data
+    localStorage.removeItem(CONFIRMED_CONSENT_KEY);
+  } catch {
+    // Nothing stored, or storage blocked - either way nothing will match.
+  }
+}

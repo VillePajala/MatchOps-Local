@@ -51,4 +51,43 @@ describe('useLaunchPullGate', () => {
     act(() => { jest.advanceTimersByTime(1); });
     expect(result.current.matchWaits).toBe(false);
   });
+  /** The resume-time pull that replaced the 5-minute reload (loading-speed stage 1). */
+  describe('rearm', () => {
+    it('holds a match opened during a later pull, then releases it when that pull ends', () => {
+      const { result, rerender } = render({ wants: false, checkDone: true });
+      // Launch finished long ago without a pull.
+      expect(result.current.matchWaits).toBe(false);
+
+      act(() => { result.current.rearm(); });
+      rerender({ wants: true, checkDone: true });
+      expect(result.current.matchWaits).toBe(true);
+
+      act(() => { result.current.pullFinished(); });
+      expect(result.current.matchWaits).toBe(false);
+    });
+
+    it('also after a launch pull that already ended', () => {
+      const { result, rerender } = render({ wants: false, checkDone: true });
+      act(() => { result.current.pullStarted(); });
+      act(() => { result.current.pullFinished(); });
+
+      act(() => { result.current.rearm(); });
+      rerender({ wants: true, checkDone: true });
+      expect(result.current.matchWaits).toBe(true);
+    });
+
+    it('keeps the cap, counted afresh, even when an earlier wait used it up', () => {
+      const { result, rerender } = render({ wants: true, checkDone: false });
+      act(() => { result.current.pullStarted(); rerender({ wants: true, checkDone: true }); });
+      act(() => { jest.advanceTimersByTime(LAUNCH_PULL_MAX_WAIT_MS); });
+      expect(result.current.matchWaits).toBe(false); // the launch wait expired
+      rerender({ wants: false, checkDone: true });
+
+      act(() => { result.current.rearm(); });
+      rerender({ wants: true, checkDone: true });
+      expect(result.current.matchWaits).toBe(true);
+      act(() => { jest.advanceTimersByTime(LAUNCH_PULL_MAX_WAIT_MS); });
+      expect(result.current.matchWaits).toBe(false);
+    });
+  });
 });

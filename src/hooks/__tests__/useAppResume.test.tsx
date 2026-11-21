@@ -15,7 +15,13 @@
 import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useAppResume } from '../useAppResume';
+import {
+  useAppResume,
+  shouldPullCloudOnResume,
+  FORCE_RELOAD_AFTER_BACKGROUND_MS,
+  CLOUD_PULL_AFTER_BACKGROUND_MS,
+  type ResumeCloudPullState,
+} from '../useAppResume';
 import { setMatchTimerRunning, setMatchLive } from '@/utils/matchTimerSignal';
 import { holdUnsavedInput, __resetUnsavedInputForTests } from '@/utils/unsavedInputSignal';
 
@@ -920,5 +926,128 @@ describe('useAppResume', () => {
       120, // 120 seconds = 2 minutes
       'seconds - forcing page reload'
     );
+  });
+  /**
+   * Loading-speed stage 1: the forced reload moved from 5 to 60 minutes away; shorter
+   * stays take the soft path (onResume with the duration - page.tsx re-checks in the
+   * background and pulls cloud changes after CLOUD_PULL_AFTER_BACKGROUND_MS).
+   * @critical
+   */
+  describe('reload threshold (60 minutes)', () => {
+    const MIN = 60_000;
+    const stayAway = (ms: number) => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+      mockNow += ms;
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+      act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    };
+    const reloadLogged = () => {
+      const logger = require('@/utils/logger').default;
+      return (logger.debug as jest.Mock).mock.calls.some((call) => call[2] === 'seconds - forcing page reload');
+    };
+
+    beforeEach(() => {
+      (require('@/utils/logger').default.debug as jest.Mock).mockClear();
+    });
+
+    it('is 60 minutes, and is the default', () => {
+      expect(FORCE_RELOAD_AFTER_BACKGROUND_MS).toBe(60 * MIN);
+      expect(CLOUD_PULL_AFTER_BACKGROUND_MS).toBe(5 * MIN);
+    });
+
+    it.each([
+      ['4 minutes', 4 * MIN],
+      ['30 minutes', 30 * MIN],
+    ])('after %s away: no reload, a soft refresh that knows how long the app was away', async (_label, ms) => {
+      const onResume = jest.fn();
+      const invalidate = jest.spyOn(queryClient, 'invalidateQueries');
+      renderHook(() => useAppResume({ onResume, forceReloadTime: FORCE_RELOAD_AFTER_BACKGROUND_MS }), { wrapper });
+
+      stayAway(ms);
+      await act(async () => {});
+
+      expect(reloadLogged()).toBe(false);
+      expect(reloadMock).not.toHaveBeenCalled();
+      expect(onResume).toHaveBeenCalledTimes(1);
+      expect(onResume).toHaveBeenCalledWith(ms);
+      expect(invalidate).toHaveBeenCalled();
+    });
+
+    it('after 61 minutes away: reloads', async () => {
+      const onResume = jest.fn();
+      renderHook(() => useAppResume({ onResume }), { wrapper }); // the default threshold
+
+      stayAway(61 * MIN);
+      await act(async () => {});
+
+      expect(reloadLogged()).toBe(true);
+      expect(onResume).not.toHaveBeenCalled();
+    });
+
+    it('after 61 minutes away with a live match: no reload, soft refresh', async () => {
+      setMatchLive(true);
+      const onResume = jest.fn();
+      renderHook(() => useAppResume({ onResume }), { wrapper });
+
+      stayAway(61 * MIN);
+      await act(async () => {});
+
+      expect(reloadLogged()).toBe(false);
+      expect(onResume).toHaveBeenCalledWith(61 * MIN);
+    });
+  });
+
+  /** What replaces the reload's launch pull for a 5-60 minute stay. @critical */
+  describe('shouldPullCloudOnResume', () => {
+    const MIN = 60_000;
+    const ready: ResumeCloudPullState = {
+      mode: 'cloud',
+      isAuthenticated: true,
+      userId: 'user-1',
+      postLoginCheckComplete: true,
+      matchOpen: false,
+      migrationDone: true,
+      pullRunning: false,
+    };
+
+    afterEach(() => {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value: true });
+    });
+
+    it('pulls after more than 5 minutes away on the start screen', () => {
+      expect(shouldPullCloudOnResume(30 * MIN, ready)).toBe(true);
+      expect(shouldPullCloudOnResume(5 * MIN + 1, ready)).toBe(true);
+    });
+
+    it('does not pull after 4 minutes (or exactly 5)', () => {
+      expect(shouldPullCloudOnResume(4 * MIN, ready)).toBe(false);
+      expect(shouldPullCloudOnResume(5 * MIN, ready)).toBe(false);
+    });
+
+    it.each<[string, Partial<ResumeCloudPullState>]>([
+      ['in local mode', { mode: 'local' }],
+      ['signed out', { isAuthenticated: false }],
+      ['without a user id', { userId: undefined }],
+      ['before the launch check completed', { postLoginCheckComplete: false }],
+      ['with a match open', { matchOpen: true }],
+      ['before this account was first pulled (usePendingCloudPull owns that)', { migrationDone: false }],
+      ['while a pull is already running', { pullRunning: true }],
+    ])('does not pull %s', (_label, change) => {
+      expect(shouldPullCloudOnResume(30 * MIN, { ...ready, ...change })).toBe(false);
+    });
+
+    it('does not pull during a live match, with typed input, or offline', () => {
+      setMatchLive(true);
+      expect(shouldPullCloudOnResume(30 * MIN, ready)).toBe(false);
+      setMatchLive(false);
+
+      const release = holdUnsavedInput();
+      expect(shouldPullCloudOnResume(30 * MIN, ready)).toBe(false);
+      release();
+
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
+      expect(shouldPullCloudOnResume(30 * MIN, ready)).toBe(false);
+    });
   });
 });

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { markLaunch } from '@/utils/launchTiming';
 
 /** Longest a match waits for the launch-time cloud pull, counted from when it starts waiting. */
 export const LAUNCH_PULL_MAX_WAIT_MS = 8000;
@@ -19,6 +20,11 @@ export const LAUNCH_PULL_MAX_WAIT_MS = 8000;
  *   opens on what the device has: a hung loading screen is worse, and the stale-copy risk
  *   is back for that launch only.
  * - Launch-time only: not reset on a later sign-in within the same page load.
+ * - `rearm()` makes a later pull pending again, for the pull page.tsx runs when the app
+ *   returns from a long background stay (which used to be a full page reload, and so a
+ *   fresh launch pull). Same rules as at launch: pending until `pullFinished()`, and a
+ *   match waits at most `maxWaitMs`. Call it only while no match is open - the gate
+ *   would swap a mounted match for the loading screen.
  */
 export function useLaunchPullGate(
   matchWantsToOpen: boolean,
@@ -41,12 +47,30 @@ export function useLaunchPullGate(
     return () => clearTimeout(timer);
   }, [matchWaits, maxWaitMs]);
 
+  // Launch timing (first wait only - later marks are ignored).
+  const matchWaitedRef = useRef(false);
+  useEffect(() => {
+    if (matchWaits) {
+      matchWaitedRef.current = true;
+      markLaunch('match_wait_start');
+    } else if (matchWaitedRef.current) {
+      markLaunch('match_wait_end');
+    }
+  }, [matchWaits]);
+
   const pullStarted = useCallback(() => {
+    markLaunch('launch_pull_start');
     setPullStartedFlag(true);
   }, []);
   const pullFinished = useCallback(() => {
+    markLaunch('launch_pull_end');
     setPullDone(true);
   }, []);
+  const rearm = useCallback(() => {
+    setPullStartedFlag(true);
+    setPullDone(false);
+    setWaitExpired(false);
+  }, []);
 
-  return { matchWaits, pullStarted, pullFinished };
+  return { matchWaits, pullStarted, pullFinished, rearm };
 }

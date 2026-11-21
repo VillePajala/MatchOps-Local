@@ -189,6 +189,115 @@ async function cachedAsset(request, url) {
   }
 }
 
+/**
+ * How long a launch waits for the network before it uses the cached app shell.
+ * On a weak connection (the pitch) the HTML request alone could take many seconds
+ * while the whole app was already on the device.
+ */
+const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;
+const NETWORK_TIMED_OUT = Symbol('network timed out');
+
+/**
+ * Offline (the request failed): the cached HTML for this route - this version's copy
+ * first, else the previous version's - then offline.html, then an inline page.
+ * Not adopted: '/' in this version's cache must mean "loaded online under this
+ * version", which is what cleanupOldCaches relies on.
+ */
+function offlineDocument(documentCacheKey) {
+  return caches.open(CACHE_NAME)
+    .then((current) => current.match(documentCacheKey))
+    .then((own) => own || caches.match(documentCacheKey))
+    .then((cached) => {
+      if (cached) {
+        return cached;
+      }
+      // Fall back to offline.html if specific page not cached
+      return caches.match('/offline.html').then((offlinePage) => {
+        if (offlinePage) {
+          return offlinePage;
+        }
+        // Final fallback if nothing cached (bilingual to match offline.html)
+        return new Response(
+          '<html><head><title>Offline / Ei yhteyttä</title></head><body style="font-family:system-ui;text-align:center;padding:40px"><h1>Ei yhteyttä / Offline</h1><p>Tarkista yhteys ja yritä uudelleen.</p><p style="color:#888">Please check your connection and try again.</p></body></html>',
+          { headers: { 'Content-Type': 'text/html' } }
+        );
+      });
+    });
+}
+
+// The build's JS/CSS files a page names: "/_next/static/chunks/x.js" in tags, and
+// "static/chunks/x.js" in the inline React payload. On Vercel the path has an extra
+// "immutable/" ("/_next/static/immutable/chunks/x.js").
+const SHELL_ASSET_PATTERN = /(?:\/_next\/)?(static\/(?:immutable\/)?(?:chunks|css)\/[A-Za-z0-9_\-./]+?\.(?:js|css))(?=["'\\?#\s)])/g;
+
+/**
+ * True when every JS and CSS file the cached page names is cached too. The page can
+ * then start without the network. False when one is missing: the deploy that page
+ * came from may be gone from the server, and its files with it - serving it would
+ * leave the coach on a broken page instead of waiting for the network.
+ */
+async function shellAssetsCached(cachedPage) {
+  let html;
+  try {
+    html = await cachedPage.clone().text();
+  } catch (err) {
+    logError('[SW] Could not read the cached page:', err);
+    return false;
+  }
+  const assets = new Set();
+  for (const match of html.matchAll(SHELL_ASSET_PATTERN)) {
+    assets.add(self.location.origin + '/_next/' + match[1]);
+  }
+  // A page naming no build files at all is not a page this check understands.
+  if (assets.size === 0) return false;
+  for (const asset of assets) {
+    if (!(await caches.match(asset))) {
+      log('[SW] Cached shell not served - a file it needs is not cached:', asset);
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Network-first, with a time limit: when the network has not answered within
+ * NAVIGATION_NETWORK_TIMEOUT_MS, serve THIS version's cached page if everything it
+ * needs is cached (shellAssetsCached), and let the network answer update the cache in
+ * the background. Otherwise keep waiting for the network, as before.
+ *
+ * Only this version's cache: right after an update the new worker has no page of its
+ * own yet, and the previous version's page would put the coach back on the old app
+ * they just updated from. The older copy is still the offline fallback.
+ */
+async function navigationResponse(network, documentCacheKey) {
+  let timer;
+  const timedOut = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(NETWORK_TIMED_OUT), NAVIGATION_NETWORK_TIMEOUT_MS);
+  });
+  const first = await Promise.race([
+    network.then((response) => ({ response }), (error) => ({ error })),
+    timedOut,
+  ]);
+  clearTimeout(timer);
+
+  if (first !== NETWORK_TIMED_OUT) {
+    return first.response || offlineDocument(documentCacheKey);
+  }
+
+  const own = await caches.open(CACHE_NAME)
+    .then((current) => current.match(documentCacheKey))
+    .catch(() => undefined);
+  if (own && await shellAssetsCached(own)) {
+    log('[SW] Network slow - serving the cached app shell');
+    return own;
+  }
+  try {
+    return await network;
+  } catch {
+    return offlineDocument(documentCacheKey);
+  }
+}
+
 // Listen for messages from the client
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -213,53 +322,32 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Network-first for HTML documents with offline fallback
-  // Cache HTML for offline use, but always try network first to get updates
+  // Cache HTML for offline use, but always try network first to get updates.
+  // A slow network (no answer in NAVIGATION_NETWORK_TIMEOUT_MS) gets this version's
+  // cached shell instead, when everything it needs is cached - see navigationResponse.
   if (request.destination === 'document' || request.mode === 'navigate') {
     // Cache documents under a query-stripped key (origin + pathname). Without this,
     // every distinct query string for the same route created its own cache entry,
     // growing the cache without bound. Routes are finite, so pathname-keyed caching
     // is bounded, and query variants of a route share one offline-fallback entry.
     const documentCacheKey = url.origin + url.pathname;
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Cache successful HTML responses for offline use
-          if (response.ok && request.method === 'GET') {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(documentCacheKey, clone);
-            }).catch((err) => {
-              logError('[SW] Cache put failed for document:', err);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          // Offline: serve the cached HTML for this route (same query-stripped
-          // key) - this version's copy first, else the previous version's.
-          // Not adopted: '/' in this version's cache must mean "loaded online
-          // under this version", which is what cleanupOldCaches relies on.
-          return caches.open(CACHE_NAME)
-            .then((current) => current.match(documentCacheKey))
-            .then((own) => own || caches.match(documentCacheKey))
-            .then((cached) => {
-              if (cached) {
-                return cached;
-              }
-              // Fall back to offline.html if specific page not cached
-              return caches.match('/offline.html').then((offlinePage) => {
-                if (offlinePage) {
-                  return offlinePage;
-                }
-                // Final fallback if nothing cached (bilingual to match offline.html)
-                return new Response(
-                  '<html><head><title>Offline / Ei yhteyttä</title></head><body style="font-family:system-ui;text-align:center;padding:40px"><h1>Ei yhteyttä / Offline</h1><p>Tarkista yhteys ja yritä uudelleen.</p><p style="color:#888">Please check your connection and try again.</p></body></html>',
-                  { headers: { 'Content-Type': 'text/html' } }
-                );
-              });
-            });
-        })
-    );
+    const network = fetch(request).then((response) => {
+      // Cache successful HTML responses for offline use
+      if (response.ok && request.method === 'GET') {
+        const clone = response.clone();
+        return caches.open(CACHE_NAME)
+          .then((cache) => cache.put(documentCacheKey, clone))
+          .catch((err) => {
+            logError('[SW] Cache put failed for document:', err);
+          })
+          .then(() => response);
+      }
+      return response;
+    });
+    // Keep the worker alive until the network answer is cached - also when the
+    // cached shell was served first, so the next launch gets the fresh one.
+    event.waitUntil(network.then(() => undefined, () => undefined));
+    event.respondWith(navigationResponse(network, documentCacheKey));
     return;
   }
 

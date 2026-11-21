@@ -3,6 +3,19 @@
   "releases": [
     {
       "date": "2026-11-21",
+      "en": [
+        "The app opens faster: it no longer waits for checks that do not affect you.",
+        "Leaving a match goes straight back to Home, without the loading screen.",
+        "Coming back after a short break no longer restarts the app. Changes made on another device are still fetched."
+      ],
+      "fi": [
+        "Sovellus aukeaa nopeammin: se ei enää odota tarkistuksia, jotka eivät vaikuta sinuun.",
+        "Ottelusta poistuminen vie suoraan kotinäkymään ilman latausruutua.",
+        "Lyhyen tauon jälkeen sovellus ei enää käynnisty alusta. Toisella laitteella tehdyt muutokset haetaan silti."
+      ]
+    },
+    {
+      "date": "2026-11-21",
       "en": ["Opening a game no longer flashes the loading screen."],
       "fi": ["Ottelun avaaminen ei enää välähdä latausnäkymää."]
     },

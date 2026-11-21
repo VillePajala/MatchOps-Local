@@ -1949,38 +1949,43 @@ export async function hydrateLocalFromCloud(
 
     safeProgress('Downloading data from cloud...', 10);
 
-    // Download all cloud data with progress logging
-    logger.info('[ReverseMigrationService] Fetching players...');
-    const players = await cloudStore.getPlayers();
-    logger.info('[ReverseMigrationService] Fetched players', { count: players.length });
-
-    logger.info('[ReverseMigrationService] Fetching teams...');
-    const teams = await cloudStore.getTeams(true);
-    logger.info('[ReverseMigrationService] Fetched teams', { count: teams.length });
-
-    logger.info('[ReverseMigrationService] Fetching seasons...');
-    const seasons = await cloudStore.getSeasons(true);
-    logger.info('[ReverseMigrationService] Fetched seasons', { count: seasons.length });
-
-    logger.info('[ReverseMigrationService] Fetching tournaments...');
-    const tournaments = await cloudStore.getTournaments(true);
-    logger.info('[ReverseMigrationService] Fetched tournaments', { count: tournaments.length });
-
-    logger.info('[ReverseMigrationService] Fetching personnel...');
-    const personnel = await cloudStore.getAllPersonnel();
-    logger.info('[ReverseMigrationService] Fetched personnel', { count: personnel.length });
-
-    logger.info('[ReverseMigrationService] Fetching games...');
-    const games = await cloudStore.getGames();
-    logger.info('[ReverseMigrationService] Fetched games', { count: Object.keys(games).length });
-
-    logger.info('[ReverseMigrationService] Fetching warmup plan...');
-    const warmupPlan = await cloudStore.getWarmupPlan();
-    logger.info('[ReverseMigrationService] Fetched warmup plan', { hasWarmupPlan: !!warmupPlan });
-
-    logger.info('[ReverseMigrationService] Fetching settings...');
-    const settings = await cloudStore.getSettings();
-    logger.info('[ReverseMigrationService] Fetched settings', { hasSettings: !!settings });
+    // Download all cloud data. The reads are independent, so they run in parallel
+    // (one round trip of wall time instead of eight in a row). allSettled + the first
+    // failure IN THIS ORDER keeps the error exactly what the old one-by-one reads
+    // threw: the earliest read in the list that failed, whichever finished first.
+    logger.info('[ReverseMigrationService] Fetching cloud data...');
+    const settled = await Promise.allSettled([
+      cloudStore.getPlayers(),
+      cloudStore.getTeams(true),
+      cloudStore.getSeasons(true),
+      cloudStore.getTournaments(true),
+      cloudStore.getAllPersonnel(),
+      cloudStore.getGames(),
+      cloudStore.getWarmupPlan(),
+      cloudStore.getSettings(),
+    ] as const);
+    for (const result of settled) {
+      if (result.status === 'rejected') throw result.reason;
+    }
+    const valueOf = <T,>(result: PromiseSettledResult<T>): T => (result as PromiseFulfilledResult<T>).value;
+    const players = valueOf(settled[0]);
+    const teams = valueOf(settled[1]);
+    const seasons = valueOf(settled[2]);
+    const tournaments = valueOf(settled[3]);
+    const personnel = valueOf(settled[4]);
+    const games = valueOf(settled[5]);
+    const warmupPlan = valueOf(settled[6]);
+    const settings = valueOf(settled[7]);
+    logger.info('[ReverseMigrationService] Fetched cloud data', {
+      players: players.length,
+      teams: teams.length,
+      seasons: seasons.length,
+      tournaments: tournaments.length,
+      personnel: personnel.length,
+      games: Object.keys(games).length,
+      hasWarmupPlan: !!warmupPlan,
+      hasSettings: !!settings,
+    });
 
     const cloudData = {
       players,
@@ -1995,34 +2000,42 @@ export async function hydrateLocalFromCloud(
       playerAdjustments: new Map<string, PlayerStatAdjustment[]>(),
     };
 
-    // Download team rosters (non-critical - continue if some fail)
-    for (const team of cloudData.teams) {
-      try {
-        const roster = await cloudStore.getTeamRoster(team.id);
-        cloudData.teamRosters.set(team.id, roster);
-      } catch (err) {
-        logger.warn('[ReverseMigrationService] Failed to fetch team roster, continuing', {
-          teamId: team.id,
-          error: err instanceof Error ? err.message : 'Unknown error',
-        });
-        // Continue with other teams - don't abort entire hydration
-      }
+    // Team rosters (need the teams) and player adjustments, in parallel. Both are
+    // non-critical: a failed read is logged and skipped, as before. Rosters are added
+    // to the map in team order once all have answered.
+    const [rosterResults, adjustmentsResult] = await Promise.all([
+      Promise.all(cloudData.teams.map((team) =>
+        cloudStore!.getTeamRoster(team.id).then(
+          (roster) => ({ teamId: team.id, roster }),
+          (err: unknown) => {
+            logger.warn('[ReverseMigrationService] Failed to fetch team roster, continuing', {
+              teamId: team.id,
+              error: err instanceof Error ? err.message : 'Unknown error',
+            });
+            return null; // Continue with other teams - don't abort entire hydration
+          },
+        ),
+      )),
+      // Batch method (1 API call) instead of a loop (N calls)
+      cloudStore.getAllPlayerAdjustments().then(
+        (allAdjustments) => allAdjustments,
+        (err: unknown) => {
+          logger.warn('[ReverseMigrationService] Failed to fetch player adjustments, continuing', {
+            error: err instanceof Error ? err.message : 'Unknown error',
+          });
+          return null; // Continue without adjustments - don't abort entire hydration
+        },
+      ),
+    ]);
+    for (const result of rosterResults) {
+      if (result) cloudData.teamRosters.set(result.teamId, result.roster);
     }
-
-    // Download player adjustments (non-critical - continue if fails)
-    // Use batch method (1 API call) instead of loop (N calls) for efficiency
-    try {
-      const allAdjustments = await cloudStore.getAllPlayerAdjustments();
-      for (const [playerId, adjustments] of allAdjustments) {
+    if (adjustmentsResult) {
+      for (const [playerId, adjustments] of adjustmentsResult) {
         if (adjustments.length > 0) {
           cloudData.playerAdjustments.set(playerId, adjustments);
         }
       }
-    } catch (err) {
-      logger.warn('[ReverseMigrationService] Failed to fetch player adjustments, continuing', {
-        error: err instanceof Error ? err.message : 'Unknown error',
-      });
-      // Continue without adjustments - don't abort entire hydration
     }
 
     // DIAGNOSTIC: Log what was downloaded from cloud
