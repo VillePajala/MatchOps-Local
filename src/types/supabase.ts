@@ -28,6 +28,28 @@ export type Database = {
   }
   public: {
     Tables: {
+      // Migration 064. Clients can only SELECT their own rows (no write grant/policy).
+      account_features: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          feature: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       game_events: {
         Row: {
           assister_id: string | null
