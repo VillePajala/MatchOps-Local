@@ -188,10 +188,12 @@ describe('PelitapaPresentation', () => {
     expect(screen.getByTestId('pelitapa-ball')).toBeInTheDocument();
   });
 
-  it('keeps the screen awake while open, and closes with the back button and Escape', async () => {
+  it('keeps the screen awake while open, has no on-screen back arrow, and closes with the phone back button and Escape', async () => {
     const onClose = await renderView();
     expect(mockSyncWakeLock).toHaveBeenCalledWith(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    // Back = the phone's back button, as everywhere in the app (owner, 2026-11-21).
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    act(() => { window.dispatchEvent(new PopStateEvent('popstate')); });
     expect(onClose).toHaveBeenCalledTimes(1);
     await act(async () => {
       fireEvent.keyDown(document, { key: 'Escape' });

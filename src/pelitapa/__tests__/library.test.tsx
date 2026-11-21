@@ -219,9 +219,9 @@ describe('PelitapaLibrary', () => {
       fireEvent.keyDown(document, { key: 'Escape' });
     });
     expect(onClose).toHaveBeenCalledTimes(1);
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    });
+    // No on-screen back arrow: the phone's back button closes the library.
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    act(() => { window.dispatchEvent(new PopStateEvent('popstate')); });
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 });

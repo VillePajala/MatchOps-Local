@@ -2,7 +2,7 @@
 
 import React, { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiChevronLeft, HiMagnifyingGlass, HiXMark, HiOutlineSignalSlash } from 'react-icons/hi2';
+import { HiMagnifyingGlass, HiXMark, HiOutlineSignalSlash } from 'react-icons/hi2';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import PelitapaPitch, { PITCH_ASPECT } from './PelitapaPitch';
@@ -156,16 +156,8 @@ export default function PelitapaLibrary({ isOpen, onClose }: PelitapaLibraryProp
         aria-hidden={open ? true : undefined}
       >
         <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-4 px-4 sm:px-7">
-          {/* Header: back, playbook name + title, formats. */}
+          {/* Header: playbook name + title, formats. Back = the phone's back button, as everywhere in the app. */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t('pelitapa.library.back', 'Back')}
-              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-white/10 bg-surface-2 text-ink-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
-            >
-              <HiChevronLeft className="h-6 w-6" aria-hidden="true" />
-            </button>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-3" data-testid="pelitapa-playbook-name">
                 {playbook ? playbookName(playbook) : ''}
