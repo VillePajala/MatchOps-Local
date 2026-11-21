@@ -2,7 +2,7 @@
   "playbook": {
     "id": "pepo-8v8",
     "name": "PEPO Pelitapa 8v8",
-    "ownerNote": "Converted from the PEPO 8v8 board prototype with scripts/pelitapa/convert-board.mjs."
+    "ownerNote": "Reviewed against the PEPO 8v8 Pelitapa PDF (v1.0) for intent and football logic; see content/pelitapa/pepo-8v8.review-notes.md. \"kaanto\" is a new concept."
   },
   "concepts": [
     {
@@ -18,113 +18,113 @@
           "role": "gk",
           "start": [
             34,
-            96
+            84
           ]
         },
         {
           "id": "2",
           "side": "us",
           "start": [
-            21,
-            89
+            22,
+            65
           ]
         },
         {
           "id": "3",
           "side": "us",
           "start": [
-            47,
-            89
+            46,
+            65
           ]
         },
         {
           "id": "4",
           "side": "us",
           "start": [
-            30,
-            76
+            34,
+            54
           ]
         },
         {
           "id": "5",
           "side": "us",
           "start": [
-            4,
-            61
+            5,
+            47
           ]
         },
         {
           "id": "6",
           "side": "us",
           "start": [
-            64,
-            61
+            63,
+            47
           ]
         },
         {
           "id": "7",
           "side": "us",
           "start": [
-            41,
-            61
+            34,
+            43
           ]
         },
         {
           "id": "8",
           "side": "us",
           "start": [
-            36,
-            38
+            34,
+            30
           ]
         }
       ],
       "steps": [
         {
-          "title": "Pelijärjestelmä 2-1-3-1",
-          "text": "Neljä linjaa: kaksi topparia, alempi kk, kolmen linja (laitapelaajat ja ylempi kk) ja kärki. Järjestelmä antaa pallolliselle mahdollisimman paljon vaihtoehtoja.",
+          "title": "Pelipaikat ja numerot",
+          "text": "Pelaamme muodossa 2-1-3-1. Maalivahti on 1, topparit 2 ja 3, alempi kk 4, laitapelaajat 5 ja 6, ylempi kk 7 ja kärki 8.",
           "ball": "1",
           "zones": [
             {
               "kind": "band",
-              "y": 89,
-              "h": 5.6,
+              "y": 65,
+              "h": 6,
               "label": "2 · Topparit"
             },
             {
               "kind": "band",
-              "y": 76,
-              "h": 5.6,
+              "y": 54,
+              "h": 6,
               "label": "1 · Alempi kk"
             },
             {
               "kind": "band",
-              "y": 61,
-              "h": 5.6,
-              "label": "3 · Laidat + ylempi kk"
+              "y": 45,
+              "h": 9,
+              "label": "3 · Laitapelaajat + ylempi kk"
             },
             {
               "kind": "band",
-              "y": 38,
-              "h": 5.6,
+              "y": 30,
+              "h": 6,
               "label": "1 · Kärki"
             }
           ]
         },
         {
-          "title": "Kenttä täytetty leveys- ja syvyyssuunnassa",
-          "text": "Laitapelaajat täyttävät kentän leveyssuunnassa ja kärki syvyyssuunnassa.",
+          "title": "Leveys ja syvyys",
+          "text": "Laitapelaajat menevät sivurajoille ja kärki ylös. Kenttä on täynnä, ja vastustajan pitää puolustaa isoa aluetta.",
           "positions": {
             "5": [
-              2.5,
-              58
+              3,
+              47
             ],
             "6": [
-              65.5,
-              58
+              65,
+              47
             ],
             "8": [
-              36,
-              28
+              34,
+              24
             ]
           },
           "zones": [
@@ -145,8 +145,8 @@
           ]
         },
         {
-          "title": "Ylivoima keskikaistalla",
-          "text": "Toppareiden lisäksi keskikaistalla pelaavat alempi kk, ylempi kk ja kärki. Tavoitteena on ylivoima keskikaistalla.",
+          "title": "Keskellä paljon pelaajia",
+          "text": "Keskikaistalla on viisi pelaajaamme: topparit, molemmat keskikentät ja kärki. Tavoite on ylivoima keskellä.",
           "zones": [
             {
               "kind": "rect",
@@ -166,20 +166,20 @@
           ]
         },
         {
-          "title": "Diagonaalinen sijoittuminen",
-          "text": "Keskikaistan pelaajat sijoittuvat diagonaaliin suhteessa toisiinsa. Pelaajat ovat eri kaistoilla, mikä vaikeuttaa puolustavan joukkueen toimintaa.",
+          "title": "Vinoon, ei jonoon",
+          "text": "Keskikaistan pelaajat eivät seiso samassa jonossa. Kun olet eri kaistalla kuin kaverisi, syöttö löytyy vinoon ja vastustajan on vaikea vartioida.",
           "positions": {
             "4": [
-              29,
-              75
+              28,
+              56
             ],
             "7": [
-              42,
-              57
+              41,
+              43
             ],
             "8": [
-              32,
-              32
+              30,
+              25
             ]
           },
           "zones": [
@@ -216,11 +216,12 @@
             "4",
             "7",
             "8"
-          ]
+          ],
+          "durationMs": 1200
         },
         {
-          "title": "Jokaisella rooli, myös maalivahdilla",
-          "text": "Jokaisella pelaajalla on rooli pelin jokaisessa vaiheessa. Koska pelaamme kahdella topparilla, maalivahdin merkitys pelinavauksessa on merkittävä.",
+          "title": "Jokaisella on tehtävä",
+          "text": "Meillä on vain kaksi topparia, joten maalivahti on kolmas avaaja. Jokaisella pelaajalla on tehtävä joka hetki.",
           "zones": [
             {
               "kind": "poly",
@@ -235,7 +236,8 @@
             "1"
           ]
         }
-      ]
+      ],
+      "question": "Mikä on sinun pelipaikkasi numero? Kenen kanssa sinä olet vinossa?"
     },
     {
       "id": "avaus",
@@ -250,23 +252,23 @@
           "role": "gk",
           "start": [
             34,
-            96
+            95
           ]
         },
         {
           "id": "2",
           "side": "us",
           "start": [
-            27,
-            80
+            25,
+            74
           ]
         },
         {
           "id": "3",
           "side": "us",
           "start": [
-            41,
-            80
+            43,
+            74
           ]
         },
         {
@@ -274,23 +276,23 @@
           "side": "us",
           "start": [
             34,
-            70
+            64
           ]
         },
         {
           "id": "5",
           "side": "us",
           "start": [
-            18,
-            60
+            14,
+            56
           ]
         },
         {
           "id": "6",
           "side": "us",
           "start": [
-            50,
-            60
+            54,
+            56
           ]
         },
         {
@@ -298,7 +300,7 @@
           "side": "us",
           "start": [
             34,
-            58
+            54
           ]
         },
         {
@@ -306,79 +308,79 @@
           "side": "us",
           "start": [
             34,
-            48
+            42
           ]
         },
         {
           "id": "a1",
           "side": "opp",
-          "role": "gk",
           "start": [
             34,
             4
-          ]
+          ],
+          "role": "gk"
         },
         {
           "id": "a2",
           "side": "opp",
           "start": [
-            26,
-            36
+            27,
+            30
           ]
         },
         {
           "id": "a3",
           "side": "opp",
           "start": [
-            44,
-            36
+            41,
+            30
           ]
         },
         {
           "id": "a4",
           "side": "opp",
           "start": [
-            35,
-            54
+            34,
+            48
           ]
         },
         {
           "id": "a5",
           "side": "opp",
           "start": [
-            14,
-            68
+            19,
+            62
           ]
         },
         {
           "id": "a6",
           "side": "opp",
           "start": [
-            54,
-            68
+            49,
+            62
           ]
         },
         {
           "id": "a7",
           "side": "opp",
           "start": [
-            31,
-            67
+            29,
+            69
           ]
         },
         {
           "id": "a8",
           "side": "opp",
           "start": [
-            37,
-            80
+            38,
+            81
           ]
         }
       ],
       "steps": [
         {
-          "title": "Maalipotku: joukkue levittäytyy",
-          "text": "Puolustusmuodosta siirrytään avaamismuotoon. Jokainen pelaaja hakee paikan, jossa hän tarjoaa pallolliselle vaihtoehdon.",
+          "title": "Maalipotku: hae paikkasi",
+          "text": "Pallo on maalivahdilla. Nyt jokainen hakee paikan, jossa hän on pelattavissa. Ensin topparit.",
           "ball": "1",
           "arrows": [
             {
@@ -386,7 +388,7 @@
               "from": "2",
               "to": [
                 21,
-                89
+                90
               ]
             },
             {
@@ -394,9 +396,33 @@
               "from": "3",
               "to": [
                 47,
-                89
+                90
               ]
-            },
+            }
+          ],
+          "highlights": [
+            "2",
+            "3"
+          ]
+        },
+        {
+          "title": "Topparit boksin sisälle",
+          "text": "Topparit tulevat boksiin maalivahdin viereen. Siellä heillä on tilaa ja aikaa aloittaa.",
+          "positions": {
+            "2": [
+              21,
+              90
+            ],
+            "3": [
+              47,
+              90
+            ],
+            "a8": [
+              35,
+              82
+            ]
+          },
+          "arrows": [
             {
               "kind": "run",
               "from": "5",
@@ -417,45 +443,11 @@
               "kind": "run",
               "from": "8",
               "to": [
-                36,
-                32
+                47,
+                31
               ]
             }
-          ]
-        },
-        {
-          "title": "Topparit boksin sisälle",
-          "text": "Topparit sijoittuvat boksin sisälle, jotta saavat lisää tilaa pelinavaukseen.",
-          "positions": {
-            "2": [
-              21,
-              89
-            ],
-            "3": [
-              47,
-              89
-            ],
-            "4": [
-              30,
-              76
-            ],
-            "5": [
-              4,
-              62
-            ],
-            "6": [
-              64,
-              62
-            ],
-            "7": [
-              41,
-              61
-            ],
-            "8": [
-              36,
-              32
-            ]
-          },
+          ],
           "zones": [
             {
               "kind": "rect",
@@ -468,59 +460,98 @@
           "highlights": [
             "2",
             "3"
-          ]
+          ],
+          "durationMs": 1100
         },
         {
-          "title": "Leveys ja syvyys venyttävät",
-          "text": "Laitapelaajat venyttävät vastustajan muotoa ja luovat tilaa kk-pelaajille. Kärki liikkuu kontrolloivan topparin selustaan ja venyttää muotoa syvyyssuunnassa.",
+          "title": "Laidat leveälle, kärki ylös",
+          "text": "Laitapelaajat venyttävät vastustajaa leveäksi ja kärki pitkäksi. Vastustaja joutuu seuraamaan, ja keskelle aukeaa tilaa.",
           "positions": {
+            "5": [
+              4,
+              62
+            ],
+            "6": [
+              64,
+              62
+            ],
             "8": [
-              45,
-              24
+              47,
+              31
             ],
             "a5": [
-              10,
-              67
+              11,
+              66
             ],
             "a6": [
-              58,
-              67
+              57,
+              66
             ],
             "a2": [
-              27,
-              30
+              28,
+              28
             ],
             "a3": [
-              45,
-              30
+              41,
+              27
             ]
           },
+          "arrows": [
+            {
+              "kind": "run",
+              "from": "4",
+              "to": [
+                32,
+                74
+              ]
+            },
+            {
+              "kind": "run",
+              "from": "7",
+              "to": [
+                42,
+                60
+              ]
+            }
+          ],
           "zones": [
             {
               "kind": "ellipse",
-              "cx": 20,
-              "cy": 60,
-              "rx": 7,
-              "ry": 7
-            },
-            {
-              "kind": "ellipse",
-              "cx": 49,
-              "cy": 59,
-              "rx": 7,
-              "ry": 7,
-              "label": "Tilaa kk:lle"
+              "cx": 34,
+              "cy": 61,
+              "rx": 14,
+              "ry": 9,
+              "label": "Tilaa keskellä"
             }
           ],
           "highlights": [
             "5",
             "6",
             "8"
-          ]
+          ],
+          "durationMs": 1300
         },
         {
-          "title": "Kolmio ja seuraava linja",
-          "text": "Alempi kk liikkuu tyhjään tilaan avaavan syötön aikana ja muodostaa kolmion lähimpien kanssa. Ylempi kk valmistautuu seuraavaan linjaan.",
+          "title": "Keskikentät eri tasoille",
+          "text": "Alempi kk tulee lähelle toppareita. Ylempi kk jää ylemmäs ja vinoon: hän on seuraava askel eteenpäin.",
+          "positions": {
+            "4": [
+              32,
+              74
+            ],
+            "7": [
+              42,
+              60
+            ],
+            "a7": [
+              35,
+              68
+            ],
+            "a4": [
+              36,
+              52
+            ]
+          },
           "arrows": [
             {
               "kind": "pass",
@@ -531,27 +562,17 @@
               "kind": "run",
               "from": "4",
               "to": [
-                27,
-                74
+                28,
+                77
               ]
-            },
-            {
-              "kind": "run",
-              "from": "7",
-              "to": [
-                37,
-                57
-              ],
-              "bend": 0.53
             }
           ],
           "zones": [
             {
-              "kind": "poly",
+              "kind": "link",
               "ids": [
-                "1",
-                "2",
-                "4"
+                "4",
+                "7"
               ]
             }
           ],
@@ -561,20 +582,16 @@
           ]
         },
         {
-          "title": "Pallo topparilla: kenellä etu?",
-          "text": "Topparilla on nyt vaihtoehdot leveyteen, linjojen väliin ja prässilinjan ohi. Katso tilanne \"Topparin vaihtoehdot\".",
+          "title": "Kolmio pallon ympärille",
+          "text": "Syötön aikana alempi kk liikkuu vapaaseen tilaan. Topparilla on heti kolmio: laitapelaaja, alempi kk ja maalivahti. Mitä hän tekee? Katso \"Topparin vaihtoehdot\".",
           "positions": {
             "4": [
-              27,
-              74
-            ],
-            "7": [
-              37,
-              57
+              28,
+              77
             ],
             "a8": [
-              28,
-              82
+              30,
+              85
             ]
           },
           "ball": "2",
@@ -583,14 +600,25 @@
               "kind": "poly",
               "ids": [
                 "2",
+                "5",
+                "4"
+              ]
+            },
+            {
+              "kind": "poly",
+              "ids": [
+                "2",
                 "4",
-                "5"
+                "1"
               ]
             }
+          ],
+          "highlights": [
+            "2"
           ]
         }
       ],
-      "question": "Minkä takia pelinavaus onnistuu? Mitä keskikenttäpelaajat voisivat tehdä paremmin?"
+      "question": "Miksi pelinavaus onnistuu? Mitä tapahtuisi, jos kaikki juoksisivat pallon luo?"
     },
     {
       "id": "vaihtoehdot",
@@ -605,7 +633,7 @@
           "role": "gk",
           "start": [
             34,
-            94
+            95
           ]
         },
         {
@@ -620,7 +648,7 @@
           "id": "3",
           "side": "us",
           "start": [
-            46,
+            47,
             89
           ]
         },
@@ -628,7 +656,7 @@
           "id": "4",
           "side": "us",
           "start": [
-            38,
+            40,
             78
           ]
         },
@@ -637,14 +665,14 @@
           "side": "us",
           "start": [
             4,
-            66
+            65
           ]
         },
         {
           "id": "6",
           "side": "us",
           "start": [
-            63,
+            64,
             65
           ]
         },
@@ -661,23 +689,23 @@
           "side": "us",
           "start": [
             40,
-            44
+            45
           ]
         },
         {
           "id": "a1",
           "side": "opp",
-          "role": "gk",
           "start": [
             34,
-            4
-          ]
+            5
+          ],
+          "role": "gk"
         },
         {
           "id": "a2",
           "side": "opp",
           "start": [
-            24,
+            22,
             46
           ]
         },
@@ -685,23 +713,23 @@
           "id": "a3",
           "side": "opp",
           "start": [
-            44,
-            44
+            35,
+            40
           ]
         },
         {
           "id": "a4",
           "side": "opp",
           "start": [
-            52,
-            57
+            50,
+            56
           ]
         },
         {
           "id": "a5",
           "side": "opp",
           "start": [
-            17,
+            16,
             70
           ]
         },
@@ -709,7 +737,7 @@
           "id": "a6",
           "side": "opp",
           "start": [
-            51,
+            52,
             72
           ]
         },
@@ -717,23 +745,23 @@
           "id": "a7",
           "side": "opp",
           "start": [
-            34,
-            70
+            33,
+            69
           ]
         },
         {
           "id": "a8",
           "side": "opp",
           "start": [
-            27,
-            80
+            30,
+            79
           ]
         }
       ],
       "steps": [
         {
-          "title": "Pallo topparilla",
-          "text": "Avaamiseen vaikuttavat vastustajan muoto ja prässin korkeus. Kuljetuksella voidaan houkutella vastustaja irtoamaan muodosta tai ohittaa ensimmäinen prässilinja.",
+          "title": "Pallo topparilla: kenellä on etu?",
+          "text": "Katso jo ennen kuin pallo tulee: missä vastustajat ovat ja kuinka korkealla he prässäävät? Jos edessäsi on tilaa, voit kuljettaa itse.",
           "ball": "2",
           "arrows": [
             {
@@ -741,14 +769,17 @@
               "from": "2",
               "to": [
                 22,
-                79
+                81
               ]
             }
+          ],
+          "highlights": [
+            "2"
           ]
         },
         {
-          "title": "1 · Syöttö leveyteen",
-          "text": "Syöttö laitapelaajalle leveyteen ohittaa vastustajan.",
+          "title": "1 · Leveyteen",
+          "text": "Laitapelaaja on vapaana sivurajalla. Syöttö leveyteen ohittaa prässääjät.",
           "arrows": [
             {
               "kind": "pass",
@@ -762,8 +793,8 @@
           ]
         },
         {
-          "title": "2 · Ylempi kk taskuun",
-          "text": "Syöttö ylemmälle kk-pelaajalle linjojen välistä taskuun.",
+          "title": "2 · Taskuun",
+          "text": "Ylempi kk on taskussa vastustajan linjojen välissä. Tämä syöttö ohittaa eniten vastustajia.",
           "arrows": [
             {
               "kind": "pass",
@@ -772,13 +803,23 @@
               "label": "2"
             }
           ],
+          "zones": [
+            {
+              "kind": "ellipse",
+              "cx": 25,
+              "cy": 57,
+              "rx": 7,
+              "ry": 6,
+              "label": "Tasku"
+            }
+          ],
           "highlights": [
             "7"
           ]
         },
         {
-          "title": "3 · Alempi kk prässilinjan ohi",
-          "text": "Syöttö alemmalle kk-pelaajalle ensimmäisen prässilinjan ohi.",
+          "title": "3 · Alemmalle kk:lle",
+          "text": "Alempi kk on jo prässääjän ohi. Lyhyt syöttö ensimmäisen prässilinjan ohi, ja hän pääsee kääntymään.",
           "arrows": [
             {
               "kind": "pass",
@@ -792,8 +833,8 @@
           ]
         },
         {
-          "title": "4 · Toinen toppari",
-          "text": "Syötöllä toiselle topparille vaihdetaan painopistettä, houkutellaan vastustaja irtoamaan muodosta tai nostamaan prässiään.",
+          "title": "4 · Toiselle topparille",
+          "text": "Jos edessä on ahdasta, käännä peli toiselle puolelle. Vastustaja joutuu siirtymään tai nostamaan prässiä.",
           "arrows": [
             {
               "kind": "pass",
@@ -807,8 +848,8 @@
           ]
         },
         {
-          "title": "5 · Maalivahti",
-          "text": "Syöttö maalivahdille vaihtaa painopistettä samoin kuin syöttö toiselle topparille. Maalivahti on avaamisen kolmas pelaaja.",
+          "title": "5 · Maalivahdille",
+          "text": "Maalivahti on aina vapaa. Hänen kauttaan peli kääntyy, tai vastustaja houkutellaan tulemaan ylemmäs.",
           "arrows": [
             {
               "kind": "pass",
@@ -822,25 +863,25 @@
           ]
         },
         {
-          "title": "6 · Pitkä avaus selustaan",
-          "text": "Pitkä avaus omalta alueelta tyhjään tilaan tai selustaan, kummalle tahansa laidalle. Tavoitteena 2v1 tai 1v1 isolla alueella, varsinkin kun vastustaja on sijoittunut korkealle.",
+          "title": "6 · Pitkä avaus tilaan",
+          "text": "Jos vastustaja on noussut korkealle, sen takana on tilaa. Pitkä pallo tyhjään tilaan, ja laitapelaaja juoksee sinne.",
           "arrows": [
             {
               "kind": "long",
               "from": "2",
               "to": [
-                56,
-                38
+                57,
+                43
               ],
-              "bend": -0.129,
+              "bend": -0.13,
               "label": "6"
             },
             {
               "kind": "long",
               "from": "2",
               "to": [
-                12,
-                40
+                11,
+                45
               ],
               "bend": 0.1,
               "label": "6"
@@ -849,16 +890,16 @@
               "kind": "run",
               "from": "6",
               "to": [
-                57,
-                40
+                58,
+                45
               ]
             },
             {
               "kind": "run",
               "from": "5",
               "to": [
-                11,
-                42
+                10,
+                47
               ]
             }
           ],
@@ -866,28 +907,28 @@
             {
               "kind": "ellipse",
               "cx": 56,
-              "cy": 38,
-              "rx": 11,
+              "cy": 43,
+              "rx": 10,
               "ry": 8,
               "label": "Tila"
             },
             {
               "kind": "ellipse",
               "cx": 12,
-              "cy": 40,
-              "rx": 11,
+              "cy": 45,
+              "rx": 10,
               "ry": 8,
               "label": "Tila"
             }
           ],
           "highlights": [
-            "6",
-            "5"
+            "5",
+            "6"
           ]
         },
         {
-          "title": "Kaikki vaihtoehdot",
-          "text": "Pelaajat tunnistavat itse, mikä ratkaisu sopii tilanteeseen. Kysymys on aina sama: kenellä on etu?",
+          "title": "Sinä päätät",
+          "text": "Kuusi vaihtoehtoa ja kuljetus. Tilanne muuttuu koko ajan, joten kysy aina: kenellä on etu?",
           "arrows": [
             {
               "kind": "pass",
@@ -918,30 +959,29 @@
               "from": "2",
               "to": "1",
               "label": "5"
-            },
+            }
+          ],
+          "zones": [
             {
-              "kind": "long",
-              "from": "2",
-              "to": [
-                56,
-                38
-              ],
-              "bend": -0.129,
+              "kind": "ellipse",
+              "cx": 56,
+              "cy": 43,
+              "rx": 10,
+              "ry": 8,
               "label": "6"
             },
             {
-              "kind": "long",
-              "from": "2",
-              "to": [
-                12,
-                40
-              ],
-              "bend": 0.1,
+              "kind": "ellipse",
+              "cx": 12,
+              "cy": 45,
+              "rx": 10,
+              "ry": 8,
               "label": "6"
             }
           ]
         }
-      ]
+      ],
+      "question": "Mikä syöttö ohittaa eniten vastustajia? Milloin on parempi syöttää maalivahdille?"
     },
     {
       "id": "kuljetus",
@@ -956,7 +996,7 @@
           "role": "gk",
           "start": [
             34,
-            96
+            95
           ]
         },
         {
@@ -979,7 +1019,7 @@
           "id": "4",
           "side": "us",
           "start": [
-            30,
+            31,
             76
           ]
         },
@@ -988,7 +1028,7 @@
           "side": "us",
           "start": [
             4,
-            62
+            63
           ]
         },
         {
@@ -996,64 +1036,64 @@
           "side": "us",
           "start": [
             64,
-            62
+            63
           ]
         },
         {
           "id": "7",
           "side": "us",
           "start": [
-            41,
-            61
+            26,
+            57
           ]
         },
         {
           "id": "8",
           "side": "us",
           "start": [
-            36,
-            32
+            41,
+            43
           ]
         },
         {
           "id": "a1",
           "side": "opp",
-          "role": "gk",
           "start": [
             34,
-            4
-          ]
+            5
+          ],
+          "role": "gk"
         },
         {
           "id": "a2",
           "side": "opp",
           "start": [
-            26,
-            36
+            22,
+            45
           ]
         },
         {
           "id": "a3",
           "side": "opp",
           "start": [
-            44,
-            36
+            36,
+            38
           ]
         },
         {
           "id": "a4",
           "side": "opp",
           "start": [
-            35,
-            54
+            48,
+            55
           ]
         },
         {
           "id": "a5",
           "side": "opp",
           "start": [
-            13,
-            69
+            15,
+            68
           ]
         },
         {
@@ -1061,14 +1101,14 @@
           "side": "opp",
           "start": [
             54,
-            68
+            70
           ]
         },
         {
           "id": "a7",
           "side": "opp",
           "start": [
-            30,
+            33,
             67
           ]
         },
@@ -1076,15 +1116,15 @@
           "id": "a8",
           "side": "opp",
           "start": [
-            34,
-            80
+            37,
+            83
           ]
         }
       ],
       "steps": [
         {
-          "title": "Kuljetuksella houkutellaan",
-          "text": "Toppari tunnistaa tilaa edessään. Lyhyillä kosketuksilla kuljettaessa vastustaja joutuu valitsemaan: prässätäkö vai pysyäkö muodossa.",
+          "title": "Tilaa edessä: kuljeta",
+          "text": "Topparin edessä on tilaa. Hän kuljettaa lyhyin kosketuksin eteenpäin. Alempi kk siirtyy pois alta ja antaa tilaa.",
           "ball": "2",
           "arrows": [
             {
@@ -1092,39 +1132,61 @@
               "from": "2",
               "to": [
                 22,
-                77
+                78
               ]
             },
             {
               "kind": "run",
               "from": "4",
               "to": [
-                37,
-                73
-              ],
-              "bend": -0.263
+                41,
+                74
+              ]
             }
+          ],
+          "highlights": [
+            "2"
           ]
         },
         {
-          "title": "Vastustaja irtoaa muodosta",
-          "text": "Vastustajan laitapelaaja lähtee prässiin ja laitapelaaja vapautuu. Alempi kk liikkui poispäin pallosta ja loi tilaa pallolliselle.",
+          "title": "Kuka tulee vastaan?",
+          "text": "Vastustajan laitapelaaja joutuu valitsemaan: jäänkö vartioimaan vai lähdenkö pallolliseen? Hän lähtee.",
           "positions": {
             "2": [
               22,
-              77
+              78
             ],
             "4": [
-              37,
-              73
+              41,
+              74
             ],
+            "a8": [
+              31,
+              85
+            ]
+          },
+          "arrows": [
+            {
+              "kind": "press",
+              "from": "a5",
+              "to": [
+                21,
+                72
+              ]
+            }
+          ],
+          "highlights": [
+            "a5"
+          ],
+          "durationMs": 1100
+        },
+        {
+          "title": "Syötä vapaalle",
+          "text": "Kun vastustaja tulee kohti, hänen takanaan vapautuu pelaaja. Syötä juuri silloin, ei aikaisemmin.",
+          "positions": {
             "a5": [
-              22,
+              21,
               72
-            ],
-            "a7": [
-              30,
-              68
             ]
           },
           "arrows": [
@@ -1139,8 +1201,8 @@
           ]
         },
         {
-          "title": "Syötön ajoitus",
-          "text": "Pallo lähti, kun vastustaja oli sitoutunut prässiin. Laitapelaajan 1. kosketus suuntautuu eteenpäin. Ylempi kk liikkuu taskuun linjojen väliin.",
+          "title": "Vapaa pelaaja etenee",
+          "text": "Laitapelaaja saa pallon vapaana ja ottaa ensimmäisen kosketuksen eteenpäin. Yksi linja on ohitettu.",
           "positions": {
             "5": [
               5,
@@ -1148,91 +1210,162 @@
             ],
             "a5": [
               15,
-              66
+              69
             ]
           },
           "ball": "5",
           "arrows": [
             {
-              "kind": "run",
-              "from": "7",
-              "to": [
-                22,
-                49
-              ],
-              "bend": 0.178
-            },
-            {
-              "kind": "pass",
+              "kind": "drib",
               "from": "5",
               "to": [
-                22,
-                49
-              ]
-            }
-          ]
-        },
-        {
-          "title": "Taskussa kylki edellä",
-          "text": "Ylempi kk vastaanottaa linjojen välissä kylki edellä ja näkee kentän. Kärki tekee kaariliikkeen topparin selustaan.",
-          "positions": {
-            "7": [
-              22,
-              49
-            ],
-            "a4": [
-              29,
-              52
-            ]
-          },
-          "ball": "7",
-          "arrows": [
-            {
-              "kind": "run",
-              "from": "8",
-              "to": [
-                46,
-                18
-              ],
-              "bend": -0.349
-            },
-            {
-              "kind": "pass",
-              "from": "7",
-              "to": [
-                46,
-                18
+                6,
+                48
               ]
             }
           ],
           "highlights": [
-            "8"
+            "5"
           ]
         },
         {
-          "title": "Linja kerrallaan eteenpäin",
-          "text": "Kuljetus ja kolme syöttöä: vastustajan kolme linjaa on ohitettu. Tämä on kontrolloitua etenemistä.",
+          "title": "Entä jos kukaan ei tule?",
+          "text": "Sama tilanne, mutta vastustaja jää paikoilleen. Silloin jatka kuljetusta! Olet jo ohittanut ensimmäisen prässilinjan.",
           "positions": {
-            "8": [
-              46,
-              18
+            "1": [
+              34,
+              95
             ],
-            "a3": [
+            "2": [
+              22,
+              78
+            ],
+            "3": [
               47,
-              26
+              89
+            ],
+            "4": [
+              41,
+              74
+            ],
+            "5": [
+              4,
+              63
+            ],
+            "6": [
+              64,
+              63
+            ],
+            "7": [
+              26,
+              57
+            ],
+            "8": [
+              41,
+              43
+            ],
+            "a1": [
+              34,
+              5
             ],
             "a2": [
+              22,
+              45
+            ],
+            "a3": [
+              36,
+              38
+            ],
+            "a4": [
+              48,
+              55
+            ],
+            "a5": [
+              15,
+              68
+            ],
+            "a6": [
+              54,
+              70
+            ],
+            "a7": [
               33,
-              28
+              67
+            ],
+            "a8": [
+              31,
+              85
             ]
           },
-          "ball": "8"
+          "ball": "2",
+          "arrows": [
+            {
+              "kind": "drib",
+              "from": "2",
+              "to": [
+                22,
+                69
+              ]
+            }
+          ],
+          "highlights": [
+            "2"
+          ],
+          "cut": true
+        },
+        {
+          "title": "Seuraava vastustaja irtoaa",
+          "text": "Nyt vastustajan keskikenttä lähtee pallolliseen. Hänen takanaan ylempi kk on vapaana taskussa.",
+          "positions": {
+            "2": [
+              22,
+              69
+            ],
+            "a7": [
+              28,
+              67
+            ],
+            "a8": [
+              29,
+              78
+            ]
+          },
+          "arrows": [
+            {
+              "kind": "pass",
+              "from": "2",
+              "to": "7"
+            }
+          ],
+          "zones": [
+            {
+              "kind": "ellipse",
+              "cx": 26,
+              "cy": 57,
+              "rx": 7,
+              "ry": 6,
+              "label": "Tasku"
+            }
+          ],
+          "highlights": [
+            "7"
+          ],
+          "durationMs": 1100
+        },
+        {
+          "title": "Kaksi linjaa ohi",
+          "text": "Ylempi kk saa pallon kylki edellä ja näkee koko kentän. Kuljetus ja yksi syöttö: kaksi vastustajan linjaa on ohitettu.",
+          "ball": "7",
+          "highlights": [
+            "7"
+          ]
         }
-      ]
+      ],
+      "question": "Milloin toppari syöttää? Mitä tapahtuu, jos hän syöttää liian aikaisin?"
     },
     {
       "id": "pitka",
-      "title": "Pitkä avaus selustaan",
+      "title": "Pitkä avaus tilaan",
       "phase": "Hyökkääminen",
       "format": "8v8",
       "version": 1,
@@ -1243,7 +1376,7 @@
           "role": "gk",
           "start": [
             34,
-            96
+            95
           ]
         },
         {
@@ -1266,7 +1399,7 @@
           "id": "4",
           "side": "us",
           "start": [
-            30,
+            33,
             76
           ]
         },
@@ -1274,189 +1407,234 @@
           "id": "5",
           "side": "us",
           "start": [
-            6,
-            54
+            5,
+            60
           ]
         },
         {
           "id": "6",
           "side": "us",
           "start": [
-            60,
-            54
+            63,
+            58
           ]
         },
         {
           "id": "7",
           "side": "us",
           "start": [
-            41,
-            61
+            27,
+            62
           ]
         },
         {
           "id": "8",
           "side": "us",
           "start": [
-            36,
-            52
+            38,
+            51
           ]
         },
         {
           "id": "a1",
           "side": "opp",
-          "role": "gk",
           "start": [
             34,
-            4
-          ]
+            6
+          ],
+          "role": "gk"
         },
         {
           "id": "a2",
           "side": "opp",
           "start": [
-            24,
-            50
+            28,
+            47
           ]
         },
         {
           "id": "a3",
           "side": "opp",
           "start": [
-            44,
-            50
+            42,
+            45
           ]
         },
         {
           "id": "a4",
           "side": "opp",
           "start": [
-            34,
-            66
+            31,
+            55
           ]
         },
         {
           "id": "a5",
           "side": "opp",
           "start": [
-            14,
-            74
+            12,
+            66
           ]
         },
         {
           "id": "a6",
           "side": "opp",
           "start": [
-            54,
-            74
+            58,
+            66
           ]
         },
         {
           "id": "a7",
           "side": "opp",
           "start": [
-            27,
-            81
+            29,
+            70
           ]
         },
         {
           "id": "a8",
           "side": "opp",
           "start": [
-            39,
-            84
+            41,
+            82
           ]
         }
       ],
       "steps": [
         {
           "title": "Vastustaja prässää korkealla",
-          "text": "Vastustajan puolustuslinja on noussut korkealle. Sen selustaan jää iso tyhjä alue.",
-          "ball": "1",
+          "text": "Vastustaja on tullut korkealle ja lyhyet syötöt on suljettu. Nosta katse: sen takana on iso tyhjä tila.",
+          "ball": "3",
+          "arrows": [
+            {
+              "kind": "press",
+              "from": "a8",
+              "to": [
+                43,
+                85
+              ]
+            },
+            {
+              "kind": "press",
+              "from": "a6",
+              "to": [
+                59,
+                63
+              ]
+            }
+          ],
           "zones": [
             {
               "kind": "ellipse",
-              "cx": 42,
-              "cy": 28,
-              "rx": 22,
-              "ry": 15,
-              "label": "Tila selustassa"
+              "cx": 54,
+              "cy": 34,
+              "rx": 13,
+              "ry": 13,
+              "label": "Tyhjä tila"
             }
           ],
           "highlights": [
-            "8",
-            "6"
+            "3"
           ]
         },
         {
-          "title": "Pitkä avaus tyhjään tilaan",
-          "text": "Kärki lähtee kaarella ja laitapelaaja suoraan, jotteivät he jää paitsioon. Pallo lyödään tilaan, ei pelaajalle.",
+          "title": "Pitkä pallo tilaan",
+          "text": "Pallo potkaistaan tilaan, ei jalkaan. Laitapelaaja ja kärki lähtevät juuri potkun hetkellä, joten he eivät jää paitsioon.",
+          "positions": {
+            "a8": [
+              42,
+              84.5
+            ],
+            "a6": [
+              59,
+              63
+            ]
+          },
           "arrows": [
             {
-              "kind": "run",
-              "from": "8",
+              "kind": "long",
+              "from": "3",
               "to": [
-                44,
-                30
+                57,
+                38
               ],
-              "bend": -0.256
+              "bend": 0.1
             },
             {
               "kind": "run",
               "from": "6",
               "to": [
-                56,
-                31
+                57,
+                38
               ]
             },
             {
-              "kind": "long",
-              "from": "1",
+              "kind": "run",
+              "from": "8",
               "to": [
-                46,
-                30
+                45,
+                33
               ],
-              "bend": -0.179
+              "bend": 0.15
+            }
+          ],
+          "zones": [
+            {
+              "kind": "ellipse",
+              "cx": 54,
+              "cy": 34,
+              "rx": 13,
+              "ry": 13,
+              "label": "Tyhjä tila"
             }
           ]
         },
         {
-          "title": "Iso alue, 2v1",
-          "text": "Kärki ja laitapelaaja hyökkäävät isolla alueella yhtä puolustajaa vastaan. Pelinavauksen tavoite toteutui.",
+          "title": "Kaksi yhtä vastaan",
+          "text": "Laitapelaaja ehtii palloon ensin. Hän ja kärki ovat kahdestaan yhtä puolustajaa vastaan isolla alueella. Kuljeta kohti puolustajaa!",
           "positions": {
             "6": [
-              56,
-              31
+              57,
+              38
             ],
             "8": [
-              44,
-              30
-            ],
-            "a2": [
-              27,
-              46
+              45,
+              33
             ],
             "a3": [
-              45,
-              40
+              51,
+              25
+            ],
+            "a2": [
+              34,
+              38
+            ],
+            "a6": [
+              60,
+              52
+            ],
+            "a1": [
+              35,
+              6
             ]
           },
-          "ball": "8",
+          "ball": "6",
           "arrows": [
             {
               "kind": "drib",
-              "from": "8",
+              "from": "6",
               "to": [
-                40,
-                18
+                54,
+                28
               ]
             },
             {
               "kind": "run",
-              "from": "6",
+              "from": "8",
               "to": [
-                53,
-                19
+                43,
+                22
               ]
             }
           ],
@@ -1464,79 +1642,95 @@
             {
               "kind": "poly",
               "ids": [
-                "8",
                 "6",
+                "8",
                 "a3"
               ]
             }
-          ]
+          ],
+          "durationMs": 1700
         },
         {
-          "title": "Kuljeta lähelle, syötä ajoissa",
-          "text": "Kuljetus kohti puolustajaa sitoo hänet. Syöttö lähtee laitapelaajan liikkeeseen, kun hänellä on maksimaalinen etu.",
+          "title": "Syötä, kun puolustaja tulee",
+          "text": "Puolustaja tulee pallolliseen, joten kärki on vapaa. Syöttö lähtee kärjen juoksuun juuri nyt.",
           "positions": {
             "6": [
-              53,
-              19
+              54,
+              28
             ],
             "8": [
-              40,
-              18
-            ],
-            "a3": [
-              45,
+              43,
               22
             ],
-            "a2": [
-              31,
-              34
+            "a3": [
+              54,
+              21
             ],
-            "a1": [
-              37,
-              5
+            "a2": [
+              35,
+              30
             ]
           },
           "arrows": [
             {
-              "kind": "run",
+              "kind": "pass",
               "from": "6",
               "to": [
-                51,
-                11
+                41,
+                13
               ]
             },
             {
-              "kind": "pass",
+              "kind": "run",
               "from": "8",
               "to": [
-                51,
-                11
+                41,
+                13
               ]
             }
+          ],
+          "highlights": [
+            "8"
           ]
         },
         {
-          "title": "Viimeistely",
-          "text": "Jos haluat pizzaa niin mene pizzeriaan. Jos haluat maaleja niin mene maalille.",
+          "title": "Maalille!",
+          "text": "Kärki on vapaana maalin edessä ja viimeistelee. \"Jos haluat maaleja, mene maalille.\"",
           "positions": {
-            "6": [
-              51,
-              11
+            "8": [
+              41,
+              13
+            ],
+            "a3": [
+              50,
+              17
+            ],
+            "a2": [
+              35,
+              22
+            ],
+            "a1": [
+              38,
+              4
             ]
           },
-          "ball": "6",
+          "ball": "8",
           "arrows": [
             {
               "kind": "shot",
-              "from": "6",
+              "from": "8",
               "to": [
-                36.5,
+                31.5,
                 0
               ]
             }
+          ],
+          "highlights": [
+            "8"
           ]
         }
-      ]
+      ],
+      "question": "Mistä näit, että nyt kannattaa pelata pitkä? Miksi pallo potkaistaan tilaan eikä jalkaan?"
     },
     {
       "id": "laita",
@@ -1558,24 +1752,24 @@
           "id": "2",
           "side": "us",
           "start": [
-            24,
-            62
+            25,
+            58
           ]
         },
         {
           "id": "3",
           "side": "us",
           "start": [
-            44,
-            62
+            43,
+            58
           ]
         },
         {
           "id": "4",
           "side": "us",
           "start": [
-            34,
-            48
+            22,
+            36
           ]
         },
         {
@@ -1583,7 +1777,7 @@
           "side": "us",
           "start": [
             6,
-            24
+            30
           ]
         },
         {
@@ -1591,15 +1785,15 @@
           "side": "us",
           "start": [
             58,
-            30
+            31
           ]
         },
         {
           "id": "7",
           "side": "us",
           "start": [
-            29,
-            33
+            35,
+            34
           ]
         },
         {
@@ -1607,24 +1801,24 @@
           "side": "us",
           "start": [
             37,
-            22
+            23
           ]
         },
         {
           "id": "a1",
           "side": "opp",
-          "role": "gk",
           "start": [
             34,
-            3
-          ]
+            4
+          ],
+          "role": "gk"
         },
         {
           "id": "a2",
           "side": "opp",
           "start": [
             27,
-            15
+            17
           ]
         },
         {
@@ -1632,22 +1826,22 @@
           "side": "opp",
           "start": [
             41,
-            15
+            17
           ]
         },
         {
           "id": "a4",
           "side": "opp",
           "start": [
-            32,
-            26
+            42,
+            29
           ]
         },
         {
           "id": "a5",
           "side": "opp",
           "start": [
-            11,
+            17,
             22
           ]
         },
@@ -1656,46 +1850,97 @@
           "side": "opp",
           "start": [
             52,
-            24
+            26
           ]
         },
         {
           "id": "a7",
           "side": "opp",
           "start": [
-            24,
-            36
+            27,
+            42
           ]
         },
         {
           "id": "a8",
           "side": "opp",
           "start": [
-            40,
+            38,
             46
           ]
         }
       ],
       "steps": [
         {
-          "title": "Kolme vaihtoehtoa laidasta",
-          "text": "Pallollinen havainnoi tilan ja muut pelaajat ja valitsee, mikä vaihtoehto toimii kyseisessä tilanteessa parhaiten.",
+          "title": "Pallo laitapelaajan juoksuun",
+          "text": "Laitapelaaja lähtee vauhtiin sivurajaa pitkin ja saa syötön juoksuunsa. Tavoite on päästä vauhdilla päätyä kohti.",
+          "ball": "4",
+          "arrows": [
+            {
+              "kind": "run",
+              "from": "5",
+              "to": [
+                8,
+                17
+              ]
+            },
+            {
+              "kind": "pass",
+              "from": "4",
+              "to": [
+                8,
+                17
+              ]
+            }
+          ],
+          "highlights": [
+            "5"
+          ]
+        },
+        {
+          "title": "Katse ylös: kolme vaihtoehtoa",
+          "text": "Laitapelaajalla on kolme vaihtoehtoa: 1 keskitys maalin eteen, 2 syöttö taakse puolustuslinjan eteen, 3 haasta ja ohita. Maali halutaan tehdä tältä alueelta.",
+          "positions": {
+            "5": [
+              8,
+              17
+            ],
+            "a5": [
+              14,
+              14
+            ],
+            "a2": [
+              27,
+              14
+            ],
+            "a3": [
+              40,
+              14
+            ],
+            "a1": [
+              32,
+              3
+            ]
+          },
           "ball": "5",
           "arrows": [
             {
               "kind": "long",
               "from": "5",
               "to": [
-                34,
+                37,
                 8
               ],
-              "bend": 0.124,
+              "bend": 0.1,
               "label": "1"
             },
             {
               "kind": "pass",
               "from": "5",
-              "to": "7",
+              "to": [
+                27,
+                23
+              ],
               "label": "2"
             },
             {
@@ -1703,77 +1948,97 @@
               "from": "5",
               "to": [
                 13,
-                9
+                6
               ],
-              "bend": -0.121,
+              "bend": -0.2,
               "label": "3"
             }
-          ]
+          ],
+          "zones": [
+            {
+              "kind": "ellipse",
+              "cx": 34,
+              "cy": 9,
+              "rx": 9,
+              "ry": 6,
+              "label": "Maalintekoalue"
+            }
+          ],
+          "durationMs": 1300
         },
         {
-          "title": "1 · Keskitys",
-          "text": "Keskitys maassa tai ilmassa vastustajan alimman linjan ja maalin väliin. Kärki hyökkää etupuolelle, painottoman puolen laitapelaaja takatolpalle.",
+          "title": "1 · Keskitys: juoksut maalille",
+          "text": "Pallo pelataan puolustajien ja maalin väliin. Kärki juoksee etutolpalle, toinen laitapelaaja takatolpalle ja ylempi kk tulee linjan eteen.",
           "arrows": [
+            {
+              "kind": "long",
+              "from": "5",
+              "to": [
+                43,
+                9
+              ],
+              "bend": 0.1,
+              "label": "1"
+            },
             {
               "kind": "run",
               "from": "8",
               "to": [
                 31,
-                7
+                8
               ],
-              "bend": 0.248
+              "bend": -0.1
             },
             {
               "kind": "run",
               "from": "6",
               "to": [
-                44,
-                8
-              ]
+                43,
+                9
+              ],
+              "bend": 0.2
             },
             {
               "kind": "run",
               "from": "7",
               "to": [
-                30,
-                21
+                31,
+                23
               ]
-            },
-            {
-              "kind": "long",
-              "from": "5",
-              "to": [
-                44,
-                8
-              ],
-              "bend": 0.146,
-              "label": "1"
             }
           ]
         },
         {
-          "title": "Takatolppa",
-          "text": "Liikkeissä korostuvat suunnanmuutokset ja askeltiheyden muutos. Laitapelaaja tiivisti kohti maalia takatolpan linjaan.",
+          "title": "Maali takatolpalta",
+          "text": "Pallo meni kärjen ja puolustajien ohi takatolpalle. Siellä laitapelaaja oli valmiina.",
           "positions": {
-            "6": [
-              44,
-              8
-            ],
-            "7": [
-              30,
-              21
-            ],
             "8": [
               31,
-              7
+              8
+            ],
+            "6": [
+              43,
+              9
+            ],
+            "7": [
+              31,
+              23
             ],
             "a2": [
-              29,
+              25,
               10
             ],
             "a3": [
-              39,
-              10
+              38,
+              13
+            ],
+            "a6": [
+              46,
+              22
+            ],
+            "a1": [
+              35,
+              3
             ]
           },
           "ball": "6",
@@ -1782,86 +2047,86 @@
               "kind": "shot",
               "from": "6",
               "to": [
-                36,
+                36.5,
                 0
               ]
             }
           ],
           "highlights": [
             "6"
-          ]
+          ],
+          "durationMs": 1500
         },
         {
           "title": "2 · Syöttö linjan eteen",
-          "text": "Jos lähin puolustaja peittää vaihtoehdon maalille tai hyökkääjät eivät ole valmiina, pallo pelataan puolustuslinjan eteen tukipelaajalle.",
+          "text": "Nyt puolustaja peittää keskityksen ja muut puolustajat juoksevat maalille. Linjan eteen jää tilaa: ylempi kk tulee sinne.",
           "positions": {
             "1": [
               34,
               80
             ],
             "2": [
-              24,
-              62
+              25,
+              58
             ],
             "3": [
-              44,
-              62
+              43,
+              58
             ],
             "4": [
-              34,
-              48
+              22,
+              36
             ],
             "5": [
-              6,
-              24
+              8,
+              17
             ],
             "6": [
               58,
-              30
+              31
             ],
             "7": [
-              29,
-              33
+              35,
+              34
             ],
             "8": [
               37,
-              22
+              23
             ],
             "a1": [
-              34,
+              32,
               3
             ],
             "a2": [
               27,
-              15
+              12
             ],
             "a3": [
-              41,
-              15
+              40,
+              12
             ],
             "a4": [
-              32,
-              26
+              42,
+              29
             ],
             "a5": [
-              9,
-              18
+              13,
+              12
             ],
             "a6": [
               52,
-              24
+              26
             ],
             "a7": [
-              24,
-              36
+              27,
+              42
             ],
             "a8": [
-              40,
+              38,
               46
             ]
           },
           "ball": "5",
-          "cut": true,
           "arrows": [
             {
               "kind": "run",
@@ -1883,11 +2148,12 @@
           ],
           "highlights": [
             "7"
-          ]
+          ],
+          "cut": true
         },
         {
-          "title": "Linjan eteen sijoittunut kk",
-          "text": "Ylempi kk voi laukoa, syöttää vapaalle tai hyödyntää kakkospallot.",
+          "title": "Laukaus linjan edestä",
+          "text": "Ylempi kk saa pallon vapaana ja laukoo. Samasta paikasta hän ehtii myös kakkospalloihin.",
           "positions": {
             "7": [
               27,
@@ -1900,136 +2166,168 @@
               "kind": "shot",
               "from": "7",
               "to": [
-                32,
+                36.5,
                 0
               ]
             }
+          ],
+          "highlights": [
+            "7"
           ]
         },
         {
           "title": "3 · Haasta ja ohita",
-          "text": "Laitapelaajalla on myös mahdollisuus haastaa ja ohittaa lähin puolustaja kuljettamalla: tilanteko ohitukselle, harhautus, rytminvaihto, ohittava kosketus.",
+          "text": "Edessä on vain yksi puolustaja. Haasta! Harhautus, rytminvaihto ja ohi. Kärki lähtee samalla maalin eteen.",
           "positions": {
             "1": [
               34,
               80
             ],
             "2": [
-              24,
-              62
+              25,
+              58
             ],
             "3": [
-              44,
-              62
+              43,
+              58
             ],
             "4": [
-              34,
-              48
+              22,
+              36
             ],
             "5": [
-              6,
-              24
+              8,
+              17
             ],
             "6": [
               58,
-              30
+              31
             ],
             "7": [
-              29,
-              33
+              35,
+              34
             ],
             "8": [
               37,
-              22
+              23
             ],
             "a1": [
-              34,
+              31,
               3
             ],
             "a2": [
               27,
-              15
+              14
             ],
             "a3": [
-              41,
-              15
+              40,
+              14
             ],
             "a4": [
-              32,
-              26
+              42,
+              29
             ],
             "a5": [
-              9,
-              27
+              14,
+              14
             ],
             "a6": [
               52,
-              24
+              26
             ],
             "a7": [
-              24,
-              36
+              27,
+              42
             ],
             "a8": [
-              40,
+              38,
               46
             ]
           },
           "ball": "5",
-          "cut": true,
           "arrows": [
             {
               "kind": "drib",
               "from": "5",
               "to": [
-                14,
-                9
+                13,
+                6
               ],
-              "bend": -0.176,
+              "bend": -0.2,
               "label": "3"
             },
             {
               "kind": "run",
               "from": "8",
               "to": [
-                33,
-                9
+                32,
+                9.8
               ],
-              "bend": 0.221
+              "bend": 0.1
             }
-          ]
+          ],
+          "highlights": [
+            "5"
+          ],
+          "cut": true
         },
         {
-          "title": "Ohituksen jälkeen maalin eteen",
-          "text": "Syöttö tilanteeseen katsottuna oikealle jalalle niin, että kärki pystyy etenemään kohti maalia.",
+          "title": "Syöttö maalin eteen",
+          "text": "Laitapelaaja pääsi ohi. Syöttö kärjelle niin, että hän voi viimeistellä ensimmäisellä kosketuksella.",
           "positions": {
             "5": [
-              14,
-              9
+              13,
+              6
             ],
             "8": [
-              33,
-              9
+              32,
+              9.8
             ],
             "a5": [
-              11,
-              17
+              15.5,
+              12.5
             ],
             "a2": [
-              25,
-              15
+              24,
+              13
+            ],
+            "a3": [
+              39,
+              12
             ]
           },
-          "ball": "5",
           "arrows": [
             {
               "kind": "pass",
               "from": "5",
               "to": "8"
             }
+          ],
+          "highlights": [
+            "8"
+          ],
+          "durationMs": 1300
+        },
+        {
+          "title": "Maali",
+          "text": "Kärki oli oikeassa paikassa oikeaan aikaan.",
+          "ball": "8",
+          "arrows": [
+            {
+              "kind": "shot",
+              "from": "8",
+              "to": [
+                36.5,
+                0
+              ]
+            }
+          ],
+          "highlights": [
+            "8"
           ]
         }
-      ]
+      ],
+      "question": "Mistä laitapelaaja tietää, mikä kolmesta on paras? Kuka juoksee etutolpalle ja kuka takatolpalle?"
     },
     {
       "id": "keski",
@@ -2052,7 +2350,7 @@
           "side": "us",
           "start": [
             26,
-            64
+            62
           ]
         },
         {
@@ -2060,38 +2358,38 @@
           "side": "us",
           "start": [
             42,
-            64
+            62
           ]
         },
         {
           "id": "4",
           "side": "us",
           "start": [
-            46,
-            42
+            45,
+            43
           ]
         },
         {
           "id": "5",
           "side": "us",
           "start": [
-            14,
-            36
+            12,
+            34
           ]
         },
         {
           "id": "6",
           "side": "us",
           "start": [
-            60,
-            30
+            58,
+            32
           ]
         },
         {
           "id": "7",
           "side": "us",
           "start": [
-            34,
+            33,
             38
           ]
         },
@@ -2099,25 +2397,25 @@
           "id": "8",
           "side": "us",
           "start": [
-            38,
-            26
+            31,
+            27
           ]
         },
         {
           "id": "a1",
           "side": "opp",
-          "role": "gk",
           "start": [
-            34,
-            3
-          ]
+            35,
+            4
+          ],
+          "role": "gk"
         },
         {
           "id": "a2",
           "side": "opp",
           "start": [
-            29,
-            19
+            26,
+            20
           ]
         },
         {
@@ -2125,23 +2423,23 @@
           "side": "opp",
           "start": [
             42,
-            19
+            20
           ]
         },
         {
           "id": "a4",
           "side": "opp",
           "start": [
-            39,
-            34
+            38,
+            32
           ]
         },
         {
           "id": "a5",
           "side": "opp",
           "start": [
-            12,
-            26
+            9,
+            25
           ]
         },
         {
@@ -2149,63 +2447,74 @@
           "side": "opp",
           "start": [
             52,
-            28
+            25
           ]
         },
         {
           "id": "a7",
           "side": "opp",
           "start": [
-            25,
-            44
+            24,
+            45
           ]
         },
         {
           "id": "a8",
           "side": "opp",
           "start": [
-            44,
-            50
+            39,
+            53
           ]
         }
       ],
       "steps": [
         {
-          "title": "1 · Syöttö syvyysjuoksua tekevälle hyökkääjälle",
-          "text": "Ylempi kk on pallon kanssa vastustajan puolustuslinjan edessä. Kärki tunnistaa tilaisuuden syvyysjuoksulle: täysvauhtisesti puolustajan etupuolelle tai kaarella pimeälle puolelle.",
+          "title": "1 · Syöttö kärjen syvyysjuoksuun",
+          "text": "Ylempi kk on pallon kanssa puolustuslinjan edessä. Kärki juoksee puolustajien välistä selustaan. Juoksu lähtee juuri syötön hetkellä, joten hän ei jää paitsioon.",
           "ball": "7",
           "arrows": [
             {
               "kind": "run",
               "from": "8",
               "to": [
-                36,
-                9
+                35,
+                10
               ],
-              "bend": 0.409
+              "bend": -0.1
             },
             {
               "kind": "pass",
               "from": "7",
               "to": [
                 36,
-                10
+                11
               ],
               "label": "1"
             }
+          ],
+          "highlights": [
+            "8"
           ]
         },
         {
-          "title": "Viimeistely",
-          "text": "Juoksu lähti vasta syötön hetkellä, joten kärki ei ollut paitsiossa.",
+          "title": "Läpi ja viimeistely",
+          "text": "Kärki on puolustajien takana ja viimeistelee.",
           "positions": {
             "8": [
-              36,
+              35,
               10
             ],
             "a3": [
               40,
               14
+            ],
+            "a2": [
+              29,
+              15
+            ],
+            "a1": [
+              36,
+              4
             ]
           },
           "ball": "8",
@@ -2214,15 +2523,19 @@
               "kind": "shot",
               "from": "8",
               "to": [
-                33,
+                31.5,
                 0
               ]
             }
-          ]
+          ],
+          "highlights": [
+            "8"
+          ],
+          "durationMs": 1300
         },
         {
           "title": "2 · Syöttö kaventavalle laitapelaajalle",
-          "text": "Laitapelaaja kaventaa kohti maalia ja pallo syötetään hänen liikkeeseensä.",
+          "text": "Laitapelaaja juoksee puolustajan selän takaa kohti maalia. Syöttö hänen juoksuunsa.",
           "positions": {
             "1": [
               34,
@@ -2230,99 +2543,106 @@
             ],
             "2": [
               26,
-              64
+              62
             ],
             "3": [
               42,
-              64
+              62
             ],
             "4": [
-              46,
-              42
+              45,
+              43
             ],
             "5": [
-              14,
-              36
+              12,
+              34
             ],
             "6": [
-              60,
-              30
+              58,
+              32
             ],
             "7": [
-              34,
+              33,
               38
             ],
             "8": [
-              38,
-              26
+              31,
+              27
             ],
             "a1": [
-              34,
-              3
+              35,
+              4
             ],
             "a2": [
-              29,
-              19
+              26,
+              20
             ],
             "a3": [
               42,
-              19
+              20
             ],
             "a4": [
-              39,
-              34
+              38,
+              32
             ],
             "a5": [
-              12,
-              26
+              9,
+              25
             ],
             "a6": [
               52,
-              28
+              25
             ],
             "a7": [
-              25,
-              44
+              24,
+              45
             ],
             "a8": [
-              44,
-              50
+              39,
+              53
             ]
           },
           "ball": "7",
-          "cut": true,
           "arrows": [
             {
               "kind": "run",
               "from": "5",
               "to": [
-                20,
-                12
+                17,
+                14
               ],
-              "bend": -0.162
+              "bend": 0.12
             },
             {
               "kind": "pass",
               "from": "7",
               "to": [
-                20,
-                12
+                17,
+                14
               ],
               "label": "2"
             }
-          ]
+          ],
+          "highlights": [
+            "5"
+          ],
+          "cut": true
         },
         {
-          "title": "Viimeistely",
-          "text": "Syötä sillä hetkellä, kun syötettävällä on maksimaalinen tila viimeistelyyn.",
+          "title": "Laitapelaaja viimeistelee",
+          "text": "Syöttö tuli sillä hetkellä, kun laitapelaajalla oli eniten tilaa.",
           "positions": {
             "5": [
-              20,
-              12
+              17,
+              14
+            ],
+            "a5": [
+              12,
+              20
             ],
             "a2": [
-              25,
-              16
+              24,
+              17
             ]
           },
           "ball": "5",
@@ -2331,15 +2651,19 @@
               "kind": "shot",
               "from": "5",
               "to": [
-                31,
+                31.5,
                 0
               ]
             }
-          ]
+          ],
+          "highlights": [
+            "5"
+          ],
+          "durationMs": 1500
         },
         {
-          "title": "3 · Seinäsyöttö kolmannelle",
-          "text": "Pallollinen syöttää tukipelaajalle. Kärki valmistautuu syvyysjuoksuun.",
+          "title": "3 · Seinän kautta kolmannelle",
+          "text": "Vastustaja tulee pallolliseen. Hän syöttää taakse tukipelaajalle. Puolustajat katsovat palloa, ja kärki valmistautuu.",
           "positions": {
             "1": [
               34,
@@ -2347,79 +2671,93 @@
             ],
             "2": [
               26,
-              64
+              62
             ],
             "3": [
               42,
-              64
+              62
             ],
             "4": [
-              46,
-              42
+              45,
+              43
             ],
             "5": [
-              14,
-              36
+              12,
+              34
             ],
             "6": [
-              60,
-              30
+              58,
+              32
             ],
             "7": [
-              34,
+              33,
               38
             ],
             "8": [
-              38,
-              26
+              31,
+              27
             ],
             "a1": [
-              34,
-              3
+              35,
+              4
             ],
             "a2": [
-              29,
-              19
+              26,
+              20
             ],
             "a3": [
               42,
-              19
+              20
             ],
             "a4": [
-              39,
-              34
+              38,
+              32
             ],
             "a5": [
-              12,
-              26
+              9,
+              25
             ],
             "a6": [
               52,
-              28
+              25
             ],
             "a7": [
-              25,
-              44
+              24,
+              45
             ],
             "a8": [
-              44,
-              50
+              39,
+              53
             ]
           },
           "ball": "7",
-          "cut": true,
           "arrows": [
+            {
+              "kind": "press",
+              "from": "a4",
+              "to": "7"
+            },
             {
               "kind": "pass",
               "from": "7",
               "to": "4",
               "label": "3"
             }
-          ]
+          ],
+          "highlights": [
+            "4"
+          ],
+          "cut": true
         },
         {
-          "title": "Kolmas pelaaja syöttää 1. kosketuksella",
-          "text": "Tukipelaaja syöttää suoraan kärjen syvyysjuoksuun. Juoksu lähtee syötön hetkellä.",
+          "title": "Yhdellä kosketuksella juoksuun",
+          "text": "Tukipelaaja on seinä: yksi kosketus suoraan kärjen juoksuun. Kärki on kolmas pelaaja.",
+          "positions": {
+            "a4": [
+              37,
+              34
+            ]
+          },
           "ball": "4",
           "arrows": [
             {
@@ -2427,31 +2765,42 @@
               "from": "8",
               "to": [
                 35,
-                9
+                10
               ],
-              "bend": -0.29
+              "bend": -0.1
             },
             {
               "kind": "pass",
               "from": "4",
               "to": [
                 35,
-                9
+                11
               ]
             }
+          ],
+          "highlights": [
+            "8"
           ]
         },
         {
-          "title": "Viimeistely",
-          "text": "Kaksi syöttöä ja puolustuslinja on murrettu.",
+          "title": "Kolmas pelaaja on läpi",
+          "text": "Kaksi syöttöä, ja puolustuslinja on murrettu.",
           "positions": {
             "8": [
               35,
-              9
+              10
             ],
             "a3": [
               40,
-              13
+              14
+            ],
+            "a2": [
+              29,
+              15
+            ],
+            "a1": [
+              36,
+              4
             ]
           },
           "ball": "8",
@@ -2460,15 +2809,19 @@
               "kind": "shot",
               "from": "8",
               "to": [
-                33,
+                31.5,
                 0
               ]
             }
-          ]
+          ],
+          "highlights": [
+            "8"
+          ],
+          "durationMs": 1300
         },
         {
-          "title": "4 · Haastaminen",
-          "text": "Pallollinen haastaa ja ohittaa puolustajan kuljettamalla: tilanteko ohitukselle, harhautus, rytminvaihto, ohittava kosketus.",
+          "title": "4 · Haasta",
+          "text": "Edessä on yksi puolustaja ja tilaa. Haasta! Harhautus, rytminvaihto ja ohi. Kärki väistää sivuun ja antaa tilaa.",
           "positions": {
             "1": [
               34,
@@ -2476,95 +2829,114 @@
             ],
             "2": [
               26,
-              64
+              62
             ],
             "3": [
               42,
-              64
+              62
             ],
             "4": [
-              46,
-              42
+              45,
+              43
             ],
             "5": [
-              14,
-              36
+              12,
+              34
             ],
             "6": [
-              60,
-              30
+              58,
+              32
             ],
             "7": [
-              34,
+              33,
               38
             ],
             "8": [
-              38,
-              26
+              31,
+              27
             ],
             "a1": [
-              34,
-              3
+              35,
+              4
             ],
             "a2": [
-              29,
-              19
+              26,
+              20
             ],
             "a3": [
               42,
-              19
+              20
             ],
             "a4": [
-              39,
-              34
+              35,
+              32
             ],
             "a5": [
-              12,
-              26
+              9,
+              25
             ],
             "a6": [
               52,
-              28
+              25
             ],
             "a7": [
-              25,
-              44
+              24,
+              45
             ],
             "a8": [
-              44,
-              50
+              39,
+              53
             ]
           },
           "ball": "7",
-          "cut": true,
           "arrows": [
             {
               "kind": "drib",
               "from": "7",
               "to": [
-                30,
-                23
+                29,
+                25
               ],
-              "bend": 0.193,
+              "bend": -0.2,
               "label": "4"
+            },
+            {
+              "kind": "run",
+              "from": "8",
+              "to": [
+                37,
+                24
+              ]
             }
-          ]
+          ],
+          "highlights": [
+            "7"
+          ],
+          "cut": true
         },
         {
-          "title": "Viimeistely",
-          "text": "Tunnista maalintekotilaisuus ja uskalla yrittää viimeistellä.",
+          "title": "Ohi ja laukaus",
+          "text": "Puolustaja jäi taakse. Tunnista maalintekopaikka ja uskalla laukoa.",
           "positions": {
             "7": [
-              30,
-              23
+              29,
+              25
+            ],
+            "8": [
+              37,
+              24
             ],
             "a4": [
-              35,
-              30
+              34,
+              29
             ],
             "a2": [
-              24,
+              25,
               18
+            ],
+            "a1": [
+              32,
+              4
             ]
           },
           "ball": "7",
@@ -2573,15 +2945,19 @@
               "kind": "shot",
               "from": "7",
               "to": [
-                33,
+                36.5,
                 0
               ]
             }
-          ]
+          ],
+          "highlights": [
+            "7"
+          ],
+          "durationMs": 1200
         },
         {
           "title": "5 · Seinäsyöttö",
-          "text": "Pallollinen syöttää laitapelaajalle ja lähtee heti liikkeelle.",
+          "text": "Pallollinen syöttää laitapelaajalle ja lähtee itse heti juoksuun.",
           "positions": {
             "1": [
               34,
@@ -2589,67 +2965,66 @@
             ],
             "2": [
               26,
-              64
+              62
             ],
             "3": [
               42,
-              64
+              62
             ],
             "4": [
-              46,
-              42
+              45,
+              43
             ],
             "5": [
-              14,
-              36
+              12,
+              34
             ],
             "6": [
-              60,
-              30
+              58,
+              32
             ],
             "7": [
-              34,
+              33,
               38
             ],
             "8": [
-              38,
-              26
+              31,
+              27
             ],
             "a1": [
-              34,
-              3
+              35,
+              4
             ],
             "a2": [
-              29,
-              19
+              26,
+              20
             ],
             "a3": [
               42,
-              19
+              20
             ],
             "a4": [
-              39,
-              34
+              38,
+              32
             ],
             "a5": [
-              12,
-              26
+              9,
+              25
             ],
             "a6": [
               52,
-              28
+              25
             ],
             "a7": [
-              25,
-              44
+              24,
+              45
             ],
             "a8": [
-              44,
-              50
+              39,
+              53
             ]
           },
           "ball": "7",
-          "cut": true,
           "arrows": [
             {
               "kind": "pass",
@@ -2657,43 +3032,54 @@
               "to": "5",
               "label": "5"
             }
-          ]
+          ],
+          "highlights": [
+            "5"
+          ],
+          "cut": true
         },
         {
           "title": "Pallo takaisin juoksuun",
-          "text": "Laitapelaaja palauttaa pallon 1. kosketuksella pallollisen juoksuun.",
+          "text": "Laitapelaaja palauttaa pallon yhdellä kosketuksella pallollisen juoksuun puolustajien taakse.",
           "ball": "5",
           "arrows": [
             {
               "kind": "run",
               "from": "7",
               "to": [
-                26,
-                22
+                22,
+                15
               ],
-              "bend": -0.168
+              "bend": -0.2
             },
             {
               "kind": "pass",
               "from": "5",
               "to": [
-                26,
-                22
+                22,
+                15
               ]
             }
+          ],
+          "highlights": [
+            "7"
           ]
         },
         {
-          "title": "Viimeistely",
-          "text": "Seinäsyötöllä ohitettiin puolustaja ilman kaksinkamppailua.",
+          "title": "Ohi ilman kaksinkamppailua",
+          "text": "Seinäsyötöllä puolustaja ohitettiin ilman kaksinkamppailua.",
           "positions": {
             "7": [
-              26,
-              22
+              22,
+              15
             ],
-            "a4": [
-              33,
-              30
+            "a2": [
+              27.5,
+              17
+            ],
+            "a5": [
+              13,
+              21
             ]
           },
           "ball": "7",
@@ -2702,13 +3088,18 @@
               "kind": "shot",
               "from": "7",
               "to": [
-                33,
+                31.5,
                 0
               ]
             }
-          ]
+          ],
+          "highlights": [
+            "7"
+          ],
+          "durationMs": 1500
         }
-      ]
+      ],
+      "question": "Mikä viidestä tavasta sopii, kun puolustaja tulee sinua kohti? Milloin syvyysjuoksu lähtee?"
     },
     {
       "id": "prassi",
@@ -2723,23 +3114,23 @@
           "role": "gk",
           "start": [
             34,
-            82
+            77
           ]
         },
         {
           "id": "2",
           "side": "us",
           "start": [
-            26,
-            67
+            27,
+            50
           ]
         },
         {
           "id": "3",
           "side": "us",
           "start": [
-            42,
-            67
+            44,
+            50
           ]
         },
         {
@@ -2747,31 +3138,31 @@
           "side": "us",
           "start": [
             34,
-            55
+            40
           ]
         },
         {
           "id": "5",
           "side": "us",
           "start": [
-            16,
-            45
+            13,
+            36
           ]
         },
         {
           "id": "6",
           "side": "us",
           "start": [
-            52,
-            45
+            55,
+            37
           ]
         },
         {
           "id": "7",
           "side": "us",
           "start": [
-            37,
-            43
+            34,
+            32
           ]
         },
         {
@@ -2779,85 +3170,85 @@
           "side": "us",
           "start": [
             34,
-            31
+            25
           ]
         },
         {
           "id": "a1",
           "side": "opp",
-          "role": "gk",
           "start": [
             34,
-            4
-          ]
+            8
+          ],
+          "role": "gk"
         },
         {
           "id": "a2",
           "side": "opp",
           "start": [
-            19,
-            11
+            20,
+            15
           ]
         },
         {
           "id": "a3",
           "side": "opp",
           "start": [
-            49,
-            11
+            47,
+            15
           ]
         },
         {
           "id": "a4",
           "side": "opp",
           "start": [
-            34,
-            22
+            24,
+            31
           ]
         },
         {
           "id": "a5",
           "side": "opp",
           "start": [
-            5,
-            32
+            4,
+            29
           ]
         },
         {
           "id": "a6",
           "side": "opp",
           "start": [
-            63,
-            32
+            64,
+            33
           ]
         },
         {
           "id": "a7",
           "side": "opp",
           "start": [
-            29,
-            40
+            44,
+            29
           ]
         },
         {
           "id": "a8",
           "side": "opp",
           "start": [
-            37,
-            60
+            34,
+            46
           ]
         }
       ],
       "steps": [
         {
-          "title": "Lähtötilanne",
-          "text": "Muoto laskee riittävän alas, jotta vastustaja uskaltaa avata lyhyellä. Laitapelaajat ovat riittävän keskellä, ettei muodon läpi voi pelata. Maalivahti on ylhäällä.",
+          "title": "Annetaan avata lyhyellä",
+          "text": "Emme juokse heti maalivahdin päälle. Olemme tiiviinä keskellä, jotta vastustaja uskaltaa avata lyhyellä. Keskeltä ei pääse läpi.",
           "ball": "a1",
           "arrows": [
             {
               "kind": "pass",
               "from": "a1",
-              "to": "a3"
+              "to": "a2"
             }
           ],
           "zones": [
@@ -2874,18 +3265,18 @@
           ]
         },
         {
-          "title": "Kärki: estä toppari-toppari",
-          "text": "Kärki lähtee kaarella niin, että syöttö toiselle topparille estyy. Peli ohjataan laitaan.",
-          "ball": "a3",
+          "title": "Kärki ohjaa laitaan",
+          "text": "Kärki juoksee kaarella topparien väliin. Syöttö toiselle topparille on nyt kiinni, ja vastustajalle jää vain yksi puoli.",
+          "ball": "a2",
           "arrows": [
             {
               "kind": "press",
               "from": "8",
               "to": [
-                41,
-                15
+                27,
+                16
               ],
-              "bend": -0.286
+              "bend": 0.2
             }
           ],
           "highlights": [
@@ -2894,134 +3285,179 @@
         },
         {
           "title": "Tiiviinä pallon puolelle",
-          "text": "Koko muoto siirtyy painolliselle puolelle. Ylempi kk estää syötön muodon sisälle, alempi kk kontrolloi toppareiden eteen jäävää tilaa.",
+          "text": "Koko joukkue siirtyy pallon puolelle. Ylempi kk sulkee syötön keskelle, ja kaukaisempi laitapelaaja tulee sisään.",
           "positions": {
-            "1": [
-              38,
-              78
-            ],
-            "2": [
-              36,
-              62
-            ],
-            "3": [
-              47,
-              62
-            ],
-            "4": [
-              42,
-              43
-            ],
-            "5": [
-              28,
-              46
-            ],
-            "6": [
-              54,
-              39
+            "8": [
+              27,
+              16
             ],
             "7": [
-              44,
-              28
+              22,
+              22
             ],
-            "8": [
-              41,
-              15
+            "4": [
+              27,
+              34
+            ],
+            "5": [
+              11,
+              32
+            ],
+            "6": [
+              46,
+              36
+            ],
+            "2": [
+              22,
+              47
+            ],
+            "3": [
+              37,
+              49
+            ],
+            "1": [
+              31,
+              75
             ],
             "a4": [
-              36,
-              24
+              23,
+              29
+            ],
+            "a7": [
+              41,
+              28
+            ],
+            "a8": [
+              30,
+              44
             ]
           },
           "arrows": [
             {
               "kind": "pass",
-              "from": "a3",
-              "to": "a6"
+              "from": "a2",
+              "to": "a5"
+            }
+          ],
+          "zones": [
+            {
+              "kind": "poly",
+              "ids": [
+                "8",
+                "7",
+                "6",
+                "3",
+                "2",
+                "5"
+              ]
             }
           ],
           "highlights": [
             "7",
-            "4"
-          ]
+            "6"
+          ],
+          "durationMs": 1300
         },
         {
-          "title": "Triggeri: syöttö laitaan",
-          "text": "Kun vastustaja pelaa laitapelaajalleen, pallon puolen laitapelaaja prässää täysillä. Alempi kk tukee 2. puolustajana, kärki estää takaisinsyötön.",
+          "title": "Tunnista: syöttö laitaan",
+          "text": "Syöttö laitaan on merkki: NYT! Laitapelaaja lähtee täysillä, ja muut sulkevat syötöt. Sivuraja auttaa meitä.",
           "positions": {
-            "a6": [
-              62,
-              33
+            "a2": [
+              18,
+              12
             ]
           },
-          "ball": "a6",
+          "ball": "a5",
           "arrows": [
             {
               "kind": "press",
-              "from": "6",
+              "from": "5",
               "to": [
-                60,
-                37
+                8,
+                34
               ]
             },
             {
               "kind": "press",
               "from": "4",
               "to": [
-                55,
-                43
+                17,
+                38
+              ]
+            },
+            {
+              "kind": "press",
+              "from": "7",
+              "to": [
+                17,
+                28
               ]
             },
             {
               "kind": "press",
               "from": "8",
               "to": [
-                50,
-                21
+                12,
+                20
               ]
             }
           ],
           "zones": [
             {
               "kind": "ellipse",
-              "cx": 58,
-              "cy": 35,
-              "rx": 10,
-              "ry": 9,
+              "cx": 9,
+              "cy": 30,
+              "rx": 11,
+              "ry": 10,
               "label": "Prässiansa"
             }
           ],
           "highlights": [
-            "6"
+            "5"
           ]
         },
         {
-          "title": "Riisto ylhäällä",
-          "text": "Mitä lähempänä vastustajan maalia riistämme, sitä todennäköisemmin tilanteenvaihto johtaa maalintekotilanteeseen.",
+          "title": "Täysillä: riisto ylhäällä",
+          "text": "Pallo on meillä lähellä vastustajan maalia. Sieltä on lyhyt matka maalintekoon.",
           "positions": {
-            "4": [
-              55,
-              43
+            "5": [
+              8,
+              34
             ],
-            "6": [
-              60,
-              37
+            "4": [
+              17,
+              38
+            ],
+            "7": [
+              17,
+              28
             ],
             "8": [
-              50,
-              21
+              12,
+              20
             ],
-            "a6": [
-              63,
-              34
+            "a5": [
+              4,
+              29
             ]
           },
-          "ball": "6",
+          "ball": "5",
+          "zones": [
+            {
+              "kind": "ellipse",
+              "cx": 9,
+              "cy": 30,
+              "rx": 11,
+              "ry": 10,
+              "label": "Prässiansa"
+            }
+          ],
           "highlights": [
-            "6"
+            "5"
           ]
         }
-      ]
+      ],
+      "question": "Miksi kärki juoksee kaarella eikä suoraan? Mikä on merkki, että laitapelaaja lähtee prässiin?"
     },
     {
       "id": "triggerit",
@@ -3043,7 +3479,7 @@
           "id": "2",
           "side": "us",
           "start": [
-            28,
+            27,
             66
           ]
         },
@@ -3060,14 +3496,14 @@
           "side": "us",
           "start": [
             34,
-            54
+            55
           ]
         },
         {
           "id": "5",
           "side": "us",
           "start": [
-            16,
+            15,
             46
           ]
         },
@@ -3075,7 +3511,7 @@
           "id": "6",
           "side": "us",
           "start": [
-            52,
+            53,
             46
           ]
         },
@@ -3083,33 +3519,33 @@
           "id": "7",
           "side": "us",
           "start": [
-            38,
-            40
+            39,
+            41
           ]
         },
         {
           "id": "8",
           "side": "us",
           "start": [
-            30,
-            21
+            32,
+            26
           ]
         },
         {
           "id": "a1",
           "side": "opp",
-          "role": "gk",
           "start": [
             34,
-            4
-          ]
+            5
+          ],
+          "role": "gk"
         },
         {
           "id": "a2",
           "side": "opp",
           "start": [
             22,
-            22
+            20
           ]
         },
         {
@@ -3117,7 +3553,7 @@
           "side": "opp",
           "start": [
             46,
-            22
+            20
           ]
         },
         {
@@ -3148,7 +3584,7 @@
           "id": "a7",
           "side": "opp",
           "start": [
-            28,
+            27,
             46
           ]
         },
@@ -3156,15 +3592,15 @@
           "id": "a8",
           "side": "opp",
           "start": [
-            38,
-            60
+            37,
+            61
           ]
         }
       ],
       "steps": [
         {
           "title": "1 · Huono kosketus",
-          "text": "Seuraa vastaanottoa. Jos vastustaja menettää kontrollin 1. kosketuksella, lähin pelaaja riistää.",
+          "text": "Triggeri on merkki, että nyt riistetään. Ensimmäinen merkki: katso vastustajan vastaanottoa ja pysy lähellä.",
           "ball": "a2",
           "arrows": [
             {
@@ -3172,22 +3608,25 @@
               "from": "a2",
               "to": "a4"
             }
+          ],
+          "highlights": [
+            "7"
           ]
         },
         {
-          "title": "Pallo karkaa: RIISTÄ",
-          "text": "Huono kosketus antaa sekunnin. Lähimmän pelaajan on oltava riittävän lähellä ja reagoitava heti.",
+          "title": "Pallo karkaa: RIISTÄ!",
+          "text": "Pallo karkaa vastustajan jalasta. Lähin pelaaja lähtee heti.",
           "ball": [
-            37,
-            38.5
+            38,
+            36.5
           ],
           "arrows": [
             {
               "kind": "press",
               "from": "7",
               "to": [
-                37,
-                38.5
+                38,
+                36.5
               ]
             }
           ],
@@ -3196,30 +3635,33 @@
           ]
         },
         {
-          "title": "Riisto",
-          "text": "Ylempi kk voittaa pallon keskeltä ja joukkue siirtyy hyökkäämään.",
+          "title": "Pallo meille",
+          "text": "Ylempi kk oli tarpeeksi lähellä ja ehti palloon ensin.",
           "positions": {
             "7": [
-              37,
-              38.5
+              38,
+              37
             ],
             "a4": [
-              34,
-              35
+              33,
+              33
             ]
           },
-          "ball": "7"
+          "ball": "7",
+          "highlights": [
+            "7"
+          ]
         },
         {
           "title": "2 · Hidas tai pomppiva syöttö",
-          "text": "Jos syötön laatu on sellainen, että ehdit palloon ennen vastustajaa, riistä.",
+          "text": "Syöttö on hidas tai pomppii. Jos ehdit palloon ennen vastustajaa, mene!",
           "positions": {
             "1": [
               34,
               82
             ],
             "2": [
-              28,
+              27,
               66
             ],
             "3": [
@@ -3228,35 +3670,35 @@
             ],
             "4": [
               34,
-              54
+              55
             ],
             "5": [
-              16,
+              15,
               46
             ],
             "6": [
-              52,
+              53,
               46
             ],
             "7": [
-              38,
-              40
+              39,
+              41
             ],
             "8": [
-              30,
-              21
+              32,
+              26
             ],
             "a1": [
               34,
-              4
+              5
             ],
             "a2": [
               22,
-              22
+              20
             ],
             "a3": [
               46,
-              22
+              20
             ],
             "a4": [
               34,
@@ -3271,16 +3713,15 @@
               38
             ],
             "a7": [
-              28,
+              27,
               46
             ],
             "a8": [
-              38,
-              60
+              37,
+              61
             ]
           },
           "ball": "a3",
-          "cut": true,
           "arrows": [
             {
               "kind": "pass",
@@ -3291,36 +3732,41 @@
               "kind": "press",
               "from": "6",
               "to": [
-                56,
-                31
+                57,
+                33
               ]
             }
           ],
           "highlights": [
             "6"
-          ]
+          ],
+          "cut": true
         },
         {
           "title": "Syöttö katkeaa",
-          "text": "Laitapelaaja ennakoi ja katkaisee syötön ennen kuin se saavuttaa vastaanottajan.",
+          "text": "Laitapelaaja luki syötön ja ehti väliin.",
           "positions": {
             "6": [
-              56,
-              31
+              57,
+              33
             ]
           },
-          "ball": "6"
+          "ball": "6",
+          "highlights": [
+            "6"
+          ],
+          "durationMs": 1100
         },
         {
-          "title": "3 · Negatiivinen peliasento",
-          "text": "Vastustajan kärki saa pallon selkä kohti maaliamme eikä näe prässääjää.",
+          "title": "3 · Selkä meidän maaliin päin",
+          "text": "Vastustaja saa pallon selkä meidän maaliamme kohti. Hän ei näe sinua. Mene iholle äläkä anna hänen kääntyä!",
           "positions": {
             "1": [
               34,
               82
             ],
             "2": [
-              28,
+              27,
               66
             ],
             "3": [
@@ -3328,36 +3774,36 @@
               66
             ],
             "4": [
-              27,
+              34,
               55
             ],
             "5": [
-              16,
+              15,
               46
             ],
             "6": [
-              52,
+              53,
               46
             ],
             "7": [
-              38,
-              40
+              39,
+              41
             ],
             "8": [
-              30,
-              21
+              32,
+              26
             ],
             "a1": [
               34,
-              4
+              5
             ],
             "a2": [
               22,
-              22
+              20
             ],
             "a3": [
               46,
-              22
+              20
             ],
             "a4": [
               34,
@@ -3372,58 +3818,262 @@
               38
             ],
             "a7": [
-              28,
+              27,
               46
             ],
             "a8": [
-              38,
-              60
+              37,
+              61
             ]
           },
-          "ball": "a7",
-          "cut": true,
+          "ball": "a4",
           "arrows": [
             {
               "kind": "pass",
-              "from": "a7",
-              "to": "a8"
-            }
-          ]
-        },
-        {
-          "title": "Prässää ja estä kääntyminen",
-          "text": "Toppari tiivistää vastustajan kärkeen. Estämällä kääntymisen vastustaja saadaan ahtaammalle.",
-          "ball": "a8",
-          "arrows": [
+              "from": "a4",
+              "to": "a7"
+            },
             {
               "kind": "press",
-              "from": "3",
+              "from": "4",
               "to": [
-                38.5,
-                63.5
+                30,
+                51
               ]
             }
           ],
           "highlights": [
-            "3"
+            "4"
+          ],
+          "cut": true
+        },
+        {
+          "title": "Ei pääse kääntymään",
+          "text": "Alempi kk on selässä kiinni. Vastustaja ei pääse kääntymään ja joutuu ahtaalle.",
+          "positions": {
+            "4": [
+              30,
+              51
+            ]
+          },
+          "ball": "a7",
+          "highlights": [
+            "4"
           ]
         },
         {
-          "title": "Riisto",
-          "text": "Toppari voittaa pallon. Triggerit 4 ja 5 (puutteellinen tuki ja prässiansa) näet tilanteessa \"Pelinavauksen puolustaminen\".",
+          "title": "4 · Pallollisella ei ole tukea",
+          "text": "Pallollinen on laidassa yksin, ja kaikki hänen syöttönsä on suljettu. Mene riistämään!",
           "positions": {
+            "1": [
+              34,
+              82
+            ],
+            "2": [
+              27,
+              66
+            ],
             "3": [
-              38.5,
-              63.5
+              42,
+              66
+            ],
+            "4": [
+              21,
+              45
+            ],
+            "5": [
+              11,
+              43
+            ],
+            "6": [
+              53,
+              46
+            ],
+            "7": [
+              27,
+              36
+            ],
+            "8": [
+              16,
+              27
+            ],
+            "a1": [
+              34,
+              5
+            ],
+            "a2": [
+              22,
+              20
+            ],
+            "a3": [
+              46,
+              20
+            ],
+            "a4": [
+              34,
+              34
+            ],
+            "a5": [
+              6,
+              38
+            ],
+            "a6": [
+              62,
+              38
+            ],
+            "a7": [
+              27,
+              46
             ],
             "a8": [
-              37.5,
-              58.5
+              37,
+              61
             ]
           },
-          "ball": "3"
+          "ball": "a5",
+          "arrows": [
+            {
+              "kind": "press",
+              "from": "5",
+              "to": [
+                10,
+                42
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "kind": "link",
+              "ids": [
+                "8",
+                "a2"
+              ]
+            },
+            {
+              "kind": "link",
+              "ids": [
+                "7",
+                "a4"
+              ]
+            },
+            {
+              "kind": "link",
+              "ids": [
+                "4",
+                "a7"
+              ]
+            }
+          ],
+          "highlights": [
+            "5"
+          ],
+          "cut": true
+        },
+        {
+          "title": "5 ja 6 · Prässiansa ja pallonmenetys",
+          "text": "Sama merkki syntyy, kun ohjaamme vastustajan laitaan (katso \"Pelinavauksen puolustaminen\"). Kuudes merkki on se hetki, kun itse menetämme pallon (katso \"TV− välitön prässi\").",
+          "positions": {
+            "5": [
+              10,
+              42
+            ],
+            "a5": [
+              5,
+              37
+            ]
+          },
+          "ball": "5",
+          "highlights": [
+            "5"
+          ]
+        },
+        {
+          "title": "Ei merkkiä? Älä ryntää",
+          "text": "Hyvä kosketus, katse ylhäällä ja kavereita lähellä: nyt ei riistetä. Peitä, hidasta ja odota seuraavaa merkkiä. Älä pelaa itseäsi ulos tilanteesta.",
+          "positions": {
+            "1": [
+              34,
+              82
+            ],
+            "2": [
+              27,
+              66
+            ],
+            "3": [
+              42,
+              66
+            ],
+            "4": [
+              34,
+              55
+            ],
+            "5": [
+              15,
+              46
+            ],
+            "6": [
+              53,
+              46
+            ],
+            "7": [
+              39,
+              41
+            ],
+            "8": [
+              32,
+              26
+            ],
+            "a1": [
+              34,
+              5
+            ],
+            "a2": [
+              22,
+              20
+            ],
+            "a3": [
+              46,
+              20
+            ],
+            "a4": [
+              34,
+              34
+            ],
+            "a5": [
+              6,
+              38
+            ],
+            "a6": [
+              62,
+              38
+            ],
+            "a7": [
+              27,
+              46
+            ],
+            "a8": [
+              37,
+              61
+            ]
+          },
+          "ball": "a4",
+          "arrows": [
+            {
+              "kind": "run",
+              "from": "7",
+              "to": [
+                38,
+                39
+              ]
+            }
+          ],
+          "highlights": [
+            "7"
+          ],
+          "cut": true
         }
-      ]
+      ],
+      "question": "Mitkä merkit kertovat, että nyt riistetään? Mitä teet, jos merkkiä ei tule?"
     },
     {
       "id": "pitkapuol",
@@ -3446,7 +4096,7 @@
           "side": "us",
           "start": [
             26,
-            67
+            60
           ]
         },
         {
@@ -3454,39 +4104,39 @@
           "side": "us",
           "start": [
             42,
-            67
+            60
           ]
         },
         {
           "id": "4",
           "side": "us",
           "start": [
-            34,
-            55
+            33,
+            50
           ]
         },
         {
           "id": "5",
           "side": "us",
           "start": [
-            16,
-            45
+            15,
+            42
           ]
         },
         {
           "id": "6",
           "side": "us",
           "start": [
-            52,
-            45
+            53,
+            42
           ]
         },
         {
           "id": "7",
           "side": "us",
           "start": [
-            37,
-            43
+            36,
+            40
           ]
         },
         {
@@ -3494,40 +4144,40 @@
           "side": "us",
           "start": [
             34,
-            31
+            30
           ]
         },
         {
           "id": "a1",
           "side": "opp",
-          "role": "gk",
           "start": [
             34,
-            4
-          ]
+            6
+          ],
+          "role": "gk"
         },
         {
           "id": "a2",
           "side": "opp",
           "start": [
-            19,
-            11
+            18,
+            13
           ]
         },
         {
           "id": "a3",
           "side": "opp",
           "start": [
-            49,
-            11
+            50,
+            13
           ]
         },
         {
           "id": "a4",
           "side": "opp",
           "start": [
-            34,
-            22
+            28,
+            28
           ]
         },
         {
@@ -3535,7 +4185,7 @@
           "side": "opp",
           "start": [
             8,
-            46
+            45
           ]
         },
         {
@@ -3543,38 +4193,38 @@
           "side": "opp",
           "start": [
             60,
-            46
+            45
           ]
         },
         {
           "id": "a7",
           "side": "opp",
           "start": [
-            29,
-            40
+            42,
+            45
           ]
         },
         {
           "id": "a8",
           "side": "opp",
           "start": [
-            37,
-            63
+            38,
+            56
           ]
         }
       ],
       "steps": [
         {
-          "title": "Vastustaja ei avaa lyhyellä",
-          "text": "Muoto on tiputettu pelinavauksen tilan luomiseksi, mutta vastustaja aikoo potkaista pitkälle.",
+          "title": "Vastustaja aikoo potkaista pitkän",
+          "text": "Annoimme tilaa avata lyhyellä, mutta vastustaja ei avaa. Maalivahti ottaa vauhtia. Topparit ja alempi kk: alas!",
           "ball": "a1",
           "arrows": [
             {
               "kind": "run",
               "from": "2",
               "to": [
-                28,
-                72
+                27,
+                70
               ]
             },
             {
@@ -3582,7 +4232,7 @@
               "from": "3",
               "to": [
                 41,
-                72
+                70
               ]
             },
             {
@@ -3590,16 +4240,46 @@
               "from": "4",
               "to": [
                 34,
-                61
+                60
               ]
-            },
+            }
+          ],
+          "highlights": [
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "title": "Pallo ei saa mennä toppareiden yli",
+          "text": "Topparit ovat niin alhaalla, ettei pallo lennä heidän ylitseen. Laitapelaajat ja ylempi kk tulevat lähelle: kohta tulee kakkospallo.",
+          "positions": {
+            "2": [
+              27,
+              70
+            ],
+            "3": [
+              41,
+              70
+            ],
+            "4": [
+              34,
+              60
+            ],
+            "a8": [
+              39,
+              64
+            ]
+          },
+          "arrows": [
             {
-              "kind": "run",
-              "from": "7",
+              "kind": "long",
+              "from": "a1",
               "to": [
-                37,
-                52
-              ]
+                35,
+                58
+              ],
+              "bend": 0.12
             },
             {
               "kind": "run",
@@ -3619,34 +4299,19 @@
             },
             {
               "kind": "run",
-              "from": "8",
+              "from": "7",
               "to": [
-                34,
-                42
+                37,
+                51
               ]
             }
-          ]
+          ],
+          "durationMs": 1200
         },
         {
-          "title": "Muoto alas ja tiiviiksi",
-          "text": "Muoto lasketaan niin alas, ettei pitkä avaus mene topparien yli. Laitapelaajat ja kk-pelaajat tiivistävät lähelle palloa. Maalivahti sijoittuu riittävän ylös.",
+          "title": "Alempi kk ottaa ensimmäisen pallon",
+          "text": "Alempi kk menee ensimmäiseen palloon. Topparit varmistavat takana, eivätkä he joudu kamppailemaan. Maalivahti on ylhäällä heidän takanaan.",
           "positions": {
-            "1": [
-              34,
-              81
-            ],
-            "2": [
-              28,
-              72
-            ],
-            "3": [
-              41,
-              72
-            ],
-            "4": [
-              34,
-              61
-            ],
             "5": [
               24,
               54
@@ -3657,71 +4322,2068 @@
             ],
             "7": [
               37,
-              52
+              51
             ],
-            "8": [
-              34,
-              42
-            ]
-          },
-          "arrows": [
-            {
-              "kind": "long",
-              "from": "a1",
-              "to": [
-                35,
-                59
-              ],
-              "bend": 0.145
-            }
-          ]
-        },
-        {
-          "title": "Alempi kk voittaa 1. pallon",
-          "text": "Toppareiden ei tarvitse kamppailla 1. pallosta. Useampi pelaaja on valmiina voittamaan 2. pallon.",
-          "positions": {
             "4": [
               35,
-              59
+              58
             ],
-            "5": [
-              27,
-              56
-            ],
-            "6": [
-              44,
-              57
-            ],
-            "7": [
-              38,
-              53
-            ],
-            "a8": [
-              36,
-              64
+            "a7": [
+              43,
+              47
             ]
           },
           "ball": "4",
+          "arrows": [
+            {
+              "kind": "pass",
+              "from": "4",
+              "to": "7"
+            }
+          ],
           "zones": [
             {
               "kind": "ellipse",
-              "cx": 36,
-              "cy": 57,
-              "rx": 12,
+              "cx": 35,
+              "cy": 55,
+              "rx": 14,
               "ry": 8,
               "label": "2. pallo"
             }
           ],
           "highlights": [
             "4"
+          ],
+          "durationMs": 1500
+        },
+        {
+          "title": "Kakkospallo meille",
+          "text": "Pallo putoaa, ja meitä on sen ympärillä eniten. Peli jatkuu meidän pallollamme.",
+          "ball": "7",
+          "zones": [
+            {
+              "kind": "ellipse",
+              "cx": 35,
+              "cy": 55,
+              "rx": 14,
+              "ry": 8,
+              "label": "2. pallo"
+            }
+          ],
+          "highlights": [
+            "5",
+            "6",
+            "7"
           ]
         }
-      ]
+      ],
+      "question": "Miksi topparit eivät mene ensimmäiseen palloon? Kuka voittaa kakkospallon?"
     },
     {
       "id": "omaalue",
       "title": "Omalla alueella",
       "phase": "Puolustaminen",
+      "format": "8v8",
+      "version": 1,
+      "players": [
+        {
+          "id": "1",
+          "side": "us",
+          "role": "gk",
+          "start": [
+            34,
+            94
+          ]
+        },
+        {
+          "id": "2",
+          "side": "us",
+          "start": [
+            27,
+            82
+          ]
+        },
+        {
+          "id": "3",
+          "side": "us",
+          "start": [
+            41,
+            82
+          ]
+        },
+        {
+          "id": "4",
+          "side": "us",
+          "start": [
+            34,
+            72
+          ]
+        },
+        {
+          "id": "5",
+          "side": "us",
+          "start": [
+            17,
+            66
+          ]
+        },
+        {
+          "id": "6",
+          "side": "us",
+          "start": [
+            51,
+            66
+          ]
+        },
+        {
+          "id": "7",
+          "side": "us",
+          "start": [
+            37,
+            60
+          ]
+        },
+        {
+          "id": "8",
+          "side": "us",
+          "start": [
+            34,
+            46
+          ]
+        },
+        {
+          "id": "a1",
+          "side": "opp",
+          "start": [
+            34,
+            6
+          ],
+          "role": "gk"
+        },
+        {
+          "id": "a2",
+          "side": "opp",
+          "start": [
+            24,
+            32
+          ]
+        },
+        {
+          "id": "a3",
+          "side": "opp",
+          "start": [
+            44,
+            32
+          ]
+        },
+        {
+          "id": "a4",
+          "side": "opp",
+          "start": [
+            26,
+            47
+          ]
+        },
+        {
+          "id": "a5",
+          "side": "opp",
+          "start": [
+            7,
+            62
+          ]
+        },
+        {
+          "id": "a6",
+          "side": "opp",
+          "start": [
+            60,
+            60
+          ]
+        },
+        {
+          "id": "a7",
+          "side": "opp",
+          "start": [
+            32,
+            53
+          ]
+        },
+        {
+          "id": "a8",
+          "side": "opp",
+          "start": [
+            36,
+            78
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Keskusta kiinni",
+          "text": "Omalla alueella olemme tiiviinä maalin edessä. Keskeltä ei päästetä läpi, joten vastustajan on pelattava laitaan.",
+          "ball": "a7",
+          "arrows": [
+            {
+              "kind": "pass",
+              "from": "a7",
+              "to": "a5"
+            },
+            {
+              "kind": "press",
+              "from": "5",
+              "to": [
+                11,
+                66
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "kind": "poly",
+              "ids": [
+                "5",
+                "7",
+                "6",
+                "3",
+                "2"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Laitapelaaja hidastaa ja ohjaa",
+          "text": "Laitapelaaja menee vastaan, mutta ei ryntää. Hän sulkee tien keskelle ja ohjaa vastustajaa sivurajaa kohti. Muut siirtyvät pallon puolelle.",
+          "positions": {
+            "5": [
+              11,
+              66
+            ],
+            "2": [
+              24,
+              82
+            ],
+            "3": [
+              38,
+              84
+            ],
+            "4": [
+              30,
+              74
+            ],
+            "6": [
+              44,
+              68
+            ],
+            "7": [
+              29,
+              62
+            ],
+            "1": [
+              32,
+              94
+            ],
+            "a8": [
+              34,
+              79
+            ]
+          },
+          "ball": "a5",
+          "arrows": [
+            {
+              "kind": "run",
+              "from": "7",
+              "to": [
+                19,
+                70
+              ]
+            }
+          ],
+          "highlights": [
+            "5"
+          ],
+          "durationMs": 1200
+        },
+        {
+          "title": "Topparit pysyvät keskellä",
+          "text": "Toppari EI lähde laitaan auttamaan. Avuksi tulee keskikenttäpelaaja. Maalin edusta on tärkein paikka puolustaa.",
+          "positions": {
+            "7": [
+              19,
+              70
+            ]
+          },
+          "zones": [
+            {
+              "kind": "poly",
+              "ids": [
+                "2",
+                "4",
+                "3"
+              ]
+            },
+            {
+              "kind": "rect",
+              "x": 0,
+              "y": 54,
+              "w": 17,
+              "h": 30,
+              "label": "Tänne saa ohjata"
+            }
+          ],
+          "highlights": [
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "title": "Hidasta vai riistä?",
+          "text": "Laidassa on nyt kaksi meidän pelaajaamme yhtä vastaan, ja sivuraja on apuna. Jos tulee merkki, riistä. Muuten hidasta.",
+          "zones": [
+            {
+              "kind": "poly",
+              "ids": [
+                "5",
+                "7",
+                "a5"
+              ]
+            }
+          ],
+          "highlights": [
+            "5",
+            "7"
+          ]
+        },
+        {
+          "title": "Entä jos pallo tulee keskelle?",
+          "text": "Uusi tilanne: syöttö tulee vastustajan kärjelle toppareiden eteen. Lähin toppari astuu ylös.",
+          "positions": {
+            "1": [
+              34,
+              94
+            ],
+            "2": [
+              27,
+              82
+            ],
+            "3": [
+              41,
+              82
+            ],
+            "4": [
+              27,
+              70
+            ],
+            "5": [
+              17,
+              66
+            ],
+            "6": [
+              51,
+              66
+            ],
+            "7": [
+              27,
+              59
+            ],
+            "8": [
+              34,
+              46
+            ],
+            "a1": [
+              34,
+              6
+            ],
+            "a2": [
+              24,
+              32
+            ],
+            "a3": [
+              44,
+              32
+            ],
+            "a4": [
+              26,
+              47
+            ],
+            "a5": [
+              7,
+              62
+            ],
+            "a6": [
+              60,
+              60
+            ],
+            "a7": [
+              32,
+              53
+            ],
+            "a8": [
+              36,
+              78
+            ]
+          },
+          "ball": "a7",
+          "arrows": [
+            {
+              "kind": "run",
+              "from": "a8",
+              "to": [
+                38,
+                72
+              ]
+            },
+            {
+              "kind": "pass",
+              "from": "a7",
+              "to": [
+                38,
+                72
+              ]
+            },
+            {
+              "kind": "press",
+              "from": "3",
+              "to": [
+                41,
+                77
+              ]
+            }
+          ],
+          "highlights": [
+            "3"
+          ],
+          "cut": true
+        },
+        {
+          "title": "Toppari irtoaa, muut paikkaavat",
+          "text": "Toppari ei anna kärjen kääntyä. Toinen toppari tiivistää hänen taakseen ja alempi kk laskee avuksi.",
+          "positions": {
+            "a8": [
+              38,
+              72
+            ],
+            "3": [
+              41,
+              77
+            ]
+          },
+          "ball": "a8",
+          "arrows": [
+            {
+              "kind": "run",
+              "from": "2",
+              "to": [
+                34,
+                84
+              ]
+            },
+            {
+              "kind": "run",
+              "from": "4",
+              "to": [
+                31,
+                76
+              ]
+            }
+          ],
+          "highlights": [
+            "3"
+          ]
+        },
+        {
+          "title": "Linjaan ei jää reikää",
+          "text": "Kolmio maalin edessä on taas kasassa, ja pallollinen on ahtaalla.",
+          "positions": {
+            "2": [
+              34,
+              84
+            ],
+            "4": [
+              31,
+              76
+            ]
+          },
+          "zones": [
+            {
+              "kind": "poly",
+              "ids": [
+                "3",
+                "2",
+                "4"
+              ]
+            }
+          ],
+          "highlights": [
+            "2",
+            "3",
+            "4"
+          ]
+        }
+      ],
+      "question": "Miksi toppari ei lähde laitaan? Kuka paikkaa, kun toppari astuu ylös?"
+    },
+    {
+      "id": "tvplus",
+      "title": "TV+ riiston jälkeen",
+      "phase": "Tilanteenvaihto +",
+      "format": "8v8",
+      "version": 1,
+      "players": [
+        {
+          "id": "1",
+          "side": "us",
+          "role": "gk",
+          "start": [
+            34,
+            88
+          ]
+        },
+        {
+          "id": "2",
+          "side": "us",
+          "start": [
+            26,
+            72
+          ]
+        },
+        {
+          "id": "3",
+          "side": "us",
+          "start": [
+            42,
+            72
+          ]
+        },
+        {
+          "id": "4",
+          "side": "us",
+          "start": [
+            31,
+            61
+          ]
+        },
+        {
+          "id": "5",
+          "side": "us",
+          "start": [
+            12,
+            58
+          ]
+        },
+        {
+          "id": "6",
+          "side": "us",
+          "start": [
+            56,
+            56
+          ]
+        },
+        {
+          "id": "7",
+          "side": "us",
+          "start": [
+            40,
+            49
+          ]
+        },
+        {
+          "id": "8",
+          "side": "us",
+          "start": [
+            33,
+            36
+          ]
+        },
+        {
+          "id": "a1",
+          "side": "opp",
+          "start": [
+            34,
+            6
+          ],
+          "role": "gk"
+        },
+        {
+          "id": "a2",
+          "side": "opp",
+          "start": [
+            26,
+            34
+          ]
+        },
+        {
+          "id": "a3",
+          "side": "opp",
+          "start": [
+            43,
+            36
+          ]
+        },
+        {
+          "id": "a4",
+          "side": "opp",
+          "start": [
+            35,
+            54
+          ]
+        },
+        {
+          "id": "a5",
+          "side": "opp",
+          "start": [
+            7,
+            64
+          ]
+        },
+        {
+          "id": "a6",
+          "side": "opp",
+          "start": [
+            61,
+            62
+          ]
+        },
+        {
+          "id": "a7",
+          "side": "opp",
+          "start": [
+            26,
+            50
+          ]
+        },
+        {
+          "id": "a8",
+          "side": "opp",
+          "start": [
+            36,
+            67
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Riisto!",
+          "text": "Vastustaja hyökkää, ja sen pelaajat ovat levällään. Ylempi kk iskee kiinni palloon.",
+          "ball": "a4",
+          "arrows": [
+            {
+              "kind": "press",
+              "from": "7",
+              "to": [
+                37,
+                52
+              ]
+            }
+          ],
+          "highlights": [
+            "7"
+          ]
+        },
+        {
+          "title": "1 · Ensin eteenpäin",
+          "text": "Pallo on meillä. Katse ylös! Kärki ja laitapelaajat lähtevät täysillä pallon ohi, ja syöttö lähtee juoksuun.",
+          "positions": {
+            "7": [
+              37,
+              51
+            ],
+            "a4": [
+              30,
+              54.5
+            ]
+          },
+          "ball": "7",
+          "arrows": [
+            {
+              "kind": "run",
+              "from": "8",
+              "to": [
+                38,
+                23
+              ],
+              "bend": 0.15
+            },
+            {
+              "kind": "run",
+              "from": "6",
+              "to": [
+                57,
+                34
+              ]
+            },
+            {
+              "kind": "run",
+              "from": "5",
+              "to": [
+                13,
+                36
+              ]
+            },
+            {
+              "kind": "pass",
+              "from": "7",
+              "to": [
+                38,
+                24
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Kolme kahta vastaan",
+          "text": "Vastustajan laitapelaajat jäivät taakse. Meitä on kolme ja heitä kaksi. Kuljeta kohti puolustajaa.",
+          "positions": {
+            "8": [
+              38,
+              23
+            ],
+            "6": [
+              57,
+              34
+            ],
+            "5": [
+              13,
+              36
+            ],
+            "a3": [
+              43,
+              14
+            ],
+            "a2": [
+              30,
+              16
+            ],
+            "a5": [
+              9,
+              56
+            ],
+            "a6": [
+              59,
+              54
+            ]
+          },
+          "ball": "8",
+          "arrows": [
+            {
+              "kind": "drib",
+              "from": "8",
+              "to": [
+                39,
+                19
+              ]
+            },
+            {
+              "kind": "run",
+              "from": "6",
+              "to": [
+                53,
+                17
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "kind": "poly",
+              "ids": [
+                "5",
+                "8",
+                "6"
+              ]
+            }
+          ],
+          "durationMs": 1700
+        },
+        {
+          "title": "Syötä vapaalle",
+          "text": "Puolustaja tulee pallolliseen, joten laitapelaaja on vapaa. Syöttö hänen juoksuunsa.",
+          "positions": {
+            "8": [
+              39,
+              19
+            ],
+            "6": [
+              53,
+              17
+            ],
+            "5": [
+              18,
+              25
+            ],
+            "a3": [
+              39,
+              13
+            ],
+            "a2": [
+              31,
+              14
+            ]
+          },
+          "arrows": [
+            {
+              "kind": "pass",
+              "from": "8",
+              "to": [
+                50,
+                9
+              ]
+            },
+            {
+              "kind": "run",
+              "from": "6",
+              "to": [
+                50,
+                9
+              ]
+            }
+          ],
+          "highlights": [
+            "6"
+          ],
+          "durationMs": 1300
+        },
+        {
+          "title": "Maali",
+          "text": "Riistosta maaliin muutamassa sekunnissa. Vastustaja ei ehtinyt järjestäytyä.",
+          "positions": {
+            "6": [
+              50,
+              9
+            ],
+            "a3": [
+              42,
+              11
+            ]
+          },
+          "ball": "6",
+          "arrows": [
+            {
+              "kind": "shot",
+              "from": "6",
+              "to": [
+                31.5,
+                0
+              ]
+            }
+          ],
+          "highlights": [
+            "6"
+          ]
+        },
+        {
+          "title": "2 · Ei pääse eteenpäin?",
+          "text": "Sama riisto, mutta edessä on tukossa ja vastustaja tulee heti takaisin päälle. Älä hukkaa palloa: syöttö alas, pois riistoalueelta.",
+          "positions": {
+            "1": [
+              34,
+              88
+            ],
+            "2": [
+              26,
+              72
+            ],
+            "3": [
+              42,
+              72
+            ],
+            "4": [
+              31,
+              61
+            ],
+            "5": [
+              12,
+              58
+            ],
+            "6": [
+              56,
+              56
+            ],
+            "7": [
+              37,
+              51
+            ],
+            "8": [
+              33,
+              36
+            ],
+            "a1": [
+              34,
+              6
+            ],
+            "a2": [
+              27,
+              31
+            ],
+            "a3": [
+              38,
+              31
+            ],
+            "a4": [
+              32,
+              47
+            ],
+            "a5": [
+              7,
+              64
+            ],
+            "a6": [
+              61,
+              62
+            ],
+            "a7": [
+              30,
+              52
+            ],
+            "a8": [
+              36,
+              67
+            ]
+          },
+          "ball": "7",
+          "arrows": [
+            {
+              "kind": "press",
+              "from": "a4",
+              "to": "7"
+            },
+            {
+              "kind": "press",
+              "from": "a7",
+              "to": "7"
+            },
+            {
+              "kind": "pass",
+              "from": "7",
+              "to": "4"
+            }
+          ],
+          "zones": [
+            {
+              "kind": "ellipse",
+              "cx": 36,
+              "cy": 50,
+              "rx": 10,
+              "ry": 8,
+              "label": "Riistoalue"
+            }
+          ],
+          "highlights": [
+            "4"
+          ],
+          "cut": true
+        },
+        {
+          "title": "Pallo pysyy meillä",
+          "text": "Pallo pääsi pois ahtaasta. Nyt käännämme pelin ja rakennamme hyökkäyksen rauhassa.",
+          "ball": "4",
+          "arrows": [
+            {
+              "kind": "pass",
+              "from": "4",
+              "to": "2"
+            }
+          ],
+          "highlights": [
+            "4"
+          ]
+        },
+        {
+          "title": "3 · Vaara oman maalin edessä",
+          "text": "Riisto aivan oman maalin edessä, ja vastustajia on ympärillä. Ei riskejä: pallo pois vaaralliselta alueelta.",
+          "positions": {
+            "1": [
+              34,
+              95
+            ],
+            "2": [
+              27.5,
+              86.5
+            ],
+            "3": [
+              41,
+              89
+            ],
+            "4": [
+              33,
+              79
+            ],
+            "5": [
+              14,
+              74
+            ],
+            "6": [
+              53,
+              76
+            ],
+            "7": [
+              39,
+              70
+            ],
+            "8": [
+              36,
+              52
+            ],
+            "a1": [
+              34,
+              6
+            ],
+            "a2": [
+              26,
+              46
+            ],
+            "a3": [
+              45,
+              44
+            ],
+            "a4": [
+              30,
+              72
+            ],
+            "a5": [
+              8,
+              71
+            ],
+            "a6": [
+              47,
+              85
+            ],
+            "a7": [
+              42,
+              77
+            ],
+            "a8": [
+              34.5,
+              85.5
+            ]
+          },
+          "ball": "3",
+          "arrows": [
+            {
+              "kind": "long",
+              "from": "3",
+              "to": [
+                58,
+                50
+              ],
+              "bend": 0.1
+            },
+            {
+              "kind": "run",
+              "from": "8",
+              "to": [
+                56,
+                49
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "kind": "ellipse",
+              "cx": 34,
+              "cy": 88,
+              "rx": 18,
+              "ry": 10,
+              "label": "Vaarallinen alue"
+            }
+          ],
+          "highlights": [
+            "3"
+          ],
+          "cut": true
+        }
+      ],
+      "question": "Miksi kannattaa edetä heti riiston jälkeen? Milloin pallo pelataan alaspäin tai kokonaan pois?"
+    },
+    {
+      "id": "tvmprassi",
+      "title": "TV− välitön prässi",
+      "phase": "Tilanteenvaihto −",
+      "format": "8v8",
+      "version": 1,
+      "players": [
+        {
+          "id": "1",
+          "side": "us",
+          "role": "gk",
+          "start": [
+            34,
+            76
+          ]
+        },
+        {
+          "id": "2",
+          "side": "us",
+          "start": [
+            22,
+            48
+          ]
+        },
+        {
+          "id": "3",
+          "side": "us",
+          "start": [
+            38,
+            48
+          ]
+        },
+        {
+          "id": "4",
+          "side": "us",
+          "start": [
+            16,
+            38
+          ]
+        },
+        {
+          "id": "5",
+          "side": "us",
+          "start": [
+            6,
+            24
+          ]
+        },
+        {
+          "id": "6",
+          "side": "us",
+          "start": [
+            46,
+            24
+          ]
+        },
+        {
+          "id": "7",
+          "side": "us",
+          "start": [
+            20,
+            27
+          ]
+        },
+        {
+          "id": "8",
+          "side": "us",
+          "start": [
+            28,
+            17
+          ]
+        },
+        {
+          "id": "a1",
+          "side": "opp",
+          "start": [
+            34,
+            5
+          ],
+          "role": "gk"
+        },
+        {
+          "id": "a2",
+          "side": "opp",
+          "start": [
+            22,
+            10
+          ]
+        },
+        {
+          "id": "a3",
+          "side": "opp",
+          "start": [
+            38,
+            12
+          ]
+        },
+        {
+          "id": "a4",
+          "side": "opp",
+          "start": [
+            25.5,
+            22
+          ]
+        },
+        {
+          "id": "a5",
+          "side": "opp",
+          "start": [
+            10,
+            18
+          ]
+        },
+        {
+          "id": "a6",
+          "side": "opp",
+          "start": [
+            56,
+            28
+          ]
+        },
+        {
+          "id": "a7",
+          "side": "opp",
+          "start": [
+            7,
+            46
+          ]
+        },
+        {
+          "id": "a8",
+          "side": "opp",
+          "start": [
+            30,
+            43
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Hyökkäämme laidassa",
+          "text": "Laitapelaaja haastaa. Huomaa: pallon lähellä on neljä meidän pelaajaamme ja vain kaksi vastustajaa.",
+          "ball": "5",
+          "arrows": [
+            {
+              "kind": "drib",
+              "from": "5",
+              "to": [
+                8,
+                20
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "kind": "rect",
+              "x": 0,
+              "y": 14,
+              "w": 31,
+              "h": 28,
+              "label": "Meitä 4, heitä 2"
+            }
+          ]
+        },
+        {
+          "title": "Menetys!",
+          "text": "Pallo menee vastustajalle. Meitä on pallon lähellä enemmän, joten prässi alkaa HETI. Lähin päälle, muut sulkevat syötöt.",
+          "ball": "a5",
+          "arrows": [
+            {
+              "kind": "press",
+              "from": "5",
+              "to": "a5"
+            },
+            {
+              "kind": "press",
+              "from": "7",
+              "to": [
+                17,
+                22
+              ]
+            },
+            {
+              "kind": "press",
+              "from": "8",
+              "to": [
+                17,
+                14
+              ]
+            },
+            {
+              "kind": "press",
+              "from": "4",
+              "to": [
+                9,
+                40
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "kind": "ellipse",
+              "cx": 13,
+              "cy": 24,
+              "rx": 14,
+              "ry": 13,
+              "label": "Menetysalue"
+            }
+          ],
+          "highlights": [
+            "5"
+          ]
+        },
+        {
+          "title": "Syötöt kiinni",
+          "text": "Pallollisella ei ole aikaa eikä vapaata kaveria. Kauempana olevat tulevat lähemmäs.",
+          "positions": {
+            "7": [
+              17,
+              22
+            ],
+            "8": [
+              17,
+              14
+            ],
+            "4": [
+              9,
+              40
+            ]
+          },
+          "arrows": [
+            {
+              "kind": "run",
+              "from": "6",
+              "to": [
+                38,
+                27
+              ]
+            },
+            {
+              "kind": "run",
+              "from": "2",
+              "to": [
+                18,
+                45
+              ]
+            },
+            {
+              "kind": "run",
+              "from": "3",
+              "to": [
+                35,
+                49
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "kind": "link",
+              "ids": [
+                "7",
+                "a4"
+              ]
+            },
+            {
+              "kind": "link",
+              "ids": [
+                "8",
+                "a2"
+              ]
+            },
+            {
+              "kind": "link",
+              "ids": [
+                "4",
+                "a7"
+              ]
+            }
+          ],
+          "highlights": [
+            "5"
+          ]
+        },
+        {
+          "title": "Riisto, ja hyökkäys jatkuu",
+          "text": "Pallo on takaisin muutamassa sekunnissa, lähellä vastustajan maalia. Kenenkään ei tarvinnut juosta omaa maalia kohti.",
+          "positions": {
+            "6": [
+              38,
+              27
+            ],
+            "2": [
+              18,
+              45
+            ],
+            "3": [
+              35,
+              49
+            ],
+            "a5": [
+              11,
+              17
+            ]
+          },
+          "ball": "5",
+          "highlights": [
+            "5"
+          ]
+        }
+      ],
+      "question": "Miksi prässi kannattaa aloittaa heti menetyksen jälkeen? Mitä prässääjät tekevät hyvin?"
+    },
+    {
+      "id": "vetaytyminen",
+      "title": "TV− vetäytyminen",
+      "phase": "Tilanteenvaihto −",
+      "format": "8v8",
+      "version": 1,
+      "players": [
+        {
+          "id": "1",
+          "side": "us",
+          "role": "gk",
+          "start": [
+            34,
+            80
+          ]
+        },
+        {
+          "id": "2",
+          "side": "us",
+          "start": [
+            24,
+            59
+          ]
+        },
+        {
+          "id": "3",
+          "side": "us",
+          "start": [
+            45,
+            59
+          ]
+        },
+        {
+          "id": "4",
+          "side": "us",
+          "start": [
+            44,
+            50
+          ]
+        },
+        {
+          "id": "5",
+          "side": "us",
+          "start": [
+            8,
+            42
+          ]
+        },
+        {
+          "id": "6",
+          "side": "us",
+          "start": [
+            55,
+            43
+          ]
+        },
+        {
+          "id": "7",
+          "side": "us",
+          "start": [
+            31,
+            49
+          ]
+        },
+        {
+          "id": "8",
+          "side": "us",
+          "start": [
+            42,
+            34
+          ]
+        },
+        {
+          "id": "a1",
+          "side": "opp",
+          "start": [
+            34,
+            4
+          ],
+          "role": "gk"
+        },
+        {
+          "id": "a2",
+          "side": "opp",
+          "start": [
+            18,
+            33
+          ]
+        },
+        {
+          "id": "a3",
+          "side": "opp",
+          "start": [
+            50,
+            32
+          ]
+        },
+        {
+          "id": "a4",
+          "side": "opp",
+          "start": [
+            37,
+            47
+          ]
+        },
+        {
+          "id": "a5",
+          "side": "opp",
+          "start": [
+            17,
+            48
+          ]
+        },
+        {
+          "id": "a6",
+          "side": "opp",
+          "start": [
+            61,
+            46
+          ]
+        },
+        {
+          "id": "a7",
+          "side": "opp",
+          "start": [
+            33,
+            31
+          ]
+        },
+        {
+          "id": "a8",
+          "side": "opp",
+          "start": [
+            38,
+            56
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Syöttö katkeaa",
+          "text": "Yritämme syöttää kärjelle, mutta vastustajan toppari ehtii väliin.",
+          "ball": "7",
+          "arrows": [
+            {
+              "kind": "pass",
+              "from": "7",
+              "to": "8"
+            },
+            {
+              "kind": "run",
+              "from": "a3",
+              "to": [
+                47,
+                39
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Menetys, eikä kukaan ole lähellä",
+          "text": "Pallo on vastustajalla, ja hänellä on tilaa. Kukaan meistä ei ehdi prässäämään. Nyt ei rynnätä. Missä on vaarallinen alue ja ketkä ovat vaaralliset pelaajat?",
+          "positions": {
+            "a3": [
+              47,
+              39
+            ]
+          },
+          "ball": "a3",
+          "zones": [
+            {
+              "kind": "rect",
+              "x": 17,
+              "y": 62,
+              "w": 34,
+              "h": 38,
+              "label": "Vaarallinen alue"
+            }
+          ],
+          "highlights": [
+            "a8",
+            "a6"
+          ]
+        },
+        {
+          "title": "Vetäydy ja tiivistä",
+          "text": "Reagoi heti: kaikki alas ja keskelle! Topparit suojaavat tilan takanaan, ja kaukaisempi laitapelaaja tulee sisään.",
+          "arrows": [
+            {
+              "kind": "run",
+              "from": "2",
+              "to": [
+                28,
+                69
+              ]
+            },
+            {
+              "kind": "run",
+              "from": "3",
+              "to": [
+                43,
+                69
+              ]
+            },
+            {
+              "kind": "run",
+              "from": "5",
+              "to": [
+                20,
+                58
+              ],
+              "bend": 0.2
+            },
+            {
+              "kind": "run",
+              "from": "6",
+              "to": [
+                55,
+                61
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "kind": "rect",
+              "x": 17,
+              "y": 62,
+              "w": 34,
+              "h": 38,
+              "label": "Vaarallinen alue"
+            }
+          ]
+        },
+        {
+          "title": "Näe pallo ja oma pelaajasi",
+          "text": "Toppari seisoo kylki edellä niin, että näkee yhtä aikaa pallon ja vastustajan kärjen. Alempi kk hidastaa edestä, ja ohitetut juoksevat takaprässiin.",
+          "positions": {
+            "2": [
+              28,
+              69
+            ],
+            "3": [
+              43,
+              69
+            ],
+            "5": [
+              20,
+              58
+            ],
+            "6": [
+              55,
+              61
+            ],
+            "7": [
+              33,
+              57
+            ],
+            "1": [
+              34,
+              88
+            ],
+            "a3": [
+              48,
+              45
+            ],
+            "a6": [
+              61,
+              57
+            ],
+            "a8": [
+              38,
+              65
+            ],
+            "a5": [
+              18,
+              50
+            ],
+            "a4": [
+              38,
+              51
+            ]
+          },
+          "arrows": [
+            {
+              "kind": "press",
+              "from": "4",
+              "to": [
+                46,
+                51
+              ]
+            },
+            {
+              "kind": "press",
+              "from": "8",
+              "to": [
+                47,
+                39
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "kind": "poly",
+              "ids": [
+                "3",
+                "a3",
+                "a8"
+              ]
+            }
+          ],
+          "highlights": [
+            "3"
+          ],
+          "durationMs": 1800
+        },
+        {
+          "title": "Eteneminen pysähtyi",
+          "text": "Vastustaja ei päässyt vaaralliselle alueelle. Edessä on hidastaja, takaa tulee apu ja muoto on tiivis. Nyt voimme taas yrittää riistoa.",
+          "positions": {
+            "4": [
+              46,
+              51
+            ],
+            "8": [
+              47,
+              39
+            ]
+          },
+          "zones": [
+            {
+              "kind": "rect",
+              "x": 17,
+              "y": 62,
+              "w": 34,
+              "h": 38,
+              "label": "Vaarallinen alue"
+            }
+          ],
+          "highlights": [
+            "4",
+            "8"
+          ]
+        }
+      ],
+      "question": "Mistä tiedät, että nyt vetäydytään eikä prässätä? Mihin kaukaisempi laitapelaaja juoksee?"
+    },
+    {
+      "id": "riski",
+      "title": "Riskitaso ja kenttätasapaino",
+      "phase": "Tilanteenvaihto −",
+      "format": "8v8",
+      "version": 1,
+      "players": [
+        {
+          "id": "1",
+          "side": "us",
+          "role": "gk",
+          "start": [
+            34,
+            80
+          ]
+        },
+        {
+          "id": "2",
+          "side": "us",
+          "start": [
+            26,
+            60
+          ]
+        },
+        {
+          "id": "3",
+          "side": "us",
+          "start": [
+            46,
+            60
+          ]
+        },
+        {
+          "id": "4",
+          "side": "us",
+          "start": [
+            39,
+            46
+          ]
+        },
+        {
+          "id": "5",
+          "side": "us",
+          "start": [
+            9,
+            37
+          ]
+        },
+        {
+          "id": "6",
+          "side": "us",
+          "start": [
+            60,
+            38
+          ]
+        },
+        {
+          "id": "7",
+          "side": "us",
+          "start": [
+            25,
+            44
+          ]
+        },
+        {
+          "id": "8",
+          "side": "us",
+          "start": [
+            43,
+            31
+          ]
+        },
+        {
+          "id": "a1",
+          "side": "opp",
+          "start": [
+            34,
+            5
+          ],
+          "role": "gk"
+        },
+        {
+          "id": "a2",
+          "side": "opp",
+          "start": [
+            31,
+            26
+          ]
+        },
+        {
+          "id": "a3",
+          "side": "opp",
+          "start": [
+            48,
+            26
+          ]
+        },
+        {
+          "id": "a4",
+          "side": "opp",
+          "start": [
+            31,
+            39
+          ]
+        },
+        {
+          "id": "a5",
+          "side": "opp",
+          "start": [
+            18,
+            33
+          ]
+        },
+        {
+          "id": "a6",
+          "side": "opp",
+          "start": [
+            55,
+            29
+          ]
+        },
+        {
+          "id": "a7",
+          "side": "opp",
+          "start": [
+            49,
+            40
+          ]
+        },
+        {
+          "id": "a8",
+          "side": "opp",
+          "start": [
+            37,
+            56
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Hyökkäämme. Entä jos pallo menetetään?",
+          "text": "Kun hyökkäämme, topparit nousevat lähelle keskikenttää ja maalivahti tulee ulos maaliltaan. Näin olemme valmiina, jos pallo menee.",
+          "ball": "7",
+          "zones": [
+            {
+              "kind": "poly",
+              "ids": [
+                "2",
+                "3",
+                "1"
+              ],
+              "label": "Varmistus"
+            }
+          ],
+          "highlights": [
+            "2",
+            "3",
+            "1"
+          ]
+        },
+        {
+          "title": "Mukaan vai varmistamaan?",
+          "text": "Laitapelaaja ja alempi kk valitsevat: 1 lähden mukaan hyökkäykseen vai 2 jään pallon taakse? Pelitilanne ratkaisee.",
+          "arrows": [
+            {
+              "kind": "run",
+              "from": "5",
+              "to": [
+                11,
+                26
+              ],
+              "label": "1"
+            },
+            {
+              "kind": "run",
+              "from": "5",
+              "to": [
+                9,
+                48
+              ],
+              "label": "2"
+            },
+            {
+              "kind": "run",
+              "from": "4",
+              "to": [
+                37,
+                34
+              ],
+              "bend": -0.15,
+              "label": "1"
+            },
+            {
+              "kind": "run",
+              "from": "4",
+              "to": [
+                32,
+                51
+              ],
+              "label": "2"
+            }
+          ],
+          "highlights": [
+            "5",
+            "4"
+          ]
+        },
+        {
+          "title": "1 · Tappiolla: lisää riskiä",
+          "text": "Tarvitsemme maalin. Laitapelaaja ja alempi kk lähtevät mukaan. Hyökkäyksessä on enemmän pelaajia, mutta takana vähemmän.",
+          "positions": {
+            "5": [
+              11,
+              26
+            ],
+            "4": [
+              37,
+              34
+            ]
+          },
+          "zones": [
+            {
+              "kind": "poly",
+              "ids": [
+                "2",
+                "3",
+                "1"
+              ],
+              "label": "Takana 2 + mv"
+            }
+          ],
+          "highlights": [
+            "5",
+            "4"
+          ],
+          "durationMs": 1200
+        },
+        {
+          "title": "2 · Johdossa: pienempi riski",
+          "text": "Olemme johdossa. Laitapelaaja ja alempi kk jäävät pallon taakse. Jos pallo menetetään, vastassa on heti neljä pelaajaa ja maalivahti.",
+          "positions": {
+            "1": [
+              34,
+              80
+            ],
+            "2": [
+              26,
+              60
+            ],
+            "3": [
+              46,
+              60
+            ],
+            "4": [
+              32,
+              51
+            ],
+            "5": [
+              9,
+              48
+            ],
+            "6": [
+              60,
+              38
+            ],
+            "7": [
+              25,
+              44
+            ],
+            "8": [
+              43,
+              31
+            ],
+            "a1": [
+              34,
+              5
+            ],
+            "a2": [
+              31,
+              26
+            ],
+            "a3": [
+              48,
+              26
+            ],
+            "a4": [
+              31,
+              39
+            ],
+            "a5": [
+              18,
+              33
+            ],
+            "a6": [
+              55,
+              29
+            ],
+            "a7": [
+              49,
+              40
+            ],
+            "a8": [
+              37,
+              56
+            ]
+          },
+          "zones": [
+            {
+              "kind": "poly",
+              "ids": [
+                "5",
+                "4",
+                "3",
+                "1",
+                "2"
+              ],
+              "label": "Takana 4 + mv"
+            }
+          ],
+          "highlights": [
+            "5",
+            "4"
+          ],
+          "cut": true
+        }
+      ],
+      "question": "Olette tappiolla ja aikaa on vähän. Mitä laitapelaaja tekee? Entä jos johdatte?"
+    },
+    {
+      "id": "kaanto",
+      "title": "Pelin kääntö maalivahdin kautta",
+      "phase": "Hyökkääminen",
       "format": "8v8",
       "version": 1,
       "players": [
@@ -3738,1235 +6400,242 @@
           "id": "2",
           "side": "us",
           "start": [
-            27,
-            84
+            21,
+            89
           ]
         },
         {
           "id": "3",
           "side": "us",
           "start": [
-            41,
-            84
+            47,
+            89
           ]
         },
         {
           "id": "4",
           "side": "us",
           "start": [
-            34,
-            74
+            31,
+            77
           ]
         },
         {
           "id": "5",
           "side": "us",
           "start": [
-            18,
-            66
+            4,
+            64
           ]
         },
         {
           "id": "6",
           "side": "us",
           "start": [
-            50,
-            66
+            64,
+            64
           ]
         },
         {
           "id": "7",
           "side": "us",
           "start": [
-            36,
-            61
+            40,
+            62
           ]
         },
         {
           "id": "8",
           "side": "us",
           "start": [
-            34,
-            50
+            39,
+            45
           ]
         },
         {
           "id": "a1",
           "side": "opp",
-          "role": "gk",
           "start": [
             34,
-            6
-          ]
+            5
+          ],
+          "role": "gk"
         },
         {
           "id": "a2",
           "side": "opp",
           "start": [
-            24,
-            36
-          ]
-        },
-        {
-          "id": "a3",
-          "side": "opp",
-          "start": [
-            44,
-            36
-          ]
-        },
-        {
-          "id": "a4",
-          "side": "opp",
-          "start": [
-            30,
+            28,
             46
           ]
         },
         {
+          "id": "a3",
+          "side": "opp",
+          "start": [
+            45,
+            41
+          ]
+        },
+        {
+          "id": "a4",
+          "side": "opp",
+          "start": [
+            34,
+            57
+          ]
+        },
+        {
           "id": "a5",
           "side": "opp",
           "start": [
-            10,
-            62
+            11,
+            70
           ]
         },
         {
           "id": "a6",
           "side": "opp",
           "start": [
-            58,
-            60
+            47,
+            70
           ]
         },
         {
           "id": "a7",
           "side": "opp",
           "start": [
-            34,
-            56
+            25,
+            70
           ]
         },
         {
           "id": "a8",
           "side": "opp",
           "start": [
-            38,
-            78
+            29,
+            83
           ]
         }
       ],
       "steps": [
         {
-          "title": "Ohjataan laitaan",
-          "text": "Vastustajaa ei päästetä muodon sisälle vaarallisille alueille. Muoto on tiivis leveys- ja syvyyssuunnassa.",
-          "ball": "a7",
+          "title": "Tämä puoli on tukossa",
+          "text": "Vastustaja on siirtynyt pallon puolelle, ja täällä on ahdasta. Missä on tilaa? Toisella laidalla.",
+          "ball": "2",
           "arrows": [
             {
-              "kind": "pass",
-              "from": "a7",
-              "to": "a5"
+              "kind": "press",
+              "from": "a8",
+              "to": [
+                26,
+                86
+              ]
             }
           ],
           "zones": [
             {
-              "kind": "poly",
-              "ids": [
-                "5",
-                "8",
-                "6",
-                "3",
-                "2"
-              ]
+              "kind": "ellipse",
+              "cx": 17,
+              "cy": 76,
+              "rx": 15,
+              "ry": 13,
+              "label": "Ahdasta"
+            },
+            {
+              "kind": "ellipse",
+              "cx": 58,
+              "cy": 74,
+              "rx": 10,
+              "ry": 13,
+              "label": "Tilaa"
             }
+          ],
+          "highlights": [
+            "2"
           ]
         },
         {
-          "title": "Hidasta ja ohjaa",
-          "text": "Laitapelaaja sulkee sisäpuolen ja hidastaa. Tunnistetaan, milloin kannattaa riistää ja milloin vain hidastaa ja ohjata.",
+          "title": "Syöttö maalivahdille",
+          "text": "Maalivahti on aina vapaa. Toinen toppari levittää jo valmiiksi, jotta hän on pelattavissa.",
           "positions": {
-            "2": [
+            "a8": [
               26,
-              83
-            ],
-            "3": [
-              38,
-              84
-            ],
-            "4": [
-              33,
-              76
-            ],
-            "5": [
-              15,
-              62
-            ],
-            "6": [
-              44,
-              68
-            ],
-            "7": [
-              31,
-              62
-            ]
-          },
-          "ball": "a5",
-          "arrows": [
-            {
-              "kind": "pass",
-              "from": "a5",
-              "to": [
-                22,
-                74
-              ]
-            },
-            {
-              "kind": "run",
-              "from": "a8",
-              "to": [
-                22,
-                74
-              ]
-            }
-          ],
-          "highlights": [
-            "5"
-          ]
-        },
-        {
-          "title": "Toppari irtoaa, muut tiivistävät",
-          "text": "Toppari irtoaa puolustamaan eteenpäin. Toinen toppari tiivistää ja alempi kk laskee varmistamaan. Toppari ei lähde laitakaistalle: keskustan puolustaminen on prioriteetti.",
-          "positions": {
-            "2": [
-              23,
-              78
-            ],
-            "3": [
-              32,
-              85
-            ],
-            "4": [
-              29,
-              82
-            ],
-            "a8": [
-              22,
-              74
-            ]
-          },
-          "ball": "a8",
-          "zones": [
-            {
-              "kind": "poly",
-              "ids": [
-                "2",
-                "3",
-                "4"
-              ]
-            }
-          ],
-          "highlights": [
-            "2",
-            "3",
-            "4"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tvplus",
-      "title": "TV+ riiston jälkeen",
-      "phase": "Tilanteenvaihto +",
-      "format": "8v8",
-      "version": 1,
-      "players": [
-        {
-          "id": "1",
-          "side": "us",
-          "role": "gk",
-          "start": [
-            34,
-            86
-          ]
-        },
-        {
-          "id": "2",
-          "side": "us",
-          "start": [
-            24,
-            70
-          ]
-        },
-        {
-          "id": "3",
-          "side": "us",
-          "start": [
-            44,
-            70
-          ]
-        },
-        {
-          "id": "4",
-          "side": "us",
-          "start": [
-            32,
-            60
-          ]
-        },
-        {
-          "id": "5",
-          "side": "us",
-          "start": [
-            10,
-            48
-          ]
-        },
-        {
-          "id": "6",
-          "side": "us",
-          "start": [
-            56,
-            44
-          ]
-        },
-        {
-          "id": "7",
-          "side": "us",
-          "start": [
-            38,
-            42
-          ]
-        },
-        {
-          "id": "8",
-          "side": "us",
-          "start": [
-            30,
-            30
-          ]
-        },
-        {
-          "id": "a1",
-          "side": "opp",
-          "role": "gk",
-          "start": [
-            34,
-            4
-          ]
-        },
-        {
-          "id": "a2",
-          "side": "opp",
-          "start": [
-            24,
-            28
-          ]
-        },
-        {
-          "id": "a3",
-          "side": "opp",
-          "start": [
-            46,
-            30
-          ]
-        },
-        {
-          "id": "a4",
-          "side": "opp",
-          "start": [
-            37,
-            47
-          ]
-        },
-        {
-          "id": "a5",
-          "side": "opp",
-          "start": [
-            8,
-            40
-          ]
-        },
-        {
-          "id": "a6",
-          "side": "opp",
-          "start": [
-            60,
-            38
-          ]
-        },
-        {
-          "id": "a7",
-          "side": "opp",
-          "start": [
-            26,
-            52
-          ]
-        },
-        {
-          "id": "a8",
-          "side": "opp",
-          "start": [
-            42,
-            62
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Riisto keskialueella",
-          "text": "Ylempi kk lähtee riistämään. Vastustajan muoto on hyökkäämisen jäljiltä epäorganisoitu.",
-          "ball": "a4",
-          "arrows": [
-            {
-              "kind": "press",
-              "from": "7",
-              "to": [
-                37,
-                45
-              ]
-            }
-          ],
-          "highlights": [
-            "7"
-          ]
-        },
-        {
-          "title": "Ensisijaisesti eteenpäin",
-          "text": "Pallollinen havainnoi mahdollisimman kauas. Pallottomat tarjoavat syöttösuunnan pallon yläpuolelle täysvauhtisesti.",
-          "positions": {
-            "7": [
-              37,
-              45
-            ],
-            "a4": [
-              39,
-              50
-            ]
-          },
-          "ball": "7",
-          "arrows": [
-            {
-              "kind": "run",
-              "from": "8",
-              "to": [
-                38,
-                19
-              ],
-              "bend": 0.441
-            },
-            {
-              "kind": "run",
-              "from": "6",
-              "to": [
-                54,
-                23
-              ]
-            },
-            {
-              "kind": "run",
-              "from": "5",
-              "to": [
-                17,
-                25
-              ]
-            },
-            {
-              "kind": "pass",
-              "from": "7",
-              "to": [
-                38,
-                19
-              ]
-            }
-          ]
-        },
-        {
-          "title": "Ylivoima isolla alueella",
-          "text": "Pallo yläjalalle liikkeeseen. Kolme hyökkääjää kahta puolustajaa vastaan.",
-          "positions": {
-            "5": [
-              17,
-              25
-            ],
-            "6": [
-              54,
-              23
-            ],
-            "8": [
-              38,
-              19
-            ],
-            "a3": [
-              44,
-              27
-            ],
-            "a2": [
-              29,
-              25
-            ]
-          },
-          "ball": "8",
-          "arrows": [
-            {
-              "kind": "drib",
-              "from": "8",
-              "to": [
-                39,
-                15
-              ]
-            },
-            {
-              "kind": "run",
-              "from": "6",
-              "to": [
-                52,
-                16
-              ]
-            }
-          ],
-          "zones": [
-            {
-              "kind": "poly",
-              "ids": [
-                "5",
-                "8",
-                "6"
-              ]
-            }
-          ]
-        },
-        {
-          "title": "Syöttö liikkeeseen",
-          "text": "Kärki sitoo puolustajan ja syöttää vapaan laitapelaajan liikkeeseen.",
-          "positions": {
-            "6": [
-              52,
-              16
-            ],
-            "8": [
-              39,
-              15
-            ],
-            "a3": [
-              44,
-              16
-            ],
-            "a2": [
-              33,
-              16
-            ]
-          },
-          "arrows": [
-            {
-              "kind": "run",
-              "from": "6",
-              "to": [
-                50,
-                9
-              ]
-            },
-            {
-              "kind": "pass",
-              "from": "8",
-              "to": [
-                50,
-                9
-              ]
-            }
-          ]
-        },
-        {
-          "title": "Maalintekotilanne",
-          "text": "Mitä hyvää maalintekijän liikkeessä on?",
-          "positions": {
-            "6": [
-              50,
-              9
-            ]
-          },
-          "ball": "6",
-          "arrows": [
-            {
-              "kind": "shot",
-              "from": "6",
-              "to": [
-                37,
-                0
-              ]
-            }
-          ]
-        },
-        {
-          "title": "Jos eteneminen ei ole mahdollista",
-          "text": "Riistäjä on ahtaalla eikä eteenpäin aukea. Pallo pois riistoalueelta alaspäin, jotta vastustaja ei ehdi vastaprässiin.",
-          "positions": {
-            "1": [
-              34,
               86
-            ],
-            "2": [
-              24,
-              70
-            ],
-            "3": [
-              44,
-              70
-            ],
-            "4": [
-              32,
-              60
-            ],
-            "5": [
-              10,
-              48
-            ],
-            "6": [
-              56,
-              44
-            ],
-            "7": [
-              38,
-              42
-            ],
-            "8": [
-              30,
-              30
-            ],
-            "a1": [
-              34,
-              4
-            ],
-            "a2": [
-              24,
-              28
-            ],
-            "a3": [
-              46,
-              30
-            ],
-            "a4": [
-              42,
-              46
-            ],
-            "a5": [
-              8,
-              40
-            ],
-            "a6": [
-              44,
-              37
-            ],
-            "a7": [
-              33,
-              40
-            ],
-            "a8": [
-              42,
-              62
             ]
           },
-          "ball": "7",
-          "cut": true,
           "arrows": [
             {
               "kind": "pass",
-              "from": "7",
-              "to": "4"
-            }
-          ],
-          "zones": [
-            {
-              "kind": "ellipse",
-              "cx": 38,
-              "cy": 42,
-              "rx": 9,
-              "ry": 8,
-              "label": "Riistoalue"
-            }
-          ]
-        },
-        {
-          "title": "Säilytä pallonhallinta",
-          "text": "Pallonhallinta säilyy ja joukkue organisoituu uudelleen etenemiseen.",
-          "ball": "4"
-        }
-      ],
-      "question": "Miksi on järkevää edetä heti riiston jälkeen? Mitä hyvää maalintekijän liikkeessä on? Miksi pallollisen ratkaisu on hyvä? Mitä pallottomat pelaajat voivat tehdä paremmin?"
-    },
-    {
-      "id": "tvmprassi",
-      "title": "TV- välitön prässi",
-      "phase": "Tilanteenvaihto −",
-      "format": "8v8",
-      "version": 1,
-      "players": [
-        {
-          "id": "1",
-          "side": "us",
-          "role": "gk",
-          "start": [
-            34,
-            66
-          ]
-        },
-        {
-          "id": "2",
-          "side": "us",
-          "start": [
-            26,
-            52
-          ]
-        },
-        {
-          "id": "3",
-          "side": "us",
-          "start": [
-            44,
-            52
-          ]
-        },
-        {
-          "id": "4",
-          "side": "us",
-          "start": [
-            36,
-            40
-          ]
-        },
-        {
-          "id": "5",
-          "side": "us",
-          "start": [
-            10,
-            26
-          ]
-        },
-        {
-          "id": "6",
-          "side": "us",
-          "start": [
-            58,
-            20
-          ]
-        },
-        {
-          "id": "7",
-          "side": "us",
-          "start": [
-            40,
-            28
-          ]
-        },
-        {
-          "id": "8",
-          "side": "us",
-          "start": [
-            34,
-            16
-          ]
-        },
-        {
-          "id": "a1",
-          "side": "opp",
-          "role": "gk",
-          "start": [
-            34,
-            3
-          ]
-        },
-        {
-          "id": "a2",
-          "side": "opp",
-          "start": [
-            28,
-            12
-          ]
-        },
-        {
-          "id": "a3",
-          "side": "opp",
-          "start": [
-            44,
-            14
-          ]
-        },
-        {
-          "id": "a4",
-          "side": "opp",
-          "start": [
-            38,
-            32
-          ]
-        },
-        {
-          "id": "a5",
-          "side": "opp",
-          "start": [
-            14,
-            30
-          ]
-        },
-        {
-          "id": "a6",
-          "side": "opp",
-          "start": [
-            56,
-            32
-          ]
-        },
-        {
-          "id": "a7",
-          "side": "opp",
-          "start": [
-            28,
-            38
-          ]
-        },
-        {
-          "id": "a8",
-          "side": "opp",
-          "start": [
-            40,
-            56
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Hyökkäys vastustajan alueella",
-          "text": "Puolustuslinja on tiiviinä suhteessa keskikenttälinjaan ja maalivahti on noussut. Kenttätasapaino on valmiina menetykseen.",
-          "ball": "7",
-          "zones": [
-            {
-              "kind": "link",
-              "ids": [
-                "2",
-                "3"
-              ]
-            },
-            {
-              "kind": "link",
-              "ids": [
-                "2",
-                "4"
-              ]
-            },
-            {
-              "kind": "link",
-              "ids": [
-                "3",
-                "4"
-              ]
-            }
-          ],
-          "highlights": [
-            "2",
-            "3",
-            "1"
-          ]
-        },
-        {
-          "title": "Menetys!",
-          "text": "Menetysalueella meillä on ylivoima, joten välitön prässi on edullinen.",
-          "positions": {
-            "a4": [
-              38,
-              31
-            ]
-          },
-          "ball": "a4",
-          "arrows": [
-            {
-              "kind": "press",
-              "from": "7",
-              "to": [
-                39,
-                29
-              ]
-            },
-            {
-              "kind": "press",
-              "from": "4",
-              "to": [
-                38,
-                35
-              ]
-            },
-            {
-              "kind": "press",
-              "from": "8",
-              "to": [
-                31,
-                24
-              ],
-              "bend": 0.351
-            },
-            {
-              "kind": "press",
-              "from": "6",
-              "to": [
-                50,
-                30
-              ]
-            }
-          ],
-          "zones": [
-            {
-              "kind": "ellipse",
-              "cx": 38,
-              "cy": 30,
-              "rx": 14,
-              "ry": 11,
-              "label": "Menetysalue"
-            }
-          ]
-        },
-        {
-          "title": "Sulje syöttösuunnat",
-          "text": "Palloa lähimmät ottavat tilan ja ajan pois. Juoksun suunnalla suljetaan syöttövaihtoehdot. Ohitetut aloittavat heti takaprässin.",
-          "positions": {
-            "4": [
-              38,
-              35
-            ],
-            "5": [
-              20,
-              32
-            ],
-            "6": [
-              50,
-              30
-            ],
-            "7": [
-              39,
-              29
-            ],
-            "8": [
-              31,
-              24
-            ]
-          },
-          "highlights": [
-            "7",
-            "4"
-          ]
-        },
-        {
-          "title": "Riisto takaisin",
-          "text": "Pallo voitetaan takaisin ylhäällä ja hyökkäys jatkuu. Nopea reagointi, erityisesti lähimmällä pelaajalla.",
-          "positions": {
-            "4": [
-              38,
-              33.5
-            ],
-            "a4": [
-              41,
-              31
-            ]
-          },
-          "ball": "4"
-        }
-      ],
-      "question": "Minkä takia prässääminen kannattaa aloittaa heti menetyksen jälkeen? Mitä prässääjät tekevät hyvin?"
-    },
-    {
-      "id": "vetaytyminen",
-      "title": "TV- vetäytyminen",
-      "phase": "Tilanteenvaihto −",
-      "format": "8v8",
-      "version": 1,
-      "players": [
-        {
-          "id": "1",
-          "side": "us",
-          "role": "gk",
-          "start": [
-            34,
-            68
-          ]
-        },
-        {
-          "id": "2",
-          "side": "us",
-          "start": [
-            26,
-            52
-          ]
-        },
-        {
-          "id": "3",
-          "side": "us",
-          "start": [
-            44,
-            52
-          ]
-        },
-        {
-          "id": "4",
-          "side": "us",
-          "start": [
-            30,
-            40
-          ]
-        },
-        {
-          "id": "5",
-          "side": "us",
-          "start": [
-            10,
-            24
-          ]
-        },
-        {
-          "id": "6",
-          "side": "us",
-          "start": [
-            56,
-            24
-          ]
-        },
-        {
-          "id": "7",
-          "side": "us",
-          "start": [
-            24,
-            24
-          ]
-        },
-        {
-          "id": "8",
-          "side": "us",
-          "start": [
-            30,
-            14
-          ]
-        },
-        {
-          "id": "a1",
-          "side": "opp",
-          "role": "gk",
-          "start": [
-            34,
-            3
-          ]
-        },
-        {
-          "id": "a2",
-          "side": "opp",
-          "start": [
-            26,
-            12
-          ]
-        },
-        {
-          "id": "a3",
-          "side": "opp",
-          "start": [
-            40,
-            14
-          ]
-        },
-        {
-          "id": "a4",
-          "side": "opp",
-          "start": [
-            34,
-            32
-          ]
-        },
-        {
-          "id": "a5",
-          "side": "opp",
-          "start": [
-            12,
-            28
-          ]
-        },
-        {
-          "id": "a6",
-          "side": "opp",
-          "start": [
-            58,
-            40
-          ]
-        },
-        {
-          "id": "a7",
-          "side": "opp",
-          "start": [
-            44,
-            40
-          ]
-        },
-        {
-          "id": "a8",
-          "side": "opp",
-          "start": [
-            38,
-            54
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Menetys alivoimassa",
-          "text": "Pallo menetetään vasemmalla. Vastustaja pääsee etenemään ja sillä on numeraalinen ylivoima. Välitön prässi ei ole edullinen.",
-          "ball": "a5",
-          "arrows": [
-            {
-              "kind": "pass",
-              "from": "a5",
-              "to": "a4"
-            }
-          ]
-        },
-        {
-          "title": "Vastustaja hyökkää",
-          "text": "Kolme vastustajaa lähtee kohti maaliamme. Reagoi välittömästi, kun tunnistat tilanteen.",
-          "ball": "a4",
-          "arrows": [
-            {
-              "kind": "run",
-              "from": "a7",
-              "to": [
-                44,
-                58
-              ]
-            },
-            {
-              "kind": "run",
-              "from": "a6",
-              "to": [
-                56,
-                60
-              ]
-            },
-            {
-              "kind": "run",
-              "from": "a8",
-              "to": [
-                36,
-                66
-              ]
-            },
-            {
-              "kind": "run",
               "from": "2",
-              "to": [
-                30,
-                70
-              ]
+              "to": "1"
             },
             {
               "kind": "run",
               "from": "3",
               "to": [
-                44,
-                70
-              ]
-            },
-            {
-              "kind": "run",
-              "from": "1",
-              "to": [
-                34,
-                86
-              ]
-            },
-            {
-              "kind": "run",
-              "from": "6",
-              "to": [
-                50,
-                52
-              ]
-            },
-            {
-              "kind": "run",
-              "from": "4",
-              "to": [
-                34,
-                50
+                53,
+                90
               ]
             }
+          ],
+          "highlights": [
+            "1",
+            "3"
           ]
         },
         {
-          "title": "Hidasta ja vetäydy",
-          "text": "Estä eteneminen vaaralliselle alueelle vetäytymällä. Muodosta puolustajan kolmio, josta näet pallon ja kontrolloitavan pelaajan.",
+          "title": "Maalivahti kääntää pelin",
+          "text": "Ensimmäinen kosketus poispäin prässistä ja syöttö toiselle topparille. Vastustajan kärki ei ehdi molempiin.",
           "positions": {
-            "1": [
-              34,
-              86
-            ],
-            "2": [
-              30,
-              70
-            ],
             "3": [
-              44,
-              70
-            ],
-            "4": [
-              34,
-              50
-            ],
-            "5": [
-              18,
-              34
-            ],
-            "6": [
-              50,
-              52
-            ],
-            "7": [
-              30,
-              36
-            ],
-            "8": [
-              30,
-              26
-            ],
-            "a4": [
-              34,
-              42
-            ],
-            "a7": [
-              44,
-              58
-            ],
-            "a6": [
-              56,
-              60
+              53,
+              90
             ],
             "a8": [
-              36,
-              66
+              28,
+              91
             ]
           },
+          "ball": "1",
           "arrows": [
             {
               "kind": "press",
-              "from": "7",
-              "to": "a4"
+              "from": "a8",
+              "to": "1"
             },
             {
-              "kind": "press",
-              "from": "5",
+              "kind": "pass",
+              "from": "1",
+              "to": "3"
+            }
+          ],
+          "highlights": [
+            "1"
+          ]
+        },
+        {
+          "title": "Tilaa edetä",
+          "text": "Toisella puolella on tilaa. Toppari kuljettaa eteenpäin, ja koko vastustaja joutuu juoksemaan perässä.",
+          "ball": "3",
+          "arrows": [
+            {
+              "kind": "drib",
+              "from": "3",
               "to": [
-                28,
-                42
+                54,
+                79
               ]
             }
           ],
           "zones": [
             {
-              "kind": "poly",
-              "ids": [
-                "3",
-                "a4",
-                "a7"
-              ]
+              "kind": "ellipse",
+              "cx": 58,
+              "cy": 74,
+              "rx": 10,
+              "ry": 13,
+              "label": "Tilaa"
             }
           ],
           "highlights": [
@@ -4974,282 +6643,44 @@
           ]
         },
         {
-          "title": "Ohitetut jatkavat takaprässiä",
-          "text": "Kun takaprässääjät saavuttavat pallollisen, alivoima kääntyy ja riisto on taas mahdollinen.",
+          "title": "Painopiste vaihtui",
+          "text": "Vastustajan laitapelaaja tulee vastaan, joten meidän laitapelaajamme on vapaa. Yhdellä käännöllä pääsimme ahtaasta tilaan.",
           "positions": {
-            "4": [
-              35,
-              52
+            "3": [
+              54,
+              79
             ],
-            "5": [
-              28,
-              43
-            ],
-            "7": [
-              33,
-              40
+            "a6": [
+              52,
+              72
             ],
             "a4": [
-              34,
-              47
+              40,
+              56
+            ],
+            "a7": [
+              31,
+              69
+            ],
+            "a8": [
+              38,
+              88
             ]
           },
-          "ball": "a4",
-          "highlights": [
-            "7",
-            "5"
-          ]
-        }
-      ],
-      "question": "Miten lähin puolustaja reagoi menetykseen? Kontrolloivatko muut pelaajat vastustajia hyvin?"
-    },
-    {
-      "id": "riski",
-      "title": "Riskitaso ja kenttätasapaino",
-      "phase": "Tilanteenvaihto −",
-      "format": "8v8",
-      "version": 1,
-      "players": [
-        {
-          "id": "1",
-          "side": "us",
-          "role": "gk",
-          "start": [
-            34,
-            64
-          ]
-        },
-        {
-          "id": "2",
-          "side": "us",
-          "start": [
-            26,
-            50
-          ]
-        },
-        {
-          "id": "3",
-          "side": "us",
-          "start": [
-            42,
-            50
-          ]
-        },
-        {
-          "id": "4",
-          "side": "us",
-          "start": [
-            34,
-            38
-          ]
-        },
-        {
-          "id": "5",
-          "side": "us",
-          "start": [
-            8,
-            28
-          ]
-        },
-        {
-          "id": "6",
-          "side": "us",
-          "start": [
-            60,
-            20
-          ]
-        },
-        {
-          "id": "7",
-          "side": "us",
-          "start": [
-            38,
-            24
-          ]
-        },
-        {
-          "id": "8",
-          "side": "us",
-          "start": [
-            34,
-            12
-          ]
-        },
-        {
-          "id": "a1",
-          "side": "opp",
-          "role": "gk",
-          "start": [
-            34,
-            3
-          ]
-        },
-        {
-          "id": "a2",
-          "side": "opp",
-          "start": [
-            28,
-            10
-          ]
-        },
-        {
-          "id": "a3",
-          "side": "opp",
-          "start": [
-            42,
-            10
-          ]
-        },
-        {
-          "id": "a4",
-          "side": "opp",
-          "start": [
-            36,
-            30
-          ]
-        },
-        {
-          "id": "a5",
-          "side": "opp",
-          "start": [
-            14,
-            26
-          ]
-        },
-        {
-          "id": "a6",
-          "side": "opp",
-          "start": [
-            54,
-            26
-          ]
-        },
-        {
-          "id": "a7",
-          "side": "opp",
-          "start": [
-            26,
-            38
-          ]
-        },
-        {
-          "id": "a8",
-          "side": "opp",
-          "start": [
-            36,
-            56
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Kenttätasapaino valmiina",
-          "text": "Puolustuslinja on tiiviinä suhteessa keskikenttälinjaan ja maalivahti nousee myös. Pelin konteksti ratkaisee, mitä laitapelaaja ja alempi kk tekevät.",
-          "ball": "7",
           "arrows": [
             {
-              "kind": "run",
-              "from": "5",
-              "to": [
-                8,
-                16
-              ],
-              "label": "1"
-            },
-            {
-              "kind": "run",
-              "from": "5",
-              "to": [
-                10,
-                40
-              ],
-              "label": "2"
-            },
-            {
-              "kind": "run",
-              "from": "4",
-              "to": [
-                36,
-                28
-              ],
-              "label": "1"
-            },
-            {
-              "kind": "run",
-              "from": "4",
-              "to": [
-                34,
-                46
-              ],
-              "label": "2"
-            }
-          ],
-          "zones": [
-            {
-              "kind": "link",
-              "ids": [
-                "2",
-                "3"
-              ]
-            },
-            {
-              "kind": "link",
-              "ids": [
-                "2",
-                "4"
-              ]
-            },
-            {
-              "kind": "link",
-              "ids": [
-                "3",
-                "4"
-              ]
+              "kind": "pass",
+              "from": "3",
+              "to": "6"
             }
           ],
           "highlights": [
-            "5",
-            "4"
-          ]
-        },
-        {
-          "title": "1 · Tappioasema: lisää riskiä",
-          "text": "Laitapelaaja ja alempi kk nousevat ja osallistuvat hyökkäykseen. Topparit ja maalivahti pysyvät paikoillaan.",
-          "positions": {
-            "4": [
-              36,
-              28
-            ],
-            "5": [
-              8,
-              16
-            ]
-          },
-          "highlights": [
-            "5",
-            "4"
-          ]
-        },
-        {
-          "title": "2 · Johtoasema: minimoi riski",
-          "text": "Laitapelaaja ja alempi kk jäävät alemmas valmiiksi puolustamaan. Topparit ja maalivahti pysyvät paikoillaan.",
-          "positions": {
-            "4": [
-              34,
-              46
-            ],
-            "5": [
-              10,
-              40
-            ]
-          },
-          "cut": true,
-          "highlights": [
-            "5",
-            "4"
-          ]
+            "6"
+          ],
+          "durationMs": 1200
         }
-      ]
+      ],
+      "question": "Miksi maalivahdille kannattaa syöttää, vaikka se on taaksepäin? Mitä toinen toppari tekee ennen kuin pallo tulee?"
     }
   ]
 }

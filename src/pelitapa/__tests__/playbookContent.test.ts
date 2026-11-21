@@ -11,6 +11,19 @@ import { lintConcept, validateConcept } from '../validateConcept';
 const DIR = path.join(process.cwd(), 'content', 'pelitapa');
 const files = readdirSync(DIR).filter((f) => f.endsWith('.json'));
 
+/**
+ * Lint warnings a content file keeps ON PURPOSE: file -> exact warning text
+ * (`<concept id> <warning>`) -> why it stays. Keep this narrow: one entry per
+ * deliberate choice, never a pattern. The reasons are on record in the
+ * content's review notes (content/pelitapa/*.review-notes.md).
+ */
+const ALLOWED_LINT_WARNINGS: Record<string, Record<string, string>> = {
+  'pepo-8v8.json': {
+    'vaihtoehdot steps[7].arrows: 5 arrows (more than 4 is hard to follow)':
+      'Recap step "Sinä päätät": the PDF picture shows all five pass options from the ball holder at once (plus the two dribble zones). Kept deliberately in the review.',
+  },
+};
+
 describe('committed playbook content', () => {
   it('has at least one playbook file', () => {
     expect(files.length).toBeGreaterThan(0);
@@ -42,17 +55,19 @@ describe('committed playbook content', () => {
 
     /**
      * Readability warnings (overlapping discs, too many arrows, a pass not from
-     * the ball...). Printed, not failed, for now: the reviewed content will
-     * replace this file, and then this becomes `expect(warnings).toEqual([])`.
+     * the ball...) fail the build unless ALLOWED_LINT_WARNINGS lists that exact
+     * warning with a reason. An allowance that no longer fires fails too, so the
+     * list cannot go stale.
      */
-    it('lintConcept: prints the readability warnings', () => {
+    it('lintConcept: no warnings except the documented allowances', () => {
       const warnings: string[] = [];
       for (const c of doc.concepts) {
         const v = validateConcept(c);
         if (v.ok) warnings.push(...lintConcept(v.concept).map((w) => `${v.concept.id} ${w}`));
       }
-      console.log(`[pelitapa lint] ${file}: ${warnings.length} warning(s)\n${warnings.join('\n')}`);
-      expect(Array.isArray(warnings)).toBe(true);
+      const allowed = ALLOWED_LINT_WARNINGS[file] ?? {};
+      expect(warnings.filter((w) => !Object.hasOwn(allowed, w))).toEqual([]);
+      expect(Object.keys(allowed).filter((w) => !warnings.includes(w))).toEqual([]);
     });
   });
 });
