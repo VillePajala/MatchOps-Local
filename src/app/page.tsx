@@ -86,6 +86,7 @@ import TransitionOverlay from '@/components/TransitionOverlay';
 import logger from '@/utils/logger';
 import { usePendingCloudPull } from '@/hooks/usePendingCloudPull';
 import { rotateOldClips } from '@/utils/audioClipStore';
+import { markLaunch } from '@/utils/launchTiming';
 import * as Sentry from '@sentry/nextjs';
 import { reloadApp, claimReloadAttempt, clearReloadOnce } from '@/utils/reloadApp';
 
@@ -463,6 +464,7 @@ export default function Home() {
     { inBackground = false }: { inBackground?: boolean } = {},
   ): Promise<{ signals: Promise<boolean> } | undefined> => {
     if (!inBackground) setIsCheckingState(true);
+    markLaunch('check_app_state_start');
     // Consume the "first check" slot once per page load (boot / WebView recreation),
     // regardless of outcome, so later refreshTrigger re-runs can't auto-resume.
     const isFirstCheck = !didInitialResumeRef.current;
@@ -645,6 +647,7 @@ export default function Home() {
       setHasTeam(false);
       setHasTeamLinkedGame(false);
     } finally {
+      markLaunch('check_app_state_end');
       setIsCheckingState(false);
     }
   }, [userId, setAction, applyTeamScope, publishHomeSummaries, queryClient]);
@@ -1972,6 +1975,10 @@ export default function Home() {
   // Compute whether to show loading screen
   const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut
     || launchPullGate.matchWaits;
+  // Launch timing: the first moment the app (or the sign-in screen) is on screen.
+  useEffect(() => {
+    if (!showLoadingScreen) markLaunch('app_visible');
+  }, [showLoadingScreen]);
 
   // Splash hand-off: when loading ends, the SAME LoadingScreen instance stays
   // mounted for LOADING_SCREEN_EXIT_MS as a non-interactive overlay that fades
