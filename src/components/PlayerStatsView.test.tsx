@@ -151,7 +151,7 @@ describe('PlayerStatsView game type filtering', () => {
     expect(within(winRow).getByTestId('player-game-result')).toHaveTextContent('W');
     expect(within(winRow).getByTestId('player-game-result')).toHaveClass('text-win');
     expect(within(screen.getByTestId('player-game-row-loss')).getByTestId('player-game-result')).toHaveTextContent('L');
-    expect(within(screen.getByTestId('player-game-row-draw')).getByTestId('player-game-result')).toHaveTextContent('T');
+    expect(within(screen.getByTestId('player-game-row-draw')).getByTestId('player-game-result')).toHaveTextContent('D');
     // Rows are split by hairlines, not drawn as boxes.
     expect(winRow.className).toContain('before:bg-hairline');
     expect(winRow.className).not.toMatch(/\bborder\b/);

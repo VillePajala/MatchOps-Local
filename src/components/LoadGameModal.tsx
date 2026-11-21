@@ -457,7 +457,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               shootoutKicks: game.shootoutKicks,
             });
             const resultClasses = RESULT_CLASSES[displayResult];
-            const badgeLetter = displayResult === 'D' ? t('export.tieShort', 'T') : displayResult === 'W' ? t('export.winShort', 'W') : t('export.lossShort', 'L');
+            const badgeLetter = displayResult === 'D' ? t('export.tieShort', 'D') : displayResult === 'W' ? t('export.winShort', 'W') : t('export.lossShort', 'L');
 
             // The game open in the match view: a faint amber wash from the left.
             const currentGameClass = isCurrent

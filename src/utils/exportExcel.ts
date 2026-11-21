@@ -496,7 +496,7 @@ export const exportAggregateExcel = (
     const wld = resolveGameResult(game);
     if (wld === 'W') result = translate('export.winShort', 'W');
     else if (wld === 'L') result = translate('export.lossShort', 'L');
-    else result = translate('export.tieShort', 'T');
+    else result = translate('export.tieShort', 'D');
 
     const seasonName = game.seasonId ? seasons.find((s) => s.id === game.seasonId)?.name : '';
     const tournamentName = game.tournamentId
@@ -895,7 +895,7 @@ export const exportPlayerExcel = (
       const wld = resolveGameResult(game);
       if (wld === 'W') result = translate('export.winShort', 'W');
       else if (wld === 'L') result = translate('export.lossShort', 'L');
-      else result = translate('export.tieShort', 'T');
+      else result = translate('export.tieShort', 'D');
 
       const seasonName = game.seasonId ? seasons.find((s) => s.id === game.seasonId)?.name : '';
       const tournamentName = game.tournamentId ? tournaments.find((tr) => tr.id === game.tournamentId)?.name : '';

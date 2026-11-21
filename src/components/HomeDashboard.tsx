@@ -137,7 +137,7 @@ const badgeLetter = (result: GameResult, t: TFunction): string =>
     ? t('export.winShort', 'W')
     : result === 'L'
       ? t('export.lossShort', 'L')
-      : t('export.tieShort', 'T');
+      : t('export.tieShort', 'D');
 
 /* ------------------------------------------------------------ hero pieces */
 
