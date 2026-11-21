@@ -15,6 +15,16 @@
       ]
     },
     {
+      "date": "2026-11-21",
+      "en": ["Opening a game no longer flashes the loading screen."],
+      "fi": ["Ottelun avaaminen ei enää välähdä latausnäkymää."]
+    },
+    {
+      "date": "2026-11-21",
+      "en": ["Clearer league and tournament lists: one card each, showing its record (wins-draws-losses) and goal difference, or when it starts."],
+      "fi": ["Selkeämmät sarja- ja turnauslistat: jokaisella oma kortti, jossa näkyy saldo (voitot-tasapelit-tappiot) ja maaliero tai milloin se alkaa."]
+    },
+    {
       "date": "2026-11-20",
       "en": [
         "Scores are coloured by result again in the game lists and player stats: green for a win, red for a loss.",

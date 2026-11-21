@@ -47,3 +47,12 @@ export function computeTeamRecord(games: AppState[]): TeamRecord {
     goalDifference: goalsFor - goalsAgainst,
   };
 }
+
+/**
+ * A league's or tournament's record as its list card shows it: every linked
+ * game that has been played (`isPlayed !== false`, as the stats view counts),
+ * whichever team played it.
+ */
+export function computeCompetitionRecord(linkedGames: AppState[]): TeamRecord {
+  return computeTeamRecord(linkedGames.filter((g) => g.isPlayed !== false));
+}

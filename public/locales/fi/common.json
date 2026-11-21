@@ -1358,14 +1358,20 @@
     "archiveLabel": "Arkistoi",
     "archivedBadge": "Arkistoitu",
     "notesLabel": "Muistiinpanot",
-    "statsGames": "Ottelut",
-    "statsGoals": "Maalit",
     "editDetails": "Muokkaa tietoja",
     "searchPlaceholder": "Etsi...",
     "noSeasonsNudge": "Ei vielä sarjoja. Luo sarja ja liitä siihen joukkueesi ja ottelusi seurataksesi sarjatason tilastoja.",
     "noTournamentsNudge": "Ei vielä turnauksia. Luo turnaus ja liitä siihen joukkueesi ja ottelusi seurataksesi turnaustason tilastoja.",
     "noSearchResults": "Haulla \"{{search}}\" ei löytynyt mitään.",
-    "itemActions": "Toiminnot: {{name}}"
+    "itemActions": "Toiminnot: {{name}}",
+    "recordGames_one": "{{count}} ottelu",
+    "recordGames_other": "{{count}} ottelua",
+    "recordAria": "{{wins}} voittoa, {{draws}} tasapeliä, {{losses}} tappiota",
+    "goalDifference": "maaliero",
+    "startsToday": "Alkaa tänään",
+    "startsTomorrow": "Alkaa huomenna",
+    "startsInDays_one": "Alkaa {{count}} päivän päästä",
+    "startsInDays_other": "Alkaa {{count}} päivän päästä"
   },
   "teamDetailsModal": {
     "createTitle": "Luo joukkue",

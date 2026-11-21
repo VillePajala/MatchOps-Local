@@ -18,6 +18,7 @@ import { getClubSeasonForDate } from './clubSeason';
 import { resolveGameResult, type GameResult } from './gameResult';
 import { computeTeamRecord, type TeamRecord } from './teamRecord';
 import { hasBeenPlayed } from './matchPlayedDefault';
+import { daysBetween } from './todayIso';
 
 /**
  * Whole days from one ISO date to another, floored at zero.
@@ -83,13 +84,6 @@ function compareFixtures(a: [string, AppState], b: [string, AppState]): number {
     return ta.localeCompare(tb);
   }
   return creationOrder(a[0], a[1]) - creationOrder(b[0], b[1]);
-}
-
-function daysBetween(fromIso: string, toIso: string): number {
-  const from = Date.parse(`${fromIso}T00:00:00Z`);
-  const to = Date.parse(`${toIso}T00:00:00Z`);
-  if (Number.isNaN(from) || Number.isNaN(to)) return 0;
-  return Math.max(0, Math.round((to - from) / 86400000));
 }
 
 export interface HomeRecentGame {

@@ -169,6 +169,8 @@ describe('HomePage Component - Deep Testing', () => {
       // Wait for initial loading to complete
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 5000 });
 
       // Should show some basic UI elements
@@ -183,6 +185,8 @@ describe('HomePage Component - Deep Testing', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 5000 });
 
       // Should show the MatchOps branding through text content (logo is text-based)
@@ -194,6 +198,8 @@ describe('HomePage Component - Deep Testing', () => {
       
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 5000 });
 
       // Should show the default score 0-0: the score bar renders each side's
@@ -208,6 +214,8 @@ describe('HomePage Component - Deep Testing', () => {
       
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 5000 });
 
       // Should have multiple interactive buttons
@@ -224,6 +232,8 @@ describe('HomePage Component - Deep Testing', () => {
       
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 5000 });
 
       // Find and click the first enabled button
@@ -248,6 +258,8 @@ describe('HomePage Component - Deep Testing', () => {
       
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 5000 });
 
       // Verify initial state
@@ -268,6 +280,8 @@ describe('HomePage Component - Deep Testing', () => {
       
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 5000 });
 
       // Click multiple buttons rapidly
@@ -302,6 +316,8 @@ describe('HomePage Component - Deep Testing', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 3000 });
 
       const renderTime = performance.now() - startTime;
@@ -316,6 +332,8 @@ describe('HomePage Component - Deep Testing', () => {
       
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 5000 });
 
       // Simulate some interactions
@@ -352,6 +370,8 @@ describe('HomePage Component - Deep Testing', () => {
       
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 5000 });
 
       expect(document.body).toContainHTML('div');
@@ -367,6 +387,8 @@ describe('HomePage Component - Deep Testing', () => {
         
         await waitFor(() => {
           expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
         }, { timeout: 5000 });
 
         // Should show some content even if errors occur
@@ -384,6 +406,8 @@ describe('HomePage Component - Deep Testing', () => {
       // Should not show React Query errors
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 5000 });
 
       // Should not have query-related error messages
@@ -396,6 +420,8 @@ describe('HomePage Component - Deep Testing', () => {
       
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        // A quick open shows a plain aria-busy canvas, not a loading text
+        expect(document.querySelector('[aria-busy="true"]')).toBeNull();
       }, { timeout: 5000 });
 
       // Should not show toast-related errors

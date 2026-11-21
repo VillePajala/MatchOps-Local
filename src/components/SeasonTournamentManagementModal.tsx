@@ -9,7 +9,6 @@ import {
     modalContainerStyle,
     primaryButtonStyle,
     searchInputStyle,
-    sectionLabelStyle,
     groupedListStyle,
     subtextStyle,
     popoverMenuStyle,
@@ -31,12 +30,14 @@ import { useResourceLimit } from '@/hooks/usePremium';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useDataStore } from '@/hooks/useDataStore';
 import CompetitionCard from '@/components/CompetitionCard';
+import { computeCompetitionRecord, type TeamRecord } from '@/utils/teamRecord';
+import { todayIso } from '@/utils/todayIso';
 import type { EntityReferences } from '@/interfaces/DataStore';
 import logger from '@/utils/logger';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
-/** `actionsMenuId` of the list header's ⋮ menu (row menus use item ids). */
+/** `actionsMenuId` of the list's own ⋮ menu by the search (row menus use item ids). */
 const LIST_MENU_ID = '__competitions-list-menu__';
 
 interface SeasonTournamentManagementModalProps {
@@ -69,7 +70,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     openItemId,
     openCreate = false,
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const headerCollapse = useCollapsingHeader();
     // Title/aria label track the kind (Kaudet / Turnaukset).
     const managerTitle = kind === 'season'
@@ -110,7 +111,9 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         if (openedForOneSheet) onClose();
     };
 
-    const [stats, setStats] = useState<Record<string, { games: number; goals: number }>>({});
+    // Each item's played-games record (every team's games linked to it, as the
+    // old Ottelut / Maalit numbers counted), for the card's result line.
+    const [records, setRecords] = useState<Record<string, TeamRecord>>({});
 
     const [searchText, setSearchText] = useState('');
     // Remembered on this device, per list (review 7.L10).
@@ -143,28 +146,22 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const { calculatePosition } = useDropdownPosition();
 
     React.useEffect(() => {
+        let cancelled = false;
         const loadStats = async () => {
             const { getFilteredGames } = await import('@/utils/savedGames');
-            const nextStats: Record<string, { games: number; goals: number }> = {};
-            // Only the shown kind needs stats (this manager renders one list).
-            if (kind === 'season') {
-                for (const s of seasons) {
-                    const games = await getFilteredGames({ seasonId: s.id });
-                    const goals = games.reduce((sum, [, g]) => sum + (g.gameEvents?.filter(e => e.type === 'goal').length || 0), 0);
-                    nextStats[s.id] = { games: games.length, goals };
-                }
-            } else {
-                for (const tourn of tournaments) {
-                    const games = await getFilteredGames({ tournamentId: tourn.id });
-                    const goals = games.reduce((sum, [, g]) => sum + (g.gameEvents?.filter(e => e.type === 'goal').length || 0), 0);
-                    nextStats[tourn.id] = { games: games.length, goals };
-                }
+            const next: Record<string, TeamRecord> = {};
+            // Only the shown kind needs records (this manager renders one list).
+            const items = kind === 'season' ? seasons : tournaments;
+            for (const item of items) {
+                const games = await getFilteredGames(kind === 'season' ? { seasonId: item.id } : { tournamentId: item.id });
+                next[item.id] = computeCompetitionRecord(games.map(([, g]) => g));
             }
-            setStats(nextStats);
+            if (!cancelled) setRecords(next);
         };
         if (isOpen) {
-            loadStats();
+            loadStats().catch((error) => logger.error('[SeasonTournamentManagementModal] Failed to load records:', error));
         }
+        return () => { cancelled = true; };
     }, [isOpen, kind, seasons, tournaments]);
 
     // Close actions menu when clicking outside
@@ -298,6 +295,9 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         setActionsMenuId(null);
     };
 
+    // Today for the cards' "starts in" chip (the coach's local day).
+    const today = todayIso();
+
     const renderList = (type: 'season' | 'tournament') => {
         const data = type === 'season' ? seasons : tournaments;
         // Same order as the league/tournament pickers (review 7.L5): newest start
@@ -342,62 +342,68 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                         </p>
                     )
                 )}
-                {/* Not overflow-hidden: that clipped a row's action menu when the
-                    list is short. The rows round their own hover corners instead. */}
+                {/* One card per item (owner, 2026-11-21, variant A - as the
+                    teams list): separate cards, not one shared box. Not
+                    overflow-hidden: that would clip the action menu. */}
                 {filtered.length > 0 && (
-                <div className="s1-list divide-y divide-hairline">
+                <div className="flex flex-col gap-2.5">
                     {filtered.map((item) => (
                         <div
                             key={item.id}
-                            className={`pt-4 font-ui cursor-pointer transition-colors hover:bg-white/[0.03] first:rounded-t-[22px] last:rounded-b-[22px] ${item.archived ? 'opacity-60' : ''}`}
-                            onClick={() => type === 'season' ? handleSeasonClick(item.id) : handleTournamentClick(item.id)}
+                            className={`s1-list flex items-center gap-1 py-1.5 pl-1.5 pr-1 font-ui ${item.archived ? 'opacity-60' : ''}`}
+                            data-testid={`competition-card-${item.id}`}
                         >
-                            <CompetitionCard
-                                item={item}
-                                showDates={type === 'tournament'}
-                                games={stats[item.id]?.games || 0}
-                                goals={stats[item.id]?.goals || 0}
-                                t={t}
-                                menu={
-                                    <div className="relative flex-shrink-0" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>
+                            <button
+                                type="button"
+                                className="flex min-h-14 min-w-0 flex-1 items-center rounded-2xl py-1.5 pl-2.5 pr-1 text-left transition-colors hover:bg-white/[0.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                                onClick={() => type === 'season' ? handleSeasonClick(item.id) : handleTournamentClick(item.id)}
+                            >
+                                <CompetitionCard
+                                    item={item}
+                                    kind={type}
+                                    record={records[item.id]}
+                                    today={today}
+                                    t={t}
+                                    language={i18n.language}
+                                />
+                            </button>
+                            <div className="relative flex-shrink-0 self-start" ref={actionsMenuId === item.id ? actionsMenuRef : null}>
+                                <button
+                                    onClick={(e) => handleActionsMenuToggle(e, item.id)}
+                                    className={iconButtonEditStyle}
+                                    aria-label={t('seasonTournamentModal.itemActions', 'Actions for {{name}}', { name: item.name })}
+                                >
+                                    <HiOutlineEllipsisVertical className="w-5 h-5" />
+                                </button>
+
+                                {actionsMenuId === item.id && (
+                                    <div className={`${popoverMenuStyle} ${menuPositions[item.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                                         <button
-                                            onClick={(e) => handleActionsMenuToggle(e, item.id)}
-                                            className={iconButtonEditStyle}
-                                            aria-label={t('seasonTournamentModal.itemActions', 'Actions for {{name}}', { name: item.name })}
+                                            onClick={() => handleEditClick(item, type)}
+                                            className={popoverItemStyle}
                                         >
-                                            <HiOutlineEllipsisVertical className="w-5 h-5" />
+                                            <HiOutlinePencil className="w-4 h-4" />
+                                            {t('common.edit', 'Edit')}
                                         </button>
-    
-                                        {actionsMenuId === item.id && (
-                                            <div className={`${popoverMenuStyle} ${menuPositions[item.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
-                                                <button
-                                                    onClick={() => handleEditClick(item, type)}
-                                                    className={popoverItemStyle}
-                                                >
-                                                    <HiOutlinePencil className="w-4 h-4" />
-                                                    {t('common.edit', 'Edit')}
-                                                </button>
-                                                <button
-                                                    onClick={() => handleToggleArchive(item, type)}
-                                                    className={popoverItemStyle}
-                                                >
-                                                    <HiOutlineArchiveBox className="w-4 h-4" />
-                                                    {item.archived
-                                                        ? t('seasonTournamentModal.unarchive', 'Unarchive')
-                                                        : t('seasonTournamentModal.archive', 'Archive')}
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteClick(item, type)}
-                                                    className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
-                                                >
-                                                    <HiOutlineTrash className="w-4 h-4" />
-                                                    {t('common.delete', 'Delete')}
-                                                </button>
-                                            </div>
-                                        )}
+                                        <button
+                                            onClick={() => handleToggleArchive(item, type)}
+                                            className={popoverItemStyle}
+                                        >
+                                            <HiOutlineArchiveBox className="w-4 h-4" />
+                                            {item.archived
+                                                ? t('seasonTournamentModal.unarchive', 'Unarchive')
+                                                : t('seasonTournamentModal.archive', 'Archive')}
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteClick(item, type)}
+                                            className={`${popoverItemStyle} text-red-400! hover:bg-red-500/10!`}
+                                        >
+                                            <HiOutlineTrash className="w-4 h-4" />
+                                            {t('common.delete', 'Delete')}
+                                        </button>
                                     </div>
-                                }
-                            />
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -431,18 +437,28 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6" onScroll={headerCollapse.onScroll}>
-            {/* The list header with its own ⋮ menu (as the planner's list has).
-                One team written several ways is several opponents to every
-                aggregation, so the cleanup lives next to the lists it cleans;
-                the count rides on the ⋮ button so the tool stays discoverable. */}
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <h3 className={`${sectionLabelStyle} px-1`}>
-                {kind === 'season'
-                  ? t('seasonTournamentModal.seasons', 'Leagues')
-                  : t('seasonTournamentModal.tournaments', 'Tournaments')}
-              </h3>
+            {/* One header (the title above): the search, and beside it the
+                list's own ⋮ menu - the team-name cleanup, which lives next to
+                the lists it cleans; its count rides on the ⋮ button so the
+                tool stays discoverable. The menu stays when there is nothing
+                to search yet. */}
+            <div className="mb-3 flex items-center gap-1">
+              {!(kind === 'tournament' && tournaments.length === 0) && (
+              <div className="relative min-w-0 flex-1">
+                <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
+                <input
+                  type="text"
+                  placeholder={t('seasonTournamentModal.searchPlaceholder')}
+                  aria-label={t('seasonTournamentModal.searchPlaceholder')}
+                  value={searchText}
+                  onChange={e => setSearchText(e.target.value)}
+                  autoComplete="off"
+                  className={searchInputStyle}
+                />
+              </div>
+              )}
               <div
-                className="relative shrink-0 -mr-1"
+                className="relative ml-auto shrink-0 -mr-1"
                 ref={actionsMenuId === LIST_MENU_ID ? actionsMenuRef : null}
               >
                 <button
@@ -487,21 +503,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                 )}
               </div>
             </div>
-            {/* Search field - hidden while there is nothing to search (a tournaments list with no tournaments) */}
-            {!(kind === 'tournament' && tournaments.length === 0) && (
-            <div className="mb-3 relative">
-              <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" aria-hidden="true" />
-              <input
-                type="text"
-                placeholder={t('seasonTournamentModal.searchPlaceholder')}
-                aria-label={t('seasonTournamentModal.searchPlaceholder')}
-                value={searchText}
-                onChange={e => setSearchText(e.target.value)}
-                autoComplete="off"
-                className={searchInputStyle}
-              />
-            </div>
-            )}
 
             {renderList(kind)}
             {archivedCount > 0 && (
