@@ -1280,7 +1280,7 @@
     "clubTrainingSub": "Lämmittely ennen peliä",
     "clubRulesSub": "Laji- ja sarjasäännöt",
     "clubMaterialsSub": "Palloliiton valmentajamateriaalit",
-    "rowPelitapa": "Pelitapa (testi)",
+    "rowPelitapa": "Pelitapa",
     "clubPelitapaSub": "Animoidut pelitilanteet"
   },
   "workspace": {
@@ -4241,6 +4241,32 @@
     "changePlayer": "Valitse pelaaja",
     "changePlayerNamed": "Vaihda pelaaja: {{name}}",
     "noName": "Ei nimeä",
-    "invalidConcept": "Tätä pelitilannetta ei voi näyttää."
+    "invalidConcept": "Tätä pelitilannetta ei voi näyttää.",
+    "library": {
+      "title": "Pelitapa",
+      "back": "Takaisin",
+      "searchPlaceholder": "Etsi tilannetta…",
+      "searchLabel": "Etsi tilannetta",
+      "clearSearch": "Tyhjennä haku",
+      "all": "Kaikki",
+      "formats": "Pelimuoto",
+      "phases": "Pelin vaihe",
+      "playbooks": "Pelitapa",
+      "builtInName": "MatchOps esimerkit",
+      "steps_one": "{{count}} vaihe",
+      "steps_other": "{{count}} vaihetta",
+      "loading": "Ladataan seuran pelitapoja…",
+      "offline": "Ei yhteyttä. Näytetään tälle laitteelle tallennetut.",
+      "noResults": "Ei hakua vastaavia tilanteita.",
+      "showAll": "Näytä kaikki",
+      "phase": {
+        "basics": "Perusteet",
+        "attacking": "Hyökkääminen",
+        "defending": "Puolustaminen",
+        "transitionPlus": "Tilanteenvaihto +",
+        "transitionMinus": "Tilanteenvaihto −",
+        "setPieces": "Erikoistilanteet"
+      }
+    }
   }
 }

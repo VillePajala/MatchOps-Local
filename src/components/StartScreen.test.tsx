@@ -24,7 +24,7 @@ const mockHasFeature = jest.fn((_feature: string) => false);
 jest.mock('@/hooks/useAccountFeatures', () => ({
   useAccountFeatures: () => ({ hasFeature: mockHasFeature }),
 }));
-jest.mock('@/pelitapa/PelitapaPresentation', () => ({
+jest.mock('@/pelitapa/PelitapaLibrary', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) => (
     <div data-testid="pelitapa-stub">
@@ -623,7 +623,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(mockHasFeature).toHaveBeenCalledWith('pelitapa');
   });
 
-  it('Club panel: with the flag, "Pelitapa (test)" opens the presentation view', async () => {
+  it('Club panel: with the flag, "Pelitapa" opens the library', async () => {
     mockHasFeature.mockReturnValue(true);
     render(<StartScreen {...shellProps()} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Club' }));

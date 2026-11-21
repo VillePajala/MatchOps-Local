@@ -51,7 +51,7 @@ import { lazyModal } from '@/components/lazyModal';
  * chunk, fetched only when opened - kept out of the background warm-up so an
  * account without the flag never downloads it.
  */
-const PelitapaPresentation = lazyModal(() => import('@/pelitapa/PelitapaPresentation'), { warm: false });
+const PelitapaLibrary = lazyModal(() => import('@/pelitapa/PelitapaLibrary'), { warm: false });
 
 /**
  * HOME, S1 "SYKE REFINED" (owner-approved, phase 1 of 3). Colours and fonts
@@ -595,7 +595,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {pelitapaOn && (
                   <HomeRow
                     icon={HiOutlinePlayCircle}
-                    label={t('startScreen.rowPelitapa', 'Playing style (test)')}
+                    label={t('startScreen.rowPelitapa', 'Playing style')}
                     subtitle={t('startScreen.clubPelitapaSub', 'Animated game situations')}
                     onClick={() => setPelitapaOpen(true)}
                     testId="club-pelitapa"
@@ -1077,7 +1077,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
       )}
 
       {pelitapaOn && pelitapaOpen && (
-        <PelitapaPresentation isOpen onClose={() => setPelitapaOpen(false)} />
+        <PelitapaLibrary isOpen onClose={() => setPelitapaOpen(false)} />
       )}
     </div>
   );
