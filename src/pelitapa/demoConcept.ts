@@ -58,7 +58,6 @@ export const DEMO_CONCEPT: Concept = {
       title: 'Pallo kiertää kolmiossa',
       text: 'Vastustaja painaa pallollista. Pallo liikkuu kolmion sisällä sinne, missä on tilaa.',
       ball: 'vp',
-      positions: { v7: [19, 79] },
       highlights: ['kk'],
       zones: [{ kind: 'poly', ids: ['vp', 'kk', 'op'] }],
       arrows: [
@@ -70,7 +69,7 @@ export const DEMO_CONCEPT: Concept = {
       title: 'Kaukaisin pelaaja liikkuu tilaan',
       text: 'Kun prässi tulee keskelle, kaukaisin toppari liikkuu vapaaseen tilaan ja pyytää palloa.',
       ball: 'kk',
-      positions: { v7: [26, 77], v8: [38, 71] },
+      positions: { v7: [20, 80] },
       highlights: ['op'],
       zones: [{ kind: 'ellipse', cx: 56, cy: 73, rx: 8, ry: 6 }],
       arrows: [
@@ -83,10 +82,10 @@ export const DEMO_CONCEPT: Concept = {
       title: 'Vapaa pelaaja vie pallon eteenpäin',
       text: 'Toppari kuljettaa vapaaseen tilaan. Laitapelaaja tarjoutuu edessä ja peli avautuu.',
       ball: 'op',
-      positions: { op: [56, 74], v5: [56, 60] },
+      positions: { op: [56, 74], v5: [47, 63], v8: [38, 72] },
       highlights: ['op', 'ol'],
       arrows: [
-        { kind: 'drib', from: 'op', to: [58, 66] },
+        { kind: 'drib', from: 'op', to: [56, 63] },
         { kind: 'run', from: 'ol', to: [62, 44] },
       ],
     },

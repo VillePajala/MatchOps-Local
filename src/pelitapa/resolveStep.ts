@@ -8,6 +8,8 @@ export interface ResolvedArrow {
   bend: number;
   /** The player the arrow starts from, when it starts from one. */
   fromId?: string;
+  /** The player the arrow points at, when it points at one. */
+  toId?: string;
 }
 
 /** A zone with a poly's player ids turned into points. */
@@ -76,6 +78,7 @@ export function resolveStep(concept: Concept, stepIndex: number): ResolvedStep {
     to: at(a.to),
     bend: a.bend ?? DEFAULT_BEND[a.kind] ?? 0,
     ...(typeof a.from === 'string' ? { fromId: a.from } : {}),
+    ...(typeof a.to === 'string' ? { toId: a.to } : {}),
   }));
 
   const zones: ResolvedZone[] = (step.zones ?? []).map((z) =>

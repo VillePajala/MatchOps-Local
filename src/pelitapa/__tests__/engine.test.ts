@@ -115,7 +115,7 @@ describe('resolveStep', () => {
     const r = resolveStep(base(), 0);
     expect(r.positions.a).toEqual([20, 70]);
     expect(r.ball).toEqual({ at: [34, 95], holder: 'gk' });
-    expect(r.arrows).toEqual([{ kind: 'pass', from: [34, 95], to: [20, 70], bend: 0, fromId: 'gk' }]);
+    expect(r.arrows).toEqual([{ kind: 'pass', from: [34, 95], to: [20, 70], bend: 0, fromId: 'gk', toId: 'a' }]);
     expect(r.isFirst).toBe(true);
     expect(r.isLast).toBe(false);
   });

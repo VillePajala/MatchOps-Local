@@ -233,6 +233,20 @@ describe('warmLazyModals', () => {
     expect(a).toHaveBeenCalledTimes(1);
   });
 
+  it('skips a modal registered with warm: false (a flagged view most accounts never open)', async () => {
+    setOnline(true);
+    const cold = jest.fn(() => Promise.resolve({ default: RealModal }));
+    const hot = jest.fn(() => Promise.resolve({ default: RealModal }));
+    lazyModal<ModalProps>(cold, { warm: false });
+    lazyModal<ModalProps>(hot);
+    warmLazyModals();
+    await act(async () => {
+      await jest.runAllTimersAsync();
+    });
+    expect(hot).toHaveBeenCalledTimes(1);
+    expect(cold).not.toHaveBeenCalled();
+  });
+
   it('waits for the connection when offline, then fetches', async () => {
     setOnline(false);
     const c = jest.fn(() => Promise.resolve({ default: RealModal }));
