@@ -10,12 +10,14 @@ export interface ResolvedArrow {
   fromId?: string;
   /** The player the arrow points at, when it points at one. */
   toId?: string;
+  label?: string;
 }
 
-/** A zone with a poly's player ids turned into points. */
+/** A zone with a poly's or link's player ids turned into points. */
 export type ResolvedZone =
-  | Exclude<ConceptZone, { kind: 'poly' }>
-  | { kind: 'poly'; points: Point[]; label?: string };
+  | Exclude<ConceptZone, { kind: 'poly' } | { kind: 'link' }>
+  | { kind: 'poly'; points: Point[]; label?: string }
+  | { kind: 'link'; points: [Point, Point]; label?: string };
 
 export interface ResolvedStep {
   /** Clamped into range. */
@@ -79,11 +81,14 @@ export function resolveStep(concept: Concept, stepIndex: number): ResolvedStep {
     bend: a.bend ?? DEFAULT_BEND[a.kind] ?? 0,
     ...(typeof a.from === 'string' ? { fromId: a.from } : {}),
     ...(typeof a.to === 'string' ? { toId: a.to } : {}),
+    ...(a.label ? { label: a.label } : {}),
   }));
 
-  const zones: ResolvedZone[] = (step.zones ?? []).map((z) =>
-    z.kind === 'poly' ? { kind: 'poly', points: z.ids.map((id) => at(id)), label: z.label } : z,
-  );
+  const zones: ResolvedZone[] = (step.zones ?? []).map((z): ResolvedZone => {
+    if (z.kind === 'poly') return { kind: 'poly', points: z.ids.map((id) => at(id)), label: z.label };
+    if (z.kind === 'link') return { kind: 'link', points: [at(z.ids[0]), at(z.ids[1])], label: z.label };
+    return z;
+  });
 
   return {
     index,
@@ -96,4 +101,17 @@ export function resolveStep(concept: Concept, stepIndex: number): ResolvedStep {
     isFirst: index === 0,
     isLast: index === last,
   };
+}
+
+/**
+ * True when going from step `from` to step `to` passes a step marked `cut`
+ * (a new variation): the players then jump to their places instead of
+ * walking back across the pitch. Either direction; equal indexes never cut.
+ */
+export function crossesCut(concept: Concept, from: number, to: number): boolean {
+  if (from === to) return false;
+  const lo = Math.min(from, to);
+  const hi = Math.max(from, to);
+  for (let i = lo + 1; i <= hi; i++) if (concept.steps[i]?.cut) return true;
+  return false;
 }
