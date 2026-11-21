@@ -123,10 +123,15 @@ interface ModalContextValue {
    *  isGameStatsModalOpen: the match modal keeps the current-game side. */
   isClubStatsOpen: boolean;
   setIsClubStatsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  /** Open club stats on a specific aggregate tab (menu "Team stats" links). */
-  openClubStatsToTab: (tab: StatsTab) => void;
+  /**
+   * Open club stats on a specific aggregate tab (menu "Team stats" links),
+   * optionally with its team filter preset (Home's "Joukkueet" rows).
+   */
+  openClubStatsToTab: (tab: StatsTab, opts?: { teamId?: string }) => void;
   /** The tab club stats opens on (undefined = the surface's own default). */
   clubStatsInitialTab: StatsTab | undefined;
+  /** The team filter club stats opens with (undefined = all teams). */
+  clubStatsInitialTeamId: string | undefined;
   isSettingsModalOpen: boolean;
   setIsSettingsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   /** Open settings modal to a specific tab */
@@ -187,6 +192,7 @@ export const ModalProvider = ({ children, currentUserId }: {
   // the match stats setter they mutually exclude against).
   const [clubStatsOpen, setClubStatsOpen] = useState(false);
   const [clubStatsInitialTab, setClubStatsInitialTab] = useState<StatsTab | undefined>(undefined);
+  const [clubStatsInitialTeamId, setClubStatsInitialTeamId] = useState<string | undefined>(undefined);
   // Deep-review Minor 7: whenever club stats is CLOSED - by the host
   // handler, the mutual exclusion, or the user-change reset - the player
   // deep-link must not linger for the next open. Adjust-during-render
@@ -323,6 +329,7 @@ export const ModalProvider = ({ children, currentUserId }: {
       // (UI flows can't stack them today; this pins the invariant).
       setClubStatsOpen(false);
       setClubStatsInitialTab(undefined);
+      setClubStatsInitialTeamId(undefined);
       dispatchModal({ type: 'OPEN_MODAL', id: 'gameStats', at: Date.now() });
       return;
     }
@@ -346,13 +353,18 @@ export const ModalProvider = ({ children, currentUserId }: {
       const next = typeof valueOrUpdater === 'function'
         ? (valueOrUpdater as (p: boolean) => boolean)(prev)
         : valueOrUpdater;
-      if (!next && prev) setClubStatsInitialTab(undefined); // reset tab on close
+      if (!next && prev) {
+        // reset tab and team filter on close
+        setClubStatsInitialTab(undefined);
+        setClubStatsInitialTeamId(undefined);
+      }
       return next;
     });
   }, [setIsGameStatsModalOpen]);
-  const openClubStatsToTab = useCallback((tab: StatsTab) => {
+  const openClubStatsToTab = useCallback((tab: StatsTab, opts?: { teamId?: string }) => {
     setIsGameStatsModalOpen(false);
     setClubStatsInitialTab(tab);
+    setClubStatsInitialTeamId(opts?.teamId);
     setClubStatsOpen(true);
   }, [setIsGameStatsModalOpen]);
 
@@ -411,6 +423,7 @@ export const ModalProvider = ({ children, currentUserId }: {
     setPlayerIdsForNewGame(null);
     setSelectedPlayerForStats(null);
     setClubStatsOpen(false);
+    setClubStatsInitialTeamId(undefined);
     setAttendanceRequest(null);
     setPlanQuickViewTarget(null);
     // Club-scope (the #681 gap): these stayed open across sign-out and popped
@@ -492,6 +505,7 @@ export const ModalProvider = ({ children, currentUserId }: {
     setIsClubStatsOpen,
     openClubStatsToTab,
     clubStatsInitialTab,
+    clubStatsInitialTeamId,
     isSettingsModalOpen: modalState.settings,
     setIsSettingsModalOpen,
     openSettingsToTab,
@@ -521,7 +535,7 @@ export const ModalProvider = ({ children, currentUserId }: {
     plannerTarget, setPlannerTarget,
     attendanceRequest, planQuickViewTarget,
     plannerLiveGameHooks, setPlannerLiveGameHooks,
-    clubStatsOpen, setIsClubStatsOpen, openClubStatsToTab, clubStatsInitialTab,
+    clubStatsOpen, setIsClubStatsOpen, openClubStatsToTab, clubStatsInitialTab, clubStatsInitialTeamId,
     modalState.settings, setIsSettingsModalOpen,
     openSettingsToTab, settingsInitialTab,
     isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen,

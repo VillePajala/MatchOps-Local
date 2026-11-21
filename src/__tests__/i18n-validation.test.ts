@@ -751,7 +751,10 @@ describe('Translation File Validation', () => {
       // +8 / -2 league & tournament cards: record line (recordGames _one/_other, recordAria,
       //     goalDifference), starts-in chip (startsToday/Tomorrow, startsInDays _one/_other);
       //     statsGames/statsGoals removed (2026-11-21). 3663.
-      expect(enKeys.length).toBe(3663);
+      // +6 / -4 Home "Joukkueet" card (dashTeamsCard, dashHomeAway, dashAtHome, dashAway,
+      //     dashNoTeam, dashNoGames); top scorers removed (dashTopScorers, clubTopScorer,
+      //     dashGoalsWord _one/_other) (2026-11-21). 3665.
+      expect(enKeys.length).toBe(3665);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -966,7 +969,8 @@ describe('Translation File Validation', () => {
       // +32 privacy 2026-11: policy (+9 -1 IP), terms art. 28 / player data (+16), Settings privacy + field hints (+8). 3657.
       // +1 playerStats.goalsAssistsShort (match log G+A figure). 3657.
       // +8 / -2 league & tournament cards (record line, starts-in chip). 3663.
-      expect(fiKeys.length).toBe(3663);
+      // +6 / -4 Home "Joukkueet" card; top scorers removed. 3665.
+      expect(fiKeys.length).toBe(3665);
     });
   });
 });

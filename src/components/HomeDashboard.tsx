@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import type { TFunction } from 'i18next';
 import type { HomeSummary, HomeResumeGame, HomeRecentGame, HomeUpcomingGame, HomeCounts } from '@/utils/homeSummary';
 import { RESULT_CLASSES, type GameResult } from '@/utils/gameResult';
+import type { TeamRecord } from '@/utils/teamRecord';
 import { formatDriveTime } from '@/utils/travelPlan';
 
 /**
@@ -969,16 +970,22 @@ export function HomeCount({ n, className = '' }: { n: React.ReactNode; className
  * The last results as small letter chips, NEWEST FIRST - the same order and
  * the same badge colours as Pelit's results list, so the two read alike.
  */
-function FormStrip({ form, t }: { form: GameResult[]; t: TFunction }) {
+function FormStrip({ form, t, testId = 'competitions-form', small = false }: {
+  form: GameResult[];
+  t: TFunction;
+  testId?: string;
+  /** 24px discs - a "Joukkueet" row shares its line with the goal difference. */
+  small?: boolean;
+}) {
   const label = t('startScreen.dashForm', 'Recent form');
   return (
-    <span className="flex items-center gap-1" role="img" aria-label={`${label}: ${form.map((r) => badgeLetter(r, t)).join(' ')}`} data-testid="competitions-form">
+    <span className="flex items-center gap-1" role="img" aria-label={`${label}: ${form.map((r) => badgeLetter(r, t)).join(' ')}`} data-testid={testId}>
       {form.map((r, i) => (
         <span
           key={i}
           aria-hidden="true"
           data-result={r}
-          className={`grid h-7 min-w-7 place-items-center rounded-full px-1 font-display text-[15px] font-bold leading-none ${RESULT_CLASSES[r].disc}`}
+          className={`grid place-items-center rounded-full px-1 font-display font-bold leading-none ${small ? 'h-6 min-w-6 text-[13px]' : 'h-7 min-w-7 text-[15px]'} ${RESULT_CLASSES[r].disc}`}
         >
           {badgeLetter(r, t)}
         </span>
@@ -1051,21 +1058,21 @@ export function HomeSeasonHero({ vuosi, recent, onOpen, t }: {
 /**
  * Seura tab: the club card (owner's pick "A · Seurakortti", 2026-11-19), the
  * sister of the Pelit tab's hero. Three counts that each open their manager,
- * then the season record and top scorer - the same club-wide numbers Home
- * already computes, nothing new.
+ * then the season record - the same club-wide number Home already computes,
+ * nothing new. No top scorer: Home is about teams, not individuals (owner,
+ * 2026-11-21).
  *
  * Counts show a dash until the enriched summary has loaded, so a still-loading
  * 0 never reads as "you have none". The footer only appears once the season
  * has a played game: a 0-0-0 line says nothing.
  */
-export function HomeClubCard({ title, showClubEyebrow, counts, vuosi, topScorer, onPlayers, onTeams, onPersonnel, t }: {
+export function HomeClubCard({ title, showClubEyebrow, counts, vuosi, onPlayers, onTeams, onPersonnel, t }: {
   /** The shared club name from the team names, or the neutral "Seura". */
   title: string;
   /** True when `title` is a real club name, so the eyebrow says "Seura". */
   showClubEyebrow: boolean;
   counts?: HomeCounts;
   vuosi: HomeSummary['vuosi'];
-  topScorer: HomeSummary['topScorer'];
   onPlayers?: () => void;
   onTeams?: () => void;
   onPersonnel?: () => void;
@@ -1128,12 +1135,6 @@ export function HomeClubCard({ title, showClubEyebrow, counts, vuosi, topScorer,
             <span className="text-ink-3">-</span>
             <span className="text-loss">{vuosi.losses}</span>
           </span>
-          {topScorer && (
-            <span className="min-w-0" data-testid="club-card-scorer">
-              {t('startScreen.clubTopScorer', 'Top scorer')}{' '}
-              <b className="font-semibold text-ink">{topScorer.name} · {topScorer.goals}</b>
-            </span>
-          )}
         </div>
       )}
     </div>
@@ -1167,8 +1168,7 @@ function StatTile({ figure, label, onClick, testId }: {
 
 /**
  * Tilastot tab's hero: the club season's two figures, each labelled and each
- * opening overall stats. The top scorer is not a tile (owner, 2026-11-19): it
- * leads the scorers card right below.
+ * opening overall stats. The "Joukkueet" card below splits them per team.
  */
 export function HomeStatsHero({ vuosi, onOpenOverall, t }: {
   vuosi: HomeSummary['vuosi'];
@@ -1181,7 +1181,7 @@ export function HomeStatsHero({ vuosi, onOpenOverall, t }: {
     return (
       <div className="s1-hero s1-hero-quiet px-5 py-5 text-center text-ink" data-testid="home-stats-empty">
         <p className="text-base font-semibold text-ink">{t('startScreen.dashStatsEmpty', 'No games played yet')}</p>
-        <p className="mt-1 text-[13px] text-ink-3">{t('startScreen.dashStatsEmptyHint', 'The season record and top scorer appear here after the first game.')}</p>
+        <p className="mt-1 text-[13px] text-ink-3">{t('startScreen.dashStatsEmptyHint', "The season record and each team's results appear here after the first game.")}</p>
       </div>
     );
   }
@@ -1213,38 +1213,151 @@ export function HomeStatsHero({ vuosi, onOpenOverall, t }: {
   );
 }
 
-/** Tilastot tab: the season's best scorers, each opening that player's stats. */
-export function HomeTopScorersCard({ scorers, onOpenPlayer, t }: {
-  scorers: HomeSummary['topScorers'];
-  onOpenPlayer?: (playerId?: string) => void;
+/** Win / loss colour for a goal difference; level stays neutral. */
+function goalDiffClass(diff: number): string {
+  return diff > 0 ? 'text-win' : diff < 0 ? 'text-loss' : 'text-ink-2';
+}
+
+/** "+3" / "-2" / "0". */
+const signedDiff = (diff: number): string => `${diff > 0 ? '+' : ''}${diff}`;
+
+/** The W-D-L figures in the result colours, as one inline run. */
+function RecordFigures({ record, className = '', t }: {
+  record: Pick<TeamRecord, 'wins' | 'ties' | 'losses'>;
+  className?: string;
   t: TFunction;
 }) {
-  // The scorers live only here (the hero has no scorer tile), so one is enough.
-  if (!scorers || scorers.length === 0) return null;
   return (
-    <div className="s1-list p-0.5" data-testid="top-scorers">
+    <span
+      className={`whitespace-nowrap pr-[2px] font-display font-bold italic leading-none tabular-nums ${className}`}
+      title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
+    >
+      <span className="sr-only">{t('startScreen.dashRecordTitle', 'Wins - draws - losses')}: </span>
+      <span className="text-win">{record.wins}</span>
+      <span className="text-ink-3">-</span>
+      <span className="text-draw">{record.ties}</span>
+      <span className="text-ink-3">-</span>
+      <span className="text-loss">{record.losses}</span>
+    </span>
+  );
+}
+
+/** "+5 Maaliero" - the coloured goal difference with its label. */
+function GoalDiff({ diff, t }: { diff: number; t: TFunction }) {
+  return (
+    <span className="flex items-baseline gap-1 whitespace-nowrap" data-testid="team-row-goal-diff">
+      <HomeCount n={signedDiff(diff)} className={`text-base leading-none ${goalDiffClass(diff)}`} />
+      <span className="text-[11px] font-medium text-ink-3">{t('startScreen.dashTileGoalDiff', 'Goal diff')}</span>
+    </span>
+  );
+}
+
+/**
+ * Tilastot tab: "Joukkueet" - one row per team that played in the hero's
+ * games (same club season, team scope, played-only, no friendlies): kit
+ * swatch, name, W-D-L, then the last five results and the goal difference. Most games
+ * first, then by name. A row opens overall stats filtered to that team.
+ *
+ * With only ONE team in scope a team row would repeat the hero, so the card
+ * shows that team's home / away split instead (not tappable: the stats view
+ * has no home / away filter).
+ *
+ * Replaced the top-scorers card (owner, 2026-11-21): Home is about teams.
+ */
+export function HomeTeamsCard({ summary, teams, onOpenTeam, t }: {
+  summary: Pick<HomeSummary, 'teamRecords' | 'homeAway'>;
+  /** The team pills' options: the display name and kit colour per team id. */
+  teams: ReadonlyArray<{ id: string; label: string; color?: string }>;
+  onOpenTeam?: (teamId: string) => void;
+  t: TFunction;
+}) {
+  const records = summary.teamRecords ?? [];
+  if (records.length === 0) return null;
+
+  if (records.length === 1) {
+    const split = summary.homeAway;
+    if (!split) return null;
+    const sides = [
+      ['home', t('startScreen.dashAtHome', 'Home'), split.home],
+      ['away', t('startScreen.dashAway', 'Away'), split.away],
+    ] as const;
+    return (
+      <div className="s1-list p-0.5" data-testid="home-away">
+        <h3 className={`${SECTION_LABEL} flex min-h-11 items-center px-4 text-ink-3`}>
+          {t('startScreen.dashHomeAway', 'Home and away')}
+        </h3>
+        {sides.map(([key, label, rec]) => (
+          <div key={key} className="relative flex min-h-14 w-full items-center gap-3 py-1.5 pl-4 pr-4" data-testid={`home-away-${key}`}>
+            <RowRule />
+            <b className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-5 text-ink">{label}</b>
+            {rec.gamesPlayed > 0 ? (
+              <span className="flex items-baseline gap-3">
+                <RecordFigures record={rec} className="text-[22px]" t={t} />
+                <GoalDiff diff={rec.goalDifference} t={t} />
+              </span>
+            ) : (
+              <span className="text-[13px] text-ink-3">{t('startScreen.dashNoGames', 'No games')}</span>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  const byId = new Map(teams.map((team) => [team.id, team]));
+  const rows = records
+    .map((r) => {
+      const team = r.teamId ? byId.get(r.teamId) : undefined;
+      const name = team?.label || r.fallbackName || t('startScreen.dashNoTeam', 'No team');
+      return { ...r, name, color: team?.color };
+    })
+    .sort((a, b) => b.gamesPlayed - a.gamesPlayed || a.name.localeCompare(b.name));
+
+  return (
+    <div className="s1-list p-0.5" data-testid="home-teams">
       <h3 className={`${SECTION_LABEL} flex min-h-11 items-center px-4 text-ink-3`}>
-        {t('startScreen.dashTopScorers', 'Top scorers')}
+        {t('startScreen.dashTeamsCard', 'Teams')}
       </h3>
-      {scorers.map((s, i) => (
-        <button
-          key={s.id ?? s.name}
-          type="button"
-          onClick={onOpenPlayer ? () => onOpenPlayer(s.id) : undefined}
-          disabled={!onOpenPlayer}
-          className={LIST_ROW}
-        >
-          <RowRule />
-          <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-white/[0.08] font-display text-[17px] font-bold italic leading-none text-ink-2">
-            {i + 1}
-          </span>
-          <b className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-5 text-ink">{s.name}</b>
-          <span className="flex items-baseline gap-1.5 whitespace-nowrap">
-            <HomeCount n={s.goals} className="text-[24px] leading-none text-ink" />
-            <span className="text-xs font-medium text-ink-3">{t('startScreen.dashGoalsWord', 'goals', { count: s.goals })}</span>
-          </span>
-        </button>
-      ))}
+      {rows.map((r) => {
+        const body = (
+          <>
+            <RowRule />
+            {/* Kit swatch, as in the teams list: the team's own colour, or an
+                empty outline so the names still line up. */}
+            <span
+              aria-hidden="true"
+              className="h-10 w-3.5 flex-none self-center rounded-[5px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.15)]"
+              style={r.color ? { backgroundColor: r.color } : undefined}
+              data-testid="team-row-swatch"
+            />
+            <span className="min-w-0 flex-1">
+              <span className="flex min-w-0 items-baseline justify-between gap-3">
+                <b className="min-w-0 truncate text-[15px] font-semibold leading-5 text-ink" data-testid="team-row-name">{r.name}</b>
+                <RecordFigures record={r} className="text-[22px]" t={t} />
+              </span>
+              <span className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+                {r.form.length > 0 ? <FormStrip form={r.form} t={t} testId="team-row-form" small /> : <span />}
+                <GoalDiff diff={r.goalDifference} t={t} />
+              </span>
+            </span>
+          </>
+        );
+        return onOpenTeam ? (
+          <button
+            key={r.teamId || 'legacy'}
+            type="button"
+            onClick={() => onOpenTeam(r.teamId)}
+            data-testid={`team-row-${r.teamId || 'legacy'}`}
+            className={`${LIST_ROW} py-2.5`}
+          >
+            {body}
+          </button>
+        ) : (
+          <div key={r.teamId || 'legacy'} data-testid={`team-row-${r.teamId || 'legacy'}`} className="relative flex min-h-14 w-full items-center gap-3 py-2.5 pl-3 pr-4">
+            {body}
+          </div>
+        );
+      })}
     </div>
   );
 }

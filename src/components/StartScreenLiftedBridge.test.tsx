@@ -16,11 +16,6 @@ jest.mock('@/hooks/useBasicHomeActions', () => ({
   useBasicHomeActions: () => ({ moveGameDate: jest.fn(), deleteGame: jest.fn(), addPlayers: jest.fn() }),
 }));
 
-// The player deep-link reads the roster to hand the stats surface a Player.
-jest.mock('@/utils/masterRosterManager', () => ({
-  getMasterRoster: jest.fn().mockResolvedValue([{ id: 'p1', name: 'Aho' }]),
-}));
-
 jest.mock('@/components/StartScreen', () => ({
   __esModule: true,
   default: (props: Record<string, (...args: unknown[]) => void>) => (
@@ -42,8 +37,8 @@ jest.mock('@/components/StartScreen', () => ({
       <button onClick={props.onGetStarted}>tap-get-started</button>
       <button onClick={() => props.onOpenAttendance?.('g1', 'start')}>tap-attendance</button>
       <button onClick={() => props.onAddCompetition?.('season')}>tap-add-season</button>
-      <button onClick={() => props.onViewPlayerStats?.('p1')}>tap-player-p1</button>
-      <button onClick={() => props.onViewPlayerStats?.('gone')}>tap-player-gone</button>
+      <button onClick={() => props.onViewTeamStats?.('t1')}>tap-team-t1</button>
+      <button onClick={() => props.onViewTeamStats?.('')}>tap-team-none</button>
     </div>
   ),
 }));
@@ -55,6 +50,7 @@ function Probe() {
     ctx.isNewGameSetupModalOpen && 'newGame',
     ctx.isPlaytimePlannerOpen && 'planner',
     ctx.isClubStatsOpen && `clubStats(${ctx.clubStatsInitialTab ?? 'default'})`,
+    ctx.isClubStatsOpen && ctx.clubStatsInitialTeamId && `team(${ctx.clubStatsInitialTeamId})`,
     ctx.isRosterModalOpen && 'roster',
     ctx.isTeamManagerOpen && 'teams',
     ctx.isPersonnelManagerOpen && 'personnel',
@@ -163,17 +159,17 @@ describe('StartScreenLiftedBridge (L.2)', () => {
     expect(screen.getByTestId('probe')).toHaveTextContent('seasons,kind(season),target({"create":true})');
   });
 
-  /** Tilastot's scorer tile and list open that player's stats. */
-  it('a player deep-link opens club stats on the player tab with that player', async () => {
+  /** Tilastot's "Joukkueet" rows open overall stats filtered to that team. */
+  it('a team row opens club stats on overall with that team filter', () => {
     renderBridge();
-    fireEvent.click(screen.getByText('tap-player-p1'));
-    expect(await screen.findByText(/player\(p1\)/)).toHaveTextContent('clubStats(player),player(p1)');
+    fireEvent.click(screen.getByText('tap-team-t1'));
+    expect(screen.getByTestId('probe')).toHaveTextContent('clubStats(overall),team(t1)');
   });
 
-  it('a player the roster no longer has still lands on the player tab', async () => {
+  it("the no-team row opens overall stats on the stats filter's 'legacy' choice", () => {
     renderBridge();
-    fireEvent.click(screen.getByText('tap-player-gone'));
-    expect(await screen.findByText('clubStats(player)')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('tap-team-none'));
+    expect(screen.getByTestId('probe')).toHaveTextContent('clubStats(overall),team(legacy)');
   });
 
   /** Onboarding v3: the next-game card's "Aloita ottelu" opens the attendance sheet in start mode. */

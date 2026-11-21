@@ -7,9 +7,8 @@
  * "Season" here always means the CLUB SEASON (Vuosi), derived from today's date
  * and the coach's configured season window - never one of the coach's Kaudet.
  */
-import type { SavedGamesCollection, AppState, Player, PlayerStatAdjustment, Season, Tournament } from '@/types';
+import type { SavedGamesCollection, AppState, Player, Season, Tournament } from '@/types';
 import type { CompetitionCardItem } from '@/components/CompetitionCard';
-import { adjustmentInScope } from './adjustmentScope';
 import { planDeparture, DEFAULT_ARRIVAL_BUFFER_MINUTES, type TravelPlan, type Coordinates } from './travelPlan';
 import { mapsDirectionsUrl } from '@/config/externalLinks';
 import { DEFAULT_GAME_ID } from '@/config/constants';
@@ -208,11 +207,17 @@ export interface HomeCounts {
   tournaments: number;
 }
 
-export interface HomeTopScorer {
-  /** The roster player's id - Tilastot opens that player's stats. */
-  id?: string;
-  name: string;
-  goals: number;
+/**
+ * One team's line on the Tilastot tab's "Joukkueet" card: its record over the
+ * same club-season games as the hero, and its latest results.
+ */
+export interface HomeTeamRecord extends TeamRecord {
+  /** The team's id, or '' for games that name no team ('legacy'). */
+  teamId: string;
+  /** Our side's name on the team's latest game - for a team no longer in the list. */
+  fallbackName: string;
+  /** The last five results, newest first. */
+  form: GameResult[];
 }
 
 /**
@@ -257,10 +262,13 @@ export interface HomeSummary {
   /** True once the entity data has been supplied (the enriched build), so the
       UI can tell "0 because empty" from "0 because not loaded yet". */
   countsReady: boolean;
-  /** Top scorer of the current club season - null when none / no season config. */
-  topScorer: HomeTopScorer | null;
-  /** The season's three best scorers, most goals first (Tilastot's scorer card). */
-  topScorers?: HomeTopScorer[];
+  /**
+   * The hero's games split per team, most games first (Tilastot's "Joukkueet"
+   * card). Empty when no season config or nothing played.
+   */
+  teamRecords?: HomeTeamRecord[];
+  /** The same games split home / away - the card's view when only one team played. */
+  homeAway?: { home: TeamRecord; away: TeamRecord } | null;
   /**
    * The active (not archived) leagues and tournaments, newest first - where
    * the Kilpailut rows' featured league / tournament comes from. Absent until
@@ -311,18 +319,15 @@ export interface HomeSummaryOptions {
   recentLimit?: number;
   /** The persisted current game id - drives the resume card. */
   currentGameId?: string | null;
-  /** Master roster - for the players count AND top-scorer name resolution. */
+  /** Master roster - for the players count. */
   roster?: Player[];
-  /** External games recorded by hand: their goals count toward the top scorer within
-   *  the same team and club-season scope, as in the stats view (review 5.8). */
-  adjustments?: PlayerStatAdjustment[];
   /**
    * Which team the dashboard is about: a team id, 'legacy' for games naming no
    * team, or 'all'.
    *
    * A coach with one team per competition was shown every team's games added
    * together - a goal difference summing squads that never played each other,
-   * and a top scorer who beat teammates he never had. The record has to say
+   * that no squad ever had. The record has to say
    * whose it is.
    */
   teamFilter?: string;
@@ -395,10 +400,10 @@ export function buildHomeSummary(
     };
   }
 
-  // --- Vuosi (current club season) record + top scorer ---
+  // --- Vuosi (current club season) record + per-team records ---
   let vuosi: HomeVuosi | null = null;
-  let topScorer: HomeTopScorer | null = null;
-  let topScorers: HomeTopScorer[] = [];
+  let teamRecords: HomeTeamRecord[] = [];
+  let homeAway: HomeSummary['homeAway'] = null;
   if (opts.hasConfiguredSeasonDates) {
     const gamesOfSeason = (seasonLabel: string): AppState[] =>
       filterGameIds(all, {
@@ -435,40 +440,30 @@ export function buildHomeSummary(
     }
     vuosi = { label, ...computeTeamRecord(seasonGames) };
 
-    // Top scorer over the same season set: tally goal events by scorer, but ONLY
-    // for scorers that resolve to a current roster player - so the tile can never
-    // show a blank name for a since-removed player (matches useGameStats, which
-    // also excludes unmatched scorer ids). Ties break by first-seen (stable).
-    if (opts.roster && opts.roster.length > 0) {
-      const nameById = new Map(opts.roster.map((p) => [p.id, p.nickname || p.name || '']));
-      const goalsById = new Map<string, number>();
-      for (const g of seasonGames) {
-        for (const ev of g.gameEvents ?? []) {
-          if (ev.type === 'goal' && ev.scorerId && nameById.has(ev.scorerId)) {
-            goalsById.set(ev.scorerId, (goalsById.get(ev.scorerId) ?? 0) + 1);
-          }
-        }
-      }
-      // External games in the same scope as the stats view's Overall tab for this club
-      // season and team (review 5.8): the tile used to count app games only, so a
-      // player with goals added by hand topped the stats view but not Home.
-      for (const adj of opts.adjustments ?? []) {
-        if (!nameById.has(adj.playerId) || !adj.goalsDelta) continue;
-        if (!adjustmentInScope(adj, {
-          teamFilter: opts.teamFilter ?? 'all',
-          clubSeason: label,
-          clubSeasonStartDate: opts.clubSeasonStartDate,
-          clubSeasonEndDate: opts.clubSeasonEndDate,
-        })) continue;
-        goalsById.set(adj.playerId, (goalsById.get(adj.playerId) ?? 0) + adj.goalsDelta);
-      }
-      // Most goals first; a stable sort keeps ties in first-seen order.
-      topScorers = Array.from(goalsById)
-        .filter(([id, n]) => n > 0 && !!nameById.get(id))
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([id, goals]) => ({ id, name: nameById.get(id) as string, goals }));
-      topScorer = topScorers[0] ?? null;
+    // Per team, over the SAME games as the record above (same season, team
+    // scope, played-only, no friendlies), so the rows add up to the hero.
+    const byTeam = new Map<string, AppState[]>();
+    for (const g of seasonGames) {
+      const key = g.teamId ?? '';
+      const list = byTeam.get(key);
+      if (list) list.push(g);
+      else byTeam.set(key, [g]);
+    }
+    teamRecords = Array.from(byTeam, ([teamId, teamGames]) => {
+      const newestFirst = [...teamGames].sort((a, b) => (b.gameDate || '').localeCompare(a.gameDate || ''));
+      return {
+        teamId,
+        fallbackName: newestFirst[0]?.teamName || '',
+        form: newestFirst.slice(0, 5).map((g) => resolveGameResult(g)),
+        ...computeTeamRecord(teamGames),
+      };
+    }).sort((a, b) => b.gamesPlayed - a.gamesPlayed || a.fallbackName.localeCompare(b.fallbackName));
+    if (seasonGames.length > 0) {
+      homeAway = {
+        // Split the way computeTeamRecord reads the score: 'home' or not.
+        home: computeTeamRecord(seasonGames.filter((g) => g.homeOrAway === 'home')),
+        away: computeTeamRecord(seasonGames.filter((g) => g.homeOrAway !== 'home')),
+      };
     }
   }
 
@@ -688,8 +683,8 @@ export function buildHomeSummary(
     upcomingList,
     counts,
     countsReady,
-    topScorer,
-    topScorers,
+    teamRecords,
+    homeAway,
     competitions: opts.seasons || opts.tournaments
       ? (() => {
           const seasons = activeCompetitions(opts.seasons ?? [], all, 'seasonId');

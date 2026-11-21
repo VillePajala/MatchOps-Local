@@ -107,72 +107,68 @@ describe('buildHomeSummary — counts + top scorer (phase 2)', () => {
     // Roster supplied (even empty) marks the enriched build - counts are real.
     expect(buildHomeSummary({ a: g() }, { ...opts, roster: [] as never }).countsReady).toBe(true);
   });
+});
 
-  it('picks the top scorer of the current club season (nickname preferred)', () => {
-    const games: SavedGamesCollection = {
-      m1: g({ gameDate: '2024-03-01', gameEvents: [
-        { id: 'e1', type: 'goal', time: 1, scorerId: 'p1' },
-        { id: 'e2', type: 'goal', time: 2, scorerId: 'p1' },
-        { id: 'e3', type: 'goal', time: 3, scorerId: 'p2' },
-      ] } as Partial<AppState>),
-      // out of season - must not count toward the scorer
-      old: g({ gameDate: '2023-03-01', gameEvents: [
-        { id: 'e4', type: 'goal', time: 1, scorerId: 'p2' },
-        { id: 'e5', type: 'goal', time: 2, scorerId: 'p2' },
-        { id: 'e6', type: 'goal', time: 3, scorerId: 'p2' },
-      ] } as Partial<AppState>),
-    };
-    const { topScorer } = buildHomeSummary(games, {
-      ...opts,
-      roster: [{ id: 'p1', name: 'Player One', nickname: 'Aho' }, { id: 'p2', name: 'Player Two' }] as never,
+/** Tilastot's "Joukkueet" card (owner, 2026-11-21): the hero's games per team. */
+describe('buildHomeSummary - team records', () => {
+  const games: SavedGamesCollection = {
+    a1: g({ teamId: 'teamA', teamName: 'Kotkat P12', gameDate: '2024-03-01', homeScore: 3, awayScore: 1 }),
+    a2: g({ teamId: 'teamA', teamName: 'Kotkat P12', gameDate: '2024-03-08', homeOrAway: 'away', homeScore: 2, awayScore: 2 }),
+    a3: g({ teamId: 'teamA', teamName: 'Kotkat P12', gameDate: '2024-03-15', homeScore: 0, awayScore: 1 }),
+    b1: g({ teamId: 'teamB', teamName: 'Kotkat T11', gameDate: '2024-03-02', homeScore: 4, awayScore: 0 }),
+    // Not in the record: a friendly, an unplayed fixture, last season.
+    bFriendly: g({ teamId: 'teamB', gameDate: '2024-03-03', isFriendly: true, homeScore: 9, awayScore: 0 }),
+    bUnplayed: g({ teamId: 'teamB', gameDate: '2024-04-03', isPlayed: false }),
+    bOld: g({ teamId: 'teamB', gameDate: '2023-03-03', homeScore: 5, awayScore: 0 }),
+  };
+
+  /** @critical */
+  it('gives each team its record, goal difference and last results, newest first', () => {
+    const { teamRecords } = buildHomeSummary(games, opts);
+    expect(teamRecords).toHaveLength(2);
+    const [a, b] = teamRecords!;
+    expect(a).toMatchObject({
+      teamId: 'teamA', fallbackName: 'Kotkat P12',
+      gamesPlayed: 3, wins: 1, ties: 1, losses: 1, goalsFor: 5, goalsAgainst: 4, goalDifference: 1,
+      form: ['L', 'D', 'W'],
     });
-    expect(topScorer).toEqual({ id: 'p1', name: 'Aho', goals: 2 });
+    expect(b).toMatchObject({ teamId: 'teamB', gamesPlayed: 1, wins: 1, goalDifference: 4, form: ['W'] });
   });
 
-  it('excludes goals from scorers not in the current roster (no blank-name tile)', () => {
-    const games: SavedGamesCollection = {
-      m1: g({ gameDate: '2024-03-01', gameEvents: [
-        { id: 'e1', type: 'goal', time: 1, scorerId: 'removed' }, // player since deleted
-        { id: 'e2', type: 'goal', time: 2, scorerId: 'removed' },
-        { id: 'e3', type: 'goal', time: 3, scorerId: 'p1' },
-      ] } as Partial<AppState>),
-    };
-    const { topScorer } = buildHomeSummary(games, { ...opts, roster: [{ id: 'p1', name: 'Aho' }] as never });
-    // "removed" has more goals but isn't on the roster - the resolvable p1 wins.
-    expect(topScorer).toEqual({ id: 'p1', name: 'Aho', goals: 1 });
+  it('adds up to the hero record', () => {
+    const { vuosi, teamRecords } = buildHomeSummary(games, opts);
+    expect(teamRecords!.reduce((n, r) => n + r.gamesPlayed, 0)).toBe(vuosi!.gamesPlayed);
   });
 
-  /**
-   * Review 5.8: external games' goals count toward the Home top scorer within the same
-   * team and club-season scope as the stats view - not other teams' or other years'.
-   * @critical
-   */
-  it('counts in-scope external games toward the top scorer', () => {
-    const games: SavedGamesCollection = {
-      m1: g({ teamId: 'teamA', gameDate: '2024-03-01', gameEvents: [
-        { id: 'e1', type: 'goal', time: 1, scorerId: 'p1' },
-        { id: 'e2', type: 'goal', time: 2, scorerId: 'p1' },
-      ] } as Partial<AppState>),
+  it('orders by most games, then name', () => {
+    const tied: SavedGamesCollection = {
+      z: g({ teamId: 'z', teamName: 'Zeta', gameDate: '2024-03-01' }),
+      a: g({ teamId: 'a', teamName: 'Alfa', gameDate: '2024-03-02' }),
+      m1: g({ teamId: 'm', teamName: 'Myy', gameDate: '2024-03-03' }),
+      m2: g({ teamId: 'm', teamName: 'Myy', gameDate: '2024-03-04' }),
     };
-    const ext = (id: string, over: Record<string, unknown>) => ({
-      id, playerId: 'p2', teamId: 'teamA', gameDate: '2024-04-01', gamesPlayedDelta: 1, goalsDelta: 3, assistsDelta: 0,
-      appliedAt: '2024-04-02T00:00:00Z', ...over,
-    }) as never;
-    const roster = [{ id: 'p1', name: 'Leevi' }, { id: 'p2', name: 'Onni' }] as never;
-    const inScope = buildHomeSummary(games, { ...opts, teamFilter: 'teamA', roster, adjustments: [ext('a', {})] });
-    expect(inScope.topScorer).toEqual({ id: 'p2', name: 'Onni', goals: 3 });
-    const otherTeam = buildHomeSummary(games, { ...opts, teamFilter: 'teamA', roster, adjustments: [ext('b', { teamId: 'teamB' })] });
-    expect(otherTeam.topScorer).toEqual({ id: 'p1', name: 'Leevi', goals: 2 });
-    const otherYear = buildHomeSummary(games, { ...opts, teamFilter: 'teamA', roster, adjustments: [ext('c', { gameDate: '2023-04-01' })] });
-    expect(otherYear.topScorer).toEqual({ id: 'p1', name: 'Leevi', goals: 2 });
+    expect(buildHomeSummary(tied, opts).teamRecords!.map((r) => r.teamId)).toEqual(['m', 'a', 'z']);
   });
 
-  it('top scorer is null without a roster or without season config', () => {
-    const games: SavedGamesCollection = {
-      m1: g({ gameDate: '2024-03-01', gameEvents: [{ id: 'e1', type: 'goal', time: 1, scorerId: 'p1' }] } as Partial<AppState>),
-    };
-    expect(buildHomeSummary(games, opts).topScorer).toBeNull(); // no roster
-    expect(buildHomeSummary(games, { ...opts, hasConfiguredSeasonDates: false, roster: [{ id: 'p1', name: 'A' }] as never }).topScorer).toBeNull();
+  it('keeps only the last five results', () => {
+    const many: SavedGamesCollection = Object.fromEntries(
+      Array.from({ length: 7 }, (_, i) => [`m${i}`, g({ teamId: 't', gameDate: `2024-03-0${i + 1}`, homeScore: i, awayScore: 0 })]),
+    );
+    // Newest (i = 6..2) all wins; the oldest (0-0) is cut off.
+    expect(buildHomeSummary(many, opts).teamRecords![0].form).toEqual(['W', 'W', 'W', 'W', 'W']);
+  });
+
+  it('follows the team scope: one team in scope, with its home / away split', () => {
+    const { teamRecords, homeAway } = buildHomeSummary(games, { ...opts, teamFilter: 'teamA' });
+    expect(teamRecords!.map((r) => r.teamId)).toEqual(['teamA']);
+    expect(homeAway!.home).toMatchObject({ gamesPlayed: 2, wins: 1, losses: 1, goalDifference: 1 });
+    expect(homeAway!.away).toMatchObject({ gamesPlayed: 1, ties: 1, goalDifference: 0 });
+  });
+
+  it('is empty without season config or games', () => {
+    expect(buildHomeSummary(games, { ...opts, hasConfiguredSeasonDates: false }).teamRecords).toEqual([]);
+    expect(buildHomeSummary({}, opts).teamRecords).toEqual([]);
+    expect(buildHomeSummary({}, opts).homeAway).toBeNull();
   });
 });
 
@@ -249,26 +245,6 @@ describe('buildHomeSummary - scoped to one team', () => {
     expect(recent).toHaveLength(2);
     expect(recent.every((r) => ['a1', 'a2'].includes(r.id))).toBe(true);
   });
-
-  /** A tile naming the wrong child is worse than a tile naming nobody. */
-  it('picks the top scorer from that team alone', () => {
-    const roster = [
-      { id: 'p1', name: 'Emma' },
-      { id: 'p2', name: 'Matti' },
-    ] as never;
-    const withGoals: SavedGamesCollection = {
-      a1: g({ teamId: 'teamA', gameDate: '2024-03-01', gameEvents: [
-        { id: 'e1', type: 'goal', time: 10, scorerId: 'p1' },
-      ] } as Partial<AppState>),
-      b1: g({ teamId: 'teamB', gameDate: '2024-03-02', gameEvents: [
-        { id: 'e2', type: 'goal', time: 10, scorerId: 'p2' },
-        { id: 'e3', type: 'goal', time: 20, scorerId: 'p2' },
-        { id: 'e4', type: 'goal', time: 30, scorerId: 'p2' },
-      ] } as Partial<AppState>),
-    };
-    const { topScorer } = buildHomeSummary(withGoals, { ...opts, teamFilter: 'teamA', roster });
-    expect(topScorer).toEqual({ id: 'p1', name: 'Emma', goals: 1 });
-  });
 });
 
 describe('buildHomeSummary — player count', () => {
@@ -334,40 +310,10 @@ describe('buildHomeSummary - record of a season with no games yet', () => {
     expect(vuosi!.label).toBe('2023');
     expect(vuosi!.wins).toBe(1);
   });
-
-  it('takes the top scorer from the season it shows', () => {
-    const roster = [{ id: 'p1', name: 'Aino' }] as never;
-    const games = {
-      a: g({ gameDate: '2026-03-01', homeScore: 1, awayScore: 0, gameEvents: [
-        { id: 'e1', type: 'goal', time: 5, scorerId: 'p1' },
-      ] } as Partial<AppState>),
-    };
-    expect(buildHomeSummary(games, { ...spanOpts, roster }).topScorer).toEqual({ id: 'p1', name: 'Aino', goals: 1 });
-  });
 });
 
-/** Tilastot's scorer card and Kilpailut's cards (owner, 2026-11-19). */
-describe('buildHomeSummary - top scorers and competitions', () => {
-  it('lists the three best scorers, most goals first, ties in first-seen order', () => {
-    const goal = (id: string, scorerId: string) => ({ id, type: 'goal' as const, time: 1, scorerId });
-    const games: SavedGamesCollection = {
-      m1: g({ gameDate: '2024-03-01', gameEvents: [
-        goal('e1', 'p1'), goal('e2', 'p2'), goal('e3', 'p2'), goal('e4', 'p3'), goal('e5', 'p4'), goal('e6', 'p2'),
-        goal('e7', 'p4'),
-      ] } as Partial<AppState>),
-    };
-    const roster = [
-      { id: 'p1', name: 'Aho' }, { id: 'p2', name: 'Virta' }, { id: 'p3', name: 'Lehto' }, { id: 'p4', name: 'Koski' },
-    ] as never;
-    const summary = buildHomeSummary(games, { ...opts, roster });
-    expect(summary.topScorers).toEqual([
-      { id: 'p2', name: 'Virta', goals: 3 },
-      { id: 'p4', name: 'Koski', goals: 2 },
-      { id: 'p1', name: 'Aho', goals: 1 },
-    ]);
-    expect(summary.topScorer).toEqual(summary.topScorers![0]);
-  });
-
+/** Kilpailut's cards (owner, 2026-11-19). */
+describe('buildHomeSummary - competitions', () => {
   it('builds the active leagues and tournaments with their matches and goals, newest first', () => {
     const games: SavedGamesCollection = {
       a: g({ seasonId: 's-new', gameEvents: [

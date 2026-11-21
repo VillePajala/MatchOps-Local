@@ -30,7 +30,6 @@ const base = (over: Partial<HomeSummary> = {}): HomeSummary => ({
     upcomingList: [],
   counts: { players: 0, teams: 0, personnel: 0, seasons: 0, tournaments: 0 },
   countsReady: true,
-  topScorer: null,
   ...over,
 });
 

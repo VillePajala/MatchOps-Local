@@ -735,7 +735,16 @@ describe('Home dashboard view (opt-in)', () => {
     upcomingList: [],
     counts: { players: 18, teams: 3, personnel: 2, seasons: 3, tournaments: 2 },
     countsReady: true,
-    topScorer: { name: 'Aho', goals: 6 },
+    teamRecords: [
+      // Deliberately out of order: the card sorts (most games, then name).
+      { teamId: 'tB', fallbackName: 'Kotkat T11', gamesPlayed: 3, wins: 1, ties: 1, losses: 1, goalsFor: 4, goalsAgainst: 6, goalDifference: -2, form: ['L' as const, 'D' as const, 'W' as const] },
+      { teamId: 'tA', fallbackName: 'Kotkat P12', gamesPlayed: 5, wins: 4, ties: 1, losses: 0, goalsFor: 14, goalsAgainst: 3, goalDifference: 11, form: ['W' as const, 'W' as const, 'D' as const, 'W' as const, 'W' as const] },
+      { teamId: 'tC', fallbackName: 'Ahmat', gamesPlayed: 3, wins: 0, ties: 0, losses: 3, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, form: ['L' as const, 'L' as const, 'L' as const] },
+    ],
+    homeAway: {
+      home: { gamesPlayed: 5, wins: 4, ties: 1, losses: 0, goalsFor: 12, goalsAgainst: 4, goalDifference: 8 },
+      away: { gamesPlayed: 3, wins: 1, ties: 1, losses: 1, goalsFor: 6, goalsAgainst: 5, goalDifference: 1 },
+    },
   };
   const dashProps = (over = {}) => ({
     onLoadGame: jest.fn(), onResumeGame: jest.fn(), onGetStarted: jest.fn(),
@@ -790,15 +799,19 @@ describe('Home dashboard view (opt-in)', () => {
    */
   it('offers the team choice on Stats only, and Stats reads the team-scoped summary', () => {
     const teams = [{ id: 'a', label: 'PePo Lila (Aluesarja)' }, { id: 'b', label: 'PePo Lila (Futsal)' }];
-    const scoped = { ...summary, vuosi: { ...summary.vuosi, gamesPlayed: 3, goalsFor: 4 }, topScorer: { name: 'Virta', goals: 2 }, topScorers: [{ name: 'Virta', goals: 2 }] };
+    const scoped = {
+      ...summary,
+      vuosi: { ...summary.vuosi, gamesPlayed: 3, goalsFor: 4 },
+      teamRecords: [{ ...summary.teamRecords[0], teamId: 'a' }],
+    };
     render(<StartScreen {...dashProps({ teamScopeOptions: teams, teamScope: 'a', homeStatsSummary: scoped })} />);
     expect(screen.queryByTestId('home-team-scope')).not.toBeInTheDocument();
-    expect(screen.queryByText(/Virta/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(screen.getByTestId('home-team-scope')).toBeInTheDocument();
-    expect(within(screen.getByTestId('top-scorers')).getByText('Virta')).toBeInTheDocument();
-    // The club-wide scorer must not leak into the team-scoped figures.
-    expect(screen.queryByText(/Aho/)).not.toBeInTheDocument();
+    expect(within(screen.getByTestId('stats-hero')).getByText('3')).toBeInTheDocument();
+    // One team in scope: the club-wide team rows must not leak in.
+    expect(screen.queryByTestId('home-teams')).not.toBeInTheDocument();
+    expect(screen.getByTestId('home-away')).toBeInTheDocument();
   });
 
   /**
@@ -820,27 +833,22 @@ describe('Home dashboard view (opt-in)', () => {
     expect(props.onManageTeams).toHaveBeenCalledTimes(1);
   });
 
-  it('Club card shows the season record and the top scorer', () => {
+  /** Owner, 2026-11-21: Home is about teams - no top scorer on the club card. */
+  it('Club card shows the season record and no top scorer', () => {
     render(<StartScreen {...dashProps()} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
     const season = screen.getByTestId('club-card-season');
     expect(season).toHaveTextContent('5-2-1');
-    expect(within(season).getByTestId('club-card-scorer')).toHaveTextContent('Top scorer Aho · 6');
+    expect(season).not.toHaveTextContent(/scorer/i);
     expect(within(screen.getByTestId('club-card')).getByText('Season 24/25')).toBeInTheDocument();
   });
 
-  it('Club card hides the record line before a game is played, and the scorer when there is none', () => {
-    const noGames = { ...summary, vuosi: { ...summary.vuosi, gamesPlayed: 0, wins: 0, ties: 0, losses: 0, goalDifference: 0 }, topScorer: null };
-    const { unmount } = render(<StartScreen {...dashProps({ homeSummary: noGames })} />);
+  it('Club card hides the record line before a game is played', () => {
+    const noGames = { ...summary, vuosi: { ...summary.vuosi, gamesPlayed: 0, wins: 0, ties: 0, losses: 0, goalDifference: 0 } };
+    render(<StartScreen {...dashProps({ homeSummary: noGames })} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
     expect(screen.getByTestId('club-card')).toBeInTheDocument();
     expect(screen.queryByTestId('club-card-season')).not.toBeInTheDocument();
-    unmount();
-
-    render(<StartScreen {...dashProps({ homeSummary: { ...summary, topScorer: null } })} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
-    expect(screen.getByTestId('club-card-season')).toHaveTextContent('5-2-1');
-    expect(screen.queryByTestId('club-card-scorer')).not.toBeInTheDocument();
   });
 
   it('Club card title is the club name every team shares, otherwise the neutral "Club"', () => {
@@ -888,14 +896,14 @@ describe('Home dashboard view (opt-in)', () => {
   });
 
   it('Tilastot tab shows one empty message, not zero tiles, before any game is played', () => {
-    const empty = { ...summary, vuosi: { ...summary.vuosi!, gamesPlayed: 0, wins: 0, ties: 0, losses: 0, goalDifference: 0 }, topScorer: null };
+    const empty = { ...summary, vuosi: { ...summary.vuosi!, gamesPlayed: 0, wins: 0, ties: 0, losses: 0, goalDifference: 0 }, teamRecords: [], homeAway: null };
     render(<StartScreen {...dashProps({ homeSummary: empty })} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(screen.getByTestId('home-stats-empty')).toBeInTheDocument();
     expect(screen.queryByText('Goal diff')).not.toBeInTheDocument();
   });
 
-  /** Owner, 2026-11-19: two wide tiles - the scorer lives in the scorers list. */
+  /** Owner, 2026-11-19: two wide tiles, no scorer tile. */
   it('Tilastot hero has two tiles, record and goal difference, and no scorer tile', () => {
     render(<StartScreen {...dashProps()} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
@@ -907,20 +915,11 @@ describe('Home dashboard view (opt-in)', () => {
     expect(within(hero).getByText('Goal diff')).toBeInTheDocument();
     expect(within(screen.getByTestId('stats-tile-goal-diff')).getByText('+9')).toBeInTheDocument();
     expect(screen.queryByTestId('stats-tile-scorer')).not.toBeInTheDocument();
-    expect(within(hero).queryByText(/Aho/)).not.toBeInTheDocument();
   });
 
-  /**
-   * Both tiles are a way in to overall stats; the scorers card opens that
-   * player - one scorer is enough for the card now there is no scorer tile.
-   * @critical
-   */
-  it('Tilastot tiles open overall stats; a single scorer still gets the scorers card', () => {
-    const scorer = { id: 'p-aho', name: 'Aho', goals: 6 };
-    const props = {
-      ...dashProps({ homeSummary: { ...summary, topScorer: scorer, topScorers: [scorer] } }),
-      onViewPlayerStats: jest.fn(),
-    };
+  /** @critical Both tiles are a way in to overall stats. */
+  it('Tilastot tiles open overall stats', () => {
+    const props = dashProps();
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     fireEvent.click(screen.getByTestId('stats-tile-record'));
@@ -928,51 +927,96 @@ describe('Home dashboard view (opt-in)', () => {
     fireEvent.click(screen.getByTestId('stats-tile-goal-diff'));
     expect(props.onViewStatsTab).toHaveBeenLastCalledWith('overall');
     expect(props.onViewStatsTab).toHaveBeenCalledTimes(2);
-    const list = screen.getByTestId('top-scorers');
-    const rows = within(list).getAllByRole('button');
-    expect(rows).toHaveLength(1);
-    fireEvent.click(rows[0]);
-    expect(props.onViewPlayerStats).toHaveBeenCalledWith('p-aho');
   });
 
-  it('Tilastot scorers card falls back to the player stats tab without a player id', () => {
-    const props = dashProps({ homeSummary: { ...summary, topScorers: [{ name: 'Aho', goals: 6 }] } });
-    render(<StartScreen {...props} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
-    fireEvent.click(within(screen.getByTestId('top-scorers')).getByRole('button'));
-    expect(props.onViewStatsTab).toHaveBeenCalledWith('player');
-  });
-
-  it('Tilastot has no scorers card when nobody has scored', () => {
-    render(<StartScreen {...dashProps({ homeSummary: { ...summary, topScorers: [] } })} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
-    expect(screen.queryByTestId('top-scorers')).not.toBeInTheDocument();
-  });
-
-  it('Tilastot lists the top three scorers, each opening that player', () => {
-    const scorers = [
-      { id: 'p1', name: 'Aho', goals: 6 },
-      { id: 'p2', name: 'Virta', goals: 4 },
-      { id: 'p3', name: 'Lehto', goals: 1 },
+  /**
+   * Owner, 2026-11-21: the scorers card is replaced by one row per team -
+   * record in the result colours, coloured goal difference, last five results.
+   * @critical
+   */
+  it('Tilastot "Teams" card: one row per team, most games first then name, each opening that team', () => {
+    const teams = [
+      { id: 'tA', label: 'Kotkat P12', color: '#1d4ed8' },
+      { id: 'tB', label: 'Kotkat T11' },
+      { id: 'tC', label: 'Ahmat' },
     ];
-    const props = {
-      ...dashProps({ homeSummary: { ...summary, topScorer: scorers[0], topScorers: scorers } }),
-      onViewPlayerStats: jest.fn(),
-    };
+    const props = { ...dashProps({ teamScopeOptions: teams }), onViewTeamStats: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
-    const list = screen.getByTestId('top-scorers');
-    expect(within(list).getByText('Top scorers')).toBeInTheDocument();
-    const rows = within(list).getAllByRole('button');
-    expect(rows).toHaveLength(3);
-    expect(rows[0]).toHaveTextContent('1Aho6goals');
-    expect(rows[1]).toHaveTextContent('2Virta4goals');
-    expect(rows[2]).toHaveTextContent('3Lehto1goals');
-    fireEvent.click(rows[1]);
-    expect(props.onViewPlayerStats).toHaveBeenCalledWith('p2');
+    const card = screen.getByTestId('home-teams');
+    expect(within(card).getByText('Teams')).toBeInTheDocument();
+    const rows = within(card).getAllByRole('button');
+    expect(rows.map((r) => within(r).getByTestId('team-row-name').textContent)).toEqual(['Kotkat P12', 'Ahmat', 'Kotkat T11']);
+
+    const [a, , b] = rows;
+    const record = within(a).getByTitle('Wins - draws - losses');
+    expect(record).toHaveTextContent('4-1-0');
+    expect(within(record).getByText('4')).toHaveClass('text-win');
+    expect(within(record).getByText('0')).toHaveClass('text-loss');
+    expect(within(within(a).getByTestId('team-row-goal-diff')).getByText('+11')).toHaveClass('text-win');
+    expect(within(within(b).getByTestId('team-row-goal-diff')).getByText('-2')).toHaveClass('text-loss');
+    expect(within(within(rows[1]).getByTestId('team-row-goal-diff')).getByText('0')).toHaveClass('text-ink-2');
+    // Last five, newest first, in the shared result disc colours.
+    const discs = within(a).getByTestId('team-row-form').querySelectorAll('[data-result]');
+    expect(Array.from(discs).map((d) => d.getAttribute('data-result'))).toEqual(['W', 'W', 'D', 'W', 'W']);
+    // The team's kit colour on its swatch; none -> the empty outline.
+    expect(within(a).getByTestId('team-row-swatch')).toHaveStyle({ backgroundColor: '#1d4ed8' });
+    expect(within(b).getByTestId('team-row-swatch').getAttribute('style')).toBeNull();
+
+    fireEvent.click(b);
+    expect(props.onViewTeamStats).toHaveBeenCalledWith('tB');
   });
 
-  /** Owner, 2026-11-19: three layers - hero, scorers, then ONE grouped list of links. */
+  it('Tilastot "Teams" rows fall back to the name on the games, and are not tappable without a handler', () => {
+    render(<StartScreen {...dashProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    const card = screen.getByTestId('home-teams');
+    expect(within(card).queryAllByRole('button')).toHaveLength(0);
+    expect(within(card).getAllByTestId('team-row-name').map((n) => n.textContent)).toEqual(['Kotkat P12', 'Ahmat', 'Kotkat T11']);
+  });
+
+  /** One team row would only repeat the hero: show its home / away split. */
+  it('Tilastot shows the home / away split instead when only one team has games', () => {
+    const one = { ...summary, teamRecords: [summary.teamRecords[1]] };
+    render(<StartScreen {...dashProps({ homeSummary: one, onViewTeamStats: jest.fn() })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.queryByTestId('home-teams')).not.toBeInTheDocument();
+    const card = screen.getByTestId('home-away');
+    expect(within(card).getByText('Home and away')).toBeInTheDocument();
+    expect(within(card).queryAllByRole('button')).toHaveLength(0);
+    const home = screen.getByTestId('home-away-home');
+    expect(home).toHaveTextContent('Home');
+    expect(within(home).getByTitle('Wins - draws - losses')).toHaveTextContent('4-1-0');
+    expect(within(home).getByText('+8')).toHaveClass('text-win');
+    const away = screen.getByTestId('home-away-away');
+    expect(away).toHaveTextContent('Away');
+    expect(within(away).getByTitle('Wins - draws - losses')).toHaveTextContent('1-1-1');
+    expect(within(away).getByText('+1')).toHaveClass('text-win');
+  });
+
+  it('Tilastot home / away: a side with no games says so', () => {
+    const one = {
+      ...summary,
+      teamRecords: [summary.teamRecords[1]],
+      homeAway: { ...summary.homeAway, away: { gamesPlayed: 0, wins: 0, ties: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0 } },
+    };
+    render(<StartScreen {...dashProps({ homeSummary: one })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.getByTestId('home-away-away')).toHaveTextContent('No games');
+  });
+
+  /** Owner, 2026-11-21: no top scorer anywhere on Home. */
+  it('no Home tab shows a top scorer', () => {
+    render(<StartScreen {...dashProps({ teamScopeOptions: [{ id: 'tA', label: 'Kotkat P12' }] })} />);
+    for (const tab of ['Games', 'Club', 'Competitions', 'Stats']) {
+      fireEvent.click(screen.getByRole('tab', { name: tab }));
+      expect(screen.queryByTestId('top-scorers')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('club-card-scorer')).not.toBeInTheDocument();
+      expect(screen.queryByText(/top scorer/i)).not.toBeInTheDocument();
+    }
+  });
+
+  /** Owner, 2026-11-19: three layers - hero, the team card, then ONE grouped list of links. */
   it('Tilastot stats views are one grouped list, with the add-to-stats row last', () => {
     const props = { ...dashProps(), onAddExternalGame: jest.fn() };
     render(<StartScreen {...props} />);
@@ -1081,7 +1125,8 @@ describe('Home dashboard view (opt-in)', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
     expect(screen.getByTitle('Wins - draws - losses')).toHaveTextContent('5-2-1');
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
-    expect(screen.getByTitle('Wins - draws - losses')).toHaveTextContent('5-2-1');
+    // The hero's record; the team rows below carry their own.
+    expect(within(screen.getByTestId('stats-hero')).getByTitle('Wins - draws - losses')).toHaveTextContent('5-2-1');
   });
 
   /**
@@ -1185,7 +1230,7 @@ describe('Home guide + empty-state guidance', () => {
     // dashboard renders for any coach with games, so a partial fixture crashes.
     resume: null, lastPlayed: null, vuosi: null, recent: [], upcoming: null, upcomingList: [],
     counts: { players: 0, teams: 0, personnel: 0, seasons: 0, tournaments: 0 },
-    countsReady: true, topScorer: null, playedCount: 0, ...over,
+    countsReady: true, playedCount: 0, ...over,
   });
 
   it('Team tab shows the add-players hint when the roster is empty', () => {
@@ -1233,7 +1278,6 @@ describe('Home guide + empty-state guidance', () => {
       upcomingList: [],
       counts: { players: 9, teams: 1, personnel: 0, seasons: 0, tournaments: 0 },
       countsReady: true,
-      topScorer: null,
       playedCount: 0,
     };
     const shellProps = () => ({
@@ -1297,7 +1341,6 @@ describe('Full layout next-match card: the game\'s plan', () => {
     upcomingList: [],
     counts: { players: 10, teams: 1, personnel: 0, seasons: 0, tournaments: 0 },
     countsReady: true,
-    topScorer: null,
   };
   const props = (over = {}) => ({
     onLoadGame: jest.fn(), onResumeGame: jest.fn(), onGetStarted: jest.fn(),

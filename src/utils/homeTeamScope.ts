@@ -25,6 +25,8 @@ export type HomeTeamScope = string;
 export interface HomeTeamScopeOption {
   id: string;
   label: string;
+  /** The team's kit colour, when set - the Tilastot "Joukkueet" card's swatch. */
+  color?: string;
 }
 
 /**
@@ -47,6 +49,7 @@ export function buildHomeTeamScopeOptions(
       futsalLabel: labels.futsal,
       seriesLabel: labels.level,
     }),
+    ...(team.color ? { color: team.color } : {}),
   }));
 }
 
