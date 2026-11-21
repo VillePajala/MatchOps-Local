@@ -3,6 +3,11 @@
   "releases": [
     {
       "date": "2026-11-21",
+      "en": ["Result letters are consistent everywhere: W, D, L."],
+      "fi": ["Tuloskirjaimet ovat nyt kaikkialla samat: V, T, H (voitto, tasapeli, häviö)."]
+    },
+    {
+      "date": "2026-11-21",
       "en": ["Home focuses on teams: the Statistics tab now shows each team's record, goal difference and recent results instead of top scorers."],
       "fi": ["Kotinäkymä keskittyy joukkueisiin: Tilastot-välilehti näyttää nyt jokaisen joukkueen saldon, maalieron ja viimeisimmät tulokset maalintekijöiden sijaan."]
     },

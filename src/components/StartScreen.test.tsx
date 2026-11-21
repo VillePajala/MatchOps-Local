@@ -1110,7 +1110,7 @@ describe('Home dashboard view (opt-in)', () => {
     expect(chips[0]).toHaveClass('text-loss');
     expect(chips[1]).toHaveClass('text-win');
     expect(chips[2]).toHaveClass('text-draw');
-    expect(form).toHaveAccessibleName('Recent form: L W T W W');
+    expect(form).toHaveAccessibleName('Recent form: L W D W W');
   });
 
   it('Kilpailut hero has no form strip before any result', () => {

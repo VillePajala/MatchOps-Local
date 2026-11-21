@@ -55,7 +55,7 @@ const ResultDisc: React.FC<{ result: 'W' | 'L' | 'D' | 'N/A' }> = ({ result }) =
       : result === 'L'
         ? t('export.lossShort', 'L')
         : result === 'D'
-          ? t('export.tieShort', 'T')
+          ? t('export.tieShort', 'D')
           : '–';
   return (
     <span

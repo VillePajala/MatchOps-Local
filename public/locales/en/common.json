@@ -2448,7 +2448,7 @@
     "tie": "Tie",
     "winShort": "W",
     "lossShort": "L",
-    "tieShort": "T",
+    "tieShort": "D",
     "none": "None",
     "sheetPlayerStats": "Player Stats",
     "sheetEvents": "Events",
