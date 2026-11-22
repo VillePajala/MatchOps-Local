@@ -20,7 +20,7 @@ import {
 import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
-import { normalizeGameThemes, type GameThemesCollection } from '@/pelitapa/gameThemeTypes';
+import { normalizeGameThemes, type GameThemesCollection } from '@/playbook/gameThemeTypes';
 import logger from "@/utils/logger";
 import i18n from "i18next";
 import { getDataStore, getAuthService } from '@/datastore/factory';
@@ -75,7 +75,7 @@ interface FullBackupData {
     [PLAYTIME_PLANS_KEY]?: PlaytimePlanCollection | null;
     [PLAYTIME_GAME_SUBS_KEY]?: GameSubsCollection | null;
     [PLAYTIME_PLAN_LINKS_KEY]?: PlanLinksCollection | null;
-    // Pelitapa game themes (per game, outside the game model like the planner's stores).
+    // Playbook game themes (per game, outside the game model like the planner's stores).
     [GAME_THEMES_KEY]?: GameThemesCollection | null;
   };
 }
@@ -826,7 +826,7 @@ async function restoreSnapshotEntities(
 }
 
 /**
- * Restore the Playing-Time Planner stores (and the Pelitapa game themes, kept
+ * Restore the Playing-Time Planner stores (and the Playbook game themes, kept
  * outside the game model the same way) through the DataStore, so the write
  * lands in the SAME database as everything else being restored (per-user when
  * signed in - the old raw storage write always hit the legacy shared DB).

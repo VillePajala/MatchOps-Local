@@ -92,13 +92,13 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
-// Pelitapa (account flag): off unless a test turns it on. The themes field is a
+// Playbook (account flag): off unless a test turns it on. The themes field is a
 // lazily loaded chunk in the app; here a stub that can pick one theme.
-let mockPelitapaOn = false;
+let mockPlaybookOn = false;
 jest.mock('@/contexts/AccountFeaturesProvider', () => ({
-  useFeatureEnabled: (feature: string) => feature === 'pelitapa' && mockPelitapaOn,
+  useFeatureEnabled: (feature: string) => feature === jest.requireActual<typeof import('@/playbook/feature')>('@/playbook/feature').PLAYBOOK_FEATURE && mockPlaybookOn,
 }));
-jest.mock('@/pelitapa/lazyEntryPoints', () => ({
+jest.mock('@/playbook/lazyEntryPoints', () => ({
   LazyGameThemeField: ({ value, onChange }: { value: unknown[]; onChange: (v: unknown[]) => void }) => (
     <button type="button" data-testid="stub-theme-field" onClick={() => onChange([{ playbookId: 'pb', conceptId: 'c1' }])}>
       {`themes:${value.length}`}
@@ -268,9 +268,9 @@ describe('NewGameSetupModal', () => {
     );
   });
 
-  describe('Pelitapa themes (account flag)', () => {
+  describe('Playbook themes (account flag)', () => {
     afterEach(() => {
-      mockPelitapaOn = false;
+      mockPlaybookOn = false;
     });
 
     test('flag off: no themes section, and onStart gets no themes argument', async () => {
@@ -287,7 +287,7 @@ describe('NewGameSetupModal', () => {
     });
 
     test('flag on: the picked themes are passed to onStart for the new game', async () => {
-      mockPelitapaOn = true;
+      mockPlaybookOn = true;
       renderModal();
       expect(screen.getByTestId('new-game-themes')).toBeInTheDocument();
       fireEvent.click(screen.getByTestId('stub-theme-field'));

@@ -19,7 +19,7 @@ import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
 import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
-import type { GameThemesCollection } from '@/pelitapa/gameThemeTypes';
+import type { GameThemesCollection } from '@/playbook/gameThemeTypes';
 import { getAuthService } from '@/datastore/factory';
 import { consumeAnonymousDataImportRequest } from '@/config/backendConfig';
 import { getSupabaseClient } from '@/datastore/supabase/client';
@@ -176,7 +176,7 @@ interface LocalDataSnapshot {
   playtimePlans: PlaytimePlanCollection;
   playtimePlanLinks: PlanLinksCollection;
   playtimeGameSubs: GameSubsCollection;
-  /** Pelitapa game themes (gameId -> themes). */
+  /** Playbook game themes (gameId -> themes). */
   gameThemes: GameThemesCollection;
 }
 
@@ -1645,7 +1645,7 @@ async function uploadToCloud(
       logger.error(`[MigrationService] Failed to upload playtime subs for ${gameId}:`, err);
     }
   }
-  // Pelitapa game themes, per game like the planned subs.
+  // Playbook game themes, per game like the planned subs.
   for (const [gameId, themes] of Object.entries(data.gameThemes ?? {})) {
     try {
       if (themes.length > 0) await cloudStore.setGameThemes(gameId, themes);

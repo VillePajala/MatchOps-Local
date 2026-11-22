@@ -48,7 +48,7 @@ import { isPlaytimePlan, PLAYTIME_PLAN_SCHEMA_VERSION } from '@/utils/playtimePl
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
-import { normalizeGameThemes, type GameTheme, type GameThemesCollection } from '@/pelitapa/gameThemeTypes';
+import { normalizeGameThemes, type GameTheme, type GameThemesCollection } from '@/playbook/gameThemeTypes';
 import type { Database, Json } from '@/types/supabase';
 import {
   AlreadyExistsError,
@@ -4204,7 +4204,7 @@ export class SupabaseDataStore implements DataStore {
     // forever (hydration would resurrect them on every sign-in).
     // Best-effort: the game itself is already gone, so a failure here only
     // leaves cleanup for the queued companion ops.
-    // Pelitapa game themes (066) follow the same rule.
+    // Playbook game themes (066) follow the same rule.
     for (const table of ['playtime_plan_links', 'playtime_game_subs', 'game_themes'] as const) {
       try {
         await this.withRetry(async () => {
@@ -5341,7 +5341,7 @@ export class SupabaseDataStore implements DataStore {
   }
 
   // ==========================================================================
-  // PELITAPA GAME THEMES (game_themes, migration 066)
+  // PLAYBOOK GAME THEMES (game_themes, migration 066)
   // One row per picked concept; a game's selection is replaced as a whole by
   // the set_game_themes RPC (one transaction - no half selection visible).
   // ==========================================================================

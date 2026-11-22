@@ -57,8 +57,9 @@ import { getStoredSetupAgeGroup, getStoredSetupFormat, useOnboardingUserId } fro
 import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useFeatureEnabled } from '@/contexts/AccountFeaturesProvider';
-import { LazyGameThemeField } from '@/pelitapa/lazyEntryPoints';
-import type { GameTheme } from '@/pelitapa/gameThemeTypes';
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
+import { LazyGameThemeField } from '@/playbook/lazyEntryPoints';
+import type { GameTheme } from '@/playbook/gameThemeTypes';
 import { HiOutlineMapPin, HiOutlineArrowPath } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
@@ -113,7 +114,7 @@ interface NewGameSetupModalProps {
     // Friendly / practice match: excluded from competitive stat totals by default.
     isFriendly?: boolean,
     formationPresetId?: string | null,
-    // Pelitapa themes picked in the form (flagged accounts), stored with the new game's id.
+    // Playbook themes picked in the form (flagged accounts), stored with the new game's id.
     gameThemes?: GameTheme[],
   ) => void;
   onCancel: () => void;
@@ -302,8 +303,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // (null = auto). Validated against the CURRENT squad size's presets at use,
   // so a stale pick from another size silently falls back to auto.
   const [formationPresetId, setFormationPresetId] = useState<string | null>(null);
-  // Pelitapa themes (flagged accounts): saved with the new game's id after it is created.
-  const pelitapaOn = useFeatureEnabled('pelitapa');
+  // Playbook themes (flagged accounts): saved with the new game's id after it is created.
+  const playbookOn = useFeatureEnabled(PLAYBOOK_FEATURE);
   const [gameThemes, setGameThemes] = useState<GameTheme[]>([]);
 
   // Gender state - optional, can be prefilled from season/tournament
@@ -1271,7 +1272,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // then the resolved default; "Automatic" falls back to the squad size.
       explicitPreset?.id ?? resolvedFormation?.presetId ?? getDefaultPresetIdForSize(preferredFormationSize),
       // Only when themes were picked (flagged accounts), so the call is unchanged otherwise.
-      ...(pelitapaOn && gameThemes.length > 0 ? ([gameThemes] as const) : ([] as const)),
+      ...(playbookOn && gameThemes.length > 0 ? ([gameThemes] as const) : ([] as const)),
     );
 
     // Modal will be closed by parent component after onStart
@@ -2058,11 +2059,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               </div>
             </section>
 
-            {/* Pelitapa themes for the match (accounts with the 'pelitapa' flag only). */}
-            {pelitapaOn && (
+            {/* Playbook themes for the match (accounts with the playbook flag only). */}
+            {playbookOn && (
               <section data-testid="new-game-themes">
                 <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>
-                  {t('pelitapa.themes.sectionTitle', 'Pelitapa themes')}
+                  {t('playbook.themes.sectionTitle', 'Playbook themes')}
                 </h3>
                 <div className={cardStyle}>
                   <LazyGameThemeField value={gameThemes} onChange={setGameThemes} />

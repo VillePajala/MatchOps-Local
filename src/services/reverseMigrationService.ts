@@ -18,8 +18,9 @@
 
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
-import type { GameThemesCollection } from '@/pelitapa/gameThemeTypes';
+import type { GameThemesCollection } from '@/playbook/gameThemeTypes';
 import { hasCachedAccountFeature } from '@/hooks/useAccountFeatures';
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
 import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import { SupabaseDataStore, type CloudEntityIds } from '@/datastore/SupabaseDataStore';
@@ -187,7 +188,7 @@ export interface ReverseMigrationCounts {
   playtimePlans?: number;
   playtimePlanLinks?: number;
   playtimeGameSubs?: number;
-  /** Games whose Pelitapa themes were written locally (optional, like the planner counts). */
+  /** Games whose Playbook themes were written locally (optional, like the planner counts). */
   gameThemes?: number;
   players: number;
   teams: number;
@@ -277,7 +278,7 @@ interface CloudDataSnapshot {
   playtimePlans: PlaytimePlanCollection;
   playtimePlanLinks: PlanLinksCollection;
   playtimeGameSubs: GameSubsCollection;
-  /** Pelitapa game themes (best effort: {} when they could not be read). */
+  /** Playbook game themes (best effort: {} when they could not be read). */
   gameThemes: GameThemesCollection;
 }
 
@@ -845,7 +846,7 @@ async function downloadFromCloud(
   const playtimePlanLinks = await cloudStore.getPlaytimePlanLinks();
   // Whole collection - subs can outlive their link (plan deleted, game kept).
   const playtimeGameSubs = await cloudStore.getAllPlaytimeGameSubs();
-  // Pelitapa game themes: best effort. A theme selection is quick to redo and
+  // Playbook game themes: best effort. A theme selection is quick to redo and
   // must never fail the whole switch to local (nor would an older database
   // without the game_themes table).
   let gameThemes: GameThemesCollection = {};
@@ -1091,7 +1092,7 @@ async function saveToLocal(
     logger.error('[ReverseMigration] Failed to save playtime plans:', err);
   }
 
-  // Pelitapa game themes (best effort, local edits win - same as the planned subs).
+  // Playbook game themes (best effort, local edits win - same as the planned subs).
   counts.gameThemes = await localStore.restoreGameThemes(data.gameThemes ?? {});
 
   return { counts, failures };
@@ -1857,7 +1858,7 @@ async function removeItemsDeletedElsewhere(
   await pass('games', 'game', Object.entries(games), ([id]) => id,
     ([, g]) => g.updatedAt, async ([id]) => {
       await localStore.deleteGame(id);
-      // Its Pelitapa themes go with it (the deleting device removed the cloud rows).
+      // Its Playbook themes go with it (the deleting device removed the cloud rows).
       await localStore.deleteGameThemes(id);
     });
   await pass('playerAdjustments', 'playerAdjustment', [...adjustments.values()].flat(), (a) => a.id,
@@ -2366,11 +2367,11 @@ export async function hydrateLocalFromCloud(
       logger.error('[ReverseMigrationService] ' + msg);
       errors.push(msg);
     }
-    // Pelitapa game themes: only for accounts with the 'pelitapa' flag (as last
+    // Playbook game themes: only for accounts with the playbook flag (PLAYBOOK_FEATURE) (as last
     // known on this device) - nobody else makes a request for them. Best effort:
     // NOT a hydration error (that would also hold back the deletion pass below
     // for a selection that is quick to redo); the next launch tries again.
-    if (hasCachedAccountFeature(userId, 'pelitapa')) {
+    if (hasCachedAccountFeature(userId, PLAYBOOK_FEATURE)) {
       try {
         counts.gameThemes = await localStore.restoreGameThemes(await cloudStore.getAllGameThemes());
       } catch (err) {

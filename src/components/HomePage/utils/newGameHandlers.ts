@@ -7,8 +7,8 @@ import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 import type { AppState, Player, SavedGamesCollection, GameType, Gender, Point } from '@/types';
 import { setGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
-import { setGameThemes } from '@/pelitapa/gameThemes';
-import type { GameTheme } from '@/pelitapa/gameThemeTypes';
+import { setGameThemes } from '@/playbook/gameThemes';
+import type { GameTheme } from '@/playbook/gameThemeTypes';
 import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
 import { buildAutoPlacement } from '@/utils/formations';
 import { withoutFairPlayCard } from '@/utils/playerStats';
@@ -86,7 +86,7 @@ export interface StartNewGameRequest {
    * edited plan can be re-applied to games already created from it.
    */
   prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[]; formationSnapPoints: Point[]; sourcePlanId?: string; sourcePlanGameId?: string };
-  /** Pelitapa themes picked in the form (flagged accounts); stored by the new game's id. */
+  /** Playbook themes picked in the form (flagged accounts); stored by the new game's id. */
   gameThemes?: GameTheme[];
 }
 
@@ -357,7 +357,7 @@ export async function buildAndPersistNewGame(
       }
     }
 
-    // Pelitapa themes picked in the form: their own store keyed by the game id
+    // Playbook themes picked in the form: their own store keyed by the game id
     // (never the game blob). Best-effort like the planner data above.
     if (gameThemes?.length) {
       try {

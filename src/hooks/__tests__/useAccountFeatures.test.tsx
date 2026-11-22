@@ -1,3 +1,4 @@
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import {
   useAccountFeatures,
@@ -41,37 +42,46 @@ describe('useAccountFeatures', () => {
     else process.env.NEXT_PUBLIC_INTERNAL_TESTING = originalFlag;
   });
 
+  /**
+   * The Playbook (Pelikirja) flag keeps its original stored value: accounts were
+   * granted 'pelitapa' with SQL and clients cache it.
+   * @critical
+   */
+  it('keeps the stored playbook flag value for compatibility', () => {
+    expect(PLAYBOOK_FEATURE).toBe('pelitapa');
+  });
+
   /** @critical the server decides; the client only reads its own enabled rows */
   it('turns a feature on once the server says so, and caches the answer per user', async () => {
-    mockEq.mockResolvedValue({ data: [{ feature: 'pelitapa' }], error: null });
+    mockEq.mockResolvedValue({ data: [{ feature: PLAYBOOK_FEATURE }], error: null });
     const { result } = renderHook(() => useAccountFeatures());
 
-    expect(result.current.hasFeature('pelitapa')).toBe(false); // default off, never blocks
-    await waitFor(() => expect(result.current.hasFeature('pelitapa')).toBe(true));
+    expect(result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(false); // default off, never blocks
+    await waitFor(() => expect(result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(true));
     expect(mockEq).toHaveBeenCalledWith('enabled', true);
-    expect(JSON.parse(localStorage.getItem(CACHE_KEY) as string)).toEqual(['pelitapa']);
+    expect(JSON.parse(localStorage.getItem(CACHE_KEY) as string)).toEqual([PLAYBOOK_FEATURE]);
   });
 
   it('stays off when the account has no rows', async () => {
     mockEq.mockResolvedValue({ data: [], error: null });
     const { result } = renderHook(() => useAccountFeatures());
     await waitFor(() => expect(mockEq).toHaveBeenCalled());
-    expect(result.current.hasFeature('pelitapa')).toBe(false);
+    expect(result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(false);
   });
 
   /** @edge-case offline arena: the last answer is used */
   it('uses the cached answer when the fetch fails', async () => {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(['pelitapa']));
+    localStorage.setItem(CACHE_KEY, JSON.stringify([PLAYBOOK_FEATURE]));
     mockEq.mockRejectedValue(new Error('Failed to fetch'));
     const { result } = renderHook(() => useAccountFeatures());
-    expect(result.current.hasFeature('pelitapa')).toBe(true);
+    expect(result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(true);
     await waitFor(() => expect(mockEq).toHaveBeenCalled());
-    expect(result.current.hasFeature('pelitapa')).toBe(true);
+    expect(result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(true);
   });
 
   /** @edge-case a query without this user's session would read as anon and return [] */
   it('does not clear a cached grant when there is no session for the user', async () => {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(['pelitapa']));
+    localStorage.setItem(CACHE_KEY, JSON.stringify([PLAYBOOK_FEATURE]));
     mockGetSession.mockResolvedValue({ data: { session: null } });
     const { result } = renderHook(() => useAccountFeatures());
     await waitFor(() => expect(mockGetSession).toHaveBeenCalled());
@@ -79,27 +89,27 @@ describe('useAccountFeatures', () => {
       await refreshAccountFeatures(USER);
     });
     expect(mockEq).not.toHaveBeenCalled();
-    expect(result.current.hasFeature('pelitapa')).toBe(true);
+    expect(result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(true);
   });
 
   it('a revoked feature switches off on the next refresh (app resume)', async () => {
-    mockEq.mockResolvedValueOnce({ data: [{ feature: 'pelitapa' }], error: null });
+    mockEq.mockResolvedValueOnce({ data: [{ feature: PLAYBOOK_FEATURE }], error: null });
     const { result } = renderHook(() => useAccountFeatures());
-    await waitFor(() => expect(result.current.hasFeature('pelitapa')).toBe(true));
+    await waitFor(() => expect(result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(true));
 
     mockEq.mockResolvedValueOnce({ data: [], error: null });
     act(() => {
       window.dispatchEvent(new CustomEvent('app-resume'));
     });
-    await waitFor(() => expect(result.current.hasFeature('pelitapa')).toBe(false));
+    await waitFor(() => expect(result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(false));
     expect(mockEq).toHaveBeenCalledTimes(2);
   });
 
   it('fetches once per session, however many components ask', async () => {
-    mockEq.mockResolvedValue({ data: [{ feature: 'pelitapa' }], error: null });
+    mockEq.mockResolvedValue({ data: [{ feature: PLAYBOOK_FEATURE }], error: null });
     const a = renderHook(() => useAccountFeatures());
     renderHook(() => useAccountFeatures());
-    await waitFor(() => expect(a.result.current.hasFeature('pelitapa')).toBe(true));
+    await waitFor(() => expect(a.result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(true));
     renderHook(() => useAccountFeatures());
     expect(mockEq).toHaveBeenCalledTimes(1);
   });
@@ -107,7 +117,7 @@ describe('useAccountFeatures', () => {
   it('local mode: off and no fetch', () => {
     mockAuth = { user: null, mode: 'local' };
     const { result } = renderHook(() => useAccountFeatures());
-    expect(result.current.hasFeature('pelitapa')).toBe(false);
+    expect(result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(false);
     expect(mockGetSession).not.toHaveBeenCalled();
   });
 
@@ -115,15 +125,15 @@ describe('useAccountFeatures', () => {
     process.env.NEXT_PUBLIC_INTERNAL_TESTING = 'true';
     mockAuth = { user: null, mode: 'local' };
     const { result } = renderHook(() => useAccountFeatures());
-    expect(result.current.hasFeature('pelitapa')).toBe(true);
+    expect(result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(true);
   });
 
   it("one account's cached grant does not leak to another account", () => {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(['pelitapa']));
+    localStorage.setItem(CACHE_KEY, JSON.stringify([PLAYBOOK_FEATURE]));
     mockEq.mockReturnValue(new Promise(() => {})); // never answers
     mockAuth = { user: { id: 'user-2', isAnonymous: false }, mode: 'cloud' };
     mockGetSession.mockResolvedValue(sessionFor('user-2'));
     const { result } = renderHook(() => useAccountFeatures());
-    expect(result.current.hasFeature('pelitapa')).toBe(false);
+    expect(result.current.hasFeature(PLAYBOOK_FEATURE)).toBe(false);
   });
 });

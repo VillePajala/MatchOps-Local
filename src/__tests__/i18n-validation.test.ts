@@ -754,11 +754,11 @@ describe('Translation File Validation', () => {
       // +6 / -4 Home "Joukkueet" card (dashTeamsCard, dashHomeAway, dashAtHome, dashAway,
       //     dashNoTeam, dashNoGames); top scorers removed (dashTopScorers, clubTopScorer,
       //     dashGoalsWord _one/_other) (2026-11-21). 3665.
-      // +13 Pelitapa (flagged): startScreen.rowPelitapa/clubPelitapaSub + 11 pelitapa.* (2026-11-21). 3678.
-      // +22 Pelitapa library: 16 pelitapa.library.* (steps _one/_other) + 6 pelitapa.library.phase.*. 3700.
-      // +1 pelitapa.focusMode (Pelitapa focus mode button). 3701.
-      // +21 Pelitapa game themes: pelitapa.nextTheme/themeOf + 19 pelitapa.themes.*. 3722.
-      // +18 pelitapa.previousTheme + 17 pelitapa.code.* (club code sheet). 3740.
+      // +13 Playbook (flagged): startScreen.rowPlaybook/clubPlaybookSub + 11 playbook.* (2026-11-21). 3678.
+      // +22 Playbook library: 16 playbook.library.* (steps _one/_other) + 6 playbook.library.phase.*. 3700.
+      // +1 playbook.focusMode (Playbook focus mode button). 3701.
+      // +21 Playbook game themes: playbook.nextTheme/themeOf + 19 playbook.themes.*. 3722.
+      // +18 playbook.previousTheme + 17 playbook.code.* (club code sheet). 3740.
       expect(enKeys.length).toBe(3740);
     });
 
@@ -975,9 +975,9 @@ describe('Translation File Validation', () => {
       // +1 playerStats.goalsAssistsShort (match log G+A figure). 3657.
       // +8 / -2 league & tournament cards (record line, starts-in chip). 3663.
       // +6 / -4 Home "Joukkueet" card; top scorers removed. 3665.
-      // +22 Pelitapa library. 3700.
-      // +1 Pelitapa focus mode. 3701.
-      // +21 Pelitapa game themes (see EN). 3722.
+      // +22 Playbook library. 3700.
+      // +1 Playbook focus mode. 3701.
+      // +21 Playbook game themes (see EN). 3722.
       // +18 club code sheet (see EN). 3740.
       expect(fiKeys.length).toBe(3740);
     });

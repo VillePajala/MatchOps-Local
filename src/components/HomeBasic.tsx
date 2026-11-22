@@ -79,7 +79,7 @@ export interface HomeBasicProps {
   onViewStats?: () => void;
   /** "Vaihda koko näkymään". */
   onSwitchToFull?: () => void;
-  /** The next game's Pelitapa themes row (flagged accounts only), by game id. */
+  /** The next game's Playbook themes row (flagged accounts only), by game id. */
   renderNextGameTheme?: (gameId: string) => React.ReactNode;
   locale: string;
   t: TFunction;

@@ -1429,8 +1429,8 @@
     "clubTrainingSub": "Your pre-game warm-up",
     "clubRulesSub": "Game and league rules",
     "clubMaterialsSub": "Finnish FA coaching materials",
-    "rowPelitapa": "Playing style",
-    "clubPelitapaSub": "Animated game situations"
+    "rowPlaybook": "Playbook",
+    "clubPlaybookSub": "Animated game situations"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -4230,7 +4230,7 @@
     "noHealthData": "Do not record health information.",
     "firstNameEnough": "A first name or nickname is enough."
   },
-  "pelitapa": {
+  "playbook": {
     "close": "Close",
     "previous": "Previous step",
     "previousTheme": "Previous theme",
@@ -4244,7 +4244,7 @@
     "noName": "No name",
     "invalidConcept": "This concept cannot be shown.",
     "library": {
-      "title": "Playing style",
+      "title": "Playbook",
       "back": "Back",
       "searchPlaceholder": "Search situations…",
       "searchLabel": "Search situations",
@@ -4252,11 +4252,11 @@
       "all": "All",
       "formats": "Format",
       "phases": "Phase of play",
-      "playbooks": "Playbook",
+      "playbooks": "Collection",
       "builtInName": "MatchOps examples",
       "steps_one": "{{count}} step",
       "steps_other": "{{count}} steps",
-      "loading": "Loading your club's playbooks…",
+      "loading": "Loading your club's collections…",
       "offline": "No connection. Showing what's saved on this device.",
       "noResults": "No situations match.",
       "showAll": "Show all",
@@ -4273,7 +4273,7 @@
     "nextTheme": "Next theme",
     "themeOf": "Theme {{n}}/{{total}}",
     "themes": {
-      "sectionTitle": "Pelitapa themes",
+      "sectionTitle": "Playbook themes",
       "choose": "Choose a theme",
       "chooseMany": "Choose themes",
       "edit": "Change themes",

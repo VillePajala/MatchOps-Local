@@ -1,3 +1,4 @@
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
 import React from 'react';
 import { render, screen, fireEvent, within, cleanup, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -24,11 +25,11 @@ const mockHasFeature = jest.fn((_feature: string) => false);
 jest.mock('@/hooks/useAccountFeatures', () => ({
   useAccountFeatures: () => ({ hasFeature: mockHasFeature }),
 }));
-jest.mock('@/pelitapa/PelitapaLibrary', () => ({
+jest.mock('@/playbook/PlaybookLibrary', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="pelitapa-stub">
-      <button onClick={onClose}>close-pelitapa</button>
+    <div data-testid="playbook-stub">
+      <button onClick={onClose}>close-playbook</button>
     </div>
   ),
 }));
@@ -611,29 +612,29 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
   });
 
   /**
-   * Pelitapa is hidden behind a server-controlled account flag: without it the
+   * Playbook is hidden behind a server-controlled account flag: without it the
    * club panel is exactly as before.
    * @critical
    */
-  it('Club panel: no Pelitapa row without the account flag', () => {
+  it('Club panel: no Playbook row without the account flag', () => {
     mockHasFeature.mockReturnValue(false);
     render(<StartScreen {...shellProps()} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
-    expect(screen.queryByTestId('club-pelitapa')).not.toBeInTheDocument();
-    expect(mockHasFeature).toHaveBeenCalledWith('pelitapa');
+    expect(screen.queryByTestId('club-playbook')).not.toBeInTheDocument();
+    expect(mockHasFeature).toHaveBeenCalledWith(PLAYBOOK_FEATURE);
   });
 
-  it('Club panel: with the flag, "Pelitapa" opens the library', async () => {
+  it('Club panel: with the flag, "Playbook" opens the library', async () => {
     mockHasFeature.mockReturnValue(true);
     render(<StartScreen {...shellProps()} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
-    expect(screen.queryByTestId('pelitapa-stub')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('playbook-stub')).not.toBeInTheDocument();
     await act(async () => {
-      fireEvent.click(screen.getByTestId('club-pelitapa'));
+      fireEvent.click(screen.getByTestId('club-playbook'));
     });
-    expect(await screen.findByTestId('pelitapa-stub')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('close-pelitapa'));
-    await waitFor(() => expect(screen.queryByTestId('pelitapa-stub')).not.toBeInTheDocument());
+    expect(await screen.findByTestId('playbook-stub')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('close-playbook'));
+    await waitFor(() => expect(screen.queryByTestId('playbook-stub')).not.toBeInTheDocument());
     mockHasFeature.mockReturnValue(false);
   });
 

@@ -7,7 +7,7 @@ import { deleteGameWithCleanup } from '../deleteGame';
 import { deleteGame } from '@/utils/savedGames';
 import { deleteGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { deletePlanLink } from '@/utils/playtimePlanner/planLinks';
-import { deleteGameThemes } from '@/pelitapa/gameThemes';
+import { deleteGameThemes } from '@/playbook/gameThemes';
 import { deleteClipsForGame } from '@/utils/audioClipStore';
 import { clearTimerAnchor } from '@/utils/timerAnchor';
 
@@ -15,7 +15,7 @@ jest.mock('@/utils/savedGames', () => ({ deleteGame: jest.fn() }));
 jest.mock('@/utils/timerAnchor', () => ({ clearTimerAnchor: jest.fn() }));
 jest.mock('@/utils/playtimePlanner/gameSubs', () => ({ deleteGameSubs: jest.fn().mockResolvedValue(true) }));
 jest.mock('@/utils/playtimePlanner/planLinks', () => ({ deletePlanLink: jest.fn().mockResolvedValue(true) }));
-jest.mock('@/pelitapa/gameThemes', () => ({ deleteGameThemes: jest.fn().mockResolvedValue(true) }));
+jest.mock('@/playbook/gameThemes', () => ({ deleteGameThemes: jest.fn().mockResolvedValue(true) }));
 jest.mock('@/utils/audioClipStore', () => ({ deleteClipsForGame: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('@/utils/logger', () => ({
   __esModule: true,
@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 
 describe('deleteGameWithCleanup', () => {
-  it('removes the game\'s planner data, Pelitapa themes and clips with it', async () => {
+  it('removes the game\'s planner data, Playbook themes and clips with it', async () => {
     (deleteGame as jest.Mock).mockResolvedValue('game_1');
     await expect(deleteGameWithCleanup('game_1', 'user_1')).resolves.toBe('game_1');
     expect(clearTimerAnchor).toHaveBeenCalledWith('game_1');

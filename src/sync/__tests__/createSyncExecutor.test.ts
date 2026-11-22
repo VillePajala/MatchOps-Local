@@ -851,7 +851,7 @@ describe('createSyncExecutor', () => {
     });
   });
 
-  describe('Pelitapa game themes', () => {
+  describe('Playbook game themes', () => {
     it('pushes a game\'s themes cleaned (repeats and malformed entries dropped), in order', async () => {
       await executor(createOperation({
         entityType: 'gameThemes',

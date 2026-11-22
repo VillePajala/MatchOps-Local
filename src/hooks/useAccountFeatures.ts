@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { useAuth } from '@/contexts/AuthProvider';
 import logger from '@/utils/logger';
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
 
 /**
  * Per-account feature flags the SERVER controls (Supabase `account_features`,
  * migration 064). A coach cannot switch one on: the table is read-only for
- * clients and a feature is granted with SQL. The first flag is 'pelitapa'.
+ * clients and a feature is granted with SQL. The first flag is the Playbook
+ * (Pelikirja) feature, PLAYBOOK_FEATURE (its stored value stays 'pelitapa';
+ * see src/playbook/feature.ts).
  *
  * - Cloud mode, signed in: the account's rows are fetched in the background
  *   once per session after sign-in, and again when the app returns from the
@@ -18,7 +21,7 @@ import logger from '@/utils/logger';
  *   the cached answer is used).
  */
 
-export type AccountFeature = 'pelitapa';
+export type AccountFeature = typeof PLAYBOOK_FEATURE;
 
 const CACHE_PREFIX = 'matchops_account_features_';
 const EMPTY: ReadonlySet<string> = new Set();
