@@ -3,7 +3,8 @@
  * + every sub row) in one action. The Timo/Tapio/Sauli scenarios from the
  * feature request are pinned verbatim.
  */
-import { placePlayerInSlot, swapPlayersInGame } from './swap';
+import { giveStintToPlayer, placePlayerInSlot, swapPlayersInGame } from './swap';
+import { findSimultaneityConflicts } from './conflicts';
 import { toEngineGame } from './adapter';
 import { computeSlotSegments } from './minutes';
 import type { PlanGame } from './types';
@@ -161,5 +162,80 @@ describe('placePlayerInSlot', () => {
     const game = repro();
     expect(placePlayerInSlot(game, 's0', 'otso')).toBe(game);
     expect(placePlayerInSlot(game, 's0', null).startingSlots.find((s) => s.slotId === 's0')?.playerId).toBeNull();
+  });
+});
+
+describe('giveStintToPlayer (a planned change handed to ANY player)', () => {
+  // Otso starts #1 (s0), Aatos starts #2 (s1); at 20' Eino is planned on for Otso.
+  const game = (subs: PlanGame['subs'] = [{ id: 'x1', slotId: 's0', timeSeconds: 20 * 60, inPlayerId: 'eino' }]) =>
+    baseGame({
+      startingSlots: [
+        { slotId: 'gk', playerId: 'gk1' },
+        { slotId: 's0', playerId: 'otso' },
+        { slotId: 's1', playerId: 'aatos' },
+      ],
+      subs,
+    });
+  const at = (g: PlanGame, slotId: string, minute: number) =>
+    computeSlotSegments(toEngineGame(g), slotId).find(
+      (seg) => seg.startSeconds <= minute * 60 && minute * 60 < seg.endSeconds,
+    )?.playerId ?? null;
+
+  it('a bench player: only the stint changes', () => {
+    const out = giveStintToPlayer(game(), 'x1', 'kai');
+    expect(out.subs).toEqual([{ id: 'x1', slotId: 's0', timeSeconds: 1200, inPlayerId: 'kai' }]);
+    expect(out.startingSlots).toEqual(game().startingSlots);
+  });
+
+  it('a player still on elsewhere MOVES at that minute; the planned incomer takes their old position', () => {
+    const out = giveStintToPlayer(game(), 'x1', 'aatos');
+    // Aatos plays #2 until 20', then #1. Eino still comes on at 20', in #2.
+    expect(at(out, 's1', 10)).toBe('aatos');
+    expect(at(out, 's0', 25)).toBe('aatos');
+    expect(at(out, 's1', 25)).toBe('eino');
+    expect(at(out, 's0', 10)).toBe('otso');
+    // Not a whole-game swap: kickoff is untouched, and nothing overlaps.
+    expect(out.startingSlots).toEqual(game().startingSlots);
+    expect(findSimultaneityConflicts(out)).toEqual([]);
+  });
+
+  it('a stint that brought nobody on leaves the vacated position open', () => {
+    const out = giveStintToPlayer(
+      game([{ id: 'x1', slotId: 's0', timeSeconds: 20 * 60, inPlayerId: null }]),
+      'x1',
+      'aatos',
+    );
+    expect(at(out, 's0', 25)).toBe('aatos');
+    expect(at(out, 's1', 25)).toBeNull();
+    expect(findSimultaneityConflicts(out)).toEqual([]);
+  });
+
+  it('a starter who already came off re-enters with no other change', () => {
+    // Aatos goes off at 10' (Kai on); at 20' he takes the #1 stint.
+    const subs = [
+      { id: 'x0', slotId: 's1', timeSeconds: 10 * 60, inPlayerId: 'kai' },
+      { id: 'x1', slotId: 's0', timeSeconds: 20 * 60, inPlayerId: 'eino' },
+    ];
+    const out = giveStintToPlayer(game(subs), 'x1', 'aatos');
+    expect(out.subs).toHaveLength(2);
+    expect(at(out, 's0', 25)).toBe('aatos');
+    expect(at(out, 's1', 25)).toBe('kai');
+  });
+
+  it('a clash that starts later is not a move - left to the conflict banner', () => {
+    // Kai is due on in #2 at 30' while he would still hold #1 from 20'.
+    const subs = [
+      { id: 'x1', slotId: 's0', timeSeconds: 20 * 60, inPlayerId: 'eino' },
+      { id: 'x2', slotId: 's1', timeSeconds: 30 * 60, inPlayerId: 'kai' },
+    ];
+    const out = giveStintToPlayer(game(subs), 'x1', 'kai');
+    expect(out.subs).toHaveLength(2);
+    expect(findSimultaneityConflicts(out).map((c) => c.playerId)).toEqual(['kai']);
+  });
+
+  it('the same player or an unknown stint is a no-op', () => {
+    const g = game();
+    expect(giveStintToPlayer(g, 'x1', 'eino')).toBe(g);
+    expect(giveStintToPlayer(g, 'nope', 'kai')).toBe(g);
   });
 });

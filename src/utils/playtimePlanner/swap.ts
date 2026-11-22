@@ -21,6 +21,7 @@ import type { PlanGame } from './types';
 import { assignPlayerToSlot, ensureStartingSlots } from './lineup';
 import { toEngineGame } from './adapter';
 import { computeSlotSegments } from './minutes';
+import { generateSubId } from './subs';
 
 /** Swap every appearance of two players within one game (pure). */
 export function swapPlayersInGame(game: PlanGame, aId: string, bId: string): PlanGame {
@@ -76,4 +77,43 @@ function withoutOverlaps(game: PlanGame, playerId: string): PlanGame {
     current = { ...current, subs: current.subs.filter((s) => s.id !== row.id) };
   }
   return current;
+}
+
+/**
+ * Give one planned stint (a sub row: "at T, `playerId` comes into this slot")
+ * to ANY player - a true bench player, or someone already in this game (a
+ * starter re-entering after coming off, or a player moving position). Unlike
+ * swapPlayersInGame nothing else about either player's game changes.
+ *
+ * A player cannot be in two slots at once, so when the new player is still ON
+ * in another position at T, they MOVE: their stint there ends at T. Whoever
+ * the stint used to bring on takes the vacated position at T instead (the
+ * planned incomer still comes on, just one position over - the team keeps its
+ * numbers and nobody's planned minutes silently vanish). A stint that brought
+ * nobody on leaves the vacated position open ("?") for the coach to fill.
+ *
+ * A clash that starts LATER (the player is due on elsewhere while still here)
+ * is not a move at T; it is left to the conflict banner (conflicts.ts).
+ */
+export function giveStintToPlayer(game: PlanGame, subId: string, playerId: string): PlanGame {
+  const stint = game.subs.find((s) => s.id === subId);
+  if (!stint || stint.inPlayerId === playerId) return game;
+  const at = stint.timeSeconds;
+  const next: PlanGame = {
+    ...game,
+    subs: game.subs.map((s) => (s.id === subId ? { ...s, inPlayerId: playerId } : s)),
+  };
+  const engine = toEngineGame(next);
+  const onElsewhere = engine.slots
+    .filter((slot) => slot.slotId !== stint.slotId)
+    .flatMap((slot) => computeSlotSegments(engine, slot.slotId))
+    .find((seg) => seg.playerId === playerId && seg.startSeconds < at && at < seg.endSeconds);
+  if (!onElsewhere) return next;
+  return {
+    ...next,
+    subs: [
+      ...next.subs,
+      { id: generateSubId(), slotId: onElsewhere.slotId, timeSeconds: at, inPlayerId: stint.inPlayerId },
+    ],
+  };
 }

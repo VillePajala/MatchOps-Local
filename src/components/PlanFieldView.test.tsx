@@ -209,7 +209,7 @@ describe('PlanFieldView direct manipulation (tap-tap swap / move / clear)', () =
     expect(onSwapPlayers).toHaveBeenCalledWith('p1', 'p2');
   });
 
-  it('tap a pill STINT, tap a disc: the stint player swaps whole-game', () => {
+  it('tap a pill STINT, tap a disc with no stint handler wired: falls back to the whole-game swap', () => {
     const onSwapPlayers = jest.fn();
     const game = {
       ...makeGame([
@@ -290,6 +290,100 @@ describe('PlanFieldView direct manipulation (tap-tap swap / move / clear)', () =
     fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
     fireEvent.click(screen.getByRole('button', { name: /^Jo/ }));
     expect(onSetSubPlayer).toHaveBeenCalledWith('x1', 'p3');
+  });
+
+  describe('a selected stint can go to ANY player (owner report: not just the bench)', () => {
+    // Alex starts in goal, Sam comes on for him at 12'; Jo starts #1.
+    const stintGame = () => ({
+      ...makeGame([
+        { slotId: 'gk', playerId: 'p1' },
+        { slotId: 's0', playerId: 'p3' },
+      ]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    });
+
+    it('lists players already in this game under their own label, after the bench', () => {
+      render(
+        <PlanFieldView game={stintGame()} players={players} onAssign={jest.fn()} onSetSubPlayer={jest.fn()} />,
+      );
+      // Without a stint selected the strip is the plain bench (no starters).
+      expect(screen.queryByText('Already in this game')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+      expect(screen.getByText('Already in this game')).toBeInTheDocument();
+      const inGame = screen.getByTestId('plan-stint-in-game');
+      // Jo (starter elsewhere) is offered; Alex (who goes off for this change)
+      // and Sam (the stint's own player) are not - both would be no-ops.
+      expect(inGame).toHaveTextContent('Jo');
+      expect(inGame).not.toHaveTextContent('Alex');
+      expect(inGame).not.toHaveTextContent('Sam');
+      // True bench players still come first, outside the in-game group.
+      expect(screen.getByRole('button', { name: /^Max/ })).toBeInTheDocument();
+      expect(inGame).not.toHaveTextContent('Max');
+    });
+
+    it('excludes absentees from both groups', () => {
+      const game = { ...stintGame(), absentIds: ['p3', 'p4'] };
+      render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} onSetSubPlayer={jest.fn()} />);
+      fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+      expect(screen.queryByText('Already in this game')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Max/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Kai/ })).toBeInTheDocument();
+    });
+
+    it('tapping an in-game player sets the stint - no whole-game swap', () => {
+      const onSetSubPlayer = jest.fn();
+      const onSwapPlayers = jest.fn();
+      render(
+        <PlanFieldView
+          game={stintGame()}
+          players={players}
+          onAssign={jest.fn()}
+          onSetSubPlayer={onSetSubPlayer}
+          onSwapPlayers={onSwapPlayers}
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+      const inGame = screen.getByTestId('plan-stint-in-game');
+      fireEvent.click(inGame.querySelector('button') as HTMLButtonElement);
+      expect(onSetSubPlayer).toHaveBeenCalledWith('x1', 'p3');
+      expect(onSwapPlayers).not.toHaveBeenCalled();
+    });
+
+    it('tapping a player disc on the field sets the stint - no whole-game swap', () => {
+      const onSetSubPlayer = jest.fn();
+      const onSwapPlayers = jest.fn();
+      render(
+        <PlanFieldView
+          game={stintGame()}
+          players={players}
+          onAssign={jest.fn()}
+          onSetSubPlayer={onSetSubPlayer}
+          onSwapPlayers={onSwapPlayers}
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+      fireEvent.click(screen.getByRole('button', { name: '#1: Jo' }));
+      expect(onSetSubPlayer).toHaveBeenCalledWith('x1', 'p3');
+      expect(onSwapPlayers).not.toHaveBeenCalled();
+    });
+
+    it('a kickoff slot selected, then another starter: still the two-starters swap', () => {
+      const onSetSubPlayer = jest.fn();
+      const onSwapPlayers = jest.fn();
+      render(
+        <PlanFieldView
+          game={stintGame()}
+          players={players}
+          onAssign={jest.fn()}
+          onSetSubPlayer={onSetSubPlayer}
+          onSwapPlayers={onSwapPlayers}
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
+      fireEvent.click(screen.getByRole('button', { name: '#1: Jo' }));
+      expect(onSwapPlayers).toHaveBeenCalledWith('p1', 'p3');
+      expect(onSetSubPlayer).not.toHaveBeenCalled();
+    });
   });
 
   it('Sub… is reachable from a selected STINT segment (grow an already-subbed pill)', () => {
