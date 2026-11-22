@@ -28,7 +28,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { getPlan, savePlan } from '@/utils/playtimePlanner/storage';
 import { getPlanLink } from '@/utils/playtimePlanner/planLinks';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
-import { placePlayerInSlot, swapPlayersInGame } from '@/utils/playtimePlanner/swap';
+import { giveStintToPlayer, placePlayerInSlot, swapPlayersInGame } from '@/utils/playtimePlanner/swap';
 import { ensureStartingSlots, getGameSlots } from '@/utils/playtimePlanner/lineup';
 import { computePlanMinutes } from '@/utils/playtimePlanner/minutes';
 import { toEnginePlan } from '@/utils/playtimePlanner/adapter';
@@ -219,6 +219,11 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
   // A bench player tapped onto a position takes that player's WHOLE game (a
   // swap), so a substitute never ends up in two places; an empty spot is filled
   // (the full planner's same rule, placePlayerInSlot).
+  // A selected stint handed to any player (bench or already in the game).
+  const handleSetSubPlayer = useCallback(
+    (subId: string, playerId: string) => updatePlanGame((g) => giveStintToPlayer(g, subId, playerId)),
+    [updatePlanGame],
+  );
   const handleAssign = useCallback(
     (slotId: string, playerId: string | null) => updatePlanGame((g) => placePlayerInSlot(g, slotId, playerId)),
     [updatePlanGame],
@@ -499,6 +504,7 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
           players={plan.players}
           onAssign={handleAssign}
           onSwapPlayers={handleSwap}
+          onSetSubPlayer={handleSetSubPlayer}
         />
 
         <div className="space-y-1">

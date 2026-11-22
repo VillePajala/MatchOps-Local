@@ -87,8 +87,8 @@ import {
   clearSlotSchedule,
   clearAllPlacements,
 } from '@/utils/playtimePlanner/lineup';
-import { addSub, removeSub, moveSubToSlot, setSubPlayer } from '@/utils/playtimePlanner/subs';
-import { placePlayerInSlot, swapPlayersInGame } from '@/utils/playtimePlanner/swap';
+import { addSub, removeSub, moveSubToSlot } from '@/utils/playtimePlanner/subs';
+import { giveStintToPlayer, placePlayerInSlot, swapPlayersInGame } from '@/utils/playtimePlanner/swap';
 import { suggestFairShareLineup } from '@/utils/playtimePlanner/suggest';
 import {
   addPlayerToPlan,
@@ -892,7 +892,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     (gameId: string, subId: string, playerId: string) => {
       updateActivePlan((plan) => ({
         ...plan,
-        games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: setSubPlayer(g.subs, subId, playerId) } : g)),
+        games: plan.games.map((g) => (g.id === gameId ? giveStintToPlayer(g, subId, playerId) : g)),
       }));
       setSubAnnouncement((prev) => ({
         text: t('playtimePlanner.lineup.subPlayerChanged', 'Substitution updated'),
