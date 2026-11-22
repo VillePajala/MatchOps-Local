@@ -384,7 +384,7 @@ describe('SyncedDataStore.pushAllToCloud', () => {
       expect(summary.failures.players).toHaveLength(0);
     });
 
-    it('pushes each game\'s Pelitapa themes', async () => {
+    it('pushes each game\'s Playbook themes', async () => {
       const themes = [{ playbookId: 'pepo', conceptId: 'avaus' }];
       (mockLocalStore.getAllGameThemes as jest.Mock).mockResolvedValue({ game_1: themes });
       (mockRemoteStore as unknown as { setGameThemes: jest.Mock }).setGameThemes = jest.fn().mockResolvedValue(true);
