@@ -24,11 +24,13 @@ jest.mock('react-i18next', () => ({
 // The presentation is tested on its own; here: which concept, and the sequence's "next".
 jest.mock('../PelitapaPresentation', () => ({
   __esModule: true,
-  default: ({ concept, onClose, sequence }: { concept: Concept; onClose: () => void; sequence?: PresentationSequence }) => (
+  default: ({ concept, onClose, sequence, startAtEnd }: { concept: Concept; onClose: () => void; sequence?: PresentationSequence; startAtEnd?: boolean }) => (
     <div data-testid="presentation">
       <span data-testid="presenting">{concept.id}</span>
       {sequence && <span data-testid="sequence">{`${sequence.index + 1}/${sequence.total}`}</span>}
       {sequence && <button onClick={() => sequence.onNext({ focus: false })}>next-theme</button>}
+      {sequence?.onPrev && <button onClick={() => sequence.onPrev?.({ focus: false })}>previous-theme</button>}
+      {startAtEnd && <span data-testid="at-end" />}
       <button onClick={onClose}>close-presentation</button>
     </div>
   ),
@@ -195,6 +197,12 @@ describe('themes row on the next-match card', () => {
     fireEvent.click(screen.getByText('next-theme'));
     expect(screen.getByTestId('presenting')).toHaveTextContent('a');
     expect(screen.getByTestId('sequence')).toHaveTextContent('2/2');
+    expect(screen.queryByTestId('at-end')).toBeNull();
+    // Back from the second theme reopens the first at its end.
+    fireEvent.click(screen.getByText('previous-theme'));
+    expect(screen.getByTestId('presenting')).toHaveTextContent('d');
+    expect(screen.getByTestId('sequence')).toHaveTextContent('1/2');
+    expect(screen.getByTestId('at-end')).toBeInTheDocument();
   });
 
   /** @edge-case */

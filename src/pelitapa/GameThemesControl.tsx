@@ -36,13 +36,21 @@ export interface GameThemesControlProps {
 
 const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action';
 
-/** Plays the concepts one after another; the last one ends as a normal presentation. */
+/**
+ * Plays the concepts one after another; the last one ends as a normal
+ * presentation. Back from a concept's first step reopens the previous one at
+ * its end.
+ */
 export function GameThemePresentation({ concepts, onClose }: { concepts: Concept[]; onClose: () => void }) {
-  const [at, setAt] = useState<{ index: number; focus?: boolean }>({ index: 0 });
+  const [at, setAt] = useState<{ index: number; focus?: boolean; atEnd?: boolean }>({ index: 0 });
   const concept = concepts[Math.min(at.index, concepts.length - 1)];
   const onNext = useCallback(
     ({ focus }: { focus: boolean }) => setAt((s) => ({ index: Math.min(s.index + 1, concepts.length - 1), focus })),
     [concepts.length],
+  );
+  const onPrev = useCallback(
+    ({ focus }: { focus: boolean }) => setAt((s) => ({ index: Math.max(s.index - 1, 0), focus, atEnd: true })),
+    [],
   );
   if (!concept) return null;
   return (
@@ -53,7 +61,8 @@ export function GameThemePresentation({ concepts, onClose }: { concepts: Concept
       onClose={onClose}
       concept={concept}
       initialFocus={at.focus}
-      sequence={concepts.length > 1 ? { index: at.index, total: concepts.length, onNext } : undefined}
+      startAtEnd={at.atEnd}
+      sequence={concepts.length > 1 ? { index: at.index, total: concepts.length, onNext, onPrev } : undefined}
     />
   );
 }

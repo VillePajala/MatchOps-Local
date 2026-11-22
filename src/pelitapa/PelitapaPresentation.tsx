@@ -42,6 +42,8 @@ import type { Concept } from './types';
  * Playing several concepts in a row (a game's themes): after this concept's
  * last step (or its question) the primary button reads "Next theme" and moves
  * on instead of starting over. The last concept of the sequence ends as usual.
+ * Going back from a concept's first step returns to the previous concept's
+ * end (its question, else its last step).
  */
 export interface PresentationSequence {
   /** This concept's place in the sequence, 0-based. */
@@ -49,6 +51,8 @@ export interface PresentationSequence {
   total: number;
   /** Move to the next concept; `focus` is the mode to open it in. */
   onNext: (state: { focus: boolean }) => void;
+  /** Move back to the previous concept (opened at its end); `focus` is the mode to open it in. */
+  onPrev?: (state: { focus: boolean }) => void;
 }
 
 interface PelitapaPresentationProps {
@@ -58,6 +62,8 @@ interface PelitapaPresentationProps {
   sequence?: PresentationSequence;
   /** Open in this mode instead of the remembered one (the next theme keeps the current mode). */
   initialFocus?: boolean;
+  /** Open at the concept's end (its question, else its last step): coming back from the next theme. */
+  startAtEnd?: boolean;
 }
 
 type Stage = number | 'question';
@@ -127,6 +133,7 @@ export default function PelitapaPresentation({
   concept = DEMO_CONCEPT,
   sequence,
   initialFocus,
+  startAtEnd,
 }: PelitapaPresentationProps) {
   const { t } = useTranslation();
   const { userId, getStore } = useDataStore();
@@ -136,7 +143,11 @@ export default function PelitapaPresentation({
   }, [validation]);
 
   // The step on screen and the one it came from (a move over a `cut` step jumps).
-  const [nav, setNav] = useState<{ stage: Stage; from: Stage }>({ stage: 0, from: 0 });
+  const [nav, setNav] = useState<{ stage: Stage; from: Stage }>(() => {
+    if (!startAtEnd || !validation.ok) return { stage: 0, from: 0 };
+    const end: Stage = validation.concept.question?.trim() ? 'question' : Math.max(0, validation.concept.steps.length - 1);
+    return { stage: end, from: end };
+  });
   const stage = nav.stage;
   const setStage = useCallback((update: Stage | ((s: Stage) => Stage)) => {
     setNav((n) => ({ stage: typeof update === 'function' ? update(n.stage) : update, from: n.stage }));
@@ -243,9 +254,15 @@ export default function PelitapaPresentation({
       return hasQuestion ? 'question' : 0;
     });
   }, [last, hasQuestion, setStage, toNextTheme, sequence]);
+  // In a sequence, back from this concept's first step leads to the previous one.
+  const toPrevTheme = !!sequence?.onPrev && sequence.index > 0 && stage === 0;
   const prev = useCallback(() => {
+    if (toPrevTheme && sequence?.onPrev) {
+      sequence.onPrev({ focus: focusRef.current });
+      return;
+    }
     setStage((s) => (s === 'question' ? last : Math.max(0, s - 1)));
-  }, [last, setStage]);
+  }, [last, setStage, toPrevTheme, sequence]);
   const restart = useCallback(() => setStage(0), [setStage]);
 
   const closePicker = useCallback(() => setPicking(null), []);
@@ -628,8 +645,8 @@ export default function PelitapaPresentation({
           <button
             type="button"
             onClick={prev}
-            disabled={stage === 0}
-            aria-label={t('pelitapa.previous', 'Previous step')}
+            disabled={stage === 0 && !toPrevTheme}
+            aria-label={toPrevTheme ? t('pelitapa.previousTheme', 'Previous theme') : t('pelitapa.previous', 'Previous step')}
             className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-surface-2 text-ink transition-opacity disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
           >
             <HiChevronLeft className="h-6 w-6" aria-hidden="true" />

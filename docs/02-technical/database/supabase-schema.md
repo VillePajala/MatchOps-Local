@@ -111,6 +111,8 @@ users (Supabase Auth)
  └── sync_tombstones (migration 059; no client access)
 rate_limits (migration 024; Edge Functions only, not user-owned)
 playbooks ─── playbook_concepts (migration 065; shared content, not user-owned, read via playbook_access)
+          └── playbook_codes (migration 067; club codes, hashes only, no client access)
+playbook_code_attempts (migration 067; failed code attempts per user, no client access)
 ```
 
 ## Core Tables
@@ -1208,7 +1210,8 @@ CREATE TABLE playbook_access (
 - **Loading / granting** (staging): `node scripts/pelitapa/seed-playbook.mjs
   content/pelitapa/pepo-8v8.json --grant <coach email> --apply` upserts the playbook and
   its concepts (version bumps only on change), deletes concepts removed from the file and
-  grants access. Revoke with `DELETE FROM playbook_access WHERE ...`.
+  grants access. Revoke with `DELETE FROM playbook_access WHERE ...`. Coaches can also
+  unlock a playbook themselves with a club code (`playbook_codes`, section 22).
 - **Account deletion** removes the account's `playbook_access` rows (FK cascade);
   playbooks stay. Deleting a playbook removes its concepts and grants.
 - **`clear_all_user_data()` keeps `playbook_access`**: access is granted to the account,
@@ -1257,7 +1260,67 @@ set_game_themes(p_game_id text, p_themes jsonb)  -- [{ "playbookId", "conceptId"
 - **`clear_all_user_data()` deletes them** (redefined in 066 = 037 + one DELETE);
   account deletion cascades.
 
-### 22. Service tables (no client access)
+### 22. `playbook_codes` (migration 067)
+
+Club codes that unlock a playbook. The club gives the code to its coaches; a coach types
+it in the library ("Enter a club code") and `redeem_playbook_code()` adds the
+`playbook_access` row. **Only a hash is stored**: hex sha256 of the normalised code
+(upper-case, spaces and dashes removed; the same normalisation in the app, the script and
+the function).
+
+```sql
+CREATE TABLE playbook_codes (
+  code_hash   text PRIMARY KEY CHECK (code_hash ~ '^[0-9a-f]{64}$'),
+  playbook_id text NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
+  label       text,                      -- who / what it was made for; not shown in the app
+  expires_at  timestamptz,               -- NULL = no expiry
+  max_uses    int CHECK (max_uses IS NULL OR max_uses > 0),   -- NULL = unlimited
+  uses        int NOT NULL DEFAULT 0,
+  revoked     boolean NOT NULL DEFAULT false,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE playbook_code_attempts (    -- failed redeems per user, current 1 h window
+  user_id      uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  failures     int NOT NULL DEFAULT 0,
+  window_start timestamptz NOT NULL DEFAULT now()
+);
+-- Both: RLS on, NO policies, ALL revoked from anon/authenticated (service role only).
+
+-- SECURITY DEFINER, search_path pinned; EXECUTE for authenticated only.
+redeem_playbook_code(p_code text) RETURNS json
+--   { ok: true, playbook_id, playbook_name }                  granted, one use consumed
+--   { ok: true, playbook_id, playbook_name, already: true }   had access; no use consumed
+--   { ok: false, error: 'invalid' | 'expired' | 'used_up' | 'revoked' | 'rate_limited' }
+```
+
+- **Order of checks**: rate limit (10 failed attempts per user per rolling hour ->
+  `rate_limited`), unknown code -> `invalid`, already has access -> `already`, then
+  `revoked`, `expired`, `used_up`. Every failure counts towards the limit; a success or
+  `already` does not. Its own attempts table, not `rate_limits`: `check_rate_limit()`
+  deletes rows older than the caller's window, which would reset a one-hour counter.
+- **Concurrency**: the code row is locked (`FOR UPDATE`) while checking and incrementing
+  `uses`, so the last use cannot be taken twice.
+- **Revoking / expiring** a code stops new redemptions only; access already granted stays
+  (delete the `playbook_access` rows to withdraw it).
+- **Lifetime**: a playbook's codes go with it; attempts go with the account;
+  `clear_all_user_data()` touches neither (not the coach's data, and clearing must not
+  reset the attempt limit).
+- **Creating a code**: `node scripts/pelitapa/create-code.mjs --playbook pepo-8v8
+  [--label "PEPO P2014 coaches"] [--prefix PEPO] [--max-uses 30] [--expires-days 90]
+  [--apply] [--project staging|production]`. It generates a readable code
+  (`PEPO-7KQ2-M9XD-4HNA`: optional prefix + 3 groups of 4 from an alphabet without
+  0/O/1/I/L), **prints it once** and writes only its hash. Without `--apply` it is a dry
+  run (prints the code and the SQL); `--apply` writes to staging unless
+  `--project production` is spelled out. A lost code cannot be recovered: revoke it and
+  make a new one.
+- **Managing** (SQL): `SELECT label, uses, max_uses, expires_at, revoked FROM
+  playbook_codes;` / `UPDATE playbook_codes SET revoked = true WHERE label = '...';`
+- The client: `src/pelitapa/playbookCodes.ts` (normalise, call, map the answer to a
+  reason; offline / unexpected errors never show server text) and
+  `src/pelitapa/PlaybookCodeSheet.tsx` (the sheet), wired through `usePlaybooks().redeemCode`,
+  which fetches the playbooks again after a success.
+
+### 23. Service tables (no client access)
 
 ```sql
 -- Deletion record for newer-edit-wins sync (migration 059). Only the SECURITY DEFINER

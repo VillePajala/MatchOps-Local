@@ -758,7 +758,8 @@ describe('Translation File Validation', () => {
       // +22 Pelitapa library: 16 pelitapa.library.* (steps _one/_other) + 6 pelitapa.library.phase.*. 3700.
       // +1 pelitapa.focusMode (Pelitapa focus mode button). 3701.
       // +21 Pelitapa game themes: pelitapa.nextTheme/themeOf + 19 pelitapa.themes.*. 3722.
-      expect(enKeys.length).toBe(3722);
+      // +18 pelitapa.previousTheme + 17 pelitapa.code.* (club code sheet). 3740.
+      expect(enKeys.length).toBe(3740);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -977,7 +978,8 @@ describe('Translation File Validation', () => {
       // +22 Pelitapa library. 3700.
       // +1 Pelitapa focus mode. 3701.
       // +21 Pelitapa game themes (see EN). 3722.
-      expect(fiKeys.length).toBe(3722);
+      // +18 club code sheet (see EN). 3740.
+      expect(fiKeys.length).toBe(3740);
     });
   });
 });

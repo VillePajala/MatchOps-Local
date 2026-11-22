@@ -14,7 +14,10 @@
 #   7. game_themes (066): own rows CRUD, set_game_themes replaces a game's selection
 #      in order, another user sees and changes nothing;
 #   8. clear_all_user_data runs, clears game themes, and keeps the granted features
-#      and playbook access.
+#      and playbook access;
+#   9. playbook codes (067): a valid code grants and consumes a use, a second redeem
+#      answers 'already' without consuming one; expired / revoked / used_up / invalid;
+#      10 failures an hour -> rate_limited; playbook_codes is closed to clients.
 # Test users are deleted at the end (Management API, the Supabase CLI's token).
 #
 # STAGING ONLY: the target is fixed to the staging project (no override). Usage:
@@ -79,7 +82,7 @@ cleanup() {
     fi
   done
   # Users first: their playbook_access rows go with them (FK cascade); then the playbook.
-  sql "delete from public.playbooks where id='$SMOKE_PB';" >/dev/null
+  sql "delete from public.playbooks where id in ('$SMOKE_PB', '$SMOKE_PB-codes');" >/dev/null
   rm -f "$BODY_FILE"
   exit $status
 }
@@ -176,6 +179,42 @@ expect "user A's rows are gone" "$(rest GET "players?select=id" "$JWT_A" | cut -
 expect "user A's game themes are gone" "$(themes "$JWT_A" smoke_g)" "[]"
 expect "granted features survive the clear" "$(rest GET "account_features?select=feature" "$JWT_A" | cut -d' ' -f2- | jq -r 'length')" "1"
 expect "playbook access survives the clear" "$(rest GET "playbook_concepts?playbook_id=eq.$SMOKE_PB&select=id" "$JWT_A" | cut -d' ' -f2- | jq -r 'length')" "1"
+
+echo "9. playbook codes"
+# Codes are random per run; only their hashes go to the database (as create-code.mjs does).
+CPB="$SMOKE_PB-codes"
+code_hash() { printf '%s' "$1" | tr -d ' -' | tr '[:lower:]' '[:upper:]' | sha256sum | cut -d' ' -f1; }
+rnd() { od -An -N6 -tx1 /dev/urandom | tr -d ' \n' | tr '[:lower:]' '[:upper:]'; }
+C_OK="SMOKE-$(rnd)"; C_EXP="SMOKE-$(rnd)"; C_REV="SMOKE-$(rnd)"; C_ONE="SMOKE-$(rnd)"
+sql "insert into public.playbooks (id, name) values ('$CPB', 'Smoke codes');
+     insert into public.playbook_codes (code_hash, playbook_id, label, expires_at, max_uses, revoked) values
+       ('$(code_hash "$C_OK")',  '$CPB', 'smoke ok',      null,                         5,    false),
+       ('$(code_hash "$C_EXP")', '$CPB', 'smoke expired', now() - interval '1 minute',  null, false),
+       ('$(code_hash "$C_REV")', '$CPB', 'smoke revoked', null,                         null, true),
+       ('$(code_hash "$C_ONE")', '$CPB', 'smoke one use', null,                         1,    false);" >/dev/null
+redeem() { rest POST rpc/redeem_playbook_code "$1" "{\"p_code\":\"$2\"}" | cut -d' ' -f2- | jq -c '{ok, error, already, playbook_id, playbook_name}'; }
+uses() { sql "select uses from public.playbook_codes where code_hash='$(code_hash "$1")'" | jq -r '.[0].uses'; }
+lower_nodash=$(printf '%s' "$C_OK" | tr -d '-' | tr '[:upper:]' '[:lower:]')
+expect "valid code (lower-case, no dashes) grants the playbook" "$(redeem "$JWT_B" "$lower_nodash")" "{\"ok\":true,\"error\":null,\"already\":null,\"playbook_id\":\"$CPB\",\"playbook_name\":\"Smoke codes\"}"
+expect "it consumed one use" "$(uses "$C_OK")" "1"
+expect "user B now reads the playbook" "$(rest GET "playbooks?id=eq.$CPB&select=id" "$JWT_B" | cut -d' ' -f2- | jq -r 'length')" "1"
+expect "second redeem -> already" "$(redeem "$JWT_B" "$C_OK" | jq -r '"\(.ok)/\(.already)"')" "true/true"
+expect "already did not consume a use" "$(uses "$C_OK")" "1"
+expect "expired code -> expired" "$(redeem "$JWT_A" "$C_EXP" | jq -r .error)" "expired"
+expect "revoked code -> revoked" "$(redeem "$JWT_A" "$C_REV" | jq -r .error)" "revoked"
+expect "one-use code: first redeem ok" "$(redeem "$JWT_A" "$C_ONE" | jq -r .ok)" "true"
+read -r JWT_C UID_C <<<"$(signup)"; [ "$UID_C" != "null" ] && USERS+=("$UID_C")
+expect "one-use code: second user -> used_up" "$(redeem "$JWT_C" "$C_ONE" | jq -r .error)" "used_up"
+expect "unknown code -> invalid" "$(redeem "$JWT_A" "NOPE-NOPE-NOPE")" '{"ok":false,"error":"invalid","already":null,"playbook_id":null,"playbook_name":null}'
+expect "user A holds only the grant from the one-use code" "$(rest GET "playbook_access?playbook_id=eq.$CPB&select=user_id" "$JWT_A" | cut -d' ' -f2- | jq -r 'length')" "1"
+expect "anon cannot redeem" "$(rest POST rpc/redeem_playbook_code "$ANON" '{"p_code":"x"}' | cut -d' ' -f1 | grep -cE '^(401|403|404)$')" "1"
+for _ in 1 2 3 4 5 6 7 8 9 10; do redeem "$JWT_C" "WRONG-$(rnd)" >/dev/null; done
+expect "after 10 failures in an hour -> rate_limited (user C)" "$(redeem "$JWT_C" "$C_OK" | jq -r .error)" "rate_limited"
+expect "the rate limit is per user (user A still fine)" "$(redeem "$JWT_A" "$C_OK" | jq -r .ok)" "true"
+body=$(rest GET "playbook_codes?select=*" "$JWT_A" | cut -d' ' -f2-)
+case "$body" in *"permission denied"*) ok "playbook_codes not readable by clients";; *) bad "playbook_codes not readable by clients" "$body";; esac
+body=$(rest GET "playbook_code_attempts?select=*" "$JWT_C" | cut -d' ' -f2-)
+case "$body" in *"permission denied"*) ok "playbook_code_attempts not readable by clients";; *) bad "playbook_code_attempts not readable by clients" "$body";; esac
 
 echo
 echo "passed $PASS, failed $FAIL"
