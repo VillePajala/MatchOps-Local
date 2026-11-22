@@ -44,15 +44,16 @@ import {
 } from 'react-icons/hi2';
 import { TASO_URL } from '@/config/externalLinks';
 import { useAccountFeatures } from '@/hooks/useAccountFeatures';
-import { LazyGameThemeRow } from '@/pelitapa/lazyEntryPoints';
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
+import { LazyGameThemeRow } from '@/playbook/lazyEntryPoints';
 import { lazyModal } from '@/components/lazyModal';
 
 /**
- * Pelitapa (hidden behind the server-side 'pelitapa' account flag): its own
+ * Playbook (hidden behind the server-side playbook account flag): its own
  * chunk, fetched only when opened - kept out of the background warm-up so an
  * account without the flag never downloads it.
  */
-const PelitapaLibrary = lazyModal(() => import('@/pelitapa/PelitapaLibrary'), { warm: false });
+const PlaybookLibrary = lazyModal(() => import('@/playbook/PlaybookLibrary'), { warm: false });
 
 /**
  * HOME, S1 "SYKE REFINED" (owner-approved, phase 1 of 3). Colours and fonts
@@ -316,12 +317,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
 }) => {
   const { t } = useTranslation();
   const { hasFeature } = useAccountFeatures();
-  const pelitapaOn = hasFeature('pelitapa');
-  const [pelitapaOpen, setPelitapaOpen] = useState(false);
-  // The next match's Pelitapa themes row - only for flagged accounts (its chunk is never fetched otherwise).
+  const playbookOn = hasFeature(PLAYBOOK_FEATURE);
+  const [playbookOpen, setPlaybookOpen] = useState(false);
+  // The next match's Playbook themes row - only for flagged accounts (its chunk is never fetched otherwise).
   const renderGameTheme = useMemo(
-    () => (pelitapaOn ? (gameId: string) => <LazyGameThemeRow key={gameId} gameId={gameId} variant="card" /> : undefined),
-    [pelitapaOn],
+    () => (playbookOn ? (gameId: string) => <LazyGameThemeRow key={gameId} gameId={gameId} variant="card" /> : undefined),
+    [playbookOn],
   );
   // Dashboard is the default view, but it only renders once there are games to
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
@@ -599,13 +600,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={onOpenTraining}
                   disabled={!onOpenTraining}
                 />
-                {pelitapaOn && (
+                {playbookOn && (
                   <HomeRow
                     icon={HiOutlinePlayCircle}
-                    label={t('startScreen.rowPelitapa', 'Playing style')}
-                    subtitle={t('startScreen.clubPelitapaSub', 'Animated game situations')}
-                    onClick={() => setPelitapaOpen(true)}
-                    testId="club-pelitapa"
+                    label={t('startScreen.rowPlaybook', 'Playbook')}
+                    subtitle={t('startScreen.clubPlaybookSub', 'Animated game situations')}
+                    onClick={() => setPlaybookOpen(true)}
+                    testId="club-playbook"
                   />
                 )}
                 {/* Rules belongs with the coaching material: reference a coach
@@ -1084,8 +1085,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
         </div>
       )}
 
-      {pelitapaOn && pelitapaOpen && (
-        <PelitapaLibrary isOpen onClose={() => setPelitapaOpen(false)} />
+      {playbookOn && playbookOpen && (
+        <PlaybookLibrary isOpen onClose={() => setPlaybookOpen(false)} />
       )}
     </div>
   );

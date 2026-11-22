@@ -608,7 +608,7 @@ describe('SyncedDataStore', () => {
     });
   });
 
-  describe('Pelitapa game themes are local-first and queued', () => {
+  describe('Playbook game themes are local-first and queued', () => {
     it('setGameThemes writes locally and queues the CLEANED list per real game', async () => {
       await store.setGameThemes('game_1', [
         { playbookId: 'pepo', conceptId: 'laita' },

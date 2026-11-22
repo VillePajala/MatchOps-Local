@@ -22,7 +22,7 @@ export const queryKeys = {
   // Warm-up plan
   warmupPlan: ['warmupPlan'] as const,
 
-  // Pelitapa themes of one game (flagged feature; key + userId + gameId)
+  // Playbook themes of one game (flagged feature; key + userId + gameId)
   gameThemes: ['gameThemes'] as const,
 
   // Example for a detail query if needed later:

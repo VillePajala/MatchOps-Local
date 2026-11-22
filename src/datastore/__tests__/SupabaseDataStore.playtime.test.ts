@@ -6,7 +6,7 @@
  * onConflict targets, per-entry validation on read, and the version/updatedAt
  * stamping that must match the local store byte-for-byte in shape.
  *
- * Also the Pelitapa game themes (migration 066): the other per-game store kept
+ * Also the Playbook game themes (migration 066): the other per-game store kept
  * outside the game model, mapped and cleaned up the same way.
  */
 
@@ -256,7 +256,7 @@ describe('SupabaseDataStore — playtime planner', () => {
   });
 });
 
-describe('SupabaseDataStore — Pelitapa game themes (migration 066)', () => {
+describe('SupabaseDataStore — Playbook game themes (migration 066)', () => {
   let dataStore: SupabaseDataStore;
 
   beforeEach(async () => {

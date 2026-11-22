@@ -32,7 +32,7 @@ import type { WarmupPlan } from '@/types/warmupPlan';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { PlanLink } from '@/utils/playtimePlanner/planLinks';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
-import { normalizeGameThemes } from '@/pelitapa/gameThemeTypes';
+import { normalizeGameThemes } from '@/playbook/gameThemeTypes';
 import type { AppSettings } from '@/types/settings';
 import { SyncError, SyncErrorCode } from './types';
 import {

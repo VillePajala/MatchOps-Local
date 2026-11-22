@@ -31,7 +31,7 @@ import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
-import type { GameTheme, GameThemesCollection } from '@/pelitapa/gameThemeTypes';
+import type { GameTheme, GameThemesCollection } from '@/playbook/gameThemeTypes';
 import { LocalDataStore } from './LocalDataStore';
 import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
@@ -103,7 +103,7 @@ export interface PushAllToCloudResult {
   playtimePlanLinks: number;
   /** Number of successfully pushed playtime game-sub entries */
   playtimeGameSubs: number;
-  /** Number of games whose Pelitapa themes were pushed */
+  /** Number of games whose Playbook themes were pushed */
   gameThemes?: number;
   /**
    * How many of the failed items were handed to the sync queue, so the engine keeps
@@ -138,7 +138,7 @@ export interface PushAllToCloudResult {
     playtimePlanLinks: string[];
     /** Game IDs whose planned subs failed to push */
     playtimeGameSubs: string[];
-    /** Game IDs whose Pelitapa themes failed to push */
+    /** Game IDs whose Playbook themes failed to push */
     gameThemes?: string[];
   };
   /**
@@ -1654,7 +1654,7 @@ export class SyncedDataStore implements DataStore {
         }
       }
 
-      // 10b. Pelitapa game themes (per real game, like the planned subs).
+      // 10b. Playbook game themes (per real game, like the planned subs).
       const allGameThemes = await this.localStore.getAllGameThemes();
       for (const [gameId, themes] of Object.entries(allGameThemes)) {
         if (themes.length === 0) continue;

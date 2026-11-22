@@ -24,8 +24,8 @@ import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import { createLocalPlanStore, type LocalPlanStore } from '@/utils/playtimePlanner/localPlanStore';
-import { createLocalGameThemeStore, type LocalGameThemeStore } from '@/pelitapa/localGameThemeStore';
-import type { GameTheme, GameThemesCollection } from '@/pelitapa/gameThemeTypes';
+import { createLocalGameThemeStore, type LocalGameThemeStore } from '@/playbook/localGameThemeStore';
+import type { GameTheme, GameThemesCollection } from '@/playbook/gameThemeTypes';
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
@@ -519,7 +519,7 @@ export class LocalDataStore implements DataStore {
       },
     };
     this.planStore = createLocalPlanStore(jsonIO);
-    // Pelitapa game themes: the same per-instance database and IO rules.
+    // Playbook game themes: the same per-instance database and IO rules.
     this.gameThemeStore = createLocalGameThemeStore(jsonIO);
 
     this.initialized = true;
@@ -2712,7 +2712,7 @@ export class LocalDataStore implements DataStore {
   }
 
   // ==========================================================================
-  // PELITAPA GAME THEMES (key-locked IndexedDB collection, localGameThemeStore)
+  // PLAYBOOK GAME THEMES (key-locked IndexedDB collection, localGameThemeStore)
   // ==========================================================================
 
   private themes(): LocalGameThemeStore {

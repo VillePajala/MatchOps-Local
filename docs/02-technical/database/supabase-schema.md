@@ -107,7 +107,7 @@ users (Supabase Auth)
  ├── playtime_plans, playtime_plan_links, playtime_game_subs (migration 036)
  ├── account_features (migration 064; per-account feature flags, client read-only)
  ├── playbook_access (migration 065; which playbooks the account may read, client read-only)
- ├── game_themes (migration 066; Pelitapa concepts picked for a game, own rows CRUD)
+ ├── game_themes (migration 066; Pelikirja (Playbook) concepts picked for a game, own rows CRUD)
  └── sync_tombstones (migration 059; no client access)
 rate_limits (migration 024; Edge Functions only, not user-owned)
 playbooks ─── playbook_concepts (migration 065; shared content, not user-owned, read via playbook_access)
@@ -1134,7 +1134,9 @@ CREATE TABLE playtime_game_subs (
 ### 19. `account_features` (migration 064)
 
 Per-account feature flags controlled by the server. The first flag is `pelitapa`
-(the hidden Pelitapa library). Clients can only **read their own rows**; a feature
+(the hidden Playbook / Pelikirja library; the feature was first called "Pelitapa" and the
+stored value stays `pelitapa` for compatibility - the app refers to it as `PLAYBOOK_FEATURE`,
+`src/playbook/feature.ts`). Clients can only **read their own rows**; a feature
 is granted with SQL / the service role.
 
 ```sql
@@ -1167,11 +1169,11 @@ CREATE POLICY "Users can read their own account features"
   after sign-in and when it resumes, and keeps the last answer per user for offline use.
 - The client reads them in `src/hooks/useAccountFeatures.ts`.
 
-### 20. Pelitapa playbooks (migration 065)
+### 20. Pelikirja (Playbook) collections (migration 065)
 
 Read-only **content** shared with chosen accounts: a playbook is a club's (or our own)
-set of Pelitapa concepts, one JSON document per concept in the format of
-`src/pelitapa/types.ts`. Not anyone's data: written only by the service role, read by
+set of Pelikirja (Playbook) concepts, one JSON document per concept in the format of
+`src/playbook/types.ts`. Not anyone's data: written only by the service role, read by
 accounts that have a `playbook_access` row.
 
 ```sql
@@ -1204,11 +1206,11 @@ CREATE TABLE playbook_access (
 --   playbook_concepts: EXISTS (access row for this playbook_id and auth.uid())
 ```
 
-- **Content source**: `content/pelitapa/<playbook>.json` in the repo (validated by
-  `src/pelitapa/__tests__/playbookContent.test.ts`). The app never bundles these files;
+- **Content source**: `content/playbook/<playbook>.json` in the repo (validated by
+  `src/playbook/__tests__/playbookContent.test.ts`). The app never bundles these files;
   it reads the database.
-- **Loading / granting** (staging): `node scripts/pelitapa/seed-playbook.mjs
-  content/pelitapa/pepo-8v8.json --grant <coach email> --apply` upserts the playbook and
+- **Loading / granting** (staging): `node scripts/playbook/seed-playbook.mjs
+  content/playbook/pepo-8v8.json --grant <coach email> --apply` upserts the playbook and
   its concepts (version bumps only on change), deletes concepts removed from the file and
   grants access. Revoke with `DELETE FROM playbook_access WHERE ...`. Coaches can also
   unlock a playbook themselves with a club code (`playbook_codes`, section 22).
@@ -1216,15 +1218,15 @@ CREATE TABLE playbook_access (
   playbooks stay. Deleting a playbook removes its concepts and grants.
 - **`clear_all_user_data()` keeps `playbook_access`**: access is granted to the account,
   not part of the coach's data, and the coach could not re-grant it.
-- The client reads them in `src/pelitapa/usePlaybooks.ts` (accounts with the `pelitapa`
+- The client reads them in `src/playbook/usePlaybooks.ts` (accounts with the playbook flag `pelitapa`
   flag only), validates every concept and keeps the last answer per user for offline use.
 
 ### 21. `game_themes` (migration 066)
 
-The Pelitapa concepts a coach picked for a game ("themes" to go through with the kids),
+The Pelikirja (Playbook) concepts a coach picked for a game ("themes" to go through with the kids),
 in pick order. The coach's **own data**, stored **outside the game model** like the
 planner's per-game stores (never on `games`, never in the game transforms or
-`save_game_with_relations`). Locally: the IndexedDB collection `pelitapaGameThemes`
+`save_game_with_relations`). Locally: the IndexedDB collection `pelitapaGameThemes` (stored key keeps the original name)
 (`GAME_THEMES_KEY`, map gameId -> `[{ playbookId, conceptId }]`); in cloud mode
 SyncedDataStore writes it first and queues the push as sync entity `gameThemes`.
 
@@ -1255,7 +1257,7 @@ set_game_themes(p_game_id text, p_themes jsonb)  -- [{ "playbookId", "conceptId"
   playbook is not in the database.
 - **Conflicts**: the whole selection of a game is the unit, last write wins (no edit
   timestamp, the same scope decision as `playtime_game_subs`).
-- **Hydration** pulls `game_themes` only for accounts whose `pelitapa` flag is known on
+- **Hydration** pulls `game_themes` only for accounts whose playbook flag (`pelitapa`) is known on
   the device; nobody else makes the request. A failed theme read never fails hydration.
 - **`clear_all_user_data()` deletes them** (redefined in 066 = 037 + one DELETE);
   account deletion cascades.
@@ -1305,7 +1307,7 @@ redeem_playbook_code(p_code text) RETURNS json
 - **Lifetime**: a playbook's codes go with it; attempts go with the account;
   `clear_all_user_data()` touches neither (not the coach's data, and clearing must not
   reset the attempt limit).
-- **Creating a code**: `node scripts/pelitapa/create-code.mjs --playbook pepo-8v8
+- **Creating a code**: `node scripts/playbook/create-code.mjs --playbook pepo-8v8
   [--label "PEPO P2014 coaches"] [--prefix PEPO] [--max-uses 30] [--expires-days 90]
   [--apply] [--project staging|production]`. It generates a readable code
   (`PEPO-7KQ2-M9XD-4HNA`: optional prefix + 3 groups of 4 from an alphabet without
@@ -1315,9 +1317,9 @@ redeem_playbook_code(p_code text) RETURNS json
   make a new one.
 - **Managing** (SQL): `SELECT label, uses, max_uses, expires_at, revoked FROM
   playbook_codes;` / `UPDATE playbook_codes SET revoked = true WHERE label = '...';`
-- The client: `src/pelitapa/playbookCodes.ts` (normalise, call, map the answer to a
+- The client: `src/playbook/playbookCodes.ts` (normalise, call, map the answer to a
   reason; offline / unexpected errors never show server text) and
-  `src/pelitapa/PlaybookCodeSheet.tsx` (the sheet), wired through `usePlaybooks().redeemCode`,
+  `src/playbook/PlaybookCodeSheet.tsx` (the sheet), wired through `usePlaybooks().redeemCode`,
   which fetches the playbooks again after a success.
 
 ### 23. Service tables (no client access)
@@ -1620,7 +1622,7 @@ BEGIN
   DELETE FROM game_tactical_data WHERE user_id = v_user_id;
   DELETE FROM player_assessments WHERE user_id = v_user_id;
 
-  -- Playtime planner stores (036) and Pelitapa game themes (066)
+  -- Playtime planner stores (036) and Pelikirja (Playbook) game themes (066)
   DELETE FROM playtime_game_subs WHERE user_id = v_user_id;
   DELETE FROM playtime_plan_links WHERE user_id = v_user_id;
   DELETE FROM playtime_plans WHERE user_id = v_user_id;

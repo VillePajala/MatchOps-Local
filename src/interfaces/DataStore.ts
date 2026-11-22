@@ -22,7 +22,7 @@ import type { Player, Team, TeamPlayer, Season, Tournament, PlayerStatAdjustment
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
-import type { GameTheme, GameThemesCollection } from '@/pelitapa/gameThemeTypes';
+import type { GameTheme, GameThemesCollection } from '@/playbook/gameThemeTypes';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
@@ -644,8 +644,8 @@ export interface DataStore {
   deletePlaytimeGameSubs(gameId: string): Promise<boolean>;
 
   // ==========================================================================
-  // PELITAPA GAME THEMES
-  // The Pelitapa concepts picked for a REAL game, in pick order. Stored outside
+  // PLAYBOOK GAME THEMES
+  // The Playbook concepts picked for a REAL game, in pick order. Stored outside
   // the game model like the planner's per-game stores: local mode an IndexedDB
   // collection; cloud the game_themes table (migration 066), a game's whole
   // selection replaced at once.

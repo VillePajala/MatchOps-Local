@@ -26,10 +26,10 @@ import type { AppState } from '@/types';
 
 // Mock the data stores
 jest.mock('@/datastore/LocalDataStore');
-// Pelitapa game themes are pulled only for accounts flagged on this device.
-let mockPelitapaCached = false;
+// Playbook game themes are pulled only for accounts flagged on this device.
+let mockPlaybookCached = false;
 jest.mock('@/hooks/useAccountFeatures', () => ({
-  hasCachedAccountFeature: (_userId: string, feature: string) => feature === 'pelitapa' && mockPelitapaCached,
+  hasCachedAccountFeature: (_userId: string, feature: string) => feature === jest.requireActual<typeof import('@/playbook/feature')>('@/playbook/feature').PLAYBOOK_FEATURE && mockPlaybookCached,
 }));
 jest.mock('@/datastore/SupabaseDataStore');
 
@@ -1214,12 +1214,12 @@ describe('reverseMigrationService', () => {
       expect(mockLocalDataStore.setTeamRoster).not.toHaveBeenCalledWith(mockTeam.id, expect.anything());
     });
 
-    describe('Pelitapa game themes', () => {
+    describe('Playbook game themes', () => {
       afterEach(() => {
-        mockPelitapaCached = false;
+        mockPlaybookCached = false;
       });
 
-      it('are not requested for an account without the pelitapa flag', async () => {
+      it('are not requested for an account without the playbook flag', async () => {
         const result = await hydrateLocalFromCloud('test-user-id');
         expect(result.success).toBe(true);
         expect(mockSupabaseDataStore.getAllGameThemes).not.toHaveBeenCalled();
@@ -1227,7 +1227,7 @@ describe('reverseMigrationService', () => {
       });
 
       it('are pulled and merged (local wins) for a flagged account', async () => {
-        mockPelitapaCached = true;
+        mockPlaybookCached = true;
         const themes = { 'game-1': [{ playbookId: 'pb', conceptId: 'c1' }] };
         (mockSupabaseDataStore.getAllGameThemes as jest.Mock).mockResolvedValue(themes);
         (mockLocalDataStore.restoreGameThemes as jest.Mock).mockResolvedValue(1);
@@ -1238,7 +1238,7 @@ describe('reverseMigrationService', () => {
       });
 
       it('a failed theme read does not fail the pull', async () => {
-        mockPelitapaCached = true;
+        mockPlaybookCached = true;
         (mockSupabaseDataStore.getAllGameThemes as jest.Mock).mockRejectedValue(new Error('no table'));
         const result = await hydrateLocalFromCloud('test-user-id');
         expect(result.success).toBe(true);

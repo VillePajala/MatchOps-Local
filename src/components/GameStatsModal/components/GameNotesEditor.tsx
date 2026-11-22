@@ -34,6 +34,8 @@ interface GameNotesEditorProps {
 
 // One-line, full-width buttons in the app's segmented-control style.
 const ROW_BTN = `${secondaryButtonStyle} flex-1 min-w-0 px-3!`;
+/** The text tools (Template, Tidy): one line each, never wrapped into a tall pill. */
+const TOOL_BTN = `${secondaryButtonStyle} flex-1 min-w-0 px-3! whitespace-nowrap overflow-hidden text-ellipsis text-sm!`;
 
 export function GameNotesEditor({
   gameNotes,
@@ -55,7 +57,7 @@ export function GameNotesEditor({
     <button
       type="button"
       onClick={onTidy}
-      className={ROW_BTN}
+      className={TOOL_BTN}
       data-testid="report-editor-tidy"
     >
       {tidyEstimateUsd > 0
@@ -109,17 +111,21 @@ export function GameNotesEditor({
               })}
             </p>
           )}
+          {/* Two rows (owner, 2026-11-23): four buttons in one row squeezed the
+              cost label onto three lines. Text tools on top, then Cancel / Save. */}
           <div className="flex gap-2">
             <button
               type="button"
               onClick={handleUseTemplate}
-              className={ROW_BTN}
+              className={TOOL_BTN}
             >
               {t('gameSettingsModal.useTemplate' as TranslationKey, 'Template')}
             </button>
             {/* Beside Template, because they are the same kind of thing: tools
                 that reshape the text in this box. */}
             {tidyButton}
+          </div>
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={onCancelEdit}
@@ -130,7 +136,7 @@ export function GameNotesEditor({
             <button
               type="button"
               onClick={onSaveNotes}
-              className={`${primaryButtonStyle} flex-1 min-w-0 px-3!`}
+              className={`${primaryButtonStyle} flex-[2] min-w-0 px-3!`}
             >
               {t('common.save', 'Save')}
             </button>
@@ -156,7 +162,7 @@ export function GameNotesEditor({
       {!isEditingNotes && (canTidy || !gameNotes.trim()) && (
         <div className="flex gap-2 mt-3">
           {!gameNotes.trim() && (
-            <button type="button" onClick={handleUseTemplate} className={ROW_BTN} data-testid="report-editor-template">
+            <button type="button" onClick={handleUseTemplate} className={TOOL_BTN} data-testid="report-editor-template">
               {t('gameSettingsModal.useTemplate' as TranslationKey, 'Template')}
             </button>
           )}

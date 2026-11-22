@@ -790,7 +790,7 @@ describe('recent results colour', () => {
   });
 });
 
-describe('the Pelitapa themes row (flagged accounts)', () => {
+describe('the Playbook themes row (flagged accounts)', () => {
   it('renders nothing extra without the flag (no row renderer passed)', () => {
     render(<HomeDashboard summary={base({ upcoming: fixture() })} t={t} />);
     expect(screen.queryByTestId('theme-slot')).toBeNull();

@@ -488,7 +488,7 @@ function NextMatchCard({
 }: {
   game: HomeUpcomingGame;
   onOpen?: (id: string) => void;
-  /** The game's Pelitapa themes row (flagged accounts), at the end of the card. */
+  /** The game's Playbook themes row (flagged accounts), at the end of the card. */
   themeSlot?: React.ReactNode;
   /** "Näytä suunnitelma" / "Jaa" - only for a game made from a plan. */
   planActions?: NextMatchPlanActions;
@@ -785,7 +785,7 @@ export function HomeDashboard({
   t,
 }: {
   summary: HomeSummary;
-  /** The next fixture's Pelitapa themes row (flagged accounts only), by game id. */
+  /** The next fixture's Playbook themes row (flagged accounts only), by game id. */
   renderNextMatchTheme?: (gameId: string) => React.ReactNode;
   /** The next fixture's "Näytä suunnitelma" / "Jaa", when it has a plan. */
   nextMatchPlan?: NextMatchPlanActions;
@@ -1400,7 +1400,7 @@ export function BasicNextGameCard({
 }: {
   game: HomeUpcomingGame;
   planState: BasicCardPlanState;
-  /** The game's Pelitapa themes row (flagged accounts), at the end of the card. */
+  /** The game's Playbook themes row (flagged accounts), at the end of the card. */
   themeSlot?: React.ReactNode;
   /** Opens the game on the pitch (the card body). */
   onOpen: () => void;
