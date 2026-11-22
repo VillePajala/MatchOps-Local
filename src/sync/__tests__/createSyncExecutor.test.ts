@@ -131,6 +131,10 @@ describe('createSyncExecutor', () => {
     getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
     setPlaytimeGameSubs: jest.fn().mockResolvedValue(true),
     deletePlaytimeGameSubs: jest.fn().mockResolvedValue(true),
+    getGameThemes: jest.fn().mockResolvedValue([]),
+    getAllGameThemes: jest.fn().mockResolvedValue({}),
+    setGameThemes: jest.fn().mockResolvedValue(true),
+    deleteGameThemes: jest.fn().mockResolvedValue(true),
     } as jest.Mocked<DataStore>;
 
     executor = createSyncExecutor(mockStore);
@@ -844,6 +848,38 @@ describe('createSyncExecutor', () => {
         operation: 'delete',
       }));
       expect(mockStore.deletePlaytimeGameSubs).toHaveBeenCalledWith('game_1');
+    });
+  });
+
+  describe('Pelitapa game themes', () => {
+    it('pushes a game\'s themes cleaned (repeats and malformed entries dropped), in order', async () => {
+      await executor(createOperation({
+        entityType: 'gameThemes',
+        entityId: 'game_1',
+        operation: 'update',
+        data: [
+          { playbookId: 'pepo', conceptId: 'laita' },
+          { playbookId: 'pepo' },
+          { playbookId: 'pepo', conceptId: 'avaus', extra: 1 },
+          { playbookId: 'pepo', conceptId: 'laita' },
+        ],
+      }));
+      expect(mockStore.setGameThemes).toHaveBeenCalledWith('game_1', [
+        { playbookId: 'pepo', conceptId: 'laita' },
+        { playbookId: 'pepo', conceptId: 'avaus' },
+      ]);
+    });
+
+    it('deletes a game\'s themes', async () => {
+      await executor(createOperation({ entityType: 'gameThemes', entityId: 'game_1', operation: 'delete' }));
+      expect(mockStore.deleteGameThemes).toHaveBeenCalledWith('game_1');
+    });
+
+    it('rejects a non-array payload as invalid data', async () => {
+      await expect(
+        executor(createOperation({ entityType: 'gameThemes', entityId: 'game_1', operation: 'update', data: { x: 1 } })),
+      ).rejects.toThrow(/must be an array/);
+      expect(mockStore.setGameThemes).not.toHaveBeenCalled();
     });
   });
 

@@ -175,6 +175,8 @@ export interface PushFailures {
   playtimePlanLinks?: string[];
   /** Game IDs whose planned subs failed to push. */
   playtimeGameSubs?: string[];
+  /** Game IDs whose Pelitapa themes failed to push. */
+  gameThemes?: string[];
 }
 
 /**
@@ -209,6 +211,7 @@ export function countPushFailures(failures: PushFailures): number {
     failures.playtimePlans,
     failures.playtimePlanLinks,
     failures.playtimeGameSubs,
+    failures.gameThemes,
   ].reduce((sum, arr) => sum + (arr?.length || 0), 0);
 
   const booleanFailures =

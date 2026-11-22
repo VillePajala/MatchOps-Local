@@ -4268,6 +4268,29 @@
         "setPieces": "Erikoistilanteet"
       }
     },
-    "focusMode": "Fokustila"
+    "focusMode": "Fokustila",
+    "nextTheme": "Seuraava teema",
+    "themeOf": "Teema {{n}}/{{total}}",
+    "themes": {
+      "sectionTitle": "Pelitapa-teemat",
+      "choose": "Valitse teema",
+      "chooseMany": "Valitse teemat",
+      "edit": "Muuta teemoja",
+      "themeOne": "Teema",
+      "themesMany": "Teemat: {{n}}",
+      "showOne": "Näytä teema",
+      "showMany": "Näytä teemat",
+      "formEmpty": "Valitse pelitilanteet, jotka käydään pelaajien kanssa läpi.",
+      "unavailable": "Ei käytettävissä",
+      "pickTitle": "Valitse teemat",
+      "preview": "Esikatsele: {{title}}",
+      "unavailableTitle": "Ei enää käytettävissä",
+      "unavailableHint": "Tällä tilillä ei enää ole pääsyä näihin. Poista ne tai pidä ne siltä varalta, että pääsy palaa.",
+      "unavailableItem": "Teema {{n}}",
+      "remove": "Poista",
+      "noneChosen": "Ei valittua teemaa",
+      "chosenCount": "{{n}} valittu",
+      "done": "Valmis"
+    }
   }
 }

@@ -32,6 +32,7 @@ import type { WarmupPlan } from '@/types/warmupPlan';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { PlanLink } from '@/utils/playtimePlanner/planLinks';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
+import { normalizeGameThemes } from '@/pelitapa/gameThemeTypes';
 import type { AppSettings } from '@/types/settings';
 import { SyncError, SyncErrorCode } from './types';
 import {
@@ -588,6 +589,10 @@ async function executeSyncOperation(
       await syncPlaytimeGameSubs(cloudStore, operation, entityId, data);
       break;
 
+    case 'gameThemes':
+      await syncGameThemes(cloudStore, operation, entityId, data);
+      break;
+
     default: {
       // TypeScript exhaustiveness check
       const _exhaustive: never = entityType;
@@ -863,6 +868,20 @@ async function syncPlaytimeGameSubs(
   }
 }
 
+async function syncGameThemes(
+  store: DataStore,
+  operation: SyncOperation['operation'],
+  entityId: string,
+  data: unknown
+): Promise<void> {
+  if (operation === 'delete') {
+    await store.deleteGameThemes(entityId);
+  } else {
+    validateArrayData(data, 'gameThemes', operation, entityId);
+    await store.setGameThemes(entityId, normalizeGameThemes(data as unknown[]));
+  }
+}
+
 // =============================================================================
 // Conflict Resolution Helpers
 // =============================================================================
@@ -1042,6 +1061,16 @@ function createCloudFetcher(cloudStore: DataStore): CloudRecordFetcher {
           return { id: entityId, subs, updatedAt: EPOCH_TIMESTAMP };
         }
 
+        case 'gameThemes': {
+          // Same deliberate LWW exemption as playtimeGameSubs: a game's theme
+          // selection carries no edit timestamp, so the cloud copy counts as
+          // oldest and the queued local selection wins (a whole-list replace,
+          // re-picked in seconds if a rare cross-device race loses one).
+          const themes = await cloudStore.getGameThemes(entityId);
+          if (themes.length === 0) return null;
+          return { id: entityId, themes, updatedAt: EPOCH_TIMESTAMP };
+        }
+
         default: {
           const _exhaustive: never = entityType;
           throw new Error(`Unknown entity type for cloud fetch: ${_exhaustive}`);
@@ -1128,6 +1157,11 @@ function createCloudWriter(cloudStore: DataStore): CloudRecordWriter {
       case 'playtimeGameSubs':
         validateArrayData(data, 'playtimeGameSubs', 'upsert', entityId);
         await cloudStore.setPlaytimeGameSubs(entityId, data as PlannedGameSub[]);
+        break;
+
+      case 'gameThemes':
+        validateArrayData(data, 'gameThemes', 'upsert', entityId);
+        await cloudStore.setGameThemes(entityId, normalizeGameThemes(data as unknown[]));
         break;
 
       default: {
@@ -1225,6 +1259,10 @@ function createCloudDeleter(cloudStore: DataStore): CloudRecordDeleter {
         await cloudStore.deletePlaytimeGameSubs(entityId);
         break;
 
+      case 'gameThemes':
+        await cloudStore.deleteGameThemes(entityId);
+        break;
+
       default: {
         const _exhaustive: never = entityType;
         throw new Error(`Unknown entity type for cloud delete: ${_exhaustive}`);
@@ -1312,6 +1350,14 @@ function createLocalWriter(localStore: DataStore): LocalRecordWriter {
         validateArrayData(data, 'playtimeGameSubs', 'upsert', entityId);
         await localStore.setPlaytimeGameSubs(entityId, data as PlannedGameSub[]);
         break;
+
+      case 'gameThemes': {
+        // Cloud wins: the CloudRecord built by the fetcher carries the list in `themes`.
+        const record = data as { themes?: unknown } | null;
+        const list = Array.isArray(record?.themes) ? record.themes : Array.isArray(data) ? data : [];
+        await localStore.setGameThemes(entityId, normalizeGameThemes(list));
+        break;
+      }
 
       default: {
         const _exhaustive: never = entityType;

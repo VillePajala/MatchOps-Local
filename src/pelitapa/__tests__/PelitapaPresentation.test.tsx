@@ -449,3 +449,51 @@ describe('PelitapaPresentation focus mode', () => {
     set.mockRestore();
   });
 });
+
+describe('PelitapaPresentation in a sequence (a game\'s themes)', () => {
+  beforeEach(() => {
+    mockGetPlayers.mockResolvedValue(roster);
+    mockGetCurrentGameId.mockResolvedValue(null);
+    mockGetGameById.mockResolvedValue(null);
+    localStorage.clear();
+  });
+
+  async function renderInSequence(index: number, total: number, initialFocus?: boolean) {
+    const onNext = jest.fn();
+    render(
+      <PelitapaPresentation isOpen onClose={jest.fn()} sequence={{ index, total, onNext }} initialFocus={initialFocus} />,
+    );
+    await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+    return onNext;
+  }
+
+  it('after the question, "Next theme" moves on instead of starting over', async () => {
+    const onNext = await renderInSequence(0, 2);
+    expect(screen.getByTestId('pelitapa-eyebrow')).toHaveTextContent('Theme 1/2');
+    for (let i = 1; i < steps.length; i++) fireEvent.click(screen.getByTestId('pelitapa-next'));
+    fireEvent.click(screen.getByTestId('pelitapa-next')); // to the question
+    expect(screen.getByTestId('pelitapa-next')).toHaveTextContent('Next theme');
+    fireEvent.click(screen.getByTestId('pelitapa-next'));
+    expect(onNext).toHaveBeenCalledWith({ focus: false });
+  });
+
+  it('the last theme ends as usual (start over)', async () => {
+    const onNext = await renderInSequence(1, 2);
+    for (let i = 1; i < steps.length; i++) fireEvent.click(screen.getByTestId('pelitapa-next'));
+    fireEvent.click(screen.getByTestId('pelitapa-next'));
+    expect(screen.getByTestId('pelitapa-next')).toHaveTextContent('Start over');
+    fireEvent.click(screen.getByTestId('pelitapa-next'));
+    expect(onNext).not.toHaveBeenCalled();
+    expect(screen.getByTestId('pelitapa-step-title')).toHaveTextContent(steps[0].title);
+  });
+
+  it('opens the next theme in the mode the previous one was in, and passes it on', async () => {
+    const onNext = await renderInSequence(0, 3, true);
+    expect(screen.getByTestId('pelitapa-focus')).toBeInTheDocument();
+    const pitch = screen.getByTestId('pelitapa-focus-pitch');
+    pitch.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 800, right: 400, bottom: 800, x: 0, y: 0, toJSON: () => ({}) });
+    // Right-half taps through every step and the question, then on to the next theme.
+    for (let i = 0; i < steps.length + 1; i++) fireEvent.click(pitch, { clientX: 300, clientY: 300 });
+    expect(onNext).toHaveBeenCalledWith({ focus: true });
+  });
+});

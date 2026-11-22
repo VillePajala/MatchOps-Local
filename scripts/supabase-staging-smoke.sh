@@ -11,7 +11,10 @@
 #   5. account_features (064): readable by its owner only, not writable by clients;
 #   6. playbooks (065): nothing visible without a playbook_access grant; with one, the
 #      playbook and its concepts; none of the three tables writable by clients;
-#   7. clear_all_user_data runs and keeps the granted features and playbook access.
+#   7. game_themes (066): own rows CRUD, set_game_themes replaces a game's selection
+#      in order, another user sees and changes nothing;
+#   8. clear_all_user_data runs, clears game themes, and keeps the granted features
+#      and playbook access.
 # Test users are deleted at the end (Management API, the Supabase CLI's token).
 #
 # STAGING ONLY: the target is fixed to the staging project (no override). Usage:
@@ -144,11 +147,33 @@ rest DELETE "playbook_concepts?playbook_id=eq.$SMOKE_PB" "$JWT_A" >/dev/null
 rest DELETE "playbook_access?playbook_id=eq.$SMOKE_PB" "$JWT_A" >/dev/null
 expect "user A cannot change or delete any of it" "$(sql "select (select name from public.playbooks where id='$SMOKE_PB') || '/' || (select count(*) from public.playbook_concepts where playbook_id='$SMOKE_PB' and data = '{\"id\":\"c1\"}') || '/' || (select count(*) from public.playbook_access where playbook_id='$SMOKE_PB') as r" | jq -r '.[0].r')" "Smoke/1/1"
 
-echo "7. clear_all_user_data"
+echo "7. game_themes"
+themes() { rest GET "game_themes?game_id=eq.$2&select=playbook_id,concept_id,sort&order=sort" "$1" | cut -d' ' -f2- | jq -c 'map("\(.playbook_id)/\(.concept_id)/\(.sort)")'; }
+expect "user A inserts its own theme" "$(rest POST game_themes "$JWT_A" "{\"user_id\":\"$UID_A\",\"game_id\":\"smoke_g\",\"playbook_id\":\"pb\",\"concept_id\":\"c1\"}" | cut -d' ' -f1)" "201"
+expect "user A reads it" "$(themes "$JWT_A" smoke_g)" '["pb/c1/0"]'
+rest PATCH "game_themes?game_id=eq.smoke_g&concept_id=eq.c1" "$JWT_A" '{"sort":3}' >/dev/null
+expect "user A updates it" "$(themes "$JWT_A" smoke_g)" '["pb/c1/3"]'
+code=$(rest POST rpc/set_game_themes "$JWT_A" '{"p_game_id":"smoke_g","p_themes":[{"playbookId":"pb","conceptId":"c2"},{"playbookId":"pb","conceptId":"c1"},{"playbookId":"pb","conceptId":"c2"}]}' | cut -d' ' -f1)
+case "$code" in 2??) ok "set_game_themes succeeds ($code)";; *) bad "set_game_themes succeeds" "$code";; esac
+expect "set_game_themes replaces the selection in order (repeat dropped)" "$(themes "$JWT_A" smoke_g)" '["pb/c2/0","pb/c1/1"]'
+expect "user B cannot read A's themes" "$(themes "$JWT_B" smoke_g)" "[]"
+code=$(rest POST game_themes "$JWT_B" "{\"user_id\":\"$UID_A\",\"game_id\":\"smoke_g\",\"playbook_id\":\"pb\",\"concept_id\":\"cx\"}" | cut -d' ' -f1)
+case "$code" in 401|403) ok "user B cannot write a theme as A ($code)";; *) bad "user B cannot write a theme as A" "$code";; esac
+rest DELETE "game_themes?game_id=eq.smoke_g" "$JWT_B" >/dev/null
+rest POST rpc/set_game_themes "$JWT_B" '{"p_game_id":"smoke_g","p_themes":[]}' >/dev/null
+expect "user B cannot delete or replace A's themes" "$(themes "$JWT_A" smoke_g)" '["pb/c2/0","pb/c1/1"]'
+code=$(rest POST rpc/set_game_themes "$JWT_A" '{"p_game_id":"smoke_g","p_themes":{"x":1}}' | cut -d' ' -f1)
+expect "set_game_themes rejects a non-array" "$code" "400"
+expect "anon cannot read game_themes" "$(rest GET "game_themes?select=game_id" "$ANON" | cut -d' ' -f2- | jq -r 'if type == "array" then "rows" else "denied" end')" "denied"
+rest DELETE "game_themes?game_id=eq.smoke_g&concept_id=eq.c1" "$JWT_A" >/dev/null
+expect "user A deletes one of its themes" "$(themes "$JWT_A" smoke_g)" '["pb/c2/0"]'
+
+echo "8. clear_all_user_data"
 rest POST players "$JWT_A" "{\"id\":\"smoke_q\",\"user_id\":\"$UID_A\",\"name\":\"Q\"}" >/dev/null
 code=$(rest POST rpc/clear_all_user_data "$JWT_A" '{}' | cut -d' ' -f1)
 case "$code" in 2??) ok "clear_all_user_data succeeds ($code)";; *) bad "clear_all_user_data succeeds" "$code";; esac
 expect "user A's rows are gone" "$(rest GET "players?select=id" "$JWT_A" | cut -d' ' -f2-)" "[]"
+expect "user A's game themes are gone" "$(themes "$JWT_A" smoke_g)" "[]"
 expect "granted features survive the clear" "$(rest GET "account_features?select=feature" "$JWT_A" | cut -d' ' -f2- | jq -r 'length')" "1"
 expect "playbook access survives the clear" "$(rest GET "playbook_concepts?playbook_id=eq.$SMOKE_PB&select=id" "$JWT_A" | cut -d' ' -f2- | jq -r 'length')" "1"
 

@@ -79,6 +79,8 @@ export interface HomeBasicProps {
   onViewStats?: () => void;
   /** "Vaihda koko näkymään". */
   onSwitchToFull?: () => void;
+  /** The next game's Pelitapa themes row (flagged accounts only), by game id. */
+  renderNextGameTheme?: (gameId: string) => React.ReactNode;
   locale: string;
   t: TFunction;
 }
@@ -280,6 +282,7 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
   today,
   onViewStats,
   onSwitchToFull,
+  renderNextGameTheme,
   locale,
   t,
 }) => {
@@ -342,6 +345,7 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
           onShare={nextPlan.share}
           onMoveDate={onMoveGameDate ? (date) => onMoveGameDate(upcoming.id, date) : undefined}
           onDelete={onDeleteGame ? () => setConfirmDeleteId(upcoming.id) : undefined}
+          themeSlot={renderNextGameTheme?.(upcoming.id)}
           today={today ?? toLocalIsoDate(new Date())}
           locale={locale}
           t={t}

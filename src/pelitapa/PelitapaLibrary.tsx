@@ -2,7 +2,7 @@
 
 import React, { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiMagnifyingGlass, HiXMark, HiOutlineSignalSlash } from 'react-icons/hi2';
+import { HiMagnifyingGlass, HiXMark, HiOutlineSignalSlash, HiCheck, HiOutlineEye, HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import PelitapaPitch, { PITCH_ASPECT } from './PelitapaPitch';
@@ -11,6 +11,8 @@ import { resolveStep } from './resolveStep';
 import { filterConcepts, formatsIn, groupByPhase, knownPhase, phasesIn, samePhase } from './library';
 import { usePlaybooks, type Playbook } from './usePlaybooks';
 import type { Concept, ConceptFormat } from './types';
+import { gameThemeKey, sameGameTheme, MAX_GAME_THEMES, type GameTheme } from './gameThemeTypes';
+import { resolveGameThemes } from './resolveGameThemes';
 
 /**
  * Pelitapa library (portrait): the account's playbooks as a grid of concept
@@ -19,13 +21,26 @@ import type { Concept, ConceptFormat } from './types';
  * the presentation view on top; closing it comes back here with the filters
  * as they were.
  *
+ * Selection mode (`selection`, a game's themes): the same view, but a card
+ * tap picks or unpicks the concept (numbered in pick order), the eye on a card
+ * previews it, and "Done" hands the picked list back. Picked concepts the
+ * account can no longer read (a withdrawn grant) are listed as unavailable at
+ * the top, removable, never a crash. Back / the close button cancel.
+ *
  * Lazily loaded from the home screen and only for accounts with the
  * 'pelitapa' flag (lazyModal with warm: false): nobody else downloads it.
  */
 
+export interface LibrarySelection {
+  /** The game's current themes (the starting selection). */
+  initial: GameTheme[];
+  onDone: (themes: GameTheme[]) => void;
+}
+
 interface PelitapaLibraryProps {
   isOpen: boolean;
   onClose: () => void;
+  selection?: LibrarySelection;
 }
 
 /** Thumbnail width before the first measurement (and in tests). */
@@ -59,14 +74,24 @@ const ConceptThumb = memo(function ConceptThumb({ concept }: { concept: Concept 
   );
 });
 
-function ConceptCard({ concept, onOpen }: { concept: Concept; onOpen: (c: Concept) => void }) {
+/** In selection mode: this card's place in the pick order (1-based), or 0 when not picked. */
+interface CardPick {
+  order: number;
+  onPreview: (c: Concept) => void;
+}
+
+function ConceptCard({ concept, onOpen, pick }: { concept: Concept; onOpen: (c: Concept) => void; pick?: CardPick }) {
   const { t } = useTranslation();
-  return (
+  const picked = !!pick && pick.order > 0;
+  const card = (
     <button
       type="button"
       onClick={() => onOpen(concept)}
       data-testid="pelitapa-card"
-      className="s1-raised group flex min-w-0 flex-col gap-2.5 rounded-[20px] p-2.5 text-left transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action sm:p-3"
+      aria-pressed={pick ? picked : undefined}
+      className={`s1-raised group flex w-full min-w-0 flex-col gap-2.5 rounded-[20px] p-2.5 text-left transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action sm:p-3 ${
+        picked ? 'ring-2 ring-action' : ''
+      }`}
     >
       <ConceptThumb concept={concept} />
       <span className="px-1 pb-1">
@@ -81,13 +106,38 @@ function ConceptCard({ concept, onOpen }: { concept: Concept; onOpen: (c: Concep
       </span>
     </button>
   );
+  if (!pick) return card;
+  // Selection mode: the pick mark (order number) and a preview button over the picture.
+  return (
+    <div className="relative min-w-0">
+      {card}
+      <span
+        aria-hidden="true"
+        data-testid="pelitapa-pick-mark"
+        className={`pointer-events-none absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[15px] font-extrabold tabular-nums shadow-[0_2px_8px_rgb(0_0_0/0.35)] ${
+          picked ? 'bg-action text-on-action' : 'border-2 border-white/70 bg-[rgb(15_23_42/0.45)]'
+        }`}
+      >
+        {picked ? pick.order : ''}
+      </span>
+      <button
+        type="button"
+        onClick={() => pick.onPreview(concept)}
+        aria-label={t('pelitapa.themes.preview', 'Preview: {{title}}', { title: concept.title })}
+        data-testid="pelitapa-preview"
+        className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[rgb(15_23_42/0.62)] text-ink backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
+      >
+        <HiOutlineEye className="h-5 w-5" aria-hidden="true" />
+      </button>
+    </div>
+  );
 }
 
-function Grid({ concepts, onOpen }: { concepts: Concept[]; onOpen: (c: Concept) => void }) {
+function Grid({ concepts, onOpen, pickOf }: { concepts: Concept[]; onOpen: (c: Concept) => void; pickOf?: (c: Concept) => CardPick }) {
   return (
     <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 md:grid-cols-3 md:gap-3.5">
       {concepts.map((c) => (
-        <ConceptCard key={c.id} concept={c} onOpen={onOpen} />
+        <ConceptCard key={c.id} concept={c} onOpen={onOpen} pick={pickOf?.(c)} />
       ))}
     </div>
   );
@@ -101,9 +151,11 @@ function SectionHead({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function PelitapaLibrary({ isOpen, onClose }: PelitapaLibraryProps) {
+export default function PelitapaLibrary({ isOpen, onClose, selection }: PelitapaLibraryProps) {
   const { t } = useTranslation();
   const { playbooks, status } = usePlaybooks();
+  const selecting = !!selection;
+  const [picked, setPicked] = useState<GameTheme[]>(() => selection?.initial ?? []);
 
   const [playbookId, setPlaybookId] = useState<string | null>(null);
   const [format, setFormat] = useState<ConceptFormat | null>(null);
@@ -136,6 +188,39 @@ export default function PelitapaLibrary({ isOpen, onClose }: PelitapaLibraryProp
   const playbookName = (p: Playbook) => (p.builtIn ? t('pelitapa.library.builtInName', 'MatchOps examples') : p.name);
 
   const closePresentation = useCallback(() => setOpen(null), []);
+
+  // --- Selection mode.
+  const pickOrder = useMemo(() => new Map(picked.map((p, i) => [gameThemeKey(p), i + 1])), [picked]);
+  const togglePick = useCallback(
+    (c: Concept) => {
+      if (!playbook) return;
+      const theme: GameTheme = { playbookId: playbook.id, conceptId: c.id };
+      setPicked((list) =>
+        list.some((p) => sameGameTheme(p, theme))
+          ? list.filter((p) => !sameGameTheme(p, theme))
+          : list.length >= MAX_GAME_THEMES
+            ? list
+            : [...list, theme],
+      );
+    },
+    [playbook],
+  );
+  const pickOf = useCallback(
+    (c: Concept): CardPick => ({
+      order: playbook ? (pickOrder.get(gameThemeKey({ playbookId: playbook.id, conceptId: c.id })) ?? 0) : 0,
+      onPreview: setOpen,
+    }),
+    [playbook, pickOrder],
+  );
+  // Picked concepts this account cannot read (any more). Not decided while the
+  // club playbooks are still loading for the first time.
+  const unavailable = useMemo(
+    () =>
+      selecting && status !== 'loading'
+        ? resolveGameThemes(picked, playbooks).filter((r) => !r.concept)
+        : [],
+    [selecting, status, picked, playbooks],
+  );
   useEscapeToClose(isOpen && !open, onClose);
   useModalHardwareBack(isOpen, onClose);
 
@@ -163,9 +248,20 @@ export default function PelitapaLibrary({ isOpen, onClose }: PelitapaLibraryProp
                 {playbook ? playbookName(playbook) : ''}
               </p>
               <h2 id="pelitapa-library-title" className="font-display text-[clamp(32px,6vw,40px)] font-extrabold leading-none">
-                {t('pelitapa.library.title', 'Playing style')}
+                {selecting ? t('pelitapa.themes.pickTitle', 'Choose themes') : t('pelitapa.library.title', 'Playing style')}
               </h2>
             </div>
+            {selecting && (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={t('common.cancel', 'Cancel')}
+                data-testid="pelitapa-pick-cancel"
+                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-white/10 bg-surface-2 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action sm:order-last"
+              >
+                <HiXMark className="h-5 w-5" aria-hidden="true" />
+              </button>
+            )}
             {/* Own row on a phone, beside the title from sm up. */}
             <div role="group" aria-label={t('pelitapa.library.formats', 'Format')} className="flex basis-full gap-2 sm:basis-auto">
               {(['5v5', '8v8', '11v11'] as const).map((f) => (
@@ -256,6 +352,36 @@ export default function PelitapaLibrary({ isOpen, onClose }: PelitapaLibraryProp
             </div>
           )}
 
+          {/* Selection: picked concepts that can no longer be shown. */}
+          {unavailable.length > 0 && (
+            <div role="status" className="rounded-2xl bg-surface px-4 py-3" data-testid="pelitapa-unavailable">
+              <p className="flex items-center gap-2 text-[14px] font-semibold text-ink-2">
+                <HiOutlineExclamationTriangle className="h-5 w-5 flex-shrink-0 text-ink-3" aria-hidden="true" />
+                {t('pelitapa.themes.unavailableTitle', 'No longer available')}
+              </p>
+              <p className="mt-1 text-[13px] text-ink-3">
+                {t('pelitapa.themes.unavailableHint', 'This account can no longer open these. Remove them, or keep them in case access returns.')}
+              </p>
+              <ul className="mt-2 flex flex-col gap-1">
+                {unavailable.map((r) => (
+                  <li key={r.key} className="flex min-h-11 items-center gap-2">
+                    {/* Its title is not readable any more: name it by its place in the pick order. */}
+                    <span className="min-w-0 flex-1 truncate text-[14px] text-ink-2">
+                      {t('pelitapa.themes.unavailableItem', 'Theme {{n}}', { n: (pickOrder.get(r.key) ?? 0) })}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPicked((list) => list.filter((p) => !sameGameTheme(p, r.theme)))}
+                      className="s1-ghost h-10 flex-shrink-0 rounded-full px-4 text-[14px] font-semibold"
+                    >
+                      {t('pelitapa.themes.remove', 'Remove')}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Status. */}
           {status === 'offline' && (
             <p role="status" className="flex items-center gap-2 rounded-2xl bg-surface px-4 py-3 text-[14px] text-ink-2" data-testid="pelitapa-offline">
@@ -290,14 +416,40 @@ export default function PelitapaLibrary({ isOpen, onClose }: PelitapaLibraryProp
             groups.map((g) => (
               <section key={g.phase} aria-label={phaseLabel(g.phase)}>
                 <SectionHead>{phaseLabel(g.phase)}</SectionHead>
-                <Grid concepts={g.concepts} onOpen={setOpen} />
+                <Grid concepts={g.concepts} onOpen={selecting ? togglePick : setOpen} pickOf={selecting ? pickOf : undefined} />
               </section>
             ))
           ) : (
-            <Grid concepts={shown} onOpen={setOpen} />
+            <Grid concepts={shown} onOpen={selecting ? togglePick : setOpen} pickOf={selecting ? pickOf : undefined} />
           )}
+          {/* Room for the Done bar. */}
+          {selecting && <div aria-hidden="true" className="h-20" />}
         </div>
       </div>
+
+      {selection && !open && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-[60] border-t border-white/[0.06] bg-[rgb(2_6_23/0.92)] backdrop-blur-sm"
+          style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+        >
+          <div className="mx-auto flex w-full max-w-[1040px] items-center gap-3 px-4 pt-3 sm:px-7">
+            <p className="min-w-0 flex-1 truncate text-[15px] text-ink-2" aria-live="polite" data-testid="pelitapa-pick-count">
+              {picked.length === 0
+                ? t('pelitapa.themes.noneChosen', 'No theme chosen')
+                : t('pelitapa.themes.chosenCount', '{{n}} chosen', { n: picked.length })}
+            </p>
+            <button
+              type="button"
+              onClick={() => selection.onDone(picked)}
+              className="s1-primary flex h-12 min-w-[132px] items-center justify-center gap-2 rounded-full px-6 text-[16px] font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              data-testid="pelitapa-pick-done"
+            >
+              <HiCheck className="h-5 w-5" aria-hidden="true" />
+              {t('pelitapa.themes.done', 'Done')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {open && <PelitapaPresentation isOpen concept={open} onClose={closePresentation} />}
     </>

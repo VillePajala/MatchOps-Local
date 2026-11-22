@@ -107,6 +107,7 @@ users (Supabase Auth)
  ├── playtime_plans, playtime_plan_links, playtime_game_subs (migration 036)
  ├── account_features (migration 064; per-account feature flags, client read-only)
  ├── playbook_access (migration 065; which playbooks the account may read, client read-only)
+ ├── game_themes (migration 066; Pelitapa concepts picked for a game, own rows CRUD)
  └── sync_tombstones (migration 059; no client access)
 rate_limits (migration 024; Edge Functions only, not user-owned)
 playbooks ─── playbook_concepts (migration 065; shared content, not user-owned, read via playbook_access)
@@ -1215,7 +1216,48 @@ CREATE TABLE playbook_access (
 - The client reads them in `src/pelitapa/usePlaybooks.ts` (accounts with the `pelitapa`
   flag only), validates every concept and keeps the last answer per user for offline use.
 
-### 21. Service tables (no client access)
+### 21. `game_themes` (migration 066)
+
+The Pelitapa concepts a coach picked for a game ("themes" to go through with the kids),
+in pick order. The coach's **own data**, stored **outside the game model** like the
+planner's per-game stores (never on `games`, never in the game transforms or
+`save_game_with_relations`). Locally: the IndexedDB collection `pelitapaGameThemes`
+(`GAME_THEMES_KEY`, map gameId -> `[{ playbookId, conceptId }]`); in cloud mode
+SyncedDataStore writes it first and queues the push as sync entity `gameThemes`.
+
+```sql
+CREATE TABLE game_themes (
+  user_id     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  game_id     text NOT NULL CHECK (length(game_id) BETWEEN 1 AND 200),
+  playbook_id text NOT NULL CHECK (length(playbook_id) BETWEEN 1 AND 128),
+  concept_id  text NOT NULL CHECK (length(concept_id) BETWEEN 1 AND 128),
+  sort        int  NOT NULL DEFAULT 0 CHECK (sort >= 0),   -- pick order, 0-based
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, game_id, playbook_id, concept_id)
+);
+-- RLS: FOR ALL TO authenticated USING / WITH CHECK ((select auth.uid()) = user_id).
+-- anon: no privileges.
+
+-- Replaces one game's whole selection in one transaction (delete + insert, [] clears).
+-- SECURITY INVOKER: RLS applies as for direct writes. At most 12 themes; a repeated
+-- concept keeps its first position.
+set_game_themes(p_game_id text, p_themes jsonb)  -- [{ "playbookId", "conceptId" }, ...]
+```
+
+- **No FK to `games`** (a theme row may reach the cloud before its game, as with the
+  planner tables): `SupabaseDataStore.deleteGame` deletes the game's theme rows itself,
+  and the app's delete flow (`services/deleteGame.ts`) removes the local entry.
+- **No FK to `playbooks`**: a withdrawn `playbook_access` grant must not delete the
+  coach's selection; the app shows such a theme as unavailable. The built-in example
+  playbook is not in the database.
+- **Conflicts**: the whole selection of a game is the unit, last write wins (no edit
+  timestamp, the same scope decision as `playtime_game_subs`).
+- **Hydration** pulls `game_themes` only for accounts whose `pelitapa` flag is known on
+  the device; nobody else makes the request. A failed theme read never fails hydration.
+- **`clear_all_user_data()` deletes them** (redefined in 066 = 037 + one DELETE);
+  account deletion cascades.
+
+### 22. Service tables (no client access)
 
 ```sql
 -- Deletion record for newer-edit-wins sync (migration 059). Only the SECURITY DEFINER
@@ -1514,6 +1556,12 @@ BEGIN
   DELETE FROM game_players WHERE user_id = v_user_id;
   DELETE FROM game_tactical_data WHERE user_id = v_user_id;
   DELETE FROM player_assessments WHERE user_id = v_user_id;
+
+  -- Playtime planner stores (036) and Pelitapa game themes (066)
+  DELETE FROM playtime_game_subs WHERE user_id = v_user_id;
+  DELETE FROM playtime_plan_links WHERE user_id = v_user_id;
+  DELETE FROM playtime_plans WHERE user_id = v_user_id;
+  DELETE FROM game_themes WHERE user_id = v_user_id;
 
   -- Games (SET NULL on seasons/tournaments/teams)
   DELETE FROM games WHERE user_id = v_user_id;

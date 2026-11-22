@@ -482,11 +482,14 @@ function NextMatchCard({
   onSetStartingPoint,
   onMarkAbsences,
   planActions,
+  themeSlot,
   locale,
   t,
 }: {
   game: HomeUpcomingGame;
   onOpen?: (id: string) => void;
+  /** The game's Pelitapa themes row (flagged accounts), at the end of the card. */
+  themeSlot?: React.ReactNode;
   /** "Näytä suunnitelma" / "Jaa" - only for a game made from a plan. */
   planActions?: NextMatchPlanActions;
   /** "Merkitse poissaolijat": the attendance sheet for this fixture (Onboarding v3). */
@@ -612,6 +615,7 @@ function NextMatchCard({
             )}
           </div>
         )}
+        {themeSlot}
       </div>
 
       {/* OVER the content below, not shoved into it: expanding in the flow
@@ -775,11 +779,14 @@ export function HomeDashboard({
   onSetStartingPoint,
   onMarkAbsences,
   nextMatchPlan,
+  renderNextMatchTheme,
   afterHero,
   locale = 'fi',
   t,
 }: {
   summary: HomeSummary;
+  /** The next fixture's Pelitapa themes row (flagged accounts only), by game id. */
+  renderNextMatchTheme?: (gameId: string) => React.ReactNode;
   /** The next fixture's "Näytä suunnitelma" / "Jaa", when it has a plan. */
   nextMatchPlan?: NextMatchPlanActions;
   /**
@@ -823,7 +830,7 @@ export function HomeDashboard({
       {/* Always something here - see NoMatchCard for why the slot must not
           be allowed to empty. */}
       {summary.upcoming
-        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} onSetStartingPoint={onSetStartingPoint} onMarkAbsences={onMarkAbsences} planActions={nextMatchPlan} locale={locale} t={t} />
+        ? <NextMatchCard game={summary.upcoming} onOpen={onOpenGame} onAdjustTravel={onAdjustTravel} onSetStartingPoint={onSetStartingPoint} onMarkAbsences={onMarkAbsences} planActions={nextMatchPlan} themeSlot={renderNextMatchTheme?.(summary.upcoming.id)} locale={locale} t={t} />
         : summary.resume
           ? <ResumeCard resume={summary.resume} onResume={onResume} locale={locale} t={t} />
           // Nothing booked and nothing open: the latest match played, with the
@@ -1386,12 +1393,15 @@ export function BasicNextGameCard({
   onShare,
   onMoveDate,
   onDelete,
+  themeSlot,
   today,
   locale,
   t,
 }: {
   game: HomeUpcomingGame;
   planState: BasicCardPlanState;
+  /** The game's Pelitapa themes row (flagged accounts), at the end of the card. */
+  themeSlot?: React.ReactNode;
   /** Opens the game on the pitch (the card body). */
   onOpen: () => void;
   /** Game day: start (the attendance sheet, then the game); otherwise mark absences. */
@@ -1531,6 +1541,7 @@ export function BasicNextGameCard({
           )}
         </div>
       )}
+      {!overdue && themeSlot}
     </div>
   );
 }
