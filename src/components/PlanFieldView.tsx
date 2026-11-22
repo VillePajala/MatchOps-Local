@@ -10,8 +10,9 @@
  * every placement (a disc, or each stint segment of a rotation pill) is its
  * own tap target. Tap one placement then another and the two players trade
  * their whole-game timelines; tap a player then an empty spot to move them;
- * tap a stint then a bench disc to hand the stint over (or its own empty
- * kickoff spot to promote the incomer to starter); Clear empties a position
+ * tap a stint then ANY player - a bench disc, an "Already in this game" disc,
+ * or a player on the field - to hand the stint over (or its own empty kickoff
+ * spot to promote the incomer to starter); Clear empties a position
  * including its subs, Clear field empties everything. Bench tap still fills
  * the selected (or first empty) spot. Mobile-first and keyboard-accessible.
  *
@@ -49,6 +50,9 @@ const resetButtonStyle =
 const selectionDangerStyle = `${secondaryButtonStyle} flex-1 text-red-400! shadow-[inset_0_0_0_1.5px_rgb(248_113_113/0.6)]! hover:bg-red-500/10!`;
 
 /** A fold-out section toggle (bench availability): the uppercase section label as a 44px button. */
+/** Bench strip grid: equal columns so the outer discs align with the edges. */
+const benchGridStyle = 'grid grid-cols-[repeat(auto-fit,minmax(3.5rem,1fr))] gap-y-2 justify-items-center';
+
 const foldToggleStyle =
   'flex items-center gap-1.5 min-h-11 -my-1.5 px-1 rounded-lg font-ui text-xs font-semibold uppercase tracking-[0.14em] text-ink-3 hover:text-ink-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
 import { gameTotalSeconds, type PlanGame, type PlanPlayer, type PlanSub } from '@/utils/playtimePlanner/types';
@@ -198,6 +202,42 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
     selection === null ? null : selection.type === 'sub' ? selection.playerId : activeOccupant;
   const selectedSlotSubs = selectedSlotId ? subsBySlot.get(selectedSlotId) ?? [] : [];
 
+  // With a stint selected, ANY available player may take it (PlanSubSheet's
+  // rule): true bench players (appearing nowhere in this game) first, then the
+  // players already in the game - a starter re-entering after coming off, or
+  // someone moving position (giveStintToPlayer ends their other stint at that
+  // minute). Excluded: absentees, the stint's current player, and whoever
+  // holds the position just before the change (a self-sub is a no-op).
+  const selectedStint =
+    selection?.type === 'sub' ? game.subs.find((s) => s.id === selection.subId) ?? null : null;
+  const stintOccupantBefore = useMemo(() => {
+    if (!selectedStint) return null;
+    let occupant = playerBySlot.get(selectedStint.slotId) ?? null;
+    (subsBySlot.get(selectedStint.slotId) ?? [])
+      .filter((s) => s.id !== selectedStint.id && s.timeSeconds < selectedStint.timeSeconds)
+      .forEach((s) => {
+        occupant = s.inPlayerId;
+      });
+    return occupant;
+  }, [selectedStint, playerBySlot, subsBySlot]);
+  const stintCandidates = useMemo(() => {
+    if (!selectedStint || !onSetSubPlayer) return null;
+    const appearing = new Set<string>();
+    assignments.forEach((a) => {
+      if (a.playerId) appearing.add(a.playerId);
+    });
+    game.subs.forEach((s) => {
+      if (s.inPlayerId) appearing.add(s.inPlayerId);
+    });
+    const ids = players
+      .map((p) => p.id)
+      .filter((id) => !absentSet.has(id) && id !== selectedStint.inPlayerId && id !== stintOccupantBefore);
+    return {
+      benchIds: ids.filter((id) => !appearing.has(id)),
+      inGameIds: ids.filter((id) => appearing.has(id)),
+    };
+  }, [selectedStint, onSetSubPlayer, assignments, game.subs, players, absentSet, stintOccupantBefore]);
+
   // Impossible same-minutes overlaps (a player in two slots at once). The
   // planner allows any schedule - rotations, re-entries - and FLAGS the ones
   // that cannot happen on a real pitch instead of blocking edits up front.
@@ -245,6 +285,19 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
       return;
     }
     const targetPlayer = playerBySlot.get(slotId) ?? null;
+    if (
+      selection?.type === 'sub' &&
+      onSetSubPlayer &&
+      targetPlayer &&
+      targetPlayer !== selection.playerId &&
+      targetPlayer !== stintOccupantBefore
+    ) {
+      // A stint selected, then a player on the field: that player takes the
+      // stint (they move here at that minute) - NOT a whole-game swap.
+      onSetSubPlayer(selection.subId, targetPlayer);
+      setSelection(null);
+      return;
+    }
     if (selection && selectedPlayerId && targetPlayer && selectedPlayerId !== targetPlayer && onSwapPlayers) {
       onSwapPlayers(selectedPlayerId, targetPlayer); // two players tapped = swap
       setSelection(null);
@@ -333,6 +386,64 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   const handlePitchBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button')) return;
     if (selection) setSelection(null);
+  };
+
+  // One bench disc. `inGame` marks a player already in this game (offered
+  // only while a stint is selected): a dashed border, like the sub sheet.
+  const renderBenchDisc = (id: string, inGame: boolean) => {
+    const fair = minutesByPlayer?.[id];
+    const involved = isTracked(id);
+    const sitsOut = !inGame && !enteringIds.has(id);
+    // Field full and nothing selected: a tap has no target, so the
+    // disc reads inert instead of dying silently.
+    const inert = selection === null && emptyFillOrder.length === 0;
+    return (
+      /* Bench players render as DISCS - the same visual object as the
+         players on the pitch - so "tap to place/swap" is obvious. */
+      <button
+        key={id}
+        type="button"
+        onClick={() => handleBenchClick(id)}
+        disabled={inert}
+        title={sitsOut ? t('playtimePlanner.lineup.notInGame', 'Not in this game') : undefined}
+        className={`flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:opacity-50 disabled:cursor-not-allowed ${dimClass(involved)}`}
+      >
+        <span
+          className={[
+            'w-11 h-11 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 transition-colors shadow-md shadow-black/40',
+            inGame ? 'border-dashed border-white/60' : sitsOut ? 'border-red-500/80' : 'border-white/60',
+            fair ? '' : 'bg-surface-2 hover:brightness-125',
+            anyHighlight && involved ? 'ring-2 ring-amber-300' : '',
+          ].join(' ')}
+          style={
+            fair
+              ? {
+                  backgroundColor: fairnessFill(fair.ratio),
+                  backgroundImage:
+                    'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.30), rgba(255,255,255,0) 60%)',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                }
+              : undefined
+          }
+        >
+          {shortName(nameById.get(id) ?? id)}
+        </span>
+        {fair && (
+          <span
+            className="mt-0.5 text-xs font-semibold tabular-nums leading-tight"
+            style={{ color: fairnessText(fair.ratio) }}
+          >
+            {fair.minutes}&#39;
+          </span>
+        )}
+        {sitsOut && (
+          <span className="sr-only">
+            {' '}
+            {t('playtimePlanner.lineup.notInGame', 'Not in this game')}
+          </span>
+        )}
+      </button>
+    );
   };
 
   return (
@@ -627,6 +738,37 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           <p className={subtextStyle}>
             {t('playtimePlanner.lineup.noPlayers', 'No players in this plan - add them on the Plan tab.')}
           </p>
+        ) : stintCandidates ? (
+          /* A stint is selected: any available player can take it. Bench first,
+             then players already in this game (same grouping/wording as the
+             sub sheet, dashed to read as "already playing"). */
+          <div className="s1-list px-2 pt-3 pb-3">
+            {stintCandidates.benchIds.length > 0 && (
+              <>
+                <p className={`${sectionLabelStyle} px-2 mb-2.5`}>
+                  {t('playtimePlanner.lineup.benchLabel', 'Bench')}
+                </p>
+                <div className={benchGridStyle}>
+                  {stintCandidates.benchIds.map((id) => renderBenchDisc(id, false))}
+                </div>
+              </>
+            )}
+            {stintCandidates.inGameIds.length > 0 && (
+              <div className={stintCandidates.benchIds.length > 0 ? 'mt-4' : ''}>
+                <p className={`${sectionLabelStyle} px-2 mb-2.5`}>
+                  {t('playtimePlanner.subs.inGameGroup', 'Already in this game')}
+                </p>
+                <div className={benchGridStyle} data-testid="plan-stint-in-game">
+                  {stintCandidates.inGameIds.map((id) => renderBenchDisc(id, true))}
+                </div>
+              </div>
+            )}
+            {stintCandidates.benchIds.length === 0 && stintCandidates.inGameIds.length === 0 && (
+              <p className={`${subtextStyle} px-2`}>
+                {t('playtimePlanner.subs.noBench', 'No bench players available.')}
+              </p>
+            )}
+          </div>
         ) : bench.length === 0 ? (
           <p className={subtextStyle}>
             {absentSet.size > 0
@@ -639,66 +781,10 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
             <p className={`${sectionLabelStyle} px-2 mb-2.5`}>
               {t('playtimePlanner.lineup.benchLabel', 'Bench')}
             </p>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(3.5rem,1fr))] gap-y-2 justify-items-center">
             {/* Equal-column grid (same fix as the fairness strip): a wrapping
                 flex row left the row remainder as dead space on the right -
                 columns stretch so the outer discs align with the edges. */}
-            {bench.map((id) => {
-              const fair = minutesByPlayer?.[id];
-              const involved = isTracked(id);
-              const sitsOut = !enteringIds.has(id);
-              // Field full and nothing selected: a tap has no target, so the
-              // disc reads inert instead of dying silently.
-              const inert = selection === null && emptyFillOrder.length === 0;
-              return (
-                /* Bench players render as DISCS - the same visual object as the
-                   players on the pitch - so "tap to place/swap" is obvious. */
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => handleBenchClick(id)}
-                  disabled={inert}
-                  title={sitsOut ? t('playtimePlanner.lineup.notInGame', 'Not in this game') : undefined}
-                  className={`flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:opacity-50 disabled:cursor-not-allowed ${dimClass(involved)}`}
-                >
-                  <span
-                    className={[
-                      'w-11 h-11 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 transition-colors shadow-md shadow-black/40',
-                      sitsOut ? 'border-red-500/80' : 'border-white/60',
-                      fair ? '' : 'bg-surface-2 hover:brightness-125',
-                      anyHighlight && involved ? 'ring-2 ring-amber-300' : '',
-                    ].join(' ')}
-                    style={
-                      fair
-                        ? {
-                            backgroundColor: fairnessFill(fair.ratio),
-                            backgroundImage:
-                              'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.30), rgba(255,255,255,0) 60%)',
-                            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                          }
-                        : undefined
-                    }
-                  >
-                    {shortName(nameById.get(id) ?? id)}
-                  </span>
-                  {fair && (
-                    <span
-                      className="mt-0.5 text-xs font-semibold tabular-nums leading-tight"
-                      style={{ color: fairnessText(fair.ratio) }}
-                    >
-                      {fair.minutes}&#39;
-                    </span>
-                  )}
-                  {sitsOut && (
-                    <span className="sr-only">
-                      {' '}
-                      {t('playtimePlanner.lineup.notInGame', 'Not in this game')}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-            </div>
+            <div className={benchGridStyle}>{bench.map((id) => renderBenchDisc(id, false))}</div>
           </div>
         )}
 
