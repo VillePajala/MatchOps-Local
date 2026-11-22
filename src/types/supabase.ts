@@ -1358,6 +1358,7 @@ export type Database = {
         }
         Returns: Json
       }
+      redeem_playbook_code: { Args: { p_code: string }; Returns: Json }
       revoke_user_consent: {
         Args: {
           p_consent_type: string

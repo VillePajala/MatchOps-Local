@@ -4233,6 +4233,7 @@
   "pelitapa": {
     "close": "Sulje",
     "previous": "Edellinen vaihe",
+    "previousTheme": "Edellinen teema",
     "next": "Seuraava",
     "toQuestion": "Pohdittavaksi",
     "restart": "Alusta",
@@ -4291,6 +4292,27 @@
       "noneChosen": "Ei valittua teemaa",
       "chosenCount": "{{n}} valittu",
       "done": "Valmis"
+    },
+    "code": {
+      "open": "Syötä seuran koodi",
+      "title": "Syötä seuran koodi",
+      "hint": "Seura antaa koodin valmentajilleen. Koodi avaa seuran sisällön tälle tilille.",
+      "label": "Seuran koodi",
+      "placeholder": "XXXX-XXXX-XXXX",
+      "submit": "Avaa",
+      "checking": "Tarkistetaan…",
+      "unlocked": "{{name}} avattu",
+      "already": "{{name}} on jo avattu",
+      "show": "Näytä",
+      "errors": {
+        "invalid": "Koodi ei kelpaa. Tarkista se ja yritä uudelleen.",
+        "expired": "Koodi on vanhentunut. Pyydä seuralta uusi.",
+        "usedUp": "Koodin käyttökerrat on käytetty. Pyydä seuralta uusi.",
+        "revoked": "Koodi ei ole enää voimassa. Pyydä seuralta uusi.",
+        "rateLimited": "Liian monta yritystä. Yritä uudelleen tunnin päästä.",
+        "offline": "Tarvitaan verkkoyhteys.",
+        "failed": "Jokin meni vikaan. Yritä uudelleen."
+      }
     }
   }
 }

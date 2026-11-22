@@ -42,10 +42,12 @@ jest.mock('@/utils/storage', () => ({
 }));
 
 const mockGetSession = jest.fn();
+const mockRpc = jest.fn();
 const mockSelect: Record<string, jest.Mock> = { playbooks: jest.fn(), playbook_concepts: jest.fn() };
 jest.mock('@/datastore/supabase/client', () => ({
   getSupabaseClient: () => ({
     auth: { getSession: mockGetSession },
+    rpc: (...a: unknown[]) => mockRpc(...a),
     from: (table: string) => {
       const select = mockSelect[table];
       if (!select) throw new Error(`unexpected table ${table}`);
@@ -219,5 +221,77 @@ describe('usePlaybooks', () => {
       await Promise.all([refreshPlaybooks(USER), refreshPlaybooks(USER)]);
     });
     expect(mockSelect.playbooks).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('usePlaybooks: unlocking with a club code', () => {
+  beforeEach(() => {
+    __resetPlaybooksForTests();
+    mockDb.clear();
+    mockSetItem.mockReset();
+    mockRpc.mockReset();
+    mockSelect.playbooks.mockReset();
+    mockSelect.playbook_concepts.mockReset();
+    mockGetSession.mockReset().mockResolvedValue(sessionFor(USER));
+    mockAuth = { user: { id: USER, isAnonymous: false }, mode: 'cloud' };
+    mockFlag = true;
+  });
+
+  it('local mode and accounts without the flag cannot unlock', () => {
+    mockAuth = { user: null, mode: 'local' };
+    expect(renderHook(() => usePlaybooks()).result.current.redeemCode).toBeUndefined();
+    mockAuth = { user: { id: USER, isAnonymous: false }, mode: 'cloud' };
+    mockFlag = false;
+    expect(renderHook(() => usePlaybooks()).result.current.redeemCode).toBeUndefined();
+  });
+
+  /** @critical a redeemed code shows the new playbook without reopening anything */
+  it('a working code fetches the playbooks again and the unlocked one is there', async () => {
+    serve({ playbooks: [], concepts: [] });
+    const { result } = renderHook(() => usePlaybooks());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(result.current.playbooks.map((p) => p.id)).toEqual([BUILT_IN_PLAYBOOK_ID]);
+
+    serve(rows());
+    mockRpc.mockResolvedValue({ data: { ok: true, playbook_id: 'club', playbook_name: 'Club book' }, error: null });
+    let answer: unknown;
+    await act(async () => {
+      answer = await result.current.redeemCode?.('club-1234');
+    });
+    expect(mockRpc).toHaveBeenCalledWith('redeem_playbook_code', { p_code: 'CLUB1234' });
+    expect(answer).toEqual({ ok: true, playbookId: 'club', playbookName: 'Club book', already: false });
+    expect(result.current.playbooks.map((p) => p.id)).toEqual(['club', BUILT_IN_PLAYBOOK_ID]);
+  });
+
+  it('a code that does not work fetches nothing', async () => {
+    serve({ playbooks: [], concepts: [] });
+    const { result } = renderHook(() => usePlaybooks());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    const fetches = mockSelect.playbooks.mock.calls.length;
+    mockRpc.mockResolvedValue({ data: { ok: false, error: 'expired' }, error: null });
+    let answer: unknown;
+    await act(async () => {
+      answer = await result.current.redeemCode?.('ABCD-EFGH');
+    });
+    expect(answer).toEqual({ ok: false, error: 'expired' });
+    expect(mockSelect.playbooks.mock.calls.length).toBe(fetches);
+  });
+
+  /** @edge-case a fetch already running started before the grant: a new one follows it */
+  it('refreshPlaybooks fresh: does not reuse a fetch that was already running', async () => {
+    let release: (v: unknown) => void = () => {};
+    mockSelect.playbooks.mockImplementationOnce(() => new Promise((r) => (release = r)));
+    mockSelect.playbook_concepts.mockResolvedValue({ data: [], error: null });
+    const first = refreshPlaybooks(USER);
+    serve(rows());
+    const second = refreshPlaybooks(USER, { fresh: true });
+    // The first fetch is waiting on its query.
+    await waitFor(() => expect(mockSelect.playbooks).toHaveBeenCalledTimes(1));
+    release({ data: [], error: null });
+    await act(async () => {
+      await first;
+      await second;
+    });
+    expect(mockSelect.playbooks).toHaveBeenCalledTimes(2);
   });
 });

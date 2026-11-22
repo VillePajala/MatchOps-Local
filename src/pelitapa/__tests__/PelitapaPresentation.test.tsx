@@ -487,6 +487,37 @@ describe('PelitapaPresentation in a sequence (a game\'s themes)', () => {
     expect(screen.getByTestId('pelitapa-step-title')).toHaveTextContent(steps[0].title);
   });
 
+  /** @edge-case "Previous" on a theme's first step goes back to the previous theme */
+  it('back from the first step goes to the previous theme (not on the first theme)', async () => {
+    const onPrev = jest.fn();
+    const { unmount } = render(
+      <PelitapaPresentation isOpen onClose={jest.fn()} sequence={{ index: 1, total: 2, onNext: jest.fn(), onPrev }} />,
+    );
+    await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+    const back = screen.getByRole('button', { name: 'Previous theme' });
+    expect(back).toBeEnabled();
+    fireEvent.click(back);
+    expect(onPrev).toHaveBeenCalledWith({ focus: false });
+    // From step 2 it is an ordinary step back.
+    fireEvent.click(screen.getByTestId('pelitapa-next'));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous step' }));
+    expect(onPrev).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('pelitapa-step-title')).toHaveTextContent(steps[0].title);
+    unmount();
+
+    render(<PelitapaPresentation isOpen onClose={jest.fn()} sequence={{ index: 0, total: 2, onNext: jest.fn(), onPrev }} />);
+    await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Previous step' })).toBeDisabled();
+  });
+
+  it('startAtEnd opens the concept at its end (the question)', async () => {
+    render(<PelitapaPresentation isOpen onClose={jest.fn()} startAtEnd sequence={{ index: 0, total: 2, onNext: jest.fn() }} />);
+    await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
+    expect(screen.getByTestId('pelitapa-next')).toHaveTextContent('Next theme');
+    fireEvent.click(screen.getByRole('button', { name: 'Previous step' }));
+    expect(screen.getByTestId('pelitapa-step-title')).toHaveTextContent(steps[steps.length - 1].title);
+  });
+
   it('opens the next theme in the mode the previous one was in, and passes it on', async () => {
     const onNext = await renderInSequence(0, 3, true);
     expect(screen.getByTestId('pelitapa-focus')).toBeInTheDocument();

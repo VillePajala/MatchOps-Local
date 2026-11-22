@@ -4,6 +4,7 @@ import { useAccountFeatures } from '@/hooks/useAccountFeatures';
 import logger from '@/utils/logger';
 import { DEMO_CONCEPT } from './demoConcept';
 import { validateConcept } from './validateConcept';
+import { redeemPlaybookCode, type RedeemCodeResult } from './playbookCodes';
 import type { Concept } from './types';
 
 /**
@@ -19,6 +20,8 @@ import type { Concept } from './types';
  * - The last answer is kept per user in IndexedDB, so a tablet at an arena with
  *   no signal still has the playbooks. A failed fetch keeps it (status
  *   'offline').
+ * - A club code unlocks a playbook (`redeemCode`, cloud mode only); on success
+ *   the playbooks are fetched again so the new one is there.
  * - Local mode: no club playbooks.
  * - Always (for flagged accounts) our own "MatchOps esimerkit" playbook with the
  *   built-in demo concept, last in the list.
@@ -42,6 +45,12 @@ export interface PlaybooksResult {
   status: PlaybooksStatus;
   /** Fetch again (deduplicated). */
   refresh: () => void;
+  /**
+   * Unlock a club playbook with a code; resolves after the playbooks were
+   * fetched again. Absent when the account cannot unlock (local mode, not
+   * signed in, no flag).
+   */
+  redeemCode?: (code: string) => Promise<RedeemCodeResult>;
 }
 
 /** The rows as they come from the database (and as they are cached). */
@@ -181,10 +190,14 @@ async function fetchRows(userId: string): Promise<PlaybookRows> {
   return { playbooks: pb.data ?? [], concepts: cs.data ?? [] };
 }
 
-/** Fetch the account's playbooks (deduplicated per user). Never throws. */
-export function refreshPlaybooks(userId: string): Promise<void> {
+/**
+ * Fetch the account's playbooks (deduplicated per user). Never throws.
+ * `fresh`: the answer must reflect a change made just now (a redeemed code),
+ * so a fetch already running is followed by a new one instead of reused.
+ */
+export function refreshPlaybooks(userId: string, { fresh = false }: { fresh?: boolean } = {}): Promise<void> {
   const running = inFlight.get(userId);
-  if (running) return running;
+  if (running) return fresh ? running.then(() => refreshPlaybooks(userId, { fresh: true })) : running;
   const run = fetchRows(userId)
     .then(async (rows) => {
       setState(userId, { remote: buildPlaybooks(rows), status: 'ready', fromNetwork: true });
@@ -238,6 +251,16 @@ export function usePlaybooks(): PlaybooksResult {
     if (userId) void refreshPlaybooks(userId);
   }, [userId]);
 
+  const redeemCode = useCallback(
+    async (code: string): Promise<RedeemCodeResult> => {
+      if (!userId) return { ok: false, error: 'failed' };
+      const result = await redeemPlaybookCode(code, userId);
+      if (result.ok) await refreshPlaybooks(userId, { fresh: true });
+      return result;
+    },
+    [userId],
+  );
+
   const playbooks = useMemo(
     () => (!enabled ? NONE : userId ? [...state.remote, BUILT_IN_PLAYBOOK] : ONLY_BUILT_IN),
     [enabled, userId, state.remote],
@@ -247,5 +270,6 @@ export function usePlaybooks(): PlaybooksResult {
     playbooks,
     status: userId ? state.status : 'ready',
     refresh: userId ? refresh : noop,
+    redeemCode: userId ? redeemCode : undefined,
   };
 }

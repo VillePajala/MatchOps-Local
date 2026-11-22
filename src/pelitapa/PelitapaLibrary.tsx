@@ -2,11 +2,12 @@
 
 import React, { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiMagnifyingGlass, HiXMark, HiOutlineSignalSlash, HiCheck, HiOutlineEye, HiOutlineExclamationTriangle } from 'react-icons/hi2';
+import { HiMagnifyingGlass, HiXMark, HiOutlineSignalSlash, HiCheck, HiOutlineEye, HiOutlineExclamationTriangle, HiOutlineKey } from 'react-icons/hi2';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import PelitapaPitch, { PITCH_ASPECT } from './PelitapaPitch';
 import PelitapaPresentation from './PelitapaPresentation';
+import PlaybookCodeSheet from './PlaybookCodeSheet';
 import { resolveStep } from './resolveStep';
 import { filterConcepts, formatsIn, groupByPhase, knownPhase, phasesIn, samePhase } from './library';
 import { usePlaybooks, type Playbook } from './usePlaybooks';
@@ -26,6 +27,9 @@ import { resolveGameThemes } from './resolveGameThemes';
  * previews it, and "Done" hands the picked list back. Picked concepts the
  * account can no longer read (a withdrawn grant) are listed as unavailable at
  * the top, removable, never a crash. Back / the close button cancel.
+ *
+ * "Enter a club code" (browsing, cloud accounts) opens a small sheet; a code
+ * that works unlocks the club's playbook and the view switches to it.
  *
  * Lazily loaded from the home screen and only for accounts with the
  * 'pelitapa' flag (lazyModal with warm: false): nobody else downloads it.
@@ -153,7 +157,9 @@ function SectionHead({ children }: { children: React.ReactNode }) {
 
 export default function PelitapaLibrary({ isOpen, onClose, selection }: PelitapaLibraryProps) {
   const { t } = useTranslation();
-  const { playbooks, status } = usePlaybooks();
+  const { playbooks, status, redeemCode } = usePlaybooks();
+  const [codeOpen, setCodeOpen] = useState(false);
+  const closeCode = useCallback(() => setCodeOpen(false), []);
   const selecting = !!selection;
   const [picked, setPicked] = useState<GameTheme[]>(() => selection?.initial ?? []);
 
@@ -188,6 +194,12 @@ export default function PelitapaLibrary({ isOpen, onClose, selection }: Pelitapa
   const playbookName = (p: Playbook) => (p.builtIn ? t('pelitapa.library.builtInName', 'MatchOps examples') : p.name);
 
   const closePresentation = useCallback(() => setOpen(null), []);
+  // A code just unlocked a playbook: show it, unfiltered.
+  const showUnlocked = useCallback((id: string) => {
+    setPlaybookId(id);
+    setQuery('');
+    setPhase(null);
+  }, []);
 
   // --- Selection mode.
   const pickOrder = useMemo(() => new Map(picked.map((p, i) => [gameThemeKey(p), i + 1])), [picked]);
@@ -221,7 +233,7 @@ export default function PelitapaLibrary({ isOpen, onClose, selection }: Pelitapa
         : [],
     [selecting, status, picked, playbooks],
   );
-  useEscapeToClose(isOpen && !open, onClose);
+  useEscapeToClose(isOpen && !open && !codeOpen, onClose);
   useModalHardwareBack(isOpen, onClose);
 
   if (!isOpen) return null;
@@ -238,7 +250,7 @@ export default function PelitapaLibrary({ isOpen, onClose, selection }: Pelitapa
         data-testid="pelitapa-library"
         className="s1-canvas fixed inset-0 z-[60] overflow-y-auto font-ui text-ink antialiased"
         style={{ paddingTop: 'max(14px, env(safe-area-inset-top))', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
-        aria-hidden={open ? true : undefined}
+        aria-hidden={open || codeOpen ? true : undefined}
       >
         <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-4 px-4 sm:px-7">
           {/* Header: playbook name + title, formats. Back = the phone's back button, as everywhere in the app. */}
@@ -305,6 +317,19 @@ export default function PelitapaLibrary({ isOpen, onClose, selection }: Pelitapa
                 })}
               </div>
             </div>
+          )}
+
+          {/* Unlock a club's playbook with the code the club gave. */}
+          {redeemCode && !selecting && (
+            <button
+              type="button"
+              onClick={() => setCodeOpen(true)}
+              className="-mt-1 flex h-11 items-center gap-2 self-start rounded-full px-1 text-[15px] font-semibold text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              data-testid="playbook-code-open"
+            >
+              <HiOutlineKey className="h-5 w-5" aria-hidden="true" />
+              {t('pelitapa.code.open', 'Enter a club code')}
+            </button>
           )}
 
           {/* Search. */}
@@ -452,6 +477,9 @@ export default function PelitapaLibrary({ isOpen, onClose, selection }: Pelitapa
       )}
 
       {open && <PelitapaPresentation isOpen concept={open} onClose={closePresentation} />}
+      {codeOpen && redeemCode && (
+        <PlaybookCodeSheet onClose={closeCode} onRedeem={redeemCode} onUnlocked={showUnlocked} />
+      )}
     </>
   );
 }

@@ -4233,6 +4233,7 @@
   "pelitapa": {
     "close": "Close",
     "previous": "Previous step",
+    "previousTheme": "Previous theme",
     "next": "Next",
     "toQuestion": "Think about it",
     "restart": "Start over",
@@ -4291,6 +4292,27 @@
       "noneChosen": "No theme chosen",
       "chosenCount": "{{n}} chosen",
       "done": "Done"
+    },
+    "code": {
+      "open": "Enter a club code",
+      "title": "Enter a club code",
+      "hint": "Your club gives its coaches a code. It unlocks the club’s content for this account.",
+      "label": "Club code",
+      "placeholder": "XXXX-XXXX-XXXX",
+      "submit": "Unlock",
+      "checking": "Checking…",
+      "unlocked": "{{name}} unlocked",
+      "already": "{{name}} is already unlocked",
+      "show": "Show",
+      "errors": {
+        "invalid": "That code doesn't work. Check it and try again.",
+        "expired": "This code has expired. Ask your club for a new one.",
+        "usedUp": "This code has been used up. Ask your club for a new one.",
+        "revoked": "This code is no longer valid. Ask your club for a new one.",
+        "rateLimited": "Too many attempts. Try again in an hour.",
+        "offline": "A network connection is needed.",
+        "failed": "Something went wrong. Try again."
+      }
     }
   }
 }
