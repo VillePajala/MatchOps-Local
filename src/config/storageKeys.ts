@@ -41,6 +41,12 @@ export const PLAYTIME_GAME_SUBS_KEY = 'soccerPlaytimeGameSubs';
 // here where nothing rewrites it.
 export const PLAYTIME_PLAN_LINKS_KEY = 'soccerPlaytimePlanLinks';
 
+// Pelitapa game themes: the concepts picked for a game (map gameId -> [{playbookId,
+// conceptId}] in pick order). Same separate-store rationale as the planner's
+// per-game stores - never on the game blob or in the game transforms. Synced on
+// its own to `game_themes` (migration 066).
+export const GAME_THEMES_KEY = 'pelitapaGameThemes';
+
 // UI state storage keys
 export const INSTALL_PROMPT_DISMISSED_KEY = 'installPromptDismissed';
 

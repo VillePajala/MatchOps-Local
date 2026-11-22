@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
@@ -44,6 +44,7 @@ import {
 } from 'react-icons/hi2';
 import { TASO_URL } from '@/config/externalLinks';
 import { useAccountFeatures } from '@/hooks/useAccountFeatures';
+import { LazyGameThemeRow } from '@/pelitapa/lazyEntryPoints';
 import { lazyModal } from '@/components/lazyModal';
 
 /**
@@ -317,6 +318,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const { hasFeature } = useAccountFeatures();
   const pelitapaOn = hasFeature('pelitapa');
   const [pelitapaOpen, setPelitapaOpen] = useState(false);
+  // The next match's Pelitapa themes row - only for flagged accounts (its chunk is never fetched otherwise).
+  const renderGameTheme = useMemo(
+    () => (pelitapaOn ? (gameId: string) => <LazyGameThemeRow key={gameId} gameId={gameId} variant="card" /> : undefined),
+    [pelitapaOn],
+  );
   // Dashboard is the default view, but it only renders once there are games to
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
   // The full layout always shows the dashboard once there are games: the old
@@ -548,6 +554,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               onAddPlayers={onAddPlayers}
               onViewStats={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
               onSwitchToFull={onSwitchToFullLayout}
+              renderNextGameTheme={renderGameTheme}
               locale={language}
               t={t}
             />
@@ -830,6 +837,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       : undefined
                   }
                   afterHero={newGameGhost}
+                  renderNextMatchTheme={renderGameTheme}
                   locale={language}
                   t={t}
                 />

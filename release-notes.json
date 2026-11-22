@@ -9,8 +9,8 @@
     {
       "date": "2026-11-21",
       "internal": true,
-      "en": ["Groundwork for a test feature (a library of animated game situations, with a full-screen focus mode) that is not yet visible to coaches."],
-      "fi": ["Pohjatyötä testiominaisuudelle (animoitujen pelitilanteiden kirjasto ja sen koko näytön fokustila), joka ei vielä näy valmentajille."]
+      "en": ["Groundwork for a test feature (a library of animated game situations, with a full-screen focus mode, and themes picked for a game) that is not yet visible to coaches."],
+      "fi": ["Pohjatyötä testiominaisuudelle (animoitujen pelitilanteiden kirjasto, sen koko näytön fokustila ja otteluun valittavat teemat), joka ei vielä näy valmentajille."]
     },
     {
       "date": "2026-11-21",

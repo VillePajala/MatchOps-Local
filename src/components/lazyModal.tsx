@@ -96,8 +96,12 @@ interface ModalLikeProps {
  */
 export function lazyModal<P extends object>(
   loader: ModalLoader<P>,
-  /** `warm: false` keeps the chunk out of warmLazyModals: for a view most accounts never open (a flagged feature). */
-  { warm = true }: { warm?: boolean } = {},
+  /**
+   * `warm: false` keeps the chunk out of warmLazyModals: for a view most accounts never open (a flagged feature).
+   * `inline: true` for a piece of a screen rather than a modal the coach opened: a chunk that cannot be
+   * loaded leaves it out quietly (no toast - nobody asked for it); it is tried again when it next mounts.
+   */
+  { warm = true, inline = false }: { warm?: boolean; inline?: boolean } = {},
 ): ComponentType<P> {
   // Shared by every mounted instance of this modal. Replacing it after a failure is
   // safe even with two instances: both then render a lazy over the same import(),
@@ -114,7 +118,7 @@ export function lazyModal<P extends object>(
       // React.lazy keeps the rejection forever; a fresh one retries on the next open.
       current.Lazy = lazy(loader);
       logger.warn('[lazyModal] Modal code could not be loaded:', error.message);
-      if (isOpen === false) return; // mounted closed (e.g. game settings): nothing was asked for
+      if (inline || isOpen === false) return; // a screen piece / mounted closed: nothing was asked for
       toast?.showToast(
         t('common.viewNeedsConnection', "This view couldn't be opened without a connection. Try again when you're online."),
         'error',

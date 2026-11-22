@@ -4268,6 +4268,29 @@
         "setPieces": "Set pieces"
       }
     },
-    "focusMode": "Focus mode"
+    "focusMode": "Focus mode",
+    "nextTheme": "Next theme",
+    "themeOf": "Theme {{n}}/{{total}}",
+    "themes": {
+      "sectionTitle": "Pelitapa themes",
+      "choose": "Choose a theme",
+      "chooseMany": "Choose themes",
+      "edit": "Change themes",
+      "themeOne": "Theme",
+      "themesMany": "Themes: {{n}}",
+      "showOne": "Show theme",
+      "showMany": "Show themes",
+      "formEmpty": "Pick concepts to go through with the players.",
+      "unavailable": "Not available",
+      "pickTitle": "Choose themes",
+      "preview": "Preview: {{title}}",
+      "unavailableTitle": "No longer available",
+      "unavailableHint": "This account can no longer open these. Remove them, or keep them in case access returns.",
+      "unavailableItem": "Theme {{n}}",
+      "remove": "Remove",
+      "noneChosen": "No theme chosen",
+      "chosenCount": "{{n}} chosen",
+      "done": "Done"
+    }
   }
 }

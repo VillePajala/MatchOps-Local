@@ -757,7 +757,8 @@ describe('Translation File Validation', () => {
       // +13 Pelitapa (flagged): startScreen.rowPelitapa/clubPelitapaSub + 11 pelitapa.* (2026-11-21). 3678.
       // +22 Pelitapa library: 16 pelitapa.library.* (steps _one/_other) + 6 pelitapa.library.phase.*. 3700.
       // +1 pelitapa.focusMode (Pelitapa focus mode button). 3701.
-      expect(enKeys.length).toBe(3701);
+      // +21 Pelitapa game themes: pelitapa.nextTheme/themeOf + 19 pelitapa.themes.*. 3722.
+      expect(enKeys.length).toBe(3722);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -975,7 +976,8 @@ describe('Translation File Validation', () => {
       // +6 / -4 Home "Joukkueet" card; top scorers removed. 3665.
       // +22 Pelitapa library. 3700.
       // +1 Pelitapa focus mode. 3701.
-      expect(fiKeys.length).toBe(3701);
+      // +21 Pelitapa game themes (see EN). 3722.
+      expect(fiKeys.length).toBe(3722);
     });
   });
 });

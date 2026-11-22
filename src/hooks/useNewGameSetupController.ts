@@ -105,6 +105,7 @@ export function useNewGameSetupController({ onGameCreated, flushLiveMatch }: Use
       prefill?: StartNewGameRequest['prefill'],
       isFriendly?: boolean,
       formationPresetId?: string | null,
+      gameThemes?: StartNewGameRequest['gameThemes'],
     ) => {
       if (createInFlightRef.current) return;
       createInFlightRef.current = true;
@@ -155,6 +156,7 @@ export function useNewGameSetupController({ onGameCreated, flushLiveMatch }: Use
             prefill,
             isFriendly,
             formationPresetId,
+            gameThemes,
           },
         );
 

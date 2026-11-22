@@ -7,6 +7,8 @@ import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 import type { AppState, Player, SavedGamesCollection, GameType, Gender, Point } from '@/types';
 import { setGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
+import { setGameThemes } from '@/pelitapa/gameThemes';
+import type { GameTheme } from '@/pelitapa/gameThemeTypes';
 import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
 import { buildAutoPlacement } from '@/utils/formations';
 import { withoutFairPlayCard } from '@/utils/playerStats';
@@ -84,6 +86,8 @@ export interface StartNewGameRequest {
    * edited plan can be re-applied to games already created from it.
    */
   prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[]; formationSnapPoints: Point[]; sourcePlanId?: string; sourcePlanGameId?: string };
+  /** Pelitapa themes picked in the form (flagged accounts); stored by the new game's id. */
+  gameThemes?: GameTheme[];
 }
 
 /**
@@ -128,6 +132,7 @@ export async function buildAndPersistNewGame(
     gender,
     formationPresetId,
     prefill,
+    gameThemes,
   } = request;
   const {
     availablePlayers,
@@ -349,6 +354,16 @@ export async function buildAndPersistNewGame(
         });
       } catch (linkError) {
         logger.error('[NEW GAME] Failed to store plan link (non-fatal):', linkError);
+      }
+    }
+
+    // Pelitapa themes picked in the form: their own store keyed by the game id
+    // (never the game blob). Best-effort like the planner data above.
+    if (gameThemes?.length) {
+      try {
+        await setGameThemes(newGameId, gameThemes);
+      } catch (themeError) {
+        logger.error('[NEW GAME] Failed to store game themes (non-fatal):', themeError);
       }
     }
   } catch (error) {

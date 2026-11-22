@@ -177,6 +177,33 @@ export type Database = {
           },
         ]
       }
+      game_themes: {
+        Row: {
+          concept_id: string
+          game_id: string
+          playbook_id: string
+          sort: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          concept_id: string
+          game_id: string
+          playbook_id: string
+          sort?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          concept_id?: string
+          game_id?: string
+          playbook_id?: string
+          sort?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       game_tactical_data: {
         Row: {
           completed_interval_durations: Json | null
@@ -1350,6 +1377,10 @@ export type Database = {
           p_tactical_data: Json
         }
         Returns: number
+      }
+      set_game_themes: {
+        Args: { p_game_id: string; p_themes: Json }
+        Returns: undefined
       }
       set_team_roster: {
         Args: { p_roster: Json[]; p_team_id: string }

@@ -124,6 +124,15 @@ export function __resetAccountFeaturesForTests(): void {
 
 const devOverride = (): boolean => process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
 
+/**
+ * Outside React (data services): whether this user's last known flags on this
+ * device include the feature. No fetch; false until the account's flags were
+ * read once here.
+ */
+export function hasCachedAccountFeature(userId: string, feature: AccountFeature): boolean {
+  return snapshotFor(userId).has(feature);
+}
+
 export interface AccountFeatures {
   hasFeature: (feature: AccountFeature) => boolean;
 }

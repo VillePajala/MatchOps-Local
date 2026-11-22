@@ -38,10 +38,26 @@ import type { Concept } from './types';
  * Lazily loaded (lazyModal): nothing here is in the start-up or match bundles.
  */
 
+/**
+ * Playing several concepts in a row (a game's themes): after this concept's
+ * last step (or its question) the primary button reads "Next theme" and moves
+ * on instead of starting over. The last concept of the sequence ends as usual.
+ */
+export interface PresentationSequence {
+  /** This concept's place in the sequence, 0-based. */
+  index: number;
+  total: number;
+  /** Move to the next concept; `focus` is the mode to open it in. */
+  onNext: (state: { focus: boolean }) => void;
+}
+
 interface PelitapaPresentationProps {
   isOpen: boolean;
   onClose: () => void;
   concept?: Concept;
+  sequence?: PresentationSequence;
+  /** Open in this mode instead of the remembered one (the next theme keeps the current mode). */
+  initialFocus?: boolean;
 }
 
 type Stage = number | 'question';
@@ -105,7 +121,13 @@ const MOTION_CSS = `
 }
 `;
 
-export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_CONCEPT }: PelitapaPresentationProps) {
+export default function PelitapaPresentation({
+  isOpen,
+  onClose,
+  concept = DEMO_CONCEPT,
+  sequence,
+  initialFocus,
+}: PelitapaPresentationProps) {
   const { t } = useTranslation();
   const { userId, getStore } = useDataStore();
   const validation = useMemo(() => validateConcept(concept), [concept]);
@@ -123,7 +145,7 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
   const [fieldPlayers, setFieldPlayers] = useState<Player[]>([]);
   const [overrides, setOverrides] = useState<Record<string, string | null>>({});
   const [picking, setPicking] = useState<string | null>(null);
-  const [focus, setFocus] = useState(readFocusPreference);
+  const [focus, setFocus] = useState(() => initialFocus ?? readFocusPreference());
   /** Out of focus mode, and nothing done in the normal view yet: still "in focus mode" for leaving. */
   const passingThrough = useRef(false);
   const enterFocus = useCallback(() => setFocus(true), []);
@@ -207,13 +229,20 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
   const hasQuestion = validation.ok && !!validation.concept.question?.trim();
   const index = stage === 'question' ? last : stage;
 
+  // In a sequence, the end of this concept leads to the next one.
+  const atEnd = stage === 'question' || (stage === last && !hasQuestion);
+  const toNextTheme = !!sequence && sequence.index < sequence.total - 1 && atEnd;
   const next = useCallback(() => {
+    if (toNextTheme && sequence) {
+      sequence.onNext({ focus: focusRef.current });
+      return;
+    }
     setStage((s) => {
       if (s === 'question') return 0;
       if (s < last) return s + 1;
       return hasQuestion ? 'question' : 0;
     });
-  }, [last, hasQuestion, setStage]);
+  }, [last, hasQuestion, setStage, toNextTheme, sequence]);
   const prev = useCallback(() => {
     setStage((s) => (s === 'question' ? last : Math.max(0, s - 1)));
   }, [last, setStage]);
@@ -339,13 +368,15 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
   const c = validation.concept;
   const resolved = resolveStep(c, index);
   const inQuestion = stage === 'question';
-  const primaryLabel = inQuestion
-    ? t('pelitapa.restart', 'Start over')
-    : index < last
-      ? t('pelitapa.next', 'Next')
-      : hasQuestion
-        ? t('pelitapa.toQuestion', 'Think about it')
-        : t('pelitapa.restart', 'Start over');
+  const primaryLabel = toNextTheme
+    ? t('pelitapa.nextTheme', 'Next theme')
+    : inQuestion
+      ? t('pelitapa.restart', 'Start over')
+      : index < last
+        ? t('pelitapa.next', 'Next')
+        : hasQuestion
+          ? t('pelitapa.toQuestion', 'Think about it')
+          : t('pelitapa.restart', 'Start over');
   const pickingPlayer = picking ? assignment[picking] : undefined;
   const pickable = roster.filter((p) => !p.archived);
 
@@ -498,7 +529,12 @@ export default function PelitapaPresentation({ isOpen, onClose, concept = DEMO_C
       {/* Header */}
       <div className="flex w-full flex-shrink-0 items-center gap-3 px-4 pb-3 sm:px-7" style={{ maxWidth: PANEL_MAX_W }}>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">
+          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3" data-testid="pelitapa-eyebrow">
+            {sequence && sequence.total > 1 && (
+              <span className="text-action">
+                {t('pelitapa.themeOf', 'Theme {{n}}/{{total}}', { n: sequence.index + 1, total: sequence.total })} ·{' '}
+              </span>
+            )}
             {c.phase} · {c.format}
           </p>
           <h2 id="pelitapa-title" className="truncate font-display text-[clamp(24px,4vw,32px)] font-extrabold leading-[1.05]">

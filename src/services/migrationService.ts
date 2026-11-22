@@ -19,6 +19,7 @@ import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
 import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
+import type { GameThemesCollection } from '@/pelitapa/gameThemeTypes';
 import { getAuthService } from '@/datastore/factory';
 import { consumeAnonymousDataImportRequest } from '@/config/backendConfig';
 import { getSupabaseClient } from '@/datastore/supabase/client';
@@ -175,6 +176,8 @@ interface LocalDataSnapshot {
   playtimePlans: PlaytimePlanCollection;
   playtimePlanLinks: PlanLinksCollection;
   playtimeGameSubs: GameSubsCollection;
+  /** Pelitapa game themes (gameId -> themes). */
+  gameThemes: GameThemesCollection;
 }
 
 /**
@@ -197,7 +200,7 @@ interface SkippedGame {
  */
 export interface EntityUploadFailure {
   /** Type of entity that failed */
-  entityType: 'player' | 'team' | 'teamRoster' | 'season' | 'tournament' | 'personnel' | 'game' | 'adjustment' | 'warmupPlan' | 'settings' | 'playtimePlan' | 'playtimePlanLink' | 'playtimeGameSubs';
+  entityType: 'player' | 'team' | 'teamRoster' | 'season' | 'tournament' | 'personnel' | 'game' | 'adjustment' | 'warmupPlan' | 'settings' | 'playtimePlan' | 'playtimePlanLink' | 'playtimeGameSubs' | 'gameThemes';
   /** ID of the entity (if available) */
   entityId?: string;
   /** Display name for the entity (for user-friendly error messages) */
@@ -820,6 +823,7 @@ async function exportAllLocalData(
   const playtimePlanLinks = await localStore.getPlaytimePlanLinks();
   // Whole collection - subs can outlive their link (plan deleted, game kept).
   const playtimeGameSubs = await localStore.getAllPlaytimeGameSubs();
+  const gameThemes = await localStore.getAllGameThemes();
 
   return {
     players,
@@ -835,6 +839,7 @@ async function exportAllLocalData(
     playtimePlans,
     playtimePlanLinks,
     playtimeGameSubs,
+    gameThemes,
   };
 }
 
@@ -1638,6 +1643,20 @@ async function uploadToCloud(
         error: err instanceof Error ? err.message : 'Unknown error',
       });
       logger.error(`[MigrationService] Failed to upload playtime subs for ${gameId}:`, err);
+    }
+  }
+  // Pelitapa game themes, per game like the planned subs.
+  for (const [gameId, themes] of Object.entries(data.gameThemes ?? {})) {
+    try {
+      if (themes.length > 0) await cloudStore.setGameThemes(gameId, themes);
+    } catch (err) {
+      failures.push({
+        entityType: 'gameThemes',
+        entityId: gameId,
+        entityName: `Themes for game ${gameId}`,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[MigrationService] Failed to upload game themes for ${gameId}:`, err);
     }
   }
 

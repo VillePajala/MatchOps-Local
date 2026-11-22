@@ -46,6 +46,9 @@ export const PLAYTIME_PLANS_KEY = 'soccerPlaytimePlans';           // Plans (map
 export const PLAYTIME_GAME_SUBS_KEY = 'soccerPlaytimeGameSubs';    // Planned subs per game
 export const PLAYTIME_PLAN_LINKS_KEY = 'soccerPlaytimePlanLinks';  // Game -> plan link
 
+// Pelitapa (flagged accounts): concepts picked for a game, synced to game_themes (066)
+export const GAME_THEMES_KEY = 'pelitapaGameThemes';               // Game -> [{playbookId, conceptId}]
+
 // Session/temporary data
 export const TIMER_STATE_KEY = 'soccerTimerState';           // Active game timer
 export const LAST_HOME_TEAM_NAME_KEY = 'lastHomeTeamName';   // Legacy setting

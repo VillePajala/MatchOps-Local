@@ -130,6 +130,7 @@ describe('SyncedDataStore.pushAllToCloud', () => {
       getPlaytimePlans: jest.fn().mockResolvedValue({}),
       getPlaytimePlanLinks: jest.fn().mockResolvedValue({}),
       getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
+      getAllGameThemes: jest.fn().mockResolvedValue({}),
     } as unknown as jest.Mocked<DataStore>;
 
     // Create mock remote store (all operations succeed by default)
@@ -381,6 +382,19 @@ describe('SyncedDataStore.pushAllToCloud', () => {
       expect(summary.teams).toBe(0);
       expect(summary.games).toBe(0);
       expect(summary.failures.players).toHaveLength(0);
+    });
+
+    it('pushes each game\'s Pelitapa themes', async () => {
+      const themes = [{ playbookId: 'pepo', conceptId: 'avaus' }];
+      (mockLocalStore.getAllGameThemes as jest.Mock).mockResolvedValue({ game_1: themes });
+      (mockRemoteStore as unknown as { setGameThemes: jest.Mock }).setGameThemes = jest.fn().mockResolvedValue(true);
+
+      syncedDataStore = createSyncedDataStore();
+      const result = await syncedDataStore.pushAllToCloud();
+
+      expect(mockRemoteStore.setGameThemes).toHaveBeenCalledWith('game_1', themes);
+      expect(result.gameThemes).toBe(1);
+      expect(result.failures.gameThemes).toEqual([]);
     });
 
     it('should skip warmup plan push when null', async () => {

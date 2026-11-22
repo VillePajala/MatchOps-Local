@@ -40,6 +40,9 @@ import {
 } from '@/styles/modalStyles';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useFeatureEnabled } from '@/contexts/AccountFeaturesProvider';
+import { DEFAULT_GAME_ID } from '@/config/constants';
+import { LazyGameThemeRow } from '@/pelitapa/lazyEntryPoints';
 import { HiOutlineMapPin } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
@@ -291,6 +294,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
+  const pelitapaOn = useFeatureEnabled('pelitapa');
   // Players in this game's list who are no longer in the club roster (the game keeps
   // them as its record); marked in the picker so same-named players can be told apart.
   // Needs the club roster loaded - otherwise nobody is marked.
@@ -2181,6 +2185,18 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
               </div>
             </section>
+
+            {/* Pelitapa themes for this game (accounts with the 'pelitapa' flag only). */}
+            {pelitapaOn && currentGameId && currentGameId !== DEFAULT_GAME_ID && (
+              <section data-testid="game-settings-themes">
+                <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>
+                  {t('pelitapa.themes.sectionTitle', 'Pelitapa themes')}
+                </h3>
+                <div className={cardStyle}>
+                  <LazyGameThemeRow gameId={currentGameId} variant="form" />
+                </div>
+              </section>
+            )}
 
             {error && (
               <div className="px-1 font-ui text-sm text-loss">{error}</div>

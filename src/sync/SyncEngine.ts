@@ -47,6 +47,7 @@ const ENTITY_SYNC_PRIORITY: Record<SyncEntityType, number> = {
   playtimePlan: 2,      // Self-contained blob, no FK to other entities
   playtimePlanLink: 4,  // References real games conceptually - after games
   playtimeGameSubs: 4,  // Same: keyed by real game id
+  gameThemes: 4,        // Pelitapa themes, keyed by real game id (no FK)
   game: 3,        // Games reference seasons/tournaments/teams via FK
   teamRoster: 4,  // Rosters reference teams and players
   playerAdjustment: 4, // Adjustments reference games and players

@@ -26,6 +26,11 @@ import type { AppState } from '@/types';
 
 // Mock the data stores
 jest.mock('@/datastore/LocalDataStore');
+// Pelitapa game themes are pulled only for accounts flagged on this device.
+let mockPelitapaCached = false;
+jest.mock('@/hooks/useAccountFeatures', () => ({
+  hasCachedAccountFeature: (_userId: string, feature: string) => feature === 'pelitapa' && mockPelitapaCached,
+}));
 jest.mock('@/datastore/SupabaseDataStore');
 
 // Mock the Supabase client for hasCloudData (uses direct client access)
@@ -224,6 +229,7 @@ describe('reverseMigrationService', () => {
       getPlaytimePlanLinks: jest.fn().mockResolvedValue({}),
       getPlaytimeGameSubs: jest.fn().mockResolvedValue([]),
       getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
+      getAllGameThemes: jest.fn().mockResolvedValue({}),
       getSettings: jest.fn().mockResolvedValue(null),
       getCachedGameVersion: jest.fn().mockReturnValue(undefined),
       clearAllUserData: jest.fn().mockResolvedValue(undefined),
@@ -265,6 +271,8 @@ describe('reverseMigrationService', () => {
       restorePlaytimePlans: jest.fn().mockResolvedValue(0),
       restorePlaytimePlanLinks: jest.fn().mockResolvedValue(0),
       restorePlaytimeGameSubs: jest.fn().mockResolvedValue(0),
+      restoreGameThemes: jest.fn().mockResolvedValue(0),
+      deleteGameThemes: jest.fn().mockResolvedValue(true),
       close: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<LocalDataStore>;
 
@@ -1204,6 +1212,38 @@ describe('reverseMigrationService', () => {
       expect(result.success).toBe(true);
       expect(mockLocalDataStore.setTeamRoster).toHaveBeenCalledWith('team-2', [mockPlayer]);
       expect(mockLocalDataStore.setTeamRoster).not.toHaveBeenCalledWith(mockTeam.id, expect.anything());
+    });
+
+    describe('Pelitapa game themes', () => {
+      afterEach(() => {
+        mockPelitapaCached = false;
+      });
+
+      it('are not requested for an account without the pelitapa flag', async () => {
+        const result = await hydrateLocalFromCloud('test-user-id');
+        expect(result.success).toBe(true);
+        expect(mockSupabaseDataStore.getAllGameThemes).not.toHaveBeenCalled();
+        expect(mockLocalDataStore.restoreGameThemes).not.toHaveBeenCalled();
+      });
+
+      it('are pulled and merged (local wins) for a flagged account', async () => {
+        mockPelitapaCached = true;
+        const themes = { 'game-1': [{ playbookId: 'pb', conceptId: 'c1' }] };
+        (mockSupabaseDataStore.getAllGameThemes as jest.Mock).mockResolvedValue(themes);
+        (mockLocalDataStore.restoreGameThemes as jest.Mock).mockResolvedValue(1);
+        const result = await hydrateLocalFromCloud('test-user-id');
+        expect(result.success).toBe(true);
+        expect(mockLocalDataStore.restoreGameThemes).toHaveBeenCalledWith(themes);
+        expect(result.counts.gameThemes).toBe(1);
+      });
+
+      it('a failed theme read does not fail the pull', async () => {
+        mockPelitapaCached = true;
+        (mockSupabaseDataStore.getAllGameThemes as jest.Mock).mockRejectedValue(new Error('no table'));
+        const result = await hydrateLocalFromCloud('test-user-id');
+        expect(result.success).toBe(true);
+        expect(result.errors).toEqual([]);
+      });
     });
 
     it('a failed player-adjustment read is skipped and the pull carries on', async () => {

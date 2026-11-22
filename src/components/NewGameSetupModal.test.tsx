@@ -92,6 +92,20 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
+// Pelitapa (account flag): off unless a test turns it on. The themes field is a
+// lazily loaded chunk in the app; here a stub that can pick one theme.
+let mockPelitapaOn = false;
+jest.mock('@/contexts/AccountFeaturesProvider', () => ({
+  useFeatureEnabled: (feature: string) => feature === 'pelitapa' && mockPelitapaOn,
+}));
+jest.mock('@/pelitapa/lazyEntryPoints', () => ({
+  LazyGameThemeField: ({ value, onChange }: { value: unknown[]; onChange: (v: unknown[]) => void }) => (
+    <button type="button" data-testid="stub-theme-field" onClick={() => onChange([{ playbookId: 'pb', conceptId: 'c1' }])}>
+      {`themes:${value.length}`}
+    </button>
+  ),
+}));
+
 // Polyfill for setImmediate
 if (typeof setImmediate === 'undefined') {
   global.setImmediate = ((fn: (...args: any[]) => void, ...args: any[]) => setTimeout(() => fn(...args), 0)) as any;
@@ -252,6 +266,42 @@ describe('NewGameSetupModal', () => {
       false, // isFriendly
       '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
     );
+  });
+
+  describe('Pelitapa themes (account flag)', () => {
+    afterEach(() => {
+      mockPelitapaOn = false;
+    });
+
+    test('flag off: no themes section, and onStart gets no themes argument', async () => {
+      renderModal();
+      expect(screen.queryByTestId('new-game-themes')).not.toBeInTheDocument();
+      const homeTeamInput = screen.getByRole('textbox', { name: /Your Team Name/i });
+      await waitFor(() => expect(homeTeamInput).toHaveValue('Last Team'));
+      fireEvent.change(screen.getByRole('textbox', { name: /Opponent Name/i }), { target: { value: 'Opp' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      expect(mockOnStart.mock.calls[0]).toHaveLength(30);
+    });
+
+    test('flag on: the picked themes are passed to onStart for the new game', async () => {
+      mockPelitapaOn = true;
+      renderModal();
+      expect(screen.getByTestId('new-game-themes')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('stub-theme-field'));
+      expect(screen.getByTestId('stub-theme-field')).toHaveTextContent('themes:1');
+      const homeTeamInput = screen.getByRole('textbox', { name: /Your Team Name/i });
+      await waitFor(() => expect(homeTeamInput).toHaveValue('Last Team'));
+      fireEvent.change(screen.getByRole('textbox', { name: /Opponent Name/i }), { target: { value: 'Opp' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      const args = mockOnStart.mock.calls[0];
+      expect(args[30]).toEqual([{ playbookId: 'pb', conceptId: 'c1' }]);
+    });
   });
 
   // Tests for inline season/tournament creation removed as this functionality
