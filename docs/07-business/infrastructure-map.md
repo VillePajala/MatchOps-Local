@@ -377,7 +377,7 @@ The repo is not the place for login emails. For every row, the password manager 
 |---------|---------|---------|
 | Namecheap | ❓ | Domain registrar |
 | Cloudflare | ❓ | DNS, email routing |
-| Resend | ❓ **unknown - owner could not find the domain in the account he signed in to (2026-11-23); find the right account (search mail for "Resend")** | Auth transactional emails (Supabase SMTP) |
+| Resend | ✅ found 2026-11-23: the domain is in the account on the owner's main Gmail (not the other Gmail) | Auth transactional emails (Supabase SMTP) |
 | Supabase | ❓ | Cloud backend (auth, database, edge functions) |
 | Vercel | ❓ | Hosting |
 | GitHub | ✅ VillePajala | Source control |
