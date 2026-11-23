@@ -513,7 +513,7 @@
       },
       "cloudDataNote": "Cloud data is stored in EU data centres (Stockholm, Sweden). You can delete your cloud data or your whole account at any time in Settings → Data.",
       "dataRetentionTitle": "Data Retention",
-      "dataRetentionContent": "Your cloud data is kept while your account exists. When you delete your cloud data or your account (Settings → Data), it is removed from the live database immediately; any copy in our hosting provider's backups is removed when that backup expires (at most 30 days). Deleting your account also deletes your consent records. If an account is unused for a long time, we may delete its cloud data after notifying you first. Data on your device stays there until you delete it or clear the app's storage. Error reports are deleted by Sentry automatically within at most 90 days.",
+      "dataRetentionContent": "Your cloud data is kept while your account exists. When you delete your cloud data or your account (Settings → Data), it is removed from the live database immediately; any copy in our encrypted nightly database backups (stored in the EU with Cloudflare R2) is removed when that backup expires (at most 30 days). Deleting your account also deletes your consent records. If an account is unused for a long time, we may delete its cloud data after notifying you first. Data on your device stays there until you delete it or clear the app's storage. Error reports are deleted by Sentry automatically within at most 90 days.",
       "operatorAccess": "Who can see your data: you. As the operator we technically have administrator access to the database, but we do not look at your content. We access it only when you ask us to (for example to solve a problem you report) or when the law requires it."
     },
     "legalBasis": {
@@ -572,7 +572,7 @@
     },
     "thirdPartyServices": {
       "title": "Third-Party Services and Recipients",
-      "intro": "Supabase, Sentry, Resend and Vercel are our sub-processors; data processing agreements are in place with each of them. Messages you send to our support email pass through Cloudflare and Google (see Support email below). Google Play, Photon, palloliitto.fi and an AI provider you connect are not our sub-processors: they receive data directly from your device, only when you use them (for Photon, also the automatic venue address lookup described below), under their own terms.",
+      "intro": "Supabase, Sentry, Resend, Vercel and Cloudflare (encrypted database backups, EU) are our sub-processors; data processing agreements are in place with each of them. Messages you send to our support email pass through Cloudflare and Google (see Support email below). Google Play, Photon, palloliitto.fi and an AI provider you connect are not our sub-processors: they receive data directly from your device, only when you use them (for Photon, also the automatic venue address lookup described below), under their own terms.",
       "googlePlay": "Google Play Store",
       "googlePlayDesc": "App distribution (Google infrastructure).",
       "sentry": "Sentry",

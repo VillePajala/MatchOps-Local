@@ -513,7 +513,7 @@
       },
       "cloudDataNote": "Pilvitiedot tallennetaan EU:ssa sijaitseviin datakeskuksiin (Tukholma, Ruotsi). Voit poistaa pilvitietosi tai koko tilisi milloin tahansa kohdassa Asetukset → Tiedot.",
       "dataRetentionTitle": "Tietojen säilytys",
-      "dataRetentionContent": "Pilvitietosi säilytetään niin kauan kuin tilisi on olemassa. Kun poistat pilvitietosi tai tilisi (Asetukset → Tiedot), ne poistetaan käytössä olevasta tietokannasta heti; mahdollinen kopio palveluntarjoajamme varmuuskopioissa poistuu, kun varmuuskopio vanhenee (enintään 30 päivää). Tilin poistaminen poistaa myös suostumustietosi. Jos tiliä ei käytetä pitkään aikaan, voimme poistaa sen pilvitiedot ilmoitettuamme siitä ensin. Laitteellasi olevat tiedot säilyvät siellä, kunnes poistat ne tai tyhjennät sovelluksen tallennustilan. Sentry poistaa virheraportit automaattisesti viimeistään 90 päivän kuluttua.",
+      "dataRetentionContent": "Pilvitietosi säilytetään niin kauan kuin tilisi on olemassa. Kun poistat pilvitietosi tai tilisi (Asetukset → Tiedot), ne poistetaan käytössä olevasta tietokannasta heti; mahdollinen kopio salatuissa yöllisissä tietokantavarmuuskopioissamme (säilytetään EU:ssa Cloudflare R2:ssa) poistuu, kun varmuuskopio vanhenee (enintään 30 päivää). Tilin poistaminen poistaa myös suostumustietosi. Jos tiliä ei käytetä pitkään aikaan, voimme poistaa sen pilvitiedot ilmoitettuamme siitä ensin. Laitteellasi olevat tiedot säilyvät siellä, kunnes poistat ne tai tyhjennät sovelluksen tallennustilan. Sentry poistaa virheraportit automaattisesti viimeistään 90 päivän kuluttua.",
       "operatorAccess": "Kuka näkee tietosi: sinä. Ylläpitäjänä meillä on teknisesti pääkäyttäjän pääsy tietokantaan, mutta emme katso sisältöäsi. Käsittelemme sitä vain, kun pyydät (esimerkiksi ilmoittamasi ongelman selvittämiseksi) tai kun laki sitä edellyttää."
     },
     "legalBasis": {
@@ -572,7 +572,7 @@
     },
     "thirdPartyServices": {
       "title": "Kolmannen osapuolen palvelut ja vastaanottajat",
-      "intro": "Supabase, Sentry, Resend ja Vercel ovat alikäsittelijöitämme, ja jokaisen kanssa on voimassa tietojenkäsittelysopimus. Tukisähköpostiin lähettämäsi viestit kulkevat Cloudflaren ja Googlen kautta (ks. Tukisähköposti alla). Google Play, Photon, palloliitto.fi ja yhdistämäsi tekoälypalvelu eivät ole alikäsittelijöitämme: ne vastaanottavat tietoja suoraan laitteeltasi vain käyttäessäsi niitä (Photon myös alla kuvatussa ottelupaikan osoitteen automaattisessa täydentämisessä), omien ehtojensa mukaisesti.",
+      "intro": "Supabase, Sentry, Resend, Vercel ja Cloudflare (salatut tietokantavarmuuskopiot, EU) ovat alikäsittelijöitämme, ja jokaisen kanssa on voimassa tietojenkäsittelysopimus. Tukisähköpostiin lähettämäsi viestit kulkevat Cloudflaren ja Googlen kautta (ks. Tukisähköposti alla). Google Play, Photon, palloliitto.fi ja yhdistämäsi tekoälypalvelu eivät ole alikäsittelijöitämme: ne vastaanottavat tietoja suoraan laitteeltasi vain käyttäessäsi niitä (Photon myös alla kuvatussa ottelupaikan osoitteen automaattisessa täydentämisessä), omien ehtojensa mukaisesti.",
       "googlePlay": "Google Play -kauppa",
       "googlePlayDesc": "Sovelluksen jakelu (Googlen infrastruktuuri).",
       "sentry": "Sentry",
