@@ -1,8 +1,27 @@
 # Infrastructure & Architecture Map
 
 **Created**: December 17, 2025
-**Last Updated**: November 20, 2026
+**Last Updated**: November 23, 2026
 **Owner**: Ville Pajala
+
+---
+
+## Personal Data Processors (GDPR map)
+
+Where every service that touches user data stores it, and the legal basis for any transfer. **Keep this table true** - the privacy policy (app `public/` + site `site/pages/privacy`) and the Play Data Safety form are written from it. Verified 2026-11-23.
+
+| Service | What it handles | Region / storage | DPA | Plan |
+|---------|-----------------|------------------|-----|------|
+| **Supabase** (prod `aybjmnxxtgspqesdiqxd`) | Accounts (email), consents, all team/game data | **EU - Stockholm (eu-north-1)** | In force automatically (part of Supabase ToS; PDF + TIA under Organization → Legal Documents) | Free - **no restorable backups** (Pro planned) |
+| **Resend** | Auth emails (sign-up, password reset) via Supabase SMTP, sender `noreply@auth.match-ops.com` | **EU - Ireland (eu-west-1)** (sending domain MX `feedback-smtp.eu-west-1.amazonses.com`) | Resend DPA (check in its dashboard) | Free |
+| **Sentry** (org `velomo-ai`, project `matchops`) | Error reports (no user id/email; IPs not stored; replays mask text) | **EU - Germany** (DSN host `ingest.de.sentry.io`), moved 2026-11-23 from a US org (`villepajala-4a`, delete after the EU org is confirmed working) | Sentry DPA in its ToS | Free (Developer) |
+| **Vercel** (`match-ops-local`, `match-ops-hub`) | Serves the app + site; few server routes (CSP report, etc.) | Global edge; serverless functions pinned to Stockholm (`arn1`) if supported | Vercel DPA in its ToS | Hobby (free; "personal or non-commercial use") |
+| **Cloudflare** | DNS; Email Routing of `hello@`/`support@match-ops.com` | Global network | Cloudflare DPA in its ToS | Free |
+| **Google (Gmail)** | Inbox that receives forwarded support email | Google (global) | Google Workspace/consumer terms | Free |
+| **Google Play** | App distribution | Google | Play developer terms | - |
+| **OpenAI** (only "Kirjuri" AI, hidden behind the device-local labs switch) | Audio + players' first names, sent **directly from the coach's phone with the coach's own key** | US | Coach's own contract with OpenAI - MatchOps never receives the data | - |
+
+Controller: the coach using the app (or the club, when used in club activity). MatchOps (Ville Pajala, private person - **no company registered yet**) is the processor for team data and the controller for account data.
 
 ---
 
@@ -10,12 +29,13 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           VELOMO AI                                      │
-│                        (Company / Toiminimi)                             │
+│                     VILLE PAJALA (private person)                        │
+│        No company yet. "Velomo AI" is only a planned name (domain       │
+│        velomoai.com + LinkedIn page exist) - never use it as the        │
+│        legal party in app, site or legal texts.                         │
 │                                                                          │
-│   Owner: Ville Pajala                                                    │
 │   Location: Helsinki, Finland                                            │
-│   Y-tunnus: [Pending - Register Jan 2, 2026]                            │
+│   Y-tunnus: none                                                        │
 │                                                                          │
 │   ┌─────────────────────────────────────────────────────────────────┐   │
 │   │                         MATCHOPS                                 │   │
@@ -242,8 +262,9 @@
 │                           SENTRY                                         │
 │                    (Error Monitoring)                                    │
 │                                                                          │
-│   Organization: [Your Sentry Org]                                       │
-│   Project: MatchOps                                                      │
+│   Organization: velomo-ai (EU region, ingest.de.sentry.io)              │
+│   Project: matchops                                                      │
+│   Old US org villepajala-4a / matchops-local: retired 2026-11-23        │
 │                                                                          │
 │   Notifications → alerts@velomoai.com → Gmail                           │
 │                                                                          │
@@ -350,18 +371,20 @@
 
 ## Account Credentials (Store in Password Manager)
 
-| Service | Account | Purpose |
+The repo is not the place for login emails. For every row, the password manager (Bitwarden) entry must record: **which email address**, **which sign-in method** (Google / GitHub / email+password) and **which team/org** inside the service. A service where that is unknown is marked ❓ - fix it in Bitwarden, then tick it here.
+
+| Service | Bitwarden entry has email + sign-in method | Purpose |
 |---------|---------|---------|
-| Namecheap | [email] | Domain registrar |
-| Cloudflare | [email] | DNS, email routing |
-| Resend | [email] | Auth transactional emails (Supabase SMTP) |
-| Supabase | [email] | Cloud backend (auth, database, edge functions) |
-| Vercel | [email] | Hosting |
-| GitHub | VillePajala | Source control |
-| Google Play Console | [email] | App distribution |
-| Sentry | [email] | Error monitoring |
-| LinkedIn | Velomo AI | Company page |
-| YouTube | [Google account] | MatchOps channel |
+| Namecheap | ❓ | Domain registrar |
+| Cloudflare | ❓ | DNS, email routing |
+| Resend | ❓ **unknown - owner could not find the domain in the account he signed in to (2026-11-23); find the right account (search mail for "Resend")** | Auth transactional emails (Supabase SMTP) |
+| Supabase | ❓ | Cloud backend (auth, database, edge functions) |
+| Vercel | ❓ | Hosting |
+| GitHub | ✅ VillePajala | Source control |
+| Google Play Console | ❓ | App distribution |
+| Sentry | ❓ (EU org velomo-ai) | Error monitoring |
+| LinkedIn | ❓ (Velomo AI page) | Company page (planned name) |
+| YouTube | ❓ | MatchOps channel |
 
 ---
 
@@ -422,7 +445,7 @@
 | Play Console | https://play.google.com/console |
 | Vercel Dashboard | https://vercel.com/dashboard |
 | Cloudflare Dashboard | https://dash.cloudflare.com |
-| Sentry Dashboard | https://sentry.io |
+| Sentry Dashboard (EU org) | https://velomo-ai.sentry.io |
 | Namecheap | https://namecheap.com |
 
 ---
