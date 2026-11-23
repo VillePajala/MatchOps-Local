@@ -599,7 +599,7 @@
     "playerHeader": "Player",
     "goalsHeader": "G",
     "assistsHeader": "A",
-    "goalLogTitle": "Goal Log",
+    "goalLogTitle": "Match events",
     "assistPrefix": "A:",
     "noGoalsLogged": "No goals logged yet.",
     "tapToEdit": "Tap to edit",
@@ -4138,7 +4138,7 @@
     "togglePositionLabels": "Toggle position labels"
   },
   "goalLog": {
-    "title": "Goal Log"
+    "title": "Match events"
   },
   "playerAssessment": {
     "title": "Player Assessments"

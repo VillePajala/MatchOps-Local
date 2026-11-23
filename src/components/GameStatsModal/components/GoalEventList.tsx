@@ -98,7 +98,7 @@ export function GoalEventList({
   return (
     <div className={`${cardStyle} font-ui`}>
       <h3 className="text-base font-semibold text-ink mb-3">
-        {t('gameStatsModal.goalLogTitle', 'Goal Log')}
+        {t('gameStatsModal.goalLogTitle', 'Match events')}
       </h3>
       {goals.length === 0 ? (
         <p className="text-sm text-ink-3">

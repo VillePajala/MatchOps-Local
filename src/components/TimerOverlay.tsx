@@ -658,7 +658,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               />
               <span className="text-sm text-ink-3">{t('timerOverlay.minutesShort', 'min')}</span>
             </div>
-            {/* Stacked on narrow phones: "Rangaistuslaukaukset" is one long word. */}
+            {/* Stacked on narrow phones: "Rangaistuspotkut" is one long word. */}
             <div className="flex flex-col min-[400px]:flex-row gap-2 mt-3">
               <button
                 type="button"
