@@ -4,7 +4,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { HiOutlinePlay, HiOutlinePencilSquare, HiPlus, HiChevronRight } from 'react-icons/hi2';
+import { HiOutlinePlay, HiOutlinePencilSquare, HiPlus } from 'react-icons/hi2';
 import PlaybookLibrary from './PlaybookLibrary';
 import PlaybookPresentation from './PlaybookPresentation';
 import { usePlaybooks } from './usePlaybooks';
@@ -16,12 +16,9 @@ import type { Concept } from './types';
  * A game's Playbook themes: what is picked, "show" (the presentation, stepping
  * through several in pick order) and "choose" (the library in selection mode).
  *
- * Two looks:
- * - 'card': one row on the next-match card - "Teema: <title>" / "Teemat: n"
- *   opens the presentation, the pencil opens the picker; "Valitse teema" when
- *   none is picked.
- * - 'form': a section in the new-game and game-settings forms - the picked
- *   themes listed, "Näytä" and "Valitse" / "Muokkaa".
+ * A section in the new-game and game-settings forms: the picked themes
+ * listed, "Näytä" and "Valitse" / "Muokkaa". (The match view's menu plays them
+ * through GameThemesLauncher.)
  *
  * Only rendered for accounts with the playbook flag, from a lazily loaded
  * chunk. The picker and the presentation go to document.body, above whatever
@@ -31,7 +28,6 @@ import type { Concept } from './types';
 export interface GameThemesControlProps {
   themes: GameTheme[];
   onChange: (themes: GameTheme[]) => void | Promise<unknown>;
-  variant: 'card' | 'form';
 }
 
 const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action';
@@ -72,7 +68,7 @@ function themeTitle(r: ResolvedGameTheme, pending: boolean, t: TFunction): strin
   return pending ? '…' : t('playbook.themes.unavailable', 'Not available');
 }
 
-export default function GameThemesControl({ themes, onChange, variant }: GameThemesControlProps) {
+export default function GameThemesControl({ themes, onChange }: GameThemesControlProps) {
   const { t } = useTranslation();
   const { playbooks, status } = usePlaybooks();
   const [picking, setPicking] = useState(false);
@@ -104,70 +100,6 @@ export default function GameThemesControl({ themes, onChange, variant }: GameThe
           document.body,
         );
 
-  if (variant === 'card') {
-    if (themes.length === 0) {
-      return (
-        <>
-          <button
-            type="button"
-            onClick={() => setPicking(true)}
-            data-testid="game-theme-choose"
-            className={`mt-2.5 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-dashed border-white/25 px-4 text-[15px] font-semibold text-ink-2 transition-colors hover:text-ink ${FOCUS}`}
-          >
-            <HiPlus className="h-[18px] w-[18px]" aria-hidden="true" />
-            {t('playbook.themes.choose', 'Choose a theme')}
-          </button>
-          {overlays}
-        </>
-      );
-    }
-    const label =
-      themes.length === 1
-        ? t('playbook.themes.themeOne', 'Theme')
-        : t('playbook.themes.themesMany', 'Themes: {{n}}', { n: themes.length });
-    const summary = themes.length === 1 ? themeTitle(resolved[0], pending, t) : resolved.map((r) => themeTitle(r, pending, t)).join(' · ');
-    return (
-      <>
-        <div className="mt-2.5 flex items-stretch gap-2" data-testid="game-theme-row">
-          <button
-            type="button"
-            onClick={() => (canShow ? setPresenting(true) : setPicking(true))}
-            className={`flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-2xl bg-white/[0.06] py-2 pl-3 pr-2 text-left ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/[0.09] ${FOCUS}`}
-            data-testid="game-theme-show"
-          >
-            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-action/15 text-action" aria-hidden="true">
-              <HiOutlinePlay className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[12px] font-semibold uppercase tracking-[0.12em] text-ink-3">
-                {label}
-              </span>
-              {/* Several: every title, up to two lines (the order is the order they are shown in). */}
-              <span
-                className={`block text-[16px] font-semibold leading-snug text-ink ${themes.length === 1 ? 'truncate' : 'line-clamp-2'}`}
-                data-testid="game-theme-summary"
-              >
-                {summary}
-              </span>
-            </span>
-            <HiChevronRight className="h-5 w-5 flex-shrink-0 text-ink-3" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setPicking(true)}
-            aria-label={t('playbook.themes.edit', 'Change themes')}
-            data-testid="game-theme-edit"
-            className={`flex w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white/[0.06] text-ink-2 ring-1 ring-inset ring-white/10 transition-colors hover:text-ink ${FOCUS}`}
-          >
-            <HiOutlinePencilSquare className="h-5 w-5" aria-hidden="true" />
-          </button>
-        </div>
-        {overlays}
-      </>
-    );
-  }
-
-  // 'form'
   return (
     <div data-testid="game-theme-field">
       {themes.length === 0 ? (

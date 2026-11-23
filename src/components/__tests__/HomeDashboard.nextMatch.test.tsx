@@ -789,23 +789,3 @@ describe('recent results colour', () => {
     expect(score).toHaveClass(expected);
   });
 });
-
-describe('the Playbook themes row (flagged accounts)', () => {
-  it('renders nothing extra without the flag (no row renderer passed)', () => {
-    render(<HomeDashboard summary={base({ upcoming: fixture() })} t={t} />);
-    expect(screen.queryByTestId('theme-slot')).toBeNull();
-  });
-
-  it('puts the row for THIS fixture inside the next-match card', () => {
-    const renderTheme = jest.fn((gameId: string) => <div data-testid="theme-slot">{gameId}</div>);
-    render(<HomeDashboard summary={base({ upcoming: fixture() })} renderNextMatchTheme={renderTheme} t={t} />);
-    expect(screen.getByTestId('theme-slot')).toHaveTextContent('next');
-    expect(renderTheme).toHaveBeenCalledWith('next');
-  });
-
-  it('is not asked for when the top card is not a fixture', () => {
-    const renderTheme = jest.fn(() => <div data-testid="theme-slot" />);
-    render(<HomeDashboard summary={base({ resume })} renderNextMatchTheme={renderTheme} t={t} />);
-    expect(renderTheme).not.toHaveBeenCalled();
-  });
-});

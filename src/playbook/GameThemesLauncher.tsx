@@ -37,7 +37,7 @@ export default function GameThemesLauncher({ gameId, isOpen, onClose }: GameThem
 
   const done = useCallback(
     (next: GameTheme[]) => {
-      // Saved like the card's picker (local-first; a failed save is logged and
+      // Saved like the game-settings picker (local-first; a failed save is logged and
       // rolled back by useGameThemes). The pick plays either way.
       void save(next);
       if (next.length > 0) setPicked(next);
@@ -55,7 +55,7 @@ export default function GameThemesLauncher({ gameId, isOpen, onClose }: GameThem
       <GameThemePresentation concepts={concepts} onClose={onClose} />
     ) : (
       // None picked, or none of the picked can be shown any more (access
-      // withdrawn): the picker, like the next-match card.
+      // withdrawn): the picker.
       <PlaybookLibrary isOpen onClose={onClose} selection={{ initial: themes, onDone: done }} />
     ),
     document.body,

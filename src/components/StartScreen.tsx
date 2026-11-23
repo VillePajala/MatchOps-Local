@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
@@ -45,7 +45,6 @@ import {
 import { TASO_URL } from '@/config/externalLinks';
 import { useAccountFeatures } from '@/hooks/useAccountFeatures';
 import { PLAYBOOK_FEATURE } from '@/playbook/feature';
-import { LazyGameThemeRow } from '@/playbook/lazyEntryPoints';
 import { lazyModal } from '@/components/lazyModal';
 
 /**
@@ -319,11 +318,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const { hasFeature } = useAccountFeatures();
   const playbookOn = hasFeature(PLAYBOOK_FEATURE);
   const [playbookOpen, setPlaybookOpen] = useState(false);
-  // The next match's Playbook themes row - only for flagged accounts (its chunk is never fetched otherwise).
-  const renderGameTheme = useMemo(
-    () => (playbookOn ? (gameId: string) => <LazyGameThemeRow key={gameId} gameId={gameId} variant="card" /> : undefined),
-    [playbookOn],
-  );
   // Dashboard is the default view, but it only renders once there are games to
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
   // The full layout always shows the dashboard once there are games: the old
@@ -555,7 +549,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
               onAddPlayers={onAddPlayers}
               onViewStats={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
               onSwitchToFull={onSwitchToFullLayout}
-              renderNextGameTheme={renderGameTheme}
               locale={language}
               t={t}
             />
@@ -838,7 +831,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       : undefined
                   }
                   afterHero={newGameGhost}
-                  renderNextMatchTheme={renderGameTheme}
                   locale={language}
                   t={t}
                 />

@@ -15,5 +15,5 @@ export interface GameThemeFieldProps {
 }
 
 export default function GameThemeField({ value, onChange }: GameThemeFieldProps) {
-  return <GameThemesControl themes={value} onChange={onChange} variant="form" />;
+  return <GameThemesControl themes={value} onChange={onChange} />;
 }
