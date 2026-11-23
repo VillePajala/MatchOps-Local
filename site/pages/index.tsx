@@ -9,7 +9,6 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
 import { FaArrowUp, FaCheck, FaChevronDown, FaYoutube } from 'react-icons/fa';
 import {
-  CONTACT_EMAIL,
   SITE_URL,
   YOUTUBE_CHANNEL_URL,
   absoluteUrl,
@@ -382,11 +381,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== KIDS' DATA + WHO MAKES IT ===== */}
+      {/* ===== KIDS' DATA ===== */}
       <section className="section section-divider bg-slate-800/50">
         <div className="container-custom">
-          <div className="max-w-6xl mx-auto grid gap-12 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+          <div className="max-w-4xl mx-auto">
+            <div>
               <div className="text-primary text-sm font-semibold uppercase tracking-wider mb-2">
                 {t('home.kids.eyebrow')}
               </div>
@@ -406,24 +405,6 @@ export default function HomePage() {
                 <Link href="/privacy" className="text-primary hover:text-primary-light underline underline-offset-4">
                   {t('home.kids.privacyLink')}
                 </Link>
-              </p>
-            </div>
-            <div className="rounded-lg border border-slate-700/50 bg-slate-900/60 p-6 self-start">
-              <Image
-                src="/logos/matchops-badge.svg"
-                alt=""
-                width={48}
-                height={48}
-                unoptimized
-                className="mb-4"
-              />
-              <h2 className="text-2xl font-bold text-white mb-3">{t('home.about.title')}</h2>
-              <p className="text-slate-300 mb-4">{t('home.about.body')}</p>
-              <p className="text-sm text-slate-400">
-                {t('home.about.contact')}{' '}
-                <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary hover:text-primary-light">
-                  {CONTACT_EMAIL}
-                </a>
               </p>
             </div>
           </div>

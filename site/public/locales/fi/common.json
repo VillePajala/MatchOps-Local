@@ -68,8 +68,8 @@
   },
   "seo": {
     "home": {
-      "title": "MatchOps – peluutus, vaihdot ja pöytäkirja Tasoon",
-      "description": "Ilmainen sovellus jalkapallon ja futsalin juniorivalmentajille. Suunnittele kokoonpanot ja vaihdot vaikka koko turnauspäivälle, pidä ottelukelloa ja kirjaa maalit. Pelin jälkeen pöytäkirja on valmiina kopioitavaksi Tasoon. Ei mainoksia, tiedot tallennetaan EU:ssa."
+      "title": "MatchOps – peluutus, vaihdot ja pöytäkirja",
+      "description": "Ilmainen sovellus jalkapallon ja futsalin juniorivalmentajille. Suunnittele kokoonpanot ja vaihdot valmiiksi vaikka koko turnauspäivälle, käytä sovellusta pelikellona ja kirjaa ottelutapahtumat. Pöytäkirja on valmiina heti loppuvihellyksen jälkeen. Ei mainoksia, tiedot säilytetään EU:ssa."
     },
     "technical": {
       "title": "Tekniset tiedot - MatchOps",
@@ -92,14 +92,13 @@
   "footer": {
     "tagline": "Jalkapallo- ja futsalvalmentajan sovellus. Suunnittele, peluuta, kirjaa.",
     "home": "Etusivu",
-    "navigation": "Navigaatio",
-    "legal": "Juridiikka",
+    "navigation": "Sivuston linkit",
     "license": "Lisenssi",
     "copyright": "© {{year}} Ville Pajala. Kaikki oikeudet pidätetään.",
     "dataStays": "Tietosi pysyvät yksityisinä ja turvassa.",
     "privacyPolicy": "Tietosuojakäytäntö",
     "termsOfService": "Käyttöehdot",
-    "contact": "Yhteydenotot:"
+    "contact": "Ota yhteyttä:"
   },
   "technical": {
     "hero": {
@@ -442,9 +441,8 @@
       "positionBalance": "Pelipaikkojen tasapaino",
       "positionBalanceDesc": "Näe koko kauden ajalta, mitä pelipaikkoja kukin pelaaja on pelannut - linjoittain tai tarkat pelipaikat. Yhteen rooliin jääneet pelaajat erottuvat selvästi, joten voit monipuolistaa heidän peluutustaan tietoisesti.",
       "matchReport": "Otteluraportti",
-      "matchReportDesc": "Kirjoita tai sanele oma näkemyksesi ottelusta valmiilla otsikkopohjalla - yleiskuva, mikä toimi, kehityskohteet, erityismaininnat, seuraava askel. Jaa otteluraportti lähettää sen joukkueelle tuloksen, maalintekijöiden ja kokoonpanon kanssa.",
-      "overtime": "Jatkoaika ja rangaistuslaukaukset",
-      "overtimeDesc": "Kirjaa jatkoaika ja rangaistuslaukauskilpailut. Rangaistuslaukausten tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin.",
+      "overtime": "Jatkoaika ja rangaistuspotkukilpailu",
+      "overtimeDesc": "Kirjaa jatkoaika ja rangaistuspotkukilpailut. Rangaistuspotkukilpailun tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin.",
       "friendlies": "Harjoitusottelut",
       "friendliesDesc": "Kirjaa harjoitusottelut niin, etteivät ne sekoitu sarja- ja turnauspelien tilastoihin.",
       "dashboard": "Hallintapaneeli",
@@ -655,7 +653,7 @@
     "footer": "Tämä tietosuojakäytäntö koskee Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta.",
     "voiceNotesAndAi": {
       "title": "Äänimuistiinpanot ja valinnainen tekoäly",
-      "intro": "Kokeellinen ominaisuus, joka on tällä hetkellä piilotettu eikä ole tavallisessa käytössä. Kun se on käytössä, MatchOps voi tallentaa lyhyitä äänimuistiinpanoja ottelun aikana. Näin niitä käsitellään:",
+      "intro": "MatchOps voi tallentaa lyhyitä äänimuistiinpanoja ottelun aikana. Kuuntelet tallenteen ja kirjoitat muistiinpanon itse. Näin niitä käsitellään:",
       "items": {
         "onDevice": "Tallenteet säilytetään vain laitteellasi. Niitä ei koskaan lähetetä MatchOpsin palvelimille, synkronoida laitteiden välillä eikä sisällytetä varmuuskopioihin tai vienteihin.",
         "deleted": "Tallenne poistetaan laitteeltasi heti, kun muutat sen muistiinpanoksi tai hylkäät sen, ja joka tapauksessa 30 päivän kuluttua.",
@@ -663,7 +661,7 @@
         "neverReceived": "MatchOps ei koskaan vastaanota tallenteitasi. Muistiinpanot ja raporttiteksti, jotka päätät tallentaa, ovat pelitietoa ja niitä käsitellään yllä kuvatulla tavalla."
       },
       "aiTitle": "Valinnainen tekoälypalvelu (oma tilisi)",
-      "aiIntro": "Voit yhdistää oman tilisi tekoälypalveluun (esimerkiksi OpenAI) tallenteiden litterointia, otteluraporttien luonnostelua ja siistimistä, raportin kääntämistä sekä yhtä pelaajaa koskevien omien muistiinpanojesi lukemista yhtenäisenä tekstinä varten. Jos teet niin:",
+      "aiIntro": "Tämä on kokeellinen ominaisuus, joka on tällä hetkellä piilotettu eikä ole tavallisessa käytössä; ilman sitä mitään ei litteroida eikä lähetetä millekään tekoälypalvelulle. Kun se on käytössä, voit yhdistää oman tilisi tekoälypalveluun (esimerkiksi OpenAI) tallenteiden litterointia, otteluraporttien luonnostelua ja siistimistä, raportin kääntämistä sekä yhtä pelaajaa koskevien omien muistiinpanojesi lukemista yhtenäisenä tekstinä varten. Jos teet niin:",
       "aiItems": {
         "yourAccount": "Tiedot lähetetään suoraan laitteeltasi valitsemallesi palvelulle omalla tililläsi ja omalla API-avaimellasi. MatchOps ei ole tämän käsittelyn osapuoli eikä pääse siihen käsiksi.",
         "onlyOnAction": "Mitään ei lähetetä automaattisesti. Tiedot lähtevät laitteeltasi vain, kun painat sen sanovaa painiketta (Litteroi, Luonnostele, Siisti, Käännä, Kokoa muistiinpanot), ja sovellus kertoo ensin, mitä se on lähettämässä.",
@@ -839,7 +837,7 @@
     },
     "aiServices": {
       "title": "Valinnaiset tekoälypalvelut",
-      "content1": "MatchOpsissa voit yhdistää oman tilisi kolmannen osapuolen tekoälypalveluun äänimuistiinpanojen litterointia ja raporttien luonnostelua varten. Tällaiseen käyttöön sovelletaan sopimustasi kyseisen palvelun kanssa. MatchOps ei ole sen osapuoli, ei vastaanota tietoja eikä vastaa palvelun käsittelystä, saatavuudesta, tuloksista tai maksuista.",
+      "content1": "Tämä on kokeellinen ominaisuus, joka ei ole tällä hetkellä käyttäjien saatavilla. Kun se on käytössä, MatchOpsissa voit yhdistää oman tilisi kolmannen osapuolen tekoälypalveluun äänimuistiinpanojen litterointia ja raporttien luonnostelua varten. Tällaiseen käyttöön sovelletaan sopimustasi kyseisen palvelun kanssa. MatchOps ei ole sen osapuoli, ei vastaanota tietoja eikä vastaa palvelun käsittelystä, saatavuudesta, tuloksista tai maksuista.",
       "content2": "Vastaat itse tallentamastasi tai sanelemastasi sisällöstä ja oikeudestasi käsitellä sitä. Älä tallenna terveystietoja tai muita erityisiin henkilötietoryhmiin kuuluvia tietoja (ks. Pelaajatiedot: sinun vastuusi).",
       "content3": "Tekoälyn tuottama sisältö on luonnos. Tarkistat ja hyväksyt jokaisen kohdan ennen tallennusta ja vastaat siitä, mitä säilytät."
     },
@@ -895,23 +893,23 @@
   "home": {
     "hero": {
       "eyebrow": "Jalkapallon ja futsalin juniorivalmentajille",
-      "title": "Jätä paperit ja sekuntikello kotiin",
-      "subtitle": "Suunnittele kokoonpano ja vaihdot etukäteen. Pelissä pidät kelloa ja kirjaat maalit puhelimella, ja pöytäkirja on valmiina heti loppuvihellyksen jälkeen.",
+      "title": "Koko ottelupäivä yhdessä sovelluksessa",
+      "subtitle": "Suunnittele kokoonpanot ja vaihdot etukäteen. Pelin aikana sovellus toimii pelikellona ja kirjaat ottelutapahtumat muutamalla napautuksella. Pöytäkirja on valmiina heti loppuvihellyksen jälkeen.",
       "platform": "Android-puhelimille Google Playsta",
       "trust": {
         "free": "Ilmainen",
         "noAds": "Ei mainoksia",
         "eu": "Tiedot tallennetaan EU:ssa",
-        "taso": "Pöytäkirja valmiina Tasoon"
+        "taso": "Valmis pöytäkirja"
       }
     },
     "alt": {
       "timer": "Ottelukello 17:48, tulos 0–1, Maali meille- ja Vastustaja +1 -painikkeet sekä seuraava vaihto",
-      "planner": "Ottelusuunnittelu: pelaajien suunnitellut peliminuutit värikoodattuina ja kokoonpano kentällä",
+      "planner": "Suunnittele ottelukokonaisuudet, kuten turnaukset, kerralla: pelaajien kokonaisminuuttimäärät värikoodattuina ja kokoonpano kentällä",
       "poytakirja": "Pöytäkirja: kokoonpano pelinumeroineen, lopputulos, puoliaikatilanne ja maalit minuutteineen",
       "plan": "Suunnitelma: pelaajien peliminuutit ja vaihdot kentällä",
       "matchview": "Ottelunäkymä: pelaajat kentällä pelipaikoillaan ja ottelukello",
-      "finish": "Viimeistele ottelu: tulos, päivä, paikka, kokoonpano ja maaliloki",
+      "finish": "Viimeistele ottelu: tulos, päivä, paikka, kokoonpano ja ottelutapahtumat",
       "attendance": "Ketkä ovat paikalla? Poissaolijat napautettu pois, paikalla 12/14",
       "tacticalBoard": "Taktiikkataulu, johon on piirretty liikkeitä",
       "matchReport": "Otteluraportti valmiin otsikkopohjan mukaan ja Jaa otteluraportti -painike",
@@ -936,11 +934,11 @@
       "title": "Ottelupäivä kolmessa vaiheessa",
       "plan": {
         "title": "Suunnittele",
-        "desc": "Tee kokoonpano ja vaihdot valmiiksi jo kotona, yhteen peliin tai koko turnauspäivälle. Jos joku ei pääse, merkitse hänet poissaolevaksi, niin sovellus tekee kokoonpanon uudelleen suunnitelman mukaan."
+        "desc": "Suunnittele kokoonpanot ja vaihdot valmiiksi vaikka koko turnauspäivälle. Jos joku ei pääsekään paikalle, suunnitelma mukautuu automaattisesti."
       },
       "rotate": {
         "title": "Peluuta",
-        "desc": "Kello, vaihtoajastin ja tulos ovat samassa näkymässä. Näet, kuka tulee seuraavaksi kentälle ja kuka lähtee. Maalin kirjaat yhdellä napautuksella."
+        "desc": "Pelikello, vaihtoajastin ja ottelun tilanne ovat yhdessä näkymässä. Näet seuraavan vaihdon: kuka kentälle, kuka penkille. Ottelutapahtumat kirjaat muutamalla napautuksella."
       },
       "record": {
         "title": "Kirjaa",
@@ -950,13 +948,13 @@
     "spotlights": {
       "taso": {
         "eyebrow": "Pelin jälkeen",
-        "title": "Pöytäkirja valmiina Tasoon",
-        "desc": "Viimeistele ottelu -näkymä kokoaa tuloksen, kokoonpanon ja maalit yhteen. Pöytäkirjassa ovat pelaajat pelinumeroineen, maalivahti ja kapteeni, lopputulos, puoliaikatilanne ja maalit minuutteineen. Kopioi teksti ja liitä se Tasoon. Linkki Tasoon on sovelluksen valikossa."
+        "title": "Pöytäkirja valmiina kopioitavaksi",
+        "desc": "Viimeistele ottelu -näkymä kokoaa tuloksen, kokoonpanon ja maalit yhteen. Pöytäkirjassa ovat pelaajat pelinumeroineen, maalivahti ja kapteeni, lopputulos, puoliaikatilanne ja maalit minuutteineen. Kopioi teksti ja liitä se haluamaasi paikkaan, esimerkiksi Tasoon."
       },
       "planner": {
         "eyebrow": "Turnauspäivä",
         "title": "Koko turnauspäivä kerralla",
-        "desc": "Suunnittele aloituskokoonpanot ja vaihdot useaan peliin kerralla. Jokaisen pelaajan suunnitellut peliminuutit ja pelipaikat näkyvät värikoodattuina koko päivältä. Kun muutat yhtä peliä, näet heti, miten se vaikuttaa koko päivään."
+        "desc": "Suunnittele aloituskokoonpanot ja vaihdot useaan peliin kerralla. Jokaisen pelaajan suunnitellut peliminuutit ja pelipaikat näkyvät värikoodattuina kaikista peleistä. Kun muutat yhtä peliä, näet heti, miten se vaikuttaa kokonaisuuteen."
       },
       "attendance": {
         "eyebrow": "Ketkä ovat paikalla?",
@@ -972,11 +970,11 @@
       },
       "matchReport": {
         "title": "Otteluraportti",
-        "desc": "Kirjoita muutama rivi valmiille pohjalle: mikä toimi, mitä harjoitellaan, seuraava askel. Jaa raportti joukkueelle - tulos ja maalintekijät tulevat mukaan."
+        "desc": "Kirjoita muutama rivi valmiiden otsikoiden alle: mikä toimi, mitä harjoitellaan, mitä seuraavaksi. Kun jaat raportin, mukaan tulevat tulos, ottelutapahtumat ja pelaajien pelipaikat."
       },
       "positionBalance": {
         "title": "Pelipaikat koko kaudelta",
-        "desc": "Näet, millä pelipaikoilla kukin on pelannut kauden aikana. Yhdelle paikalle jääneet pelaajat erottuvat, jos haluat monipuolistaa peluutusta."
+        "desc": "Näet jokaisen pelaajan pelipaikkojen jakauman pidemmällä aikavälillä."
       },
       "nextMatch": {
         "title": "Tiedät, milloin lähteä",
@@ -1009,12 +1007,12 @@
           "desc": "Yksi napautus, ja tulos päivittyy. Maalintekijän ja syöttäjän voi valita heti tai lisätä myöhemmin."
         },
         "goalTimeline": {
-          "title": "Maaliloki",
+          "title": "Ottelutapahtumat",
           "desc": "Maalit minuutteineen aikajärjestyksessä. Maalin voi korjata tai lisätä jälkikäteen."
         },
         "overtime": {
-          "title": "Jatkoaika ja rangaistuslaukaukset",
-          "desc": "Kirjaa jatkoaika ja rangaistuslaukaukset. Tulos siirtyy suoraan tilastoihin."
+          "title": "Jatkoaika ja rangaistuspotkukilpailu",
+          "desc": "Kun varsinainen peliaika päättyy tasan, siirryt jatkoajalle suoraan samasta näkymästä. Rangaistuspotkukilpailun kirjaat potku kerrallaan, kunnes voittaja on selvillä."
         },
         "formations": {
           "title": "Muodostelmat",
@@ -1034,7 +1032,7 @@
         },
         "roster": {
           "title": "Pelaajat",
-          "desc": "Pelaajien nimet, pelinumerot ja kutsumanimet. Kutsumanimi näkyy kentällä pelaajan kiekossa."
+          "desc": "Pelaajien nimet, pelinumerot ja kutsumanimet. Kentällä pelaaja näkyy kutsumanimellään."
         },
         "teams": {
           "title": "Joukkueet",
@@ -1086,11 +1084,6 @@
       "notice": "Perheille on sovelluksessa valmis tiedote: Asetukset → Tiedot → Tiedote pelaajien perheille. Kopioi se ja lähetä joukkueen viestiryhmään.",
       "privacyLink": "Lue tietosuojakäytäntö"
     },
-    "about": {
-      "title": "Kuka MatchOpsia tekee?",
-      "body": "MatchOpsia tekee Ville Pajala, suomalainen jalkapallon juniorivalmentaja. Hän rakensi sovelluksen oman joukkueensa ottelupäiviä varten.",
-      "contact": "Kysymykset ja palaute:"
-    },
     "faq": {
       "title": "Usein kysyttyä",
       "items": [
@@ -1107,7 +1100,7 @@
           "a": "Ei. MatchOps on saatavilla vain Android-puhelimille Google Playsta. iPhone-versiota ei ole."
         },
         {
-          "q": "Missä tiedot ovat?",
+          "q": "Missä tiedot säilytetään?",
           "a": "Puhelimessasi ja tililläsi palvelimella EU:ssa (Tukholma, Ruotsi). Tietoja ei myydä eikä käytetä mainontaan."
         },
         {

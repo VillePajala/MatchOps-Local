@@ -95,8 +95,6 @@ const getScreenshots = (locale: string | undefined) => {
     tacticalBoard: shot('tacticalboard'),
     formations: shot('formations'),
     roster: shot('roster'),
-    assessment: shot('development'),
-    trends: shot('trends'),
     seasons: shot('seasons'),
     tournaments: shot('tournaments'),
     teams: shot('teams'),

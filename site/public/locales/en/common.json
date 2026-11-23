@@ -69,7 +69,7 @@
   "seo": {
     "home": {
       "title": "MatchOps – line-ups, substitutions and match sheets for football coaches",
-      "description": "Free app for youth football (soccer) and futsal coaches. Plan line-ups and substitutions for a whole tournament day, run the match clock and log goals. After the game the match sheet is ready to copy into Taso. No ads, data stored in the EU."
+      "description": "Free app for youth football (soccer) and futsal coaches. Plan line-ups and substitutions ahead, even for a whole tournament day, use the app as your match clock and log match events. The match sheet is ready right after the final whistle. No ads, data stored in the EU."
     },
     "technical": {
       "title": "Technical Specifications - MatchOps",
@@ -92,14 +92,13 @@
   "footer": {
     "tagline": "The app for football and futsal coaches. Plan, rotate, record.",
     "home": "Home",
-    "navigation": "Navigation",
-    "legal": "Legal",
+    "navigation": "Site links",
     "license": "License",
     "copyright": "© {{year}} Ville Pajala. All rights reserved.",
     "dataStays": "Your data stays private and secure.",
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
-    "contact": "Contact:"
+    "contact": "Get in touch:"
   },
   "technical": {
     "hero": {
@@ -442,7 +441,6 @@
       "positionBalance": "Position Balance",
       "positionBalanceDesc": "See across a whole season which positions each player has played - by line or by exact spot. Players kept in one role stand out clearly, so you can deliberately broaden how you use them.",
       "matchReport": "Match Report",
-      "matchReportDesc": "Write or dictate your account of the game from a ready template of headings - overview, what went well, what to work on, highlights, next step. Share match report sends it to the team with the result, scorers and line-up.",
       "overtime": "Extra time & penalties",
       "overtimeDesc": "Record extra time and penalty shootouts. The shootout result decides a level game and flows straight into stats.",
       "friendlies": "Friendly matches",
@@ -655,7 +653,7 @@
     "footer": "This privacy policy applies to the MatchOps application available on Google Play Store.",
     "voiceNotesAndAi": {
       "title": "Voice Notes and Optional AI",
-      "intro": "An experimental feature that is currently hidden and not in normal use. When it is on, MatchOps can record short voice notes during a game. This is how they are handled:",
+      "intro": "MatchOps can record short voice notes during a game. You listen to a recording and write the note yourself. This is how they are handled:",
       "items": {
         "onDevice": "Recordings are stored only on your device. They are never uploaded to MatchOps servers, never synced between devices, and never included in backups or exports.",
         "deleted": "A recording is deleted from your device as soon as you turn it into a note or discard it, and in any case after 30 days.",
@@ -663,7 +661,7 @@
         "neverReceived": "MatchOps never receives your recordings. Notes and report text you choose to save are game data and are handled as described above."
       },
       "aiTitle": "Optional AI provider (your own account)",
-      "aiIntro": "You may connect your own account with an AI provider (for example OpenAI) to transcribe recordings, draft or tidy match reports, translate a report, and read back your own notes about one player as prose. If you do:",
+      "aiIntro": "This is an experimental feature that is currently hidden and not in normal use; without it, nothing is transcribed or sent to any AI service. When it is turned on, you may connect your own account with an AI provider (for example OpenAI) to transcribe recordings, draft or tidy match reports, translate a report, and read back your own notes about one player as prose. If you do:",
       "aiItems": {
         "yourAccount": "Data is sent directly from your device to the provider you chose, under your own account and your own API key. MatchOps is not a party to that processing and has no access to it.",
         "onlyOnAction": "Nothing is sent automatically. Data leaves your device only when you press a button that says so (Transcribe, Draft, Tidy, Translate, Group these notes), and the app tells you what it is about to send first.",
@@ -839,7 +837,7 @@
     },
     "aiServices": {
       "title": "Optional AI Services",
-      "content1": "MatchOps lets you connect your own account with a third-party AI provider to transcribe voice notes and draft reports. Any such use is governed by your agreement with that provider. MatchOps is not a party to it, does not receive the data, and is not responsible for the provider's processing, availability, output or fees.",
+      "content1": "This is an experimental feature that is not currently available to users. When it is turned on, MatchOps lets you connect your own account with a third-party AI provider to transcribe voice notes and draft reports. Any such use is governed by your agreement with that provider. MatchOps is not a party to it, does not receive the data, and is not responsible for the provider's processing, availability, output or fees.",
       "content2": "You are responsible for the content you record or dictate and for having the right to process it. Do not record health information or other special categories of personal data (see Player Data: Your Responsibilities).",
       "content3": "AI output is a draft. You review and accept every item before it is saved, and you remain responsible for what you keep."
     },
@@ -895,23 +893,23 @@
   "home": {
     "hero": {
       "eyebrow": "For youth football and futsal coaches",
-      "title": "Leave the clipboard and stopwatch at home",
-      "subtitle": "Line-ups and substitutions planned ahead, the clock and goals during the game, and the match sheet ready as soon as it ends.",
+      "title": "Your whole match day in one app",
+      "subtitle": "Plan line-ups and substitutions ahead. During the game the app is your match clock, and you log match events in a few taps. The match sheet is ready right after the final whistle.",
       "platform": "For Android phones, on Google Play",
       "trust": {
         "free": "Free",
         "noAds": "No ads",
         "eu": "Data stored in the EU",
-        "taso": "Match sheet ready for Taso"
+        "taso": "Match sheet ready"
       }
     },
     "alt": {
       "timer": "Match clock at 17:48 with the score, the Goal for us and Opponent +1 buttons and the next substitution",
-      "planner": "Match planner: each player's planned minutes colour-coded, with the line-up on the field",
+      "planner": "Plan a set of games, such as a tournament, in one go: each player's total minutes colour-coded, with the line-up on the field",
       "poytakirja": "Match sheet: the line-up with shirt numbers, final and half-time score and every goal with its minute",
       "plan": "Plan: players' minutes and substitutions on the field",
       "matchview": "Match view: players in their positions on the field and the match clock",
-      "finish": "Finish this game: result, date, venue, line-up and goal log",
+      "finish": "Finish this game: result, date, venue, line-up and match events",
       "attendance": "Who is here? Absent players tapped out, 12 of 14 here",
       "tacticalBoard": "Tactics board with runs drawn on the field",
       "matchReport": "Match report written from a template of headings, with the Share match report button",
@@ -936,11 +934,11 @@
       "title": "Match day in three steps",
       "plan": {
         "title": "Plan",
-        "desc": "Make the line-up and substitutions at home, for one game or a whole tournament day. If someone can't make it, mark them as away and the line-up is rebuilt from your plan."
+        "desc": "Plan line-ups and substitutions ahead, even for a whole tournament day. If someone can't make it after all, the plan adapts automatically."
       },
       "rotate": {
         "title": "Rotate",
-        "desc": "The clock, the substitution timer and the score sit on one screen. You see who comes on next and who goes off, and a goal goes in with one tap."
+        "desc": "The game clock, the substitution timer and the score are in one view. You see the next substitution: who comes on, who goes off. Log match events in a few taps."
       },
       "record": {
         "title": "Record",
@@ -950,13 +948,13 @@
     "spotlights": {
       "taso": {
         "eyebrow": "After the game",
-        "title": "Match sheet ready for Taso",
-        "desc": "Finish this game brings the result, the line-up and the goals together. The match sheet lists the players with shirt numbers, the goalkeeper and captain, the final and half-time score and every goal with its minute. Copy it and paste it into Taso, the Football Association of Finland's match system, or anywhere else. The Taso link is in the app's menu."
+        "title": "Match sheet ready to copy",
+        "desc": "Finish this game brings the result, the line-up and the goals together. The match sheet lists the players with shirt numbers, the goalkeeper and captain, the final and half-time score and every goal with its minute. Copy it and paste it wherever you need it, for example into Taso, the Football Association of Finland's match system."
       },
       "planner": {
         "eyebrow": "Tournament day",
         "title": "The whole tournament day in one go",
-        "desc": "Plan the starting line-ups and substitutions for several games at once. Each player's planned minutes and positions across the day are colour-coded. When you change one game, you see straight away how it affects the rest of the day."
+        "desc": "Plan the starting line-ups and substitutions for several games at once. Each player's planned minutes and positions across all the games are colour-coded. When you change one game, you see straight away how it affects the whole."
       },
       "attendance": {
         "eyebrow": "Who is here?",
@@ -972,11 +970,11 @@
       },
       "matchReport": {
         "title": "Match report",
-        "desc": "Write a few lines from a ready template: what went well, what to work on, the next step. Share it with the team along with the result and scorers."
+        "desc": "Write a few lines under ready headings: what went well, what to work on, what comes next. When you share the report, the score, match events and players' positions go with it."
       },
       "positionBalance": {
         "title": "Positions across the season",
-        "desc": "See which positions each player has played this season. Anyone kept in one role stands out, if you want to vary how you use them."
+        "desc": "See each player's spread of positions over a longer period."
       },
       "nextMatch": {
         "title": "Know when to leave",
@@ -1009,12 +1007,12 @@
           "desc": "One tap and the score updates. Pick the scorer and assister now or add them later."
         },
         "goalTimeline": {
-          "title": "Goal log",
+          "title": "Match events",
           "desc": "Every goal with its minute, in order. Fix or add a goal afterwards."
         },
         "overtime": {
-          "title": "Extra time and penalties",
-          "desc": "Record extra time and penalty shoot-outs. The result goes straight into the stats."
+          "title": "Extra time and penalty shootout",
+          "desc": "When normal time ends level, you go to extra time straight from the same view. Record the penalty shootout kick by kick until there is a winner."
         },
         "formations": {
           "title": "Formations",
@@ -1034,7 +1032,7 @@
         },
         "roster": {
           "title": "Players",
-          "desc": "Players with names, shirt numbers and nicknames. The nickname is shown on the player's disc on the field."
+          "desc": "Players' names, shirt numbers and nicknames. On the pitch a player is shown by their nickname."
         },
         "teams": {
           "title": "Teams",
@@ -1086,11 +1084,6 @@
       "notice": "The app has a ready notice for families: Settings → Data → Notice to players' families. Copy it and send it to the team's group chat.",
       "privacyLink": "Read the privacy policy"
     },
-    "about": {
-      "title": "Who makes MatchOps?",
-      "body": "MatchOps is made by Ville Pajala, a Finnish youth football coach who built it for his own team's match days.",
-      "contact": "Questions and feedback:"
-    },
     "faq": {
       "title": "Frequently asked questions",
       "items": [
@@ -1107,7 +1100,7 @@
           "a": "No. MatchOps is only available for Android phones, on Google Play. There is no iPhone version."
         },
         {
-          "q": "Where is my data?",
+          "q": "Where is my data kept?",
           "a": "On your phone and in your account on a server in the EU (Stockholm, Sweden). The data is never sold or used for advertising."
         },
         {
