@@ -4273,6 +4273,7 @@
     "nextTheme": "Seuraava teema",
     "themeOf": "Teema {{n}}/{{total}}",
     "themes": {
+      "menuItem": "Ottelun teemat",
       "sectionTitle": "Pelikirjan teemat",
       "choose": "Valitse teema",
       "chooseMany": "Valitse teemat",
