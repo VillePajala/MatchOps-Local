@@ -83,7 +83,11 @@ describe('InstructionsModal ("How it works", two-level rebuild)', () => {
     expand(i18n.t('firstGameGuide.clockTitle'));
     expect(screen.getByText(i18n.t('firstGameGuide.clockGoal'))).toBeInTheDocument();
     expand(i18n.t('firstGameGuide.finishTitle'));
-    expect(screen.getByText(i18n.t('firstGameGuide.finishReport'))).toBeInTheDocument();
+    // AI and dictation are hidden behind the labs switch (off by default), so
+    // the guide describes a typed report and no microphone.
+    expect(screen.getByText(i18n.t('firstGameGuide.finishReportTyped'))).toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('firstGameGuide.finishReport'))).not.toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('firstGameGuide.dictationTip'))).not.toBeInTheDocument();
     expect(screen.queryByText(/drag|raaha/i)).not.toBeInTheDocument();
   });
 });

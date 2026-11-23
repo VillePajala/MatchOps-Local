@@ -1208,10 +1208,11 @@ describe('GameStatsModal', () => {
         onExportOneExcel: jest.fn(),
       });
       await tabReady();
-      await waitFor(() => expect(stepKeys()).toContain('spine-assessments'));
+      await waitFor(() => expect(stepKeys()).toContain('spine-export'));
+      // No assessments step: the feature is removed for now (2026-11).
       expect(stepKeys()).toEqual([
         'spine-goals', 'spine-taso', 'spine-report', 'spine-checklist',
-        'spine-notes', 'spine-positions', 'spine-assessments', 'spine-export',
+        'spine-notes', 'spine-positions', 'spine-export',
       ]);
       expect(screen.queryByText(/Step \d+ of \d+/)).not.toBeInTheDocument();
       // The match sheet is the one amber action; Share sits inside the report section.
@@ -1260,6 +1261,19 @@ describe('GameStatsModal', () => {
     });
 
     /**
+     * @critical - owner decision 2026-11: player assessments are removed for
+     * everyone, so even an account whose stored setting is ON meets no step.
+     */
+    it('omits the assessments step even when the stored setting is on', async () => {
+      // The default settings mock has assessmentsEnabled: true.
+      renderComponent({ ...getDefaultProps(), onOpenAssessments: jest.fn(), onPlayerPositionsChange: jest.fn(), onExportOneExcel: jest.fn() });
+      await tabReady();
+      await waitFor(() => expect(stepKeys()).toContain('spine-export'));
+      expect(stepKeys()).not.toContain('spine-assessments');
+      expect(screen.queryByTestId('spine-open-assessments')).not.toBeInTheDocument();
+    });
+
+    /**
      * @critical - what the coach copies into the official Taso report. The
      * button must exist and the text must be the Taso order, not the recap.
      */
@@ -1297,10 +1311,11 @@ describe('GameStatsModal', () => {
       await tabReady();
       fireEvent.click(screen.getByTestId('spine-add-goal'));
       fireEvent.click(screen.getByTestId('spine-export-excel'));
-      fireEvent.click(screen.getByTestId('spine-open-assessments'));
       expect(onAddGoal).toHaveBeenCalledTimes(1);
       expect(onExportOneExcel).toHaveBeenCalledWith('game1');
-      expect(onOpenAssessments).toHaveBeenCalledTimes(1);
+      // Assessments are removed for now: no hand-off even when wired.
+      expect(screen.queryByTestId('spine-open-assessments')).not.toBeInTheDocument();
+      expect(onOpenAssessments).not.toHaveBeenCalled();
     });
 
     it('aggregate tabs keep their own layout with no spine', async () => {

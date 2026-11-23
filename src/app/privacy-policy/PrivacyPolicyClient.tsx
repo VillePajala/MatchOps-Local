@@ -146,6 +146,18 @@ export function PrivacyPolicyClient() {
                 {t('privacyPolicy.thirdPartyServices.resendLink')}
               </a>
             </p>
+            {/* hello@ / support@match-ops.com: Cloudflare Email Routing forwards
+                to a Gmail inbox. */}
+            <p>
+              <strong>{t('privacyPolicy.thirdPartyServices.supportEmail')}</strong> - {t('privacyPolicy.thirdPartyServices.supportEmailDesc')}{' '}
+              <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
+                {t('privacyPolicy.thirdPartyServices.cloudflareLink')}
+              </a>
+              {' · '}
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
+                {t('privacyPolicy.thirdPartyServices.googleLink')}
+              </a>
+            </p>
             {/* Reached only while the coach types in the venue or starting-point
                 field, which is why the description says "when used". */}
             <p>

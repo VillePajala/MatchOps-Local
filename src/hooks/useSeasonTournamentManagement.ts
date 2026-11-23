@@ -95,16 +95,16 @@ export function useSeasonTournamentManagement(managerOpen = false): UseSeasonTou
       const { name, ...extra } = data;
       return utilAddSeason(name, extra, userId);
     },
-    onSuccess: (newSeason, variables) => {
+    onSuccess: (newSeason) => {
       if (newSeason) {
         logger.log('[Mutation Success] Season added:', newSeason.name, newSeason.id);
         queryClient.invalidateQueries({ queryKey: [...queryKeys.seasons, userId] });
       } else {
-        logger.warn('[Mutation Non-Success] utilAddSeason returned null for season:', variables.name);
+        logger.warn('[Mutation Non-Success] utilAddSeason returned null');
       }
     },
-    onError: (error, variables) => {
-      logger.error(`[Mutation Error] Failed to add season ${variables.name}:`, error);
+    onError: (error) => {
+      logger.error('[Mutation Error] Failed to add season:', error);
     },
   });
 
@@ -131,16 +131,16 @@ export function useSeasonTournamentManagement(managerOpen = false): UseSeasonTou
       const { name, ...extra } = data;
       return utilAddTournament(name, extra, userId);
     },
-    onSuccess: (newTournament, variables) => {
+    onSuccess: (newTournament) => {
       if (newTournament) {
         logger.log('[Mutation Success] Tournament added:', newTournament.name, newTournament.id);
         queryClient.invalidateQueries({ queryKey: [...queryKeys.tournaments, userId] });
       } else {
-        logger.warn('[Mutation Non-Success] utilAddTournament returned null for tournament:', variables.name);
+        logger.warn('[Mutation Non-Success] utilAddTournament returned null');
       }
     },
-    onError: (error, variables) => {
-      logger.error(`[Mutation Error] Failed to add tournament ${variables.name}:`, error);
+    onError: (error) => {
+      logger.error('[Mutation Error] Failed to add tournament:', error);
     },
   });
 

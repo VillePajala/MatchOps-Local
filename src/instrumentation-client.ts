@@ -12,8 +12,8 @@ import * as Sentry from '@sentry/nextjs';
 import {
   AUTH_URL_PATTERNS,
   isAiProviderUrl,
+  scrubMessageText,
   scrubSecretsDeep,
-  scrubSecretsInString,
   scrubUrl,
 } from '@/utils/sentryScrub';
 import {
@@ -215,11 +215,17 @@ function initSentry(): void {
       if (event.extra) {
         event.extra = scrubSecretsDeep(event.extra);
       }
+      // Free-form text also loses quoted content and emails (privacy 2026-11):
+      // the safety net for user content (player/team names, notes) that an
+      // error message might echo. Call sites must not log user content.
       if (event.message) {
-        event.message = scrubSecretsInString(event.message);
+        event.message = scrubMessageText(event.message);
+      }
+      if (event.logentry?.message) {
+        event.logentry.message = scrubMessageText(event.logentry.message);
       }
       event.exception?.values?.forEach((value) => {
-        if (value.value) value.value = scrubSecretsInString(value.value);
+        if (value.value) value.value = scrubMessageText(value.value);
       });
       if (event.breadcrumbs) {
         event.breadcrumbs = scrubSecretsDeep(event.breadcrumbs);
@@ -262,7 +268,7 @@ function initSentry(): void {
 
       // Console/log breadcrumbs carry logger arguments verbatim.
       if (breadcrumb.message) {
-        breadcrumb.message = scrubSecretsInString(breadcrumb.message);
+        breadcrumb.message = scrubMessageText(breadcrumb.message);
       }
       if (breadcrumb.data) {
         breadcrumb.data = scrubSecretsDeep(breadcrumb.data);

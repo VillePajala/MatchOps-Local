@@ -6,6 +6,7 @@ import { CollapsibleModalHeader, modalContainerStyle } from '@/styles/modalStyle
 import { APP_VERSION } from '@/config/constants';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useAppLayout } from '@/hooks/useAppLayout';
+import { useLabsEnabled } from '@/utils/labs';
 import {
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,
@@ -67,6 +68,8 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
   // Basic layout has no tabs: describe its short Home instead (R8). Unknown
   // (loading) is treated as full, matching the app's default.
   const isBasic = useAppLayout() === 'basic';
+  // Voice notes are experimental (labs switch); the guide mentions them only then.
+  const labsEnabled = useLabsEnabled();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -167,7 +170,9 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                 <li>{t('firstGameGuide.clockGoal', 'Our goal: tap "Goal for us". The goal is logged and the score moves at once. Then pick the scorer from "Who scored?" (all squad players) or tap "Skip".')}</li>
                 <li>{t('firstGameGuide.clockOpponent', 'Opponent goal: tap "Opponent +1".')}</li>
                 <li>{t('firstGameGuide.clockReset', 'In the full layout, "Sub done" restarts the change timer.')}</li>
-                <li>{t('firstGameGuide.dictationTip', 'Hold the microphone button on the large clock to dictate a voice note - it stays on your phone.')}</li>
+                {labsEnabled && (
+                  <li>{t('firstGameGuide.dictationTip', 'Hold the microphone button on the large clock to dictate a voice note - it stays on your phone.')}</li>
+                )}
               </ul>
             </div>
           </GuideSection>
@@ -177,7 +182,11 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
               <ul className={list}>
                 <li>{t('firstGameGuide.finishStart', 'At full time tap "Finish this game".')}</li>
                 <li>{t('firstGameGuide.finishSheet', 'Match sheet: a copy-ready text of the match data that you can paste into any system.')}</li>
-                <li>{t('firstGameGuide.finishReport', 'Match report: your own text - write it, dictate it or make an AI draft. "Share match report" sends it on.')}</li>
+                <li>
+                  {labsEnabled
+                    ? t('firstGameGuide.finishReport', 'Match report: your own text - write it, dictate it or make an AI draft. "Share match report" sends it on.')
+                    : t('firstGameGuide.finishReportTyped', 'Match report: your own text - write it in the report field. "Share match report" sends it on.')}
+                </li>
               </ul>
             </div>
           </GuideSection>

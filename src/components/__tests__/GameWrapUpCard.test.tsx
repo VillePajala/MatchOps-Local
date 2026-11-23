@@ -114,7 +114,7 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     const complete = computeGameCompleteness({
       isPlayed: true, gameNotes: 'Good game', selectedPlayerIds: ['p1'], seasonId: '', tournamentId: '', teamId: '', playerPositions: {}, assessments: {},
     });
-    render(<GameWrapUpCard completeness={complete} voiceClipCount={1} />);
+    render(<GameWrapUpCard completeness={complete} voiceClipCount={1} onOpenVoiceNotes={jest.fn()} />);
     expect(screen.getByText('Complete')).toBeInTheDocument();
     expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('2/2');
     expect(screen.getByTestId('wrap-up-status-voiceNotes-todo')).toBeInTheDocument();
@@ -224,9 +224,10 @@ describe('the recordings row turns green', () => {
       teamId: '', playerPositions: {}, assessments: {}, homeScore: 0, awayScore: 0,
       gameEvents: [{ type: 'note', entityId: 'a', source: 'dictation' }],
     }, { assessmentsEnabled: false });
-    const { rerender } = render(<GameWrapUpCard completeness={withAudio} voiceClipCount={1} />);
+    const open = jest.fn();
+    const { rerender } = render(<GameWrapUpCard completeness={withAudio} voiceClipCount={1} onOpenVoiceNotes={open} />);
     expect(screen.getByTestId('wrap-up-status-voiceNotes-todo')).toBeInTheDocument();
-    rerender(<GameWrapUpCard completeness={withAudio} voiceClipCount={0} />);
+    rerender(<GameWrapUpCard completeness={withAudio} voiceClipCount={0} onOpenVoiceNotes={open} />);
     expect(screen.getByTestId('wrap-up-status-voiceNotes-done')).toBeInTheDocument();
     expect(screen.getByText('Voice notes written out')).toBeInTheDocument();
   });
@@ -236,7 +237,19 @@ describe('the recordings row turns green', () => {
       isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '',
       teamId: '', playerPositions: {}, assessments: {}, homeScore: 0, awayScore: 0, gameEvents: [],
     }, { assessmentsEnabled: false });
-    render(<GameWrapUpCard completeness={noAudio} voiceClipCount={0} />);
+    render(<GameWrapUpCard completeness={noAudio} voiceClipCount={0} onOpenVoiceNotes={jest.fn()} />);
+    expect(screen.queryByTestId('wrap-up-status-voiceNotes-done')).not.toBeInTheDocument();
+  });
+
+  /** Voice notes are hidden behind the labs switch: no inbox to open, no row about it. */
+  it('shows no recordings row when there is no voice-notes inbox to open', () => {
+    const withAudio = computeGameCompleteness({
+      isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '',
+      teamId: '', playerPositions: {}, assessments: {}, homeScore: 0, awayScore: 0,
+      gameEvents: [{ type: 'note', entityId: 'a', source: 'dictation' }],
+    }, { assessmentsEnabled: false });
+    render(<GameWrapUpCard completeness={withAudio} voiceClipCount={2} />);
+    expect(screen.queryByTestId('wrap-up-status-voiceNotes-todo')).not.toBeInTheDocument();
     expect(screen.queryByTestId('wrap-up-status-voiceNotes-done')).not.toBeInTheDocument();
   });
 });

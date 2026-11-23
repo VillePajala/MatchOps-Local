@@ -38,7 +38,18 @@ const SECRET_PATTERNS: RegExp[] = [
   /\bsk-[A-Za-z0-9_-]{8,}/g,
   /\bAIza[0-9A-Za-z_-]{20,}/g,
   /\bBearer\s+[A-Za-z0-9._-]{16,}/g,
+  // Email addresses (privacy 2026-11): an account or staff email must never
+  // ride along in a message, an error or a breadcrumb.
+  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
 ];
+
+/**
+ * Quoted text in a free-form message: `"…"`, `“…”`, `„…”`. The app's own log
+ * lines do not quote user content any more, but an error thrown elsewhere (a
+ * library, the database) can echo a value the coach typed - a player or team
+ * name - in quotes. Safety net only; call sites must not log user content.
+ */
+const QUOTED_TEXT_PATTERN = /"[^"\n]{1,200}"|“[^”\n]{1,200}”|„[^”“\n]{1,200}[”“]/g;
 
 const MAX_DEPTH = 6;
 
@@ -74,6 +85,15 @@ export function isAiProviderUrl(url: string): boolean {
 /** Replace key-shaped tokens inside a string. */
 export function scrubSecretsInString(value: string): string {
   return SECRET_PATTERNS.reduce((acc, pattern) => acc.replace(pattern, '[REDACTED]'), value);
+}
+
+/**
+ * Scrub a free-form message (event message, exception value, log breadcrumb):
+ * secrets and emails as in `scrubSecretsInString`, plus any quoted text, which
+ * is where user content (names, notes) shows up in error messages.
+ */
+export function scrubMessageText(value: string): string {
+  return scrubSecretsInString(value).replace(QUOTED_TEXT_PATTERN, '"[REDACTED]"');
 }
 
 /**

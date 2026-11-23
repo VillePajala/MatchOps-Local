@@ -58,8 +58,9 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
   // Unhandled audio is real unfinished work: the clip is deleted after 30 days
   // and the coach's words go with it. The row appears for a game that has
   // audio or had some, so a coach who never records collects no free tick, and
-  // it turns green the moment the last clip is written out.
-  if (voiceClipCount > 0 || completeness.dictatedNotes > 0) {
+  // it turns green the moment the last clip is written out. No inbox to open
+  // (voice notes hidden behind the labs switch) means no row either.
+  if (onOpenVoiceNotes && (voiceClipCount > 0 || completeness.dictatedNotes > 0)) {
     rows.push({
       key: 'voiceNotes',
       label: voiceClipCount > 0

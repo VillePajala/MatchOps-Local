@@ -3,6 +3,17 @@
   "releases": [
     {
       "date": "2026-11-23",
+      "en": [
+        "Player ratings and the experimental AI features (voice notes, AI report drafts) are no longer shown. Ratings you already recorded are kept and still included in exports.",
+        "The notice to players' families (Settings → Data → Privacy) now says who is responsible for the data, what is stored, where, how to ask for deletion, and where to complain."
+      ],
+      "fi": [
+        "Pelaajien arvioinnit ja kokeelliset tekoälytoiminnot (äänimuistiinpanot, tekoälyn raporttiluonnokset) eivät enää näy. Jo tehdyt arvioinnit säilyvät ja ovat edelleen mukana viennissä.",
+        "Tiedote pelaajien perheille (Asetukset → Tiedot → Tietosuoja) kertoo nyt, kuka tiedoista vastaa, mitä tallennetaan, missä, miten poistoa pyydetään ja minne voi valittaa."
+      ]
+    },
+    {
+      "date": "2026-11-23",
       "en": ["Match report editing: the buttons sit in two tidy rows instead of four squeezed ones."],
       "fi": ["Otteluraportin muokkaus: painikkeet ovat kahdessa siistissä rivissä neljän ahtaan sijaan."]
     },

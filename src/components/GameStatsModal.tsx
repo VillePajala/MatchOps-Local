@@ -91,6 +91,8 @@ import {
 } from './GameStatsModal/components';
 import { StatsFilterPanel } from './GameStatsModal/components/StatsFilterPanel';
 import { useAiProviderState } from '@/utils/aiProvider';
+import { useLabsEnabled } from '@/utils/labs';
+import { ASSESSMENTS_FEATURE_AVAILABLE } from '@/hooks/useAssessmentsEnabled';
 import CoverageNudgeCard from './GameStatsModal/components/CoverageNudgeCard';
 import TranslateReportPanel from './GameStatsModal/components/TranslateReportPanel';
 import type { ReportDraftHandle } from './GameStatsModal/components/ReportDraftPanel';
@@ -394,9 +396,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const clubSeasonStartDate = settings?.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE;
   const clubSeasonEndDate = settings?.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE;
   const hasConfiguredSeasonDates = settings?.hasConfiguredSeasonDates ?? false;
-  // Off by default (owner decision 2026-09-09). One value feeds the spine step,
+  // Off by default (owner decision 2026-09-09), and removed for everyone for
+  // now (2026-11, see useAssessmentsEnabled). One value feeds the spine step,
   // the checklist, the team card and the player view, so they cannot disagree.
-  const assessmentsEnabled = settings?.assessmentsEnabled ?? false;
+  const assessmentsEnabled = ASSESSMENTS_FEATURE_AVAILABLE && (settings?.assessmentsEnabled ?? false);
 
   // Player pool for Player tab search: prefer full master roster; fall back to current game's available players
   const playerPool: Player[] = useMemo(() => {
@@ -805,6 +808,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
    * settings card is the one place the feature announces itself.
    */
   const ai = useAiProviderState();
+  // Voice notes are part of the experimental AI set: hidden unless the
+  // device's labs switch is on (stored clips are kept, just not shown).
+  const labsEnabled = useLabsEnabled();
   const canTidy = Boolean(onApplyReportDraft) && Boolean(currentGame) && ai.connected;
   const handleTidy = useCallback(() => {
     reportDraftRef.current?.tidy();
@@ -1272,7 +1278,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             onOpenSettings={onOpenGameSettings}
             onOpenAssessments={onOpenAssessments}
             voiceClipCount={voiceClipCount}
-            onOpenVoiceNotes={scrollToInbox}
+            onOpenVoiceNotes={labsEnabled ? scrollToInbox : undefined}
             onAddGoal={onAddGoal}
             onOpenNotes={() => scrollToId('game-notes-step')}
             onOpenReport={scrollToReport}
@@ -1287,7 +1293,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       id: 'game-notes-step',
       content: (
         <>
-          {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
+          {labsEnabled && currentGameId && currentGameId !== DEFAULT_GAME_ID && (
             <DictationInbox
               gameId={currentGameId}
               availablePlayers={availablePlayers}
@@ -1319,7 +1325,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             <div className={`${cardStyle} font-ui`} data-testid="game-notes-empty">
               <h3 className="text-base font-semibold text-ink mb-1">{t('dictation.notesTitle', 'Notes')}</h3>
               <p className={subtextStyle}>
-                {t('gameStatsModal.spineNotesEmpty', 'Nothing noted from this match yet. Write one above, or dictate it during the game with the microphone button.')}
+                {labsEnabled
+                  ? t('gameStatsModal.spineNotesEmpty', 'Nothing noted from this match yet. Write one above, or dictate it during the game with the microphone button.')
+                  : t('gameStatsModal.spineNotesEmptyTyped', 'Nothing noted from this match yet. Write one above.')}
               </p>
             </div>
           )}
