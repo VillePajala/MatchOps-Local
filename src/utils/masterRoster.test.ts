@@ -204,8 +204,10 @@ describe('Master Roster Utilities', () => {
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('[addPlayerToRoster] Unexpected error'),
-        expect.objectContaining({ playerName: 'Valid Player', error: saveError })
+        expect.objectContaining({ error: saveError })
       );
+      // No player name in the log: errors reach Sentry (privacy 2026-11).
+      expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain('Valid Player');
       consoleSpy.mockRestore();
     });
   });

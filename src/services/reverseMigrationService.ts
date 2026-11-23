@@ -1614,7 +1614,7 @@ export interface HydrationResult {
  * Logged rather than silent: it is still a small loss, and a run that quietly
  * edits data on the way in should say so.
  */
-function withRestorableAgeGroup<T extends { ageGroup?: string; name?: string }>(
+function withRestorableAgeGroup<T extends { id?: string; ageGroup?: string }>(
   entity: T,
   what: string,
 ): T {
@@ -1623,7 +1623,7 @@ function withRestorableAgeGroup<T extends { ageGroup?: string; name?: string }>(
   }
   logger.warn('[ReverseMigrationService] Dropping unrecognised age group on restore', {
     what,
-    name: entity.name,
+    id: entity.id,
     ageGroup: entity.ageGroup,
   });
   return { ...entity, ageGroup: undefined };

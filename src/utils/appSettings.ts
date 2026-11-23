@@ -204,11 +204,12 @@ export const saveLastHomeTeamName = async (teamName: string, userId?: string): P
     const updatedSettings = await updateAppSettings({ lastHomeTeamName: teamName }, userId);
     // Defensive null check - updateAppSettings should always return settings
     if (!updatedSettings) {
-      logger.warn('updateAppSettings returned no data', { teamName });
+      logger.warn('updateAppSettings returned no data');
       return false;
     }
     if (updatedSettings.lastHomeTeamName !== teamName) {
-      logger.warn('Failed to save last home team name', { teamName, actual: updatedSettings.lastHomeTeamName });
+      // No team names in the log: warnings reach Sentry as breadcrumbs.
+      logger.warn('Failed to save last home team name (stored value differs)');
       return false;
     }
     return true;

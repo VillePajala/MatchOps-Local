@@ -13,6 +13,7 @@
 
 import { useSyncExternalStore } from 'react';
 import logger from '@/utils/logger';
+import { isLabsEnabled, onLabsChange } from '@/utils/labs';
 
 /** Bump whenever the gate text changes; everyone re-accepts. */
 export const AI_CONSENT_VERSION = '2026-09';
@@ -118,7 +119,11 @@ export interface AiProviderState {
   consentVersion: string | null;
   /** Consent for the CURRENT gate text. */
   hasConsent: boolean;
-  /** Consent + key: the AI features are usable. */
+  /**
+   * Consent + key + the device's labs switch: the AI features are usable.
+   * While labs is off (the default) this is false even with a stored key, so
+   * every AI entry point that checks it stays hidden; the setup itself is kept.
+   */
   connected: boolean;
   pseudonymize: boolean;
   /**
@@ -147,7 +152,7 @@ function compute(): AiProviderState {
     keyHint: key ? key.slice(-4) : null,
     consentVersion,
     hasConsent,
-    connected: hasConsent && hasKey,
+    connected: isLabsEnabled() && hasConsent && hasKey,
     pseudonymize: read(PSEUDONYMIZE) !== '0',
     model: read(MODEL),
   };
@@ -163,8 +168,13 @@ function refresh(): void {
   notify();
 }
 
-/** The raw key for a request. Callers must never log it or put it in a URL. */
+/**
+ * The raw key for a request. Callers must never log it or put it in a URL.
+ * Null while the labs switch is off: no request can go out with it then, even
+ * from a path that forgot to check `connected`.
+ */
 export function getAiProviderKey(): string | null {
+  if (!isLabsEnabled()) return null;
   return read(KEY);
 }
 
@@ -243,6 +253,9 @@ export async function listAiModels(provider: AiProviderId = 'openai'): Promise<s
     return [];
   }
 }
+
+// The labs switch changes `connected`; recompute when it flips.
+onLabsChange(() => refresh());
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);

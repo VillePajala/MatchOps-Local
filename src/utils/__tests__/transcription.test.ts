@@ -12,6 +12,7 @@ import {
   getTranscriptionEngine,
 } from '../transcription';
 import { acceptAiConsent, listAiModels, resetAiProviderStateForTests, setAiProviderKey } from '@/utils/aiProvider';
+import { setLabsEnabled } from '@/utils/labs';
 
 jest.mock('@/utils/logger', () => ({
   __esModule: true,
@@ -23,6 +24,7 @@ const fetchMock = jest.fn();
 beforeEach(() => {
   localStorage.clear();
   resetAiProviderStateForTests();
+  setLabsEnabled(true); // the AI is reachable only with the labs switch on
   fetchMock.mockReset();
   global.fetch = fetchMock as unknown as typeof fetch;
 });
