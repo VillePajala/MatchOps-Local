@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 description: Common issues and solutions for MatchOps
-lastUpdated: "2026-11-19"
+lastUpdated: "2026-11-23"
 ---
 
 This guide helps you resolve common issues with MatchOps.
@@ -13,9 +13,9 @@ This guide helps you resolve common issues with MatchOps.
 **Problem**: Changes aren't persisting between sessions.
 
 **Solutions**:
-- Check that the app has storage permissions in Android settings
-- Verify you have available storage space on your device
-- Try manually saving before closing the app
+- Check the sync status: if it shows **Error**, tap the indicator to retry
+- Make sure your phone has free storage space
+- Everything saves automatically. **Quick Save** in the match menu saves right away if you want to be sure
 
 ### Lost Data
 
@@ -28,19 +28,18 @@ This guide helps you resolve common issues with MatchOps.
 
 **Recovery**:
 - Sign out and sign back in to re-sync from your account
-- Check if you're on the correct device
+- Check that you are signed in with the same account as before
 - If you use a legacy setup without an account, restore from a backup if available
 - Contact support if data should exist
 
 ### Import/Export Not Working
 
-**Problem**: Can't import backup or export data.
+**Problem**: Can't restore a backup or export data.
 
 **Solutions**:
-- Check file format (JSON for backups, xlsx for Excel)
-- Ensure file isn't corrupted
-- Try a smaller data subset
-- Check that the app has file access permissions
+- Only a MatchOps backup (a JSON file) can be restored. Excel files cannot be imported.
+- Make sure the file isn't corrupted (try another backup or an automatic restore point)
+- If saving the file fails, choose **Share** (for example to email or a cloud folder) or **Save** when you make the backup
 
 ## Cloud Sync Issues
 
@@ -51,7 +50,7 @@ This guide helps you resolve common issues with MatchOps.
 **Solutions**:
 1. Check your internet connection
 2. Look for sync status indicator - if it shows "Pending", wait for sync to complete
-3. Reload the page or close and reopen the app
+3. Close and reopen the app
 4. Verify you're signed into the same account on both devices
 5. Try signing out and back in
 
@@ -112,8 +111,7 @@ The app is designed to work offline. Track your game, and everything syncs when 
 **Problem**: App asks you to sign in again unexpectedly.
 
 **Causes**:
-- Sessions expire after extended periods of inactivity
-- App was cleared from memory by the system
+- A session expires after a long period of inactivity
 
 **Solution**: Simply sign in again. Your data is safe in the cloud.
 
@@ -155,38 +153,31 @@ The counter checks two things: the squad is selected and the goal log matches th
 
 ### Timer Not Accurate
 
-**Problem**: The game timer seems off.
+**Problem**: The game time seems off.
 
-**Causes**:
-- Device was sleeping
-- App was in background
-- Battery saver mode throttled the app
+The clock keeps running while the phone is locked or you use another app. When you come back to MatchOps, the time catches up from the phone's clock.
 
 **Solutions**:
-- Keep the app in the foreground during games
-- The app automatically keeps the screen awake during active game timing
-- Don't switch apps during active timing
-- Disable battery optimization for MatchOps
+- Make sure the phone's time is set automatically
+- Check that the clock was not left paused (the button then shows **Resume**)
+- If the referee ended the period early, use **End period** on the large clock
 
 ## Display Issues
 
 ### Screen Orientation Problems
 
-**Problem**: Layout looks wrong in portrait/landscape.
+**Problem**: The layout looks wrong.
 
 **Solutions**:
-- Lock device orientation to your preference
-- Use the app in recommended orientation (landscape for tablet, portrait for phone)
-- Restart the app after rotation if display is incorrect
+- MatchOps is made for a phone held upright (portrait)
+- Restart the app if the screen stays wrong
 
 ### Elements Missing or Cut Off
 
 **Problem**: Can't see all the interface elements.
 
 **Solutions**:
-- Check device display settings (font size, display scaling)
-- Try fullscreen mode
-- Check device screen size compatibility
+- Check the phone's display settings: reduce the font size or display zoom
 
 ## Connectivity Issues
 
@@ -195,8 +186,8 @@ The counter checks two things: the squad is selected and the goal log matches th
 **Problem**: App doesn't work without internet.
 
 **Solutions**:
-- Ensure you've opened the app at least once with internet connection
-- The app needs to download resources on first launch
+- Make sure you have opened the app and signed in at least once with an internet connection
+- The app downloads the files it needs on first launch
 - Try reinstalling the app
 
 <Callout type="tip">
@@ -205,26 +196,17 @@ After first launch, the app should work offline. Test by enabling airplane mode 
 
 ## Android-Specific Issues
 
-### Background Restrictions
+### Screen Turns Off During a Match
 
-Common issues:
-- Timer pauses when app is in background
-- Notifications not appearing
+MatchOps keeps the screen on during the match. If it still turns off:
+- Make sure the match clock has been started
+- Try turning off the phone's battery saver for the match
 
-**Solutions**:
-- Disable battery optimization for MatchOps
-- Grant all requested permissions
-- Keep app in foreground during games
-- Check Android's adaptive battery settings
+The clock keeps running even if the screen turns off.
 
-### Storage Permission Issues
+### Microphone Not Working
 
-**Problem**: App asks for storage permission repeatedly or can't save files.
-
-**Solutions**:
-- Grant storage permissions in Android Settings > Apps > MatchOps
-- On Android 13+, grant "Photos and videos" or "Files" permission as needed
-- Restart the app after granting permissions
+Voice notes need microphone access. If you denied it, allow it in your phone's app settings.
 
 ## Getting More Help
 

@@ -1,7 +1,7 @@
 ---
 title: Vianetsintä
 description: Yleiset ongelmat ja ratkaisut MatchOpsille
-lastUpdated: "2026-11-19"
+lastUpdated: "2026-11-23"
 ---
 
 Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
@@ -13,9 +13,9 @@ Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
 **Ongelma**: Muutokset eivät säily istuntojen välillä.
 
 **Ratkaisut**:
-- Tarkista, että sovelluksella on tallennusoikeudet Androidin asetuksissa
-- Varmista, että laitteessa on riittävästi tallennustilaa
-- Kokeile manuaalista tallennusta ennen sovelluksen sulkemista
+- Katso synkronoinnin tila: jos se näyttää **Virhe**, napauta ilmaisinta yrittääksesi uudelleen
+- Varmista, että puhelimessa on vapaata tallennustilaa
+- Kaikki tallentuu automaattisesti. Ottelun valikon **Pikatallennus** tallentaa heti, jos haluat varmistaa
 
 ### Kadonnut data
 
@@ -28,19 +28,18 @@ Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
 
 **Palautus**:
 - Kirjaudu ulos ja takaisin sisään synkronoidaksesi tililtäsi uudelleen
-- Tarkista, oletko oikealla laitteella
+- Tarkista, että olet kirjautunut samalla tilillä kuin ennen
 - Jos käytät vanhaa kokoonpanoa ilman tiliä, palauta varmuuskopiosta jos saatavilla
 - Ota yhteyttä tukeen jos datan pitäisi olla olemassa
 
 ### Tuonti/vienti ei toimi
 
-**Ongelma**: Varmuuskopiota ei voi tuoda tai dataa viedä.
+**Ongelma**: Varmuuskopiota ei voi palauttaa tai tietoja viedä.
 
 **Ratkaisut**:
-- Tarkista tiedostomuoto (JSON varmuuskopioille, xlsx Excelille)
-- Varmista, ettei tiedosto ole vioittunut
-- Kokeile pienempää dataosaa
-- Tarkista, että sovelluksella on tiedostojen käyttöoikeudet
+- Palautukseen kelpaa vain MatchOpsin varmuuskopio (JSON-tiedosto). Excel-tiedostoa ei voi tuoda.
+- Varmista, ettei tiedosto ole vioittunut (kokeile toista varmuuskopiota tai automaattista palautuspistettä)
+- Jos tiedoston tallennus ei onnistu, valitse varmuuskopiota tehdessä **Jaa** (esim. sähköpostiin tai pilvikansioon) tai **Tallenna**
 
 ## Pilvisynkronoinnin ongelmat
 
@@ -51,7 +50,7 @@ Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
 **Ratkaisut**:
 1. Tarkista internetyhteytesi
 2. Katso synkronoinnin tilailmaisinta - jos se näyttää "Odottaa", odota synkronoinnin valmistumista
-3. Lataa sivu uudelleen tai sulje ja avaa sovellus uudelleen
+3. Sulje ja avaa sovellus uudelleen
 4. Varmista, että olet kirjautunut samalle tilille molemmilla laitteilla
 5. Kokeile kirjautua ulos ja takaisin sisään
 
@@ -112,8 +111,7 @@ Sovellus on suunniteltu toimimaan offline-tilassa. Seuraa peliäsi, ja kaikki sy
 **Ongelma**: Sovellus pyytää kirjautumaan sisään odottamatta.
 
 **Syyt**:
-- Istunnot vanhenevat pitkän käyttämättömyysjakson jälkeen
-- Järjestelmä poisti sovelluksen muistista
+- Istunto vanhenee pitkän käyttämättömyysjakson jälkeen
 
 **Ratkaisu**: Kirjaudu vain sisään uudelleen. Datasi on turvassa pilvessä.
 
@@ -155,38 +153,31 @@ Laskuri katsoo kahta asiaa: kokoonpano on valittu ja maaliloki vastaa tulosta. T
 
 ### Ajastin ei ole tarkka
 
-**Ongelma**: Peliajastin tuntuu väärältä.
+**Ongelma**: Peliaika tuntuu väärältä.
 
-**Syyt**:
-- Laite oli lepotilassa
-- Sovellus oli taustalla
-- Virransäästötila hidasti sovellusta
+Kello käy myös silloin, kun puhelin on lukittuna tai käytät toista sovellusta. Kun palaat MatchOpsiin, aika päivittyy oikeaksi puhelimen kellon mukaan.
 
 **Ratkaisut**:
-- Pidä sovellus etualalla pelien aikana
-- Sovellus pitää näytön hereillä automaattisesti aktiivisen ajanoton aikana
-- Älä vaihda sovelluksia aktiivisen ajastimen aikana
-- Poista akun optimointi käytöstä MatchOpsille
+- Varmista, että puhelimen kellonaika asetetaan automaattisesti
+- Tarkista, ettei kello jäänyt tauolle (painike näyttää silloin **Jatka**)
+- Jos tuomari päätti jakson aiemmin, käytä isossa kellossa **Päätä jakso**
 
 ## Näyttöongelmat
 
 ### Näytön suuntaongelmat
 
-**Ongelma**: Asettelu näyttää väärältä pysty-/vaakasuunnassa.
+**Ongelma**: Asettelu näyttää väärältä.
 
 **Ratkaisut**:
-- Lukitse laitteen suunta mieltymyksesi mukaan
-- Käytä sovellusta suositellussa suunnassa (vaaka tabletilla, pysty puhelimella)
-- Käynnistä sovellus uudelleen kääntämisen jälkeen jos näyttö on virheellinen
+- MatchOps on tehty käytettäväksi puhelin pystyasennossa
+- Käynnistä sovellus uudelleen, jos näkymä jää virheelliseksi
 
 ### Elementit puuttuvat tai leikkautuvat
 
 **Ongelma**: Kaikkia käyttöliittymäelementtejä ei näe.
 
 **Ratkaisut**:
-- Tarkista laitteen näyttöasetukset (fonttikoko, näytön skaalaus)
-- Kokeile kokonäyttötilaa
-- Tarkista laitteen näyttökoon yhteensopivuus
+- Tarkista puhelimen näyttöasetukset: pienennä fonttikokoa tai näytön zoomausta
 
 ## Yhteysongelmia
 
@@ -195,8 +186,8 @@ Laskuri katsoo kahta asiaa: kokoonpano on valittu ja maaliloki vastaa tulosta. T
 **Ongelma**: Sovellus ei toimi ilman nettiä.
 
 **Ratkaisut**:
-- Varmista, että olet avannut sovelluksen kerran nettiyhteydellä
-- Sovelluksen täytyy ladata resurssit ensimmäisellä käynnistyksellä
+- Varmista, että olet avannut sovelluksen ja kirjautunut sisään kerran verkkoyhteyden kanssa
+- Sovellus lataa tarvitsemansa tiedostot ensimmäisellä käynnistyksellä
 - Kokeile sovelluksen uudelleenasennusta
 
 <Callout type="tip">
@@ -205,26 +196,17 @@ Ensimmäisen käynnistyksen jälkeen sovelluksen pitäisi toimia offline. Testaa
 
 ## Android-kohtaiset ongelmat
 
-### Taustarajoitukset
+### Näyttö sammuu kesken ottelun
 
-Yleisiä ongelmia:
-- Ajastin pysähtyy kun sovellus on taustalla
-- Ilmoitukset eivät näy
+MatchOps pitää näytön päällä ottelun ajan. Jos näyttö silti sammuu:
+- Varmista, että ottelun kello on käynnistetty
+- Kokeile kytkeä puhelimen virransäästötila pois ottelun ajaksi
 
-**Ratkaisut**:
-- Poista akun optimointi käytöstä MatchOpsille
-- Myönnä kaikki pyydetyt oikeudet
-- Pidä sovellus etualalla pelien aikana
-- Tarkista Androidin mukautuvan akun asetukset
+Kello käy, vaikka näyttö sammuisi.
 
-### Tallennusoikeusongelmat
+### Mikrofoni ei toimi
 
-**Ongelma**: Sovellus pyytää tallennusoikeutta toistuvasti tai ei voi tallentaa tiedostoja.
-
-**Ratkaisut**:
-- Myönnä tallennusoikeudet: Asetukset > Sovellukset > MatchOps
-- Android 13+: Myönnä "Kuvat ja videot" tai "Tiedostot" -oikeus tarpeen mukaan
-- Käynnistä sovellus uudelleen oikeuksien myöntämisen jälkeen
+Äänimuistiinpanot tarvitsevat mikrofonin käyttöoikeuden. Jos estit sen, salli se puhelimen sovellusasetuksista.
 
 ## Lisäavun saaminen
 
