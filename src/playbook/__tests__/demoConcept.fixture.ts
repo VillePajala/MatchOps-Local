@@ -1,8 +1,9 @@
-import type { Concept } from './types';
+import type { Concept } from '../types';
 
 /**
- * The one built-in test concept (our own content, not a club's): used to try
- * the engine behind the playbook flag until concepts come from the database.
+ * A test concept for the engine and presentation tests (it was the app's one
+ * built-in demo until the built-in collection "MatchOps: 8v8 perusteet"
+ * replaced it; see builtInPlaybooks.ts). Not shipped with the app.
  *
  * 8v8, our team defends the bottom goal. The keeper starts with the ball, the
  * two centre backs and the holding midfielder make a triangle, the ball moves

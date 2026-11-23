@@ -234,7 +234,7 @@ describe('the library with club codes', () => {
     });
     const onClose = jest.fn();
     const { rerender } = render(<PlaybookLibrary isOpen onClose={onClose} />);
-    expect(screen.getByTestId('playbook-playbook-name')).toHaveTextContent('MatchOps examples');
+    expect(screen.getByTestId('playbook-playbook-name')).toHaveTextContent('MatchOps: 8v8 basics');
     fireEvent.click(screen.getByTestId('playbook-code-open'));
     // Escape belongs to the sheet while it is open, not to the library.
     fireEvent.keyDown(document, { key: 'Escape' });

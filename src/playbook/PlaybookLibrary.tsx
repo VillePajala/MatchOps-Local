@@ -191,7 +191,7 @@ export default function PlaybookLibrary({ isOpen, onClose, selection }: Playbook
     },
     [t],
   );
-  const playbookName = (p: Playbook) => (p.builtIn ? t('playbook.library.builtInName', 'MatchOps examples') : p.name);
+  const playbookName = (p: Playbook) => (p.builtIn ? t('playbook.library.builtInName', 'MatchOps: 8v8 basics') : p.name);
 
   const closePresentation = useCallback(() => setOpen(null), []);
   // A code just unlocked a playbook: show it, unfiltered.
