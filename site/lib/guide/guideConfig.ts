@@ -53,7 +53,7 @@ export const guideSections: GuideSection[] = [
   {
     slug: 'full-setup-path',
     title: 'Full Layout: Recommended Setup',
-    titleFi: 'Koko näkymä: suositeltu työnkulku',
+    titleFi: 'Koko näkymän käyttöönotto',
     description: 'Players, staff, leagues, tournaments and teams in the full layout',
     descriptionFi: 'Pelaajat, taustahenkilöt, sarjat, turnaukset ja joukkueet Koko näkymässä',
     icon: FaRoute,
@@ -65,7 +65,7 @@ export const guideSections: GuideSection[] = [
   {
     slug: 'roster-management',
     title: 'Roster Management',
-    titleFi: 'Kokoonpanon hallinta',
+    titleFi: 'Pelaajat',
     description: 'Add, edit and archive players; player assessments',
     descriptionFi: 'Lisää, muokkaa ja arkistoi pelaajia; pelaaja-arviot',
     icon: FaUsers,
@@ -75,7 +75,7 @@ export const guideSections: GuideSection[] = [
   {
     slug: 'teams-organization',
     title: 'Teams & Organization',
-    titleFi: 'Joukkueet ja organisointi',
+    titleFi: 'Joukkueet, sarjat ja turnaukset',
     description: 'Teams, leagues, tournaments and staff',
     descriptionFi: 'Joukkueet, sarjat, turnaukset ja taustahenkilöt',
     icon: FaFutbol,
@@ -116,7 +116,7 @@ export const guideSections: GuideSection[] = [
   {
     slug: 'tactics-board',
     title: 'Tactics Board',
-    titleFi: 'Taktinen piirtotaulu',
+    titleFi: 'Taktiikkataulu',
     description: 'Draw plays and set pieces',
     descriptionFi: 'Piirrä pelikuvioita ja erikoistilanteita',
     icon: FaPencilAlt,
@@ -147,7 +147,7 @@ export const guideSections: GuideSection[] = [
   {
     slug: 'data-management',
     title: 'Data Management',
-    titleFi: 'Datan hallinta',
+    titleFi: 'Tili ja tiedot',
     description: 'Account, sync, backups, settings and layout',
     descriptionFi: 'Tili, synkronointi, varmuuskopiot, asetukset ja näkymä',
     icon: FaDatabase,
@@ -167,9 +167,9 @@ export const guideSections: GuideSection[] = [
   {
     slug: 'tips-best-practices',
     title: 'Tips & Best Practices',
-    titleFi: 'Vinkit ja parhaat käytännöt',
+    titleFi: 'Vinkit ja hyvät käytännöt',
     description: 'Get the most out of MatchOps',
-    descriptionFi: 'Hyödynnä MatchOps parhaiten',
+    descriptionFi: 'Näin saat MatchOpsista eniten irti',
     icon: FaLightbulb,
     order: 13,
     group: 'review',
