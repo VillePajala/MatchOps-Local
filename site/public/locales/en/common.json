@@ -78,11 +78,11 @@
     },
     "privacy": {
       "title": "Privacy Policy - MatchOps",
-      "description": "Privacy policy for MatchOps soccer coaching app. Learn how we handle your data."
+      "description": "Privacy policy for the MatchOps football coaching app. Learn how we handle your data."
     },
     "terms": {
       "title": "Terms of Service - MatchOps",
-      "description": "Terms of service for MatchOps soccer coaching app."
+      "description": "Terms of service for the MatchOps football coaching app."
     },
     "deleteAccount": {
       "title": "Delete Your Account – MatchOps",
@@ -495,7 +495,7 @@
     },
     "overview": {
       "title": "Overview",
-      "content": "MatchOps (\"we\", \"our\", \"the app\") is a soccer coaching application that uses secure cloud sync. This privacy policy explains how we handle your information."
+      "content": "MatchOps (\"we\", \"our\", \"the app\") is a football coaching application that uses secure cloud sync. This privacy policy explains how we handle your information."
     },
     "dataStorage": {
       "title": "Data Storage",
@@ -690,7 +690,7 @@
     },
     "description": {
       "title": "Description of Service",
-      "intro": "MatchOps is a soccer coaching application with cloud sync that helps coaches:",
+      "intro": "MatchOps is a football coaching application with cloud sync that helps coaches:",
       "items": {
         "trackTime": "Track game time and scores",
         "manageRosters": "Manage player rosters",

@@ -168,7 +168,7 @@ export default function Layout({ children, title, description, jsonLd }: LayoutP
                 aria-label={router.locale === 'fi' ? 'Switch language to English' : 'Vaihda kieleen suomi'}
                 className="px-2 py-1 text-xs rounded border border-slate-600 text-slate-200 hover:text-white hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                {router.locale?.toUpperCase() ?? 'EN'}
+                {router.locale === 'fi' ? 'EN' : 'FI'}
               </button>
             </div>
           </div>
