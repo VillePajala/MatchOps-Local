@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /marketing-assets
+Disallow: /en/marketing-assets
+
+Sitemap: https://www.match-ops.com/sitemap.xml

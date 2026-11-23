@@ -1,15 +1,22 @@
 import Layout from '@/components/Layout';
-import { PhoneMockup, GlowBg } from '@/components/marketing';
-import Head from 'next/head';
+import { PhoneMockup, GlowBg, VideoFacade } from '@/components/marketing';
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
-import { FaArrowUp } from 'react-icons/fa';
-
-const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.matchops.local';
+import { FaArrowUp, FaCheck, FaChevronDown, FaYoutube } from 'react-icons/fa';
+import {
+  SITE_URL,
+  YOUTUBE_CHANNEL_URL,
+  absoluteUrl,
+  ogImage,
+  playBadge,
+  playStoreUrl,
+  youtubeId,
+} from '@/lib/site';
 
 // Language-aware screenshot paths (matches marketing-assets.tsx).
 // All captured 2026-11 from the redesigned app with the fictional demo club
@@ -18,326 +25,197 @@ const getScreenshots = (locale: string | undefined) => {
   const lang = locale === 'en' ? 'en' : 'fi';
   const shot = (name: string) => `/screenshots/MatchOps_v3_${name}_${lang}.jpg`;
   return {
-    // Main hero screenshots
-    soccerfield: shot('matchview'), // stacked match view
-    timer: shot('timer'),
-    playerstats: shot('playerstats'),
-    // Feature card screenshots
-    tacticalBoard: shot('tacticalboard'),
-    formations: shot('formations'),
-    roster: shot('roster'),
-    positions: shot('positions'),
-    positionBalance: shot('positionbalance'),
-    nextMatch: shot('nextmatch'),
-    // Otteluraportti with "Jaa otteluraportti" under it
-    matchReport: shot('matchreport'),
-    overtime: shot('overtime'),
-    seasons: shot('seasons'),
-    tournaments: shot('tournaments'),
-    teams: shot('teams'),
-    archive: shot('archive'),
-    goalTimeline: shot('goallog'),
-    excelExport: shot('excelexport'),
-    personnel: shot('personnel'),
-    futsal: shot('futsal'),
-    officialRules: shot('rules'),
-    cloudSync: shot('cloudsync'),
-    teamstats: shot('teamstats'),
-    planner: shot('planner'),
-    dashboard: shot('dashboard'), // Home, Tilastot tab
-    friendlies: shot('newgame'),
-    voiceNotes: shot('voicenotes'),
-    // Pöytäkirja sheet: lineup with numbers and positions, result, goals with minutes
-    tasoReport: shot('poytakirja'),
+    timer: shot('timer'), // big match clock, Maali meille / Vastustaja +1, next sub
+    planner: shot('planner'), // Ottelusuunnittelu: minutes per player, colour-coded
+    poytakirja: shot('poytakirja'), // Pöytäkirja text with the Kopioi button
+    plan: shot('plan'), // one-game plan on the field
+    matchview: shot('matchview'), // match view with players in position
+    finish: shot('finish'), // Viimeistele ottelu
     attendance: shot('attendance'), // Ketkä ovat paikalla?
-    quickGoal: shot('quickgoal'), // Maali meille -> Kuka teki?
-    finish: shot('finish'), // Viimeistele ottelu, top with Pöytäkirja
+    nextMatch: shot('nextmatch'),
+    tacticalBoard: shot('tacticalboard'),
+    matchReport: shot('matchreport'),
+    positionBalance: shot('positionbalance'),
+    officialRules: shot('rules'),
+    futsal: shot('futsal'),
+    playerStats: shot('playerstats'),
   };
 };
+
+type FaqItem = { q: string; a: string };
+
+function PlayBadge({
+  placement,
+  locale,
+  alt,
+  className,
+  priority = false,
+}: {
+  placement: string;
+  locale: string;
+  alt: string;
+  className: string;
+  priority?: boolean;
+}) {
+  return (
+    <a
+      href={playStoreUrl(placement, locale)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-block hover:scale-105 transition-transform drop-shadow-lg"
+    >
+      <Image src={playBadge(locale)} alt={alt} width={646} height={250} className={className} priority={priority} />
+    </a>
+  );
+}
 
 export default function HomePage() {
   const { t } = useTranslation('common');
   const router = useRouter();
-  const screenshots = getScreenshots(router.locale);
-  const mobileCarouselRef = useRef<HTMLDivElement>(null);
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [lightbox, setLightbox] = useState<null | { src: string; alt: string }>(null);
+  const locale = router.locale === 'en' ? 'en' : 'fi';
+  const s = getScreenshots(locale);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const isEnglish = router.locale === 'en';
-
-  // Mobile carousel labels (5 items now)
-  const carouselLabels = isEnglish
-    ? ['Lineup', 'Timer', 'Stats', 'Tactics', 'Plan']
-    : ['Kenttä', 'Ajastin', 'Tilastot', 'Taktiikka', 'Suunnittele'];
 
   useEffect(() => {
-    const container = mobileCarouselRef.current;
-    if (!container || typeof IntersectionObserver === 'undefined') return;
-
-    const items = Array.from(container.children) as HTMLElement[];
-    if (items.length === 0) return;
-
-    // Track visibility ratios for all items
-    const visibilityMap = new Map<Element, number>();
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Update visibility map
-        entries.forEach((entry) => {
-          visibilityMap.set(entry.target, entry.intersectionRatio);
-        });
-
-        // Find the most visible item
-        let maxRatio = 0;
-        let maxIndex = -1;
-        items.forEach((item, index) => {
-          const ratio = visibilityMap.get(item) || 0;
-          if (ratio > maxRatio) {
-            maxRatio = ratio;
-            maxIndex = index;
-          }
-        });
-
-        // Only update if we have a clear winner (> 50% visible)
-        if (maxIndex >= 0 && maxRatio > 0.5) {
-          setActiveSlide(maxIndex);
-        }
-      },
-      { root: container, threshold: [0.5] }
-    );
-
-    items.forEach((el) => observer.observe(el));
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  const goTo = (index: number) => {
-    setActiveSlide(index); // Update immediately on click
-    const container = mobileCarouselRef.current;
-    if (!container) return;
-    const items = Array.from(container.children) as HTMLElement[];
-    const el = items[index];
-    if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
-  };
-
-  useEffect(() => {
-    if (!lightbox) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setLightbox(null);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [lightbox]);
-
-  // Back to top button visibility
-  useEffect(() => {
-    const onScroll = () => setShowBackToTop(window.scrollY > 500);
-    window.addEventListener('scroll', onScroll);
+    const onScroll = () => setShowBackToTop(window.scrollY > 800);
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  const faqItems = t('home.faq.items', { returnObjects: true }) as FaqItem[];
+  const playAlt = t('info.cta.googlePlayAlt');
+
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'MatchOps',
+      description: t('seo.home.description'),
+      url: absoluteUrl('/', locale),
+      image: ogImage(locale),
+      applicationCategory: 'SportsApplication',
+      operatingSystem: 'Android',
+      inLanguage: ['fi', 'en'],
+      downloadUrl: 'https://play.google.com/store/apps/details?id=com.matchops.local',
+      installUrl: 'https://play.google.com/store/apps/details?id=com.matchops.local',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+      author: { '@type': 'Person', name: 'Ville Pajala' },
+      publisher: { '@type': 'Organization', name: 'MatchOps', url: SITE_URL },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      inLanguage: locale,
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ];
+
+  const trust = ['free', 'noAds', 'eu', 'taso'] as const;
+
+  const steps = [
+    { key: 'plan', screenshot: s.plan, alt: 'plan' },
+    { key: 'rotate', screenshot: s.matchview, alt: 'matchview' },
+    { key: 'record', screenshot: s.poytakirja, alt: 'poytakirja' },
+  ] as const;
+
+  const spotlights = [
+    { key: 'taso', screenshot: s.finish, alt: 'finish' },
+    { key: 'planner', screenshot: s.planner, alt: 'planner' },
+    { key: 'attendance', screenshot: s.attendance, alt: 'attendance' },
+  ] as const;
+
+  const features = [
+    { key: 'tacticalBoard', screenshot: s.tacticalBoard },
+    { key: 'matchReport', screenshot: s.matchReport },
+    { key: 'positionBalance', screenshot: s.positionBalance },
+    { key: 'nextMatch', screenshot: s.nextMatch },
+    { key: 'officialRules', screenshot: s.officialRules },
+    { key: 'futsal', screenshot: s.futsal },
+    { key: 'stats', screenshot: s.playerStats, alt: 'playerStats' },
+  ];
+
+  const allFeatureGroups = [
+    { group: 'gameDay', items: ['quickGoal', 'goalTimeline', 'overtime', 'formations'] },
+    { group: 'afterGame', items: ['positions', 'excelExport', 'archive'] },
+    {
+      group: 'teamSeason',
+      items: ['roster', 'teams', 'personnel', 'seasons', 'tournaments', 'friendlies', 'cloudSync'],
+    },
+  ];
 
   return (
-    <Layout>
-      <Head>
-        <title>{t('seo.home.title')}</title>
-        <meta name="description" content={t('seo.home.description')} />
-        <meta property="og:title" content={t('seo.home.title')} />
-        <meta property="og:description" content={t('seo.home.description')} />
-        <meta property="og:url" content={`https://www.match-ops.com${router.locale === 'en' ? '/en' : ''}`} />
-        <meta property="og:image" content="https://www.match-ops.com/OG.png" />
-      </Head>
-
-      {/* ===== HERO SECTION ===== */}
-      <section className="section bg-slate-900 relative overflow-hidden">
-        {/* Ambient glow effects - subtle */}
+    <Layout title={t('seo.home.title')} description={t('seo.home.description')} jsonLd={jsonLd}>
+      {/* ===== HERO ===== */}
+      <section className="relative overflow-hidden bg-slate-900 pt-8 pb-14 md:pt-16 md:pb-20">
         <div className="hidden md:block">
           <GlowBg color="primary" position="top-right" size="md" blur={150} />
           <GlowBg color="amber" position="bottom-left" size="sm" blur={130} />
         </div>
-
         <div className="container-custom relative z-10">
-          <div className="max-w-5xl mx-auto text-center">
-            {/* Bold tagline */}
-            <p className="text-sm md:text-base text-slate-400 uppercase tracking-wider mb-3">
-              {t('marketing.cards.forCoaches')}
-            </p>
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
-              <span className="text-primary">MatchOps</span>
-            </h1>
-            <p className="text-xl md:text-2xl lg:text-3xl text-white mb-8">
-              {t('marketing.taglines.productLine')}
-            </p>
-            {/* ===== 5-PHONE SHOWCASE ===== */}
-            {/* Mobile: swipeable carousel */}
-            <div className="md:hidden -mx-4 relative">
-              <div
-                ref={mobileCarouselRef}
-                className="flex overflow-x-auto snap-x snap-mandatory snap-always px-0 py-8 no-scrollbar"
-                role="region"
-                aria-label={t('screenshots.aria.carousel')}
-              >
-                {[
-                  { src: screenshots.soccerfield, alt: 'Lineup view' },
-                  { src: screenshots.timer, alt: 'Timer view' },
-                  { src: screenshots.playerstats, alt: 'Stats view' },
-                  { src: screenshots.tacticalBoard, alt: 'Tactics view' },
-                  { src: screenshots.planner, alt: 'Planner view' },
-                ].map((screen, i) => (
-                  <div key={i} className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
-                    <div className="phone-frame phone-frame-full">
-                      <div className="phone-frame-screen">
-                        <Image
-                          src={screen.src}
-                          alt={screen.alt}
-                          width={1080}
-                          height={2340}
-                          sizes="(max-width: 768px) 50vw, 288px"
-                          className="w-auto h-auto max-h-[65vh] object-contain"
-                          priority={i < 2}
-                        />
-                      </div>
-                    </div>
-                  </div>
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12 max-w-6xl mx-auto">
+            <div className="text-center lg:text-left">
+              <p className="text-xs md:text-sm font-semibold text-primary uppercase tracking-wider mb-3">
+                {t('home.hero.eyebrow')}
+              </p>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.05] mb-4">
+                {t('home.hero.title')}
+              </h1>
+              <p className="text-lg md:text-xl text-slate-300 mb-6 max-w-xl mx-auto lg:mx-0">
+                {t('home.hero.subtitle')}
+              </p>
+              <div className="flex flex-col items-center lg:items-start gap-2 mb-6">
+                <PlayBadge
+                  placement="hero"
+                  locale={locale}
+                  alt={playAlt}
+                  className="w-48 md:w-56 h-auto"
+                  priority
+                />
+                <p className="text-sm text-slate-400">{t('home.hero.platform')}</p>
+              </div>
+              <ul className="flex flex-wrap justify-center lg:justify-start gap-x-4 gap-y-2 text-sm text-slate-200">
+                {trust.map((key) => (
+                  <li key={key} className="flex items-center gap-1.5">
+                    <FaCheck className="h-3 w-3 text-primary" aria-hidden="true" />
+                    {t(`home.hero.trust.${key}`)}
+                  </li>
                 ))}
-              </div>
-
-              {/* Carousel controls */}
-              <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-1 pointer-events-none">
-                <button
-                  type="button"
-                  aria-label={t('screenshots.aria.prev')}
-                  className="pointer-events-auto h-8 w-8 rounded-full bg-slate-900/60 border border-slate-700 text-white grid place-items-center shadow hover:bg-slate-800/70"
-                  onClick={() => goTo(Math.max(0, activeSlide - 1))}
-                >
-                  <span aria-hidden>‹</span>
-                </button>
-                <button
-                  type="button"
-                  aria-label={t('screenshots.aria.next')}
-                  className="pointer-events-auto h-8 w-8 rounded-full bg-slate-900/60 border border-slate-700 text-white grid place-items-center shadow hover:bg-slate-800/70"
-                  onClick={() => goTo(Math.min(4, activeSlide + 1))}
-                >
-                  <span aria-hidden>›</span>
-                </button>
-              </div>
-
-              {/* Pill navigation */}
-              <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
-                {carouselLabels.map((label, i) => (
-                  <button
-                    key={label}
-                    type="button"
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      activeSlide === i
-                        ? 'bg-primary text-slate-900'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
-                    onClick={() => goTo(i)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              </ul>
             </div>
 
-            {/* Desktop: 5-phone Arc layout */}
-            <div className="hidden md:block mt-12 relative">
-              <div className="relative flex items-center justify-center h-[500px]">
-                {/* Phone 1: Tactical Board - far left */}
+            {/* Phones: one on small screens, a fan of three on large ones */}
+            <div className="relative flex justify-center">
+              <div className="lg:hidden w-[240px] max-w-[70vw]">
+                <PhoneMockup screenshot={s.timer} alt={t('home.alt.timer')} size="2xl" priority />
+              </div>
+              <div className="hidden lg:block relative h-[600px] w-full">
                 <PhoneMockup
-                  screenshot={screenshots.tacticalBoard}
-                  size="md"
-                  style={{
-                    position: 'absolute',
-                    left: '8%',
-                    top: '48%',
-                    transform: 'translateY(-50%) rotate(-8deg)',
-                  }}
+                  screenshot={s.planner}
+                  alt={t('home.alt.planner')}
+                  size="xl"
+                  style={{ position: 'absolute', left: '2%', top: '50%', transform: 'translateY(-50%) rotate(-6deg)' }}
                   zIndex={1}
                 />
-                {/* Phone 2: Player Stats - left of center */}
                 <PhoneMockup
-                  screenshot={screenshots.playerstats}
-                  size="lg"
-                  style={{
-                    position: 'absolute',
-                    left: '22%',
-                    top: '48%',
-                    transform: 'translateY(-45%) rotate(-4deg)',
-                  }}
-                  zIndex={2}
-                />
-                {/* Phone 3: Soccer Field - CENTER (hero) */}
-                <PhoneMockup
-                  screenshot={screenshots.soccerfield}
+                  screenshot={s.poytakirja}
+                  alt={t('home.alt.poytakirja')}
                   size="xl"
-                  style={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: '48%',
-                    transform: 'translate(-50%, -45%)',
-                  }}
+                  style={{ position: 'absolute', right: '2%', top: '50%', transform: 'translateY(-50%) rotate(6deg)' }}
+                  zIndex={1}
+                />
+                <PhoneMockup
+                  screenshot={s.timer}
+                  alt={t('home.alt.timer')}
+                  size="2xl"
+                  style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
                   zIndex={10}
                   priority
                 />
-                {/* Phone 4: Timer - right of center */}
-                <PhoneMockup
-                  screenshot={screenshots.timer}
-                  size="lg"
-                  style={{
-                    position: 'absolute',
-                    right: '22%',
-                    top: '48%',
-                    transform: 'translateY(-45%) rotate(4deg)',
-                  }}
-                  zIndex={2}
-                />
-                {/* Phone 5: Planner - far right */}
-                <PhoneMockup
-                  screenshot={screenshots.planner}
-                  size="md"
-                  style={{
-                    position: 'absolute',
-                    right: '8%',
-                    top: '48%',
-                    transform: 'translateY(-50%) rotate(8deg)',
-                  }}
-                  zIndex={1}
-                />
               </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ===== COMPACT CTA (near hero) ===== */}
-      <section className="py-8 md:py-10 bg-slate-900 border-t border-slate-800">
-        <div className="container-custom">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <p className="text-slate-300 text-sm md:text-base">
-              {t('info.cta.subtitle')}
-            </p>
-            <div className="flex flex-col items-center gap-3">
-              <a
-                href={PLAY_STORE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block hover:scale-105 transition-transform drop-shadow-lg"
-              >
-                <Image
-                  src="/badges/GetItOnGooglePlay_Badge_Web_color_English.png"
-                  alt={t('info.cta.googlePlayAlt')}
-                  width={478}
-                  height={142}
-                  className="w-44 md:w-52 h-auto"
-                />
-              </a>
-              <a href="mailto:hello@match-ops.com" className="text-slate-400 text-sm hover:text-primary transition-colors">hello@match-ops.com</a>
             </div>
           </div>
         </div>
@@ -347,165 +225,97 @@ export default function HomePage() {
       <section className="section section-divider bg-slate-800/50">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
-              {t('info.whatIsThis.title')}
-            </h2>
-            <ul className="flex flex-wrap justify-center gap-2 mb-6">
-              {(['plan', 'clock', 'events', 'stats', 'free'] as const).map((point) => (
-                <li
-                  key={point}
-                  className="px-3 py-1.5 rounded-full text-sm font-medium bg-slate-800 text-slate-200"
-                >
-                  {t(`marketing.productPoints.${point}`)}
-                </li>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 text-center">{t('home.steps.title')}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
+              {steps.map((step, i) => (
+                <div key={step.key} className="text-center">
+                  <div className="flex justify-center mb-5 max-w-[170px] md:max-w-none mx-auto">
+                    <PhoneMockup screenshot={step.screenshot} alt={t(`home.alt.${step.alt}`)} size="2xl" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-primary mb-2">
+                    <span className="text-slate-500 mr-2">{i + 1}.</span>
+                    {t(`home.steps.${step.key}.title`)}
+                  </h3>
+                  <p className="text-slate-300 max-w-sm mx-auto">{t(`home.steps.${step.key}.desc`)}</p>
+                </div>
               ))}
-            </ul>
-            <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
-              {t('info.whatIsThis.description')}
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* PLAN */}
-              <div className="text-center">
-                <div className="flex justify-center mb-4 max-w-[160px] md:max-w-none mx-auto">
-                  <PhoneMockup screenshot={screenshots.soccerfield} size="2xl" />
-                </div>
-                <h3 className="text-xl font-bold text-primary mb-2">
-                  {t('marketing.howItWorks.plan.title')}
-                </h3>
-                <p className="text-slate-300">
-                  {t('marketing.howItWorks.plan.desc')}
-                </p>
-              </div>
-              {/* TRACK */}
-              <div className="text-center">
-                <div className="flex justify-center mb-4 max-w-[160px] md:max-w-none mx-auto">
-                  <PhoneMockup screenshot={screenshots.timer} size="2xl" />
-                </div>
-                <h3 className="text-xl font-bold text-primary mb-2">
-                  {t('marketing.howItWorks.play.title')}
-                </h3>
-                <p className="text-slate-300">
-                  {t('marketing.howItWorks.play.desc')}
-                </p>
-              </div>
-              {/* DISCOVER / OIVALLA */}
-              <div className="text-center">
-                <div className="flex justify-center mb-4 max-w-[160px] md:max-w-none mx-auto">
-                  <PhoneMockup screenshot={screenshots.teamstats} size="2xl" />
-                </div>
-                <h3 className="text-xl font-bold text-primary mb-2">
-                  {t('marketing.howItWorks.record.title')}
-                </h3>
-                <p className="text-slate-300">
-                  {t('marketing.howItWorks.record.desc')}
-                </p>
-              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ===== FLAGSHIP SPOTLIGHTS ===== */}
+      {/* ===== VIDEO ===== */}
       <section className="section section-divider bg-slate-900">
         <div className="container-custom">
+          <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-10 md:gap-16">
+            <div className="md:w-1/2 text-center md:text-left">
+              <div className="text-primary text-sm font-semibold uppercase tracking-wider mb-2">
+                {t('home.video.eyebrow')}
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{t('home.video.title')}</h2>
+              <p className="text-slate-300 text-lg mb-6">{t('home.video.desc')}</p>
+              <ul className="space-y-3 text-slate-300">
+                <li>
+                  <a
+                    href={`https://www.youtube.com/shorts/${youtubeId('matchDay', locale)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:text-primary-light underline underline-offset-4"
+                  >
+                    {t('home.video.matchDay')}
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={YOUTUBE_CHANNEL_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-slate-200 hover:text-primary"
+                  >
+                    <FaYoutube className="h-5 w-5 text-red-500" aria-hidden="true" />
+                    {t('home.video.channel')}
+                  </a>
+                </li>
+              </ul>
+              <p className="text-xs text-slate-500 mt-6">{t('home.video.privacy')}</p>
+            </div>
+            <div className="md:w-1/2 flex justify-center w-full">
+              <VideoFacade
+                videoId={youtubeId('hero', locale)}
+                title={t('home.video.heroTitle')}
+                poster={s.nextMatch}
+                playLabel={t('home.video.play')}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== SPOTLIGHTS: Taso, tournament day, absences ===== */}
+      <section className="section section-divider bg-slate-800/40">
+        <div className="container-custom">
           <div className="max-w-6xl mx-auto space-y-16 md:space-y-24">
-            {[
-              { key: 'planner', screenshot: screenshots.planner },
-              { key: 'attendance', screenshot: screenshots.attendance },
-              { key: 'finish', screenshot: screenshots.finish },
-              { key: 'positionBalance', screenshot: screenshots.positionBalance },
-              { key: 'nextMatch', screenshot: screenshots.nextMatch },
-            ].map((s, i) => (
+            {spotlights.map((spot, i) => (
               <div
-                key={s.key}
+                key={spot.key}
+                id={spot.key === 'taso' ? 'taso' : undefined}
                 className={`flex flex-col items-center gap-8 md:gap-16 ${
                   i % 2 === 1 ? 'md:flex-row-reverse' : 'md:flex-row'
                 }`}
               >
                 <div className="md:w-1/2 text-center md:text-left">
                   <div className="text-primary text-sm font-semibold uppercase tracking-wider mb-2">
-                    {t(`marketing.spotlights.${s.key}.eyebrow`)}
+                    {t(`home.spotlights.${spot.key}.eyebrow`)}
                   </div>
-                  <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">
-                    {t(`marketing.spotlights.${s.key}.title`)}
+                  <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                    {t(`home.spotlights.${spot.key}.title`)}
                   </h2>
                   <p className="text-slate-300 text-base md:text-lg leading-relaxed">
-                    {t(`marketing.spotlights.${s.key}.desc`)}
+                    {t(`home.spotlights.${spot.key}.desc`)}
                   </p>
                 </div>
-                {s.screenshot && (
-                  <div className="md:w-1/2 flex justify-center">
-                    <PhoneMockup screenshot={s.screenshot} size="3xl" zIndex={10} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== FEATURE BANDS (grouped, replaces the old flat card list) ===== */}
-      <section className="section section-divider bg-slate-800/40">
-        <div className="container-custom">
-          <div className="max-w-6xl mx-auto space-y-16">
-            {[
-              { band: 'gameDay', cards: [
-                { key: 'quickGoal', screenshot: screenshots.quickGoal },
-                { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
-                { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
-                { key: 'voiceNotes', screenshot: screenshots.voiceNotes },
-                { key: 'overtime', screenshot: screenshots.overtime },
-                { key: 'formations', screenshot: screenshots.formations },
-              ] },
-              { band: 'development', cards: [
-                { key: 'tasoReport', screenshot: screenshots.tasoReport },
-                { key: 'matchReport', screenshot: screenshots.matchReport },
-                { key: 'positions', screenshot: screenshots.positions },
-              ] },
-              { band: 'club', cards: [
-                { key: 'roster', screenshot: screenshots.roster },
-                { key: 'teams', screenshot: screenshots.teams },
-                { key: 'personnel', screenshot: screenshots.personnel },
-                { key: 'seasons', screenshot: screenshots.seasons },
-                { key: 'tournaments', screenshot: screenshots.tournaments },
-                { key: 'friendlies', screenshot: screenshots.friendlies },
-                { key: 'futsal', screenshot: screenshots.futsal },
-              ] },
-              { band: 'statsSharing', cards: [
-                { key: 'dashboard', screenshot: screenshots.dashboard },
-                { key: 'excelExport', screenshot: screenshots.excelExport },
-                { key: 'archive', screenshot: screenshots.archive },
-                { key: 'cloudSync', screenshot: screenshots.cloudSync },
-                { key: 'officialRules', screenshot: screenshots.officialRules },
-              ] },
-            ].map((group) => (
-              <div key={group.band}>
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
-                  {t(`marketing.bands.${group.band}`)}
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-                  {group.cards.map((card) => (
-                    <div
-                      key={card.key}
-                      className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-5 md:p-6 border border-slate-700/40 flex flex-col items-center text-center"
-                    >
-                      {/* A card whose screenshot has not been taken yet renders
-                          text-only rather than an empty phone frame or, worse,
-                          a picture of some other screen. Drop the image into
-                          getScreenshots() and the mockup appears. */}
-                      {card.screenshot && (
-                        <div className="flex justify-center mb-4">
-                          <PhoneMockup screenshot={card.screenshot} size="xl" zIndex={10} />
-                        </div>
-                      )}
-                      <h3 className="text-white text-lg font-bold mb-2">
-                        {t(`marketing.featureCards.${card.key}`)}
-                      </h3>
-                      <p className="text-gray-400 text-sm">
-                        {t(`marketing.featureCards.${card.key}Desc`)}
-                      </p>
-                    </div>
-                  ))}
+                <div className="md:w-1/2 flex justify-center max-w-[230px] md:max-w-none">
+                  <PhoneMockup screenshot={spot.screenshot} alt={t(`home.alt.${spot.alt}`)} size="3xl" zIndex={10} />
                 </div>
               </div>
             ))}
@@ -513,118 +323,141 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== TECH STATS (hidden — not relevant to coaches) ===== */}
-      <section className="section section-divider bg-slate-800/50 hidden">
+      {/* ===== KEY FEATURES + ALL FEATURES ===== */}
+      <section className="section section-divider bg-slate-900">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
-              {isEnglish ? 'Built Different' : 'Rakennettu eri tavalla'}
-            </h2>
-            <p className="text-slate-400 text-center mb-10 max-w-2xl mx-auto">
-              {isEnglish
-                ? 'Enterprise-grade quality with 7,700+ automated tests.'
-                : 'Yritystason laatu ja yli 7 700 automaattista testiä.'}
-            </p>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-              {[
-                { key: 'testCoverage', icon: '✓' },
-                { key: 'techStack', icon: '⚡' },
-                { key: 'architecture', icon: '🏗️' },
-                { key: 'codeQuality', icon: '💎' },
-                { key: 'cicd', icon: '🔄' },
-                { key: 'linesOfCode', icon: '📊' },
-              ].map((card) => (
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 text-center">{t('home.features.title')}</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              {features.map((f) => (
                 <div
-                  key={card.key}
-                  className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-4 md:p-6 text-center border border-slate-700/50"
+                  key={f.key}
+                  className="bg-gradient-to-br from-slate-800/80 to-slate-900 rounded-lg p-4 md:p-5 border border-slate-700/40 flex flex-row lg:flex-col items-center gap-4 text-left lg:text-center"
                 >
-                  <div className="text-2xl md:text-3xl mb-2">{card.icon}</div>
-                  <h3 className="text-white text-sm md:text-lg font-bold mb-1">
-                    {t(`marketing.techCards.${card.key}`)}
-                  </h3>
-                  <p className="text-gray-400 text-xs md:text-sm">
-                    {t(`marketing.techCards.${card.key}Desc`)}
-                  </p>
+                  <div className="flex-shrink-0 w-[96px] lg:w-[160px]">
+                    <PhoneMockup
+                      screenshot={f.screenshot}
+                      alt={t(`home.alt.${f.alt ?? f.key}`)}
+                      size="lg"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="text-white text-lg font-bold mb-1">{t(`home.features.${f.key}.title`)}</h3>
+                    <p className="text-slate-400 text-sm">{t(`home.features.${f.key}.desc`)}</p>
+                  </div>
                 </div>
               ))}
+            </div>
+
+            <details className="group mt-10 rounded-lg border border-slate-700/50 bg-slate-800/40">
+              <summary className="flex cursor-pointer list-none items-center justify-center gap-2 px-4 py-4 text-primary font-semibold [&::-webkit-details-marker]:hidden">
+                {t('home.allFeatures.summary')}
+                <FaChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" aria-hidden="true" />
+              </summary>
+              <div className="grid gap-8 px-5 pb-6 md:grid-cols-3">
+                {allFeatureGroups.map((g) => (
+                  <div key={g.group}>
+                    <h3 className="text-lg font-bold text-white mb-3">{t(`home.allFeatures.groups.${g.group}`)}</h3>
+                    <ul className="space-y-3">
+                      {g.items.map((item) => (
+                        <li key={item}>
+                          <div className="text-slate-100 font-semibold">
+                            {t(`home.allFeatures.items.${item}.title`)}
+                          </div>
+                          <p className="text-slate-400 text-sm">{t(`home.allFeatures.items.${item}.desc`)}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <p className="px-5 pb-6 text-center">
+                <Link href="/guide" className="text-primary hover:text-primary-light underline underline-offset-4">
+                  {t('home.allFeatures.guideLink')}
+                </Link>
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== KIDS' DATA ===== */}
+      <section className="section section-divider bg-slate-800/50">
+        <div className="container-custom">
+          <div className="max-w-4xl mx-auto">
+            <div>
+              <div className="text-primary text-sm font-semibold uppercase tracking-wider mb-2">
+                {t('home.kids.eyebrow')}
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">{t('home.kids.title')}</h2>
+              <dl className="grid gap-5 sm:grid-cols-2">
+                {(['what', 'where', 'who', 'delete'] as const).map((key) => (
+                  <div key={key}>
+                    <dt className="text-white font-semibold mb-1">{t(`home.kids.items.${key}.title`)}</dt>
+                    <dd className="text-slate-300 text-sm">{t(`home.kids.items.${key}.desc`)}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-6 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-slate-200">
+                {t('home.kids.notice')}
+              </p>
+              <p className="mt-4 text-sm">
+                <Link href="/privacy" className="text-primary hover:text-primary-light underline underline-offset-4">
+                  {t('home.kids.privacyLink')}
+                </Link>
+              </p>
             </div>
           </div>
         </div>
       </section>
 
+      {/* ===== FAQ ===== */}
+      <section id="faq" className="section section-divider bg-slate-900 scroll-mt-4">
+        <div className="container-custom">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center">{t('home.faq.title')}</h2>
+            <div className="divide-y divide-slate-700/60 rounded-lg border border-slate-700/60 bg-slate-800/40">
+              {faqItems.map((item) => (
+                <details key={item.q} className="group px-5">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-white font-semibold [&::-webkit-details-marker]:hidden">
+                    {item.q}
+                    <FaChevronDown
+                      className="h-3 w-3 flex-shrink-0 text-primary transition-transform group-open:rotate-180"
+                      aria-hidden="true"
+                    />
+                  </summary>
+                  <p className="pb-4 text-slate-300">{item.a}</p>
+                </details>
+              ))}
+            </div>
+            <p className="mt-6 text-center">
+              <Link href="/guide/faq" className="text-primary hover:text-primary-light underline underline-offset-4">
+                {t('home.faq.more')}
+              </Link>
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ===== CTA ===== */}
-      <section className="section section-divider bg-slate-900 relative overflow-hidden">
+      <section className="section section-divider bg-slate-800/50 relative overflow-hidden">
         <div className="hidden md:block">
           <GlowBg color="primary" position="center" size="sm" blur={160} />
         </div>
         <div className="container-custom relative z-10">
           <div className="max-w-2xl mx-auto text-center">
-            <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              {t('info.cta.title')}
-            </h3>
-            <a
-              href={PLAY_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mb-6 hover:scale-105 transition-transform drop-shadow-xl"
-            >
-              <Image
-                src="/badges/GetItOnGooglePlay_Badge_Web_color_English.png"
-                alt={t('info.cta.googlePlayAlt')}
-                width={478}
-                height={142}
-                className="mx-auto w-52 md:w-64 h-auto"
-              />
-            </a>
-            <p className="text-slate-300 mb-6">
-              {t('info.cta.subtitle')}
-            </p>
-            <a href="mailto:hello@match-ops.com" className="text-slate-400 text-lg hover:text-primary transition-colors">hello@match-ops.com</a>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">{t('home.cta.title')}</h2>
+            <p className="text-slate-300 mb-6">{t('home.cta.subtitle')}</p>
+            <PlayBadge placement="final_cta" locale={locale} alt={playAlt} className="mx-auto w-56 md:w-64 h-auto" />
           </div>
         </div>
       </section>
 
-      {/* Lightbox Modal */}
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setLightbox(null)}
-        >
-          <div className="relative max-w-screen-lg w-full" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="absolute -top-3 -right-3 h-10 w-10 rounded-full bg-slate-900 border border-slate-700 text-white shadow hover:bg-slate-800"
-              onClick={() => setLightbox(null)}
-            >
-              ×
-            </button>
-            <button
-              type="button"
-              onClick={() => setLightbox(null)}
-              className="max-h-[85vh] w-full overflow-hidden rounded-lg border border-slate-700 bg-slate-900/40 cursor-zoom-out"
-            >
-              <Image
-                src={lightbox.src}
-                alt={lightbox.alt}
-                width={1024}
-                height={1536}
-                sizes="(min-width: 1024px) 70vw, 90vw"
-                className="block mx-auto h-auto w-auto max-w-full max-h-[85vh]"
-              />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Back to top button */}
       {showBackToTop && (
         <button
           type="button"
-          onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-primary text-slate-900 shadow-lg hover:bg-amber-400 transition-all"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-4 right-4 z-50 p-3 rounded-full bg-primary/90 text-slate-900 shadow-lg hover:bg-amber-400 transition-all"
           aria-label={t('nav.backToTop')}
         >
           <FaArrowUp />
@@ -637,7 +470,7 @@ export default function HomePage() {
 export const getStaticProps: GetStaticProps = async ({ locale }) => {
   return {
     props: {
-      ...(await serverSideTranslations(locale || 'en', ['common'])),
+      ...(await serverSideTranslations(locale || 'fi', ['common'])),
     },
   };
 };

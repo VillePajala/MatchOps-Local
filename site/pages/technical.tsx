@@ -1,23 +1,13 @@
 import Layout from '@/components/Layout';
-import Head from 'next/head';
-import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
 
 export default function TechnicalPage() {
   const { t } = useTranslation('common');
-  const router = useRouter();
 
   return (
-    <Layout>
-      <Head>
-        <title>{t('seo.technical.title')}</title>
-        <meta name="description" content={t('seo.technical.description')} />
-        <meta property="og:title" content={t('seo.technical.title')} />
-        <meta property="og:description" content={t('seo.technical.description')} />
-        <meta property="og:url" content={`https://www.match-ops.com${router.locale === 'en' ? '/en' : ''}/technical`} />
-      </Head>
+    <Layout title={t('seo.technical.title')} description={t('seo.technical.description')}>
 
       {/* Hero */}
       <section className="section bg-slate-900">

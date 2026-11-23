@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Head from 'next/head';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
@@ -28,11 +27,7 @@ export default function GuideLanding() {
   };
 
   return (
-    <Layout>
-      <Head>
-        <title>{t('landing.title')} - MatchOps</title>
-        <meta name="description" content={t('landing.subtitle')} />
-      </Head>
+    <Layout title={`${t('landing.title')} - MatchOps`} description={t('landing.subtitle')}>
 
       <div className="min-h-screen bg-slate-900">
         {/* Hero Section */}

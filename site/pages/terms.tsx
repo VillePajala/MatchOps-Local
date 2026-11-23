@@ -1,24 +1,14 @@
 import Layout from '@/components/Layout';
-import Head from 'next/head';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
 
 export default function TermsOfServicePage() {
   const { t } = useTranslation('common');
-  const router = useRouter();
 
   return (
-    <Layout>
-      <Head>
-        <title>{t('seo.terms.title')}</title>
-        <meta name="description" content={t('seo.terms.description')} />
-        <meta property="og:title" content={t('seo.terms.title')} />
-        <meta property="og:description" content={t('seo.terms.description')} />
-        <meta property="og:url" content={`https://www.match-ops.com${router.locale === 'en' ? '/en' : ''}/terms`} />
-      </Head>
+    <Layout title={t('seo.terms.title')} description={t('seo.terms.description')}>
 
       <div className="section bg-slate-900">
         <div className="container-custom">
@@ -194,15 +184,8 @@ export default function TermsOfServicePage() {
 
             <section className="mb-8">
               <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.premiumSubscription.title')}</h2>
-              <p className="text-slate-300 mb-3">{t('termsOfService.premiumSubscription.intro')}</p>
-              <ul className="list-disc list-inside text-slate-300 space-y-1 mb-3">
-                <li>{t('termsOfService.premiumSubscription.features.cloudSync')}</li>
-                <li>{t('termsOfService.premiumSubscription.features.unlimitedEntities')}</li>
-                <li>{t('termsOfService.premiumSubscription.features.prioritySupport')}</li>
-              </ul>
-              <p className="text-slate-300 mb-2">{t('termsOfService.premiumSubscription.billing')}</p>
-              <p className="text-slate-300 mb-2">{t('termsOfService.premiumSubscription.cancellation')}</p>
-              <p className="text-slate-300">{t('termsOfService.premiumSubscription.dataAfterCancel')}</p>
+              {/* The app is free (2026-11): one statement, no subscription terms. */}
+              <p className="text-slate-300">{t('termsOfService.premiumSubscription.intro')}</p>
             </section>
 
             <section className="mb-8">

@@ -7,9 +7,9 @@
   },
   "groups": {
     "getting-started": "Aloitus",
-    "setup": "Datan valmistelu",
+    "setup": "Valmistelut",
     "game-day": "Ottelupäivä",
-    "review": "Katsaus ja data"
+    "review": "Tilastot, tiedot ja apu"
   },
   "search": {
     "placeholder": "Hae oppaasta...",
@@ -29,31 +29,31 @@
   },
   "landing": {
     "title": "Käyttöopas",
-    "subtitle": "Kaikki mitä tarvitset MatchOpsin käyttöön",
-    "structureIntro": "Valitse aloituspisteesi",
-    "structureExplanation": "Pikaopas vie tilin luonnista ensimmäisiin askeliin. Suositeltu työnkulku opastaa sarjojen, turnausten ja joukkueiden valmisteluun. Viiteoppaat kattavat yksittäiset ominaisuudet.",
+    "subtitle": "Kaikki, mitä tarvitset MatchOpsin käyttöön",
+    "structureIntro": "Mistä aloitat?",
+    "structureExplanation": "Pikaopas vie tilin luonnista ensimmäiseen suunnitelmaan. Koko näkymän käyttöönotto neuvoo, miten pelaajat, sarjat, turnaukset ja joukkueet laitetaan kuntoon. Muut ohjeet käyvät läpi yhden aiheen kerrallaan.",
     "mainPaths": "Aloita tästä",
-    "referenceGuides": "Viiteoppaat",
-    "quickStart": "Uusi MatchOpsissa?",
-    "startButton": "Aloita Aloitus-oppaasta"
+    "referenceGuides": "Ohjeet aiheittain",
+    "quickStart": "Uusi MatchOpsin käyttäjä?",
+    "startButton": "Aloita Pikaoppaasta"
   },
   "lastUpdated": "Päivitetty: {{date}}",
-  "readingTime": "{{minutes}} min lukuaika",
+  "readingTime": "Lukuaika {{minutes}} min",
   "sections": {
     "getting-started": {
       "title": "Pikaopas",
       "description": "Ilmainen tili, joukkue ja ensimmäiset askeleet"
     },
     "full-setup-path": {
-      "title": "Suositeltu työnkulku",
+      "title": "Koko näkymän käyttöönotto",
       "description": "Pelaajat, taustahenkilöt, sarjat, turnaukset ja joukkueet"
     },
     "roster-management": {
-      "title": "Kokoonpanon hallinta",
-      "description": "Lisää, muokkaa ja arkistoi pelaajia; pelaaja-arviot"
+      "title": "Pelaajat",
+      "description": "Lisää, muokkaa ja arkistoi pelaajia"
     },
     "teams-organization": {
-      "title": "Joukkueet ja organisointi",
+      "title": "Joukkueet, sarjat ja turnaukset",
       "description": "Joukkueet, sarjat, turnaukset ja taustahenkilöt"
     },
     "game-day-workflow": {
@@ -69,7 +69,7 @@
       "description": "Ottelunäkymä, kello, Maali meille ja seuraava vaihto"
     },
     "tactics-board": {
-      "title": "Taktinen piirtotaulu",
+      "title": "Taktiikkataulu",
       "description": "Piirrä pelikuvioita ja erikoistilanteita"
     },
     "after-the-game": {
@@ -81,7 +81,7 @@
       "description": "Ottelu-, sarja-, turnaus- ja pelaajatilastot"
     },
     "data-management": {
-      "title": "Datan hallinta",
+      "title": "Tili ja tiedot",
       "description": "Tili, synkronointi, varmuuskopiot ja asetukset"
     },
     "troubleshooting": {
@@ -89,8 +89,8 @@
       "description": "Yleiset ongelmat ja ratkaisut"
     },
     "tips-best-practices": {
-      "title": "Vinkit ja parhaat käytännöt",
-      "description": "Hyödynnä MatchOps parhaiten"
+      "title": "Vinkit ja hyvät käytännöt",
+      "description": "Näin saat MatchOpsista eniten irti"
     },
     "faq": {
       "title": "Usein kysytyt kysymykset",
