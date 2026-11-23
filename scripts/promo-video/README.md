@@ -60,7 +60,7 @@ Only a licensed track goes into a published render. A stock-site preview is for 
 ## Writing a new scene
 
 1. Pick or add a seed state in `lib/seeds.mjs` (everything is a full IndexedDB payload; positions, events, clock, `isPlayed` are all just fields on the game).
-2. In a scene file, call `rec.scene(name, state, { inMatch, startCur }, async (h) => { ... })`. Use `h.tap(locator)`, `h.tapAt(x, y)` for canvas targets such as a pitch position, `h.glide`, `h.orbit`, `h.pickFromSelect('#scorerSelect', playerId)`, `h.scrollToHeading('Maaliloki')`, `h.scrollToId('positions-editor')`, `h.scrollPanelTop(sel)`, `h.hold(ms)`, and `h.mark(id)` where each captioned clip starts. Re-run `h.arm()` after any screen change.
+2. In a scene file, call `rec.scene(name, state, { inMatch, startCur }, async (h) => { ... })`. Use `h.tap(locator)`, `h.tapAt(x, y)` for canvas targets such as a pitch position, `h.glide`, `h.orbit`, `h.pickFromSelect('#scorerSelect', playerId)`, `h.scrollToHeading('Ottelutapahtumat')`, `h.scrollToId('positions-editor')`, `h.scrollPanelTop(sel)`, `h.hold(ms)`, and `h.mark(id)` where each captioned clip starts. Re-run `h.arm()` after any screen change.
 3. Put the caption for each id in the CAPTIONS map; an id without a caption becomes an uncaptioned transition clip. A caption may be `{ text, pos: 'top' }` to sit over the modal header instead of the bottom third; use it whenever the cursor works in the lower half (forms), so the band never hides the action.
 4. One recording per continuous clock: never let a clip boundary reset the timer (it reads as pause/play).
 

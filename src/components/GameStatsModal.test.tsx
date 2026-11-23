@@ -396,7 +396,7 @@ describe('GameStatsModal', () => {
     await act(async () => {
       renderComponent(getDefaultProps());
     });
-    const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Goal Log') });
+    const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Match events') });
     const goalLogContainer = goalLogSection.parentElement as HTMLElement;
 
     // Check for the first goal (Alice from Bob)
@@ -430,7 +430,7 @@ describe('GameStatsModal', () => {
       renderComponent(mockProps);
     });
 
-    const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Goal Log') });
+    const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Match events') });
     const goalLogContainer = goalLogSection.parentElement as HTMLElement;
 
     const firstGoalCard = within(goalLogContainer).getByText('02:00').closest('div.p-3');
@@ -476,7 +476,7 @@ describe('GameStatsModal', () => {
       renderComponent(mockProps);
     });
 
-    const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Goal Log') });
+    const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Match events') });
     const goalLogContainer = goalLogSection.parentElement as HTMLElement;
 
     const firstGoalCard = within(goalLogContainer).getByText('02:00').closest('div.p-3');
@@ -521,7 +521,7 @@ describe('GameStatsModal', () => {
       renderComponent(mockProps);
     });
 
-    const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Goal Log') });
+    const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Match events') });
     const goalLogContainer = goalLogSection.parentElement as HTMLElement;
 
     const firstGoalCard = within(goalLogContainer).getByText('02:00').closest('div.p-3');
@@ -594,7 +594,7 @@ describe('GameStatsModal', () => {
     });
 
     // Find the goal log section
-    const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Goal Log') });
+    const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Match events') });
     const goalLogContainer = goalLogSection.parentElement as HTMLElement;
 
     // Find the first goal card

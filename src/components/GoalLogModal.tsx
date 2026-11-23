@@ -402,7 +402,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   return (
     // A tall bottom sheet over the dimmed match: a strip of the game stays in
     // view above it, so the coach can see they are still in the match.
-    <div className={`fixed inset-0 ${Z_LAYER.modal} bg-[rgb(2_6_23/0.72)]`} role="dialog" aria-modal="true" aria-label={t('goalLog.title', 'Goal Log')}>
+    <div className={`fixed inset-0 ${Z_LAYER.modal} bg-[rgb(2_6_23/0.72)]`} role="dialog" aria-modal="true" aria-label={t('goalLog.title', 'Match events')}>
       <div className="absolute inset-x-0 bottom-0 top-16 flex flex-col overflow-hidden rounded-t-[28px] font-ui text-ink bg-[linear-gradient(180deg,#1c2740,#141d31)] shadow-[inset_0_1px_0_rgb(255_255_255/0.09),0_-20px_40px_-12px_rgb(2_6_23/0.8)]">
         {/* Grab handle (decorative) */}
         <div className="flex-shrink-0 w-10 h-[5px] rounded-full bg-white/[0.22] mx-auto mt-2.5 mb-3" aria-hidden="true" />
