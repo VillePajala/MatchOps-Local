@@ -4273,6 +4273,7 @@
     "nextTheme": "Next theme",
     "themeOf": "Theme {{n}}/{{total}}",
     "themes": {
+      "menuItem": "Match themes",
       "sectionTitle": "Playbook themes",
       "choose": "Choose a theme",
       "chooseMany": "Choose themes",

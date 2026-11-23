@@ -2729,6 +2729,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onQuickSave: persistence.handleQuickSaveGame,
     onOpenGameSettingsModal: () => setIsGameSettingsModalOpen(true),
     isGameLoaded: Boolean(currentGameId && currentGameId !== DEFAULT_GAME_ID),
+    // Playbook "Match themes" (ControlBar shows it to flagged accounts only).
+    themesGameId: currentGameId && currentGameId !== DEFAULT_GAME_ID ? currentGameId : undefined,
     onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
     finishProgress,
     // W10: quick planner access from the match (host planner over the pitch).

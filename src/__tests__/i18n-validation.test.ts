@@ -759,7 +759,8 @@ describe('Translation File Validation', () => {
       // +1 playbook.focusMode (Playbook focus mode button). 3701.
       // +21 Playbook game themes: playbook.nextTheme/themeOf + 19 playbook.themes.*. 3722.
       // +18 playbook.previousTheme + 17 playbook.code.* (club code sheet). 3740.
-      expect(enKeys.length).toBe(3740);
+      // +1 playbook.themes.menuItem (match menu "Match themes"). 3741.
+      expect(enKeys.length).toBe(3741);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -979,7 +980,7 @@ describe('Translation File Validation', () => {
       // +1 Playbook focus mode. 3701.
       // +21 Playbook game themes (see EN). 3722.
       // +18 club code sheet (see EN). 3740.
-      expect(fiKeys.length).toBe(3740);
+      expect(fiKeys.length).toBe(3741);
     });
   });
 });

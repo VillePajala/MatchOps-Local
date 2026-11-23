@@ -1915,6 +1915,7 @@ export type TranslationKey =
   | 'playbook.themes.done'
   | 'playbook.themes.edit'
   | 'playbook.themes.formEmpty'
+  | 'playbook.themes.menuItem'
   | 'playbook.themes.noneChosen'
   | 'playbook.themes.pickTitle'
   | 'playbook.themes.preview'
