@@ -34,7 +34,6 @@ const getScreenshots = (locale: string | undefined) => {
     finish: shot('finish'), // Viimeistele ottelu
     attendance: shot('attendance'), // Ketkä ovat paikalla?
     nextMatch: shot('nextmatch'),
-    voiceNotes: shot('voicenotes'),
     tacticalBoard: shot('tacticalboard'),
     matchReport: shot('matchreport'),
     positionBalance: shot('positionbalance'),
@@ -131,7 +130,6 @@ export default function HomePage() {
   ] as const;
 
   const features = [
-    { key: 'voiceNotes', screenshot: s.voiceNotes },
     { key: 'tacticalBoard', screenshot: s.tacticalBoard },
     { key: 'matchReport', screenshot: s.matchReport },
     { key: 'positionBalance', screenshot: s.positionBalance },
