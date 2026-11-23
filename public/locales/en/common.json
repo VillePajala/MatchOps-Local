@@ -693,8 +693,7 @@
     "filters": "Filters",
     "filtersApply": "Apply",
     "filtersClear": "Clear",
-    "openInMaps": "Open in Maps",
-    "spineNotesEmptyTyped": "Nothing noted from this match yet. Write one above."
+    "openInMaps": "Open in Maps"
   },
   "importResults": {
     "title": "Import Results",
@@ -2705,7 +2704,7 @@
     "footer": "This privacy policy applies to the MatchOps application available on Google Play Store.",
     "voiceNotesAndAi": {
       "title": "Voice Notes and Optional AI",
-      "intro": "An experimental feature that is currently hidden and not in normal use. When it is on, MatchOps can record short voice notes during a game. This is how they are handled:",
+      "intro": "MatchOps can record short voice notes during a game. You listen to a recording and write the note yourself. This is how they are handled:",
       "items": {
         "onDevice": "Recordings are stored only on your device. They are never uploaded to MatchOps servers, never synced between devices, and never included in backups or exports.",
         "deleted": "A recording is deleted from your device as soon as you turn it into a note or discard it, and in any case after 30 days.",
@@ -2713,7 +2712,7 @@
         "neverReceived": "MatchOps never receives your recordings. Notes and report text you choose to save are game data and are handled as described above."
       },
       "aiTitle": "Optional AI provider (your own account)",
-      "aiIntro": "You may connect your own account with an AI provider (for example OpenAI) to transcribe recordings, draft or tidy match reports, translate a report, and read back your own notes about one player as prose. If you do:",
+      "aiIntro": "This is an experimental feature that is currently hidden and not in normal use; without it, nothing is transcribed or sent to any AI service. When it is turned on, you may connect your own account with an AI provider (for example OpenAI) to transcribe recordings, draft or tidy match reports, translate a report, and read back your own notes about one player as prose. If you do:",
       "aiItems": {
         "yourAccount": "Data is sent directly from your device to the provider you chose, under your own account and your own API key. MatchOps is not a party to that processing and has no access to it.",
         "onlyOnAction": "Nothing is sent automatically. Data leaves your device only when you press a button that says so (Transcribe, Draft, Tidy, Translate, Group these notes), and the app tells you what it is about to send first.",
@@ -2738,7 +2737,7 @@
     "recordings1": "A recording stays on the coach's phone. It is never sent to MatchOps, never synced to another device, and never included in backups.",
     "recordings2": "It is deleted from the phone as soon as it has been turned into a note or discarded, and in any case after 30 days.",
     "aiTitle": "If the coach uses the optional AI",
-    "aiIntro": "Turning a recording into text and drafting a match report can use an AI service. This only happens if the coach has connected their own account with a provider (for example OpenAI) and only when the coach presses a button. MatchOps, the app's maker, never sees any of it.",
+    "aiIntro": "Turning a recording into text and drafting a match report can use an AI service. This is an experimental feature that is off by default and hidden in the app; without it, the coach listens to the recording and types the note. AI is used only if the coach turns the experimental feature on and connects their own account with a provider (for example OpenAI), and only when the coach presses a button. MatchOps, the app's maker, never sees any of it.",
     "ai1": "Before a report is drafted, players' names are replaced with codes such as P1 and P2 on the phone. The provider does not receive the names.",
     "ai2": "When a recording is turned into text, the recording itself is sent, together with the first names of the players in that match so they are spelled correctly.",
     "ai3": "The provider keeps what it receives for a limited time under its own terms. For OpenAI's API: not used to train models, kept at most 30 days for abuse monitoring.",
@@ -2748,7 +2747,7 @@
     "rights1": "Ask the coach what has been noted about your child. The coach can show it to you.",
     "rights2": "Ask the coach to delete it. Notes and recordings can be deleted at any time.",
     "rights3": "Questions about the app itself go to MatchOps; the contact details are in the privacy policy.",
-    "asOf": "This page describes MatchOps as of September 2026.",
+    "asOf": "This page describes MatchOps as of November 2026.",
     "policyLink": "Read the full privacy policy"
   },
   "termsOfService": {
@@ -4222,7 +4221,7 @@
     "diagnosticsHint": "Sends error reports to help fix bugs and records when you reach the first onboarding steps. Never your game data. Turning this off stops both for your account.",
     "familyNoticeTitle": "Notice to players' families",
     "familyNoticeHint": "A ready-made message you can send to families: what the app stores about players, why, where and for how long, and who to ask.",
-    "familyNoticeText": "Hi! As the coach I use the MatchOps app to run the team. The controller of the players' data is me as the coach - or the club, if I use the app as part of the club's activity. In the app I store each player's first name or nickname, shirt number, positions, playing time and planned playing time, goals, assists and other match events, and short coaching notes. I use this information only to coach the team: line-ups, planning playing time and match statistics. It is kept on my phone and in my coaching account, on a server in the EU (Stockholm, Sweden). It is not shared with anyone else, sold or used for advertising, and I do not record health information. I keep it while I coach the team and delete it when it is no longer needed. You can ask me at any time what has been stored about your child and ask me to correct or delete it - deletion requests go to me, the coach. You also have the right to lodge a complaint with the supervisory authority, the Office of the Data Protection Ombudsman in Finland (tietosuoja.fi)."
+    "familyNoticeText": "Hi! As the coach I use the MatchOps app to run the team. The controller of the players' data is me as the coach - or the club, if I use the app as part of the club's activity. In the app I store each player's first name or nickname, shirt number, positions, playing time and planned playing time, goals, assists and other match events, and short coaching notes. If I record a voice note during a match, the recording stays only on my phone: it is not sent to MatchOps or anyone else, not synced and not backed up, and it is deleted once I have written the note, or after 30 days at the latest. The app's AI features are experimental and off; I would use them only if I turned them on myself with my own AI service, and I would tell you about it first. I use this information only to coach the team: line-ups, planning playing time and match statistics. It is kept on my phone and in my coaching account, on a server in the EU (Stockholm, Sweden). It is not shared with anyone else, sold or used for advertising, and I do not record health information. I keep it while I coach the team and delete it when it is no longer needed. You can ask me at any time what has been stored about your child and ask me to correct or delete it - deletion requests go to me, the coach. You also have the right to lodge a complaint with the supervisory authority, the Office of the Data Protection Ombudsman in Finland (tietosuoja.fi)."
   },
   "privacyHints": {
     "noHealthData": "Do not record health information.",

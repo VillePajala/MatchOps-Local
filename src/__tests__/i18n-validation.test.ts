@@ -754,10 +754,10 @@ describe('Translation File Validation', () => {
       // +6 / -4 Home "Joukkueet" card (dashTeamsCard, dashHomeAway, dashAtHome, dashAway,
       //     dashNoTeam, dashNoGames); top scorers removed (dashTopScorers, clubTopScorer,
       //     dashGoalsWord _one/_other) (2026-11-21). 3665.
-      // +8 / -6 privacy pass (2026-11-23): labs toasts, typed-only notes/report
+      // +7 / -6 privacy pass (2026-11-23): labs toasts, typed-only report
       //     copy, support-email processor (4 keys); paid-features terms list,
-      //     billing, cancellation and data-after-cancel removed. 3667.
-      expect(enKeys.length).toBe(3667);
+      //     billing, cancellation and data-after-cancel removed. 3666.
+      expect(enKeys.length).toBe(3666);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -973,8 +973,8 @@ describe('Translation File Validation', () => {
       // +1 playerStats.goalsAssistsShort (match log G+A figure). 3657.
       // +8 / -2 league & tournament cards (record line, starts-in chip). 3663.
       // +6 / -4 Home "Joukkueet" card; top scorers removed. 3665.
-      // +8 / -6 privacy pass (labs, typed-only copy, support email; paid terms removed). 3667.
-      expect(fiKeys.length).toBe(3667);
+      // +7 / -6 privacy pass (labs, typed-only report copy, support email; paid terms removed). 3666.
+      expect(fiKeys.length).toBe(3666);
     });
   });
 });

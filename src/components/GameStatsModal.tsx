@@ -808,8 +808,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
    * settings card is the one place the feature announces itself.
    */
   const ai = useAiProviderState();
-  // Voice notes are part of the experimental AI set: hidden unless the
-  // device's labs switch is on (stored clips are kept, just not shown).
+  // Labs switch (privacy 2026-11): plain voice notes (record on this phone,
+  // listen, type the note) are for everyone; the spoken report exists to be
+  // transcribed and drafted by AI, so it belongs to the experimental set.
   const labsEnabled = useLabsEnabled();
   const canTidy = Boolean(onApplyReportDraft) && Boolean(currentGame) && ai.connected;
   const handleTidy = useCallback(() => {
@@ -1193,7 +1194,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           onCancelEdit={handleCancelEditNotes}
           onEditNotesChange={setEditGameNotes}
         />
-          {dictation && onAddGameNote && (
+          {labsEnabled && dictation && onAddGameNote && (
             <SpokenReportPanel
               dictation={dictation}
               vocabulary={dictationVocabulary}
@@ -1278,7 +1279,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             onOpenSettings={onOpenGameSettings}
             onOpenAssessments={onOpenAssessments}
             voiceClipCount={voiceClipCount}
-            onOpenVoiceNotes={labsEnabled ? scrollToInbox : undefined}
+            onOpenVoiceNotes={scrollToInbox}
             onAddGoal={onAddGoal}
             onOpenNotes={() => scrollToId('game-notes-step')}
             onOpenReport={scrollToReport}
@@ -1293,7 +1294,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       id: 'game-notes-step',
       content: (
         <>
-          {labsEnabled && currentGameId && currentGameId !== DEFAULT_GAME_ID && (
+          {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
             <DictationInbox
               gameId={currentGameId}
               availablePlayers={availablePlayers}
@@ -1325,9 +1326,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             <div className={`${cardStyle} font-ui`} data-testid="game-notes-empty">
               <h3 className="text-base font-semibold text-ink mb-1">{t('dictation.notesTitle', 'Notes')}</h3>
               <p className={subtextStyle}>
-                {labsEnabled
-                  ? t('gameStatsModal.spineNotesEmpty', 'Nothing noted from this match yet. Write one above, or dictate it during the game with the microphone button.')
-                  : t('gameStatsModal.spineNotesEmptyTyped', 'Nothing noted from this match yet. Write one above.')}
+                {t('gameStatsModal.spineNotesEmpty', 'Nothing noted from this match yet. Write one above, or dictate it during the game with the microphone button.')}
               </p>
             </div>
           )}

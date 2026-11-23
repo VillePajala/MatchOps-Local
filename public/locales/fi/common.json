@@ -974,8 +974,7 @@
     "filters": "Suodattimet",
     "filtersApply": "Käytä",
     "filtersClear": "Tyhjennä",
-    "openInMaps": "Avaa kartalla",
-    "spineNotesEmptyTyped": "Tästä ottelusta ei ole vielä muistiinpanoja. Kirjoita yllä."
+    "openInMaps": "Avaa kartalla"
   },
   "status": {
     "loadingGameData": "Ladataan pelitietoja..."
@@ -2705,7 +2704,7 @@
     "footer": "Tämä tietosuojakäytäntö koskee Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta.",
     "voiceNotesAndAi": {
       "title": "Äänimuistiinpanot ja valinnainen tekoäly",
-      "intro": "Kokeellinen ominaisuus, joka on tällä hetkellä piilotettu eikä ole tavallisessa käytössä. Kun se on käytössä, MatchOps voi tallentaa lyhyitä äänimuistiinpanoja ottelun aikana. Näin niitä käsitellään:",
+      "intro": "MatchOps voi tallentaa lyhyitä äänimuistiinpanoja ottelun aikana. Kuuntelet tallenteen ja kirjoitat muistiinpanon itse. Näin niitä käsitellään:",
       "items": {
         "onDevice": "Tallenteet säilytetään vain laitteellasi. Niitä ei koskaan lähetetä MatchOpsin palvelimille, synkronoida laitteiden välillä eikä sisällytetä varmuuskopioihin tai vienteihin.",
         "deleted": "Tallenne poistetaan laitteeltasi heti, kun muutat sen muistiinpanoksi tai hylkäät sen, ja joka tapauksessa 30 päivän kuluttua.",
@@ -2713,7 +2712,7 @@
         "neverReceived": "MatchOps ei koskaan vastaanota tallenteitasi. Muistiinpanot ja raporttiteksti, jotka päätät tallentaa, ovat pelitietoa ja niitä käsitellään yllä kuvatulla tavalla."
       },
       "aiTitle": "Valinnainen tekoälypalvelu (oma tilisi)",
-      "aiIntro": "Voit yhdistää oman tilisi tekoälypalveluun (esimerkiksi OpenAI) tallenteiden litterointia, otteluraporttien luonnostelua ja siistimistä, raportin kääntämistä sekä yhtä pelaajaa koskevien omien muistiinpanojesi lukemista yhtenäisenä tekstinä varten. Jos teet niin:",
+      "aiIntro": "Tämä on kokeellinen ominaisuus, joka on tällä hetkellä piilotettu eikä ole tavallisessa käytössä; ilman sitä mitään ei litteroida eikä lähetetä millekään tekoälypalvelulle. Kun se on käytössä, voit yhdistää oman tilisi tekoälypalveluun (esimerkiksi OpenAI) tallenteiden litterointia, otteluraporttien luonnostelua ja siistimistä, raportin kääntämistä sekä yhtä pelaajaa koskevien omien muistiinpanojesi lukemista yhtenäisenä tekstinä varten. Jos teet niin:",
       "aiItems": {
         "yourAccount": "Tiedot lähetetään suoraan laitteeltasi valitsemallesi palvelulle omalla tililläsi ja omalla API-avaimellasi. MatchOps ei ole tämän käsittelyn osapuoli eikä pääse siihen käsiksi.",
         "onlyOnAction": "Mitään ei lähetetä automaattisesti. Tiedot lähtevät laitteeltasi vain, kun painat sen sanovaa painiketta (Litteroi, Luonnostele, Siisti, Käännä, Kokoa muistiinpanot), ja sovellus kertoo ensin, mitä se on lähettämässä.",
@@ -2738,7 +2737,7 @@
     "recordings1": "Tallenne pysyy valmentajan puhelimessa. Sitä ei koskaan lähetetä MatchOpsille, ei synkronoida toiselle laitteelle eikä sisällytetä varmuuskopioihin.",
     "recordings2": "Se poistetaan puhelimesta heti, kun se on muutettu muistiinpanoksi tai hylätty, ja joka tapauksessa 30 päivän kuluttua.",
     "aiTitle": "Jos valmentaja käyttää valinnaista tekoälyä",
-    "aiIntro": "Tallenteen muuttamiseen tekstiksi ja otteluraportin luonnosteluun voi käyttää tekoälypalvelua. Näin tapahtuu vain, jos valmentaja on yhdistänyt oman tilinsä palveluntarjoajaan (esimerkiksi OpenAI), ja vain kun valmentaja painaa nappia. MatchOps, sovelluksen tekijä, ei koskaan näe mitään siitä.",
+    "aiIntro": "Tallenteen muuttamiseen tekstiksi ja otteluraportin luonnosteluun voi käyttää tekoälypalvelua. Se on kokeellinen ominaisuus, joka on oletuksena pois päältä ja piilotettu sovelluksessa; ilman sitä valmentaja kuuntelee tallenteen ja kirjoittaa muistiinpanon itse. Tekoälyä käytetään vain, jos valmentaja ottaa kokeellisen ominaisuuden käyttöön ja yhdistää oman tilinsä palveluntarjoajaan (esimerkiksi OpenAI), ja vain kun valmentaja painaa nappia. MatchOps, sovelluksen tekijä, ei koskaan näe mitään siitä.",
     "ai1": "Ennen raportin luonnostelua pelaajien nimet korvataan puhelimessa koodeilla, kuten P1 ja P2. Palveluntarjoaja ei saa nimiä.",
     "ai2": "Kun tallenne muutetaan tekstiksi, itse tallenne lähetetään yhdessä sen ottelun pelaajien etunimien kanssa, jotta ne kirjoittuvat oikein.",
     "ai3": "Palveluntarjoaja säilyttää saamansa tiedot rajoitetun ajan omilla ehdoillaan. OpenAI:n rajapinnassa: ei käytetä mallien kouluttamiseen, säilytetään enintään 30 päivää väärinkäytösten valvontaa varten.",
@@ -2748,7 +2747,7 @@
     "rights1": "Kysy valmentajalta, mitä lapsestasi on kirjattu. Valmentaja voi näyttää sen sinulle.",
     "rights2": "Pyydä valmentajaa poistamaan se. Muistiinpanot ja tallenteet voi poistaa milloin tahansa.",
     "rights3": "Sovellusta itseään koskevat kysymykset osoitetaan MatchOpsille; yhteystiedot ovat tietosuojakäytännössä.",
-    "asOf": "Tämä sivu kuvaa MatchOpsia syyskuussa 2026.",
+    "asOf": "Tämä sivu kuvaa MatchOpsia marraskuussa 2026.",
     "policyLink": "Lue koko tietosuojakäytäntö"
   },
   "termsOfService": {
@@ -4222,7 +4221,7 @@
     "diagnosticsHint": "Lähettää virheraportteja virheiden korjaamiseksi ja tallentaa, milloin ensimmäiset käyttöönoton vaiheet tehtiin. Ei koskaan pelitietojasi. Kun kytket tämän pois, molemmat loppuvat tilisi osalta.",
     "familyNoticeTitle": "Tiedote pelaajien perheille",
     "familyNoticeHint": "Valmis viesti, jonka voit lähettää perheille: mitä sovellus tallentaa pelaajista, miksi, missä ja kuinka kauan, ja keneltä voi kysyä.",
-    "familyNoticeText": "Hei! Valmentajana käytän joukkueen hoitamiseen MatchOps-sovellusta. Pelaajien tietojen rekisterinpitäjä olen minä valmentajana - tai seura, jos käytän sovellusta osana seuran toimintaa. Tallennan sovellukseen pelaajista etunimen tai lempinimen, pelinumeron, pelipaikat, peliajat ja suunnitellut peliajat, maalit, syötöt ja muut ottelutapahtumat sekä lyhyitä valmennuksellisia muistiinpanoja. Käytän tietoja vain joukkueen valmentamiseen: kokoonpanoihin, peliaikojen suunnitteluun ja ottelutilastoihin. Tiedot ovat puhelimessani ja valmentajan tililläni palvelimella EU:ssa (Tukholma, Ruotsi). Niitä ei jaeta kenellekään muulle, myydä eikä käytetä mainontaan, enkä kirjaa terveystietoja. Säilytän tietoja niin kauan kuin valmennan joukkuetta ja poistan ne, kun niitä ei enää tarvita. Voit milloin tahansa kysyä minulta, mitä lapsestasi on tallennettu, ja pyytää minua korjaamaan tai poistamaan tiedot - poistopyynnöt tehdään minulle, valmentajalle. Sinulla on myös oikeus tehdä valitus valvontaviranomaiselle, Tietosuojavaltuutetun toimistolle (tietosuoja.fi)."
+    "familyNoticeText": "Hei! Valmentajana käytän joukkueen hoitamiseen MatchOps-sovellusta. Pelaajien tietojen rekisterinpitäjä olen minä valmentajana - tai seura, jos käytän sovellusta osana seuran toimintaa. Tallennan sovellukseen pelaajista etunimen tai lempinimen, pelinumeron, pelipaikat, peliajat ja suunnitellut peliajat, maalit, syötöt ja muut ottelutapahtumat sekä lyhyitä valmennuksellisia muistiinpanoja. Jos nauhoitan ottelun aikana äänimuistiinpanon, tallenne pysyy vain puhelimessani: sitä ei lähetetä MatchOpsille eikä kenellekään muulle, sitä ei synkronoida eikä varmuuskopioida, ja se poistetaan, kun olen kirjoittanut muistiinpanon, viimeistään 30 päivän kuluttua. Sovelluksen tekoälytoiminnot ovat kokeellisia ja pois päältä; käyttäisin niitä vain, jos ottaisin ne itse käyttöön omalla tekoälypalvelullani, ja kertoisin siitä teille ensin. Käytän tietoja vain joukkueen valmentamiseen: kokoonpanoihin, peliaikojen suunnitteluun ja ottelutilastoihin. Tiedot ovat puhelimessani ja valmentajan tililläni palvelimella EU:ssa (Tukholma, Ruotsi). Niitä ei jaeta kenellekään muulle, myydä eikä käytetä mainontaan, enkä kirjaa terveystietoja. Säilytän tietoja niin kauan kuin valmennan joukkuetta ja poistan ne, kun niitä ei enää tarvita. Voit milloin tahansa kysyä minulta, mitä lapsestasi on tallennettu, ja pyytää minua korjaamaan tai poistamaan tiedot - poistopyynnöt tehdään minulle, valmentajalle. Sinulla on myös oikeus tehdä valitus valvontaviranomaiselle, Tietosuojavaltuutetun toimistolle (tietosuoja.fi)."
   },
   "privacyHints": {
     "noHealthData": "Älä kirjaa terveystietoja.",

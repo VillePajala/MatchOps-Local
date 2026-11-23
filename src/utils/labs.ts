@@ -2,14 +2,16 @@
  * Device-local "labs" switch (privacy 2026-11).
  *
  * Experimental features that are not ready for every coach - today only the
- * AI assistant ("Kirjuri": voice notes, transcription, report drafting,
- * translation, note summaries) - are hidden unless this switch is on. It is
+ * AI part of the assistant ("Kirjuri": transcription, the spoken report,
+ * report drafting, translation, note summaries) - are hidden unless this
+ * switch is on. Plain voice notes (recorded and kept only on this phone,
+ * listened to and typed out by the coach) are NOT behind it. It is
  * turned on and off by tapping the app version line in Settings seven times.
  *
  * Per DEVICE, not per account, on purpose: no database migration, nothing
  * synced or backed up, and nothing a normal coach can stumble on. Turning it
  * off never deletes anything - an AI setup already on the device (key,
- * consent, recordings) stays, it just cannot be reached until labs is on
+ * consent) stays, it just cannot be reached until labs is on
  * again (`aiProvider` reports the AI as not connected while labs is off).
  */
 

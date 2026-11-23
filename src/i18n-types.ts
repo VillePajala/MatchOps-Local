@@ -1252,7 +1252,6 @@ export type TranslationKey =
   | 'gameStatsModal.shareReport'
   | 'gameStatsModal.spineAddGoal'
   | 'gameStatsModal.spineNotesEmpty'
-  | 'gameStatsModal.spineNotesEmptyTyped'
   | 'gameStatsModal.spineOpenAssessments'
   | 'gameStatsModal.tabs.currentGame'
   | 'gameStatsModal.tabs.overall'

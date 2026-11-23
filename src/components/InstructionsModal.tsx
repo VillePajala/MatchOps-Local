@@ -68,7 +68,8 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
   // Basic layout has no tabs: describe its short Home instead (R8). Unknown
   // (loading) is treated as full, matching the app's default.
   const isBasic = useAppLayout() === 'basic';
-  // Voice notes are experimental (labs switch); the guide mentions them only then.
+  // Dictating the report and AI drafts are experimental (labs switch); plain
+  // voice notes are for everyone, so only the report line depends on it.
   const labsEnabled = useLabsEnabled();
 
   useEffect(() => {
@@ -170,9 +171,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                 <li>{t('firstGameGuide.clockGoal', 'Our goal: tap "Goal for us". The goal is logged and the score moves at once. Then pick the scorer from "Who scored?" (all squad players) or tap "Skip".')}</li>
                 <li>{t('firstGameGuide.clockOpponent', 'Opponent goal: tap "Opponent +1".')}</li>
                 <li>{t('firstGameGuide.clockReset', 'In the full layout, "Sub done" restarts the change timer.')}</li>
-                {labsEnabled && (
-                  <li>{t('firstGameGuide.dictationTip', 'Hold the microphone button on the large clock to dictate a voice note - it stays on your phone.')}</li>
-                )}
+                <li>{t('firstGameGuide.dictationTip', 'Hold the microphone button on the large clock to dictate a voice note - it stays on your phone.')}</li>
               </ul>
             </div>
           </GuideSection>

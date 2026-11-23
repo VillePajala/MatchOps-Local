@@ -64,6 +64,19 @@ jest.mock('@/hooks/useDataStore', () => ({
   useDataStore: () => mockUseDataStoreReturn,
 }));
 
+// Voice-note clips live in their own on-device IndexedDB store; tests choose
+// what it holds. Empty by default, so the inbox renders nothing.
+let mockStoredClips: Array<Record<string, unknown>> = [];
+jest.mock('@/utils/audioClipStore', () => ({
+  ...jest.requireActual('@/utils/audioClipStore'),
+  listClips: async () => mockStoredClips,
+  rotateOldClips: async () => 0,
+}));
+
+import { resetLabsForTests, setLabsEnabled } from '@/utils/labs';
+import { acceptAiConsent, clearAiProviderKey, revokeAiConsent, setAiProviderKey } from '@/utils/aiProvider';
+import type { DictationControls } from '@/hooks/useDictationCapture';
+
 import * as teamsUtils from '@/utils/teams';
 
 const mockGetSeasons = seasonsUtils.getSeasons as jest.Mock;
@@ -1114,6 +1127,75 @@ describe('GameStatsModal', () => {
         expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
       });
       expect(screen.queryByText(captainLabel())).not.toBeInTheDocument();
+    });
+  });
+
+  /**
+   * Owner decision 2026-11-23: a voice note is only a recording on the coach's
+   * phone, so recording, listening, typing and discarding are for everyone.
+   * Only the AI parts (transcription, the spoken report, drafting) wait for the
+   * device's labs switch AND the coach's own connected provider.
+   * @critical
+   */
+  describe('voice notes for everyone, AI only behind labs', () => {
+    const twoClips = [
+      { id: 'c1', gameId: 'game1', time: 300, period: 1, createdAt: '2026-11-23T10:00:00Z', durationMs: 2000, mimeType: 'audio/webm', sizeBytes: 10 },
+      { id: 'c2', gameId: 'game1', time: 900, period: 2, createdAt: '2026-11-23T10:10:00Z', durationMs: 3000, mimeType: 'audio/webm', sizeBytes: 10 },
+    ];
+    const dictation: DictationControls = {
+      isSupported: true,
+      available: true,
+      permission: 'granted',
+      isRecording: false,
+      clipCount: 2,
+      needsIntro: false,
+      lastClip: null,
+      acknowledgeIntro: jest.fn(),
+      start: jest.fn(),
+      stop: jest.fn(),
+    };
+    const props = () => ({ ...getDefaultProps(), onAddGameNote: jest.fn(() => true), onApplyReportDraft: jest.fn(() => true), dictation });
+
+    beforeEach(() => {
+      mockStoredClips = twoClips;
+      // A device that once set up the AI keeps its key and consent.
+      setAiProviderKey('sk-test-1234');
+      acceptAiConsent();
+    });
+    afterEach(() => {
+      mockStoredClips = [];
+      clearAiProviderKey();
+      revokeAiConsent();
+      setLabsEnabled(false);
+      resetLabsForTests();
+    });
+
+    it('without labs: the inbox, the composer microphone and the wrap-up row are there; no AI action is', async () => {
+      renderComponent(props());
+      expect(await screen.findAllByTestId('dictation-clip')).toHaveLength(2);
+      // The manual flow: listen, type, save or discard.
+      expect(screen.getAllByRole('button', { name: i18n.t('dictation.play', 'Play') })).toHaveLength(2);
+      expect(screen.getAllByTestId('dictation-text')).toHaveLength(2);
+      expect(screen.getAllByTestId('dictation-discard')).toHaveLength(2);
+      expect(screen.getByTestId('dictation-transcribe-hint')).toBeInTheDocument();
+      expect(screen.getByTestId('note-composer-record')).toBeInTheDocument();
+      expect(await screen.findByTestId('wrap-up-status-voiceNotes-todo')).toBeInTheDocument();
+      // A stored key and consent are not enough: no transcription, no spoken
+      // report, no AI draft or tidy.
+      expect(screen.queryByTestId('dictation-transcribe')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('spoken-report-panel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('report-draft-panel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('report-draft-unavailable')).not.toBeInTheDocument();
+    });
+
+    it('with labs and the coach\'s own provider: transcription and the spoken report come back', async () => {
+      act(() => setLabsEnabled(true));
+      renderComponent(props());
+      expect(await screen.findByTestId('dictation-transcribe')).toBeInTheDocument();
+      expect(screen.queryByTestId('dictation-transcribe-hint')).not.toBeInTheDocument();
+      expect(screen.getByTestId('spoken-report-panel')).toBeInTheDocument();
+      expect(screen.getByTestId('spoken-report-cost')).toBeInTheDocument();
+      expect(screen.getByTestId('report-draft-panel')).toBeInTheDocument();
     });
   });
 

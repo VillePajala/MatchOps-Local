@@ -57,7 +57,6 @@ import { getPlanLink, type PlanLink } from '@/utils/playtimePlanner/planLinks';
 import { mergeClubRosterIntoGamePlayers, playerIdsReferencedByGame } from '@/utils/gamePlayerList';
 import { gameReplacementCount } from '@/sync/syncEvents';
 import { periodEndSeconds, structureFrom, type MatchStructure } from '@/utils/matchStructure';
-import { useLabsEnabled } from '@/utils/labs';
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
@@ -2622,7 +2621,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // Kirjuri voice notes (PR 2): the recorder lives here, not in the overlay,
   // so the hands-free trigger (PR 4) can reach it with the overlay closed.
-  const dictationCapture = useDictationCapture({
+  const dictation = useDictationCapture({
     currentGameId,
     userId: userId ?? undefined,
     timeElapsedInSeconds,
@@ -2631,11 +2630,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     showToast,
     t,
   });
-  // Voice notes belong to the experimental AI set (privacy 2026-11): without
-  // the device's labs switch no surface gets the recorder, so no microphone
-  // button is shown anywhere (match clock, note composer, spoken report).
-  const labsEnabled = useLabsEnabled();
-  const dictation = labsEnabled ? dictationCapture : undefined;
 
   // Memoize timerVM to prevent unnecessary re-renders of TimerOverlay
   const timerVM = useMemo(() => ({
