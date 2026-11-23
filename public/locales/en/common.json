@@ -4275,11 +4275,8 @@
     "themes": {
       "menuItem": "Match themes",
       "sectionTitle": "Playbook themes",
-      "choose": "Choose a theme",
       "chooseMany": "Choose themes",
       "edit": "Change themes",
-      "themeOne": "Theme",
-      "themesMany": "Themes: {{n}}",
       "showOne": "Show theme",
       "showMany": "Show themes",
       "formEmpty": "Pick concepts to go through with the players.",

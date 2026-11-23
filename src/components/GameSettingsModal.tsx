@@ -2194,7 +2194,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   {t('playbook.themes.sectionTitle', 'Playbook themes')}
                 </h3>
                 <div className={cardStyle}>
-                  <LazyGameThemeRow gameId={currentGameId} variant="form" />
+                  <LazyGameThemeRow gameId={currentGameId} />
                 </div>
               </section>
             )}

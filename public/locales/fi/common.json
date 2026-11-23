@@ -4275,11 +4275,8 @@
     "themes": {
       "menuItem": "Ottelun teemat",
       "sectionTitle": "Pelikirjan teemat",
-      "choose": "Valitse teema",
       "chooseMany": "Valitse teemat",
       "edit": "Muuta teemoja",
-      "themeOne": "Teema",
-      "themesMany": "Teemat: {{n}}",
       "showOne": "Näytä teema",
       "showMany": "Näytä teemat",
       "formEmpty": "Valitse pelitilanteet, jotka käydään pelaajien kanssa läpi.",

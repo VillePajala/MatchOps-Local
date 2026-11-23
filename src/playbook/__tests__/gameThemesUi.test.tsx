@@ -1,6 +1,6 @@
 /**
  * Playbook game themes in the UI: the library's selection mode (the picker)
- * and the themes control on the next-match card / in the game forms.
+ * and the themes control in the game forms.
  * @integration
  */
 import React from 'react';
@@ -160,25 +160,41 @@ describe('picker (library selection mode)', () => {
   });
 });
 
-describe('themes row on the next-match card', () => {
-  it('none: offers "Choose a theme", which opens the picker', () => {
-    render(<GameThemesControl themes={[]} onChange={jest.fn()} variant="card" />);
-    expect(screen.queryByTestId('game-theme-row')).toBeNull();
+describe('themes in the game forms', () => {
+  it('lists the picked themes in order with show and change actions', () => {
+    render(
+      <GameThemesControl
+        themes={[
+          { playbookId: 'club', conceptId: 'b' },
+          { playbookId: 'club', conceptId: 'a' },
+        ]}
+        onChange={jest.fn()}
+       
+      />,
+    );
+    const items = within(screen.getByTestId('game-theme-list')).getAllByRole('listitem');
+    expect(items.map((li) => li.textContent)).toEqual([expect.stringContaining('Title b'), expect.stringContaining('Title a')]);
+    expect(screen.getByTestId('game-theme-show')).toHaveTextContent('Show themes');
+    expect(screen.getByTestId('game-theme-edit')).toBeInTheDocument();
+  });
+
+  it('empty: a hint and "Choose themes" (opens the picker), no show button', () => {
+    render(<GameThemesControl themes={[]} onChange={jest.fn()} />);
+    expect(screen.queryByTestId('game-theme-show')).toBeNull();
+    expect(screen.getByTestId('game-theme-choose')).toHaveTextContent('Choose themes');
     fireEvent.click(screen.getByTestId('game-theme-choose'));
     expect(screen.getByTestId('playbook-library')).toBeInTheDocument();
   });
 
-  it('one: "Theme" and its title; a tap opens its presentation', () => {
-    render(<GameThemesControl themes={[{ playbookId: 'club', conceptId: 'b' }]} onChange={jest.fn()} variant="card" />);
-    const row = screen.getByTestId('game-theme-row');
-    expect(row).toHaveTextContent('Theme');
-    expect(screen.getByTestId('game-theme-summary')).toHaveTextContent('Title b');
+  it('one: "Show theme" opens its presentation, without a sequence', () => {
+    render(<GameThemesControl themes={[{ playbookId: 'club', conceptId: 'b' }]} onChange={jest.fn()} />);
+    expect(screen.getByTestId('game-theme-show')).toHaveTextContent('Show theme');
     fireEvent.click(screen.getByTestId('game-theme-show'));
     expect(screen.getByTestId('presenting')).toHaveTextContent('b');
     expect(screen.queryByTestId('sequence')).toBeNull();
   });
 
-  it('many: "Themes: n", and the presentation steps through them in pick order', () => {
+  it('many: the presentation steps through them in pick order', () => {
     render(
       <GameThemesControl
         themes={[
@@ -186,11 +202,8 @@ describe('themes row on the next-match card', () => {
           { playbookId: 'club', conceptId: 'a' },
         ]}
         onChange={jest.fn()}
-        variant="card"
       />,
     );
-    expect(screen.getByTestId('game-theme-row')).toHaveTextContent('Themes: 2');
-    expect(screen.getByTestId('game-theme-summary')).toHaveTextContent('Title d · Title a');
     fireEvent.click(screen.getByTestId('game-theme-show'));
     expect(screen.getByTestId('presenting')).toHaveTextContent('d');
     expect(screen.getByTestId('sequence')).toHaveTextContent('1/2');
@@ -214,25 +227,26 @@ describe('themes row on the next-match card', () => {
           { playbookId: 'club', conceptId: 'a' },
         ]}
         onChange={jest.fn()}
-        variant="card"
       />,
     );
-    expect(screen.getByTestId('game-theme-summary')).toHaveTextContent('Not available · Title a');
+    const items = within(screen.getByTestId('game-theme-list')).getAllByRole('listitem');
+    expect(items.map((li) => li.textContent)).toEqual([expect.stringContaining('Not available'), expect.stringContaining('Title a')]);
     fireEvent.click(screen.getByTestId('game-theme-show'));
     expect(screen.getByTestId('presenting')).toHaveTextContent('a');
     expect(screen.queryByTestId('sequence')).toBeNull();
   });
 
-  it('only unavailable themes: the row opens the picker instead of an empty presentation', () => {
-    render(<GameThemesControl themes={[{ playbookId: 'gone', conceptId: 'x' }]} onChange={jest.fn()} variant="card" />);
-    fireEvent.click(screen.getByTestId('game-theme-show'));
-    expect(screen.queryByTestId('presentation')).toBeNull();
+  /** @edge-case */
+  it('only unavailable themes: no show button, but they can still be changed', () => {
+    render(<GameThemesControl themes={[{ playbookId: 'gone', conceptId: 'x' }]} onChange={jest.fn()} />);
+    expect(screen.queryByTestId('game-theme-show')).toBeNull();
+    fireEvent.click(screen.getByTestId('game-theme-edit'));
     expect(screen.getByTestId('playbook-library')).toBeInTheDocument();
   });
 
-  it('the pencil opens the picker and Done saves the new selection', async () => {
+  it('"Change themes" opens the picker and Done saves the new selection', async () => {
     const onChange = jest.fn();
-    render(<GameThemesControl themes={[{ playbookId: 'club', conceptId: 'a' }]} onChange={onChange} variant="card" />);
+    render(<GameThemesControl themes={[{ playbookId: 'club', conceptId: 'a' }]} onChange={onChange} />);
     fireEvent.click(screen.getByTestId('game-theme-edit'));
     const cardB = screen.getAllByTestId('playbook-card').find((el) => el.textContent?.includes('Title b')) as HTMLElement;
     fireEvent.click(cardB);
@@ -244,30 +258,5 @@ describe('themes row on the next-match card', () => {
       { playbookId: 'club', conceptId: 'b' },
     ]);
     expect(screen.queryByTestId('playbook-library')).toBeNull();
-  });
-});
-
-describe('themes in the game forms', () => {
-  it('lists the picked themes in order with show and change actions', () => {
-    render(
-      <GameThemesControl
-        themes={[
-          { playbookId: 'club', conceptId: 'b' },
-          { playbookId: 'club', conceptId: 'a' },
-        ]}
-        onChange={jest.fn()}
-        variant="form"
-      />,
-    );
-    const items = within(screen.getByTestId('game-theme-list')).getAllByRole('listitem');
-    expect(items.map((li) => li.textContent)).toEqual([expect.stringContaining('Title b'), expect.stringContaining('Title a')]);
-    expect(screen.getByTestId('game-theme-show')).toHaveTextContent('Show themes');
-    expect(screen.getByTestId('game-theme-edit')).toBeInTheDocument();
-  });
-
-  it('empty: a hint and "Choose themes", no show button', () => {
-    render(<GameThemesControl themes={[]} onChange={jest.fn()} variant="form" />);
-    expect(screen.queryByTestId('game-theme-show')).toBeNull();
-    expect(screen.getByTestId('game-theme-choose')).toHaveTextContent('Choose themes');
   });
 });
