@@ -1,24 +1,14 @@
 import Layout from '@/components/Layout';
-import Head from 'next/head';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
 
 export default function TermsOfServicePage() {
   const { t } = useTranslation('common');
-  const router = useRouter();
 
   return (
-    <Layout>
-      <Head>
-        <title>{t('seo.terms.title')}</title>
-        <meta name="description" content={t('seo.terms.description')} />
-        <meta property="og:title" content={t('seo.terms.title')} />
-        <meta property="og:description" content={t('seo.terms.description')} />
-        <meta property="og:url" content={`https://www.match-ops.com${router.locale === 'en' ? '/en' : ''}/terms`} />
-      </Head>
+    <Layout title={t('seo.terms.title')} description={t('seo.terms.description')}>
 
       <div className="section bg-slate-900">
         <div className="container-custom">

@@ -348,7 +348,7 @@ export default function MarketingAssets() {
   return (
     <>
       <Head>
-        <title>{t('marketing.page.title')} - MatchOps</title>
+        <title>{`${t('marketing.page.title')} - MatchOps`}</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 

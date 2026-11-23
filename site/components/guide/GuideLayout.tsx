@@ -1,5 +1,4 @@
 import { useState, ReactNode } from 'react';
-import Head from 'next/head';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { FaBars } from 'react-icons/fa';
@@ -51,11 +50,7 @@ export default function GuideLayout({
       : '');
 
   return (
-    <Layout>
-      <Head>
-        <title>{pageTitle} - {t('nav.title')} - MatchOps</title>
-        <meta name="description" content={pageDescription} />
-      </Head>
+    <Layout title={`${pageTitle} - ${t('nav.title')} - MatchOps`} description={pageDescription}>
 
       <div className="min-h-screen bg-slate-900">
         {/* Mobile header bar */}
