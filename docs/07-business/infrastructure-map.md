@@ -18,6 +18,7 @@ Where every service that touches user data stores it, and the legal basis for an
 | **Vercel** (`match-ops-local`, `match-ops-hub`) | Serves the app + site; few server routes (CSP report, etc.) | Global edge; serverless functions pinned to Stockholm (`arn1`) if supported | Vercel DPA in its ToS | Hobby (free; "personal or non-commercial use") |
 | **Cloudflare** | DNS; Email Routing of `hello@`/`support@match-ops.com` | Global network | Cloudflare DPA in its ToS | Free |
 | **Google (Gmail)** | Inbox that receives forwarded support email | Google (global) | Google Workspace/consumer terms | Free |
+| **Photon** (komoot) | Venue address search and reverse geocoding of map pins the coach places (typed venue text + pin coordinates; no player data) | Germany (photon.komoot.io) | Public API, no DPA - declared as "shared" in Play Data Safety | Free |
 | **Google Play** | App distribution | Google | Play developer terms | - |
 | **OpenAI** (only "Kirjuri" AI, hidden behind the device-local labs switch) | Audio + players' first names, sent **directly from the coach's phone with the coach's own key** | US | Coach's own contract with OpenAI - MatchOps never receives the data | - |
 
