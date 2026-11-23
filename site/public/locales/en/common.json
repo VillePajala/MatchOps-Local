@@ -3,7 +3,8 @@
     "technical": "Technical",
     "guide": "Guide",
     "backToTop": "Back to top",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "faq": "FAQ"
   },
   "features": {
     "gameDay": {
@@ -68,8 +69,8 @@
   },
   "seo": {
     "home": {
-      "title": "MatchOps - Soccer & Futsal Coaching App",
-      "description": "Coaching app for football and futsal. Plan, rotate, record: your game plan always with you, a match clock, match event logging and statistics that build up automatically. Free."
+      "title": "MatchOps – line-ups, substitutions and match sheets for football coaches",
+      "description": "Free app for youth football (soccer) and futsal coaches. Plan line-ups and substitutions for a whole tournament day, run the match clock and log goals. After the game the match sheet is ready to copy into Taso. No ads, data stored in the EU."
     },
     "technical": {
       "title": "Technical Specifications - MatchOps",
@@ -86,7 +87,8 @@
     "deleteAccount": {
       "title": "Delete Your Account – MatchOps",
       "description": "How to permanently delete your MatchOps account and all associated data."
-    }
+    },
+    "ogImageAlt": "MatchOps on a phone: a free app for football and futsal coaches"
   },
   "footer": {
     "tagline": "The app for football and futsal coaches. Plan, rotate, record.",
@@ -96,9 +98,9 @@
     "license": "License",
     "copyright": "© {{year}} Velomo AI. All rights reserved.",
     "dataStays": "Your data stays private and secure.",
-    "marketingAssets": "Marketing Assets",
     "privacyPolicy": "Privacy Policy",
-    "termsOfService": "Terms of Service"
+    "termsOfService": "Terms of Service",
+    "contact": "Contact:"
   },
   "technical": {
     "hero": {
@@ -112,7 +114,7 @@
       "testing": "Test Coverage",
       "testingDesc": "7,700+ tests with Jest and React Testing Library",
       "linting": "Linting & Formatting",
-      "lintingDesc": "ESLint with strict rules, Prettier for formatting",
+      "lintingDesc": "ESLint with strict rules",
       "cicd": "CI/CD",
       "cicdDesc": "Automated builds, tests, and deployments via Vercel"
     },
@@ -142,10 +144,10 @@
     },
     "pwaFeatures": {
       "title": "PWA Capabilities",
-      "installable": "Installable",
-      "installableDesc": "Install to home screen on mobile and desktop devices",
-      "offline": "Offline First",
-      "offlineDesc": "Full functionality without internet via Service Worker caching",
+      "installable": "From Google Play",
+      "installableDesc": "Installed on Android phones from Google Play",
+      "offline": "Works offline",
+      "offlineDesc": "Signing in needs a connection. After that, games work offline and changes sync when you are back online.",
       "autoUpdate": "Auto Updates",
       "autoUpdateDesc": "Automatic update detection with user-controlled reload",
       "wakeLock": "Wake Lock",
@@ -181,7 +183,7 @@
     "techStack": {
       "title": "Technology Stack",
       "frontend": "Frontend Framework",
-      "frontendDesc": "React 19 with Next.js 16 (Pages Router)",
+      "frontendDesc": "React 19 with Next.js 16 (App Router)",
       "language": "Language",
       "languageDesc": "TypeScript for type safety and better developer experience",
       "styling": "Styling",
@@ -208,8 +210,8 @@
     },
     "requirements": {
       "title": "System Requirements",
-      "browser": "Supported Browsers",
-      "browserList": "Chrome 90+, Firefox 88+, Safari 14+, Edge 90+",
+      "browser": "Device",
+      "browserList": "An Android phone; the app is installed from Google Play",
       "javascript": "JavaScript",
       "javascriptDesc": "Must be enabled (standard in all modern browsers)",
       "storageSupport": "Storage Support",
@@ -232,81 +234,6 @@
     }
   },
   "info": {
-    "whatIsThis": {
-      "title": "What is MatchOps?",
-      "description": "MatchOps is a match-day app for football and futsal coaches. Before the game you make the plan in the Match planner - who starts, who is in goal and when the changes come - for one game or a whole tournament day, and on match day you mark who is away. During the game the match clock, substitutions and goals are right there with you. After the game the Match sheet and Match report are ready to share, and statistics build up automatically at player, match, team and competition level. New coaches start in a lighter view, and one choice takes them to the full app.",
-      "oneLine": "Free with secure cloud sync across your devices. Track games and build statistics right at the field, even without internet."
-    },
-    "whoIsThisFor": {
-      "title": "Who Is This For?",
-      "description": "MatchOps is for football and futsal coaches at every level - from junior teams to recreational and competitive sides - who want a simple way to run their matches and support their players' development, without complex team management software or monthly subscriptions.",
-      "item1": "Youth team coaches (U7-U21)",
-      "item2": "Recreational and competitive team coaches",
-      "item3": "Coaches who value privacy and own their data"
-    },
-    "challenges": {
-      "title": "Common Challenges for Coaches",
-      "challenge1": "Juggling multiple tools on game day: clipboard, stopwatch, notebook, lineup sheet",
-      "challenge2": "Tracking substitution intervals is tricky—you can't substitute until the game allows it, intervals stretch, and counting in your head takes focus away from what matters",
-      "challenge3": "Coach must focus on the game, so most events go undocumented and are soon forgotten",
-      "challenge4": "No easy way to look back at games or build statistics across a season",
-      "challenge5": "Long-term decisions end up based on memory rather than actual data"
-    },
-    "whatYouCanDo": {
-      "title": "What You Can Do With It",
-      "beforeGame": {
-        "title": "Before the Game",
-        "item1": "Build your team",
-        "item2": "Create your match event",
-        "item3": "Define season or tournament event",
-        "item4": "Plan your match lineup and game plan"
-      },
-      "duringGame": {
-        "title": "During the Game",
-        "item1": "Track the game clock",
-        "item2": "Monitor predefined substitution intervals",
-        "item3": "Log substitution moments with a button press",
-        "item4": "Record goals and assists with a few taps",
-        "item5": "Draw tactics for halftime"
-      },
-      "afterGame": {
-        "title": "After the Game",
-        "item1": "Review game statistics and events",
-        "item2": "View team statistics",
-        "item3": "View player statistics",
-        "item4": "Compare statistics across games, seasons, and tournaments",
-        "item5": "Optionally assess individual player performance with 10 different metrics"
-      }
-    },
-    "technical": {
-      "title": "Technical Details",
-      "desc1": "MatchOps is available on Google Play for Android devices.",
-      "desc2": "Your data is stored securely. The app works offline after installation.",
-      "desc3": "Built with modern web technologies for a fast, reliable experience."
-    },
-    "faq": {
-      "title": "Common Questions",
-      "q1": "How do I install the app?",
-      "a1": "The app is currently in closed testing on Google Play. To join the testing group, contact us at hello@match-ops.com.",
-      "q2": "Where is my data stored?",
-      "a2": "Your data is stored securely and stays private.",
-      "q3": "Can I use it on multiple devices?",
-      "a3": "Yes. You can export your data from one device and import it on another, or use cloud sync to keep devices in sync.",
-      "q4": "How do I back up my data?",
-      "a4": "Open the Settings menu and use the Export function. This creates a JSON file with all your data that you can save and import later.",
-      "q5": "Can I edit game data after it's recorded?",
-      "a5": "Yes. You can edit, add, or delete goal events and modify match details. Just open the game from your history and make corrections.",
-      "q6": "What happens if I lose my phone or it breaks?",
-      "a6": "If you've made regular exports (backups), you can import your data on a new device. Without backups, data is lost with the device.",
-      "q7": "Can I manage multiple teams?",
-      "a7": "Yes. You can create and manage multiple teams (U12, U14, etc.) from the same app and switch between them easily.",
-      "q8": "How much storage space does the app use?",
-      "a8": "The app uses your device's free storage space. Typical usage with 100+ games and full statistics is under 50MB.",
-      "q9": "How do I update the app?",
-      "a9": "The app updates automatically when you open it and have an internet connection. After an update, the app will notify you of the new version and ask you to reload the page.",
-      "q10": "Can I share statistics with other coaches?",
-      "a10": "Yes. You can export statistics in Excel or JSON format and share the files with other coaches via email or messaging apps."
-    },
     "cta": {
       "title": "Get the app",
       "subtitle": "MatchOps is now available on Google Play — download it for free.",
@@ -336,27 +263,6 @@
     }
   },
   "marketing": {
-    "productPoints": {
-      "plan": "Your game plan always with you",
-      "clock": "Match clock",
-      "events": "Log match events",
-      "stats": "Statistics build up automatically",
-      "free": "Free"
-    },
-    "howItWorks": {
-      "plan": {
-        "title": "Plan",
-        "desc": "Build the starting line-up, positions and substitutions in advance in the Match planner – for one game or a whole tournament day. Before the game you mark who is away, and the plan adapts."
-      },
-      "play": {
-        "title": "Rotate",
-        "desc": "The match clock and sub timer run through the whole game. Goal for us and Opponent +1 sit right under Start, and the next substitution shows as a compact block: who comes on (↑) and who goes off (↓). Goal for us updates the score at once - pick the scorer and assister, or skip."
-      },
-      "record": {
-        "title": "Record",
-        "desc": "After the game, Finish this game brings it all together: copy the Match sheet, write your Match report and share it with the team. Statistics build up automatically, game by game."
-      }
-    },
     "page": {
       "title": "Marketing Assets",
       "subtitle": "Screenshot these at native resolution. Each shows dimensions for reference.",
@@ -455,59 +361,6 @@
       "teamStats": "Team Stats",
       "seasonTrends": "Season Trends"
     },
-    "spotlights": {
-      "attendance": {
-        "eyebrow": "Who is here?",
-        "title": "Absences before kick-off",
-        "desc": "Mark who is away on the Next match card opens a list with every player already ticked: tap the players who are away, and the top shows how many are here. The plan and the starting line-up fill in with the players who are there, and the changes you made to the plan are kept. An absent player is not in the match squad, so the game does not count as played for them. Before kick-off you also find the same screen in the match menu."
-      },
-      "finish": {
-        "eyebrow": "Finish this game",
-        "title": "Match sheet and match report, ready",
-        "desc": "When the game ends, Finish this game brings the result, the line-up and the goals together on one screen. The Match sheet is ready to copy: players with shirt numbers, goalkeeper and captain, final score, half-time score and every goal with its minute. In the Match report you write or dictate your own account from a ready template of headings, and Share match report sends the result, scorers, line-up and your report to the team."
-      },
-      "planner": {
-        "eyebrow": "Match planner",
-        "title": "Plan several games at once",
-        "desc": "For a tournament day or a run of games: plan the starting line-ups and substitutions for several games at once. Each player's planned minutes and positions are colour-coded, so you see the spread at a glance. Adjust the plan mid-series and see how the changes affect the whole. A one-game plan is made in the same place, and a new game can be prefilled from a plan."
-      },
-      "development": {
-        "eyebrow": "Player Development",
-        "title": "Track development over time",
-        "desc": "After a game, note how each player is developing - strengths, growing areas, and the direction they're heading. Over time those notes build into an overall picture you can share as a summary."
-      },
-      "dashboard": {
-        "eyebrow": "Your season at a glance",
-        "title": "Dashboard",
-        "desc": "Home has four tabs, and you can swipe between them. Games shows the next or the latest match, Club gathers players, teams and staff on the club card, Competitions shows the season record and the form of the last five games plus leagues and tournaments, and Stats shows wins-draws-losses, goal difference and the top scorers."
-      },
-      "gameday": {
-        "eyebrow": "Game day",
-        "title": "Track the whole game, live",
-        "desc": "Place your lineup on the field, run the timer, and log goals, assists and substitutions as they happen - offline, right at the pitch."
-      },
-      "stats": {
-        "eyebrow": "Statistics",
-        "title": "Stats that build themselves",
-        "desc": "Every game you track feeds season, player and team statistics automatically - no spreadsheets. See how the season's going, who's scoring, and how each player is used."
-      },
-      "positionBalance": {
-        "eyebrow": "Position balance",
-        "title": "Positions played across the season",
-        "desc": "Across a whole season, see which positions each player has actually played - by line or exact spot. Players kept in one role stand out, so you can deliberately broaden how each player is used."
-      },
-      "nextMatch": {
-        "eyebrow": "Next match",
-        "title": "Know when to leave",
-        "desc": "The front page shows your next fixture: how many days away, kick-off, the venue and which pitch, and a button straight to driving directions. Set the place you leave from and how long before kick-off you want to be at the ground, and it works out your departure time - counting back through both, not just the drive. Give one match its own arrival time when a cup tie asks for more, or record how long the journey really took, and every later match at that venue uses the real figure."
-      }
-    },
-    "bands": {
-      "gameDay": "Game day",
-      "development": "Player development",
-      "club": "Your club",
-      "statsSharing": "Stats & sharing"
-    },
     "ui": {
       "plan": "Plan",
       "track": "Track",
@@ -559,7 +412,7 @@
     "featureCards": {
       "quickGoal": "Goal for us",
       "quickGoalDesc": "One tap on the match clock and the score updates at once. Then pick the scorer and assister from the match squad - or skip and fill in later.",
-      "tacticalBoard": "Tactical Board",
+      "tacticalBoard": "Tactics board",
       "tacticalBoardDesc": "Draw plays and formations. Communicate your game plan and illustrate tactical concepts visually.",
       "formations": "Quick Formations",
       "formationsDesc": "Set up your formation from ready-made templates. Snap players to position with one tap.",
@@ -595,7 +448,7 @@
       "positionBalanceDesc": "See across a whole season which positions each player has played - by line or by exact spot. Players kept in one role stand out clearly, so you can deliberately broaden how you use them.",
       "matchReport": "Match Report",
       "matchReportDesc": "Write or dictate your account of the game from a ready template of headings - overview, what went well, what to work on, highlights, next step. Share match report sends it to the team with the result, scorers and line-up.",
-      "overtime": "Overtime & Penalties",
+      "overtime": "Extra time & penalties",
       "overtimeDesc": "Record extra time and penalty shootouts. The shootout result decides a level game and flows straight into stats.",
       "friendlies": "Friendly matches",
       "friendliesDesc": "Track practice games and friendlies without skewing your competitive stats.",
@@ -1049,5 +902,252 @@
     "emailLabel": "Email",
     "timelineTitle": "Timeline",
     "timelineContent": "In-app deletion is immediate. Email requests are processed within 30 days."
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "For youth football and futsal coaches",
+      "title": "Leave the clipboard and stopwatch at home",
+      "subtitle": "Line-ups and substitutions planned ahead, the clock and goals during the game, and the match sheet ready as soon as it ends.",
+      "platform": "For Android phones, on Google Play",
+      "trust": {
+        "free": "Free",
+        "noAds": "No ads",
+        "eu": "Data in the EU",
+        "taso": "Match sheet ready for Taso"
+      }
+    },
+    "alt": {
+      "timer": "Match clock at 17:48 with the score, the Goal for us and Opponent +1 buttons and the next substitution",
+      "planner": "Match planner: each player's planned minutes colour-coded, with the line-up on the field",
+      "poytakirja": "Match sheet: the line-up with shirt numbers, final and half-time score and every goal with its minute",
+      "plan": "Plan: players' minutes and substitutions on the field",
+      "matchview": "Match view: players in their positions on the field and the match clock",
+      "finish": "Finish this game: result, date, venue, line-up and goal log",
+      "attendance": "Who is here? Absent players tapped out, 12 of 14 here",
+      "voiceNotes": "Voice notes waiting to be written up",
+      "tacticalBoard": "Tactics board with runs drawn on the field",
+      "matchReport": "Match report written from a template of headings, with the Share match report button",
+      "positionBalance": "Position balance: each player's positions by line across the season",
+      "nextMatch": "Next match: kick-off, departure time, pitch and Mark who is away",
+      "officialRules": "Rules: a search for offside opens Law 11 on page 61",
+      "futsal": "Futsal court in the match view",
+      "playerStats": "Player stats: games, goals, assists and positions",
+      "videoPoster": "Screenshot of the app"
+    },
+    "video": {
+      "eyebrow": "Watch the video",
+      "title": "From game plan to match report",
+      "desc": "A short video shows how a match day runs with MatchOps.",
+      "heroTitle": "MatchOps: from game plan to match report",
+      "play": "Watch the video",
+      "matchDay": "Also watch: Match day with MatchOps",
+      "channel": "All videos on YouTube",
+      "privacy": "The video loads from YouTube only when you press play."
+    },
+    "steps": {
+      "title": "Match day in three steps",
+      "plan": {
+        "title": "Plan",
+        "desc": "Make the line-up and substitutions at home, for one game or a whole tournament day. If someone can't make it, mark them as away and the line-up is rebuilt from your plan."
+      },
+      "rotate": {
+        "title": "Rotate",
+        "desc": "The clock, the substitution timer and the score sit on one screen. You see who comes on next and who goes off, and a goal goes in with one tap."
+      },
+      "record": {
+        "title": "Record",
+        "desc": "After the game the match sheet is ready to copy, and you can share the match report with the team. Stats build up from every game on their own."
+      }
+    },
+    "spotlights": {
+      "taso": {
+        "eyebrow": "After the game",
+        "title": "Match sheet ready for Taso",
+        "desc": "Finish this game brings the result, the line-up and the goals together. The match sheet lists the players with shirt numbers, the goalkeeper and captain, the final and half-time score and every goal with its minute. Copy it and paste it into Taso, the Football Association of Finland's match system, or anywhere else. The Taso link is in the app's menu."
+      },
+      "planner": {
+        "eyebrow": "Tournament day",
+        "title": "The whole tournament day in one go",
+        "desc": "Plan the starting line-ups and substitutions for several games at once. Each player's planned minutes and positions across the day are colour-coded. When you change one game, you see straight away how it affects the rest of the day."
+      },
+      "attendance": {
+        "eyebrow": "Who is here?",
+        "title": "Two missing? Tap them out and the line-up is rebuilt",
+        "desc": "Tap Mark who is away on the Next match card to open a list with every player already in. Tap the ones who are away and you see at once how many are here. The starting line-up and the plan fill in with the players who came, and the game is not counted as played for anyone who was away."
+      }
+    },
+    "features": {
+      "title": "More tools for match day",
+      "voiceNotes": {
+        "title": "Voice notes",
+        "desc": "Hold the button and say what you saw, mid-game. The recording waits until you have time to write it up and attach it to a player or the match."
+      },
+      "tacticalBoard": {
+        "title": "Tactics board",
+        "desc": "Draw situations and runs at half-time so the players see what you mean."
+      },
+      "matchReport": {
+        "title": "Match report",
+        "desc": "Write or dictate a few lines from a ready template: what went well, what to work on, the next step. Share it with the team along with the result and scorers."
+      },
+      "positionBalance": {
+        "title": "Positions across the season",
+        "desc": "See which positions each player has played this season. Anyone kept in one role stands out, if you want to vary how you use them."
+      },
+      "nextMatch": {
+        "title": "Know when to leave",
+        "desc": "Home shows the next match's kick-off, venue and pitch, with driving directions. Tell it where you leave from and when you need to be there, and it works out when to set off."
+      },
+      "officialRules": {
+        "title": "Rules",
+        "desc": "Search for a rule in your own words and open the official rulebook at the right page. Includes the futsal formats by age group."
+      },
+      "futsal": {
+        "title": "Futsal",
+        "desc": "Mark a game as futsal and you get a futsal court, with futsal stats you can view on their own."
+      },
+      "stats": {
+        "title": "Stats",
+        "desc": "Games, goals, assists and positions build up per player and per team. Export them to Excel when you need to."
+      }
+    },
+    "allFeatures": {
+      "summary": "Show all features",
+      "guideLink": "Every feature, with how-tos, is in the guide",
+      "groups": {
+        "gameDay": "Match day",
+        "afterGame": "After the game",
+        "teamSeason": "Team and season"
+      },
+      "items": {
+        "quickGoal": {
+          "title": "Goal for us",
+          "desc": "One tap and the score updates. Pick the scorer and assister now or add them later."
+        },
+        "goalTimeline": {
+          "title": "Goal log",
+          "desc": "Every goal with its minute, in order. Fix or add a goal afterwards."
+        },
+        "overtime": {
+          "title": "Extra time and penalties",
+          "desc": "Record extra time and penalty shoot-outs. The result goes straight into the stats."
+        },
+        "formations": {
+          "title": "Formations",
+          "desc": "Pick a ready formation and the players take their places on the field."
+        },
+        "positions": {
+          "title": "Positions played",
+          "desc": "After the game, mark where each player played. It builds up into each player's position breakdown."
+        },
+        "excelExport": {
+          "title": "Excel reports",
+          "desc": "Export stats to Excel by player, match, team or competition."
+        },
+        "archive": {
+          "title": "All games",
+          "desc": "Browse your saved games, search by opponent and filter by league or tournament."
+        },
+        "roster": {
+          "title": "Players",
+          "desc": "Players with names, shirt numbers and nicknames. The nickname is shown on the player's disc on the field."
+        },
+        "teams": {
+          "title": "Teams",
+          "desc": "Several teams in one app, each with its own games and stats."
+        },
+        "personnel": {
+          "title": "Staff",
+          "desc": "Coaches and other staff with their roles and contact details."
+        },
+        "seasons": {
+          "title": "Leagues",
+          "desc": "Link games to a league and follow the league's stats."
+        },
+        "tournaments": {
+          "title": "Tournaments",
+          "desc": "Tournaments with levels and placements, plus tournament stats."
+        },
+        "friendlies": {
+          "title": "Friendlies",
+          "desc": "Mark a game as a friendly so it stays out of your league stats."
+        },
+        "cloudSync": {
+          "title": "Data kept safe",
+          "desc": "Your data is saved to your account, so it stays with you even if you change phones."
+        }
+      }
+    },
+    "kids": {
+      "eyebrow": "Privacy",
+      "title": "Kids' data: what is stored and where",
+      "items": {
+        "what": {
+          "title": "What is stored",
+          "desc": "The player's first name or nickname, shirt number, match events such as playing time, goals and assists, and the coach's own notes."
+        },
+        "where": {
+          "title": "Where",
+          "desc": "On your phone and in your account on a server in the EU (Stockholm, Sweden). The data is never sold or used for advertising."
+        },
+        "who": {
+          "title": "Who decides",
+          "desc": "You as the coach, or your club. You decide what you record."
+        },
+        "delete": {
+          "title": "Deleting",
+          "desc": "Delete the data or your whole account at any time in Settings → Data."
+        }
+      },
+      "notice": "The app has a ready notice for families: Settings → Data → Notice to players' families. Copy it and send it to the team's group chat.",
+      "privacyLink": "Read the privacy policy"
+    },
+    "about": {
+      "title": "Who makes MatchOps?",
+      "body": "MatchOps is made by Ville Pajala, a Finnish youth football coach who built it for his own team's match days.",
+      "contact": "Questions and feedback:"
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "items": [
+        {
+          "q": "Does MatchOps cost anything?",
+          "a": "No. MatchOps is free and has no ads."
+        },
+        {
+          "q": "Do I need an account?",
+          "a": "Yes. You create a free account with your email and a password. The account keeps your data safe even if you change phones."
+        },
+        {
+          "q": "Does MatchOps work on iPhone?",
+          "a": "No. MatchOps is only available for Android phones, on Google Play. There is no iPhone version."
+        },
+        {
+          "q": "Where is my data?",
+          "a": "On your phone and in your account on a server in the EU (Stockholm, Sweden). The data is never sold or used for advertising."
+        },
+        {
+          "q": "Does it work without a connection?",
+          "a": "Yes, once you have signed in. Signing in needs a connection, but after that the app works at the pitch without one. Your changes go to your account when the connection is back."
+        },
+        {
+          "q": "Does it work for futsal?",
+          "a": "Yes. Mark a game as futsal and you get a futsal court, with futsal stats you can view on their own. The rules section also has the futsal formats by age group."
+        },
+        {
+          "q": "Does MatchOps work with Taso?",
+          "a": "The match sheet is ready-made text that you copy and paste into Taso. MatchOps is not connected to Taso directly, but the Taso link is in the app's menu."
+        },
+        {
+          "q": "Can I delete my data?",
+          "a": "Yes, at any time. In Settings → Data you can delete all your data or your whole account."
+        }
+      ],
+      "more": "More questions and answers in the guide"
+    },
+    "cta": {
+      "title": "Ready for your next match day?",
+      "subtitle": "Get MatchOps free on Google Play."
+    }
   }
 }
