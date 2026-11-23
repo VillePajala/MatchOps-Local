@@ -10,7 +10,6 @@ import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 import { useModalHardwareBack, useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { getCurrentGameIdSetting } from '@/utils/appSettings';
 import logger from '@/utils/logger';
-import { DEMO_CONCEPT } from './demoConcept';
 import { validateConcept } from './validateConcept';
 import { crossesCut, resolveStep } from './resolveStep';
 import { planMotion } from './motion';
@@ -58,7 +57,7 @@ export interface PresentationSequence {
 interface PlaybookPresentationProps {
   isOpen: boolean;
   onClose: () => void;
-  concept?: Concept;
+  concept: Concept;
   sequence?: PresentationSequence;
   /** Open in this mode instead of the remembered one (the next theme keeps the current mode). */
   initialFocus?: boolean;
@@ -132,7 +131,7 @@ const MOTION_CSS = `
 export default function PlaybookPresentation({
   isOpen,
   onClose,
-  concept = DEMO_CONCEPT,
+  concept,
   sequence,
   initialFocus,
   startAtEnd,

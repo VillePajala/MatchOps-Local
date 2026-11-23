@@ -1,7 +1,7 @@
 import { lintConcept, validateConcept } from '../validateConcept';
 import { crossesCut, resolveStep } from '../resolveStep';
 import { assignPlayers, discName } from '../assignNames';
-import { DEMO_CONCEPT } from '../demoConcept';
+import { DEMO_CONCEPT } from './demoConcept.fixture';
 import type { Concept } from '../types';
 import type { Player } from '@/types';
 
@@ -26,7 +26,7 @@ const base = (): Concept => ({
 });
 
 describe('validateConcept', () => {
-  it('accepts a valid concept and the built-in demo concept', () => {
+  it('accepts a valid concept and the demo fixture', () => {
     expect(validateConcept(base())).toEqual({ ok: true, concept: base() });
     const demo = validateConcept(DEMO_CONCEPT);
     expect(demo.ok ? [] : demo.errors).toEqual([]);
@@ -275,7 +275,7 @@ describe('lintConcept', () => {
     ],
   });
 
-  it('has no warnings for a clean concept or the built-in demo', () => {
+  it('has no warnings for a clean concept or the demo fixture', () => {
     expect(lintConcept(clean())).toEqual([]);
     expect(lintConcept(DEMO_CONCEPT)).toEqual([]);
   });

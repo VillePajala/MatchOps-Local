@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthProvider';
 import { useAccountFeatures } from '@/hooks/useAccountFeatures';
 import { PLAYBOOK_FEATURE } from '@/playbook/feature';
 import logger from '@/utils/logger';
-import { DEMO_CONCEPT } from './demoConcept';
+import { MATCHOPS_8V8 } from './builtInPlaybooks';
 import { validateConcept } from './validateConcept';
 import { redeemPlaybookCode, type RedeemCodeResult } from './playbookCodes';
 import type { Concept } from './types';
@@ -24,16 +24,16 @@ import type { Concept } from './types';
  * - A club code unlocks a playbook (`redeemCode`, cloud mode only); on success
  *   the playbooks are fetched again so the new one is there.
  * - Local mode: no club playbooks.
- * - Always (for flagged accounts) our own "MatchOps esimerkit" playbook with the
- *   built-in demo concept, last in the list.
+ * - Always (for flagged accounts) our own universal collection "MatchOps: 8v8
+ *   perusteet", built into the app (builtInPlaybooks.ts), last in the list.
  */
 
-export const BUILT_IN_PLAYBOOK_ID = 'matchops-examples';
+export const BUILT_IN_PLAYBOOK_ID = MATCHOPS_8V8.id;
 
 export interface Playbook {
   id: string;
   name: string;
-  /** Our own built-in examples (name is translated by the view). */
+  /** Our own built-in collection (name is translated by the view). */
   builtIn: boolean;
   concepts: Concept[];
 }
@@ -66,9 +66,9 @@ const CACHE_KEY = 'pelitapa_playbooks_v1';
 
 export const BUILT_IN_PLAYBOOK: Playbook = {
   id: BUILT_IN_PLAYBOOK_ID,
-  name: 'MatchOps esimerkit',
+  name: MATCHOPS_8V8.name,
   builtIn: true,
-  concepts: [DEMO_CONCEPT],
+  concepts: MATCHOPS_8V8.concepts,
 };
 
 /**

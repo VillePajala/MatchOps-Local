@@ -4253,7 +4253,7 @@
       "formats": "Pelimuoto",
       "phases": "Pelin vaihe",
       "playbooks": "Kokoelma",
-      "builtInName": "MatchOps esimerkit",
+      "builtInName": "MatchOps: 8v8 perusteet",
       "steps_one": "{{count}} vaihe",
       "steps_other": "{{count}} vaihetta",
       "loading": "Ladataan seuran kokoelmia…",

@@ -4253,7 +4253,7 @@
       "formats": "Format",
       "phases": "Phase of play",
       "playbooks": "Collection",
-      "builtInName": "MatchOps examples",
+      "builtInName": "MatchOps: 8v8 basics",
       "steps_one": "{{count}} step",
       "steps_other": "{{count}} steps",
       "loading": "Loading your club's collections…",

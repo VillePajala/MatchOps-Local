@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, act, waitFor, within } from '@testing-library/react';
 import type { Player } from '@/types';
 import PlaybookPresentation from '../PlaybookPresentation';
-import { DEMO_CONCEPT } from '../demoConcept';
+import { DEMO_CONCEPT } from './demoConcept.fixture';
 import { planMotion } from '../motion';
 
 jest.mock('react-i18next', () => ({
@@ -63,7 +63,7 @@ if (typeof window.PointerEvent === 'undefined') {
 }
 
 async function renderView(onClose = jest.fn()) {
-  render(<PlaybookPresentation isOpen onClose={onClose} />);
+  render(<PlaybookPresentation isOpen concept={DEMO_CONCEPT} onClose={onClose} />);
   // Names arrive from the roster read.
   await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
   return onClose;
@@ -151,7 +151,7 @@ describe('PlaybookPresentation', () => {
         { ...roster[6], relX: 0.36, relY: 0.83 },
       ],
     });
-    render(<PlaybookPresentation isOpen onClose={jest.fn()} />);
+    render(<PlaybookPresentation isOpen concept={DEMO_CONCEPT} onClose={jest.fn()} />);
     await waitFor(() => {
       const keeper = document.querySelector('[data-player="mv"]') as HTMLElement;
       expect(within(keeper).getByText('Niilo')).toBeInTheDocument();
@@ -380,7 +380,7 @@ describe('PlaybookPresentation focus mode', () => {
 
   it('remembers the mode a concept was left in: focus (also back, back out of it) or normal', async () => {
     const open = async () => {
-      const view = render(<PlaybookPresentation isOpen onClose={jest.fn()} />);
+      const view = render(<PlaybookPresentation isOpen concept={DEMO_CONCEPT} onClose={jest.fn()} />);
       await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
       return view;
     };
@@ -461,7 +461,7 @@ describe('PlaybookPresentation in a sequence (a game\'s themes)', () => {
   async function renderInSequence(index: number, total: number, initialFocus?: boolean) {
     const onNext = jest.fn();
     render(
-      <PlaybookPresentation isOpen onClose={jest.fn()} sequence={{ index, total, onNext }} initialFocus={initialFocus} />,
+      <PlaybookPresentation isOpen concept={DEMO_CONCEPT} onClose={jest.fn()} sequence={{ index, total, onNext }} initialFocus={initialFocus} />,
     );
     await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
     return onNext;
@@ -491,7 +491,7 @@ describe('PlaybookPresentation in a sequence (a game\'s themes)', () => {
   it('back from the first step goes to the previous theme (not on the first theme)', async () => {
     const onPrev = jest.fn();
     const { unmount } = render(
-      <PlaybookPresentation isOpen onClose={jest.fn()} sequence={{ index: 1, total: 2, onNext: jest.fn(), onPrev }} />,
+      <PlaybookPresentation isOpen concept={DEMO_CONCEPT} onClose={jest.fn()} sequence={{ index: 1, total: 2, onNext: jest.fn(), onPrev }} />,
     );
     await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
     const back = screen.getByRole('button', { name: 'Previous theme' });
@@ -505,13 +505,13 @@ describe('PlaybookPresentation in a sequence (a game\'s themes)', () => {
     expect(screen.getByTestId('playbook-step-title')).toHaveTextContent(steps[0].title);
     unmount();
 
-    render(<PlaybookPresentation isOpen onClose={jest.fn()} sequence={{ index: 0, total: 2, onNext: jest.fn(), onPrev }} />);
+    render(<PlaybookPresentation isOpen concept={DEMO_CONCEPT} onClose={jest.fn()} sequence={{ index: 0, total: 2, onNext: jest.fn(), onPrev }} />);
     await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Previous step' })).toBeDisabled();
   });
 
   it('startAtEnd opens the concept at its end (the question)', async () => {
-    render(<PlaybookPresentation isOpen onClose={jest.fn()} startAtEnd sequence={{ index: 0, total: 2, onNext: jest.fn() }} />);
+    render(<PlaybookPresentation isOpen concept={DEMO_CONCEPT} onClose={jest.fn()} startAtEnd sequence={{ index: 0, total: 2, onNext: jest.fn() }} />);
     await waitFor(() => expect(screen.getByText('Eeli')).toBeInTheDocument());
     expect(screen.getByTestId('playbook-next')).toHaveTextContent('Next theme');
     fireEvent.click(screen.getByRole('button', { name: 'Previous step' }));
