@@ -8,6 +8,17 @@
     },
     {
       "date": "2026-11-23",
+      "en": [
+        "Player ratings and the experimental AI features (transcription, AI report drafts, translation) are no longer shown. Voice notes stay: they are recorded on your phone only, and you listen and write the note yourself. Ratings you already recorded are kept and still included in exports.",
+        "The notice to players' families (Settings → Data → Privacy) now says who is responsible for the data, what is stored, where, that voice recordings stay on your phone, how to ask for deletion, and where to complain."
+      ],
+      "fi": [
+        "Pelaajien arvioinnit ja kokeelliset tekoälytoiminnot (litterointi, tekoälyn raporttiluonnokset, kääntäminen) eivät enää näy. Äänimuistiinpanot säilyvät: ne tallentuvat vain puhelimeesi, ja kuuntelet ja kirjoitat muistiinpanon itse. Jo tehdyt arvioinnit säilyvät ja ovat edelleen mukana viennissä.",
+        "Tiedote pelaajien perheille (Asetukset → Tiedot → Tietosuoja) kertoo nyt, kuka tiedoista vastaa, mitä tallennetaan, missä, että äänitallenteet pysyvät puhelimessasi, miten poistoa pyydetään ja minne voi valittaa."
+      ]
+    },
+    {
+      "date": "2026-11-23",
       "en": ["Match report editing: the buttons sit in two tidy rows instead of four squeezed ones."],
       "fi": ["Otteluraportin muokkaus: painikkeet ovat kahdessa siistissä rivissä neljän ahtaan sijaan."]
     },

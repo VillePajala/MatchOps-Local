@@ -21,6 +21,7 @@ import {
   testAiProviderKey,
   useAiProviderState,
 } from '../aiProvider';
+import { setLabsEnabled } from '@/utils/labs';
 
 jest.mock('@/utils/logger', () => ({
   __esModule: true,
@@ -30,6 +31,7 @@ jest.mock('@/utils/logger', () => ({
 beforeEach(() => {
   localStorage.clear();
   resetAiProviderStateForTests();
+  setLabsEnabled(true); // the AI is reachable only with the labs switch on
 });
 
 /**

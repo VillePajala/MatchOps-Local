@@ -1,5 +1,6 @@
 import {
   isAiProviderUrl,
+  scrubMessageText,
   scrubSecretsDeep,
   scrubSecretsInString,
   scrubUrl,
@@ -36,6 +37,28 @@ describe('sentryScrub', () => {
         'Authorization: [REDACTED]',
       );
       expect(scrubSecretsInString('skate sk-short')).toBe('skate sk-short');
+    });
+  });
+
+  describe('user content (privacy 2026-11)', () => {
+    /** @critical - an email address never reaches Sentry, wherever it sits. */
+    it('redacts email addresses', () => {
+      expect(scrubSecretsInString('sign-in failed for coach.name+x@example.fi today')).toBe(
+        'sign-in failed for [REDACTED] today',
+      );
+      expect(scrubSecretsDeep({ a: ['x@y.com'] })).toEqual({ a: ['[REDACTED]'] });
+    });
+
+    /** @critical - quoted text in a message is where an echoed name would sit. */
+    it('redacts quoted text in free-form messages, keeps the rest', () => {
+      expect(scrubMessageText('A team named "FC Matti" already exists')).toBe(
+        'A team named "[REDACTED]" already exists',
+      );
+      expect(scrubMessageText('Pelaaja „Matti” ja “Liisa” lisätty')).toBe(
+        'Pelaaja "[REDACTED]" ja "[REDACTED]" lisätty',
+      );
+      expect(scrubMessageText('Failed to save game: timeout')).toBe('Failed to save game: timeout');
+      expect(scrubMessageText('key sk-proj-abcdefghijklmnop123')).toBe('key [REDACTED]');
     });
   });
 

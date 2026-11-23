@@ -9,6 +9,7 @@ import AiSettingsCard from '../AiSettingsCard';
 import { deleteAllClips } from '@/utils/audioClipStore';
 import { acceptAiConsent, getAiProviderState, resetAiProviderStateForTests, setAiProviderKey } from '@/utils/aiProvider';
 import { recordAiUsage, resetAiUsageStateForTests } from '@/utils/aiUsage';
+import { setLabsEnabled } from '@/utils/labs';
 
 const showToast = jest.fn();
 jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast }) }));
@@ -30,6 +31,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   localStorage.clear();
   resetAiProviderStateForTests();
+  setLabsEnabled(true); // the AI is reachable only with the labs switch on
   resetAiUsageStateForTests();
   global.fetch = fetchMock as unknown as typeof fetch;
 });

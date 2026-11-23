@@ -29,6 +29,7 @@ import type { GamePacket } from '../gamePacket';
 import { acceptAiConsent, resetAiProviderStateForTests, setAiProviderKey } from '@/utils/aiProvider';
 import type { AppState } from '@/types/game';
 import type { Player } from '@/types';
+import { setLabsEnabled } from '@/utils/labs';
 
 jest.mock('@/utils/logger', () => ({
   __esModule: true,
@@ -41,6 +42,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   localStorage.clear();
   resetAiProviderStateForTests();
+  setLabsEnabled(true); // the AI is reachable only with the labs switch on
   global.fetch = fetchMock as unknown as typeof fetch;
 });
 
@@ -453,6 +455,7 @@ describe('translateReport', () => {
     // The outer beforeEach already cleared storage; drop the key this one set.
     localStorage.clear();
     resetAiProviderStateForTests();
+    setLabsEnabled(true); // the AI is reachable only with the labs switch on
     const fetchMock = jest.fn();
     global.fetch = fetchMock as unknown as typeof fetch;
     await expect(translateReport({ text: 'Raportti', language: 'en' })).rejects.toMatchObject({
@@ -553,6 +556,7 @@ describe('groupPlayerNotes', () => {
   it('refuses without a connected provider and never calls out', async () => {
     localStorage.clear();
     resetAiProviderStateForTests();
+    setLabsEnabled(true); // the AI is reachable only with the labs switch on
     const fetchMock = jest.fn();
     global.fetch = fetchMock as unknown as typeof fetch;
     await expect(groupPlayerNotes({ notes: ['a', 'b'], language: 'fi' })).rejects.toMatchObject({

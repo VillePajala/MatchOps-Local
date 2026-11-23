@@ -14,6 +14,7 @@ import type { AuthState, Session } from '@/interfaces/AuthTypes';
 import { POLICY_VERSION } from '@/config/constants';
 import { notifyAuthServerUnreachable } from '@/auth/authReachability';
 import { AuthError } from '@/interfaces/DataStoreErrors';
+import { setLabsEnabled } from '@/utils/labs';
 
 // Track auth callbacks for testing
 let authCallbacks: ((state: AuthState, session: Session | null) => void)[] = [];
@@ -2206,6 +2207,7 @@ describe('AuthProvider', () => {
     it('a coach signing in fresh never takes a pre-update device-wide AI setup', async () => {
       const ai = jest.requireActual('@/utils/aiProvider') as typeof import('@/utils/aiProvider');
       ai.resetAiProviderStateForTests();
+      setLabsEnabled(true); // the AI is reachable only with the labs switch on
       // The device holds a setup from before the update; nobody is signed in.
       localStorage.setItem('matchops_ai_key', 'sk-pre-update-owner-1234');
       localStorage.setItem('matchops_ai_consent', ai.AI_CONSENT_VERSION);
@@ -2236,6 +2238,7 @@ describe('AuthProvider', () => {
       const ai = jest.requireActual('@/utils/aiProvider') as typeof import('@/utils/aiProvider');
       const undo = jest.requireActual('@/utils/reportUndo') as typeof import('@/utils/reportUndo');
       ai.resetAiProviderStateForTests();
+      setLabsEnabled(true); // the AI is reachable only with the labs switch on
       mockAuthService = createMockCloudAuthService(true);
       const factory = require('@/datastore/factory');
       factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));

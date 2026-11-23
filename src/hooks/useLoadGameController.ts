@@ -18,7 +18,6 @@ import { useTranslation } from 'react-i18next';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
-import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import {
   getSavedGames,
   getLatestGameId,
@@ -55,7 +54,6 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flush
   const { t } = useTranslation();
   const { userId } = useDataStore();
   const { showToast } = useToast();
-  const assessmentsEnabled = useAssessmentsEnabled();
   const queryClient = useQueryClient();
 
   // Shared query keys - same cache as the game side.
@@ -213,14 +211,16 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flush
           seasonsQuery.data ?? [],
           tournamentsQuery.data ?? [],
           translate,
-          { includeAssessments: assessmentsEnabled },
+          // Ratings already recorded stay in the export even though the
+          // assessment feature is hidden (sheets appear only when data exists).
+          { includeAssessments: true },
         );
       } catch (error) {
         logger.error('[useLoadGameController] Export failed:', error);
         showToast(t('export.exportGameFailed'), 'error');
       }
     },
-    [savedGames, masterRosterQuery.data, seasonsQuery.data, tournamentsQuery.data, showToast, t, assessmentsEnabled],
+    [savedGames, masterRosterQuery.data, seasonsQuery.data, tournamentsQuery.data, showToast, t],
   );
 
   return {

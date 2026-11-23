@@ -9,6 +9,7 @@ import { PremiumProvider } from '@/contexts/PremiumContext';
 import { AuthProvider } from '@/contexts/AuthProvider';
 import { allowConsoleMessagesInThisFile } from '../../tests/utils/allowConsole';
 import { APP_VERSION } from '@/config/constants';
+import { isLabsEnabled, resetLabsForTests, setLabsEnabled } from '@/utils/labs';
 
 // This file drives these error paths on purpose (review 9.5: allowed here only).
 allowConsoleMessagesInThisFile(['Failed to save']);
@@ -133,6 +134,8 @@ const navigateToTab = (tabName: 'General' | 'Data' | 'Account' | 'About') => {
 describe('<SettingsModal />', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    setLabsEnabled(false);
+    resetLabsForTests();
     // Ensure navigator.storage is undefined by default for clean test state
     if ('storage' in navigator) {
       delete (navigator as any).storage;
@@ -140,22 +143,54 @@ describe('<SettingsModal />', () => {
   });
 
   /**
-   * @critical - owner decision 2026-09-09: the rating feature is off by
-   * default and its two selects only appear once it is switched on.
+   * @critical - owner decision 2026-11: player assessments are removed for
+   * now, so Settings offers no switch and none of its options.
    */
-  test('player assessments are off by default and reveal their options when switched on', async () => {
+  test('offers no player-assessment settings', async () => {
     render(
       <TestWrapper>
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    await waitFor(() => expect(document.getElementById('assessments-enabled-toggle')).toBeInTheDocument());
-    const toggle = document.getElementById('assessments-enabled-toggle') as HTMLInputElement;
-    expect(toggle).not.toBeChecked();
+    await waitFor(() => expect(document.getElementById('team-name-input')).toBeInTheDocument());
+    expect(document.getElementById('assessments-enabled-toggle')).not.toBeInTheDocument();
     expect(document.getElementById('assessment-rating-style-select')).not.toBeInTheDocument();
-    fireEvent.click(toggle);
-    await waitFor(() => expect(document.getElementById('assessment-rating-style-select')).toBeInTheDocument());
-    expect(document.getElementById('assessment-template-select')).toBeInTheDocument();
+    expect(document.getElementById('assessment-template-select')).not.toBeInTheDocument();
+  });
+
+  /**
+   * @critical - the AI (Kirjuri) is experimental and hidden unless the device's
+   * labs switch is on: seven taps on the version line turn it on and off.
+   */
+  test('hides the AI card until the version line is tapped seven times, and toggles back', async () => {
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+    await waitFor(() => expect(document.getElementById('team-name-input')).toBeInTheDocument());
+    expect(screen.queryByTestId('ai-settings-card')).not.toBeInTheDocument();
+
+    navigateToTab('About');
+    const version = await screen.findByTestId('app-version');
+    expect(version).toHaveTextContent(APP_VERSION);
+    // Six taps are not enough.
+    for (let i = 0; i < 6; i++) fireEvent.click(version);
+    expect(isLabsEnabled()).toBe(false);
+    fireEvent.click(version);
+    expect(isLabsEnabled()).toBe(true);
+    expect(await screen.findByText('Experimental features on')).toBeInTheDocument();
+
+    navigateToTab('General');
+    expect(await screen.findByTestId('ai-settings-card')).toBeInTheDocument();
+
+    navigateToTab('About');
+    const versionAgain = await screen.findByTestId('app-version');
+    for (let i = 0; i < 7; i++) fireEvent.click(versionAgain);
+    expect(isLabsEnabled()).toBe(false);
+    expect(await screen.findByText('Experimental features off')).toBeInTheDocument();
+    navigateToTab('General');
+    await waitFor(() => expect(screen.queryByTestId('ai-settings-card')).not.toBeInTheDocument());
   });
 
   /**

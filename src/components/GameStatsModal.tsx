@@ -91,6 +91,8 @@ import {
 } from './GameStatsModal/components';
 import { StatsFilterPanel } from './GameStatsModal/components/StatsFilterPanel';
 import { useAiProviderState } from '@/utils/aiProvider';
+import { useLabsEnabled } from '@/utils/labs';
+import { ASSESSMENTS_FEATURE_AVAILABLE } from '@/hooks/useAssessmentsEnabled';
 import CoverageNudgeCard from './GameStatsModal/components/CoverageNudgeCard';
 import TranslateReportPanel from './GameStatsModal/components/TranslateReportPanel';
 import type { ReportDraftHandle } from './GameStatsModal/components/ReportDraftPanel';
@@ -394,9 +396,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const clubSeasonStartDate = settings?.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE;
   const clubSeasonEndDate = settings?.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE;
   const hasConfiguredSeasonDates = settings?.hasConfiguredSeasonDates ?? false;
-  // Off by default (owner decision 2026-09-09). One value feeds the spine step,
+  // Off by default (owner decision 2026-09-09), and removed for everyone for
+  // now (2026-11, see useAssessmentsEnabled). One value feeds the spine step,
   // the checklist, the team card and the player view, so they cannot disagree.
-  const assessmentsEnabled = settings?.assessmentsEnabled ?? false;
+  const assessmentsEnabled = ASSESSMENTS_FEATURE_AVAILABLE && (settings?.assessmentsEnabled ?? false);
 
   // Player pool for Player tab search: prefer full master roster; fall back to current game's available players
   const playerPool: Player[] = useMemo(() => {
@@ -805,6 +808,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
    * settings card is the one place the feature announces itself.
    */
   const ai = useAiProviderState();
+  // Labs switch (privacy 2026-11): plain voice notes (record on this phone,
+  // listen, type the note) are for everyone; the spoken report exists to be
+  // transcribed and drafted by AI, so it belongs to the experimental set.
+  const labsEnabled = useLabsEnabled();
   const canTidy = Boolean(onApplyReportDraft) && Boolean(currentGame) && ai.connected;
   const handleTidy = useCallback(() => {
     reportDraftRef.current?.tidy();
@@ -1187,7 +1194,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           onCancelEdit={handleCancelEditNotes}
           onEditNotesChange={setEditGameNotes}
         />
-          {dictation && onAddGameNote && (
+          {labsEnabled && dictation && onAddGameNote && (
             <SpokenReportPanel
               dictation={dictation}
               vocabulary={dictationVocabulary}

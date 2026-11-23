@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import AiConsentGate from '../AiConsentGate';
 import { AI_CONSENT_VERSION, getAiProviderState, resetAiProviderStateForTests } from '@/utils/aiProvider';
+import { setLabsEnabled } from '@/utils/labs';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_key: string, fallback?: string) => fallback ?? _key }),
@@ -10,6 +11,7 @@ jest.mock('react-i18next', () => ({
 beforeEach(() => {
   localStorage.clear();
   resetAiProviderStateForTests();
+  setLabsEnabled(true); // the AI is reachable only with the labs switch on
 });
 
 describe('AiConsentGate', () => {

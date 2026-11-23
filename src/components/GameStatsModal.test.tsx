@@ -64,6 +64,19 @@ jest.mock('@/hooks/useDataStore', () => ({
   useDataStore: () => mockUseDataStoreReturn,
 }));
 
+// Voice-note clips live in their own on-device IndexedDB store; tests choose
+// what it holds. Empty by default, so the inbox renders nothing.
+let mockStoredClips: Array<Record<string, unknown>> = [];
+jest.mock('@/utils/audioClipStore', () => ({
+  ...jest.requireActual('@/utils/audioClipStore'),
+  listClips: async () => mockStoredClips,
+  rotateOldClips: async () => 0,
+}));
+
+import { resetLabsForTests, setLabsEnabled } from '@/utils/labs';
+import { acceptAiConsent, clearAiProviderKey, revokeAiConsent, setAiProviderKey } from '@/utils/aiProvider';
+import type { DictationControls } from '@/hooks/useDictationCapture';
+
 import * as teamsUtils from '@/utils/teams';
 
 const mockGetSeasons = seasonsUtils.getSeasons as jest.Mock;
@@ -1117,6 +1130,75 @@ describe('GameStatsModal', () => {
     });
   });
 
+  /**
+   * Owner decision 2026-11-23: a voice note is only a recording on the coach's
+   * phone, so recording, listening, typing and discarding are for everyone.
+   * Only the AI parts (transcription, the spoken report, drafting) wait for the
+   * device's labs switch AND the coach's own connected provider.
+   * @critical
+   */
+  describe('voice notes for everyone, AI only behind labs', () => {
+    const twoClips = [
+      { id: 'c1', gameId: 'game1', time: 300, period: 1, createdAt: '2026-11-23T10:00:00Z', durationMs: 2000, mimeType: 'audio/webm', sizeBytes: 10 },
+      { id: 'c2', gameId: 'game1', time: 900, period: 2, createdAt: '2026-11-23T10:10:00Z', durationMs: 3000, mimeType: 'audio/webm', sizeBytes: 10 },
+    ];
+    const dictation: DictationControls = {
+      isSupported: true,
+      available: true,
+      permission: 'granted',
+      isRecording: false,
+      clipCount: 2,
+      needsIntro: false,
+      lastClip: null,
+      acknowledgeIntro: jest.fn(),
+      start: jest.fn(),
+      stop: jest.fn(),
+    };
+    const props = () => ({ ...getDefaultProps(), onAddGameNote: jest.fn(() => true), onApplyReportDraft: jest.fn(() => true), dictation });
+
+    beforeEach(() => {
+      mockStoredClips = twoClips;
+      // A device that once set up the AI keeps its key and consent.
+      setAiProviderKey('sk-test-1234');
+      acceptAiConsent();
+    });
+    afterEach(() => {
+      mockStoredClips = [];
+      clearAiProviderKey();
+      revokeAiConsent();
+      setLabsEnabled(false);
+      resetLabsForTests();
+    });
+
+    it('without labs: the inbox, the composer microphone and the wrap-up row are there; no AI action is', async () => {
+      renderComponent(props());
+      expect(await screen.findAllByTestId('dictation-clip')).toHaveLength(2);
+      // The manual flow: listen, type, save or discard.
+      expect(screen.getAllByRole('button', { name: i18n.t('dictation.play', 'Play') })).toHaveLength(2);
+      expect(screen.getAllByTestId('dictation-text')).toHaveLength(2);
+      expect(screen.getAllByTestId('dictation-discard')).toHaveLength(2);
+      expect(screen.getByTestId('dictation-transcribe-hint')).toBeInTheDocument();
+      expect(screen.getByTestId('note-composer-record')).toBeInTheDocument();
+      expect(await screen.findByTestId('wrap-up-status-voiceNotes-todo')).toBeInTheDocument();
+      // A stored key and consent are not enough: no transcription, no spoken
+      // report, no AI draft or tidy.
+      expect(screen.queryByTestId('dictation-transcribe')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('spoken-report-panel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('report-draft-panel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('report-draft-unavailable')).not.toBeInTheDocument();
+    });
+
+    it('with labs and the coach\'s own provider: transcription and the spoken report come back', async () => {
+      act(() => setLabsEnabled(true));
+      renderComponent(props());
+      expect(await screen.findByTestId('dictation-transcribe')).toBeInTheDocument();
+      expect(screen.queryByTestId('dictation-transcribe-hint')).not.toBeInTheDocument();
+      expect(screen.getByTestId('spoken-report-panel')).toBeInTheDocument();
+      expect(screen.getByTestId('spoken-report-cost')).toBeInTheDocument();
+      expect(screen.getByTestId('report-draft-panel')).toBeInTheDocument();
+    });
+  });
+
   describe('Kirjuri inbox and the scratch game', () => {
     it('does not offer the dictation inbox on the unsaved scratch game', async () => {
       renderComponent({ ...getDefaultProps(), currentGameId: 'unsaved_game' });
@@ -1208,10 +1290,11 @@ describe('GameStatsModal', () => {
         onExportOneExcel: jest.fn(),
       });
       await tabReady();
-      await waitFor(() => expect(stepKeys()).toContain('spine-assessments'));
+      await waitFor(() => expect(stepKeys()).toContain('spine-export'));
+      // No assessments step: the feature is removed for now (2026-11).
       expect(stepKeys()).toEqual([
         'spine-goals', 'spine-taso', 'spine-report', 'spine-checklist',
-        'spine-notes', 'spine-positions', 'spine-assessments', 'spine-export',
+        'spine-notes', 'spine-positions', 'spine-export',
       ]);
       expect(screen.queryByText(/Step \d+ of \d+/)).not.toBeInTheDocument();
       // The match sheet is the one amber action; Share sits inside the report section.
@@ -1260,6 +1343,19 @@ describe('GameStatsModal', () => {
     });
 
     /**
+     * @critical - owner decision 2026-11: player assessments are removed for
+     * everyone, so even an account whose stored setting is ON meets no step.
+     */
+    it('omits the assessments step even when the stored setting is on', async () => {
+      // The default settings mock has assessmentsEnabled: true.
+      renderComponent({ ...getDefaultProps(), onOpenAssessments: jest.fn(), onPlayerPositionsChange: jest.fn(), onExportOneExcel: jest.fn() });
+      await tabReady();
+      await waitFor(() => expect(stepKeys()).toContain('spine-export'));
+      expect(stepKeys()).not.toContain('spine-assessments');
+      expect(screen.queryByTestId('spine-open-assessments')).not.toBeInTheDocument();
+    });
+
+    /**
      * @critical - what the coach copies into the official Taso report. The
      * button must exist and the text must be the Taso order, not the recap.
      */
@@ -1297,10 +1393,11 @@ describe('GameStatsModal', () => {
       await tabReady();
       fireEvent.click(screen.getByTestId('spine-add-goal'));
       fireEvent.click(screen.getByTestId('spine-export-excel'));
-      fireEvent.click(screen.getByTestId('spine-open-assessments'));
       expect(onAddGoal).toHaveBeenCalledTimes(1);
       expect(onExportOneExcel).toHaveBeenCalledWith('game1');
-      expect(onOpenAssessments).toHaveBeenCalledTimes(1);
+      // Assessments are removed for now: no hand-off even when wired.
+      expect(screen.queryByTestId('spine-open-assessments')).not.toBeInTheDocument();
+      expect(onOpenAssessments).not.toHaveBeenCalled();
     });
 
     it('aggregate tabs keep their own layout with no spine', async () => {

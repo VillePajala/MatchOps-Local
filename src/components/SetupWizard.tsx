@@ -428,7 +428,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           { name, nickname: defaultNickname(name), jerseyNumber: '', notes: '' },
           userId ?? undefined,
         );
-        if (!player) throw new Error(`player creation failed: ${name}`);
+        if (!player) throw new Error('player creation failed');
         created.set(row.id, player);
         saveDraftNow({ names: rows, draft: '' }); // a reload now must not create this player again
       }

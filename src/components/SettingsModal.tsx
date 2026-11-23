@@ -40,12 +40,12 @@ import {
 } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE } from '@/utils/appSettings';
-import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useAppLayout, useSetAppLayout } from '@/hooks/useAppLayout';
 import type { AppLayout } from '@/types/settings';
 import AiSettingsCard from '@/components/AiSettingsCard';
+import { LABS_TAP_COUNT, isLabsEnabled, setLabsEnabled, useLabsEnabled } from '@/utils/labs';
 import PrivacySettingsSection from '@/components/PrivacySettingsSection';
 import CloudSyncSection from './CloudSyncSection';
 import TransitionOverlay from './TransitionOverlay';
@@ -173,14 +173,31 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     };
   }, [isOpen]);
   const [resetConfirm, setResetConfirm] = useState('');
+  // Labs switch (privacy 2026-11): tapping the version line LABS_TAP_COUNT
+  // times in a row toggles the device's experimental features (the AI).
+  const labsEnabled = useLabsEnabled();
+  const versionTapsRef = useRef<{ count: number; last: number }>({ count: 0, last: 0 });
+  const handleVersionTap = useCallback(() => {
+    const now = Date.now();
+    const taps = versionTapsRef.current;
+    taps.count = now - taps.last > 2000 ? 1 : taps.count + 1;
+    taps.last = now;
+    if (taps.count < LABS_TAP_COUNT) return;
+    taps.count = 0;
+    const next = !isLabsEnabled();
+    setLabsEnabled(next);
+    showToast(
+      next
+        ? t('settingsModal.labsOn', 'Experimental features on')
+        : t('settingsModal.labsOff', 'Experimental features off'),
+      'info',
+    );
+  }, [showToast, t]);
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
   const restoreFileInputRef = useRef<HTMLInputElement>(null);
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(DEFAULT_CLUB_SEASON_START_DATE);
   const [startingPoint, setStartingPoint] = useState<AppSettings['startingPoint']>(undefined);
   const [arrivalBuffer, setArrivalBuffer] = useState<number>(DEFAULT_ARRIVAL_BUFFER_MINUTES);
-  const [assessmentsEnabled, setAssessmentsEnabled] = useState(false);
-  const [assessmentRatingStyle, setAssessmentRatingStyle] = useState<AssessmentRatingStyle>('words');
-  const [assessmentTemplate, setAssessmentTemplate] = useState<AssessmentTemplate>('balanced');
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
   const [showRestoreResults, setShowRestoreResults] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -328,9 +345,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         setClubSeasonStartDate(settings.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE);
         setStartingPoint(settings.startingPoint);
         setArrivalBuffer(settings.arrivalBufferMinutes ?? DEFAULT_ARRIVAL_BUFFER_MINUTES);
-        setAssessmentsEnabled(settings.assessmentsEnabled ?? false);
-        setAssessmentRatingStyle(settings.assessmentRatingStyle ?? 'words');
-        setAssessmentTemplate(settings.assessmentTemplate ?? 'balanced');
       }).catch((error) => {
         // Use defaults if loading fails
         logger.error('Failed to load club season settings:', error);
@@ -531,38 +545,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Handler for season start date changes (auto-calculates end date)
 
-  const handleAssessmentsEnabledChange = async (enabled: boolean) => {
-    setAssessmentsEnabled(enabled);
-    try {
-      await updateAppSettings({ assessmentsEnabled: enabled }, userId);
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.settings.detail(), userId] });
-    } catch (error) {
-      logger.error('Failed to save assessments setting:', error);
-      showToast(t('settingsModal.saveSettingError', 'Failed to save setting. Please try again.'), 'error');
-    }
-  };
-
-  const handleAssessmentRatingStyleChange = async (style: AssessmentRatingStyle) => {
-    setAssessmentRatingStyle(style);
-    try {
-      await updateAppSettings({ assessmentRatingStyle: style }, userId);
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.settings.detail(), userId] });
-    } catch (error) {
-      logger.error('Failed to save assessment rating style:', error);
-      showToast(t('settingsModal.saveSettingError', 'Failed to save setting. Please try again.'), 'error');
-    }
-  };
-
-  const handleAssessmentTemplateChange = async (template: AssessmentTemplate) => {
-    setAssessmentTemplate(template);
-    try {
-      await updateAppSettings({ assessmentTemplate: template }, userId);
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.settings.detail(), userId] });
-    } catch (error) {
-      logger.error('Failed to save assessment template:', error);
-      showToast(t('settingsModal.saveSettingError', 'Failed to save setting. Please try again.'), 'error');
-    }
-  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -743,72 +725,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   {t('settingsModal.layoutHint', 'The full layout shows every feature. Nothing is removed.')}
                 </p>
               </div>
-              {/* Player assessments: off by default (owner decision 2026-09-09).
-                  Ratings already recorded are kept; the style and metric
-                  choices below only matter while this is on. */}
-              <div className={`${listRowStyle} py-3 pr-4`}>
-                <div className="flex-1 min-w-0">
-                  <label htmlFor="assessments-enabled-toggle" className="block font-ui text-base font-medium text-ink cursor-pointer">
-                    {t('settingsModal.assessmentsEnabledLabel', 'Player assessments')}
-                  </label>
-                  <p className={`${subtextStyle} mt-1`}>
-                    {t('settingsModal.assessmentsEnabledHint', 'Rate players after each game on a set of qualities. Off by default. Ratings you have already made are kept either way.')}
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  role="switch"
-                  id="assessments-enabled-toggle"
-                  checked={assessmentsEnabled}
-                  onChange={(e) => handleAssessmentsEnabledChange(e.target.checked)}
-                  aria-label={t('settingsModal.assessmentsEnabledLabel', 'Player assessments')}
-                  className={switchInputStyle}
-                />
-              </div>
-              {assessmentsEnabled && (<>
-              {/* Assessment rating style */}
-              <div className={`${listRowStyle} py-3 pr-4`}>
-                <div className="flex-1 min-w-0">
-                  <p className="font-ui text-base font-medium text-ink">
-                    {t('settingsModal.assessmentRatingStyleLabel', 'Assessment rating style')}
-                  </p>
-                  <p className={`${subtextStyle} mt-1`}>
-                    {t('settingsModal.assessmentRatingStyleHint', 'How player ratings are shown and entered. Switching is safe - existing ratings are kept.')}
-                  </p>
-                </div>
-                <select
-                  id="assessment-rating-style-select"
-                  value={assessmentRatingStyle}
-                  onChange={(e) => handleAssessmentRatingStyleChange(e.target.value as AssessmentRatingStyle)}
-                  className={inlineSelectStyle}
-                >
-                  <option value="words">{t('settingsModal.assessmentRatingStyleWords', 'Words (5 levels)')}</option>
-                  <option value="num5">{t('settingsModal.assessmentRatingStyleNum5', 'Numbers 1-5')}</option>
-                  <option value="num10">{t('settingsModal.assessmentRatingStyleNum10', 'Numbers 1-10')}</option>
-                </select>
-              </div>
-              {/* Assessment metric template */}
-              <div className={`${listRowStyle} py-3 pr-4`}>
-                <div className="flex-1 min-w-0">
-                  <p className="font-ui text-base font-medium text-ink">
-                    {t('settingsModal.assessmentTemplateLabel', 'Assessment metrics')}
-                  </p>
-                  <p className={`${subtextStyle} mt-1`}>
-                    {t('settingsModal.assessmentTemplateHint', 'Which set of qualities to assess. Switching is safe - past ratings are kept.')}
-                  </p>
-                </div>
-                <select
-                  id="assessment-template-select"
-                  value={assessmentTemplate}
-                  onChange={(e) => handleAssessmentTemplateChange(e.target.value as AssessmentTemplate)}
-                  className={inlineSelectStyle}
-                >
-                  <option value="balanced">{t('settingsModal.assessmentTemplateBalanced', 'Balanced (10)')}</option>
-                  <option value="light6">{t('settingsModal.assessmentTemplateLight6', 'Light 6 (U7-U9)')}</option>
-                  <option value="creative">{t('settingsModal.assessmentTemplateCreative', 'Creative-attacking (14)')}</option>
-                </select>
-              </div>
-              </>)}
+              {/* Player assessments were removed from Settings for now (owner
+                  decision 2026-11): useAssessmentsEnabled() is false for
+                  everyone. Ratings already recorded stay in the data and in
+                  exports. */}
               {/* Default Team Name: a text input takes the label above and
                   the full width - label-beside is only for switches and
                   short selects. */}
@@ -828,8 +748,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             </section>
 
-            {/* Kirjuri (PR 4): own AI provider behind the consent gate */}
-            <AiSettingsCard userId={userId} />
+            {/* Kirjuri (PR 4): own AI provider behind the consent gate. Hidden
+                unless the device's labs switch is on (privacy 2026-11). */}
+            {labsEnabled && <AiSettingsCard userId={userId} />}
 
             {/* THE JOURNEY. Both numbers behind the next-match card's departure
                 time live here, because both are club facts rather than
@@ -1293,7 +1214,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-ui text-base text-ink-2">{APP_VERSION}</span>
+                    {/* Also the labs switch: tapped LABS_TAP_COUNT times in a row. */}
+                    <button
+                      type="button"
+                      onClick={handleVersionTap}
+                      data-testid="app-version"
+                      className="font-ui text-base text-ink-2 bg-transparent border-0 p-0 cursor-default select-none"
+                    >
+                      {APP_VERSION}
+                    </button>
                     {process.env.NEXT_PUBLIC_GIT_BRANCH && process.env.NEXT_PUBLIC_GIT_BRANCH !== 'master' && (
                       <span className={neutralBadgeStyle}>
                         {t('settingsModal.previewBadge', 'Preview')}
