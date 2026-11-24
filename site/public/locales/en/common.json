@@ -958,7 +958,7 @@
       },
       "attendance": {
         "eyebrow": "Who is here?",
-        "title": "Two missing? Tap them out and the line-up is rebuilt",
+        "title": "A player didn't show up? Remove them from the line-up with one tap and the plan adapts.",
         "desc": "Tap Mark who is away on the Next match card to open a list with every player already in. Tap the ones who are away and you see at once how many are here. The starting line-up and the plan fill in with the players who came, and the game is not counted as played for anyone who was away."
       }
     },

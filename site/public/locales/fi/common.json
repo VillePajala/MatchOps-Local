@@ -958,7 +958,7 @@
       },
       "attendance": {
         "eyebrow": "Ketkä ovat paikalla?",
-        "title": "Kaksi poissa? Napauta, ja kokoonpano tehdään uudelleen",
+        "title": "Pelaaja ei saapunut paikalle? Poista hänet kokoonpanosta yhdellä napautuksella, ja suunnitelma mukautuu.",
         "desc": "Seuraava ottelu -kortin Merkitse poissaolijat -painike avaa listan, jossa kaikki pelaajat ovat aluksi mukana. Napauta poissaolijoita, niin näet heti, montako on paikalla. Aloituskokoonpano ja suunnitelma täydennetään paikalla olevilla pelaajilla. Poissaolijalle ei merkitä pelattua ottelua."
       }
     },
