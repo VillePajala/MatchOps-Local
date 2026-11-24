@@ -92,7 +92,9 @@ export class AlreadyExistsError extends DataStoreError {
   public readonly resourceId: string;
 
   constructor(resourceType: string, resourceId: string) {
-    super(`${resourceType} already exists: ${resourceId}`, 'ALREADY_EXISTS');
+    // The id is kept on the error, not in the message: for named resources it
+    // is the user's own text (a team or player name), and messages reach Sentry.
+    super(`${resourceType} already exists`, 'ALREADY_EXISTS');
     this.name = 'AlreadyExistsError';
     this.resourceType = resourceType;
     this.resourceId = resourceId;

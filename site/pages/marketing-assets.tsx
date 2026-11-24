@@ -95,8 +95,6 @@ const getScreenshots = (locale: string | undefined) => {
     tacticalBoard: shot('tacticalboard'),
     formations: shot('formations'),
     roster: shot('roster'),
-    assessment: shot('development'),
-    trends: shot('trends'),
     seasons: shot('seasons'),
     tournaments: shot('tournaments'),
     teams: shot('teams'),
@@ -348,7 +346,7 @@ export default function MarketingAssets() {
   return (
     <>
       <Head>
-        <title>{t('marketing.page.title')} - MatchOps</title>
+        <title>{`${t('marketing.page.title')} - MatchOps`}</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
@@ -2792,39 +2790,8 @@ export default function MarketingAssets() {
                 </div>
               </AssetContainer>
 
-              {/* 4. Development Tracking */}
-              <AssetContainer id="card-assessment" width={600} height={400} name="Feature Card - Development Tracking">
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
-                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.assessment')}</h3>
-                    <p className="text-gray-400 mb-3">
-                      {t('marketing.featureCards.assessmentDesc')}
-                    </p>
-                    <SiteUrl size="sm" variant="yellow" />
-                  </div>
-                  <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup screenshot={screenshots.assessment} size="lg" zIndex={10} />
-                  </div>
-                </div>
-              </AssetContainer>
-
-              {/* 5. Performance Trends */}
-              <AssetContainer id="card-trends" width={600} height={400} name="Feature Card - Trends">
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-800 p-8 flex relative">
-                  <div className="w-1/2 flex flex-col justify-center">
-                    <div className="text-primary text-sm font-semibold mb-2">{t('marketing.ui.feature')}</div>
-                    <h3 className="text-white text-3xl font-bold mb-3">{t('marketing.featureCards.trends')}</h3>
-                    <p className="text-gray-400 mb-3">
-                      {t('marketing.featureCards.trendsDesc')}
-                    </p>
-                    <SiteUrl size="sm" variant="yellow" />
-                  </div>
-                  <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup screenshot={screenshots.trends} size="lg" zIndex={10} />
-                  </div>
-                </div>
-              </AssetContainer>
+              {/* Development-tracking and trends cards removed 2026-11: player
+                  assessments are no longer in the app. */}
 
               {/* 6. Season Management */}
               <AssetContainer id="card-seasons" width={600} height={400} name="Feature Card - Seasons">

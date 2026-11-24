@@ -124,7 +124,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
 
   const parentText = t(
     'aiSettings.parentText',
-    'Hi! As the coach I keep short notes about the players during and after games - who did what well, what we are working on. The notes are written or dictated on my phone and stay in my coaching app. If I use an AI tool to tidy them into a match report, the players\' names are replaced with codes before anything is sent. You can ask me at any time what I have noted about your child, and I will delete it if you wish.',
+    "Hi! As the coach I keep short notes about the players during and after games - who did what well, what we are working on. The notes are written or dictated on my phone and stay in my coaching app. I use my own AI service (OpenAI, processed in the US) to turn dictated notes into text and to draft match reports. For transcription, the voice recording and the first names of the players in that match are sent to the service so the names are spelled correctly. For report drafts, the players' names are replaced with codes before anything is sent. You can ask me at any time what I have noted about your child, and I will delete it if you wish.",
   );
 
   const copyParentText = useCallback(async () => {

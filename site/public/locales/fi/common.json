@@ -3,53 +3,53 @@
     "technical": "Tekniset tiedot",
     "guide": "Opas",
     "backToTop": "Takaisin ylös",
-    "backToHome": "Takaisin etusivulle"
+    "backToHome": "Takaisin etusivulle",
+    "faq": "UKK"
   },
   "features": {
     "gameDay": {
       "title": "Ottelupäivän työkalut",
       "field": {
         "title": "Interaktiivinen kenttänäkymä",
-        "desc": "Suunnittele ottelun kokoonpano visuaalisesti ja havainnollista pelipaikat joukkueellesi."
+        "desc": "Suunnittele kokoonpano kentällä ja näytä pelipaikat joukkueellesi."
       },
       "timer": {
         "title": "Pelikello",
-        "desc": "Seuraa peliaikaa ja vaihtovälejä. Kirjaa ottelutapahtumat reaaliajassa muutamalla kosketuksella."
+        "desc": "Seuraa peliaikaa ja vaihtovälejä. Kirjaa ottelutapahtumat pelin aikana muutamalla painalluksella."
       },
       "tactics": {
-        "title": "Taktinen piirtotaulu",
-        "desc": "Havainnollista ottelun taktiset teemat, ohjeesi ja huomiosi pelaajille ennen peliä ja puoliajalla."
+        "title": "Taktiikkataulu",
+        "desc": "Näytä pelaajille ottelun teemat, ohjeesi ja huomiosi ennen peliä ja puoliajalla."
       }
     },
     "management": {
       "title": "Ottelun jälkeen",
       "analytics": {
-        "title": "Analytiikka",
-        "desc": "Kattavat tilastot kertyvät automaattisesti pelien myötä ja mahdollistavat joukkueen ja kauden kokonaiskuvan hahmottamisen.",
-        "h1": "\"Pistepörssit\" (ottelut, maalit ja syötöt) eri konteksteissa",
-        "h2": "Edistyneet joukkuetilastot",
+        "title": "Tilastot",
+        "desc": "Tilastot kertyvät peleistä automaattisesti, ja näet niistä joukkueen ja kauden kokonaiskuvan.",
+        "h1": "Pistepörssit (ottelut, maalit ja syötöt) eri rajauksilla",
+        "h2": "Tarkemmat joukkuetilastot",
         "h3": "Ottelu-, turnaus- ja kausitilastot",
-        "h4": "Pelaajan edistyneet tilastot numeroina ja graafeina",
-        "h5": "Pelaajien ottelusuoritusten arviointi ja trendit",
-        "h6": "Tilastojen vienti (Excel & JSON)"
+        "h4": "Pelaajan tarkemmat tilastot lukuina ja kaavioina",
+        "h6": "Tilastojen vienti (Excel ja JSON)"
       },
       "seasons": {
         "title": "Kaudet ja turnaukset",
-        "desc": "Kilpailutapahtumien luominen ja seuranta."
+        "desc": "Luo sarjoja ja turnauksia ja seuraa niiden pelejä."
       },
       "team": {
-        "title": "Joukkueiden hallinta",
-        "desc": "Pidä yllä pelaajarekisteriä ja luo joukkuekokoonpanoja."
+        "title": "Joukkueet ja pelaajat",
+        "desc": "Pidä pelaajalista ajan tasalla ja kokoa joukkueet."
       },
       "data": {
-        "title": "Datan hallinta",
-        "desc": "Luo varmuuskopio datastasi ja palauta sovelluksen tila tiedostosta tarvittaessa."
+        "title": "Tietojen hallinta",
+        "desc": "Tee tiedoistasi varmuuskopio ja palauta ne tiedostosta tarvittaessa."
       }
     },
     "foundation": {
       "title": "Rakennettu eri tavalla",
       "offline": {
-        "title": "Toimii ilman internetiä",
+        "title": "Toimii ilman verkkoa",
         "desc": ""
       },
       "private": {
@@ -68,16 +68,16 @@
   },
   "seo": {
     "home": {
-      "title": "MatchOps - Jalkapallovalmentajan sovellus",
-      "description": "Jalkapallo- ja futsalvalmentajan sovellus. Suunnittele, peluuta, kirjaa: pelisuunnitelma aina mukana, ottelukello, ottelutapahtumien kirjaus ja automaattisesti kertyvät tilastot. Ilmainen."
+      "title": "MatchOps – peluutus, vaihdot ja pöytäkirja",
+      "description": "Ilmainen sovellus jalkapallon ja futsalin juniorivalmentajille. Suunnittele kokoonpanot ja vaihdot valmiiksi vaikka koko turnauspäivälle, käytä sovellusta pelikellona ja kirjaa ottelutapahtumat. Pöytäkirja on valmiina heti loppuvihellyksen jälkeen. Ei mainoksia, tiedot säilytetään EU:ssa."
     },
     "technical": {
       "title": "Tekniset tiedot - MatchOps",
-      "description": "MatchOpsin tekniset tiedot: React 19, Next.js 16. Offline-yhteensopiva arkkitehtuuri ja turvallinen tietojen tallennus."
+      "description": "MatchOpsin tekniset tiedot: React 19 ja Next.js 16, ilman verkkoa toimiva arkkitehtuuri ja turvallinen tietojen tallennus."
     },
     "privacy": {
       "title": "Tietosuojakäytäntö - MatchOps",
-      "description": "MatchOps-jalkapallosovelluksen tietosuojakäytäntö. Lue miten käsittelemme tietojasi."
+      "description": "MatchOps-jalkapallosovelluksen tietosuojakäytäntö. Lue, miten käsittelemme tietojasi."
     },
     "terms": {
       "title": "Käyttöehdot - MatchOps",
@@ -86,19 +86,19 @@
     "deleteAccount": {
       "title": "Poista tilisi – MatchOps",
       "description": "Näin poistat MatchOps-tilisi ja kaikki siihen liittyvät tiedot pysyvästi."
-    }
+    },
+    "ogImageAlt": "MatchOps puhelimessa: ilmainen sovellus jalkapallo- ja futsalvalmentajille"
   },
   "footer": {
     "tagline": "Jalkapallo- ja futsalvalmentajan sovellus. Suunnittele, peluuta, kirjaa.",
     "home": "Etusivu",
-    "navigation": "Navigaatio",
-    "legal": "Juridiikka",
+    "navigation": "Sivuston linkit",
     "license": "Lisenssi",
-    "copyright": "© {{year}} Velomo AI. Kaikki oikeudet pidätetään.",
+    "copyright": "© {{year}} Ville Pajala. Kaikki oikeudet pidätetään.",
     "dataStays": "Tietosi pysyvät yksityisinä ja turvassa.",
-    "marketingAssets": "Markkinointimateriaalit",
     "privacyPolicy": "Tietosuojakäytäntö",
-    "termsOfService": "Käyttöehdot"
+    "termsOfService": "Käyttöehdot",
+    "contact": "Ota yhteyttä:"
   },
   "technical": {
     "hero": {
@@ -112,7 +112,7 @@
       "testing": "Testikattavuus",
       "testingDesc": "7 700+ testiä Jest- ja React Testing Library -kirjastoilla",
       "linting": "Linttaus ja muotoilu",
-      "lintingDesc": "ESLint tiukoilla säännöillä, Prettier muotoiluun",
+      "lintingDesc": "ESLint tiukoilla säännöillä",
       "cicd": "CI/CD",
       "cicdDesc": "Automatisoidut buildaukset, testit ja julkaisut Vercelin kautta"
     },
@@ -142,10 +142,10 @@
     },
     "pwaFeatures": {
       "title": "PWA-ominaisuudet",
-      "installable": "Asennettavissa",
-      "installableDesc": "Asenna kotinäytölle mobiili- ja työpöytälaitteilla",
-      "offline": "Offline-ensin",
-      "offlineDesc": "Täysi toiminnallisuus ilman nettiä Service Worker -välimuistin avulla",
+      "installable": "Google Playsta",
+      "installableDesc": "Asennetaan Android-puhelimeen Google Playsta",
+      "offline": "Toimii ilman verkkoa",
+      "offlineDesc": "Kirjautumiseen tarvitaan verkkoyhteys. Sen jälkeen ottelut toimivat ilman verkkoa, ja muutokset synkronoituvat, kun yhteys palaa.",
       "autoUpdate": "Automaattiset päivitykset",
       "autoUpdateDesc": "Automaattinen päivitysten tunnistus käyttäjän hallitsemalla uudelleenlatauksella",
       "wakeLock": "Wake Lock",
@@ -165,23 +165,23 @@
       "wcag": "WCAG 2.1 AA",
       "wcagDesc": "Täysi näppäimistönavigaatio, ARIA-attribuutit ja fokuksen hallinta",
       "i18n": "Kaksikielinen",
-      "i18nDesc": "Täydelliset englannin ja suomen käännökset kontekstitietoisella monikkomuodolla",
+      "i18nDesc": "Koko sovellus suomeksi ja englanniksi, monikkomuodot oikein taivutettuina",
       "mobile": "Mobiilioptimoitu",
-      "mobileDesc": "Kosketusystävälliset kontrollit, responsiivinen suunnittelu, raahaa-sulkeaksesi-modaalit"
+      "mobileDesc": "Sormelle sopivat painikkeet, eri näyttökokoihin mukautuva asettelu, pyyhkäisemällä suljettavat ikkunat"
     },
     "architecture": {
       "title": "Arkkitehtuuri",
       "localFirst": "Yksityisyys lähtökohtana",
       "localFirstDesc": "Tietosi tallennetaan turvallisesti ja pysyvät yksityisinä.",
-      "offlineFirst": "Offline-ensin",
-      "offlineFirstDesc": "Kirjautuminen vaatii nettiyhteyden. Sen jälkeen ottelun voi pitää ilman yhteyttä, ja muutokset synkronoituvat, kun yhteys palaa.",
+      "offlineFirst": "Offline ensin",
+      "offlineFirstDesc": "Kirjautuminen vaatii verkkoyhteyden. Sen jälkeen ottelun voi pitää ilman yhteyttä, ja muutokset synkronoituvat, kun yhteys palaa.",
       "singleUser": "Yhden käyttäjän ratkaisu",
-      "singleUserDesc": "Suunniteltu yksittäisille valmentajille. Helppo käyttöönotto, ei monimutkaista käyttäjähallintaa."
+      "singleUserDesc": "Suunniteltu yksittäiselle valmentajalle. Helppo ottaa käyttöön, ei monimutkaista käyttäjähallintaa."
     },
     "techStack": {
       "title": "Teknologiapino",
       "frontend": "Frontend-kehys",
-      "frontendDesc": "React 19 ja Next.js 16 (Pages Router)",
+      "frontendDesc": "React 19 ja Next.js 16 (App Router)",
       "language": "Ohjelmointikieli",
       "languageDesc": "TypeScript tyyppiturvallisuuden ja paremman kehityskokemuksen vuoksi",
       "styling": "Ulkoasu",
@@ -190,126 +190,51 @@
       "storageDesc": "Turvallinen tallennus automaattisella tiedonhallinnalla",
       "stateManagement": "Tilanhallinta",
       "stateManagementDesc": "React Query palvelintilalle, useReducer pelisession tilalle",
-      "pwa": "Progressiivinen nettisovellus",
-      "pwaDesc": "Service Worker offline-toiminnallisuutta ja sovellusmaista kokemusta varten",
+      "pwa": "Progressiivinen verkkosovellus (PWA)",
+      "pwaDesc": "Service Worker, jonka ansiosta sovellus toimii ilman verkkoa ja tuntuu tavalliselta sovellukselta",
       "i18n": "Monikielisyys",
       "i18nDesc": "next-i18next englannin ja suomen kielituella"
     },
     "storage": {
       "title": "Tallennus ja tiedot",
       "deviceStorage": "Tallennus",
-      "deviceStorageDesc": "Tehokas tallennus. Tyypillinen käyttö: alle 50MB 100+ pelille.",
+      "deviceStorageDesc": "Tehokas tallennus. Tyypillinen käyttö: alle 50 Mt yli sadalle pelille.",
       "dataScale": "Tiedon määrä",
-      "dataScaleDesc": "Optimoitu 50-100 pelaajalle, 50-100 pelille per kausi. Pieni tietomäärä, nopea suorituskyky.",
+      "dataScaleDesc": "Optimoitu 50–100 pelaajalle ja 50–100 pelille kaudessa. Pieni tietomäärä, nopea toiminta.",
       "backup": "Varmuuskopiointi ja vienti",
-      "backupDesc": "Täydellinen tietojen vienti JSON-muotoon. Tuo/palauta millä tahansa laitteella.",
+      "backupDesc": "Kaikki tiedot voi viedä JSON-tiedostoon ja palauttaa millä tahansa laitteella.",
       "privacy": "Yksityisyys",
       "privacyDesc": "Tietosi pysyvät yksityisinä ja turvassa."
     },
     "requirements": {
       "title": "Järjestelmävaatimukset",
-      "browser": "Tuetut selaimet",
-      "browserList": "Chrome 90+, Firefox 88+, Safari 14+, Edge 90+",
+      "browser": "Laite",
+      "browserList": "Android-puhelin, sovellus asennetaan Google Playsta",
       "javascript": "JavaScript",
       "javascriptDesc": "Täytyy olla päällä (oletusarvoisesti kaikissa moderneissa selaimissa)",
       "storageSupport": "Tallennustuki",
       "storageSupportDesc": "Vaaditaan (saatavilla kaikissa tuetuissa selaimissa)",
       "storageSpace": "Tallennustila",
-      "storageSpaceDesc": "Vähintään 50MB suositeltava (tyypillinen käyttö paljon vähemmän)",
-      "privateMode": "Yksityinen/Incognito-tila",
+      "storageSpaceDesc": "Suositus vähintään 50 Mt (tavallisesti tilaa kuluu paljon vähemmän)",
+      "privateMode": "Yksityinen selaus (incognito)",
       "privateModeDesc": "Ei tuettu (PWA-asennus vaatii pysyvän tallennuksen)"
     },
     "performance": {
       "title": "Suorituskyky",
       "responseTime": "Vasteaika",
-      "responseTimeDesc": "Alle 50ms kaikille toiminnoille (paikallinen tiedonsaanti)",
-      "offline": "Offline-toiminnallisuus",
-      "offlineDesc": "Ottelut toimivat ilman nettiyhteyttä kirjautumisen jälkeen",
+      "responseTimeDesc": "Alle 50 ms kaikille toiminnoille (tiedot luetaan puhelimesta)",
+      "offline": "Toiminta ilman verkkoa",
+      "offlineDesc": "Ottelut toimivat ilman verkkoyhteyttä kirjautumisen jälkeen",
       "battery": "Akkutehokkuus",
       "batteryDesc": "Ei jatkuvaa synkronointia tai verkkopyyntöjä",
       "bundleSize": "Paketin koko",
-      "bundleSizeDesc": "Optimoitu nopeaa alkuvaiheen latausta varten"
+      "bundleSizeDesc": "Optimoitu, jotta sovellus aukeaa nopeasti"
     }
   },
   "info": {
-    "whatIsThis": {
-      "title": "Mikä on MatchOps?",
-      "description": "MatchOps on jalkapallo- ja futsalvalmentajan sovellus ottelupäivään. Ennen peliä teet Ottelusuunnittelussa suunnitelman - kuka aloittaa, kuka on maalissa ja milloin vaihdetaan - yhteen peliin tai koko turnauspäivään, ja pelipäivänä merkitset poissaolijat. Pelin aikana ottelukello, vaihdot ja maalit kulkevat mukana. Pelin jälkeen Pöytäkirja ja Otteluraportti ovat valmiina jaettaviksi, ja tilastot kertyvät automaattisesti pelaaja-, ottelu-, joukkue- ja kilpailutasolla. Uudet valmentajat aloittavat kevennetyssä näkymässä, josta pääsee koko sovellukseen yhdellä valinnalla.",
-      "oneLine": "Ilmainen, turvallinen pilvisynkronointi kaikilla laitteillasi. Seuraa otteluita ja rakenna tilastot kentällä, myös ilman internetiä."
-    },
-    "whoIsThisFor": {
-      "title": "Kenelle tämä on tarkoitettu?",
-      "description": "MatchOps on jalkapallo- ja futsalvalmentajille kaikilla tasoilla - juniorijoukkueista harraste- ja kilpajoukkueisiin - jotka haluavat yksinkertaisen tavan hallita ottelutapahtumia ja tukea pelaajien kehitystä ilman monimutkaisia joukkueenhallintaohjelmistoja tai kuukausimaksuja.",
-      "item1": "Juniorijoukkueiden valmentajat (U7-U21)",
-      "item2": "Harraste- ja kilpajoukkueiden valmentajat",
-      "item3": "Valmentajat, jotka arvostavat yksityisyyttä ja omistavat datansa"
-    },
-    "challenges": {
-      "title": "Yleisiä haasteita valmentajille",
-      "challenge1": "Useiden työkalujen kanssa säätäminen ottelupäivänä: taktiikkataulu, sekuntikello, muistivihko, kokoonpanolista",
-      "challenge2": "Vaihtovälien seuraaminen on hankalaa—et voi vaihtaa ennen kuin peli sen sallii, välit venyvät, ja päässälaskeminen on turhaa työtä pois tärkeämmästä",
-      "challenge3": "Valmentajan täytyy keskittyä peliin, joten useimmat tapahtumat jäävät kirjaamatta ja unohtuvat pian",
-      "challenge4": "Ei helppoa tapaa palata peleihin tai kerätä tilastoja kauden aikana",
-      "challenge5": "Pitkän aikavälin päätökset perustuvat lopulta muistiin eikä oikeaan dataan"
-    },
-    "whatYouCanDo": {
-      "title": "Mitä voit tehdä sovelluksella",
-      "beforeGame": {
-        "title": "Ennen peliä",
-        "item1": "Rakenna joukkueesi",
-        "item2": "Luo ottelutapahtumasi",
-        "item3": "Määritä kausi tai turnaustapahtuma",
-        "item4": "Suunnittele ottelun kokoonpano ja pelisuunnitelma"
-      },
-      "duringGame": {
-        "title": "Pelin aikana",
-        "item1": "Seuraa pelikelloa",
-        "item2": "Seuraa ennalta määriteltyjen vaihtointervallien toteutumista",
-        "item3": "Kirjaa vaihtohetket napin painalluksella",
-        "item4": "Kirjaa maalit ja syötöt muutamalla kosketuksella",
-        "item5": "Piirrä puoliaikaa varten taktiikoita"
-      },
-      "afterGame": {
-        "title": "Pelin jälkeen",
-        "item1": "Käy läpi pelin tilastot ja tapahtumat",
-        "item2": "Katso joukkueen tilastot",
-        "item3": "Katso pelaajien tilastot",
-        "item4": "Vertaa tilastoja pelien, kausien ja turnausten välillä",
-        "item5": "Halutessasi voit arvioida yksittäisten pelaajien suoritukset 10 eri mittarilla"
-      }
-    },
-    "technical": {
-      "title": "Tekniset tiedot",
-      "desc1": "MatchOps on saatavilla Google Playsta Android-laitteille.",
-      "desc2": "Tietosi tallennetaan turvallisesti. Sovellus toimii myös offline-tilassa.",
-      "desc3": "Rakennettu moderneilla verkkoteknologioilla nopeaa ja luotettavaa käyttökokemusta varten."
-    },
-    "faq": {
-      "title": "Yleisiä kysymyksiä",
-      "q1": "Miten asennan sovelluksen?",
-      "a1": "Sovellus on tällä hetkellä suljetussa testauksessa Google Playssa. Liity testausryhmään ottamalla yhteyttä: hello@match-ops.com.",
-      "q2": "Mihin tietoni tallennetaan?",
-      "a2": "Tietosi tallennetaan turvallisesti ja pysyvät yksityisinä.",
-      "q3": "Voinko käyttää useammalla laitteella?",
-      "a3": "Kyllä. Voit viedä tietosi yhdeltä laitteelta ja tuoda ne toiselle, tai käyttää pilvisynkronointia laitteiden synkronoimiseen.",
-      "q4": "Miten varmuuskopioin tietoni?",
-      "a4": "Avaa Asetukset-valikko ja käytä Vie-toimintoa. Tämä luo JSON-tiedoston, jossa on kaikki tietosi ja jonka voit tallentaa ja tuoda myöhemmin.",
-      "q5": "Voinko muokata ottelutietoja jälkikäteen?",
-      "a5": "Kyllä. Voit muokata, lisätä tai poistaa maalitapahtumia sekä muokata ottelun tietoja. Avaa vain ottelu historiasta ja tee korjaukset.",
-      "q6": "Mitä tapahtuu jos kadotan puhelimeni tai se hajoaa?",
-      "a6": "Jos olet tehnyt säännöllisiä vientiä (varmuuskopioita), voit tuoda tietosi uuteen laitteeseen. Ilman varmuuskopioita tiedot katoavat laitteen mukana.",
-      "q7": "Voinko hallita useita joukkueita?",
-      "a7": "Kyllä. Voit luoda ja hallita useita joukkueita (U12, U14, jne.) samassa sovelluksessa ja vaihtaa niiden välillä helposti.",
-      "q8": "Kuinka paljon tallennustilaa sovellus käyttää?",
-      "a8": "Sovellus käyttää laitteesi vapaata tallennustilaa. Tyypillinen käyttö 100+ pelin ja täysien tilastojen kanssa on alle 50MB.",
-      "q9": "Miten päivitän sovelluksen?",
-      "a9": "Sovellus päivittyy automaattisesti kun avaat sen ja sinulla on nettiyhteys. Päivityksen jälkeen sovellus ilmoittaa uudesta versiosta ja pyytää lataamaan sivun uudelleen.",
-      "q10": "Voinko jakaa tilastoja muille valmentajille?",
-      "a10": "Kyllä. Voit viedä tilastoja Excel- tai JSON-muodossa ja jakaa tiedostot muille valmentajille esimerkiksi sähköpostilla tai viestipalveluissa."
-    },
     "cta": {
       "title": "Hanki sovellus",
-      "subtitle": "MatchOps on nyt saatavilla Google Playssa — lataa ilmaiseksi.",
+      "subtitle": "MatchOps on nyt Google Playssa. Lataa ilmaiseksi.",
       "button": "Ota yhteyttä",
       "googlePlayAlt": "Google Play"
     }
@@ -336,27 +261,6 @@
     }
   },
   "marketing": {
-    "productPoints": {
-      "plan": "Pelisuunnitelma aina mukana",
-      "clock": "Ottelukello",
-      "events": "Kirjaa ottelutapahtumat",
-      "stats": "Tilastot kertyvät automaattisesti",
-      "free": "Ilmainen"
-    },
-    "howItWorks": {
-      "plan": {
-        "title": "Suunnittele",
-        "desc": "Rakenna ottelusuunnittelussa aloituskokoonpano, pelipaikat ja vaihdot etukäteen – yhteen otteluun tai koko turnauspäivään. Ennen peliä merkitset poissaolijat, ja suunnitelma mukautuu."
-      },
-      "play": {
-        "title": "Peluuta",
-        "desc": "Ottelukello ja vaihtoajastin kulkevat mukana koko pelin. Maali meille ja Vastustaja +1 ovat heti Käynnistä-painikkeen alla, ja seuraava vaihto näkyy tiiviinä lohkona: kuka tulee kentälle (↑) ja kuka lähtee (↓). Maali meille päivittää tuloksen heti - maalintekijän ja syöttäjän voi valita tai ohittaa."
-      },
-      "record": {
-        "title": "Kirjaa",
-        "desc": "Pelin jälkeen Viimeistele ottelu kokoaa kaiken yhteen: kopioi Pöytäkirja, kirjoita Otteluraportti ja jaa se joukkueelle. Tilastot kertyvät automaattisesti peli peliltä."
-      }
-    },
     "page": {
       "title": "Markkinointimateriaalit",
       "subtitle": "Ota kuvakaappaukset alkuperäisessä resoluutiossa. Jokaisessa näkyy mitat viitteeksi.",
@@ -405,8 +309,8 @@
       }
     },
     "benefits": {
-      "offline": "Toimii offline",
-      "noSignup": "Ilmainen käyttää",
+      "offline": "Toimii ilman verkkoa",
+      "noSignup": "Käyttö on ilmaista",
       "dataOnDevice": "Tietosi pysyvät yksityisinä",
       "dataStays": "Tietosi pysyvät",
       "onYourDevice": "yksityisinä ja turvassa",
@@ -432,20 +336,20 @@
       "focusOnCoaching": "Keskity valmentamiseen,",
       "notPaperwork": "älä paperitöihin.",
       "buildLineupVisually": "Rakenna kokoonpano visuaalisesti",
-      "logGoalsTap": "Maali meille: tulos päivittyy yhdellä napautuksella",
+      "logGoalsTap": "Maali meille: tulos päivittyy yhdellä painalluksella",
       "trackDevelopmentTime": "Tarkastele tilastoja ajan myötä",
       "trackGamesRealtime": "Seuraa pelejä reaaliajassa",
       "buildStatsAuto": "Tilastot kertyvät automaattisesti",
-      "fieldDesc": "Valitse ja aseta pelaajat interaktiiviselle kentälle. Visualisoi muodostelma ennen peliä.",
-      "timerDesc": "Pelikello vaihtoväleillä. Kirjaa maalit, syötöt ja tapahtumat napautuksella.",
-      "statsDesc": "Kattavat pelaaja-, joukkue- ja kilpailutilastot. Seuraa suorituskykyä kausien yli.",
-      "statsLongDesc": "Jokainen maali, syöttö ja pelitapahtuma kerryttää kauden tilastoja. Tarkastele pelihistoriaa ja joukkuetilastoja kattavalla analytiikalla."
+      "fieldDesc": "Valitse pelaaja ja paina paikkaa kentällä. Näet muodostelman jo ennen peliä.",
+      "timerDesc": "Pelikello vaihtoväleillä. Kirjaa maalit, syötöt ja tapahtumat painalluksella.",
+      "statsDesc": "Pelaaja-, joukkue- ja kilpailutilastot. Seuraa kehitystä kaudesta toiseen.",
+      "statsLongDesc": "Jokainen maali, syöttö ja pelitapahtuma kerryttää kauden tilastoja. Pelihistoria ja joukkuetilastot ovat aina katsottavissa."
     },
     "bullets": {
-      "worksOffline": "Toimii offline",
+      "worksOffline": "Toimii ilman verkkoa",
       "privacyFirst": "Yksityisyys ensin",
       "noSignup": "Ilmainen",
-      "noSignupRequired": "Ilmainen käyttää",
+      "noSignupRequired": "Käyttö on ilmaista",
       "noAccountNeeded": "Turvallinen pilvisynkronointi",
       "offline": "Offline",
       "private": "Yksityinen",
@@ -454,59 +358,6 @@
       "playerStats": "Pelaajatilastot",
       "teamStats": "Joukkuetilastot",
       "seasonTrends": "Kauden trendit"
-    },
-    "spotlights": {
-      "attendance": {
-        "eyebrow": "Ketkä ovat paikalla?",
-        "title": "Poissaolijat ennen pelin alkua",
-        "desc": "Seuraava ottelu -kortin Merkitse poissaolijat avaa listan, jossa kaikki pelaajat ovat valmiiksi valittuina: napauta poissaolevat, niin ylhäällä näkyy, montako on paikalla. Suunnitelma ja aloituskokoonpano täydentyvät paikalla olevilla, ja suunnitelmaan tekemäsi muutokset säilyvät. Poissaolija ei tule ottelun kokoonpanoon, joten peliä ei lasketa hänen pelaamakseen. Ennen aloitusta saman näkymän löydät myös ottelun valikosta."
-      },
-      "finish": {
-        "eyebrow": "Viimeistele ottelu",
-        "title": "Pöytäkirja ja otteluraportti valmiina",
-        "desc": "Kun peli päättyy, Viimeistele ottelu kokoaa tuloksen, kokoonpanon ja maalit yhteen näkymään. Pöytäkirja on valmiina kopioitavaksi: pelaajat numeroineen, maalivahti ja kapteeni, lopputulos, puoliaikatilanne ja maalit minuutteineen. Otteluraporttiin kirjoitat tai sanelet oman näkemyksesi valmiin otsikkopohjan avulla, ja Jaa otteluraportti lähettää tuloksen, maalintekijät, kokoonpanon ja raporttisi joukkueelle."
-      },
-      "planner": {
-        "eyebrow": "Ottelusuunnittelu",
-        "title": "Suunnittele useampi peli kerralla",
-        "desc": "Turnauspäivälle tai pelisarjalle: suunnittele aloituskokoonpanot ja vaihdot useaan peliin kerralla. Jokaisen pelaajan suunnitellut peliminuutit ja pelipaikat näkyvät värikoodattuina, joten näet jakauman yhdellä silmäyksellä. Voit muokata suunnitelmaa kesken pelisarjan ja nähdä muutosten vaikutuksen kokonaisuuteen. Yhden pelin suunnitelma tehdään samassa paikassa, ja uuden pelin voi esitäyttää suunnitelmasta."
-      },
-      "development": {
-        "eyebrow": "Pelaajan kehitys",
-        "title": "Seuraa kehitystä ajan myötä",
-        "desc": "Kirjaa ottelun jälkeen lyhyet havainnot siitä, miten pelaaja kehittyy - vahvuudet, kehittyvät alueet ja kehityksen suunta. Havainnoista rakentuu ajan myötä kokonaiskuva, jonka voit jakaa yhteenvetona."
-      },
-      "dashboard": {
-        "eyebrow": "Kausi yhdellä silmäyksellä",
-        "title": "Hallintapaneeli",
-        "desc": "Etusivulla on neljä välilehteä, joiden välillä voi myös pyyhkäistä. Pelit näyttää seuraavan tai viimeisimmän ottelun, Seura kokoaa pelaajat, joukkueet ja taustahenkilöt Seurakorttiin, Kilpailut näyttää kauden tuloksen ja viiden viime pelin vireen sekä sarjat ja turnaukset, ja Tilastot voitot-tasapelit-häviöt, maalieron ja parhaat maalintekijät."
-      },
-      "gameday": {
-        "eyebrow": "Ottelupäivä",
-        "title": "Seuraa peliä reaaliajassa",
-        "desc": "Aseta kokoonpano kentälle, käynnistä ajastin ja kirjaa maalit, syötöt ja vaihdot sitä mukaa kun ne tapahtuvat - ilman verkkoa, suoraan kentän laidalla."
-      },
-      "stats": {
-        "eyebrow": "Tilastot",
-        "title": "Tilastot syntyvät itsestään",
-        "desc": "Jokainen seuraamasi peli kartuttaa kausi-, pelaaja- ja joukkuetilastoja automaattisesti - ei taulukkolaskentaa. Näet miten kausi etenee, kuka tekee maaleja ja miten kutakin pelaajaa käytetään."
-      },
-      "positionBalance": {
-        "eyebrow": "Pelipaikkojen tasapaino",
-        "title": "Pelipaikat koko kaudelta",
-        "desc": "Näet koko kauden ajalta, missä pelipaikoissa kukin pelaaja on todella pelannut - linjoittain tai tarkalla paikalla. Yhteen rooliin jääneet erottuvat selvästi, joten peluutusta voi monipuolistaa tietoisesti."
-      },
-      "nextMatch": {
-        "eyebrow": "Seuraava ottelu",
-        "title": "Tiedä milloin lähteä",
-        "desc": "Etusivu näyttää seuraavan ottelusi: kuinka monen päivän päästä, alkamisajan, paikan ja kentän sekä painikkeen suoraan ajo-ohjeisiin. Aseta mistä lähdette ja kuinka paljon ennen alkamisaikaa haluat olla paikalla, niin sovellus laskee lähtöajan - molempien läpi taaksepäin, ei pelkän ajomatkan. Anna yksittäiselle ottelulle oma saapumisaikansa kun cup-ottelu vaatii enemmän, tai kirjaa paljonko matka oikeasti kesti, niin jokainen myöhempi ottelu samassa paikassa käyttää todellista lukua."
-      }
-    },
-    "bands": {
-      "gameDay": "Ottelupäivä",
-      "development": "Pelaajan kehitys",
-      "club": "Seura",
-      "statsSharing": "Tilastot ja jakaminen"
     },
     "ui": {
       "plan": "Suunnittele",
@@ -558,23 +409,19 @@
     },
     "featureCards": {
       "quickGoal": "Maali meille",
-      "quickGoalDesc": "Yksi napautus ottelukellosta, ja tulos päivittyy heti. Valitse sitten maalintekijä ja syöttäjä ottelun pelaajista - tai ohita ja täydennä myöhemmin.",
+      "quickGoalDesc": "Yksi painallus ottelukellosta, ja tulos päivittyy heti. Valitse sitten maalintekijä ja syöttäjä ottelun pelaajista - tai ohita ja täydennä myöhemmin.",
       "tacticalBoard": "Taktiikkataulu",
-      "tacticalBoardDesc": "Piirrä pelikuvioita ja muodostelmia. Kommunikoi pelisuunnitelma ja havainnollista pelillisiä konsepteja visuaalisesti.",
+      "tacticalBoardDesc": "Piirrä pelikuvioita ja muodostelmia. Näytä pelaajille pelisuunnitelma ja havainnollista ideasi piirtämällä.",
       "formations": "Pikamuodostelmat",
-      "formationsDesc": "Aseta pelimuodostelma valmiilla muodostelmapohjilla. Valitse muodostelma ja pelaajat asettuvat paikoilleen.",
+      "formationsDesc": "Valitse valmis muodostelma, niin pelaajat asettuvat kentälle paikoilleen.",
       "roster": "Pelaajarekisteri",
       "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja kutsumanimillä. Kutsumanimi näkyy kentällä pelaajan kiekossa.",
-      "assessment": "Pelaajan kehitys",
-      "assessmentDesc": "Näe yhdellä silmäyksellä, miten jokainen pelaaja kehittyy: mikä on jo vahvaa, missä on vielä opittavaa ja mihin suuntaan kehitys kulkee. Kirjaa lyhyet havaintosi ottelun jälkeen, niin niistä rakentuu ajan myötä kokonaiskuva, jonka voit jakaa yhteenvetona.",
-      "trends": "Kehitystrendit",
-      "trendsDesc": "Seuraa jokaisen pelaajan edistymistä läpi kauden. Pitkän aikavälin kuva näyttää, miten pelaaja kehittyy kokonaisuutena.",
       "seasons": "Kausikeskus",
-      "seasonsDesc": "Luo ja hallitse sarjoja. Yhdistä pelit sarjoihin ja seuraa sarjan tilastoja.",
+      "seasonsDesc": "Luo sarjoja, liitä pelit niihin ja seuraa sarjan tilastoja.",
       "tournaments": "Turnauskeskus",
-      "tournamentsDesc": "Hallitse monitasoisia turnauksia. Kirjaa joukkueiden sijoitukset ja tarkastele turnauksen tilastoja.",
+      "tournamentsDesc": "Luo turnauksia, joissa voi olla useita tasoja. Kirjaa joukkueiden sijoitukset ja katso turnauksen tilastot.",
       "teams": "Joukkueet",
-      "teamsDesc": "Luo ja hallinnoi useita joukkueita. Liitä joukkueet kausiin ja turnauksiin järjestelmällistä tilastointia varten.",
+      "teamsDesc": "Luo useita joukkueita ja liitä ne sarjoihin ja turnauksiin, niin tilastot pysyvät järjestyksessä.",
       "archive": "Pelihistoria",
       "archiveDesc": "Selaa kaikkia tallennettuja pelejä. Hae vastustajan nimellä, suodata kauden tai turnauksen mukaan.",
       "goalTimeline": "Otteluloki",
@@ -594,15 +441,12 @@
       "positionBalance": "Pelipaikkojen tasapaino",
       "positionBalanceDesc": "Näe koko kauden ajalta, mitä pelipaikkoja kukin pelaaja on pelannut - linjoittain tai tarkat pelipaikat. Yhteen rooliin jääneet pelaajat erottuvat selvästi, joten voit monipuolistaa heidän peluutustaan tietoisesti.",
       "matchReport": "Otteluraportti",
-      "matchReportDesc": "Kirjoita tai sanele oma näkemyksesi ottelusta valmiilla otsikkopohjalla - yleiskuva, mikä toimi, kehityskohteet, erityismaininnat, seuraava askel. Jaa otteluraportti lähettää sen joukkueelle tuloksen, maalintekijöiden ja kokoonpanon kanssa.",
-      "overtime": "Jatkoaika ja rangaistuslaukaukset",
-      "overtimeDesc": "Kirjaa jatkoaika ja rangaistuslaukauskilpailut. Rangaistuslaukausten tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin.",
+      "overtime": "Jatkoaika ja rangaistuspotkukilpailu",
+      "overtimeDesc": "Kirjaa jatkoaika ja rangaistuspotkukilpailut. Rangaistuspotkukilpailun tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin.",
       "friendlies": "Harjoitusottelut",
-      "friendliesDesc": "Seuraa harjoituspelejä ilman että ne vääristävät kilpailullisia tilastojasi.",
+      "friendliesDesc": "Kirjaa harjoitusottelut niin, etteivät ne sekoitu sarja- ja turnauspelien tilastoihin.",
       "dashboard": "Hallintapaneeli",
       "dashboardDesc": "Pelit, Seura, Kilpailut ja Tilastot: pyyhkäise välilehdeltä toiselle ja näe kauden tilanne yhdellä silmäyksellä.",
-      "voiceNotes": "Äänimuistiinpanot",
-      "voiceNotesDesc": "Sanele muistiinpano ottelun aikana yhdellä painalluksella. Muistiinpanot odottavat postilaatikossa, kunnes kirjoitat ne auki ja liität oikealle pelaajalle tai otteluun.",
       "tasoReport": "Pöytäkirja",
       "tasoReportDesc": "Ottelun tiedot valmiina kopioitavaksi ja liitettäväksi mihin tahansa järjestelmään: kokoonpano pelinumeroineen, maalivahti ja kapteeni, lopputulos, puoliaikatilanne ja maalit minuutteineen."
     },
@@ -635,10 +479,10 @@
   "privacyPolicy": {
     "title": "MatchOpsin tietosuojakäytäntö",
     "version": "Käytännön versio: 2026-11",
-    "lastUpdated": "Päivitetty: marraskuu 2026",
+    "lastUpdated": "Päivitetty: 23.11.2026",
     "dataController": {
       "title": "Rekisterinpitäjä",
-      "content": "MatchOpsin kehittää ja ylläpitää Ville Pajala, Suomi. Olemme rekisterinpitäjä tilisi tiedoille (sähköpostiosoite, asetukset, suostumustiedot) sekä alla kuvatuille virheraporteille ja käyttötilastoille. Muista henkilöistä (pelaajat, henkilöstö) syöttämiesi henkilötietojen rekisterinpitäjä olet sinä - tai seura, jonka puolesta toimit - ja me olemme henkilötietojen käsittelijäsi (ks. käyttöehtojen kohta Henkilötietojen käsittely)."
+      "content": "MatchOpsin kehittää ja ylläpitää Ville Pajala, Suomi. Olemme rekisterinpitäjä tilisi tiedoille (sähköpostiosoite, asetukset, suostumustiedot) sekä alla kuvatuille virheraporteille ja käyttötilastoille. Muista henkilöistä (pelaajat, henkilöstö) syötettyjen henkilötietojen rekisterinpitäjä on sovellusta käyttävä valmentaja - tai seura, jos valmentaja käyttää sovellusta osana seuran toimintaa - ja me olemme henkilötietojen käsittelijä (ks. käyttöehtojen kohta Henkilötietojen käsittely)."
     },
     "overview": {
       "title": "Yleiskatsaus",
@@ -669,7 +513,7 @@
       },
       "cloudDataNote": "Pilvitiedot tallennetaan EU:ssa sijaitseviin datakeskuksiin (Tukholma, Ruotsi). Voit poistaa pilvitietosi tai koko tilisi milloin tahansa kohdassa Asetukset → Tiedot.",
       "dataRetentionTitle": "Tietojen säilytys",
-      "dataRetentionContent": "Pilvitietosi säilytetään niin kauan kuin tilisi on olemassa. Kun poistat pilvitietosi tai tilisi (Asetukset → Tiedot), ne poistetaan käytössä olevasta tietokannasta heti; mahdollinen kopio palveluntarjoajamme varmuuskopioissa poistuu, kun varmuuskopio vanhenee (enintään 30 päivää). Tilin poistaminen poistaa myös suostumustietosi. Jos tiliä ei käytetä pitkään aikaan, voimme poistaa sen pilvitiedot ilmoitettuamme siitä ensin. Laitteellasi olevat tiedot säilyvät siellä, kunnes poistat ne tai tyhjennät sovelluksen tallennustilan. Sentry poistaa virheraportit automaattisesti viimeistään 90 päivän kuluttua.",
+      "dataRetentionContent": "Pilvitietosi säilytetään niin kauan kuin tilisi on olemassa. Kun poistat pilvitietosi tai tilisi (Asetukset → Tiedot), ne poistetaan käytössä olevasta tietokannasta heti; mahdollinen kopio salatuissa yöllisissä tietokantavarmuuskopioissamme (säilytetään EU:ssa Cloudflare R2:ssa) poistuu, kun varmuuskopio vanhenee (enintään 30 päivää). Tilin poistaminen poistaa myös suostumustietosi. Jos tiliä ei käytetä pitkään aikaan, voimme poistaa sen pilvitiedot ilmoitettuamme siitä ensin. Laitteellasi olevat tiedot säilyvät siellä, kunnes poistat ne tai tyhjennät sovelluksen tallennustilan. Sentry poistaa virheraportit automaattisesti viimeistään 90 päivän kuluttua.",
       "operatorAccess": "Kuka näkee tietosi: sinä. Ylläpitäjänä meillä on teknisesti pääkäyttäjän pääsy tietokantaan, mutta emme katso sisältöäsi. Käsittelemme sitä vain, kun pyydät (esimerkiksi ilmoittamasi ongelman selvittämiseksi) tai kun laki sitä edellyttää."
     },
     "legalBasis": {
@@ -691,9 +535,9 @@
         "replay": "Virheen sattuessa: tallenne näytöstä virhettä edeltäviltä hetkiltä, jossa kaikki teksti ja kuvat on peitetty",
         "performance": "Suorituskykymittaukset otoksesta sivulatauksia ja näkymävaihtoja (noin joka kymmenes): ajoitukset ja avattu sovelluksen osoite"
       },
-      "errorReportingNote": "Tiedot ovat pseudonyymejä, eivät anonyymejä. Käytämme niitä vain virheiden löytämiseen ja korjaamiseen sekä sovelluksen nopeuden ylläpitoon. Raportit on rakennettu jättämään pois pelitietosi ja pelaajatiedot: teksti ja kuvat peitetään tallenteissa, ja avaimet sekä kirjautumistiedot poistetaan ennen lähetystä. Sentry käsittelee tiedot Yhdysvalloissa vakiosopimuslausekkeiden nojalla. Voit kytkeä tämän pois milloin tahansa kohdassa Asetukset → Tiedot → Virheraportit ja käyttötilastot; sen jälkeen laitteesi sovellus ei lähetä Sentrylle virheraportteja eikä käyttötilastoja. Palvelimemme raportoivat omat virheensä Sentrylle erikseen; nämä raportit eivät sisällä tilitietoja.",
-      "licenseValidationTitle": "Play Kaupan lisenssivahvistus",
-      "licenseValidationContent": "Jos maksullisia ominaisuuksia otetaan käyttöön, Google Play käsittelee kaikki maksut. Vahvistamme lisenssitilan Play Kaupan API:n kautta, mutta emme saa maksutietojasi.",
+      "errorReportingNote": "Tiedot ovat pseudonyymejä, eivät anonyymejä. Käytämme niitä vain virheiden löytämiseen ja korjaamiseen sekä sovelluksen nopeuden ylläpitoon. Raportit on rakennettu jättämään pois pelitietosi ja pelaajatiedot: teksti ja kuvat peitetään tallenteissa, ja avaimet, kirjautumistiedot ja sähköpostiosoitteet poistetaan ennen lähetystä. Virheraportit käsittelee ja tallentaa Sentry EU:ssa (Saksa). Voit kytkeä tämän pois milloin tahansa kohdassa Asetukset → Tiedot → Virheraportit ja käyttötilastot; sen jälkeen laitteesi sovellus ei lähetä Sentrylle virheraportteja eikä käyttötilastoja. Palvelimemme raportoivat omat virheensä Sentrylle erikseen; nämä raportit eivät sisällä tilitietoja.",
+      "licenseValidationTitle": "Maksut",
+      "licenseValidationContent": "Sovellus on maksuton. Emme käsittele maksuja emmekä maksu- tai lisenssitietoja.",
       "consentTrackingTitle": "Suostumustiedot",
       "consentTrackingIntro": "Kun hyväksyt käyttöehdot ja tämän tietosuojakäytännön tai annat tai peruutat markkinointisuostumuksen, tallennamme:",
       "consentTrackingItems": {
@@ -728,15 +572,15 @@
     },
     "thirdPartyServices": {
       "title": "Kolmannen osapuolen palvelut ja vastaanottajat",
-      "intro": "Supabase, Sentry, Resend ja Vercel ovat alikäsittelijöitämme, ja jokaisen kanssa on voimassa tietojenkäsittelysopimus. Google Play, Photon, palloliitto.fi ja yhdistämäsi tekoälypalvelu eivät ole alikäsittelijöitämme: ne vastaanottavat tietoja suoraan laitteeltasi vain käyttäessäsi niitä (Photon myös alla kuvatussa ottelupaikan osoitteen automaattisessa täydentämisessä), omien ehtojensa mukaisesti.",
+      "intro": "Supabase, Sentry, Resend, Vercel ja Cloudflare (salatut tietokantavarmuuskopiot, EU) ovat alikäsittelijöitämme, ja jokaisen kanssa on voimassa tietojenkäsittelysopimus. Tukisähköpostiin lähettämäsi viestit kulkevat Cloudflaren ja Googlen kautta (ks. Tukisähköposti alla). Google Play, Photon, palloliitto.fi ja yhdistämäsi tekoälypalvelu eivät ole alikäsittelijöitämme: ne vastaanottavat tietoja suoraan laitteeltasi vain käyttäessäsi niitä (Photon myös alla kuvatussa ottelupaikan osoitteen automaattisessa täydentämisessä), omien ehtojensa mukaisesti.",
       "googlePlay": "Google Play -kauppa",
-      "googlePlayDesc": "Sovelluksen jakelu ja maksut (Googlen infrastruktuuri).",
+      "googlePlayDesc": "Sovelluksen jakelu (Googlen infrastruktuuri).",
       "sentry": "Sentry",
-      "sentryDesc": "Virheraportit, virhetallenteet ja suorituskykymittaukset laitteesi sovelluksesta, ellet kytke niitä pois, sekä palvelimiemme virheraportit, jotka eivät sisällä tilitietoja (Yhdysvallat, vakiosopimuslausekkeet).",
+      "sentryDesc": "Virheraportit, virhetallenteet ja suorituskykymittaukset laitteesi sovelluksesta, ellet kytke niitä pois, sekä palvelimiemme virheraportit, jotka eivät sisällä tilitietoja (EU, Saksa).",
       "supabase": "Supabase",
       "supabaseDesc": "Pilvitietokanta ja todennus, EU (Tukholma, Ruotsi).",
       "vercel": "Vercel",
-      "vercelDesc": "Sovelluksen ja verkkosivuston isännöinti. Kuten mikä tahansa verkkopalvelin, se käsittelee IP-osoitettasi pyyntölokeissaan (globaali reunaverkko, vakiosopimuslausekkeet).",
+      "vercelDesc": "Sovelluksen ja verkkosivuston isännöinti. Kuten mikä tahansa verkkopalvelin, se käsittelee IP-osoitettasi pyyntölokeissaan (globaali reunaverkko, vakiosopimuslausekkeet). Sovelluksen palvelinfunktiot ajetaan EU:ssa (Tukholma, Ruotsi).",
       "googlePlayLink": "Googlen tietosuojakäytäntö",
       "sentryLink": "Sentryn tietosuojakäytäntö",
       "supabaseLink": "Supabasen tietosuojakäytäntö",
@@ -751,8 +595,12 @@
       "palloliittoDesc": "Sääntökirjan PDF haetaan heidän sivustoltaan, kun avaat säännön; he näkevät pyynnön kuten minkä tahansa sivustokäynnin (IP-osoite), eivät muuta.",
       "palloliittoLink": "Palloliiton tietosuojaseloste",
       "resend": "Resend",
-      "resendDesc": "Lähettää tilisähköpostit (rekisteröitymisen vahvistus, salasanan palautus) osoitteesta noreply@auth.match-ops.com sekä, jos annat suostumuksen, markkinointiviestit. Se vastaanottaa sähköpostiosoitteesi ja viestin (tietoja voidaan käsitellä Yhdysvalloissa vakiosopimuslausekkeiden nojalla).",
-      "resendLink": "Resendin tietosuojakäytäntö"
+      "resendDesc": "Lähettää tilisähköpostit (rekisteröitymisen vahvistus, salasanan palautus) osoitteesta noreply@auth.match-ops.com sekä, jos annat suostumuksen, markkinointiviestit. Se vastaanottaa sähköpostiosoitteesi ja viestin (lähetys ja käsittely EU:ssa, Irlanti).",
+      "resendLink": "Resendin tietosuojakäytäntö",
+      "supportEmail": "Tukisähköposti (Cloudflare ja Google)",
+      "supportEmailDesc": "Osoitteisiin hello@match-ops.com ja support@match-ops.com lähettämäsi viestit välitetään Cloudflare Email Routingin kautta Gmail-postilaatikkoon (Google), jossa luemme ja säilytämme ne vastataksemme sinulle. Viestejä voidaan käsitellä myös EU:n ulkopuolella, esimerkiksi Yhdysvalloissa. Älä lähetä viesteissä pelaajien tietoja, ellei se ole tarpeen.",
+      "cloudflareLink": "Cloudflaren tietosuojakäytäntö",
+      "googleLink": "Googlen tietosuojakäytäntö"
     },
     "yourRights": {
       "title": "Oikeutesi (GDPR)",
@@ -772,7 +620,7 @@
     },
     "childrensPrivacy": {
       "title": "Lasten yksityisyys",
-      "content": "MatchOps on aikuisille valmentajille tarkoitettu työkalu, ei lasten käyttöön. Pelaajat eivät käytä sovellusta: valmentaja syöttää pelaajien nimet, tilastot ja muistiinpanot. Nämä tiedot tallennetaan valmentajan laitteelle ja valmentajan pilvitilille EU:ssa vain palvelun tarjoamiseksi, emmekä koskaan lähetä niitä kolmansille osapuolille yllä lueteltuja alikäsittelijöitämme lukuun ottamatta - paitsi kun valmentaja yhdistää oman tekoälypalvelunsa ja päättää lähettää sinne muistiinpanoja tai tallenteita (ks. Äänimuistiinpanot ja valinnainen tekoäly). Paikkahaun teksti ja tallennettujen ottelupaikkojen karttamerkintöjen koordinaatit voivat mennä Photonille paikkahakua ja osoitteen täydentämistä varten; pelaajatietoja sinne ei mene. Pelaajatietojen rekisterinpitäjä on valmentaja tai seura, jonka puolesta hän toimii, ja hän vastaa pelaajien perheiden informoinnista; kohdassa Asetukset → Tiedot on siihen valmis tiedote."
+      "content": "MatchOps on aikuisille valmentajille tarkoitettu työkalu, ei lasten käyttöön. Pelaajat eivät käytä sovellusta: valmentaja syöttää pelaajien nimet, tilastot ja muistiinpanot. Nämä tiedot tallennetaan valmentajan laitteelle ja valmentajan pilvitilille EU:ssa vain palvelun tarjoamiseksi, emmekä koskaan lähetä niitä kolmansille osapuolille yllä lueteltuja alikäsittelijöitämme lukuun ottamatta - paitsi kun valmentaja yhdistää oman tekoälypalvelunsa ja päättää lähettää sinne muistiinpanoja tai tallenteita (ks. Äänimuistiinpanot ja valinnainen tekoäly). Paikkahaun teksti ja tallennettujen ottelupaikkojen karttamerkintöjen koordinaatit voivat mennä Photonille paikkahakua ja osoitteen täydentämistä varten; pelaajatietoja sinne ei mene. Pelaajatietojen rekisterinpitäjä on valmentaja - tai seura, jos valmentaja käyttää sovellusta osana seuran toimintaa - ja hän vastaa pelaajien perheiden informoinnista; kohdassa Asetukset → Tiedot on siihen valmis tiedote. Perheet voivat pyytää tietojen poistamista valmentajalta ja tehdä valituksen Tietosuojavaltuutetun toimistolle (tietosuoja.fi)."
     },
     "dataSecurity": {
       "title": "Tietoturva",
@@ -805,7 +653,7 @@
     "footer": "Tämä tietosuojakäytäntö koskee Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta.",
     "voiceNotesAndAi": {
       "title": "Äänimuistiinpanot ja valinnainen tekoäly",
-      "intro": "MatchOps voi tallentaa lyhyitä äänimuistiinpanoja ottelun aikana. Näin niitä käsitellään:",
+      "intro": "MatchOps voi tallentaa lyhyitä äänimuistiinpanoja ottelun aikana. Kuuntelet tallenteen ja kirjoitat muistiinpanon itse. Näin niitä käsitellään:",
       "items": {
         "onDevice": "Tallenteet säilytetään vain laitteellasi. Niitä ei koskaan lähetetä MatchOpsin palvelimille, synkronoida laitteiden välillä eikä sisällytetä varmuuskopioihin tai vienteihin.",
         "deleted": "Tallenne poistetaan laitteeltasi heti, kun muutat sen muistiinpanoksi tai hylkäät sen, ja joka tapauksessa 30 päivän kuluttua.",
@@ -813,12 +661,12 @@
         "neverReceived": "MatchOps ei koskaan vastaanota tallenteitasi. Muistiinpanot ja raporttiteksti, jotka päätät tallentaa, ovat pelitietoa ja niitä käsitellään yllä kuvatulla tavalla."
       },
       "aiTitle": "Valinnainen tekoälypalvelu (oma tilisi)",
-      "aiIntro": "Voit yhdistää oman tilisi tekoälypalveluun (esimerkiksi OpenAI) tallenteiden litterointia, otteluraporttien luonnostelua ja siistimistä, raportin kääntämistä sekä yhtä pelaajaa koskevien omien muistiinpanojesi lukemista yhtenäisenä tekstinä varten. Jos teet niin:",
+      "aiIntro": "Tämä on kokeellinen ominaisuus, joka on tällä hetkellä piilotettu eikä ole tavallisessa käytössä; ilman sitä mitään ei litteroida eikä lähetetä millekään tekoälypalvelulle. Kun se on käytössä, voit yhdistää oman tilisi tekoälypalveluun (esimerkiksi OpenAI) tallenteiden litterointia, otteluraporttien luonnostelua ja siistimistä, raportin kääntämistä sekä yhtä pelaajaa koskevien omien muistiinpanojesi lukemista yhtenäisenä tekstinä varten. Jos teet niin:",
       "aiItems": {
         "yourAccount": "Tiedot lähetetään suoraan laitteeltasi valitsemallesi palvelulle omalla tililläsi ja omalla API-avaimellasi. MatchOps ei ole tämän käsittelyn osapuoli eikä pääse siihen käsiksi.",
         "onlyOnAction": "Mitään ei lähetetä automaattisesti. Tiedot lähtevät laitteeltasi vain, kun painat sen sanovaa painiketta (Litteroi, Luonnostele, Siisti, Käännä, Kokoa muistiinpanot), ja sovellus kertoo ensin, mitä se on lähettämässä.",
         "providerTerms": "Palvelu käsittelee ja säilyttää tietoja omien ehtojensa mukaan, jotka hyväksyit tiliä luodessasi. MatchOps ei voi vaikuttaa tähän säilytykseen.",
-        "pseudonymized": "Ennen luonnostelupyyntöjä pelaajien nimet korvataan laitteellasi koodeilla (oletuksena päällä). Litterointipyynnöt sisältävät väistämättä puhumasi sanat.",
+        "pseudonymized": "Ennen luonnostelupyyntöjä pelaajien nimet korvataan laitteellasi koodeilla (oletuksena päällä). Litterointipyynnöt sisältävät väistämättä puhumasi sanat, ja niiden mukana lähetetään kyseisen ottelun pelaajien etunimet, jotta palvelu kirjoittaa ne oikein.",
         "disconnect": "Voit irrottaa palvelun ja poistaa kaikki tallenteet milloin tahansa asetuksista. Avain säilytetään vain laitteellasi."
       }
     },
@@ -830,7 +678,7 @@
   "termsOfService": {
     "title": "MatchOpsin käyttöehdot",
     "version": "Ehtojen versio: 2026-11",
-    "lastUpdated": "Päivitetty: marraskuu 2026",
+    "lastUpdated": "Päivitetty: 23.11.2026",
     "agreement": {
       "title": "Ehtojen hyväksyminen",
       "content": "Lataamalla, asentamalla tai käyttämällä MatchOpsia (\"sovellus\") hyväksyt nämä käyttöehdot. Jos et hyväksy ehtoja, älä käytä sovellusta."
@@ -915,7 +763,7 @@
       "title": "Kolmannen osapuolen palvelut",
       "intro": "Sovellus voi olla yhteydessä kolmannen osapuolen palveluihin:",
       "googlePlay": "Google Play -kauppa",
-      "googlePlayDesc": "Sovelluksen jakeluun ja maksuihin",
+      "googlePlayDesc": "Sovelluksen jakeluun",
       "sentry": "Sentry",
       "sentryDesc": "Automaattiseen virheraportointiin tuotannossa",
       "supabase": "Supabase",
@@ -933,16 +781,8 @@
       "resendDesc": "Tilisähköposteihin (rekisteröitymisen vahvistus, salasanan palautus) sekä, jos annat suostumuksen, markkinointiviesteihin"
     },
     "premiumSubscription": {
-      "title": "Maksulliset ominaisuudet",
-      "intro": "Saatamme tulevaisuudessa ottaa käyttöön maksullisia tilaussuunnitelmia. Jos niitä tarjotaan, maksulliset ominaisuudet voivat sisältää:",
-      "features": {
-        "cloudSync": "Pilvisynkronointi: Pääsy tietoihisi useilta laitteilta",
-        "unlimitedEntities": "Rajattomat pelaajat, joukkueet, sarjat ja turnaukset",
-        "prioritySupport": "Ensisijainen tuki"
-      },
-      "billing": "Jos maksullisia tilauksia otetaan käyttöön, ne laskutetaan Google Play Kaupan kautta. Katso Google Playn ehdot laskutuksesta, peruutuksesta ja hyvityksistä.",
-      "cancellation": "Jos sinulla on aktiivinen tilaus, voit peruuttaa sen milloin tahansa Google Playn kautta. Peruutuksen jälkeen säilytät pääsyn laskutusjakson loppuun asti.",
-      "dataAfterCancel": "Jos maksullinen tilaus peruutetaan, pilvitietosi pysyvät saatavilla. Voit viedä tai poistaa ne milloin tahansa. Pidätämme oikeuden poistaa pilvitiedot pitkittyneen tilin käyttämättömyyden jälkeen ennakkoilmoituksella."
+      "title": "Hinta",
+      "intro": "MatchOps on maksuton, eikä sovelluksessa ole maksuja tai tilauksia. Jos maksullisia ominaisuuksia joskus otetaan käyttöön, kerromme niistä etukäteen, eikä mitään veloiteta ilman erillistä hyväksyntääsi."
     },
     "cloudSync": {
       "title": "Pilvisynkronoinnin ehdot",
@@ -997,7 +837,7 @@
     },
     "aiServices": {
       "title": "Valinnaiset tekoälypalvelut",
-      "content1": "MatchOpsissa voit yhdistää oman tilisi kolmannen osapuolen tekoälypalveluun äänimuistiinpanojen litterointia ja raporttien luonnostelua varten. Tällaiseen käyttöön sovelletaan sopimustasi kyseisen palvelun kanssa. MatchOps ei ole sen osapuoli, ei vastaanota tietoja eikä vastaa palvelun käsittelystä, saatavuudesta, tuloksista tai maksuista.",
+      "content1": "Tämä on kokeellinen ominaisuus, joka ei ole tällä hetkellä käyttäjien saatavilla. Kun se on käytössä, MatchOpsissa voit yhdistää oman tilisi kolmannen osapuolen tekoälypalveluun äänimuistiinpanojen litterointia ja raporttien luonnostelua varten. Tällaiseen käyttöön sovelletaan sopimustasi kyseisen palvelun kanssa. MatchOps ei ole sen osapuoli, ei vastaanota tietoja eikä vastaa palvelun käsittelystä, saatavuudesta, tuloksista tai maksuista.",
       "content2": "Vastaat itse tallentamastasi tai sanelemastasi sisällöstä ja oikeudestasi käsitellä sitä. Älä tallenna terveystietoja tai muita erityisiin henkilötietoryhmiin kuuluvia tietoja (ks. Pelaajatiedot: sinun vastuusi).",
       "content3": "Tekoälyn tuottama sisältö on luonnos. Tarkistat ja hyväksyt jokaisen kohdan ennen tallennusta ja vastaat siitä, mitä säilytät."
     },
@@ -1010,7 +850,7 @@
         "instructions": "Ohjeet: käsittelemme tietoja vain palvelun tarjoamiseksi dokumentoitujen ohjeidesi mukaisesti - nämä ehdot ja sovelluksessa tekemäsi toimet - ellei EU:n tai Suomen laki edellytä muuta; siinä tapauksessa kerromme siitä ensin, ellei laki sitä kiellä.",
         "confidentiality": "Luottamuksellisuus: jokainen, jolla on lupa käsitellä tietoja puolestamme, on sitoutunut salassapitoon. Emme katso sisältöäsi muulloin kuin pyynnöstäsi tai lain edellyttäessä.",
         "security": "Turvallisuus (32 art.): tiedot säilytetään EU:ssa (Tukholma, Ruotsi), ne salataan siirron aikana (HTTPS/TLS) ja tallennettuina, ja rivitason suojaus erottaa jokaisen tilin tiedot. Jos henkilötietojen tietoturvaloukkaus koskee tietojasi, ilmoitamme siitä sinulle ilman aiheetonta viivytystä.",
-        "subprocessors": "Alikäsittelijät: annat yleisen luvan seuraaville: Supabase (tietokanta ja todennus, EU), Sentry (virheraportit), Resend (tilisähköpostit) ja Vercel (isännöinti). Sidomme ne sopimuksella samoihin tietosuojavelvoitteisiin. Ilmoitamme suunnitellusta lisäyksestä tai vaihdosta etukäteen päivittämällä tämän luettelon ja tietosuojakäytännön, jotta voit vastustaa sitä; jos vastustat, voit lopettaa palvelun käytön ja poistaa tilisi.",
+        "subprocessors": "Alikäsittelijät: annat yleisen luvan seuraaville: Supabase (tietokanta ja todennus, EU), Sentry (virheraportit, EU), Resend (tilisähköpostit, EU) ja Vercel (isännöinti). Sidomme ne sopimuksella samoihin tietosuojavelvoitteisiin. Ilmoitamme suunnitellusta lisäyksestä tai vaihdosta etukäteen päivittämällä tämän luettelon ja tietosuojakäytännön, jotta voit vastustaa sitä; jos vastustat, voit lopettaa palvelun käytön ja poistaa tilisi.",
         "assistance": "Avustaminen: sovelluksessa voit itse tarkastella, korjata, viedä ja poistaa tiedot, ja näin autamme sinua vastaamaan rekisteröityjen pyyntöihin. Käsittelyn luonteen sallimissa rajoissa autamme myös turvallisuudessa, tietoturvaloukkauksista ilmoittamisessa ja vaikutustenarvioinneissa.",
         "deletion": "Palvelun päättyminen: kun poistat tilisi, poistamme tiedot (varmuuskopioista ks. tietosuojakäytäntö). Voit viedä ne milloin tahansa sitä ennen.",
         "compliance": "Vaatimustenmukaisuuden osoittaminen: pyynnöstä osoitteeseen support@match-ops.com annamme käyttöösi tiedot, joita tarvitaan näiden velvoitteiden täyttymisen osoittamiseen, ja sallimme kohtuulliset tarkastukset ja osallistumme niihin."
@@ -1024,7 +864,7 @@
   },
   "deleteAccount": {
     "title": "Poista tilisi ja tietosi",
-    "intro": "Tämä sivu koskee MatchOps-sovellusta (kehittäjä: Velomo AI). Voit poistaa MatchOps-tilisi ja kaikki siihen liittyvät tiedot pysyvästi milloin tahansa - tai poistaa vain tietosi ja säilyttää tilin. Näin se tehdään.",
+    "intro": "Tämä sivu koskee MatchOps-sovellusta (kehittäjä: Ville Pajala). Voit poistaa MatchOps-tilisi ja kaikki siihen liittyvät tiedot pysyvästi milloin tahansa - tai poistaa vain tietosi ja säilyttää tilin. Näin se tehdään.",
     "inAppTitle": "Poista sovelluksesta (suositeltu)",
     "step1": "Avaa MatchOps ja kirjaudu tilillesi.",
     "step2": "Siirry kohtaan Asetukset → Tiedot → Poista tili.",
@@ -1049,5 +889,225 @@
     "emailLabel": "Sähköposti",
     "timelineTitle": "Aikataulu",
     "timelineContent": "Sovelluksessa tehty poisto on välitön. Sähköpostipyynnöt käsitellään 30 päivän kuluessa."
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "Jalkapallon ja futsalin juniorivalmentajille",
+      "title": "Koko ottelupäivä yhdessä sovelluksessa",
+      "subtitle": "Suunnittele kokoonpanot ja vaihdot etukäteen. Pelin aikana sovellus toimii pelikellona ja kirjaat ottelutapahtumat muutamalla painalluksella. Pöytäkirja on valmiina heti loppuvihellyksen jälkeen.",
+      "platform": "Android-puhelimille Google Playsta",
+      "trust": {
+        "free": "Ilmainen",
+        "noAds": "Ei mainoksia",
+        "eu": "Tiedot tallennetaan EU:ssa",
+        "taso": "Valmis pöytäkirja"
+      }
+    },
+    "alt": {
+      "timer": "Ottelukello 17:48, tulos 0–1, Maali meille- ja Vastustaja +1 -painikkeet sekä seuraava vaihto",
+      "planner": "Suunnittele ottelukokonaisuudet, kuten turnaukset, kerralla: pelaajien kokonaisminuuttimäärät värikoodattuina ja kokoonpano kentällä",
+      "poytakirja": "Pöytäkirja: kokoonpano pelinumeroineen, lopputulos, puoliaikatilanne ja maalit minuutteineen",
+      "plan": "Suunnitelma: pelaajien peliminuutit ja vaihdot kentällä",
+      "matchview": "Ottelunäkymä: pelaajat kentällä pelipaikoillaan ja ottelukello",
+      "quickgoal": "Kuka teki? -valinta maalin jälkeen: pelaajien nimet, Ohita ja Seuraavaksi: kuka syötti?",
+      "finish": "Viimeistele ottelu: tulos, päivä, paikka, kokoonpano ja ottelutapahtumat",
+      "attendance": "Ketkä ovat paikalla? Poissaolijat painettu pois, paikalla 12/14",
+      "tacticalBoard": "Taktiikkataulu, johon on piirretty liikkeitä",
+      "matchReport": "Otteluraportti valmiin otsikkopohjan mukaan ja Jaa otteluraportti -painike",
+      "positionBalance": "Pelipaikkojen tasapaino: kunkin pelaajan pelipaikat linjoittain koko kaudelta",
+      "nextMatch": "Seuraava ottelu: alkamisaika, lähtöaika, kenttä ja Merkitse poissaolijat",
+      "officialRules": "Säännöt: haku sanalla paitsio ja sääntö 11 sivulla 61",
+      "futsal": "Futsalkenttä ottelunäkymässä",
+      "playerStats": "Pelaajatilastot: ottelut, maalit, syötöt ja pelipaikat",
+      "videoPoster": "Kuva sovelluksesta"
+    },
+    "video": {
+      "eyebrow": "Katso video",
+      "title": "Suunnitelmasta otteluraporttiin",
+      "desc": "Lyhyt video näyttää, miten ottelupäivä etenee MatchOpsilla.",
+      "heroTitle": "MatchOps: suunnitelmasta otteluraporttiin",
+      "play": "Katso video",
+      "matchDay": "Katso myös: Ottelupäivä MatchOpsilla",
+      "channel": "Kaikki videot YouTubessa",
+      "privacy": "Video ladataan YouTubesta vasta, kun painat toistoa."
+    },
+    "steps": {
+      "title": "Ottelupäivä kolmessa vaiheessa",
+      "plan": {
+        "title": "Suunnittele",
+        "desc": "Suunnittele kokoonpanot ja vaihdot valmiiksi vaikka koko turnauspäivälle. Jos joku ei pääsekään paikalle, suunnitelma mukautuu automaattisesti."
+      },
+      "rotate": {
+        "title": "Peluuta",
+        "desc": "Pelikello, vaihtoajastin ja ottelun tilanne ovat yhdessä näkymässä. Näet seuraavan vaihdon: kuka kentälle, kuka penkille. Ottelutapahtumat kirjaat muutamalla painalluksella."
+      },
+      "record": {
+        "title": "Kirjaa",
+        "desc": "Pelin jälkeen pöytäkirja on valmiina kopioitavaksi, ja otteluraportin voi jakaa. Tilastot kertyvät jokaisesta pelistä itsestään."
+      }
+    },
+    "spotlights": {
+      "taso": {
+        "eyebrow": "Pelin jälkeen",
+        "title": "Pöytäkirja valmiina kopioitavaksi",
+        "desc": "Viimeistele ottelu -näkymä kokoaa tuloksen, kokoonpanon ja maalit yhteen. Pöytäkirjassa ovat pelaajat pelinumeroineen, maalivahti ja kapteeni, lopputulos, puoliaikatilanne ja maalit minuutteineen. Kopioi teksti ja liitä se haluamaasi paikkaan, esimerkiksi Tasoon."
+      },
+      "planner": {
+        "eyebrow": "Turnauspäivä",
+        "title": "Koko turnauspäivä kerralla",
+        "desc": "Suunnittele aloituskokoonpanot ja vaihdot useaan peliin kerralla. Jokaisen pelaajan suunnitellut peliminuutit ja pelipaikat näkyvät värikoodattuina kaikista peleistä. Kun muutat yhtä peliä, näet heti, miten se vaikuttaa kokonaisuuteen."
+      },
+      "goals": {
+        "eyebrow": "Pelin aikana",
+        "title": "Maalit ja syötöt",
+        "desc": "Maalit ja syöttäjät kirjataan muutamalla painalluksella. Ottelun tilanne, tapahtumien aikajana ja kokonaistilastot rakentuvat automaattisesti."
+      },
+      "lineup": {
+        "eyebrow": "Kentällä",
+        "title": "Kokoonpano kentällä",
+        "desc": "Pelaajat ovat kentällä valmiiksi valitussa muodostelmassa. Vaihda pelipaikkoja ja vaihtopelaajia muutamalla painalluksella. Pelipaikat siirtyvät automaattisesti pöytäkirjaan ja otteluraporttiin."
+      },
+      "attendance": {
+        "eyebrow": "Ketkä ovat paikalla?",
+        "title": "Pelaaja ei saapunut paikalle? Poista hänet kokoonpanosta yhdellä painalluksella, ja suunnitelma mukautuu.",
+        "desc": "Seuraava ottelu -kortin Merkitse poissaolijat -painike avaa listan, jossa kaikki pelaajat ovat aluksi mukana. Paina poissaolijoita, niin näet heti, montako on paikalla. Aloituskokoonpano ja suunnitelma täydennetään paikalla olevilla pelaajilla. Poissaolijalle ei merkitä pelattua ottelua."
+      }
+    },
+    "features": {
+      "title": "Lisää työkaluja ottelupäivään",
+      "tacticalBoard": {
+        "title": "Taktiikkataulu",
+        "desc": "Piirrä tilanteet ja liikkeet puoliajalla, niin pelaajat näkevät, mitä tarkoitat."
+      },
+      "matchReport": {
+        "title": "Otteluraportti",
+        "desc": "Kirjoita muutama rivi valmiiden otsikoiden alle: mikä toimi, mitä harjoitellaan, mitä seuraavaksi. Kun jaat raportin, mukaan tulevat tulos, ottelutapahtumat ja pelaajien pelipaikat."
+      },
+      "positionBalance": {
+        "title": "Pelipaikkojen jakauma",
+        "desc": "Näet jokaisen pelaajan pelipaikkojen jakauman pidemmällä aikavälillä."
+      },
+      "nextMatch": {
+        "title": "Tiedät, milloin lähteä",
+        "desc": "Etusivulla näkyvät seuraavan ottelun alkamisaika, paikka ja kenttä sekä ajo-ohjeet. Kun kerrot, mistä lähdette ja milloin pitää olla paikalla, sovellus laskee lähtöajan."
+      },
+      "officialRules": {
+        "title": "Säännöt",
+        "desc": "Hae sääntöä omin sanoin ja avaa virallinen sääntökirja suoraan oikealta sivulta. Mukana myös futsalin pelimuodot ikäluokittain."
+      },
+      "futsal": {
+        "title": "Futsal",
+        "desc": "Merkitse ottelu futsaliksi, niin kentäksi vaihtuu futsalkenttä ja futsalin tilastoja voi katsoa erikseen."
+      },
+      "stats": {
+        "title": "Tilastot",
+        "desc": "Ottelut, maalit, syötöt ja pelipaikat kertyvät pelaajittain ja joukkueittain. Tarvittaessa viet ne Exceliin."
+      }
+    },
+    "allFeatures": {
+      "summary": "Näytä kaikki ominaisuudet",
+      "guideLink": "Kaikki ominaisuudet ohjeineen löydät oppaasta",
+      "groups": {
+        "gameDay": "Ottelupäivä",
+        "afterGame": "Pelin jälkeen",
+        "teamSeason": "Joukkue ja kausi"
+      },
+      "items": {
+        "goalTimeline": {
+          "title": "Ottelutapahtumat",
+          "desc": "Maalit minuutteineen aikajärjestyksessä. Maalin voi korjata tai lisätä jälkikäteen."
+        },
+        "overtime": {
+          "title": "Jatkoaika ja rangaistuspotkukilpailu",
+          "desc": "Kun varsinainen peliaika päättyy tasan, siirryt jatkoajalle suoraan samasta näkymästä. Rangaistuspotkukilpailun kirjaat potku kerrallaan, kunnes voittaja on selvillä."
+        },
+        "formations": {
+          "title": "Muodostelmat",
+          "desc": "Valitse valmis muodostelma, niin pelaajat asettuvat kentälle paikoilleen."
+        },
+        "positions": {
+          "title": "Toteutuneet pelipaikat",
+          "desc": "Merkitse pelin jälkeen, missä kukin pelasi. Tiedoista kertyy pelaajan pelipaikkajakauma."
+        },
+        "excelExport": {
+          "title": "Excel-raportit",
+          "desc": "Vie tilastot Exceliin pelaajittain, otteluittain, joukkueittain tai kilpailuittain."
+        },
+        "archive": {
+          "title": "Kaikki ottelut",
+          "desc": "Selaa tallennettuja otteluita, hae vastustajan nimellä ja suodata sarjan tai turnauksen mukaan."
+        },
+        "roster": {
+          "title": "Pelaajat",
+          "desc": "Pelaajien nimet, pelinumerot ja kutsumanimet. Kentällä pelaaja näkyy kutsumanimellään."
+        },
+        "teams": {
+          "title": "Joukkueet",
+          "desc": "Useita joukkueita samassa sovelluksessa, jokaisella omat ottelunsa ja tilastonsa."
+        },
+        "personnel": {
+          "title": "Taustahenkilöt",
+          "desc": "Valmentajat ja muut taustahenkilöt rooleineen ja yhteystietoineen."
+        },
+        "seasons": {
+          "title": "Sarjat",
+          "desc": "Liitä ottelut sarjaan ja seuraa sarjan tilastoja."
+        },
+        "tournaments": {
+          "title": "Turnaukset",
+          "desc": "Liitä ottelut turnaukseen ja seuraa turnauksen tilastoja."
+        },
+        "friendlies": {
+          "title": "Harjoitusottelut",
+          "desc": "Merkitse harjoitusottelu, niin se ei sekoitu sarjapelien tilastoihin."
+        },
+        "cloudSync": {
+          "title": "Tiedot tallessa",
+          "desc": "Tiedot tallentuvat tilillesi, joten ne säilyvät, vaikka puhelin vaihtuisi."
+        }
+      }
+    },
+    "faq": {
+      "title": "Usein kysyttyä",
+      "items": [
+        {
+          "q": "Maksaako MatchOps?",
+          "a": "Ei. MatchOps on ilmainen, eikä siinä ole mainoksia."
+        },
+        {
+          "q": "Tarvitaanko tili?",
+          "a": "Kyllä. Luot ilmaisen tilin sähköpostiosoitteella ja salasanalla. Tilin ansiosta tiedot säilyvät, vaikka puhelin vaihtuisi."
+        },
+        {
+          "q": "Toimiiko MatchOps iPhonessa?",
+          "a": "Ei. MatchOps on saatavilla vain Android-puhelimille Google Playsta. iPhone-versiota ei ole."
+        },
+        {
+          "q": "Missä tiedot säilytetään?",
+          "a": "Puhelimessasi ja tililläsi palvelimella EU:ssa (Tukholma, Ruotsi). Tietoja ei myydä eikä käytetä mainontaan."
+        },
+        {
+          "q": "Toimiiko sovellus ilman verkkoa?",
+          "a": "Kyllä, kun olet kirjautunut. Kirjautumiseen tarvitaan verkkoyhteys, mutta sen jälkeen sovellus toimii kentän laidalla ilman verkkoa. Muutokset siirtyvät tilillesi, kun yhteys palaa."
+        },
+        {
+          "q": "Sopiiko MatchOps futsaliin?",
+          "a": "Kyllä. Merkitse ottelu futsaliksi, niin kentäksi vaihtuu futsalkenttä ja futsalin tilastoja voi katsoa erikseen. Säännöistä löytyvät myös futsalin pelimuodot ikäluokittain."
+        },
+        {
+          "q": "Toimiiko MatchOps Tason kanssa?",
+          "a": "Pöytäkirja on valmis teksti, jonka kopioit ja liität Tasoon. MatchOps ei ole suoraan yhteydessä Tasoon, mutta Taso-linkki löytyy sovelluksen valikosta."
+        },
+        {
+          "q": "Voinko poistaa tietoni?",
+          "a": "Kyllä, milloin tahansa. Kohdassa Asetukset → Tiedot voit poistaa kaikki tiedot tai koko tilin."
+        }
+      ],
+      "more": "Lisää kysymyksiä ja vastauksia oppaassa"
+    },
+    "cta": {
+      "title": "Valmiina seuraavaan ottelupäivään?",
+      "subtitle": "Lataa MatchOps ilmaiseksi Google Playsta."
+    }
   }
 }

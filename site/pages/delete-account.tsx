@@ -1,24 +1,14 @@
 import Layout from '@/components/Layout';
-import Head from 'next/head';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
 
 export default function DeleteAccountPage() {
   const { t } = useTranslation('common');
-  const router = useRouter();
 
   return (
-    <Layout>
-      <Head>
-        <title>{t('seo.deleteAccount.title')}</title>
-        <meta name="description" content={t('seo.deleteAccount.description')} />
-        <meta property="og:title" content={t('seo.deleteAccount.title')} />
-        <meta property="og:description" content={t('seo.deleteAccount.description')} />
-        <meta property="og:url" content={`https://www.match-ops.com${router.locale === 'en' ? '/en' : ''}/delete-account`} />
-      </Head>
+    <Layout title={t('seo.deleteAccount.title')} description={t('seo.deleteAccount.description')}>
 
       <div className="section bg-slate-900">
         <div className="container-custom">

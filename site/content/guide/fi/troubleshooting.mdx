@@ -1,23 +1,23 @@
 ---
 title: Vianetsintä
 description: Yleiset ongelmat ja ratkaisut MatchOpsille
-lastUpdated: "2026-11-19"
+lastUpdated: "2026-11-23"
 ---
 
-Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
+Tästä löydät ratkaisut yleisimpiin ongelmiin.
 
-## Data-ongelmat
+## Tietojen tallennus
 
-### Data ei tallennu
+### Tiedot eivät tallennu
 
-**Ongelma**: Muutokset eivät säily istuntojen välillä.
+**Ongelma**: Muutokset ovat kadonneet, kun avaat sovelluksen uudelleen.
 
 **Ratkaisut**:
-- Tarkista, että sovelluksella on tallennusoikeudet Androidin asetuksissa
-- Varmista, että laitteessa on riittävästi tallennustilaa
-- Kokeile manuaalista tallennusta ennen sovelluksen sulkemista
+- Katso synkronoinnin tila: jos se näyttää **Virhe**, paina ilmaisinta, niin sovellus yrittää uudelleen
+- Varmista, että puhelimessa on vapaata tallennustilaa
+- Kaikki tallentuu automaattisesti. Ottelun valikon **Pikatallennus** tallentaa heti, jos haluat varmistaa
 
-### Kadonnut data
+### Tiedot ovat kadonneet
 
 **Ongelma**: Aiemmat pelit tai pelaajat ovat kadonneet.
 
@@ -26,106 +26,103 @@ Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
 - Sovellus poistettiin ja asennettiin uudelleen
 - Käytät eri laitetta kuin aiemmin
 
-**Palautus**:
-- Kirjaudu ulos ja takaisin sisään synkronoidaksesi tililtäsi uudelleen
-- Tarkista, oletko oikealla laitteella
-- Jos käytät vanhaa kokoonpanoa ilman tiliä, palauta varmuuskopiosta jos saatavilla
-- Ota yhteyttä tukeen jos datan pitäisi olla olemassa
+**Näin saat tiedot takaisin**:
+- Kirjaudu ulos ja takaisin sisään, niin tiedot haetaan tililtäsi uudelleen
+- Tarkista, että olet kirjautunut samalla tilillä kuin ennen
+- Jos käytät sovellusta vanhaan tapaan ilman tiliä, palauta tiedot varmuuskopiosta, jos sinulla on sellainen
+- Jos tietojen pitäisi olla tallessa mutta niitä ei löydy, ota yhteyttä tukeen
 
-### Tuonti/vienti ei toimi
+### Varmuuskopion palautus tai vienti ei onnistu
 
-**Ongelma**: Varmuuskopiota ei voi tuoda tai dataa viedä.
+**Ongelma**: Varmuuskopiota ei voi palauttaa tai tietoja viedä.
 
 **Ratkaisut**:
-- Tarkista tiedostomuoto (JSON varmuuskopioille, xlsx Excelille)
-- Varmista, ettei tiedosto ole vioittunut
-- Kokeile pienempää dataosaa
-- Tarkista, että sovelluksella on tiedostojen käyttöoikeudet
+- Palautukseen kelpaa vain MatchOpsin varmuuskopio (JSON-tiedosto). Excel-tiedostoa ei voi tuoda.
+- Varmista, ettei tiedosto ole vioittunut (kokeile toista varmuuskopiota tai automaattista palautuspistettä)
+- Jos tiedoston tallennus ei onnistu, valitse varmuuskopiota tehdessä **Jaa** (esim. sähköpostiin tai pilvikansioon) tai **Tallenna**
 
 ## Pilvisynkronoinnin ongelmat
 
-### Data ei synkronoidu
+### Tiedot eivät synkronoidu
 
 **Ongelma**: Yhdellä laitteella tehdyt muutokset eivät näy toisella.
 
 **Ratkaisut**:
-1. Tarkista internetyhteytesi
-2. Katso synkronoinnin tilailmaisinta - jos se näyttää "Odottaa", odota synkronoinnin valmistumista
-3. Lataa sivu uudelleen tai sulje ja avaa sovellus uudelleen
-4. Varmista, että olet kirjautunut samalle tilille molemmilla laitteilla
+1. Tarkista verkkoyhteys
+2. Katso synkronoinnin tilaa. Jos siinä lukee "Odottaa", odota, että synkronointi valmistuu
+3. Sulje ja avaa sovellus uudelleen
+4. Varmista, että olet kirjautunut samalla tilillä molemmilla laitteilla
 5. Kokeile kirjautua ulos ja takaisin sisään
 
-### Synkronointi jumissa tai epäonnistuu
+### Synkronointi jumittaa tai epäonnistuu
 
 **Ongelma**: Synkronointi-ilmaisin näyttää odottavia muutoksia, jotka eivät synkronoidu.
 
 **Ratkaisut**:
-1. Tarkista internetyhteys
+1. Tarkista verkkoyhteys
 2. Odota muutama minuutti - sovellus yrittää automaattisesti uudelleen
 3. Sulje ja avaa sovellus uudelleen
-4. Jos edelleen jumissa, kokeile kirjautua ulos ja takaisin sisään
+4. Jos synkronointi jumittaa edelleen, kirjaudu ulos ja takaisin sisään
 
 <Callout type="info">
-Jos sinulla on odottavia muutoksia ja menet offline-tilaan, ne on tallennettu turvallisesti ja synkronoituvat kun yhdistät uudelleen.
+Jos yhteys katkeaa kesken kaiken, odottavat muutokset ovat tallessa puhelimessa ja synkronoituvat, kun yhteys palaa.
 </Callout>
 
-### Offline-tilassa pilvitilin kanssa
+### Käyttö ilman verkkoa
 
-**Ongelma**: Huoli sovelluksen käytöstä offline-tilassa pilvitilin kanssa.
+**Kysymys**: Voiko sovellusta käyttää huoletta ilman verkkoa?
 
-**Tämä on normaalia ja toimii hyvin!**
-- Kaikki muutokset tallentuvat laitteellesi välittömästi
-- Data synkronoituu automaattisesti kun yhdistät uudelleen
-- Dataa ei menetä offline-jaksojen aikana
-- Voit seurata kokonaisia pelejä ilman internetiä
+**Kyllä, niin se on tarkoitettukin.**
+- Kaikki muutokset tallentuvat puhelimeen heti
+- Tiedot synkronoituvat automaattisesti, kun yhteys palaa
+- Tietoja ei katoa, vaikka olisit pitkään ilman verkkoa
+- Voit kirjata kokonaisia pelejä ilman verkkoa
 
 <Callout type="tip">
-Sovellus on suunniteltu toimimaan offline-tilassa. Seuraa peliäsi, ja kaikki synkronoituu kun olet taas verkossa.
+Sovellus on tehty toimimaan ilman verkkoa. Hoida peli tavalliseen tapaan, niin kaikki synkronoituu, kun olet taas verkossa.
 </Callout>
 
-## Tunnistautumisongelmat
+## Kirjautuminen ja tili
 
-### Ei voi kirjautua sisään
+### Kirjautuminen ei onnistu
 
-**Ongelma**: Ei pääse kirjautumaan tilille.
+**Ongelma**: Et pääse kirjautumaan tilillesi.
 
 **Ratkaisut**:
 1. Varmista, että sähköposti ja salasana ovat oikein
-2. Tarkista, onko Caps Lock päällä
+2. Tarkista salasanan isot ja pienet kirjaimet
 3. Kokeile **Unohditko salasanasi?** -linkkiä
-4. Tarkista internetyhteytesi
-5. Jos tili on uusi, varmista että syötit sähköpostiin tulleen vahvistuskoodin
+4. Tarkista verkkoyhteys
+5. Jos tili on uusi, varmista, että syötit sähköpostiin tulleen vahvistuskoodin
 
 ### Unohtunut salasana
 
-**Ongelma**: Salasana ei muistu mieleen.
+**Ongelma**: Et muista salasanaasi.
 
 **Ratkaisu**:
-1. Napauta kirjautumisnäytöllä **Unohditko salasanasi?**
-2. Syötä sähköpostiosoitteesi ja napauta **Lähetä nollaussähköposti**
+1. Paina kirjautumisnäytöllä **Unohditko salasanasi?**
+2. Syötä sähköpostiosoitteesi ja paina **Lähetä nollaussähköposti**
 3. Tarkista sähköpostisi (myös roskapostikansio)
 4. Syötä koodi kohtaan **Syötä nollauskoodi** ja aseta uusi salasana
 5. Kirjaudu sisään uudella salasanalla
 
-### Istunto vanhentunut
+### Sovellus pyytää kirjautumaan uudelleen
 
-**Ongelma**: Sovellus pyytää kirjautumaan sisään odottamatta.
+**Ongelma**: Sovellus pyytää yllättäen kirjautumaan sisään.
 
-**Syyt**:
-- Istunnot vanhenevat pitkän käyttämättömyysjakson jälkeen
-- Järjestelmä poisti sovelluksen muistista
+**Syy**: Kirjautuminen vanhenee, jos sovellusta ei käytetä pitkään aikaan.
 
-**Ratkaisu**: Kirjaudu vain sisään uudelleen. Datasi on turvassa pilvessä.
+**Ratkaisu**: Kirjaudu sisään uudelleen. Tietosi ovat tallessa tililläsi.
 
-### Tilin luontiongelmat
+### Tilin luominen ei onnistu
 
 **Ongelma**: Uutta tiliä ei voi luoda.
 
 **Ratkaisut**:
-- Tarkista, että sähköpostiosoite on kelvollinen
+- Tarkista, että sähköpostiosoite on kirjoitettu oikein
 - Salasanassa on oltava vähintään 8 merkkiä
-- Tarkista internetyhteys
-- Kokeile eri sähköpostiosoitetta jos ongelmat jatkuvat
+- Tarkista verkkoyhteys
+- Jos ongelma jatkuu, kokeile toista sähköpostiosoitetta
 
 ## Ottelu ja suunnitelma
 
@@ -141,11 +138,11 @@ Lohko **Seuraava vaihto** näkyy, kun pelillä on suunnitelma. Peli, joka on luo
 
 Laskuri katsoo kahta asiaa: kokoonpano on valittu ja maaliloki vastaa tulosta. Tarkista, että jokainen maali on kirjattu (myös vastustajan maalit). Maalintekijät eivät ole pakollisia.
 
-## Suorituskykyongelmat
+## Hitaus ja kello
 
 ### Sovellus toimii hitaasti
 
-**Ongelma**: Sovellus on hidas tai ei vastaa.
+**Ongelma**: Sovellus on hidas tai jumittaa.
 
 **Ratkaisut**:
 1. Sulje muut taustalla olevat sovellukset
@@ -153,101 +150,81 @@ Laskuri katsoo kahta asiaa: kokoonpano on valittu ja maaliloki vastaa tulosta. T
 3. Tyhjennä sovelluksen välimuisti Androidin asetuksista
 4. Arkistoi päättyneet sarjat ja turnaukset
 
-### Ajastin ei ole tarkka
+### Kello näyttää väärää aikaa
 
-**Ongelma**: Peliajastin tuntuu väärältä.
+**Ongelma**: Peliaika tuntuu väärältä.
 
-**Syyt**:
-- Laite oli lepotilassa
-- Sovellus oli taustalla
-- Virransäästötila hidasti sovellusta
+Kello käy myös silloin, kun puhelin on lukittuna tai käytät toista sovellusta. Kun palaat MatchOpsiin, aika päivittyy oikeaksi puhelimen kellon mukaan.
 
 **Ratkaisut**:
-- Pidä sovellus etualalla pelien aikana
-- Sovellus pitää näytön hereillä automaattisesti aktiivisen ajanoton aikana
-- Älä vaihda sovelluksia aktiivisen ajastimen aikana
-- Poista akun optimointi käytöstä MatchOpsille
+- Varmista, että puhelimen kellonaika asetetaan automaattisesti
+- Tarkista, ettei kello jäänyt tauolle (painike näyttää silloin **Jatka**)
+- Jos tuomari päätti jakson aiemmin, käytä isossa kellossa **Päätä jakso**
 
-## Näyttöongelmat
+## Näyttö
 
-### Näytön suuntaongelmat
+### Näkymä näyttää väärältä
 
-**Ongelma**: Asettelu näyttää väärältä pysty-/vaakasuunnassa.
-
-**Ratkaisut**:
-- Lukitse laitteen suunta mieltymyksesi mukaan
-- Käytä sovellusta suositellussa suunnassa (vaaka tabletilla, pysty puhelimella)
-- Käynnistä sovellus uudelleen kääntämisen jälkeen jos näyttö on virheellinen
-
-### Elementit puuttuvat tai leikkautuvat
-
-**Ongelma**: Kaikkia käyttöliittymäelementtejä ei näe.
+**Ongelma**: Näkymän asettelu on pielessä.
 
 **Ratkaisut**:
-- Tarkista laitteen näyttöasetukset (fonttikoko, näytön skaalaus)
-- Kokeile kokonäyttötilaa
-- Tarkista laitteen näyttökoon yhteensopivuus
+- MatchOpsia käytetään puhelin pystyasennossa
+- Käynnistä sovellus uudelleen, jos näkymä jää virheelliseksi
 
-## Yhteysongelmia
+### Osa näkymästä puuttuu tai leikkautuu
 
-### Offline-tila ei toimi
-
-**Ongelma**: Sovellus ei toimi ilman nettiä.
+**Ongelma**: Kaikki painikkeet tai tekstit eivät mahdu näkyviin.
 
 **Ratkaisut**:
-- Varmista, että olet avannut sovelluksen kerran nettiyhteydellä
-- Sovelluksen täytyy ladata resurssit ensimmäisellä käynnistyksellä
-- Kokeile sovelluksen uudelleenasennusta
+- Tarkista puhelimen näyttöasetukset: pienennä fonttikokoa tai näytön zoomausta
+
+## Yhteys
+
+### Sovellus ei toimi ilman verkkoa
+
+**Ongelma**: Sovellus ei toimi ilman verkkoyhteyttä.
+
+**Ratkaisut**:
+- Varmista, että olet avannut sovelluksen ja kirjautunut sisään kerran verkossa ollessasi
+- Sovellus lataa tarvitsemansa tiedostot ensimmäisellä käynnistyksellä
+- Kokeile asentaa sovellus uudelleen
 
 <Callout type="tip">
-Ensimmäisen käynnistyksen jälkeen sovelluksen pitäisi toimia offline. Testaa laittamalla lentokonetila päälle ja avaamalla uudelleen.
+Ensimmäisen käynnistyksen jälkeen sovelluksen pitäisi toimia ilman verkkoa. Testaa: laita lentokonetila päälle ja avaa sovellus uudelleen.
 </Callout>
 
-## Android-kohtaiset ongelmat
+## Puhelimen asetukset
 
-### Taustarajoitukset
+### Näyttö sammuu kesken ottelun
 
-Yleisiä ongelmia:
-- Ajastin pysähtyy kun sovellus on taustalla
-- Ilmoitukset eivät näy
+MatchOps pitää näytön päällä ottelun ajan. Jos näyttö silti sammuu:
+- Varmista, että ottelun kello on käynnistetty
+- Kokeile kytkeä puhelimen virransäästötila pois ottelun ajaksi
 
-**Ratkaisut**:
-- Poista akun optimointi käytöstä MatchOpsille
-- Myönnä kaikki pyydetyt oikeudet
-- Pidä sovellus etualalla pelien aikana
-- Tarkista Androidin mukautuvan akun asetukset
+Kello käy, vaikka näyttö sammuisi.
 
-### Tallennusoikeusongelmat
+## Lisäapua
 
-**Ongelma**: Sovellus pyytää tallennusoikeutta toistuvasti tai ei voi tallentaa tiedostoja.
-
-**Ratkaisut**:
-- Myönnä tallennusoikeudet: Asetukset > Sovellukset > MatchOps
-- Android 13+: Myönnä "Kuvat ja videot" tai "Tiedostot" -oikeus tarpeen mukaan
-- Käynnistä sovellus uudelleen oikeuksien myöntämisen jälkeen
-
-## Lisäavun saaminen
-
-### Ennen tukeen yhteydenottoa
+### Ennen kuin otat yhteyttä tukeen
 
 Kerää nämä tiedot:
 1. Laitteen malli ja Android-versio
 2. Sovelluksen versio (**Asetukset** → **Tietoja**)
 3. Oletko kirjautunut sisään tilillesi
-4. Vaiheet ongelman toistamiseksi
+4. Mitä teit juuri ennen ongelmaa
 5. Mahdolliset virheilmoitukset
-6. Kuvakaappaus jos mahdollista
+6. Kuvakaappaus, jos mahdollista
 
-### Nollausvaihtoehdot
+### Jos mikään muu ei auta
 
-Jos ongelmat jatkuvat:
+Kokeile näitä tässä järjestyksessä:
 
-1. **Kirjaudu ulos ja takaisin sisään**: Usein korjaa synkronointiongelmat
+1. **Kirjaudu ulos ja takaisin sisään**: korjaa usein synkronointiongelmat
 2. **Synkronoi pilvestä uudelleen**: **Asetukset** → **Tiedot** → Vaaravyöhyke; tyhjentää puhelimen kopion ja lataa tiedot uudelleen tililtä
-3. **Pehmeä nollaus**: Tyhjennä sovelluksen välimuisti Androidin asetuksista, avaa uudelleen
-4. **Puhdas uudelleenasennus**: Poista ja asenna sovellus uudelleen, kirjaudu sitten takaisin sisään
+3. **Tyhjennä välimuisti**: tyhjennä sovelluksen välimuisti Androidin asetuksista ja avaa sovellus uudelleen
+4. **Asenna uudelleen**: poista sovellus, asenna se uudelleen ja kirjaudu sisään
 5. **Poista kaikki tiedot**: **Asetukset** → **Tiedot** → Vaaravyöhyke; poistaa tiedot pysyvästi kaikkialta (viimeinen keino)
 
 <Callout type="info">
-Huomio vanhoille käyttäjille: jos käytät MatchOpsia ilman tiliä, vie varmuuskopio ennen mitään nollausta, sillä pilvikopiota ei ole josta synkronoida uudelleen.
+Jos käytät MatchOpsia vanhaan tapaan ilman tiliä, tee varmuuskopio ennen kuin nollaat mitään. Ilman tiliä tiedoista ei ole kopiota pilvessä.
 </Callout>

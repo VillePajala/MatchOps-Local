@@ -1878,12 +1878,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       const { exportCurrentGameExcel } = await import('@/utils/exportExcel');
       // Wrap t() to match TranslationFn signature
       const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
-      exportCurrentGameExcel(gameId, gameData, availablePlayers, gameDataManagement.seasons, gameDataManagement.tournaments, translate, { includeAssessments: assessmentsEnabled });
+      exportCurrentGameExcel(gameId, gameData, availablePlayers, gameDataManagement.seasons, gameDataManagement.tournaments, translate, { includeAssessments: true });
     } catch (error) {
       logger.error('[handleExportOneExcel] Export failed:', error);
       showToast(t('export.exportGameFailed'), 'error');
     }
-  }, [savedGames, showToast, t, availablePlayers, gameDataManagement.seasons, gameDataManagement.tournaments, assessmentsEnabled]);
+  }, [savedGames, showToast, t, availablePlayers, gameDataManagement.seasons, gameDataManagement.tournaments]);
 
   const openPlayerAssessmentModal = useCallback(() => setIsPlayerAssessmentModalOpen(true), [setIsPlayerAssessmentModalOpen]);
 

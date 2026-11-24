@@ -172,7 +172,7 @@ export function useRosterSettingsController(): UseRosterSettingsControllerReturn
       logger.log(`[useRosterSettingsController] add player success: ${playerData.name}.`);
       return true;
     } catch (error) {
-      logger.error(`[useRosterSettingsController] Exception during add of player ${playerData.name}:`, error);
+      logger.error('[useRosterSettingsController] Exception while adding a player:', error);
       setRosterError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {{playerName}}. Please try again.', { playerName: playerData.name }));
       return false;
     }

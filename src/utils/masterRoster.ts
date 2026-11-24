@@ -97,10 +97,8 @@ export const addPlayerToRoster = async (playerData: {
     });
     return newPlayer;
   } catch (error) {
-    logger.error('[addPlayerToRoster] Unexpected error adding player:', {
-      playerName: trimmedName,
-      error
-    });
+    // No player name in the log: errors reach Sentry.
+    logger.error('[addPlayerToRoster] Unexpected error adding player:', { error });
     return null;
   }
 };

@@ -56,6 +56,8 @@ Live at https://match-ops.com/terms. Version 2026-11. Snapshot: [terms-of-servic
 
 ### Data Safety form (Play Console, owner-only) - answers as of 2026-11-20
 
+**Re-checked 2026-11-23 after PR #1093** (AI behind labs, ratings removed, Sentry moved to the EU, IPs not stored): no change needed. Audio stays declared on purpose: the labs switch can be found and the AI may go public later; over-declaring is safe, under-declaring is not.
+
 Checked against the code and the 2026-11 policy. The Play build is cloud-only
 (sign-in required); local mode is not in the Play build.
 

@@ -1871,7 +1871,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       }
       const spot = scene.player(player);
       if (!Number.isFinite(spot.x) || !Number.isFinite(spot.y)) {
-        logger.warn("Skipping player due to non-finite calculated position", { player, absX: spot.x, absY: spot.y });
+        logger.warn("Skipping player due to non-finite calculated position", { playerId: player.id, absX: spot.x, absY: spot.y });
         return;
       }
       const onRail = spot.railIndex >= 0;

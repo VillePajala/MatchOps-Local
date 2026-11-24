@@ -14,6 +14,7 @@ import { render } from '../../tests/utils/test-utils';
 import GameStatsModal from './GameStatsModal';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import type { Player, SavedGamesCollection } from '@/types';
+import { resetLabsForTests, setLabsEnabled } from '@/utils/labs';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -111,6 +112,13 @@ describe('GameStatsModal - putting a spoken report into the match report', () =>
   beforeEach(() => {
     lastInsertResult = undefined;
     insertText = 'Puhuttu yhteenveto.';
+    // The spoken report is part of the experimental AI set: shown only with
+    // the device's labs switch on (GameStatsModal.test covers it hidden).
+    setLabsEnabled(true);
+  });
+  afterEach(() => {
+    setLabsEnabled(false);
+    resetLabsForTests();
   });
 
   it('stores the text rather than only showing it, and says it stored it', () => {

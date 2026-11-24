@@ -1,24 +1,14 @@
 import Layout from '@/components/Layout';
-import Head from 'next/head';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
 
 export default function PrivacyPolicyPage() {
   const { t } = useTranslation('common');
-  const router = useRouter();
 
   return (
-    <Layout>
-      <Head>
-        <title>{t('seo.privacy.title')}</title>
-        <meta name="description" content={t('seo.privacy.description')} />
-        <meta property="og:title" content={t('seo.privacy.title')} />
-        <meta property="og:description" content={t('seo.privacy.description')} />
-        <meta property="og:url" content={`https://www.match-ops.com${router.locale === 'en' ? '/en' : ''}/privacy`} />
-      </Head>
+    <Layout title={t('seo.privacy.title')} description={t('seo.privacy.description')}>
 
       <div className="section bg-slate-900">
         <div className="container-custom">
@@ -159,6 +149,18 @@ export default function PrivacyPolicyPage() {
                   <strong>{t('privacyPolicy.thirdPartyServices.resend')}</strong> - {t('privacyPolicy.thirdPartyServices.resendDesc')}{' '}
                   <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
                     {t('privacyPolicy.thirdPartyServices.resendLink')}
+                  </a>
+                </p>
+                {/* hello@ / support@match-ops.com: Cloudflare Email Routing forwards
+                    to a Gmail inbox. */}
+                <p>
+                  <strong>{t('privacyPolicy.thirdPartyServices.supportEmail')}</strong> - {t('privacyPolicy.thirdPartyServices.supportEmailDesc')}{' '}
+                  <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+                    {t('privacyPolicy.thirdPartyServices.cloudflareLink')}
+                  </a>
+                  {' · '}
+                  <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+                    {t('privacyPolicy.thirdPartyServices.googleLink')}
                   </a>
                 </p>
                 {/* Reached only while the coach types in the venue or starting-point

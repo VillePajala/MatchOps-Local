@@ -2,6 +2,27 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user. Two exceptions to the prompt: a PR that touches nothing in the app (docs, CI, tests, tooling - see scripts/vercel-ignore-build.mjs) does not deploy and needs no entry; a PR that changes the app but nothing a coach can see (deps, refactors) adds an entry with \"internal\": true, which ships without the update banner and applies on the next launch.",
   "releases": [
     {
+      "date": "2026-11-24",
+      "en": ["Finnish instructions now say \"paina\" (press) instead of \"napauta\" (tap)."],
+      "fi": ["Ohjeissa lukee nyt \"paina\" eikä \"napauta\", samoin kuin sivustollamme."]
+    },
+    {
+      "date": "2026-11-24",
+      "en": ["The goal list is now called Match events."],
+      "fi": ["Maaliloki on nyt nimeltään Ottelutapahtumat, ja rangaistuspotkukilpailun tekstit käyttävät jalkapallon termejä: potku, potkaisija ja rangaistuspotkut."]
+    },
+    {
+      "date": "2026-11-23",
+      "en": [
+        "Player ratings and the experimental AI features (transcription, AI report drafts, translation) are no longer shown. Voice notes stay: they are recorded on your phone only, and you listen and write the note yourself. Ratings you already recorded are kept and still included in exports.",
+        "The notice to players' families (Settings → Data → Privacy) now says who is responsible for the data, what is stored, where, that voice recordings stay on your phone, how to ask for deletion, and where to complain."
+      ],
+      "fi": [
+        "Pelaajien arvioinnit ja kokeelliset tekoälytoiminnot (litterointi, tekoälyn raporttiluonnokset, kääntäminen) eivät enää näy. Äänimuistiinpanot säilyvät: ne tallentuvat vain puhelimeesi, ja kuuntelet ja kirjoitat muistiinpanon itse. Jo tehdyt arvioinnit säilyvät ja ovat edelleen mukana viennissä.",
+        "Tiedote pelaajien perheille (Asetukset → Tiedot → Tietosuoja) kertoo nyt, kuka tiedoista vastaa, mitä tallennetaan, missä, että äänitallenteet pysyvät puhelimessasi, miten poistoa pyydetään ja minne voi valittaa."
+      ]
+    },
+    {
       "date": "2026-11-23",
       "en": ["Match report editing: the buttons sit in two tidy rows instead of four squeezed ones."],
       "fi": ["Otteluraportin muokkaus: painikkeet ovat kahdessa siistissä rivissä neljän ahtaan sijaan."]

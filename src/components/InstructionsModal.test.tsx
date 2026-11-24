@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 import InstructionsModal from './InstructionsModal';
+import { resetLabsForTests, setLabsEnabled } from '@/utils/labs';
 
 let mockLayout: 'basic' | 'full' | undefined = 'full';
 jest.mock('@/hooks/useAppLayout', () => ({ useAppLayout: () => mockLayout }));
@@ -83,7 +84,25 @@ describe('InstructionsModal ("How it works", two-level rebuild)', () => {
     expand(i18n.t('firstGameGuide.clockTitle'));
     expect(screen.getByText(i18n.t('firstGameGuide.clockGoal'))).toBeInTheDocument();
     expand(i18n.t('firstGameGuide.finishTitle'));
-    expect(screen.getByText(i18n.t('firstGameGuide.finishReport'))).toBeInTheDocument();
+    // Plain voice notes (on the phone only) are for everyone, so the mic tip
+    // stays; dictating the report and AI drafts are behind the labs switch
+    // (off by default), so the guide describes a typed report.
+    expect(screen.getByText(i18n.t('firstGameGuide.dictationTip'))).toBeInTheDocument();
+    expect(screen.getByText(i18n.t('firstGameGuide.finishReportTyped'))).toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('firstGameGuide.finishReport'))).not.toBeInTheDocument();
     expect(screen.queryByText(/drag|raaha/i)).not.toBeInTheDocument();
+  });
+
+  it('with the labs switch on, the report line mentions dictation and AI drafts', () => {
+    setLabsEnabled(true);
+    try {
+      renderModal();
+      expand(i18n.t('firstGameGuide.finishTitle'));
+      expect(screen.getByText(i18n.t('firstGameGuide.finishReport'))).toBeInTheDocument();
+      expect(screen.queryByText(i18n.t('firstGameGuide.finishReportTyped'))).not.toBeInTheDocument();
+    } finally {
+      setLabsEnabled(false);
+      resetLabsForTests();
+    }
   });
 });

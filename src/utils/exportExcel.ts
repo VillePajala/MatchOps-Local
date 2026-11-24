@@ -186,7 +186,7 @@ const calculateRecord = (
  * @param tournaments - All tournaments for tournament name resolution (optional)
  * @throws {Error} If Excel generation or download fails
  */
-/** Excel-only switches. `includeAssessments` follows the app setting: off means no ratings sheet, even for old data. */
+/** Excel-only switches. `includeAssessments` false means no ratings sheet, even for old data. The app passes true (ratings already recorded stay in exports while the feature is hidden, 2026-11); the sheet still appears only when rating data exists. */
 export interface ExcelExportOptions {
   includeAssessments?: boolean;
   /** Player export: the filters on screen (team, club season, game type, gender), so
