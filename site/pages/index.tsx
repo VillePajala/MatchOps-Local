@@ -160,7 +160,7 @@ export default function HomePage() {
           <GlowBg color="amber" position="bottom-left" size="sm" blur={130} />
         </div>
         <div className="container-custom relative z-10">
-          <div className="grid items-center gap-10 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] xl:gap-8 max-w-7xl mx-auto">
+          <div className="grid items-center gap-10 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] xl:gap-20 max-w-7xl mx-auto">
             <div className="text-center xl:text-left max-w-2xl mx-auto xl:max-w-none">
               <p className="text-xs md:text-sm font-semibold text-primary uppercase tracking-wider mb-3">
                 {t('home.hero.eyebrow')}
@@ -191,41 +191,34 @@ export default function HomePage() {
               </ul>
             </div>
 
-            {/* Phones: the field on small screens; on large ones the match day left to
-                right - plan, the match on the field, the clock, the match sheet. */}
+            {/* Phones: the field on small screens; on large ones a fan of three with the
+                field in front - the clock and the planner tilted behind it. */}
             <div className="relative flex justify-center">
               <div className="lg:hidden w-[240px] max-w-[70vw]">
                 <PhoneMockup screenshot={s.matchview} alt={t('home.alt.matchview')} size="2xl" priority />
               </div>
-              <div className="hidden lg:flex items-center justify-center py-6">
+              <div className="hidden lg:block relative h-[600px] w-full max-w-[620px]">
+                <PhoneMockup
+                  screenshot={s.timer}
+                  alt={t('home.alt.timer')}
+                  size="xl"
+                  style={{ position: 'absolute', left: '0%', top: '50%', transform: 'translateY(-50%) rotate(-7deg)' }}
+                  zIndex={1}
+                />
                 <PhoneMockup
                   screenshot={s.planner}
                   alt={t('home.alt.planner')}
-                  size="lg"
-                  style={{ width: 160, marginRight: -24, transform: 'translateY(24px) rotate(-4deg)' }}
+                  size="xl"
+                  style={{ position: 'absolute', right: '0%', top: '50%', transform: 'translateY(-50%) rotate(7deg)' }}
                   zIndex={1}
                 />
                 <PhoneMockup
                   screenshot={s.matchview}
                   alt={t('home.alt.matchview')}
-                  size="xl"
-                  style={{ marginRight: 8 }}
+                  size="2xl"
+                  style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
                   zIndex={10}
                   priority
-                />
-                <PhoneMockup
-                  screenshot={s.timer}
-                  alt={t('home.alt.timer')}
-                  size="xl"
-                  zIndex={10}
-                  priority
-                />
-                <PhoneMockup
-                  screenshot={s.poytakirja}
-                  alt={t('home.alt.poytakirja')}
-                  size="lg"
-                  style={{ width: 160, marginLeft: -24, transform: 'translateY(24px) rotate(4deg)' }}
-                  zIndex={1}
                 />
               </div>
             </div>
